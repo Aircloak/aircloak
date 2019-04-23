@@ -47,7 +47,7 @@ defmodule CentralWeb.LicenseView do
 
     feature_to_name = fn features ->
       features
-      |> Enum.filter(fn {name, key} -> Enum.member?(license.features, key) end)
+      |> Enum.filter(fn {_name, key} -> Enum.member?(license.features, key) end)
       |> Enum.map(fn {name, _} -> name end)
     end
 
