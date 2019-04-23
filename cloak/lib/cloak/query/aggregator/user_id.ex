@@ -88,18 +88,16 @@ defmodule Cloak.Query.Aggregator.UserId do
 
   defp aggregate_values([], [], []), do: []
 
-  defp aggregate_values([nil | rest_values], [accumulator | rest_accumulators], [
-         _aggregator | rest_aggregators
-       ]),
-       do: [accumulator | aggregate_values(rest_values, rest_accumulators, rest_aggregators)]
+  defp aggregate_values([nil | rest_values], [accumulator | rest_accumulators], [_aggregator | rest_aggregators]) do
+    [accumulator | aggregate_values(rest_values, rest_accumulators, rest_aggregators)]
+  end
 
-  defp aggregate_values([value | rest_values], [accumulator | rest_accumulators], [
-         aggregator | rest_aggregators
-       ]),
-       do: [
-         aggregate_value(aggregator, value, accumulator)
-         | aggregate_values(rest_values, rest_accumulators, rest_aggregators)
-       ]
+  defp aggregate_values([value | rest_values], [accumulator | rest_accumulators], [aggregator | rest_aggregators]) do
+    [
+      aggregate_value(aggregator, value, accumulator)
+      | aggregate_values(rest_values, rest_accumulators, rest_aggregators)
+    ]
+  end
 
   defp per_user_aggregator(%Expression{function_args: [{:distinct, _column}]}), do: :set
   defp per_user_aggregator(%Expression{function: "count"}), do: :count
@@ -114,16 +112,37 @@ defmodule Cloak.Query.Aggregator.UserId do
   defp per_user_aggregator(%Expression{function: "max"}), do: :max
   defp per_user_aggregator(%Expression{function: "median"}), do: :list
 
+  defp aggregate_value(_aggregator, _value, :NaN), do: :NaN
+
   defp aggregate_value(:count, _value, nil), do: 1
   defp aggregate_value(:count, _value, count), do: count + 1
   defp aggregate_value(:sum, value, nil), do: value
-  defp aggregate_value(:sum, value, sum), do: sum + value
-  defp aggregate_value(:avg, value, nil), do: {:avg, value, 1}
-  defp aggregate_value(:avg, value, {:avg, sum, count}), do: {:avg, sum + value, count + 1}
-  defp aggregate_value(:variance, value, nil), do: {:variance, value, value * value, 1}
 
-  defp aggregate_value(:variance, value, {:variance, sum, sum_sqrs, count}),
-    do: {:variance, sum + value, sum_sqrs + value * value, count + 1}
+  defp aggregate_value(:sum, value, sum) do
+    sum + value
+  rescue
+    _ -> :NaN
+  end
+
+  defp aggregate_value(:avg, value, nil), do: {:avg, value, 1}
+
+  defp aggregate_value(:avg, value, {:avg, sum, count}) do
+    {:avg, sum + value, count + 1}
+  rescue
+    _ -> :NaN
+  end
+
+  defp aggregate_value(:variance, value, nil) do
+    {:variance, value, value * value, 1}
+  rescue
+    _ -> :NaN
+  end
+
+  defp aggregate_value(:variance, value, {:variance, sum, sum_sqrs, count}) do
+    {:variance, sum + value, sum_sqrs + value * value, count + 1}
+  rescue
+    _ -> :NaN
+  end
 
   defp aggregate_value(:set, value, nil), do: MapSet.new([value])
   defp aggregate_value(:set, value, prev_values), do: MapSet.put(prev_values, value)
@@ -142,6 +161,9 @@ defmodule Cloak.Query.Aggregator.UserId do
   defp merge_accumulators({value, nil}), do: value
   # no values present for first bucket
   defp merge_accumulators({nil, value}), do: value
+
+  defp merge_accumulators({_value, :NaN}), do: :NaN
+  defp merge_accumulators({:NaN, _value}), do: :NaN
 
   defp merge_accumulators({value1, value2}) when is_number(value1) and is_number(value2),
     # sum and count accoumulators
@@ -184,7 +206,7 @@ defmodule Cloak.Query.Aggregator.UserId do
         {values_index, aggregator} ->
           users_rows
           |> Stream.map(fn {_user, row_values} -> Enum.at(row_values, values_index) end)
-          |> Enum.reject(&is_nil/1)
+          |> Enum.reject(&(&1 in [nil, :NaN]))
           |> preprocess_for_aggregation(aggregator)
           |> aggregate_by(aggregator.alias || aggregator.function, aggregator.type, anonymizer)
       end)
