@@ -168,6 +168,11 @@ defmodule Air.Service.UserTest do
       assert errors_on(&User.create(&1), %{name: "Bob", login: User.main_login(user)})[:login] ==
                "has already been taken"
     end
+
+    test "error in case of conflicting login with different case" do
+      TestRepoHelper.create_user!(%{login: "alice"})
+      assert errors_on(&User.create(&1), %{name: "Bob", login: "Alice"})[:login] == "has already been taken"
+    end
   end
 
   describe ".create_app_login" do
@@ -231,6 +236,11 @@ defmodule Air.Service.UserTest do
     test "success for native user" do
       user_id = TestRepoHelper.create_user!(%{login: "alice", password: "password1234"}).id
       assert {:ok, %{id: ^user_id}} = User.login("alice", "password1234")
+    end
+
+    test "login is case insensitive" do
+      user_id = TestRepoHelper.create_user!(%{login: "alice", password: "password1234"}).id
+      assert {:ok, %{id: ^user_id}} = User.login("AlicE", "password1234")
     end
 
     test "failure for native user" do

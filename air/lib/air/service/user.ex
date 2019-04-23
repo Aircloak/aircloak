@@ -548,11 +548,13 @@ defmodule Air.Service.User do
   # -------------------------------------------------------------------
 
   defp do_login(login, password, meta, login_types) do
+    normalized_login = String.downcase(login)
+
     login =
       mask_timing(fn ->
         Login
         |> join(:left, [login], user in assoc(login, :user))
-        |> where([login, _user], login.login == ^login)
+        |> where([login, _user], fragment("lower(?)", login.login) == ^normalized_login)
         |> where([login, _user], login.login_type in ^login_types)
         |> where([_login, user], user.enabled)
         |> preload([_login, user], user: user)
