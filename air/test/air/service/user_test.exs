@@ -241,6 +241,11 @@ defmodule Air.Service.UserTest do
       assert {:ok, %{id: ^user_id}} = User.login("alice", "password1234")
     end
 
+    test "login is case insensitive" do
+      user_id = TestRepoHelper.create_user!(%{login: "alice", password: "password1234"}).id
+      assert {:ok, %{id: ^user_id}} = User.login("AlicE", "password1234")
+    end
+
     test "failure for native user" do
       TestRepoHelper.create_user!(%{login: "alice", password: "password1234"})
       assert {:error, :invalid_login_or_password} = User.login("alice", "invalid password")
