@@ -33,6 +33,109 @@
         <% end %>
       </div>
     </div>
+
+    <%= if license_present?() do %>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Licensed features</h3>
+        </div>
+        <div class="panel-body">
+          <p>Your Aircloak Insights license includes the following features.</p>
+        </div>
+
+        <table class="table">
+          <tbody>
+            <tr>
+              <td colspan="2"><strong>Core functionality</strong></td>
+            </tr>
+            <tr>
+              <td>Insights Air web interface</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>Insights Cloak query and anonymization engine</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>On-premise installation</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>Offline deployment</td>
+              <td><%= includes_feature?(:offline_deployment) %></td>
+            </tr>
+            <tr>
+              <td>User management</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>LDAP/Active Directory integration</td>
+              <td><%= includes_feature?(:ldap) %></td>
+            </tr>
+            <tr>
+              <td>Materialized views</td>
+              <td><%= includes_feature?(:analyst_tables) %></td>
+            </tr>
+
+            <tr>
+              <td colspan="2"><strong>Data sources</strong></td>
+            </tr>
+            <tr>
+              <td>Postgres</td>
+              <td><%= includes_feature?(:ds_postgres) %></td>
+            </tr>
+            <tr>
+              <td>MySQL and MariaDB</td>
+              <td><%= includes_feature?(:ds_mysql) %></td>
+            </tr>
+            <tr>
+              <td>Microsoft SQL Server</td>
+              <td><%= includes_feature?(:ds_sqlserver) %></td>
+            </tr>
+            <tr>
+              <td>MongoDB</td>
+              <td><%= includes_feature?(:ds_mongodb) %></td>
+            </tr>
+            <tr>
+              <td>Apache Drill</td>
+              <td><%= includes_feature?(:ds_apachedrill) %></td>
+            </tr>
+            <tr>
+              <td>Oracle DB</td>
+              <td><%= includes_feature?(:ds_oracle) %></td>
+            </tr>
+
+            <tr>
+              <td colspan="2"><strong>APIs</strong></td>
+            </tr>
+            <tr>
+              <td>Postgres Message Protocol query interface</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>HTTP REST API</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>System monitoring API</td>
+              <td>Yes</td>
+            </tr>
+
+            <tr>
+              <td colspan="2"><strong>Support</strong></td>
+            </tr>
+            <tr>
+              <td>Community support</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>Aircloak support</td>
+              <td><%= includes_feature?(:email_support) %></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
   </div>
 
   <div class="col-sm-4">
