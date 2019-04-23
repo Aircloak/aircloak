@@ -13,7 +13,7 @@ defmodule AirWeb.Admin.LicenseView do
   defp license_auto_renews?(), do: License.auto_renew?()
 
   defp includes_feature?(feature_name) do
-    if Enum.member?(License.features(), feature_name) do
+    if AirWeb.SharedView.licensed_feature?(feature_name) do
       "Yes"
     else
       "No"
