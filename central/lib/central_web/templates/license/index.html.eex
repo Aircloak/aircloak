@@ -9,6 +9,7 @@
       <th>Name</th>
       <th>Length (days)</th>
       <th>Auto-renew</th>
+      <th>Features</th>
       <th>Expires</th>
       <th></th>
     </tr>
@@ -26,6 +27,7 @@
           <% end %>
           <div class="sr-only"><%= license.auto_renew %>u</div>
         </td>
+        <td><%= Aircloak.OxfordComma.join(license.features) %></td>
         <td><%= expires(license) %></td>
         <td>
           <%= if license.revoked do %>
