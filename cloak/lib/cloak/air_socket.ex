@@ -419,7 +419,8 @@ defmodule Cloak.AirSocket do
     }
   end
 
-  defp cloak_name() do
+  @doc false
+  def cloak_name() do
     vm_short_name =
       Node.self()
       |> Atom.to_string()

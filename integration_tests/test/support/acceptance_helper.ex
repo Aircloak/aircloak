@@ -33,7 +33,7 @@ defmodule IntegrationTest.AcceptanceHelper do
         end
       end
 
-      fun.(fun, Keyword.get(opts, :attempts, 50))
+      fun.(fun, Keyword.get(opts, :attempts, 10))
     end
   end
 
