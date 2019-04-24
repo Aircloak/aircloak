@@ -133,4 +133,42 @@ defmodule Cloak.Query.AnonymizationTest do
 
     assert c1 > 1.0 and c2 > 1.0
   end
+
+  test "stddev with large values" do
+    :ok = insert_rows(_user_ids = 1..10, "anonymizations", ["number"], [50])
+
+    assert_query(
+      "select stddev(1000000^number) from anonymizations",
+      %{rows: [%{row: [nil]}]}
+    )
+  end
+
+  test "median with large values" do
+    :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [50])
+
+    assert_query(
+      "select median(1000000^number) from anonymizations",
+      %{rows: [%{row: [nil]}]}
+    )
+  end
+
+  test "uid-based sum with large values" do
+    :ok = insert_rows(_user_ids = 1..1000, "anonymizations", ["number"], [51])
+
+    assert_query(
+      "select sum(1000000^number), median(1) from anonymizations",
+      %{rows: [%{row: [nil, 1]}]}
+    )
+  end
+
+  test "stats-based sum with large values" do
+    :ok = insert_rows(_user_ids = 1..1000, "anonymizations", ["number"], [3.4e38])
+
+    assert_query(
+      "select sum(number) from anonymizations",
+      %{rows: [%{row: [result]}]}
+    )
+
+    assert is_number(result)
+  end
 end
