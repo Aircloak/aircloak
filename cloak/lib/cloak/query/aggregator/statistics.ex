@@ -143,7 +143,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
         {%Expression{function: "count_noise", function_args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
           Anonymizer.noise_amount(1, anonymizer)
 
-        {_aggregator, [0, nil, nil, nil, nil]} ->
+        {_aggregator, [_count, nil, nil, nil, nil]} ->
           nil
 
         {aggregator, [count, sum, min, max, stddev]} ->

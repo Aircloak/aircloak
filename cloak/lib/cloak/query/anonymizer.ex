@@ -132,7 +132,10 @@ defmodule Cloak.Query.Anonymizer do
         nil
 
       top_values ->
-        -(top_values |> Enum.drop(max_count) |> Enum.take(top_count) |> noisy_average(anonymizer))
+        case top_values |> Enum.drop(max_count) |> Enum.take(top_count) |> noisy_average(anonymizer) do
+          nil -> nil
+          value -> -value
+        end
     end
   end
 
@@ -392,6 +395,8 @@ defmodule Cloak.Query.Anonymizer do
       # We don't have enough values to return a result.
       {0, nil}
     end
+  rescue
+    _ -> {0, nil}
   end
 
   defp noise_sigma_scale_factor(average, top_average) do
@@ -438,6 +443,8 @@ defmodule Cloak.Query.Anonymizer do
     quarter_stddev = :math.sqrt(variance) / 4
     {noisy_average, _anonymizer} = add_noise(anonymizer, {average, quarter_stddev})
     noisy_average
+  rescue
+    _ -> nil
   end
 
   defp noisy_median([], _anonymizer), do: nil

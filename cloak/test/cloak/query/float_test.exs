@@ -80,4 +80,11 @@ defmodule Cloak.Query.FloatTest do
 
     assert_in_delta value, 2.5, 0.01
   end
+
+  test "aggregating invalid values" do
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["value"], [-1.7e308])
+    for _ <- 1..10, do: :ok = insert_rows(_user_ids = 11..11, "floats", ["value"], [1.7e308])
+
+    assert_query("select sum(value) from floats", %{rows: [%{row: [nil]}]})
+  end
 end
