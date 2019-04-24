@@ -2,8 +2,8 @@
 
 <p>
   Aircloak Insights comes with a <a href="/docs">user guide</a> which answer many
-  common questinos, and explains the functionality provided by the system as well as common pitfalls.
-  It is usually the fastest way to your question answered.
+  common questions, and explains the functionality provided by the system as well as common pitfalls.
+  It is usually the fastest way to have your question answered.
 
   The chapters on <a href="/docs/sql/query-results.html">understanding query results</a>
   and the <a href="/docs/sql/best-practises.html">best practises</a> might be of particular interest.
