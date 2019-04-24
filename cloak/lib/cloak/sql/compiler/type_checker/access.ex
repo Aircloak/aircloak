@@ -100,7 +100,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
     not Type.clear_column?(Type.establish_type(expression, query), &allowed_isolator_function?/1)
   end
 
-  @allowed_isolator_functions ~w(lower upper substring trim ltrim rtrim btrim)
+  @allowed_isolator_functions ~w(lower upper substring trim ltrim rtrim btrim hex left right length)
   defp allowed_isolator_function?(function) do
     function in @allowed_isolator_functions or Function.implicit_range?(function)
   end

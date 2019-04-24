@@ -67,7 +67,7 @@ defmodule Compliance.QueryFeatures.Test do
         SELECT COUNT(*) FROM (
           SELECT #{unquote(uid)}, 'a constant'
           FROM #{unquote(table)}
-          ORDER BY 2 DESC NULLS FIRST
+          ORDER BY 1, 2 DESC NULLS FIRST
           LIMIT 10
         ) x
       """)
@@ -97,7 +97,7 @@ defmodule Compliance.QueryFeatures.Test do
           SELECT foo FROM (
             SELECT #{unquote(uid)}, BUCKET(#{unquote(column)} BY 0.1) AS foo
             FROM #{unquote(table)}
-            ORDER BY 2 #{unquote(direction)} #{unquote(nulls)}
+            ORDER BY 1, 2 #{unquote(direction)} #{unquote(nulls)}
             LIMIT 10
           ) x
         """)

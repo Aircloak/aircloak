@@ -33,6 +33,13 @@ defmodule Central.SessionControllerTest do
     assert get_flash(logged_out_conn)["info"] =~ "Logged out successfully"
   end
 
+  test "can log in with incorrectly cased email address" do
+    user = TestRepoHelper.create_user!(%{email: "test@example.com", password: "1234"})
+    logged_in_conn = build_conn() |> post("/auth", email: "TEST@EXAMPLE.COM", password: "1234")
+    assert "/" == redirected_to(logged_in_conn)
+    assert get_flash(logged_in_conn)["info"] =~ "Logged in successfully"
+  end
+
   test "logged in user can't log in" do
     user = TestRepoHelper.create_user!()
 

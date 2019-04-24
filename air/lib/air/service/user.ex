@@ -548,11 +548,13 @@ defmodule Air.Service.User do
   # -------------------------------------------------------------------
 
   defp do_login(login, password, meta, login_types) do
+    normalized_login = String.downcase(login)
+
     login =
       mask_timing(fn ->
         Login
         |> join(:left, [login], user in assoc(login, :user))
-        |> where([login, _user], login.login == ^login)
+        |> where([login, _user], fragment("lower(?)", login.login) == ^normalized_login)
         |> where([login, _user], login.login_type in ^login_types)
         |> where([_login, user], user.enabled)
         |> preload([_login, user], user: user)
@@ -581,11 +583,11 @@ defmodule Air.Service.User do
   defp valid_password?(login, password) do
     case login do
       %{login_type: :main, user: %{source: :ldap}} ->
-        {_, result} = {validate_password(login, password), LDAP.simple_bind(login.user.ldap_dn, password)}
+        {_, result} = {validate_password(login, password), LDAP.Client.simple_bind(login.user.ldap_dn, password)}
         match?(:ok, result)
 
       _ ->
-        {result, _} = {validate_password(login, password), LDAP.dummy_bind()}
+        {result, _} = {validate_password(login, password), LDAP.Client.dummy_bind()}
         result
     end
   end

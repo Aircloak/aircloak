@@ -34,10 +34,6 @@ defmodule Cloak.DataSource.Drill do
     end
   end
 
-  # -------------------------------------------------------------------
-  # DataSource.Driver callbacks
-  # -------------------------------------------------------------------
-
   @impl Driver
   def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
 
@@ -49,6 +45,37 @@ defmodule Cloak.DataSource.Drill do
   end
 
   @impl Driver
-  def supports_query?(query),
-    do: query |> get_in([Cloak.Sql.Query.Lenses.joins()]) |> Enum.any?(&(&1.type == :cross_join)) |> :erlang.not()
+  def supports_query?(query), do: not has_cross_joins?(query) and not has_grouping_sets?(query)
+
+  @impl Driver
+  def select(connection, query, result_processor) do
+    RODBC.select(connection, query, custom_mappers(), result_processor)
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp has_cross_joins?(query),
+    do: query |> get_in([Cloak.Sql.Query.Lenses.joins()]) |> Enum.any?(&(&1.type == :cross_join))
+
+  defp has_grouping_sets?(query), do: length(query.grouping_sets) > 1 and query.type != :anonymized
+
+  defp custom_mappers() do
+    %{
+      :interval => &interval_mapper/1
+    }
+  end
+
+  defp interval_mapper(nil), do: nil
+
+  defp interval_mapper(interval) do
+    with [days, time] <- String.split(interval, " "),
+         {days, ""} <- Integer.parse(days),
+         {:ok, time} <- Time.from_iso8601(time) do
+      Timex.Duration.add(Timex.Duration.from_days(days), Timex.Duration.from_time(time))
+    else
+      _ -> nil
+    end
+  end
 end

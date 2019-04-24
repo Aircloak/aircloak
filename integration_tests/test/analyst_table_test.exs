@@ -3,6 +3,7 @@ defmodule IntegrationTest.AnalystTableTest do
 
   alias IntegrationTest.Manager
   import Aircloak.AssertionHelper
+  import IntegrationTest.Helpers
 
   setup_all do
     Air.Repo.delete_all(Air.Schemas.AnalystTable)
@@ -14,14 +15,14 @@ defmodule IntegrationTest.AnalystTableTest do
       &cloak_data_source.driver.execute!(&1, "truncate table __ac_analyst_tables_1")
     )
 
-    {:ok, user: Manager.create_air_user()}
+    {:ok, user: Manager.create_admin_user()}
   end
 
   test "supports flag is passed to air and stored in database",
     do: assert(Manager.data_source().supports_analyst_tables == true)
 
   test "successful table creation", context do
-    name = unique_name()
+    name = unique_name(:table)
     assert {:ok, table} = create_table(context.user, name, "select user_id, name from users")
     assert table.name == name
     assert table.sql == "select user_id, name from users"
@@ -32,7 +33,7 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "selecting from an analyst table", context do
-    name = unique_name()
+    name = unique_name(:table)
     {:ok, _table} = create_table(context.user, name, "select user_id, name from users")
     assert {:ok, result} = run_query(context.user, "select * from #{name}")
     assert result.columns == ~w(user_id name)
@@ -40,7 +41,7 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "cloak error is reported", context do
-    name = unique_name()
+    name = unique_name(:table)
     assert {:error, changeset} = create_table(context.user, name, "select foo")
     assert changeset.errors[:sql] == {"Expected `from` at line 1, column 11.", []}
   end
@@ -92,15 +93,15 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "duplicate name error is reported", context do
-    name = unique_name()
+    name = unique_name(:table)
     {:ok, _table} = create_table(context.user, name, "select user_id, name from users")
     assert {:error, changeset} = create_table(context.user, name, "select user_id, name from users")
     assert changeset.errors[:name] == {"has already been taken", []}
   end
 
   test "successful table update", context do
-    name = unique_name()
-    new_name = unique_name()
+    name = unique_name(:table)
+    new_name = unique_name(:table)
 
     {:ok, table} = create_table(context.user, name, "select user_id, name from users")
     assert {:ok, updated_table} = update_table(table.id, context.user, new_name, "select user_id from users")
@@ -116,8 +117,8 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "previous table is dropped if table is renamed on update", context do
-    original_name = unique_name()
-    new_name = unique_name()
+    original_name = unique_name(:table)
+    new_name = unique_name(:table)
 
     {:ok, table} = create_table(context.user, original_name, "select user_id, name from users")
     {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
@@ -128,16 +129,16 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "failed update when other user", context do
-    name = unique_name()
-    new_name = unique_name()
-    other_user = Manager.create_air_user()
+    name = unique_name(:table)
+    new_name = unique_name(:table)
+    other_user = Manager.create_admin_user()
 
     {:ok, table} = create_table(context.user, name, "select user_id, name from users")
     assert {:error, :not_allowed} = update_table(table.id, other_user, new_name, "select user_id from users")
   end
 
   test "updating analyst table sets the creation status to pending", context do
-    name = unique_name()
+    name = unique_name(:table)
     data_source = Manager.data_source()
     {:ok, table} = create_table(context.user, name, "select user_id, name from users")
 
@@ -163,7 +164,7 @@ defmodule IntegrationTest.AnalystTableTest do
       &cloak_data_source.driver.execute!(&1, "truncate table __ac_analyst_tables_1")
     )
 
-    table_name = unique_name()
+    table_name = unique_name(:table)
     {:ok, _} = create_table(context.user, table_name, "select user_id from users")
     Manager.restart_cloak()
 
@@ -179,7 +180,7 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "successful table delete", context do
-    name = unique_name()
+    name = unique_name(:table)
 
     {:ok, table} = create_table(context.user, name, "select user_id, name from users")
     {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
@@ -191,7 +192,7 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "analyst table can reference a view", context do
-    name = unique_name()
+    name = unique_name(:table)
 
     {:ok, _} =
       Air.Service.View.create(context.user, Manager.data_source(), "some_view", "select user_id, name from users")
@@ -204,7 +205,7 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "analyst table name can't be the same as a name of an existing view", context do
-    name = unique_name()
+    name = unique_name(:table)
 
     {:ok, _} = Air.Service.View.create(context.user, Manager.data_source(), name, "select user_id, name from users")
 
@@ -213,10 +214,10 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "views are revalidated after analyst table is deleted", context do
-    table_name = unique_name()
+    table_name = unique_name(:table)
     {:ok, table} = create_table(context.user, table_name, "select * from users")
 
-    view_name = unique_name()
+    view_name = unique_name(:table)
     {:ok, view} = Air.Service.View.create(context.user, Manager.data_source(), view_name, "select * from #{table_name}")
 
     :ok = Air.Service.AnalystTable.delete(table.id, context.user)
@@ -225,10 +226,10 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "views are revalidated after analyst table is updated", context do
-    table_name = unique_name()
+    table_name = unique_name(:table)
     {:ok, table} = create_table(context.user, table_name, "select * from users")
 
-    view_name = unique_name()
+    view_name = unique_name(:table)
 
     {:ok, view} =
       Air.Service.View.create(
@@ -244,12 +245,12 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "analyst tables are deleted if the user is deleted" do
-    user = Manager.create_air_user()
+    user = Manager.create_admin_user()
     {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
 
     tables =
       Stream.repeatedly(fn ->
-        name = unique_name()
+        name = unique_name(:table)
         {:ok, table} = create_table(user, name, "select * from users")
         %{id: table.id, db_name: Cloak.AnalystTable.find(user.id, name, cloak_data_source).db_name}
       end)
@@ -281,7 +282,7 @@ defmodule IntegrationTest.AnalystTableTest do
 
     tables =
       Stream.repeatedly(fn ->
-        name = unique_name()
+        name = unique_name(:table)
         {:ok, table} = create_table(user, name, "select * from users")
         %{id: table.id, db_name: Cloak.AnalystTable.find(user.id, name, cloak_data_source).db_name}
       end)
@@ -296,8 +297,6 @@ defmodule IntegrationTest.AnalystTableTest do
       assert soon(is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id)), :timer.seconds(5), repeat_wait_time: 10)
     end)
   end
-
-  defp unique_name(), do: "table_#{:erlang.unique_integer([:positive])}"
 
   defp create_table(user, name, sql) do
     with {:ok, table} <- Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql) do
@@ -329,11 +328,5 @@ defmodule IntegrationTest.AnalystTableTest do
     data_source
     |> Cloak.DataSource.Connection.execute!(&data_source.driver.analyst_tables/1)
     |> Enum.all?(&(&1 != db_name))
-  end
-
-  defp run_query(user, query, params \\ []) do
-    data_source_id_spec = {:id, Manager.data_source().id}
-    {:ok, query} = Air.Service.Query.create(data_source_id_spec, :autogenerate, user, :http, query, params, [])
-    Air.Service.DataSource.await_query(query)
   end
 end

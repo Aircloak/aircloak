@@ -15,9 +15,9 @@ function prepare_for_test {
   docker run \
     --detach --name "$postgres_container_name" \
     --tmpfs=/ramdisk:rw,size=1G -e PGDATA=/ramdisk \
-    postgres:9.4 > /dev/null
+    postgres:9.6 > /dev/null
 
-  docker network connect --alias postgres9.4 $container_name $postgres_container_name
+  docker network connect --alias postgres9.6 $container_name $postgres_container_name
 }
 
 function prepare_for_compliance {
@@ -26,20 +26,20 @@ function prepare_for_compliance {
 
   drill_container_name="${container_name}_drill1.15"
   docker run \
-    --detach --name $drill_container_name -t \
+    --detach --name $drill_container_name -it \
     -v $(pwd)/cloak/ci/data:/tmp/data \
     harisekhon/apache-drill:1.15
 
   docker network connect --alias drill1.15 $container_name $drill_container_name
 
-  for db_container in postgres9.4 mongo3.4 mysql5.7 sqlserver2017 oracle11g; do
+  for db_container in postgres9.6 mongo3.4 mysql5.7 sqlserver2017 oracle11g; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container
   done
 }
 
 function ensure_database_containers {
-  ensure_supporting_container postgres9.4 --tmpfs=/ramdisk:rw,size=2G -e PGDATA=/ramdisk postgres:9.4
+  ensure_supporting_container postgres9.6 --tmpfs=/ramdisk:rw,size=2G -e PGDATA=/ramdisk postgres:9.6
   ensure_supporting_container mongo3.4 --tmpfs=/data/db:rw,size=4G mongo:3.4
   ensure_supporting_container mysql5.7 --tmpfs=/var/lib/mysql:rw,size=2G \
     -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 \

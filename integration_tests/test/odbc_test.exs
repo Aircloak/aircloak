@@ -4,7 +4,7 @@ defmodule IntegrationTest.OdbcTest do
   alias IntegrationTest.Manager
 
   setup do
-    {:ok, user: Manager.create_air_user()}
+    {:ok, user: Manager.create_admin_user()}
   end
 
   test "invalid connect params", context do
@@ -113,7 +113,11 @@ defmodule IntegrationTest.OdbcTest do
     test(
       "show tables",
       context,
-      do: assert(:odbc.sql_query(context.conn, 'show tables') == {:selected, ['name', 'type'], [{'users', 'personal'}]})
+      do:
+        assert(
+          :odbc.sql_query(context.conn, 'show tables') ==
+            {:selected, ['name', 'type'], [{'integers', 'personal'}, {'users', 'personal'}]}
+        )
     )
 
     test(

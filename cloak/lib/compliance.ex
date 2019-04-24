@@ -63,7 +63,11 @@ defmodule Compliance do
   defp table_data(table) do
     table
     |> Map.take([:db_name, :user_id, :projection, :decoders])
+    |> Map.put(:content_type, content_type(table))
     |> Enum.reject(fn {_key, val} -> is_nil(val) end)
     |> Enum.into(%{})
   end
+
+  defp content_type(%{content_type: :public}), do: "non-personal"
+  defp content_type(_), do: nil
 end

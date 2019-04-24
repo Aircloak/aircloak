@@ -34,13 +34,12 @@ defmodule Cloak.Mixfile do
   defp deps do
     [
       {:aircloak_common, path: "../common/elixir"},
-      {:postgrex, "~> 0.13"},
-      {:mariaex, "~> 0.8"},
+      {:postgrex, github: "sasa1977/postgrex", tag: "0.13.5"},
+      {:mariaex, github: "cristianberneanu/mariaex", tag: "0.8.4"},
       {:phoenix_gen_socket_client, "~> 2.0"},
       {:websocket_client, "~> 1.2.4"},
-      {:combine, "~> 0.9.6"},
-      {:timex, "~> 3.1"},
-      {:mongodb, "~> 0.3.0"},
+      {:combine, "~> 0.10"},
+      {:mongodb, github: "sasa1977/mongodb", tag: "0.3.0"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
       {:file_system, "~> 0.2.6"},
@@ -58,7 +57,7 @@ defmodule Cloak.Mixfile do
 
       # Test deps
 
-      {:phoenix, "~> 1.4.0", only: :test},
+      {:phoenix, "~> 1.4.1", only: :test},
       {:cowboy, "~> 1.0", only: :test},
       {:bypass, "~> 0.5.1", only: :test},
       {:stream_data, "~> 0.4.0", only: :test},
@@ -75,7 +74,7 @@ defmodule Cloak.Mixfile do
 
   defp common_extra_applications(), do: [:logger, :runtime_tools, :crypto, :odbc, :ssl, :public_key] ++ dialyzer_deps()
 
-  defp dialyzer_deps(), do: [:jason]
+  defp dialyzer_deps(), do: [:jason, :timex]
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]

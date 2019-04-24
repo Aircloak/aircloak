@@ -101,6 +101,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         columns: inner_columns,
         column_titles: Enum.map(inner_columns, &Expression.title(&1)),
         group_by: Enum.map(groups, &Expression.unalias/1),
+        grouping_sets: Helpers.default_grouping_sets(groups),
         order_by: order_by |> Enum.map(&Expression.unalias/1) |> Enum.map(&{&1, :asc, :nulls_natural}),
         having: statistics_buckets_filter(query, count_duid),
         limit: nil,

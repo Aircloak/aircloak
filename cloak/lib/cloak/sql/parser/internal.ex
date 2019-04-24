@@ -755,16 +755,66 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp optional_group_by() do
     switch([
-      {keyword(:group), pair_both(keyword(:by), comma_delimited(column()))},
+      {keyword(:group), pair_both(keyword(:by), grouping_sets())},
       {:else, noop()}
     ])
-    |> map(fn {_, [{:by, columns}]} -> {:group_by, columns} end)
+    |> map(fn {[:group], [{:by, grouping_sets}]} -> {:grouping_sets, grouping_sets} end)
   end
 
-  defp order_by_field(),
-    do:
-      sequence([column(), order_by_direction(), nulls_specifier()])
-      |> map(&List.to_tuple/1)
+  defp grouping_sets() do
+    switch([
+      {keyword(:grouping), sequence([keyword(:sets), keyword(:"("), any_grouping_sets(), keyword(:")")])},
+      {keyword(:rollup), sequence([keyword(:"("), non_empty_grouping_sets(), keyword(:")")])},
+      {keyword(:cube), sequence([keyword(:"("), non_empty_grouping_sets(), keyword(:")")])},
+      {:else, any_grouping_sets()}
+    ])
+    |> map(fn
+      {[:grouping], [[:sets, :"(", grouping_sets, :")"]]} -> grouping_sets
+      {[:rollup], [[:"(", grouping_sets, :")"]]} -> sets_rollup(grouping_sets)
+      {[:cube], [[:"(", grouping_sets, :")"]]} -> grouping_sets |> sets_cube() |> Enum.sort_by(&length/1, &>=/2)
+      grouping_set -> [Enum.flat_map(grouping_set, &List.wrap/1)]
+    end)
+  end
+
+  defp any_grouping_sets() do
+    comma_delimited(
+      switch([
+        {keyword(:"("), pair_both(option(comma_delimited(column())), keyword(:")"))},
+        {:else, column()}
+      ])
+      |> map(fn
+        {[:"("], [{nil, :")"}]} -> []
+        {[:"("], [{group, :")"}]} -> group
+        column -> [column]
+      end)
+    )
+  end
+
+  defp non_empty_grouping_sets() do
+    comma_delimited(
+      switch([
+        {keyword(:"("), pair_both(comma_delimited(column()), keyword(:")"))},
+        {:else, column()}
+      ])
+      |> map(fn
+        {[:"("], [{group, :")"}]} -> group
+        column -> [column]
+      end)
+    )
+  end
+
+  defp sets_rollup(sets), do: Enum.map(length(sets)..0, &(sets |> Enum.take(&1) |> List.flatten()))
+
+  defp sets_cube([]), do: [[]]
+
+  defp sets_cube([head | tail]) do
+    tail_cube = sets_cube(tail)
+    Enum.map(tail_cube, &(head ++ &1)) ++ tail_cube
+  end
+
+  defp order_by_field() do
+    sequence([column(), order_by_direction(), nulls_specifier()]) |> map(&List.to_tuple/1)
+  end
 
   defp order_by_direction(), do: choice_deepest_error([keyword(:asc), keyword(:desc), return(:asc)])
 

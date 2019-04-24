@@ -27,7 +27,13 @@ defmodule Compliance.DataSource.Drill do
   end
 
   @impl Connector
-  def create_table(_table_name, _columns, state), do: state
+  def create_table(table_name, _columns, state) do
+    state
+    |> table_path(table_name)
+    |> File.rm()
+
+    state
+  end
 
   @impl Connector
   def after_tables_created(state), do: state
@@ -40,9 +46,9 @@ defmodule Compliance.DataSource.Drill do
       |> Enum.map(&Jason.encode!/1)
       |> Enum.join("\n")
 
-    state.parameters.data_dir
-    |> Path.join("#{table_name}_raw")
-    |> File.write!(jsonized)
+    state
+    |> table_path(table_name)
+    |> File.write!(jsonized, [:append])
 
     create_view!(table_name, data, state.conn)
 
@@ -60,13 +66,16 @@ defmodule Compliance.DataSource.Drill do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp table_path(state, table_name) do
+    Path.join(state.parameters.data_dir, "#{table_name}_raw")
+  end
+
   defp format_datetimes(data) do
     update_in(data, [Lens.map_values() |> Lens.filter(&match?(%NaiveDateTime{}, &1))], &to_string/1)
   end
 
   defp create_view!(table_name, [item | _data], conn) do
-    run_query!("DROP VIEW IF EXISTS #{table_name}", conn)
-    run_query!("CREATE VIEW #{table_name} AS SELECT #{view_select_list(item)} FROM #{table_name}_raw", conn)
+    run_query!("CREATE OR REPLACE VIEW #{table_name} AS SELECT #{view_select_list(item)} FROM #{table_name}_raw", conn)
   end
 
   defp view_select_list(item) do

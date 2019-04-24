@@ -67,6 +67,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def native_support_for_ilike?(), do: false
 
   @impl Dialect
+  def limit_sql(nil, 0), do: []
   def limit_sql(nil, offset), do: limit_sql(@max_unsigned_bigint, offset)
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 

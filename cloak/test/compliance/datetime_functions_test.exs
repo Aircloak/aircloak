@@ -20,7 +20,9 @@ Enum.each(
     "<col> - (<col> - interval 'P1D')",
     "<col> + 2 * interval 'P1Y'",
     "(<col> - (<col> - interval 'P1Y')) / 2",
-    "interval 'P1DT1H'"
+    "interval 'P1DT1H'",
+    "interval 'PT1H'",
+    "interval 'P1D'"
   ],
   fn function ->
     defmodule Module.concat([Compliance.DateTimeFunctions, String.to_atom(function), Test]) do
@@ -28,16 +30,17 @@ Enum.each(
 
       @moduletag :"#{function}"
 
-      Enum.each(datetime_columns() ++ date_columns(), fn {column, table, uid} ->
+      columns = if function =~ ~r/<col>/, do: datetime_columns() ++ date_columns(), else: [hd(datetime_columns())]
+
+      Enum.each(columns, fn {column, table, uid} ->
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
           |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
-          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter|interval/)
           |> assert_consistent_and_not_failing("""
             SELECT
-              output
+              output, MEDIAN(0)
             FROM (
               SELECT
                 #{unquote(uid)},
@@ -45,7 +48,8 @@ Enum.each(
               FROM #{unquote(table)}
               ORDER BY 1, 2
             ) table_alias
-            ORDER BY output
+            GROUP BY 1
+            ORDER BY 1
           """)
         end
 
@@ -54,7 +58,6 @@ Enum.each(
           context
           |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
-          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter|interval/)
           # SQL Server doesn't like `ORDER BY constant` clauses.
           |> disable_for(
             Cloak.DataSource.SQLServer,
@@ -76,6 +79,7 @@ Enum.each(
           |> disable_for(Cloak.DataSource.SQLServer, true)
           |> disable_for(Cloak.DataSource.SAPHana, true)
           |> disable_for(Cloak.DataSource.MongoDB, true)
+          |> disable_for(Cloak.DataSource.Drill, function =~ ~r/P1Y/ or function =~ ~r/P1M/)
           |> disable_for(Cloak.DataSource.Oracle, function =~ ~r/P1Y/ or function =~ ~r/P1M/)
         else
           context

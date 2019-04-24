@@ -26,6 +26,12 @@
 		},
 		{
 			"path": "tools"
+		},
+		{
+			"path": "deploy_targets"
+		},
+		{
+			"path": "docker"
 		}
 	],
 	"settings": {}

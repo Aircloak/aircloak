@@ -2,6 +2,7 @@ defmodule Central.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Ecto.Changeset
+  import Ecto.Query, only: [where: 3]
   alias Central.Repo
   alias Central.Schemas.User
 
@@ -12,7 +13,12 @@ defmodule Central.Service.User do
   @doc "Authenticates the given user."
   @spec login(String.t(), String.t()) :: {:ok, User.t()} | {:error, :invalid_email_or_password}
   def login(email, password) do
-    user = Repo.get_by(User, email: email)
+    normalized_email = String.downcase(email)
+
+    user =
+      User
+      |> where([user], fragment("lower(?)", user.email) == ^normalized_email)
+      |> Repo.one()
 
     with :ok <- validate_password(user, password) do
       {:ok, user}

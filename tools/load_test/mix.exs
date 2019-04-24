@@ -19,7 +19,7 @@ defmodule LoadTest.MixProject do
 
   defp deps do
     [
-      {:postgrex, "~> 0.13.0"}
+      {:postgrex, github: "sasa1977/postgrex", tag: "0.13.5", override: true}
     ]
   end
 end
