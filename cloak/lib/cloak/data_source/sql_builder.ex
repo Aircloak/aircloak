@@ -175,17 +175,11 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: arg |> to_fragment(query) |> sql_dialect_module(query).cast_sql(arg.type, to_type)
 
   defp column_sql(expression = %Expression{function: "date_trunc", type: :date}, query),
-    do: column_sql(Expression.function({:cast, :date}, [%{expression | type: :datetime}], :date), query)
+    do: column_sql(cast(%{expression | type: :datetime}, :date), query)
 
   defp column_sql(%Expression{function?: true, function: "sum", function_args: [arg], type: :real}, query) do
     # Force `SUM` of reals to use double precision.
-    arg =
-      case arg do
-        {:distinct, arg} -> {:distinct, Expression.function({:cast, :real}, [arg], :real)}
-        arg -> Expression.function({:cast, :real}, [arg], :real)
-      end
-
-    Support.function_sql("sum", [to_fragment(arg, query)], sql_dialect_module(query))
+    Support.function_sql("sum", [arg |> cast(:real) |> to_fragment(query)], sql_dialect_module(query))
   end
 
   defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, query)
@@ -194,10 +188,10 @@ defmodule Cloak.DataSource.SqlBuilder do
     args =
       case args do
         [%Expression{type: :integer, constant?: false} = arg1, %Expression{type: :integer} = arg2] ->
-          [Expression.function({:cast, :integer}, [arg1], :integer), arg2]
+          [cast(arg1, :integer), arg2]
 
         [%Expression{type: :integer, constant?: true} = arg1, %Expression{type: :integer} = arg2] ->
-          [arg1, Expression.function({:cast, :integer}, [arg2], :integer)]
+          [arg1, cast(arg2, :integer)]
 
         args ->
           args
@@ -449,4 +443,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
     parse_user_id_join_chain(tables, link_table_name, chain, [acc | link_fragment])
   end
+
+  defp cast(%Expression{function: {:cast, to}} = expression, to), do: expression
+  defp cast({:distinct, expression}, to), do: {:distinct, cast(expression, to)}
+  defp cast(expression, to), do: Expression.function({:cast, to}, [expression], to)
 end
