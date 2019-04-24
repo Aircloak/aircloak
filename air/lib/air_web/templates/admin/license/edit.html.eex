@@ -50,31 +50,39 @@
             </tr>
             <tr>
               <td>Insights Air web interface</td>
-              <td>Yes</td>
+              <td>
+                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
+              </td>
             </tr>
             <tr>
               <td>Insights Cloak query and anonymization engine</td>
-              <td>Yes</td>
+              <td>
+                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
+              </td>
             </tr>
             <tr>
               <td>On-premise installation</td>
-              <td>Yes</td>
+              <td>
+                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
+              </td>
             </tr>
             <tr>
               <td>Offline deployment</td>
-              <td><%= includes_feature?(:offline_deployment) %></td>
+              <td><%= conditional_positive_glyph_if_feature(:offline_deployment) %></td>
             </tr>
             <tr>
-              <td>User management</td>
-              <td>Yes</td>
+              <td>Manual user management</td>
+              <td>
+                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
+              </td>
             </tr>
             <tr>
               <td>LDAP/Active Directory integration</td>
-              <td><%= includes_feature?(:ldap) %></td>
+              <td><%= conditional_positive_glyph_if_feature(:ldap) %></td>
             </tr>
             <tr>
               <td>Materialized views</td>
-              <td><%= includes_feature?(:analyst_tables) %></td>
+              <td><%= conditional_positive_glyph_if_feature(:analyst_tables) %></td>
             </tr>
 
             <tr>
@@ -82,27 +90,27 @@
             </tr>
             <tr>
               <td>Postgres</td>
-              <td><%= includes_feature?(:ds_postgres) %></td>
+              <td><%= conditional_positive_glyph_if_feature(:ds_postgres) %></td>
             </tr>
             <tr>
               <td>MySQL and MariaDB</td>
-              <td><%= includes_feature?(:ds_mysql) %></td>
+              <td><%= conditional_positive_glyph_if_feature(:ds_mysql) %></td>
             </tr>
             <tr>
               <td>Microsoft SQL Server</td>
-              <td><%= includes_feature?(:ds_sqlserver) %></td>
+              <td><%= conditional_positive_glyph_if_feature(:ds_sqlserver) %></td>
             </tr>
             <tr>
               <td>MongoDB</td>
-              <td><%= includes_feature?(:ds_mongodb) %></td>
+              <td><%= conditional_positive_glyph_if_feature(:ds_mongodb) %></td>
             </tr>
             <tr>
               <td>Apache Drill</td>
-              <td><%= includes_feature?(:ds_apachedrill) %></td>
+              <td><%= conditional_positive_glyph_if_feature(:ds_apachedrill) %></td>
             </tr>
             <tr>
               <td>Oracle DB</td>
-              <td><%= includes_feature?(:ds_oracle) %></td>
+              <td><%= conditional_positive_glyph_if_feature(:ds_oracle) %></td>
             </tr>
 
             <tr>
@@ -110,15 +118,21 @@
             </tr>
             <tr>
               <td>Postgres Message Protocol query interface</td>
-              <td>Yes</td>
+              <td>
+                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
+              </td>
             </tr>
             <tr>
               <td>HTTP REST API</td>
-              <td>Yes</td>
+              <td>
+                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
+              </td>
             </tr>
             <tr>
               <td>System monitoring API</td>
-              <td>Yes</td>
+              <td>
+                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
+              </td>
             </tr>
 
             <tr>
@@ -126,11 +140,13 @@
             </tr>
             <tr>
               <td>Community support</td>
-              <td>Yes</td>
+              <td>
+                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
+              </td>
             </tr>
             <tr>
               <td>Aircloak support</td>
-              <td><%= includes_feature?(:email_support) %></td>
+              <td><%= conditional_positive_glyph_if_feature(:email_support) %></td>
             </tr>
           </tbody>
         </table>

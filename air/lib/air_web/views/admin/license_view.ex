@@ -12,11 +12,11 @@ defmodule AirWeb.Admin.LicenseView do
 
   defp license_auto_renews?(), do: License.auto_renew?()
 
-  defp includes_feature?(feature_name) do
+  defp conditional_positive_glyph_if_feature(feature_name) do
     if AirWeb.SharedView.licensed_feature?(feature_name) do
-      "Yes"
-    else
-      "No"
+      Phoenix.HTML.raw(
+        "<span class='glyphicon glyphicon glyphicon-ok-circle' style='color: green' aria-hidden='true'></span>"
+      )
     end
   end
 
