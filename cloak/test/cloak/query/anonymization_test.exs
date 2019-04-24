@@ -160,4 +160,15 @@ defmodule Cloak.Query.AnonymizationTest do
       %{rows: [%{row: [nil, 1]}]}
     )
   end
+
+  test "stats-based sum with large values" do
+    :ok = insert_rows(_user_ids = 1..1000, "anonymizations", ["number"], [3.4e38])
+
+    assert_query(
+      "select sum(number) from anonymizations",
+      %{rows: [%{row: [result]}]}
+    )
+
+    assert is_number(result)
+  end
 end

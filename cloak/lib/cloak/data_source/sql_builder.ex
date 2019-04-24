@@ -177,6 +177,17 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(expression = %Expression{function: "date_trunc", type: :date}, query),
     do: column_sql(Expression.function({:cast, :date}, [%{expression | type: :datetime}], :date), query)
 
+  defp column_sql(%Expression{function?: true, function: "sum", function_args: [arg], type: :real}, query) do
+    # Force `SUM` of reals to use double precision.
+    arg =
+      case arg do
+        {:distinct, arg} -> {:distinct, Expression.function({:cast, :real}, [arg], :real)}
+        arg -> Expression.function({:cast, :real}, [arg], :real)
+      end
+
+    Support.function_sql("sum", [to_fragment(arg, query)], sql_dialect_module(query))
+  end
+
   defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, query)
        when fun_name in ~w(+ - *) do
     # Force arithmetic operations to use the highest integer precision.
