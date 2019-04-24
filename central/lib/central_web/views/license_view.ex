@@ -17,6 +17,60 @@ defmodule CentralWeb.LicenseView do
   defp feature_enabled?(%{data: %{features: features}}, feature), do: feature in features
 
   defp features() do
-    %{"LDAP" => "ldap"}
+    %{
+      "LDAP" => "ldap",
+      "Offline deployment" => "offline_deployment",
+      "Analyst tables" => "analyst_tables",
+      "Email support" => "email_support"
+    }
   end
+
+  defp datasource_features() do
+    %{
+      "Postgres" => "ds_postgres",
+      "MySQL and MariaDB" => "ds_mysql",
+      "SQL Server" => "ds_sqlserver",
+      "MongoDB" => "ds_mongodb",
+      "Apache Drill" => "ds_apachedrill",
+      "Oracle DB" => "ds_oracle"
+    }
+  end
+
+  defp includes_all?(license, features) do
+    features
+    |> Enum.map(fn {_name, key} -> key end)
+    |> Enum.all?(&Enum.member?(license.features, &1))
+  end
+
+  defp name_features(license) do
+    available_features = Map.merge(features(), datasource_features())
+
+    feature_to_name = fn features ->
+      features
+      |> Enum.filter(fn {_name, key} -> Enum.member?(license.features, key) end)
+      |> Enum.map(fn {name, _} -> name end)
+    end
+
+    if includes_all?(license, available_features) do
+      ["All licensensable features"]
+    else
+      core_features =
+        if includes_all?(license, features()) do
+          ["All core features"]
+        else
+          feature_to_name.(features())
+        end
+
+      data_sources =
+        if includes_all?(license, datasource_features()) do
+          ["All data sources"]
+        else
+          feature_to_name.(datasource_features())
+        end
+
+      core_features ++ data_sources
+    end
+  end
+
+  defp licensed_features(license), do: license |> name_features() |> Aircloak.OxfordComma.join()
 end

@@ -9,6 +9,7 @@
       <th>Name</th>
       <th>Length (days)</th>
       <th>Auto-renew</th>
+      <th>Features</th>
       <th>Expires</th>
       <th></th>
     </tr>
@@ -26,6 +27,7 @@
           <% end %>
           <div class="sr-only"><%= license.auto_renew %>u</div>
         </td>
+        <td><%= licensed_features(license) %></td>
         <td><%= expires(license) %></td>
         <td>
           <%= if license.revoked do %>
