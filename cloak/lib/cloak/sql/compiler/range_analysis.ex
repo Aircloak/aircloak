@@ -8,5 +8,14 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis do
        when type in [:integer, :real],
        do: %{expression | range: {value, value}}
 
+  defp do_analyze_expression(expression = %Expression{constant?: false, function?: false}),
+    do: expression
+
+  defp do_analyze_expression(expression = %Expression{function?: true, function: name, function_args: args}),
+    do: %{expression | range: update_range(name, Enum.map(args, & &1.range))}
+
   defp do_analyze_expression(expression), do: %{expression | range: :unknown}
+
+  defp update_range("+", [{min1, max1}, {min2, max2}]), do: {min1 + min2, max1 + max2}
+  defp update_range(_, _), do: :uknown
 end
