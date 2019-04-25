@@ -17,5 +17,6 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis do
   defp do_analyze_expression(expression), do: %{expression | range: :unknown}
 
   defp update_range("+", [{min1, max1}, {min2, max2}]), do: {min1 + min2, max1 + max2}
-  defp update_range(_, _), do: :uknown
+  defp update_range("-", [{min1, max1}, {min2, max2}]), do: {min1 - max2, max1 - min2}
+  defp update_range(_, _), do: :unknown
 end

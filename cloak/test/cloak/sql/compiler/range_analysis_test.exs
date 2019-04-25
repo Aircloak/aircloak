@@ -22,6 +22,13 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
       assert {10, 20} = RangeAnalysis.analyze_expression(column_in_range({10, 20})).range
     end
 
+    property "range can be computed for simplest arguments to function" do
+      check all {name, _} <- function() do
+        expression = function_expression(name, [column_in_range({2, 2}), column_in_range({2, 2})])
+        assert RangeAnalysis.analyze_expression(expression).range != :unknown
+      end
+    end
+
     property "expression result is within computed range" do
       check all {name, function} <- function(),
                 range1 <- range(),
@@ -53,7 +60,8 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
 
   defp function() do
     one_of([
-      constant({"+", &Kernel.+/2})
+      constant({"+", &Kernel.+/2}),
+      constant({"-", &Kernel.-/2})
     ])
   end
 
