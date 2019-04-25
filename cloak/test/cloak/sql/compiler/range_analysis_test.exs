@@ -23,26 +23,26 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
     end
 
     property "range can be computed for simplest arguments to function" do
-      check all {name, _} <- function() do
-        expression = function_expression(name, [column_in_range({2, 2}), column_in_range({2, 2})])
+      check all {name, function} <- function() do
+        arity = Function.info(function) |> Keyword.fetch!(:arity)
+        args = 1..arity |> Enum.map(fn _ -> column_in_range({2, 2}) end)
+        expression = function_expression(name, args)
         assert RangeAnalysis.analyze_expression(expression).range != :unknown
       end
     end
 
     property "expression result is within computed range" do
       check all {name, function} <- function(),
-                range1 <- range(),
-                value1 <- value(range1),
-                range2 <- range(),
-                value2 <- value(range2) do
-        expression = function_expression(name, [column_in_range(range1), column_in_range(range2)])
+                ranges <- list_of(range(), length: Function.info(function) |> Keyword.fetch!(:arity)),
+                values <- values(ranges) do
+        expression = function_expression(name, Enum.map(ranges, &column_in_range/1))
 
         case RangeAnalysis.analyze_expression(expression).range do
           :unknown ->
             :ok
 
           {min, max} ->
-            result = function.(value1, value2)
+            result = apply(function, values)
             assert result <= max
             assert result >= min
         end
@@ -61,7 +61,8 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
   defp function() do
     one_of([
       constant({"+", &Kernel.+/2}),
-      constant({"-", &Kernel.-/2})
+      constant({"-", &Kernel.-/2}),
+      constant({"abs", &Kernel.abs/1})
     ])
   end
 
@@ -69,6 +70,18 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
     gen all a <- integer(), b <- integer() do
       {min(a, b), max(a, b)}
     end
+  end
+
+  defp values(ranges) do
+    Enum.reduce(ranges, constant([]), fn range, acc_generator ->
+      bind(acc_generator, fn acc_value ->
+        value(range)
+        |> map(fn range_value ->
+          [range_value | acc_value]
+        end)
+      end)
+    end)
+    |> map(&Enum.reverse/1)
   end
 
   defp value({min, max}), do: integer(min..max)
