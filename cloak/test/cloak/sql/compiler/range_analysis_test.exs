@@ -64,6 +64,7 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
       constant({"+", &Kernel.+/2}),
       constant({"-", &Kernel.-/2}),
       constant({"*", &Kernel.*/2}),
+      constant({"/", &Kernel.//2}),
       constant({"^", &safe_pow/2}),
       constant({"abs", &Kernel.abs/1}),
       constant({"floor", &:math.floor/1}),
