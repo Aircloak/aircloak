@@ -34,7 +34,8 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
     property "expression result is within computed range" do
       check all {name, function} <- function(),
                 ranges <- list_of(range(), length: Function.info(function) |> Keyword.fetch!(:arity)),
-                values <- values(ranges) do
+                values <- values(ranges),
+                max_runs: 500 do
         expression = function_expression(name, Enum.map(ranges, &column_in_range/1))
 
         case RangeAnalysis.analyze_expression(expression).range do
@@ -63,6 +64,7 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
       constant({"+", &Kernel.+/2}),
       constant({"-", &Kernel.-/2}),
       constant({"*", &Kernel.*/2}),
+      constant({"^", &safe_pow/2}),
       constant({"abs", &Kernel.abs/1}),
       constant({"floor", &:math.floor/1}),
       constant({"ceil", &:math.ceil/1}),
@@ -71,6 +73,8 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
       constant({"sqrt", &safe_sqrt/1})
     ])
   end
+
+  defp safe_pow(a, b), do: if(a < 0, do: :math.pow(a, :math.floor(b)), else: :math.pow(a, b))
 
   defp safe_sqrt(number), do: if(number < 0, do: 0, else: :math.sqrt(number))
 
