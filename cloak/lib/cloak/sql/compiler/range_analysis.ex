@@ -46,6 +46,11 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis do
     end
   end
 
+  defp update_range("%", [_, {min, max}]) do
+    divisor = max(abs(min), abs(max))
+    {-divisor, divisor}
+  end
+
   defp update_range(fun, [range]) when fun in ["floor", "ceil", "round", "trunc"], do: range
   defp update_range(_, _), do: :unknown
 

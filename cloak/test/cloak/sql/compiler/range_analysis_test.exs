@@ -71,13 +71,16 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
       constant({"ceil", &:math.ceil/1}),
       constant({"round", &Kernel.round/1}),
       constant({"trunc", &Kernel.trunc/1}),
-      constant({"sqrt", &safe_sqrt/1})
+      constant({"sqrt", &safe_sqrt/1}),
+      constant({"%", &round_rem/2})
     ])
   end
 
   defp safe_pow(a, b), do: if(a < 0, do: :math.pow(a, :math.floor(b)), else: :math.pow(a, b))
 
   defp safe_sqrt(number), do: if(number < 0, do: 0, else: :math.sqrt(number))
+
+  defp round_rem(a, b), do: if(round(b) == 0, do: 0, else: rem(round(a), round(b)))
 
   defp range() do
     gen all a <- integer(), b <- integer() do
