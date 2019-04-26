@@ -26,10 +26,10 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis do
   defp update_range("sqrt", [{_min, max}]) when max >= 0, do: {0, max |> :math.sqrt() |> ceil()}
 
   defp update_range("^", [{min1, max1}, {min2, max2}]) do
-    if min1 < 0 and max1 > -1 and min2 < 0 and max2 > -1 do
+    if min1 < 0 and max1 > -1 and min2 < 0 do
       :unknown
     else
-      base = max(abs(min1), abs(max1))
+      base = if max2 < 0, do: min(abs(min1), abs(min2)), else: max(abs(min1), abs(max1))
       extent = :math.pow(base, max2)
       {floor(-extent), ceil(extent)}
     end
