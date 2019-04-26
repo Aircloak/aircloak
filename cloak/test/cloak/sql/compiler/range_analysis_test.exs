@@ -65,7 +65,9 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
       constant({"*", &Kernel.*/2}),
       constant({"abs", &Kernel.abs/1}),
       constant({"floor", &:math.floor/1}),
-      constant({"ceil", &:math.ceil/1})
+      constant({"ceil", &:math.ceil/1}),
+      constant({"round", &Kernel.round/1}),
+      constant({"trunc", &Kernel.trunc/1})
     ])
   end
 
@@ -79,9 +81,7 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
     Enum.reduce(ranges, constant([]), fn range, acc_generator ->
       bind(acc_generator, fn acc_value ->
         value(range)
-        |> map(fn range_value ->
-          [range_value | acc_value]
-        end)
+        |> map(fn range_value -> [range_value | acc_value] end)
       end)
     end)
     |> map(&Enum.reverse/1)
