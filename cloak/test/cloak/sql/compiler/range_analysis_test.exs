@@ -67,9 +67,12 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
       constant({"floor", &:math.floor/1}),
       constant({"ceil", &:math.ceil/1}),
       constant({"round", &Kernel.round/1}),
-      constant({"trunc", &Kernel.trunc/1})
+      constant({"trunc", &Kernel.trunc/1}),
+      constant({"sqrt", &safe_sqrt/1})
     ])
   end
+
+  defp safe_sqrt(number), do: if(number < 0, do: 0, else: :math.sqrt(number))
 
   defp range() do
     gen all a <- integer(), b <- integer() do
