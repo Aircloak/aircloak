@@ -25,5 +25,7 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis do
   end
 
   defp update_range("abs", [{min, max}]), do: {max(min, 0), max(abs(min), abs(max))}
+  defp update_range("floor", [range]), do: range
+  defp update_range("ceil", [range]), do: range
   defp update_range(_, _), do: :unknown
 end

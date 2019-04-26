@@ -63,7 +63,9 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
       constant({"+", &Kernel.+/2}),
       constant({"-", &Kernel.-/2}),
       constant({"*", &Kernel.*/2}),
-      constant({"abs", &Kernel.abs/1})
+      constant({"abs", &Kernel.abs/1}),
+      constant({"floor", &:math.floor/1}),
+      constant({"ceil", &:math.ceil/1})
     ])
   end
 
@@ -85,7 +87,7 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
     |> map(&Enum.reverse/1)
   end
 
-  defp value({min, max}), do: integer(min..max)
+  defp value({min, max}), do: float(min: min, max: max)
 
   defp table(), do: %{keys: %{}}
 end
