@@ -62,6 +62,7 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
     one_of([
       constant({"+", &Kernel.+/2}),
       constant({"-", &Kernel.-/2}),
+      constant({"*", &Kernel.*/2}),
       constant({"abs", &Kernel.abs/1})
     ])
   end

@@ -18,6 +18,12 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis do
 
   defp update_range("+", [{min1, max1}, {min2, max2}]), do: {min1 + min2, max1 + max2}
   defp update_range("-", [{min1, max1}, {min2, max2}]), do: {min1 - max2, max1 - min2}
+
+  defp update_range("*", [{min1, max1}, {min2, max2}]) do
+    options = [min1 * min2, max1 * max2, min1 * max2, min2 * max1]
+    {Enum.min(options), Enum.max(options)}
+  end
+
   defp update_range("abs", [{min, max}]), do: {max(min, 0), max(abs(min), abs(max))}
   defp update_range(_, _), do: :unknown
 end
