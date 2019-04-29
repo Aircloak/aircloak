@@ -1,9 +1,20 @@
 defmodule Cloak.Sql.Compiler.BoundAnalysis do
+  @moduledoc """
+  Contains functions for analyzing the numerical bounds that expressions in a query take, given some input bounds for
+  the columns. Currently all columns are set to the dummy bounds of {10, 20} and the analysis proceeds from there.
+  """
+
   @dummy_bounds {10, 20}
 
   alias Cloak.Sql.{Expression, Query}
   alias Cloak.Sql.Compiler.Helpers
 
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Takes a query and sets the `bounds` for all of its expressions."
+  @spec analyze_query(Query.t()) :: Query.t()
   def analyze_query(query) do
     Helpers.apply_bottom_up(query, fn subquery ->
       subquery
@@ -12,8 +23,18 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     end)
   end
 
+  @doc """
+  Sets the `bounds` for the given expression.
+
+  Assumes that bounds of leaf subexpressions are already present.
+  """
+  @spec analyze_expression(Expression.t()) :: Expression.t()
   def analyze_expression(expression),
     do: update_in(expression, [Query.Lenses.all_expressions()], &do_analyze_expression/1)
+
+  # -------------------------------------------------------------------
+  # Private functions
+  # -------------------------------------------------------------------
 
   defp propagate_subquery_bounds(query) do
     update_in(
