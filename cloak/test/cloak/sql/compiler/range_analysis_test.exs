@@ -18,8 +18,12 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
       assert :unknown = RangeAnalysis.analyze_expression(Expression.constant(:text, "Some text")).range
     end
 
-    test "columns are ignored" do
+    test "columns with ranges set are ignored" do
       assert {10, 20} = RangeAnalysis.analyze_expression(column_in_range({10, 20})).range
+    end
+
+    test "[temporary] columns with no range are set to [10 - 20]" do
+      assert {10, 20} = RangeAnalysis.analyze_expression(column_in_range(:unknown)).range
     end
 
     property "range can be computed for simplest arguments to function" do
