@@ -73,17 +73,26 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
                 values <- values(bounds),
                 max_runs: 500 do
         expression = function_expression(name, Enum.map(bounds, &column_in_bounds/1))
-
-        case BoundAnalysis.analyze_expression(expression).bounds do
-          :unknown ->
-            :ok
-
-          {min, max} ->
-            result = apply(function, values)
-            assert result <= max
-            assert result >= min
-        end
+        assert unknown_or_within_bounds(expression, values, function)
       end
+    end
+
+    test "generated example 1" do
+      bounds = [{-147, -20}, {-216, -175}]
+      values = [-26.553144616558242, -216.0]
+      expression = function_expression("^", Enum.map(bounds, &column_in_bounds/1))
+      assert unknown_or_within_bounds(expression, values, &:math.pow/2)
+    end
+  end
+
+  defp unknown_or_within_bounds(expression, values, function) do
+    case BoundAnalysis.analyze_expression(expression).bounds do
+      :unknown ->
+        true
+
+      {min, max} ->
+        result = apply(function, values)
+        result <= max && result >= min
     end
   end
 

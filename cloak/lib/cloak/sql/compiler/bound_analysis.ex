@@ -41,12 +41,12 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   defp update_bounds("sqrt", [{_min, max}]) when max >= 0, do: {0, max |> :math.sqrt() |> ceil()}
 
   defp update_bounds("^", [{min1, max1}, {min2, max2}]) do
-    if min1 < 0 and max1 > -1 and min2 < 0 do
+    if min1 <= 0 and max1 >= 0 and min2 < 0 do
       :unknown
     else
       base = if max2 < 0, do: min(abs(min1), abs(min2)), else: max(abs(min1), abs(max1))
       extent = :math.pow(base, max2)
-      {floor(-extent), ceil(extent)}
+      {floor(-extent), max(ceil(extent), 1)}
     end
   rescue
     ArithmeticError -> :unknown
