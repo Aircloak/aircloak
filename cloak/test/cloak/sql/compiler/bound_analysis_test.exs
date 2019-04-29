@@ -8,10 +8,13 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
 
   describe ".analyze_query" do
     test "sets bounds for each expression in the query" do
-      assert {11, 21} = hd(compile!("SELECT 1 + column, median(column) FROM table GROUP BY column").columns).bounds
+      assert {11, 21} = hd(compile!("SELECT 1 + column FROM table").columns).bounds
     end
 
-    test "propagates bounds from subqueries"
+    test "propagates bounds from subqueries" do
+      compiled = compile!("SELECT foo FROM (SELECT 1 + column AS foo FROM table) bar")
+      assert {11, 21} = hd(compiled.columns).bounds
+    end
 
     defp compile!(query) do
       query

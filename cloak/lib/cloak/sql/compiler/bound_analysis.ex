@@ -6,12 +6,27 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
 
   def analyze_query(query) do
     Helpers.apply_bottom_up(query, fn subquery ->
-      update_in(subquery, [Query.Lenses.query_expressions()], &analyze_expression/1)
+      subquery
+      |> propagate_subquery_bounds()
+      |> update_in([Query.Lenses.query_expressions()], &analyze_expression/1)
     end)
   end
 
   def analyze_expression(expression),
     do: update_in(expression, [Query.Lenses.all_expressions()], &do_analyze_expression/1)
+
+  defp propagate_subquery_bounds(query) do
+    update_in(
+      query,
+      [Query.Lenses.query_expressions() |> Query.Lenses.leaf_expressions() |> Lens.reject(&Expression.constant?/1)],
+      fn expression ->
+        case Query.resolve_subquery_column(expression, query) do
+          :database_column -> expression
+          {column, _subquery} -> %{expression | bounds: column.bounds}
+        end
+      end
+    )
+  end
 
   defp do_analyze_expression(expression = %Expression{type: type, constant?: true, value: value})
        when type in [:integer, :real],
