@@ -2,6 +2,13 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   @dummy_bounds {10, 20}
 
   alias Cloak.Sql.{Expression, Query}
+  alias Cloak.Sql.Compiler.Helpers
+
+  def analyze_query(query) do
+    Helpers.apply_bottom_up(query, fn subquery ->
+      update_in(subquery, [Query.Lenses.query_expressions()], &analyze_expression/1)
+    end)
+  end
 
   def analyze_expression(expression),
     do: update_in(expression, [Query.Lenses.all_expressions()], &do_analyze_expression/1)
@@ -14,6 +21,9 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     do: %{expression | bounds: @dummy_bounds}
 
   defp do_analyze_expression(expression = %Expression{constant?: false, function?: false}),
+    do: expression
+
+  defp do_analyze_expression(expression = %Expression{function?: true, function_args: [:*]}),
     do: expression
 
   defp do_analyze_expression(expression = %Expression{function?: true, function: name, function_args: args}),

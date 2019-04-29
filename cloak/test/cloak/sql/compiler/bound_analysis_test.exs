@@ -4,6 +4,38 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
 
   alias Cloak.Sql.Compiler.BoundAnalysis
   alias Cloak.Sql.Expression
+  alias Cloak.DataSource.Table
+
+  describe ".analyze_query" do
+    test "sets bounds for each expression in the query" do
+      assert {11, 21} = hd(compile!("SELECT 1 + column, median(column) FROM table GROUP BY column").columns).bounds
+    end
+
+    test "propagates bounds from subqueries"
+
+    defp compile!(query) do
+      query
+      |> Cloak.Test.QueryHelpers.compile!(data_source())
+      |> BoundAnalysis.analyze_query()
+    end
+
+    defp data_source() do
+      %{
+        name: "bound_analysis_data_source",
+        driver: Cloak.DataSource.PostgreSQL,
+        tables: %{
+          table:
+            Table.new("table", "uid",
+              db_name: "table",
+              columns: [
+                Table.column("uid", :integer),
+                Table.column("column", :integer)
+              ]
+            )
+        }
+      }
+    end
+  end
 
   describe ".analyze_expression" do
     test "integer constants" do
