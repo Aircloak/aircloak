@@ -29,7 +29,7 @@ defmodule Cloak.Sql.Expression do
           parameter_index: pos_integer | nil,
           synthetic?: boolean,
           source_location: Cloak.Sql.Parser.location(),
-          range: :unknown | {integer(), integer()}
+          bounds: :unknown | {integer(), integer()}
         }
   defstruct table: :unknown,
             name: nil,
@@ -46,7 +46,7 @@ defmodule Cloak.Sql.Expression do
             parameter_index: nil,
             synthetic?: false,
             source_location: nil,
-            range: :unknown
+            bounds: :unknown
 
   @doc "Returns an expression representing a reference to the given column in the given table."
   @spec column(DataSource.column(), DataSource.table()) :: t

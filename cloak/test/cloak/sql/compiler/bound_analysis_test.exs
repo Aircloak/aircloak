@@ -1,48 +1,48 @@
-defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
+defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
   use ExUnit.Case
   use ExUnitProperties
 
-  alias Cloak.Sql.Compiler.RangeAnalysis
+  alias Cloak.Sql.Compiler.BoundAnalysis
   alias Cloak.Sql.Expression
 
   describe ".analyze_expression" do
     test "integer constants" do
-      assert {2, 2} = RangeAnalysis.analyze_expression(Expression.constant(:integer, 2)).range
+      assert {2, 2} = BoundAnalysis.analyze_expression(Expression.constant(:integer, 2)).bounds
     end
 
     test "real constants" do
-      assert {2, 2} = RangeAnalysis.analyze_expression(Expression.constant(:real, 2)).range
+      assert {2, 2} = BoundAnalysis.analyze_expression(Expression.constant(:real, 2)).bounds
     end
 
     test "other constants" do
-      assert :unknown = RangeAnalysis.analyze_expression(Expression.constant(:text, "Some text")).range
+      assert :unknown = BoundAnalysis.analyze_expression(Expression.constant(:text, "Some text")).bounds
     end
 
-    test "columns with ranges set are ignored" do
-      assert {10, 20} = RangeAnalysis.analyze_expression(column_in_range({10, 20})).range
+    test "columns with bounds set are ignored" do
+      assert {10, 20} = BoundAnalysis.analyze_expression(column_in_bounds({10, 20})).bounds
     end
 
-    test "[temporary] columns with no range are set to [10 - 20]" do
-      assert {10, 20} = RangeAnalysis.analyze_expression(column_in_range(:unknown)).range
+    test "[temporary] columns with no bounds are set to [10 - 20]" do
+      assert {10, 20} = BoundAnalysis.analyze_expression(column_in_bounds(:unknown)).bounds
     end
 
-    property "range can be computed for simplest arguments to function" do
+    property "bounds can be computed for simplest arguments to function" do
       check all {name, function} <- function() do
         arity = Function.info(function) |> Keyword.fetch!(:arity)
-        args = 1..arity |> Enum.map(fn _ -> column_in_range({2, 2}) end)
+        args = 1..arity |> Enum.map(fn _ -> column_in_bounds({2, 2}) end)
         expression = function_expression(name, args)
-        assert RangeAnalysis.analyze_expression(expression).range != :unknown
+        assert BoundAnalysis.analyze_expression(expression).bounds != :unknown
       end
     end
 
-    property "expression result is within computed range" do
+    property "expression result is within computed bounds" do
       check all {name, function} <- function(),
-                ranges <- list_of(range(), length: Function.info(function) |> Keyword.fetch!(:arity)),
-                values <- values(ranges),
+                bounds <- list_of(bounds(), length: Function.info(function) |> Keyword.fetch!(:arity)),
+                values <- values(bounds),
                 max_runs: 500 do
-        expression = function_expression(name, Enum.map(ranges, &column_in_range/1))
+        expression = function_expression(name, Enum.map(bounds, &column_in_bounds/1))
 
-        case RangeAnalysis.analyze_expression(expression).range do
+        case BoundAnalysis.analyze_expression(expression).bounds do
           :unknown ->
             :ok
 
@@ -55,8 +55,8 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
     end
   end
 
-  defp column_in_range(range) do
-    %{Expression.column(%{name: "column", type: "real"}, table()) | range: range}
+  defp column_in_bounds(bounds) do
+    %{Expression.column(%{name: "column", type: "real"}, table()) | bounds: bounds}
   end
 
   defp function_expression(function_name, args) do
@@ -86,17 +86,17 @@ defmodule Cloak.Sql.Compiler.RangeAnalysis.Test do
 
   defp round_rem(a, b), do: if(round(b) == 0, do: 0, else: rem(round(a), round(b)))
 
-  defp range() do
+  defp bounds() do
     gen all a <- integer(), b <- integer() do
       {min(a, b), max(a, b)}
     end
   end
 
-  defp values(ranges) do
-    Enum.reduce(ranges, constant([]), fn range, acc_generator ->
+  defp values(bounds) do
+    Enum.reduce(bounds, constant([]), fn bound, acc_generator ->
       bind(acc_generator, fn acc_value ->
-        value(range)
-        |> map(fn range_value -> [range_value | acc_value] end)
+        value(bound)
+        |> map(fn bound_value -> [bound_value | acc_value] end)
       end)
     end)
     |> map(&Enum.reverse/1)
