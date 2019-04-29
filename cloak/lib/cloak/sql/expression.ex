@@ -48,6 +48,14 @@ defmodule Cloak.Sql.Expression do
             source_location: nil,
             bounds: :unknown
 
+  defimpl Inspect do
+    import Inspect.Algebra
+
+    def inspect(expression, _opts) do
+      concat(["#Expression<", Cloak.Sql.Expression.display(expression), ">"])
+    end
+  end
+
   @doc "Returns an expression representing a reference to the given column in the given table."
   @spec column(DataSource.column(), DataSource.table()) :: t
   def column(column, table) do
