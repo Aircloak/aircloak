@@ -17,9 +17,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     end
 
     defp compile!(query) do
-      query
-      |> Cloak.Test.QueryHelpers.compile!(data_source())
-      |> BoundAnalysis.analyze_query()
+      Cloak.Test.QueryHelpers.compile!(query, data_source())
     end
 
     defp data_source() do

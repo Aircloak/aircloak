@@ -37,6 +37,7 @@ defmodule Cloak.Sql.Compiler do
     |> Compiler.Optimizer.optimize_per_user_aggregation()
     |> Compiler.Anonymization.compile()
     |> Compiler.NoiseLayers.compile()
+    |> Compiler.BoundAnalysis.analyze_query()
   end
 
   @doc "Performs the core compilation steps of the parsed query."
