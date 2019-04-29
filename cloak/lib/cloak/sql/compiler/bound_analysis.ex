@@ -41,6 +41,9 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   defp do_analyze_expression(expression = %Expression{function?: true, function_args: [:*]}),
     do: expression
 
+  defp do_analyze_expression(expression = %Expression{function?: true, function_args: [{:distinct, _}]}),
+    do: expression
+
   defp do_analyze_expression(expression = %Expression{function?: true, function: name, function_args: args}),
     do: %{expression | bounds: update_bounds(name, Enum.map(args, & &1.bounds))}
 
