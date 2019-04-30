@@ -2,6 +2,7 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.Repo
+  alias Air.Service
   alias Air.Service.{AuditLog, LDAP, Password, RevokableToken}
   alias Air.Schemas.{DataSource, Group, User, Login}
   import Ecto.Query, only: [from: 2, join: 4, where: 3, preload: 3]
@@ -353,101 +354,33 @@ defmodule Air.Service.User do
   def active_admin_user_exists?(),
     do: Repo.one(from(u in User, inner_join: g in assoc(u, :groups), where: g.admin, where: u.enabled, limit: 1)) != nil
 
-  @doc "Creates the new group, raises on error."
-  @spec create_group!(map) :: Group.t()
-  def create_group!(params) do
-    {:ok, group} = create_group(params)
-    group
-  end
+  defdelegate create_group!(params), to: Service.Group
 
-  @doc "Creates the new group from the given parameters."
-  @spec create_group(map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
-  def create_group(params),
-    do:
-      %Group{}
-      |> group_changeset(params)
-      |> insert()
+  defdelegate create_group(params), to: Service.Group
 
-  @doc "Creates a new LDAP group."
-  @spec create_ldap_group(map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
-  def create_ldap_group(params) do
-    %Group{}
-    |> group_changeset(params, ldap: true)
-    |> merge(ldap_changeset(%Group{}, params))
-    |> insert()
-  end
+  defdelegate create_ldap_group(params), to: Service.Group
 
-  @doc "Updates the given group, raises on error."
-  @spec update_group!(Group.t(), map, change_options) :: Group.t()
-  def update_group!(group, params, options \\ []) do
-    {:ok, group} = update_group(group, params, options)
-    group
-  end
+  defdelegate update_group!(group, params, options \\ []), to: Service.Group
 
-  @doc "Updates the given group."
-  @spec update_group(Group.t(), map, change_options) ::
-          {:ok, Group.t()} | {:error, Ecto.Changeset.t() | :forbidden_no_active_admin}
-  def update_group(group, params, options \\ []) do
-    check_ldap!(group, options)
+  defdelegate update_group(group, params, options \\ []), to: Service.Group
 
-    commit_if_active_last_admin(fn ->
-      group
-      |> group_changeset(params, options)
-      |> update()
-    end)
-  end
+  defdelegate update_group_data_sources(group, params), to: Service.Group
 
-  @doc "Updates only the data sources of the given group."
-  @spec update_group_data_sources(Group.t(), map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
-  def update_group_data_sources(group, params) do
-    group
-    |> group_data_source_changeset(params)
-    |> update()
-  end
+  defdelegate delete_group!(group, options \\ []), to: Service.Group
 
-  @doc "Deletes the given group, raises on error."
-  @spec delete_group!(Group.t(), change_options) :: Group.t()
-  def delete_group!(group, options \\ []) do
-    {:ok, group} = delete_group(group, options)
-    group
-  end
+  defdelegate delete_group(group, options \\ []), to: Service.Group
 
-  @doc "Deletes the given group."
-  @spec delete_group(Group.t(), change_options) :: {:ok, Group.t()} | {:error, :forbidden_no_active_admin}
-  def delete_group(group, options \\ []) do
-    check_ldap!(group, options)
-    commit_if_active_last_admin(fn -> Repo.delete(group) end)
-  end
+  defdelegate load_group(group_id), to: Service.Group
 
-  @doc "Loads the group with the given id."
-  @spec load_group(pos_integer) :: Group.t() | nil
-  def load_group(group_id),
-    do: Repo.one(from(group in Group, where: group.id == ^group_id, preload: [:users, :data_sources]))
+  defdelegate all_groups(), to: Service.Group
 
-  @doc "Returns a list of all groups in the system."
-  @spec all_groups() :: [Group.t()]
-  def all_groups(), do: Repo.all(from(group in Group, preload: [:users, :data_sources]))
+  defdelegate empty_group_changeset(), to: Service.Group
 
-  @doc "Returns the empty changeset for the new group."
-  @spec empty_group_changeset() :: Ecto.Changeset.t()
-  def empty_group_changeset(), do: group_changeset(%Group{}, %{})
+  defdelegate group_to_changeset(group), to: Service.Group
 
-  @doc "Converts a group into a changeset."
-  @spec group_to_changeset(Group.t()) :: Ecto.Changeset.t()
-  def group_to_changeset(group), do: group_changeset(group, %{})
+  defdelegate admin_groups(), to: Service.Group
 
-  @doc "Returns all admin groups."
-  @spec admin_groups() :: [Group.t()]
-  def admin_groups(), do: Repo.all(from(g in Group, where: g.admin))
-
-  @doc "Returns a group by name"
-  @spec get_group_by_name(String.t()) :: {:ok, Group.t()} | {:error, :not_found}
-  def get_group_by_name(name) do
-    case(Air.Repo.get_by(Air.Schemas.Group, name: name)) do
-      nil -> {:error, :not_found}
-      group -> {:ok, group}
-    end
-  end
+  defdelegate get_group_by_name(name), to: Service.Group
 
   @doc "Returns the number format settings for the specified user."
   @spec number_format_settings(User.t() | nil) :: Map.t()
@@ -684,33 +617,6 @@ defmodule Air.Service.User do
   defp validate_password(nil, password), do: Password.validate(password, nil)
   defp validate_password(user, password), do: Password.validate(password, user.hashed_password)
 
-  defp group_changeset(group, params, options \\ []),
-    do:
-      group
-      |> cast(params, ~w(name admin)a)
-      |> validate_required(~w(name admin)a)
-      |> unique_constraint(:name, name: :groups_name_source_index)
-      |> PhoenixMTM.Changeset.cast_collection(:users, Repo, User)
-      |> validate_change(:users, &validate_group_user_source(&1, &2, options))
-      |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
-
-  defp group_data_source_changeset(group, params) do
-    group
-    |> cast(params, [])
-    |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
-  end
-
-  defp validate_group_user_source(:users, users, options) do
-    valid_source = if(Keyword.get(options, :ldap, false), do: :ldap, else: :native)
-    invalid_users = Enum.filter(users, &(&1.data.source != valid_source))
-
-    case {valid_source, invalid_users} do
-      {_, []} -> []
-      {:native, _} -> [users: "cannot assign LDAP users to a native group"]
-      {:ldap, _} -> [users: "cannot assign native users to an LDAP group"]
-    end
-  end
-
   defp get_admin_group() do
     case admin_groups() do
       [] -> create_group!(%{name: "Admin", admin: true})
@@ -718,7 +624,7 @@ defmodule Air.Service.User do
     end
   end
 
-  defp commit_if_active_last_admin(fun), do: GenServer.call(__MODULE__, {:commit_if_active_last_admin, fun})
+  def commit_if_active_last_admin(fun), do: GenServer.call(__MODULE__, {:commit_if_active_last_admin, fun})
 
   defp commit_if_active_last_admin_async(fun, success_callback, failure_callback),
     do: GenServer.cast(__MODULE__, {:commit_if_active_last_admin, fun, success_callback, failure_callback})
