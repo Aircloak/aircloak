@@ -354,34 +354,6 @@ defmodule Air.Service.User do
   def active_admin_user_exists?(),
     do: Repo.one(from(u in User, inner_join: g in assoc(u, :groups), where: g.admin, where: u.enabled, limit: 1)) != nil
 
-  defdelegate create_group!(params), to: Service.Group, as: :create!
-
-  defdelegate create_group(params), to: Service.Group, as: :create
-
-  defdelegate create_ldap_group(params), to: Service.Group, as: :create_ldap
-
-  defdelegate update_group!(group, params, options \\ []), to: Service.Group, as: :update!
-
-  defdelegate update_group(group, params, options \\ []), to: Service.Group, as: :update
-
-  defdelegate update_group_data_sources(group, params), to: Service.Group, as: :update_data_sources
-
-  defdelegate delete_group!(group, options \\ []), to: Service.Group, as: :delete!
-
-  defdelegate delete_group(group, options \\ []), to: Service.Group, as: :delete
-
-  defdelegate load_group(group_id), to: Service.Group, as: :load
-
-  defdelegate all_groups(), to: Service.Group, as: :all
-
-  defdelegate empty_group_changeset(), to: Service.Group, as: :empty_changeset
-
-  defdelegate group_to_changeset(group), to: Service.Group, as: :to_changeset
-
-  defdelegate admin_groups(), to: Service.Group
-
-  defdelegate get_group_by_name(name), to: Service.Group, as: :get_by_name
-
   @doc "Returns the number format settings for the specified user."
   @spec number_format_settings(User.t() | nil) :: Map.t()
   def number_format_settings(nil),
@@ -618,8 +590,8 @@ defmodule Air.Service.User do
   defp validate_password(user, password), do: Password.validate(password, user.hashed_password)
 
   defp get_admin_group() do
-    case admin_groups() do
-      [] -> create_group!(%{name: "Admin", admin: true})
+    case Service.Group.admin_groups() do
+      [] -> Service.Group.create!(%{name: "Admin", admin: true})
       [group | _] -> group
     end
   end

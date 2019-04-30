@@ -5,7 +5,7 @@ defmodule Air.Service.UserTest do
   import Aircloak.AssertionHelper
 
   alias Air.TestRepoHelper
-  alias Air.Service.User
+  alias Air.Service.{User, Group}
 
   describe ".load" do
     test "returns user if found" do
@@ -280,7 +280,7 @@ defmodule Air.Service.UserTest do
       group = TestRepoHelper.create_group!()
       user = TestRepoHelper.create_user!(%{groups: [group.id]})
       User.delete!(user)
-      refute nil == User.load_group(group.id)
+      refute nil == Group.load(group.id)
     end
 
     test "deletes all their queries" do
