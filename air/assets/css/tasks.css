@@ -145,7 +145,7 @@ div#task-side-content table {
  * CodeEditor
  *******************************************************************/
 
-div#task-editor-container div.ReactCodeMirror {
+div#task-editor-container div.react-codemirror2 {
   width: 100%;
   overflow: auto;
 }
