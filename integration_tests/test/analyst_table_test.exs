@@ -266,7 +266,7 @@ defmodule IntegrationTest.AnalystTableTest do
 
   test "analyst tables are deleted if permissions are revoked" do
     # create new group and add user to it
-    group = Air.Service.User.create_group!(%{name: "new_group", admin: false})
+    group = Air.Service.Group.create!(%{name: "new_group", admin: false})
     user = Manager.create_air_user(group)
 
     # load current data source groups (should be just admin)
