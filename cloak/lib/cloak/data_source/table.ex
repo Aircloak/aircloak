@@ -248,6 +248,7 @@ defmodule Cloak.DataSource.Table do
     data_source.driver.load_tables(connection, table)
     |> Enum.map(&parse_columns(data_source, &1))
     |> Enum.map(&{String.to_atom(&1.name), &1})
+    |> Enum.map(&resolve_table_keys/1)
   end
 
   defp parse_columns(data_source, table) do
