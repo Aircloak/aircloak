@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.DecodersAndProjectionsTest do
         ]
       },
       dec_proj_projected: %{
-        user_id: "uid",
+        user_id: "_id",
         db_name: "dec_proj_projected_base",
         projection: %{
           table: "dec_proj_enc",
