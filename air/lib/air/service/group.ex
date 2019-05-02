@@ -1,6 +1,7 @@
 defmodule Air.Service.Group do
   alias Air.Repo
   alias Air.Schemas.{Group, User, DataSource}
+  alias Air.Service.AdminGuard
 
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
@@ -51,7 +52,7 @@ defmodule Air.Service.Group do
   def update(group, params, options \\ []) do
     check_ldap!(group, options)
 
-    Air.Service.User.commit_if_active_last_admin(fn ->
+    AdminGuard.commit_if_active_last_admin(fn ->
       group
       |> group_changeset(params, options)
       |> Repo.update()
@@ -77,7 +78,7 @@ defmodule Air.Service.Group do
   @spec delete(Group.t(), change_options) :: {:ok, Group.t()} | {:error, :forbidden_no_active_admin}
   def delete(group, options \\ []) do
     check_ldap!(group, options)
-    Air.Service.User.commit_if_active_last_admin(fn -> Repo.delete(group) end)
+    AdminGuard.commit_if_active_last_admin(fn -> Repo.delete(group) end)
   end
 
   @doc "Loads the group with the given id."

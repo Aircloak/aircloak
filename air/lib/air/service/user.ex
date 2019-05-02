@@ -3,7 +3,7 @@ defmodule Air.Service.User do
 
   alias Air.Repo
   alias Air.Service
-  alias Air.Service.{AuditLog, LDAP, Password, RevokableToken}
+  alias Air.Service.{AuditLog, LDAP, Password, RevokableToken, AdminGuard}
   alias Air.Schemas.{DataSource, Group, User, Login}
   import Ecto.Query, only: [from: 2, join: 4, where: 3, preload: 3]
   import Ecto.Changeset
@@ -215,7 +215,7 @@ defmodule Air.Service.User do
   def update(user, params, options \\ []) do
     check_ldap!(user, options)
 
-    commit_if_active_last_admin(fn ->
+    AdminGuard.commit_if_active_last_admin(fn ->
       user
       |> user_changeset(params)
       |> merge(change_main_login(user, &main_login_changeset(&1, params)))
@@ -259,14 +259,14 @@ defmodule Air.Service.User do
 
   def delete_async(user = %User{source: :ldap, enabled: false}, start_callback, success_callback, failure_callback) do
     start_callback.()
-    commit_if_active_last_admin_async(fn -> do_delete(user) end, success_callback, failure_callback)
+    AdminGuard.commit_if_active_last_admin_async(fn -> do_delete(user) end, success_callback, failure_callback)
   end
 
   def delete_async(user, start_callback, success_callback, failure_callback) do
     case disable(user) do
       {:ok, user} ->
         start_callback.()
-        commit_if_active_last_admin_async(fn -> do_delete(user) end, success_callback, failure_callback)
+        AdminGuard.commit_if_active_last_admin_async(fn -> do_delete(user) end, success_callback, failure_callback)
 
       error ->
         error
@@ -283,14 +283,14 @@ defmodule Air.Service.User do
   @doc "Deletes the given user."
   @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin | :invalid_ldap_delete}
   def delete(%User{source: :ldap, enabled: true}), do: {:error, :invalid_ldap_delete}
-  def delete(user), do: commit_if_active_last_admin(fn -> do_delete(user) end)
+  def delete(user), do: AdminGuard.commit_if_active_last_admin(fn -> do_delete(user) end)
 
   @doc "Disables a user account"
   @spec disable(User.t(), change_options) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin}
   def disable(user, options \\ []) do
     check_ldap!(user, options)
 
-    commit_if_active_last_admin(fn ->
+    AdminGuard.commit_if_active_last_admin(fn ->
       user
       |> cast(%{enabled: false}, [:enabled])
       |> update()
@@ -596,30 +596,6 @@ defmodule Air.Service.User do
     end
   end
 
-  def commit_if_active_last_admin(fun), do: GenServer.call(__MODULE__, {:commit_if_active_last_admin, fun})
-
-  defp commit_if_active_last_admin_async(fun, success_callback, failure_callback),
-    do: GenServer.cast(__MODULE__, {:commit_if_active_last_admin, fun, success_callback, failure_callback})
-
-  defp do_commit_if_retains_an_admin(fun) do
-    Repo.transaction(
-      fn ->
-        case fun.() do
-          {:ok, result} ->
-            if active_admin_user_exists?() do
-              result
-            else
-              Repo.rollback(:forbidden_no_active_admin)
-            end
-
-          {:error, error} ->
-            Repo.rollback(error)
-        end
-      end,
-      timeout: :timer.hours(1)
-    )
-  end
-
   defp check_ldap!(object, options) do
     case {object.source, Keyword.get(options, :ldap, false)} do
       {_, :any} -> object
@@ -677,34 +653,4 @@ defmodule Air.Service.User do
       Repo.delete(user)
     end)
   end
-
-  # -------------------------------------------------------------------
-  # GenServer callbacks
-  # -------------------------------------------------------------------
-
-  use GenServer
-
-  @impl GenServer
-  def init(_), do: {:ok, nil}
-
-  @impl GenServer
-  def handle_call({:commit_if_active_last_admin, fun}, _from, state),
-    do: {:reply, do_commit_if_retains_an_admin(fun), state}
-
-  @impl GenServer
-  def handle_cast({:commit_if_active_last_admin, fun, success_callback, failure_callback}, state) do
-    case do_commit_if_retains_an_admin(fun) do
-      {:ok, _} -> success_callback.()
-      {:error, error} -> failure_callback.(error)
-    end
-
-    {:noreply, state}
-  end
-
-  # -------------------------------------------------------------------
-  # Supervision tree
-  # -------------------------------------------------------------------
-
-  @doc false
-  def child_spec(_arg), do: Aircloak.ChildSpec.gen_server(__MODULE__, [], name: __MODULE__)
 end
