@@ -89,7 +89,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     else
       base = if max2 < 0, do: min(abs(min1), abs(min2)), else: max(abs(min1), abs(max1))
       extent = :math.pow(base, max2)
-      {floor(-extent), max(ceil(extent), 1)}
+      {min(floor(-extent), -1), max(ceil(extent), 1)}
     end
   rescue
     ArithmeticError -> :unknown

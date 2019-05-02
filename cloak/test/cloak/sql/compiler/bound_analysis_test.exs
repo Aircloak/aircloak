@@ -89,6 +89,13 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       expression = function_expression("^", Enum.map(bounds, &column_in_bounds/1))
       assert unknown_or_within_bounds(expression, values, &:math.pow/2)
     end
+
+    test "generated example 2" do
+      bounds = [{-134, -12}, {-310, -162}]
+      values = [-73.22209099941092, -172.57340641899032]
+      expression = function_expression("^", Enum.map(bounds, &column_in_bounds/1))
+      assert unknown_or_within_bounds(expression, values, &safe_pow/2)
+    end
   end
 
   defp unknown_or_within_bounds(expression, values, function) do
