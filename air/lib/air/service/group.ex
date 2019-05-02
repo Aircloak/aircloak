@@ -1,4 +1,6 @@
 defmodule Air.Service.Group do
+  @moduledoc "Service module for working with groups."
+
   alias Air.Repo
   alias Air.Schemas.{Group, User, DataSource}
   alias Air.Service.AdminGuard
