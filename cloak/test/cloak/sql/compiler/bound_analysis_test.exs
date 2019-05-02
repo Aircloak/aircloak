@@ -52,7 +52,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     end
 
     test "columns with bounds set are ignored" do
-      assert {10, 20} = BoundAnalysis.analyze_expression(column_in_bounds({10, 20})).bounds
+      assert BoundAnalysis.analyze_expression(column_in_bounds({10, 20})) == column_in_bounds({10, 20})
     end
 
     test "[temporary] columns with no bounds are set to [10 - 20]" do
