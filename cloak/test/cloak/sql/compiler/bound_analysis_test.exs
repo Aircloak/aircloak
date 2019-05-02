@@ -59,6 +59,11 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       assert {10, 20} = BoundAnalysis.analyze_expression(column_in_bounds(:unknown)).bounds
     end
 
+    test "sqrt bounds are tight for positive input bounds" do
+      assert {10, 20} =
+               BoundAnalysis.analyze_expression(function_expression("sqrt", [column_in_bounds({100, 400})])).bounds
+    end
+
     property "bounds can be computed for simplest arguments to function" do
       check all {name, function} <- function() do
         arity = Function.info(function) |> Keyword.fetch!(:arity)

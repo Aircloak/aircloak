@@ -77,6 +77,10 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     do: [min1 * min2, max1 * max2, min1 * max2, min2 * max1] |> Enum.min_max()
 
   defp update_bounds("abs", [{min, max}]), do: {max(min, 0), max(abs(min), abs(max))}
+
+  defp update_bounds("sqrt", [{min, max}]) when min >= 0 and max >= 0,
+    do: {min |> :math.sqrt() |> floor(), max |> :math.sqrt() |> ceil()}
+
   defp update_bounds("sqrt", [{_min, max}]) when max >= 0, do: {0, max |> :math.sqrt() |> ceil()}
 
   defp update_bounds("^", [{min1, max1}, {min2, max2}]) do
