@@ -26,6 +26,13 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
       assert result1.where == result2.where
     end
 
+    test "normalizing constant expressions with NULL" do
+      result1 = compile!("SELECT * FROM table WHERE numeric = 2 + NULL", data_source())
+      result2 = compile!("SELECT * FROM table WHERE numeric = NULL", data_source())
+
+      assert result1.where == result2.where
+    end
+
     test "[Issue #3384] normalizing constant bucket" do
       result1 = compile!("SELECT bucket(2 BY 7) FROM table", data_source())
       result2 = compile!("SELECT 0::real AS \"bucket\" FROM table", data_source())

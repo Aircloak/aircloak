@@ -124,14 +124,17 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp normalize_constants(query),
     do: update_in(query, [Query.Lenses.terminals() |> Lens.filter(&Expression.constant?/1)], &do_normalize_constants/1)
 
-  defp do_normalize_constants(expression = %Expression{function?: true, aggregate?: false}) do
-    case Expression.const_value(expression) do
-      nil ->
+  defp do_normalize_constants(expression = %Expression{function?: true, aggregate?: false, function_args: args}) do
+    case {Expression.const_value(expression), Enum.any?(args, &is_nil(&1.value))} do
+      {nil, true} ->
+        Expression.null()
+
+      {nil, false} ->
         raise CompilationError,
           source_location: expression.source_location,
           message: "Failed to evaluate expression `#{Expression.display(expression)}`."
 
-      value ->
+      {value, _} ->
         Expression.constant(expression.type, value, expression.parameter_index)
         |> Expression.set_location(expression.source_location)
         |> put_in([Lens.key(:alias)], expression.alias)
