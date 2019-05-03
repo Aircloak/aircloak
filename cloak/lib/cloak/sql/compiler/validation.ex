@@ -462,6 +462,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp comparable?(:integer, :real), do: true
   defp comparable?(:real, :integer), do: true
+  defp comparable?(type1, type2) when is_nil(type1) or is_nil(type2), do: true
   defp comparable?(type1, type2), do: type1 == type2
 
   defp check_for_string_inequalities(comparator, %Expression{

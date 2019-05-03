@@ -94,7 +94,11 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "NULL can have any type" do
-    assert {:ok, result} = compile("select numeric + null from table", data_source())
+    assert {:ok, _} = compile("select numeric + null from table", data_source())
+  end
+
+  test "NULL can be compared with any type" do
+    assert {:ok, _} = compile("select count(*) from table where column = null", data_source())
   end
 
   test "reject invalid select with having conditions without group by" do

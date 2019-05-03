@@ -825,6 +825,8 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp do_perform_implicit_cast(expression = %Expression{type: type}, type), do: expression
 
+  defp do_perform_implicit_cast(expression = %Expression{type: nil}, _type), do: expression
+
   defp do_perform_implicit_cast(expression = %Expression{type: :integer}, :real),
     do: %Expression{expression | type: :real}
 
