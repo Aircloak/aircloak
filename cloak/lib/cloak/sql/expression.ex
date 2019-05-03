@@ -94,6 +94,10 @@ defmodule Cloak.Sql.Expression do
   @spec count_star() :: t
   def count_star(), do: function("count", [:*], :integer, true)
 
+  @doc "Returns an expression representing the NULL constant."
+  @spec null() :: t
+  def null(), do: constant(nil, nil)
+
   @doc "Returns true if the given term is a constant column, false otherwise."
   @spec constant?(Cloak.Sql.Parser.column() | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true

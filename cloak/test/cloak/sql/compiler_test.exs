@@ -93,6 +93,10 @@ defmodule Cloak.Sql.Compiler.Test do
                "of type `datetime` cannot be compared."
   end
 
+  test "NULL can have any type" do
+    assert {:ok, result} = compile("select numeric + null from table", data_source())
+  end
+
   test "reject invalid select with having conditions without group by" do
     {:error, error} = compile("select string from table having count(numeric) = 2", data_source())
 

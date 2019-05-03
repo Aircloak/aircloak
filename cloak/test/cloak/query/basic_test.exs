@@ -163,6 +163,11 @@ defmodule Cloak.Query.BasicTest do
     assert_query("select 3 from heights", %{columns: [""], rows: [%{occurrences: 10, row: [3]}]})
   end
 
+  test "null in an expression" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
+    assert_query("select height + null from heights", %{rows: [%{occurrences: 10, row: [nil]}]})
+  end
+
   test "select an aliased constant" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
 
