@@ -152,6 +152,7 @@ defmodule Cloak.Sql.Expression do
   def display_name(%__MODULE__{constant?: true, type: :interval, value: value}),
     do: "`#{Timex.Duration.to_string(value)}`"
 
+  def display_name(%__MODULE__{constant?: true, value: nil}), do: "`NULL`"
   def display_name(%__MODULE__{constant?: true, value: value}), do: "`#{value}`"
 
   @doc """
@@ -183,6 +184,7 @@ defmodule Cloak.Sql.Expression do
   def display(%__MODULE__{constant?: true, type: type, value: value}) when type in [:date, :datetime, :time],
     do: "#{type} '#{to_string(value)}'"
 
+  def display(%__MODULE__{constant?: true, value: nil}), do: "NULL"
   def display(%__MODULE__{constant?: true, value: value}), do: to_string(value)
   def display({:distinct, expression}), do: "distinct #{display(expression)}"
   def display(value), do: to_string(value)
