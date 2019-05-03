@@ -1459,6 +1459,17 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "NULL constant" do
+    assert_parse(
+      "select null + 3 from bar",
+      select(
+        columns: [
+          function("+", [:null, constant(:integer, 3)])
+        ]
+      )
+    )
+  end
+
   test "query parameters",
     do:
       assert_parse(

@@ -150,10 +150,13 @@ defmodule Cloak.Sql.Parser.Internal do
       extract_expression(),
       trim_expression(),
       substring_expression(),
+      null_expression(),
       constant_column(),
       field_or_parameter() |> label("column definition")
     ])
   end
+
+  defp null_expression(), do: keyword(:null)
 
   defp constant_column() do
     either_deepest_error(typed_literal(), any_constant())
