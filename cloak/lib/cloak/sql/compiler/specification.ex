@@ -662,6 +662,8 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> Expression.set_location(location)
   end
 
+  defp identifier_to_column(:null, _columns_by_name, _query), do: Expression.null()
+
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
   defp get_columns(columns_by_name, {:unquoted, name}) do
@@ -822,6 +824,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
 
   defp do_perform_implicit_cast(expression = %Expression{type: type}, type), do: expression
+
+  defp do_perform_implicit_cast(expression = %Expression{type: nil}, _type), do: expression
 
   defp do_perform_implicit_cast(expression = %Expression{type: :integer}, :real),
     do: %Expression{expression | type: :real}

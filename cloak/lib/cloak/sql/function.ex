@@ -195,5 +195,7 @@ defmodule Cloak.Sql.Function do
   defp type_matches?({:constant, expected}, %{function?: true, function_args: args, type: actual}),
     do: expected == actual and Enum.all?(args, &Expression.constant?/1)
 
+  defp type_matches?(_expected_type, %Expression{value: nil, type: nil}), do: true
+
   defp type_matches?(expected_type, %{type: actual_type}), do: expected_type == actual_type
 end
