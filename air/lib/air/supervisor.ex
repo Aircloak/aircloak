@@ -17,7 +17,7 @@ defmodule Air.Supervisor do
         Air.Service.Query,
         Air.Service.License,
         Air.Service.Central,
-        Air.Service.User,
+        Air.Service.AdminGuard,
         Air.Service.Export,
         Air.Service.Cleanup,
         Air.Service.RevokableToken,

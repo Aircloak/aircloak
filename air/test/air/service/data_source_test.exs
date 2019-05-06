@@ -335,7 +335,7 @@ defmodule Air.Service.DataSourceTest do
       DataSource.delete!(data_source, fn -> send(me, :success) end, fn -> :ignore end)
 
       receive do
-        :success -> refute nil == Air.Service.User.load_group(group.id)
+        :success -> refute nil == Air.Service.Group.load(group.id)
       end
     end
 

@@ -153,7 +153,7 @@ defmodule IntegrationTest.Manager do
     Repo.delete_all(Group)
 
     # create group
-    admin_group = Air.Service.User.create_group!(%{name: @admin_group_name, admin: true})
+    admin_group = Air.Service.Group.create!(%{name: @admin_group_name, admin: true})
 
     {:ok, _aircloak_admin} =
       Air.Service.User.create_onboarding_admin_user(%{

@@ -100,5 +100,5 @@ defmodule Air.Service.Monitoring.Test do
     do:
       TestRepoHelper.create_group!()
       |> Repo.preload(:data_sources)
-      |> Air.Service.User.update_group!(%{data_sources: [data_source.id]})
+      |> Air.Service.Group.update!(%{data_sources: [data_source.id]})
 end

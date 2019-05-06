@@ -73,7 +73,7 @@ defmodule IntegrationTest.Acceptance.DataSourcesTest do
   end
 
   test "editing data source group" do
-    group = Air.Service.User.create_group!(%{name: new_group_name(), admin: false})
+    group = Air.Service.Group.create!(%{name: new_group_name(), admin: false})
 
     login_as_admin()
     visit_admin_page("Data sources")

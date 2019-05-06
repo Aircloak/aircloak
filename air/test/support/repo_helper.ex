@@ -1,6 +1,7 @@
 defmodule Air.TestRepoHelper do
   @moduledoc "Helpers for working with the repository."
 
+  alias Air.Service
   alias Air.{Service.User, Service.Query, Schemas.ApiToken, Schemas.PrivacyPolicy, Schemas.Group, Repo}
 
   @doc "Inserts the new user with default parameters into the database."
@@ -66,10 +67,10 @@ defmodule Air.TestRepoHelper do
   @spec create_group!(map()) :: Group.t()
   def create_group!(additional_changes \\ %{}) do
     if is_nil(additional_changes[:ldap_dn]) do
-      User.create_group!(Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes))
+      Service.Group.create!(Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes))
     else
       {:ok, group} =
-        User.create_ldap_group(Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes))
+        Service.Group.create_ldap(Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes))
 
       group
     end

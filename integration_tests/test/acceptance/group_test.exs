@@ -20,7 +20,7 @@ defmodule IntegrationTest.Acceptance.GroupTest do
   end
 
   test "forbids access to data source by default" do
-    group = Air.Service.User.create_group!(%{name: new_group_name(), admin: false})
+    group = Air.Service.Group.create!(%{name: new_group_name(), admin: false})
     user = Manager.create_air_user(group)
 
     login_as_admin()
@@ -32,7 +32,7 @@ defmodule IntegrationTest.Acceptance.GroupTest do
   end
 
   test "allowing access to a data source through a group" do
-    group = Air.Service.User.create_group!(%{name: new_group_name(), admin: false})
+    group = Air.Service.Group.create!(%{name: new_group_name(), admin: false})
     user = Manager.create_air_user(group)
 
     login_as_admin()

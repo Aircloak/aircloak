@@ -316,14 +316,14 @@ defmodule Air.Service.DataSource do
   # -------------------------------------------------------------------
 
   defp add_group(name, users) do
-    case Air.Service.User.get_group_by_name(name) do
+    case Air.Service.Group.get_by_name(name) do
       {:ok, _group} ->
         {:error, :group_exists}
 
       {:error, :not_found} ->
         user_ids = Enum.map(users, & &1.id)
         params = %{name: name, admin: false, users: user_ids}
-        {:ok, Air.Service.User.create_group!(params)}
+        {:ok, Air.Service.Group.create!(params)}
     end
   end
 
