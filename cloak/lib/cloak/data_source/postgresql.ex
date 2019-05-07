@@ -176,7 +176,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp udfs(), do: @cast_udfs ++ math_udfs()
 
   defp math_udfs() do
-    operators = [{"ac_mul", "*"}, {"ac_add", "+"}, {"ac_sub", "-"}]
+    operators = [{"ac_mul", "*"}, {"ac_add", "+"}, {"ac_sub", "-"}, {"ac_div", "/"}]
     functions = [{"ac_pow", "power"}]
 
     for type1 <- @number_types, type2 <- @number_types, {name, operator} <- operators do
