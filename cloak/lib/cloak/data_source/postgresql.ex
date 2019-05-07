@@ -176,11 +176,17 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp udfs(), do: @cast_udfs ++ math_udfs()
 
   defp math_udfs() do
-    functions = [{"ac_mul", "*"}, {"ac_add", "+"}]
+    operators = [{"ac_mul", "*"}, {"ac_add", "+"}]
+    functions = [{"ac_pow", "power"}]
 
-    for type1 <- @number_types, type2 <- @number_types, {name, operator} <- functions do
-      {"#{name}(a #{type1}, b #{type2}) RETURNS #{return_type(type1, type2)}", "a #{operator} b"}
-    end
+    for type1 <- @number_types, type2 <- @number_types, {name, operator} <- operators do
+      return_type = return_type(type1, type2)
+      {"#{name}(a #{type1}, b #{type2}) RETURNS #{return_type}", "CAST(a #{operator} b AS #{return_type})"}
+    end ++
+      for type1 <- @number_types, type2 <- @number_types, {name, function} <- functions do
+        return_type = return_type(type1, type2)
+        {"#{name}(a #{type1}, b #{type2}) RETURNS #{return_type}", "CAST(#{function}(a, b) AS #{return_type})"}
+      end
   end
 
   defp return_type("DOUBLE PRECISION", _), do: "DOUBLE PRECISION"
