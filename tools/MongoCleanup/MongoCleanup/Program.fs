@@ -257,20 +257,20 @@ let projectWithUserIds (batch : seq<BsonDocument>) (table : string) (config : Cl
 
 let saveUserIds (userIds : UserIds) (batch : seq<BsonDocument>) (table : string) (config : CloakConfig) : UserIds =
     let userId = userId config table
+    let tableConfig = config.tables.Item table
 
     let toPreserve =
         config.tables
         |> Seq.choose (fun table -> table.Value.projection)
         |> Seq.filter (fun projection -> projection.table = table)
 
-    let saveUserIds'' =
-        fun (document : BsonDocument) userIds projection ->
-            if document.Contains(projection.primaryKey) && document.Contains(userId) then
-                Map.add (projection, document.GetValue(projection.primaryKey).ToString()) (document.GetValue(userId))
-                    userIds
-            else userIds
+    let saveUserIds'' (document : BsonDocument) userIds projection =
+        if not (shouldDelete tableConfig document) && document.Contains(projection.primaryKey) && document.Contains(userId) then
+            Map.add (projection, document.GetValue(projection.primaryKey).ToString()) (document.GetValue(userId))
+                userIds
+        else userIds
 
-    let saveUserIds' = fun userIds document -> Seq.fold (saveUserIds'' document) userIds toPreserve
+    let saveUserIds' userIds document = Seq.fold (saveUserIds'' document) userIds toPreserve
     Seq.fold saveUserIds' userIds batch
 
 let processOne (db : IMongoDatabase) (config : CloakConfig) (table : string) (userIds : UserIds)

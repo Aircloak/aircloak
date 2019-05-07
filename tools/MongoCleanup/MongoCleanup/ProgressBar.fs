@@ -7,7 +7,7 @@ type ProgressMessage =
     | Reset of int * string
     | Tick of int
     | Draw
-    | Finish of string
+    | Finish of string * AsyncReplyChannel<unit>
 
 let progressAgent : MailboxProcessor<ProgressMessage> =
     MailboxProcessor.Start(fun inbox ->
@@ -33,9 +33,10 @@ let progressAgent : MailboxProcessor<ProgressMessage> =
                     | Draw ->
                         draw total progress text
                         return! messageLoop total progress text
-                    | Finish finishText ->
+                    | Finish(finishText, replyChannel) ->
                         draw total total text
                         printfn "\n%s" finishText
+                        replyChannel.Reply()
                         return! messageLoop total total text
                 with e -> printfn "%A" e
             }
@@ -54,4 +55,4 @@ let public start (timeout : int) =
 
 let public reset (total : int) (text : string) = progressAgent.Post <| Reset(total, text)
 let public tick progress = progressAgent.Post <| Tick(progress)
-let public finish (text : string) = progressAgent.Post <| Finish(text)
+let public finish (text : string) = progressAgent.PostAndReply(fun replyChannel -> Finish(text, replyChannel))
