@@ -47,6 +47,10 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       assert {2, 2} = BoundAnalysis.analyze_expression(Expression.constant(:real, 2)).bounds
     end
 
+    test "small real constants" do
+      assert {0, 1} = BoundAnalysis.analyze_expression(Expression.constant(:real, 0.01)).bounds
+    end
+
     test "other constants" do
       assert :unknown = BoundAnalysis.analyze_expression(Expression.constant(:text, "Some text")).bounds
     end

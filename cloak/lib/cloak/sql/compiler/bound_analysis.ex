@@ -51,7 +51,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
 
   defp do_analyze_expression(expression = %Expression{type: type, constant?: true, value: value})
        when type in [:integer, :real],
-       do: %{expression | bounds: {value, value}}
+       do: %{expression | bounds: {floor(value), ceil(value)}}
 
   defp do_analyze_expression(expression = %Expression{constant?: false, function?: false, bounds: :unknown}),
     do: %{expression | bounds: @dummy_bounds}
