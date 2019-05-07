@@ -8,6 +8,12 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   use Cloak.DataSource.SqlBuilder.Dialect
   alias Cloak.DataSource.SqlBuilder.Dialect
 
+  @aliases %{
+    "+" => "ac_add",
+    "*" => "ac_mul",
+    "-" => "ac_sub"
+  }
+
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
@@ -32,13 +38,11 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
-  def function_sql("+", args), do: function_sql("pg_temp.ac_add", args)
-  def function_sql("*", args), do: function_sql("pg_temp.ac_mul", args)
   def function_sql("/", [arg1, arg2]), do: ["(", arg1, " :: double precision / NULLIF(", arg2, ", 0))"]
   def function_sql("%", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
 
-  for binary_operator <- ~w(-) do
-    def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
+  for {function, alias} <- @aliases do
+    def function_sql(unquote(function), args), do: function_sql("pg_temp.#{unquote(alias)}", args)
   end
 
   def function_sql("^", [arg1, arg2]),
