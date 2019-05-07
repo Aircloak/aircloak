@@ -32,10 +32,12 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
+  def function_sql("+", args), do: function_sql("pg_temp.ac_add", args)
+  def function_sql("*", args), do: function_sql("pg_temp.ac_mul", args)
   def function_sql("/", [arg1, arg2]), do: ["(", arg1, " :: double precision / NULLIF(", arg2, ", 0))"]
   def function_sql("%", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
 
-  for binary_operator <- ~w(+ - *) do
+  for binary_operator <- ~w(-) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
