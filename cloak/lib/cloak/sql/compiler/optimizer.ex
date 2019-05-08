@@ -275,7 +275,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     column_name = "__ac_agg_#{index}"
     inner_column = Helpers.column_from_table(inner_table, column_name)
     function_name = global_aggregator(old_aggregator.function)
-    new_aggregator = Expression.function(function_name, [inner_column], inner_column.type, true)
+    new_aggregator = Expression.function(function_name, [inner_column], old_aggregator.type, true)
     %Expression{new_aggregator | alias: old_aggregator.function}
   end
 

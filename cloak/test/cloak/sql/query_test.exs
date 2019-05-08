@@ -325,6 +325,10 @@ defmodule Cloak.Sql.QueryTest do
       assert %{db_column_types: [@uid_type, @uid_type, @uid_type]} =
                features_from("SELECT 'string', date '2018-01-01' FROM feat_users")
     end
+
+    test "count noise type" do
+      assert %{selected_types: ["real"]} = features_from("SELECT count_noise(*) FROM feat_users")
+    end
   end
 
   describe "selected_types" do
