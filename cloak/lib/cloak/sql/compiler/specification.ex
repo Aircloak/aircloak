@@ -5,8 +5,6 @@ defmodule Cloak.Sql.Compiler.Specification do
   alias Cloak.Sql.{Condition, CompilationError, Expression, Function, Query}
   alias Cloak.Sql.{Compiler.Helpers, Query.Lenses}
 
-  @dummy_location {1, 0}
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -346,18 +344,18 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp expand_star_select(query),
     do: %Query{query | columns: Enum.flat_map(query.columns, &(&1 |> expand_select_all(query) |> verify_star_select()))}
 
-  defp expand_select_all(:*, query),
+  defp expand_select_all({:*, location}, query),
     do:
       query
       |> all_visible_columns()
-      |> columns_to_identifiers()
+      |> columns_to_identifiers(location)
 
-  defp expand_select_all({:*, table_name}, query) do
+  defp expand_select_all({{:*, table_name}, location}, query) do
     with [] <-
            query
            |> all_visible_columns()
            |> Enum.filter(&(&1.table.name == table_name))
-           |> columns_to_identifiers() do
+           |> columns_to_identifiers(location) do
       raise CompilationError,
         message:
           "Select clause `#{table_name}`.* cannot be resolved because the table does not exist in the `FROM` list."
@@ -374,12 +372,8 @@ defmodule Cloak.Sql.Compiler.Specification do
       end)
       |> Enum.filter(& &1.column.visible?)
 
-  defp columns_to_identifiers(columns),
-    do:
-      Enum.map(
-        columns,
-        &{:identifier, &1.table.name, {:unquoted, &1.column.name}, @dummy_location}
-      )
+  defp columns_to_identifiers(columns, location),
+    do: Enum.map(columns, &{:identifier, &1.table.name, {:unquoted, &1.column.name}, location})
 
   defp verify_star_select(columns) do
     case columns -- Enum.uniq(columns) do
