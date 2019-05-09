@@ -23,14 +23,14 @@ defmodule IntegrationTest.Acceptance.ViewTest do
 
       test "empty fields error when creating" do
         login_as_admin()
-        create_new_selectable(unquote(selectable_type), "", "")
+        create_new_selectable(unquote(selectable_type), "", "", wait_until_created?: false)
         assert_has(:xpath, ~s{//label[text()='Name']/..//*[text()="can't be blank"]})
         assert_has(:xpath, ~s{//label[text()='Code']/..//*[text()="can't be blank"]})
       end
 
       test "sql error when creating" do
         login_as_admin()
-        create_new_selectable(unquote(selectable_type), unique_name(:view), "invalid_query")
+        create_new_selectable(unquote(selectable_type), unique_name(:view), "invalid_query", wait_until_created?: false)
         assert_has(:xpath, ~s{//label[text()='Code']/..//*[text()="Expected `select or show` at line 1, column 1."]})
       end
 
@@ -50,7 +50,7 @@ defmodule IntegrationTest.Acceptance.ViewTest do
         login_as_admin()
         view_name = unique_name(:view)
         create_new_selectable(unquote(selectable_type), view_name, "select * from users")
-        assert_has(:xpath, selectable_row_xpath(view_name))
+        assert_has(:xpath, "#{selectable_row_xpath(view_name)}/..//a[text()='Delete']")
         click({:xpath, "#{selectable_row_xpath(view_name)}/..//a[text()='Delete']"})
         accept_dialog()
         refute_has(nil, :xpath, selectable_row_xpath(view_name), attempts: 10)
@@ -90,11 +90,31 @@ defmodule IntegrationTest.Acceptance.ViewTest do
     if Keyword.get(opts, :submit_via_keyboard?),
       do: send_keys([:control, :enter]),
       else: click({:xpath, "//button[text()='Create']"})
+
+    if Keyword.get(opts, :wait_until_created?, true) do
+      wait_until_created(name)
+      refresh_page()
+    end
+  end
+
+  defp wait_until_created(name) do
+    fn ->
+      refresh_page()
+
+      with false <- exists_visible?(:xpath, "#{selectable_row_xpath(name)}/..//a[text()='Edit']") do
+        Process.sleep(1000)
+        false
+      end
+    end
+    |> Stream.repeatedly()
+    |> Stream.take(10)
+    |> Enum.find(&(&1 == true))
   end
 
   defp edit_selectable(type, name, changes) do
     visit_data_source(IntegrationTest.Manager.data_source_name())
 
+    assert_has(:xpath, "#{selectable_row_xpath(name)}/..//a[text()='Edit']")
     click({:xpath, "#{selectable_row_xpath(name)}/..//a[text()='Edit']"})
 
     with {:ok, new_name} <- Keyword.fetch(changes, :name), do: fill_field(name_input(type), new_name)

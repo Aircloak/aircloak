@@ -55,6 +55,10 @@ defmodule IntegrationTest.Manager do
         password_confirmation: @user_password
       })
 
+    ExUnit.Callbacks.on_exit(fn ->
+      with {:ok, user} <- Air.Service.User.load(user.id), do: Air.Service.User.delete(user)
+    end)
+
     user
   end
 

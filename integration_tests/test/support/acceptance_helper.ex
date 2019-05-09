@@ -12,7 +12,7 @@ defmodule IntegrationTest.AcceptanceHelper do
 
     try do
       change_session_to(make_ref())
-      set_window_size(current_window_handle(), 1024, 768)
+      set_window_size(current_window_handle(), 1024, 1536)
       fun.()
     after
       change_session_to(current_session)
