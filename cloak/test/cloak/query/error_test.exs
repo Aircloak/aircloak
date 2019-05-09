@@ -315,4 +315,18 @@ defmodule Cloak.Query.ErrorTest do
            \t             ^
            """)
   end
+
+  test "selecting all from a non-selected table" do
+    assert_query("SELECT bar.* FROM test_errors", %{error: error})
+
+    assert String.contains?(
+             error,
+             "Select clause `bar.*` cannot be resolved because the table does not exist in the `FROM` list."
+           )
+
+    assert String.contains?(error, """
+           \t1:    SELECT bar.* FROM test_errors
+           \t             ^
+           """)
+  end
 end

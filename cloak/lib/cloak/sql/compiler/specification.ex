@@ -357,8 +357,9 @@ defmodule Cloak.Sql.Compiler.Specification do
            |> Enum.filter(&(&1.table.name == table_name))
            |> columns_to_identifiers(location) do
       raise CompilationError,
+        source_location: location,
         message:
-          "Select clause `#{table_name}`.* cannot be resolved because the table does not exist in the `FROM` list."
+          "Select clause `#{table_name}.*` cannot be resolved because the table does not exist in the `FROM` list."
     end
   end
 
