@@ -40,6 +40,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> Helpers.apply_bottom_up(&reject_null_user_ids/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&compute_aggregators/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&expand_virtual_tables/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&protect_against_join_timing_attacks/1, analyst_tables?: false)
 
   # -------------------------------------------------------------------
   # UID handling
@@ -329,4 +330,38 @@ defmodule Cloak.Sql.Compiler.Execution do
     end)
     |> Optimizer.optimize_columns_from_subqueries()
   end
+
+  # -------------------------------------------------------------------
+  # Protect against join timing attacks
+  #
+  # Backends will execute a join branch only when needed.
+  # This can be used to detect when a condition matches a row or not by measuring the execution time
+  # of a query which joins a subquery with filters with another long running subquery.
+  # We detect and mark such vulnerable subqueries here and we make sure, when offloading them to
+  # the backend, that they always return at least one row that doesn't match anything else.
+  # -------------------------------------------------------------------
+
+  defp protect_against_join_timing_attacks(query), do: %Query{query | from: protect_joins(query.from)}
+
+  defp protect_joins({:join, join}) do
+    {lhs, rhs} =
+      if join.type == :right_outer_join do
+        {join.lhs, protect_join_branch(join.rhs)}
+      else
+        {protect_join_branch(join.lhs), join.rhs}
+      end
+
+    {:join, %{join | lhs: protect_joins(lhs), rhs: protect_joins(rhs)}}
+  end
+
+  defp protect_joins(query), do: query
+
+  defp query_has_db_filters?(query), do: Lens.to_list(Lenses.db_filter_clauses(), query) != []
+
+  defp query_needs_protection?(query), do: query.type == :restricted and query_has_db_filters?(query)
+
+  defp protect_join_branch({:subquery, subquery}),
+    do: {:subquery, Map.put(subquery, :join_timing_protection?, query_needs_protection?(subquery.ast))}
+
+  defp protect_join_branch(branch), do: branch
 end

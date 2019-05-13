@@ -231,7 +231,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp from_clause({:subquery, subquery}, query) do
     sql_dialect_module(query).alias_sql(
-      ["(", build_fragments(subquery.ast), ")"],
+      ["(", build_fragments(subquery.ast), add_join_timing_protection(subquery), ")"],
       quote_name(subquery.alias, sql_dialect_module(query).quote_char)
     )
   end
@@ -447,4 +447,16 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp cast(%Expression{function: {:cast, to}} = expression, to), do: expression
   defp cast({:distinct, expression}, to), do: {:distinct, cast(expression, to)}
   defp cast(expression, to), do: Expression.function({:cast, to}, [expression], to)
+
+  defp add_join_timing_protection(%{ast: query, join_timing_protection?: true}) do
+    [
+      " UNION ALL SELECT ",
+      query.db_columns
+      |> Enum.map(&Table.invalid_value(&1.type))
+      |> Enum.map(&constant_to_fragment(&1, query))
+      |> join(", ")
+    ]
+  end
+
+  defp add_join_timing_protection(_subquery), do: []
 end
