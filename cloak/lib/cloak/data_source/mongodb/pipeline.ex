@@ -476,7 +476,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
               %{
                 "$eq": ["$rows", []]
               },
-              [query.db_columns |> Enum.map(&{&1.name, Table.invalid_value(&1.type)}) |> Enum.into(%{})],
+              [query.db_columns |> Enum.map(&{Expression.title(&1), Table.invalid_value(&1.type)}) |> Enum.into(%{})],
               "$rows"
             ]
           }
