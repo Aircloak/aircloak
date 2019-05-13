@@ -356,7 +356,8 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp protect_joins(query), do: query
 
-  defp query_has_db_filters?(query), do: Lens.to_list(Lenses.db_filter_clauses(), query) != []
+  defp query_has_db_filters?(query),
+    do: Lenses.db_filter_clauses() |> Lens.reject(&is_nil/1) |> Lens.to_list(query) != []
 
   defp query_needs_protection?(query), do: query.type == :restricted and query_has_db_filters?(query)
 
