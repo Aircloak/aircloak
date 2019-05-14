@@ -343,6 +343,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     if Helpers.aggregates?(query) do
       %Query{query | distinct?: false}
     else
+      columns = columns |> Enum.reject(&Expression.constant?/1)
       %Query{query | distinct?: false, group_by: columns, grouping_sets: Helpers.default_grouping_sets(columns)}
     end
   end

@@ -1830,6 +1830,14 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
+  test "DISTINCT on constants" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [180, true])
+
+    assert_query("SELECT COUNT(*) FROM (SELECT DISTINCT 1 + 1, height FROM heights) bar", %{
+      rows: [%{occurrences: 1, row: [1]}]
+    })
+  end
+
   test "[Issue #2860] DISTINCT in subquery with scoped columns" do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
     :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
