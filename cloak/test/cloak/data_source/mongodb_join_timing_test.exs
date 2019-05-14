@@ -71,7 +71,7 @@ defmodule Cloak.DataSource.MongoDBJoinTimingTest do
         String.replace(@attack_statement, "<matched_id>", "0")
       )
 
-    assert time2 > 0.85 * time1
+    assert_in_delta time1, time2, 0.15 * time2
   end
 
   @iterations 25

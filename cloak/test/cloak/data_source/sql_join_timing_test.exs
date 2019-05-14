@@ -35,7 +35,7 @@ defmodule Cloak.DataSource.SQLJoinTimingTest do
       time1 = unquote(attack_statement) |> String.replace("<matched_id>", "1") |> benchmark()
       time2 = unquote(attack_statement) |> String.replace("<matched_id>", "0") |> benchmark()
 
-      assert time2 > 0.85 * time1
+      assert_in_delta time1, time2, 0.15 * time2
     end
   end
 
