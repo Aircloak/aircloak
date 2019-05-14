@@ -108,13 +108,18 @@ defmodule Cloak.DataSource.Table do
   @doc """
   Returns the value for a type with the highest chance of being invalid.
 
-  This is used by the join timing protection mechanism to create a row that won't match anything else in the data set.
+  This is used by the join timing protection mechanism to create a fake user row that won't match anything else in the data set.
   We can't use NULL values for the row, as the optimizer can detect it won't match the filtering conditions and it will drop it prematurely.
   """
   @spec invalid_value(data_type) :: any
   def invalid_value(:integer), do: -2_147_483_648
   def invalid_value(:real), do: -3.4e+38
   def invalid_value(:text), do: ""
+  def invalid_value(:date), do: ~D[3000-01-01]
+  def invalid_value(:datetime), do: ~N[3000-01-01 00:00:00]
+  def invalid_value(:time), do: ~T[00:00:00]
+  def invalid_value(:boolean), do: false
+  def invalid_value(:interval), do: Timex.Duration.zero()
   def invalid_value(_), do: nil
 
   # -------------------------------------------------------------------
