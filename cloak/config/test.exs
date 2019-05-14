@@ -62,13 +62,6 @@ config :cloak, :data_source,
 
 config :cloak, :sanitize_otp_errors, false
 
-config :cloak, :sap_hana,
-  hostname: "achanaproxy.mpi-sws.org",
-  port: 39013,
-  username: "acdev",
-  password: "Aircloakdev1",
-  database: "SYSTEMDB"
-
 # Using 0 timeout in tests, since due to the log level, log message won't be captured anyway.
 config :cloak, :flush_query_log_timeout, 0
 

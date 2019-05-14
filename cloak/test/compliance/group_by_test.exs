@@ -44,7 +44,7 @@ defmodule Compliance.GroupByTest do
         unquote(table) == "users_public" and unquote(column) == "column_with_a_very_long_name"
       )
       |> assert_consistent_and_not_failing("""
-        SELECT #{unquote(column)}, COUNT(*), COUNT(DISTINCT #{unquote(uid)}), MEDIAN(0) FROM 
+        SELECT #{unquote(column)}, COUNT(*), COUNT(DISTINCT #{unquote(uid)}), MEDIAN(0) FROM
         #{unquote(table)} GROUP BY GROUPING SETS ((), 1) ORDER BY 1 ASC NULLS FIRST, 2, 3
       """)
     end
@@ -56,16 +56,15 @@ defmodule Compliance.GroupByTest do
       context
       |> disable_unicode(unquote(table), unquote(column))
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
-      # MySQL, SQL Server and SAP HANA order NULLs differently by default
+      # MySQL and SQL Server order NULLs differently by default
       |> disable_for(Cloak.DataSource.MySQL, unquote(column) == "nullable")
       |> disable_for(Cloak.DataSource.SQLServer, unquote(column) == "nullable")
-      |> disable_for(Cloak.DataSource.SAPHana, unquote(column) == "nullable")
       |> disable_for(
         Cloak.DataSource.Oracle,
         unquote(table) == "users_public" and unquote(column) == "column_with_a_very_long_name"
       )
       |> assert_consistent_and_not_failing("""
-        SELECT #{unquote(column)}, COUNT(*), COUNT(DISTINCT #{unquote(uid)}) FROM 
+        SELECT #{unquote(column)}, COUNT(*), COUNT(DISTINCT #{unquote(uid)}) FROM
         #{unquote(table)} GROUP BY GROUPING SETS ((), 1) ORDER BY 1 ASC NULLS FIRST, 2, 3
       """)
     end

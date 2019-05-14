@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Gen.DevData do
     data = integers_data()
 
     Compliance.DataSources.all_from_config("dev")
-    |> Stream.filter(&(&1.name in ["saphana", "cloak_postgres_native"]))
+    |> Stream.filter(&(&1.name in ["cloak_postgres_native"]))
     |> Stream.map(&{&1, open_connection(&1)})
     |> Stream.filter(fn {_datasource, connect_result} -> match?({:ok, _conn}, connect_result) end)
     |> Stream.map(fn {datasource, {:ok, conn}} -> {datasource, conn} end)
@@ -50,28 +50,6 @@ defmodule Mix.Tasks.Gen.DevData do
     Postgrex.query!(conn, "DROP TABLE IF EXISTS #{table_spec.name}", [])
     Postgrex.query!(conn, create_statement(table_spec), [])
     insert_chunks(table_spec.data, &postgresql_insert_rows(conn, table_spec, &1))
-  end
-
-  defp insert({%{driver: Cloak.DataSource.SAPHana}, conn}, table_spec) do
-    Cloak.SapHanaHelpers.recreate_table!(
-      conn,
-      __AC__DEFAULT_SAP_HANA_SCHEMA__!(),
-      table_spec.name,
-      table_def(table_spec)
-    )
-
-    column_names = Enum.map(table_spec.columns, &elem(&1, 0))
-
-    insert_chunks(
-      table_spec.data,
-      &Cloak.SapHanaHelpers.insert_rows!(
-        conn,
-        __AC__DEFAULT_SAP_HANA_SCHEMA__!(),
-        table_spec.name,
-        column_names,
-        &1
-      )
-    )
   end
 
   defp insert_chunks(rows, inserter) do
@@ -110,61 +88,6 @@ defmodule Mix.Tasks.Gen.DevData do
       username: datasource.parameters[:username],
       password: datasource.parameters[:password]
     )
-  end
-
-  defp open_connection(%{driver: Cloak.DataSource.SAPHana} = datasource) do
-    with :ok <- sap_hana_connectivity_possible(),
-         {:ok, _} <- Application.ensure_all_started(:odbc),
-         {:ok, default_schema} <- __AC__DEFAULT_SAP_HANA_SCHEMA__(),
-         connection_params = Map.put(datasource.parameters, :default_schema, default_schema),
-         :ok <- Cloak.SapHanaHelpers.ensure_schema(connection_params, default_schema),
-         do: Cloak.SapHanaHelpers.connect(connection_params)
-  end
-
-  defp __AC__DEFAULT_SAP_HANA_SCHEMA__!() do
-    {:ok, default_schema} = __AC__DEFAULT_SAP_HANA_SCHEMA__()
-    default_schema
-  end
-
-  defp __AC__DEFAULT_SAP_HANA_SCHEMA__() do
-    case Cloak.DataSource.SAPHana.default_schema() do
-      nil ->
-        [
-          "",
-          "Default schema for SAP HANA not specified. SAP HANA data will not be recreated.",
-          "To use SAP HANA datasource, add the following to `dev.local.exs`:",
-          "",
-          "  config :cloak, :sap_hana, default_schema: your_schema_name",
-          "",
-          "See `README.md` for more details.",
-          ""
-        ]
-        |> Enum.join("\n")
-        |> IO.puts()
-
-        {:error, :default_schema_not_specified}
-
-      default_schema ->
-        {:ok, default_schema}
-    end
-  end
-
-  defp sap_hana_connectivity_possible() do
-    if :os.type() == {:unix, :darwin} do
-      [
-        "#{IO.ANSI.red()}",
-        "Can't connect to SAP HANA data source from a macOS machine. SAP HANA data will not be recreated.",
-        "To work with SAP HANA data sources, start a CI container with `make ci.compliance.debug`.",
-        "See `README.md` for more details.",
-        "#{IO.ANSI.reset()}"
-      ]
-      |> Enum.join("\n")
-      |> IO.puts()
-
-      {:error, :sap_hana_not_supported}
-    else
-      :ok
-    end
   end
 
   defp create_statement(table_spec), do: "CREATE TABLE #{table_spec.name} (#{table_def(table_spec)})"

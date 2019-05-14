@@ -258,7 +258,6 @@ defmodule Mix.Tasks.Fuzzer.Run do
     )
 
     Application.ensure_all_started(:cloak)
-    Cloak.SapHanaHelpers.delete_test_schemas()
     Cloak.Test.DB.start_link()
     Cloak.Air.register_air("test_air")
   end
