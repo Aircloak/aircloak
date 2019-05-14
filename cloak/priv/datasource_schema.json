@@ -40,7 +40,7 @@
         "isolating_columns": {"type": "object", "patternProperties": {"^.*$": {"type": "boolean"}}}
       },
       "additionalProperties": false,
-      "oneOf": [
+      "anyOf": [
         {"required": ["user_id"]},
         {"required": ["projection"]},
         {"required": ["keys"]},
