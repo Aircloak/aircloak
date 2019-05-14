@@ -334,11 +334,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   # -------------------------------------------------------------------
   # Protect against join timing attacks
   #
-  # Backends will execute a join branch only when needed.
-  # This can be used to detect when a condition matches a row or not by measuring the execution time
-  # of a query which joins a subquery with filters with another long running subquery.
-  # We detect and mark such vulnerable subqueries here and we make sure, when offloading them to
-  # the backend, that they always return at least one row that doesn't match anything else.
+  # For details, see `docs/anonymization.md`.
   # -------------------------------------------------------------------
 
   defp protect_against_join_timing_attacks(query), do: %Query{query | from: protect_joins(query.from)}

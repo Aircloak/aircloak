@@ -671,3 +671,11 @@ follows:
  We first extract the sums of squared values: `sum_sqrs1 = (sd1^2 + avg1^2) * count1` and
  `sum_sqrs2 = (sd2^2 + avg2^2) * count2`, we then add them together to get the combined sum of squared values,
  resulting in: `combined_sd = sqrt(combined_sum_sqrs / combined_count - combined_avg^2)`
+
+## Protection against join timing attacks
+
+Backends will execute a join branch only when needed.
+This can be used to detect when a condition matches a row or not by measuring the execution time of a query which
+joins a subquery with filters with another long running subquery.
+We detect and mark such vulnerable subqueries here and we make sure, when offloading them to the backend, that they
+always return at least one row that doesn't match anything else.
