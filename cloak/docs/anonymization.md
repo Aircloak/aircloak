@@ -677,5 +677,7 @@ follows:
 Backends will execute a join branch only when needed.
 This can be used to detect when a condition matches a row or not by measuring the execution time of a query which
 joins a subquery with filters with another long running subquery.
-We detect and mark such vulnerable subqueries here and we make sure, when offloading them to the backend, that they
-always return at least one row that doesn't match anything else.
+We detect and mark such vulnerable subqueries and we make sure, when offloading them to the backend, that they always
+return at least one invalid row that doesn't match anything else. We can't use `NULL` values for the fake row, as the
+optimizer can detect it won't match the filtering conditions and it will drop it prematurely, so we generate values
+with a high chance of not matching any of the key columns that are required by joins in restricted queries.
