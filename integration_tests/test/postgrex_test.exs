@@ -4,7 +4,7 @@ defmodule IntegrationTest.PostgrexTest do
   alias IntegrationTest.Manager
 
   setup do
-    user = Manager.create_air_user()
+    user = Manager.create_admin_user()
     {:ok, conn} = connect(user)
     {:ok, user: user, conn: conn}
   end
@@ -79,7 +79,7 @@ defmodule IntegrationTest.PostgrexTest do
   test "can't query on active connection once user is disabled", context do
     assert {:ok, _} = Postgrex.query(context.conn, "select 1 FROM users", [])
     # required in order to be able to disable the user
-    _secondary_user = Manager.create_air_user()
+    _secondary_user = Manager.create_admin_user()
     assert {:ok, _} = Air.Service.User.disable(context.user)
     assert {:error, error} = Postgrex.query(context.conn, "select 1 FROM users", [])
     assert error.postgres.message =~ "permission denied"

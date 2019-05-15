@@ -73,7 +73,11 @@ defmodule Cloak.Sql.Lexer do
               "HAVING",
               "LIMIT",
               "OFFSET",
-              "SAMPLE_USERS"
+              "SAMPLE_USERS",
+              "GROUPING",
+              "SETS",
+              "CUBE",
+              "ROLLUP"
             ]
             # Longer keywords have to be checked first to avoid false matches.
             |> Enum.sort_by(&String.length/1, &>=/2)
@@ -134,7 +138,7 @@ defmodule Cloak.Sql.Lexer do
       sequence([
         string("--"),
         word_of(~r/./),
-        option(linebreak())
+        option(newline())
       ])
     )
   end
@@ -155,17 +159,13 @@ defmodule Cloak.Sql.Lexer do
     ignore(
       either(
         horizontal_whitespace(),
-        linebreak()
+        newline()
       )
     )
   end
 
   defp horizontal_whitespace() do
     word_of(~r/[\h]/u)
-  end
-
-  defp linebreak() do
-    newline() |> increment_line()
   end
 
   defp constant() do
@@ -202,7 +202,7 @@ defmodule Cloak.Sql.Lexer do
   defp whitespace_surrounded_linebreak() do
     sequence([
       option(horizontal_whitespace()),
-      linebreak(),
+      newline(),
       option(horizontal_whitespace())
     ])
   end

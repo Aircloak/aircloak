@@ -5,7 +5,7 @@ defmodule Cloak.Sql.Expression do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.LikePattern
+  alias Cloak.Sql.{LikePattern, Query}
   alias Timex.Duration
 
   @type column_type :: DataSource.Table.data_type() | :like_pattern | :interval | nil
@@ -19,7 +19,7 @@ defmodule Cloak.Sql.Expression do
           alias: String.t() | nil,
           type: column_type,
           user_id?: boolean,
-          row_index: nil | Cloak.Sql.Query.row_index(),
+          row_index: nil | Query.row_index(),
           constant?: boolean,
           value: any,
           function: function_name | nil,
@@ -104,6 +104,10 @@ defmodule Cloak.Sql.Expression do
   @spec count_star() :: t
   def count_star(), do: function("count", [:*], :integer, true)
 
+  @doc "Returns an expression representing the NULL constant."
+  @spec null() :: t
+  def null(), do: constant(nil, nil)
+
   @doc "Returns true if the given term is a constant column, false otherwise."
   @spec constant?(Cloak.Sql.Parser.column() | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
@@ -158,6 +162,7 @@ defmodule Cloak.Sql.Expression do
   def display_name(%__MODULE__{constant?: true, type: :interval, value: value}),
     do: "`#{Timex.Duration.to_string(value)}`"
 
+  def display_name(%__MODULE__{constant?: true, value: nil}), do: "`NULL`"
   def display_name(%__MODULE__{constant?: true, value: value}), do: "`#{value}`"
 
   @doc """
@@ -189,6 +194,7 @@ defmodule Cloak.Sql.Expression do
   def display(%__MODULE__{constant?: true, type: type, value: value}) when type in [:date, :datetime, :time],
     do: "#{type} '#{to_string(value)}'"
 
+  def display(%__MODULE__{constant?: true, value: nil}), do: "NULL"
   def display(%__MODULE__{constant?: true, value: value}), do: to_string(value)
   def display({:distinct, expression}), do: "distinct #{display(expression)}"
   def display(value), do: to_string(value)
@@ -244,7 +250,7 @@ defmodule Cloak.Sql.Expression do
         Enum.zip(c1.function_args, c2.function_args)
         |> Enum.all?(fn {arg1, arg2} -> equals?(arg1, arg2) end)
 
-  def equals?(_c1, _c2), do: false
+  def equals?(c1, c2), do: semantic(c1) == semantic(c2)
 
   @doc "Returns a string id for the specified column."
   @spec id(t) :: nil | String.t()
@@ -296,13 +302,7 @@ defmodule Cloak.Sql.Expression do
   source_location.
   """
   @spec semantic(t) :: t
-  def semantic(expression),
-    do:
-      put_in(
-        expression,
-        [Cloak.Sql.Query.Lenses.all_expressions() |> Lens.keys([:source_location, :row_index])],
-        nil
-      )
+  def semantic(expression), do: put_in(expression, [Query.Lenses.all_expressions() |> location_lens()], nil)
 
   @doc "Wraps a string expression in the lower case function"
   @spec lowercase(t) :: t
@@ -337,6 +337,13 @@ defmodule Cloak.Sql.Expression do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp location_lens(expression_lens) do
+    Lens.match(expression_lens, fn
+      expression when is_tuple(expression) -> Lens.at(3)
+      expression when is_map(expression) -> Lens.keys([:source_location, :row_index])
+    end)
+  end
 
   defp apply_function(expression = %__MODULE__{function?: true}, args) do
     if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)

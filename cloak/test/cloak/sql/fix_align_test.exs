@@ -229,28 +229,34 @@ defmodule Cloak.Sql.FixAlign.Test do
     end)
   end
 
-  defp datetime_interval do
-    gen all dt1 <- naive_datetime(), dt2 <- naive_datetime(), dt2 != dt1 do
-      [dt1, dt2]
-      |> Enum.sort(&(NaiveDateTime.compare(&1, &2) != :gt))
-      |> List.to_tuple()
-    end
-  end
-
   defp date_interval do
-    gen all date1 <- date(), date2 <- date(), date2 != date1 do
-      [date1, date2]
-      |> Enum.sort(&(Date.compare(&1, &2) != :gt))
-      |> List.to_tuple()
+    gen all {datetime1, datetime2} <- datetime_interval(),
+            date1 = NaiveDateTime.to_date(datetime1),
+            date2 = NaiveDateTime.to_date(datetime2),
+            date1 != date2 do
+      {date1, date2}
     end
   end
 
   defp time_interval do
-    gen all time1 <- time(), time2 <- time(), time2 != time1 do
+    gen all {datetime1, datetime2} <- datetime_interval(),
+            time1 = NaiveDateTime.to_time(datetime1),
+            time2 = NaiveDateTime.to_time(datetime2),
+            time1 != time2 do
       [time1, time2]
       |> Enum.sort(&(Time.compare(&1, &2) != :gt))
       |> List.to_tuple()
     end
+  end
+
+  defp datetime_interval do
+    gen all datetime <- naive_datetime(), shift1 <- datetime_shift(), {unit, magnitude} <- datetime_shift() do
+      {Timex.shift(datetime, [{unit, -magnitude}]), Timex.shift(datetime, [shift1])}
+    end
+  end
+
+  defp datetime_shift do
+    {one_of([:seconds, :hours, :minutes, :days, :months, :years]), integer(1..120)}
   end
 
   def naive_datetime do

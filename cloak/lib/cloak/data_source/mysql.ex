@@ -45,6 +45,9 @@ defmodule Cloak.DataSource.MySQL do
   @impl Driver
   def driver_info(_connection), do: nil
 
+  @impl Driver
+  def supports_query?(query), do: length(query.grouping_sets) <= 1 or query.type == :anonymized
+
   # -------------------------------------------------------------------
   # DataSource.Driver.SQL callbacks
   # -------------------------------------------------------------------

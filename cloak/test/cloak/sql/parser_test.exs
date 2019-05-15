@@ -250,6 +250,14 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "select * location in source" do
+    assert_parse("select * from bar", select(columns: [{:*, {1, 8}}]))
+  end
+
+  test "select table.* location in source" do
+    assert_parse("select bar.* from bar", select(columns: [{{:*, "bar"}, {1, 8}}]))
+  end
+
   test "fully qualified table name" do
     assert_parse(
       "select foo from bar.baz",
@@ -279,7 +287,7 @@ defmodule Cloak.Sql.Parser.Test do
   end
 
   test "all fields" do
-    assert_parse("select * from baz", select(columns: [:*], from: unquoted("baz")))
+    assert_parse("select * from baz", select(columns: [{:*, _}], from: unquoted("baz")))
   end
 
   test "whitespaces are ignored" do
@@ -663,13 +671,81 @@ defmodule Cloak.Sql.Parser.Test do
       select(
         columns: [identifier("x")],
         from: unquoted("b"),
-        group_by: [identifier("x"), identifier("y"), identifier("z")]
+        grouping_sets: [[identifier("x"), identifier("y"), identifier("z")]]
       )
     )
   end
 
   test "group by just one column" do
-    assert_parse("select a from b group by a", select(group_by: [identifier("a")]))
+    assert_parse("select a from b group by a", select(grouping_sets: [[identifier("a")]]))
+  end
+
+  test "group by with empty group" do
+    assert_parse("select a from b group by ()", select(grouping_sets: [[]]))
+  end
+
+  test "grouping set with empty group" do
+    assert_parse("select a from b group by grouping sets (())", select(grouping_sets: [[]]))
+  end
+
+  test "group by grouping sets (1)" do
+    assert_parse(
+      "select a from b group by grouping sets (x, y, z)",
+      select(grouping_sets: [[identifier("x")], [identifier("y")], [identifier("z")]])
+    )
+  end
+
+  test "group by grouping sets (2)" do
+    assert_parse(
+      "select a from b group by grouping sets ((x), y)",
+      select(grouping_sets: [[identifier("x")], [identifier("y")]])
+    )
+  end
+
+  test "group by grouping sets (3)" do
+    assert_parse(
+      "select a from b group by grouping sets (x, (y, z))",
+      select(grouping_sets: [[identifier("x")], [identifier("y"), identifier("z")]])
+    )
+  end
+
+  test "group by grouping sets (4)" do
+    assert_parse(
+      "select a from b group by grouping sets ((x, y), (z), ())",
+      select(grouping_sets: [[identifier("x"), identifier("y")], [identifier("z")], []])
+    )
+  end
+
+  test "grouping sets rollup" do
+    assert_parse(
+      "select a from b group by rollup (x, (y), z)",
+      select(
+        grouping_sets: [
+          [identifier("x"), identifier("y"), identifier("z")],
+          [identifier("x"), identifier("y")],
+          [identifier("x")],
+          []
+        ]
+      )
+    )
+  end
+
+  test "grouping sets cube" do
+    assert_parse(
+      "select a from b group by cube (x, (y), z)",
+      select(
+        grouping_sets: [
+          [identifier("x"), identifier("y"), identifier("z")],
+          [identifier("x"), identifier("y")],
+          [identifier("x"), identifier("z")],
+          [identifier("y"), identifier("z")],
+          [identifier("x")],
+          [identifier("y")],
+          [identifier("z")],
+          []
+        ]
+      )
+    )
   end
 
   test "order by clause" do
@@ -784,7 +860,7 @@ defmodule Cloak.Sql.Parser.Test do
           function("count", [{:distinct, identifier("column")}])
         ],
         where: {:comparison, identifier("column"), :=, _},
-        group_by: [identifier("column")],
+        grouping_sets: [[identifier("column")]],
         order_by: [
           {identifier("column"), :desc, :nulls_natural},
           {function("count", [{:distinct, identifier("column")}]), :asc, :nulls_natural}
@@ -1004,7 +1080,7 @@ defmodule Cloak.Sql.Parser.Test do
   test "function in group by" do
     assert_parse(
       "select * from foo group by bar(x)",
-      select(group_by: [function("bar", [identifier("x")])])
+      select(grouping_sets: [[function("bar", [identifier("x")])]])
     )
   end
 
@@ -1391,6 +1467,17 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "NULL constant" do
+    assert_parse(
+      "select null + 3 from bar",
+      select(
+        columns: [
+          function("+", [:null, constant(:integer, 3)])
+        ]
+      )
+    )
+  end
+
   test "query parameters",
     do:
       assert_parse(
@@ -1541,7 +1628,7 @@ defmodule Cloak.Sql.Parser.Test do
         FROM baz
         -- Comment at the end...
       """),
-      select(columns: [:*], from: unquoted("baz"))
+      select(columns: [{:*, _}], from: unquoted("baz"))
     )
   end
 
@@ -1559,16 +1646,16 @@ defmodule Cloak.Sql.Parser.Test do
         select(columns: [identifier("foo")], from: {unquoted("baz"), :as, "b"})
       )
 
-  test "select all from a table", do: assert_parse("select foo.* from foo", select(columns: [{:*, "foo"}]))
+  test "select all from a table", do: assert_parse("select foo.* from foo", select(columns: [{{:*, "foo"}, _}]))
 
   test "select all from a quoted table",
-    do: assert_parse("select \"foo bar\".* from foo", select(columns: [{:*, "foo bar"}]))
+    do: assert_parse("select \"foo bar\".* from foo", select(columns: [{{:*, "foo bar"}, _}]))
 
   test "select all from a table in a comma-separated list",
     do:
       assert_parse(
         "select x, foo.*, y, bar.* from foo",
-        select(columns: [identifier("x"), {:*, "foo"}, identifier("y"), {:*, "bar"}])
+        select(columns: [identifier("x"), {{:*, "foo"}, _}, identifier("y"), {{:*, "bar"}, _}])
       )
 
   test "sample from table", do: assert_parse("select x from foo sample_users 10%", select(sample_rate: 10))
@@ -1679,6 +1766,13 @@ defmodule Cloak.Sql.Parser.Test do
       {"extended trim with two columns", "select trim(both a from b) from foo", "Expected `)`", {1, 20}},
       {"invalid interval", "select interval 'does not parse' from foo", "Expected `from`", {1, 17}},
       {"table can't be parameterized", "select x from $1", "Expected `table name`", {1, 15}},
+      {"missing `sets` keyword", "select count(*) from table group by grouping", "Expected `sets`", {1, 45}},
+      {"missing parens in group by (1)", "select count(*) from table group by (", "Expected `)`", {1, 38}},
+      {"missing parens in group by (2)", "select count(*) from table group by )", "Expected `column definition`",
+       {1, 37}},
+      {"empty cube clause", "select count(*) from table group by cube ()", "Expected `column definition`", {1, 43}},
+      {"empty group in rollup clause", "select count(*) from table group by rollup (x, ())",
+       "Expected `column definition`", {1, 49}},
       # parsed subqueries
       {"unclosed parens in a parsed subquery expression", "select foo from (select bar from baz", "expected `)`",
        {1, 37}},

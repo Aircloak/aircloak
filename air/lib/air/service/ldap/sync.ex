@@ -40,14 +40,14 @@ defmodule Air.Service.LDAP.Sync do
   defp create_group(ldap_group, user_mappings) do
     ldap_group
     |> group_params(user_mappings)
-    |> Air.Service.User.create_ldap_group()
+    |> Air.Service.Group.create_ldap()
     |> check_group_error(ldap_group)
   end
 
   defp update_group(air_group, ldap_group, user_mappings) do
     air_group
     |> Air.Repo.preload(:users)
-    |> Air.Service.User.update_group(group_params(ldap_group, user_mappings), ldap: true)
+    |> Air.Service.Group.update(group_params(ldap_group, user_mappings), ldap: true)
     |> check_group_error(ldap_group)
   end
 
@@ -67,7 +67,7 @@ defmodule Air.Service.LDAP.Sync do
     |> where([q], q.source == ^:ldap)
     |> where([q], not (q.ldap_dn in ^present_dns))
     |> Air.Repo.all()
-    |> Enum.each(&Air.Service.User.delete_group!(&1, ldap: true))
+    |> Enum.each(&Air.Service.Group.delete!(&1, ldap: true))
   end
 
   defp check_group_error({:ok, result}, _), do: {:ok, result}

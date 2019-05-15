@@ -55,8 +55,22 @@ defmodule Cloak.Query.Isolators.Test do
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col IS NULL")
   end
 
-  test "string functions are allowed on isolators" do
-    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE trim($col_string) = 'something'")
+  for fragment <- [
+        "lower($col_string) = 'something'",
+        "upper($col_string) = 'SOMETHING'",
+        "substring($col_string, 2, 3) = 'som'",
+        "trim($col_string) = 'something'",
+        "ltrim($col_string) = 'something'",
+        "rtrim($col_string) = 'something'",
+        "btrim($col_string) = 'something'",
+        "length($col_string) = 10",
+        "hex($col_string) = 'aabbcc'",
+        "left($col_string, 2) = 'so'",
+        "right($col_string, 2) = 'ng'"
+      ] do
+    test "#{fragment} allowed on isolators" do
+      assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE #{unquote(fragment)}")
+    end
   end
 
   test "implicit range functions are allowed on isolators (see anonymization.md#isolating-columns)" do

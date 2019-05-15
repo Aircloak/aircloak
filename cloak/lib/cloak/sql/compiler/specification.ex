@@ -5,8 +5,6 @@ defmodule Cloak.Sql.Compiler.Specification do
   alias Cloak.Sql.{Condition, CompilationError, Expression, Function, Query}
   alias Cloak.Sql.{Compiler.Helpers, Query.Lenses}
 
-  @dummy_location {1, 0}
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -60,6 +58,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> compile_parameter_types()
       |> expand_star_select()
       |> compile_titles()
+      |> compile_grouping_sets()
       |> compile_aliases()
       |> compile_columns()
       |> compile_references()
@@ -345,21 +344,22 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp expand_star_select(query),
     do: %Query{query | columns: Enum.flat_map(query.columns, &(&1 |> expand_select_all(query) |> verify_star_select()))}
 
-  defp expand_select_all(:*, query),
+  defp expand_select_all({:*, location}, query),
     do:
       query
       |> all_visible_columns()
-      |> columns_to_identifiers()
+      |> columns_to_identifiers(location)
 
-  defp expand_select_all({:*, table_name}, query) do
+  defp expand_select_all({{:*, table_name}, location}, query) do
     with [] <-
            query
            |> all_visible_columns()
            |> Enum.filter(&(&1.table.name == table_name))
-           |> columns_to_identifiers() do
+           |> columns_to_identifiers(location) do
       raise CompilationError,
+        source_location: location,
         message:
-          "Select clause `#{table_name}`.* cannot be resolved because the table does not exist in the `FROM` list."
+          "Select clause `#{table_name}.*` cannot be resolved because the table does not exist in the `FROM` list."
     end
   end
 
@@ -373,12 +373,8 @@ defmodule Cloak.Sql.Compiler.Specification do
       end)
       |> Enum.filter(& &1.column.visible?)
 
-  defp columns_to_identifiers(columns),
-    do:
-      Enum.map(
-        columns,
-        &{:identifier, &1.table.name, {:unquoted, &1.column.name}, @dummy_location}
-      )
+  defp columns_to_identifiers(columns, location),
+    do: Enum.map(columns, &{:identifier, &1.table.name, {:unquoted, &1.column.name}, location})
 
   defp verify_star_select(columns) do
     case columns -- Enum.uniq(columns) do
@@ -413,6 +409,19 @@ defmodule Cloak.Sql.Compiler.Specification do
       end)
 
     %Query{query | column_titles: column_titles}
+  end
+
+  defp compile_grouping_sets(%Query{group_by: []} = query) do
+    group_by = query.grouping_sets |> List.flatten() |> Expression.unique()
+
+    grouping_sets =
+      Enum.map(query.grouping_sets, fn grouping_set ->
+        Enum.map(grouping_set, fn column ->
+          Enum.find_index(group_by, &Expression.equals?(&1, column))
+        end)
+      end)
+
+    %Query{query | group_by: group_by, grouping_sets: grouping_sets}
   end
 
   defp compile_aliases(%Query{columns: [_ | _] = columns} = query) do
@@ -648,6 +657,8 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> Expression.set_location(location)
   end
 
+  defp identifier_to_column(:null, _columns_by_name, _query), do: Expression.null()
+
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
   defp get_columns(columns_by_name, {:unquoted, name}) do
@@ -808,6 +819,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
 
   defp do_perform_implicit_cast(expression = %Expression{type: type}, type), do: expression
+
+  defp do_perform_implicit_cast(expression = %Expression{type: nil}, _type), do: expression
 
   defp do_perform_implicit_cast(expression = %Expression{type: :integer}, :real),
     do: %Expression{expression | type: :real}

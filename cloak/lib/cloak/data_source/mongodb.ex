@@ -162,7 +162,10 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   @impl Driver
-  def supports_query?(query), do: supports_joins?(query) and supports_order_by?(query) and supports_aggregators?(query)
+  def supports_query?(query) do
+    supports_joins?(query) and supports_order_by?(query) and
+      supports_aggregators?(query) and supports_grouping?(query)
+  end
 
   @impl Driver
   def supports_function?(expression, data_source),
@@ -249,8 +252,7 @@ defmodule Cloak.DataSource.MongoDB do
   )
 
   defp supported_functions(version) do
-    # Using apply to trick dialyzer, which thinks that `Version.compare` can only work on version structures.
-    if apply(Version, :compare, [version, "3.4.0"]) == :lt do
+    if Version.compare(version, "3.4.0") == :lt do
       raise ExecutionError, message: "Unsupported MongoDB version: #{version}. At least 3.4 required."
     else
       @supported_functions
@@ -300,6 +302,8 @@ defmodule Cloak.DataSource.MongoDB do
   defp sharded_table?(_selected_tables, _table), do: false
 
   # Offloaded global aggregators do not work properly as the `$group` operator return an empty output on empty input.
-  defp supports_aggregators?(%Query{group_by: [], implicit_count?: false, type: :standard}), do: false
+  defp supports_aggregators?(%Query{aggregators: [_ | _], implicit_count?: false, type: :standard}), do: false
   defp supports_aggregators?(_query), do: true
+
+  defp supports_grouping?(query), do: query.type == :anonymized or length(query.grouping_sets) <= 1
 end

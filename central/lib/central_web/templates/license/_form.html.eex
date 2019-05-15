@@ -22,8 +22,10 @@
           <%= error_tag(form, :auto_renew) %>
         </div>
 
+        <hr/>
+
         <div class="form-group">
-          <label>Features</label>
+          <strong>Features</strong>
 
           <div class="checkbox">
             <%= for {label, value} <- features() do %>
@@ -32,6 +34,20 @@
                   unchecked_value: "", checked: feature_enabled?(@changeset, value)) %>
                 <strong><%= label %></strong>
               </label>
+              </br>
+            <% end %>
+          </div>
+
+          <strong>Data sources</strong>
+
+          <div class="checkbox">
+            <%= for {label, value} <- datasource_features() do %>
+              <label>
+                <%= checkbox(form, :features, name: input_name(form, :features) <> "[]", checked_value: value,
+                  unchecked_value: "", checked: feature_enabled?(@changeset, value)) %>
+                <strong><%= label %></strong>
+              </label>
+              </br>
             <% end %>
           </div>
 

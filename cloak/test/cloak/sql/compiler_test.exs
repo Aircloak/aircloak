@@ -93,6 +93,14 @@ defmodule Cloak.Sql.Compiler.Test do
                "of type `datetime` cannot be compared."
   end
 
+  test "NULL can have any type" do
+    assert {:ok, _} = compile("select numeric + null from table", data_source())
+  end
+
+  test "NULL can be compared with any type" do
+    assert {:ok, _} = compile("select count(*) from table where column = null", data_source())
+  end
+
   test "reject invalid select with having conditions without group by" do
     {:error, error} = compile("select string from table having count(numeric) = 2", data_source())
 
@@ -1201,12 +1209,6 @@ defmodule Cloak.Sql.Compiler.Test do
   test "can't use the same alias twice" do
     assert {:error, reason} = compile("select t1.c1 from t1 a, t2 a", data_source())
     assert reason == "Table alias `a` used more than once."
-  end
-
-  test "selecting all from a non-selected table" do
-    assert {:error, reason} = compile("select t2.* from t1", data_source())
-
-    assert reason == "Select clause `t2`.* cannot be resolved because the table does not exist in the `FROM` list."
   end
 
   test "the first argument to date_trunc has to be a constant" do

@@ -26,6 +26,13 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
       assert result1.where == result2.where
     end
 
+    test "normalizing constant expressions with NULL" do
+      result1 = compile!("SELECT * FROM table WHERE numeric = 2 + NULL", data_source())
+      result2 = compile!("SELECT * FROM table WHERE numeric = NULL", data_source())
+
+      assert result1.where == result2.where
+    end
+
     test "[Issue #3384] normalizing constant bucket" do
       result1 = compile!("SELECT bucket(2 BY 7) FROM table", data_source())
       result2 = compile!("SELECT 0::real AS \"bucket\" FROM table", data_source())
@@ -264,20 +271,6 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
   test "stripping source locations" do
     result1 = compile!("SELECT    count(*)    FROM table WHERE   abs(numeric) = 1", data_source())
     result2 = compile!("SELECT count(*) FROM table WHERE abs(numeric) = 1", data_source())
-
-    assert result1 == result2
-  end
-
-  test "removing grouping by constant" do
-    result1 = compile!("SELECT count(*), 0 FROM table GROUP BY 2", data_source())
-    result2 = compile!("SELECT count(*), 0 FROM table", data_source())
-
-    assert result1 == result2
-  end
-
-  test "changing grouping by constant when select list is constant" do
-    result1 = compile!("SELECT 0, 1, 2 FROM table GROUP BY 3", data_source())
-    result2 = compile!("SELECT 0, 1, 2 FROM table GROUP BY 1", data_source())
 
     assert result1 == result2
   end

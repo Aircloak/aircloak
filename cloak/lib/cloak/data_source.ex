@@ -391,37 +391,7 @@ defmodule Cloak.DataSource do
 
   defp add_error_message(data_source, message), do: %{data_source | errors: [message | data_source.errors]}
 
-  if Mix.env() == :prod do
-    defp disabled?(data_source), do: explicitly_disabled?(data_source)
-  else
-    defp disabled?(data_source) do
-      Enum.any?(
-        [&explicitly_disabled?/1, &macos_disabled?/1, &default_schema_not_configured?/1],
-        & &1.(data_source)
-      )
-    end
-
-    defp macos_disabled?(data_source) do
-      if :os.type() == {:unix, :darwin} and data_source.driver in [Cloak.DataSource.SAPHana] do
-        ds_name = String.replace(to_string(data_source.driver), ~r/^Elixir\.Cloak\.DataSource\./, "")
-        Logger.warn("Can't connect to #{ds_name} data source on macOS.")
-        true
-      else
-        false
-      end
-    end
-
-    defp default_schema_not_configured?(data_source) do
-      if data_source.driver == Cloak.DataSource.SAPHana && is_nil(Cloak.DataSource.SAPHana.default_schema()) do
-        Logger.warn("Default schema for SAP HANA not set. Skipping SAP HANA data source.")
-        true
-      else
-        false
-      end
-    end
-  end
-
-  defp explicitly_disabled?(data_source) do
+  defp disabled?(data_source) do
     env_data_sources = String.split(System.get_env("CLOAK_DATA_SOURCES") || "")
     not Enum.empty?(env_data_sources) and not Enum.member?(env_data_sources, data_source.name)
   end

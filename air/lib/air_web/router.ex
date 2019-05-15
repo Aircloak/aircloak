@@ -105,6 +105,7 @@ defmodule AirWeb.Router do
     post("/profile/toggle_debug_mode", ProfileController, :toggle_debug_mode)
 
     get("/changelog", ChangelogController, :index)
+    get("/support", SupportController, :index)
   end
 
   scope "/admin", AirWeb.Admin, as: :admin do
@@ -120,7 +121,11 @@ defmodule AirWeb.Router do
       delete("/sessions", UserController, :delete_sessions)
     end
 
+    post("/users/sync_ldap", UserController, :sync_ldap)
+
     resources("/groups", GroupController)
+    post("/groups/sync_ldap", GroupController, :sync_ldap)
+
     resources("/data_sources", DataSourceController)
     resources("/analysis", AnalysisController)
     resources("/settings", SettingsController, singleton: true)

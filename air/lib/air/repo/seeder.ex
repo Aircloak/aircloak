@@ -1,7 +1,7 @@
 defmodule Air.Repo.Seeder do
   @moduledoc "Used in development and tests to seed the database."
 
-  alias Air.Service.User
+  alias Air.Service.{User, Group}
 
   # -------------------------------------------------------------------
   # API
@@ -22,8 +22,8 @@ defmodule Air.Repo.Seeder do
   # -------------------------------------------------------------------
 
   defp admin_group() do
-    case User.admin_groups() do
-      [] -> User.create_group!(%{name: "admin", admin: true})
+    case Group.admin_groups() do
+      [] -> Group.create!(%{name: "admin", admin: true})
       [group | _] -> group
     end
   end

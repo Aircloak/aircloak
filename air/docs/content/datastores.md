@@ -12,7 +12,6 @@ Aircloak Insights ships with Insights Datasource Connectors for the following da
 - MongoDB, versions 3.4 and newer
 - MySQL, version 5 and newer, and MariaDB, version 10.1 and newer
 - PostgreSQL, version 9.1 and newer
-- SAP HANA, version 2.0 and newer
 - Apache Drill, version 1.13 and newer
 - Oracle 11g
 
@@ -156,12 +155,6 @@ The following constructs are not natively supported on this data source and will
 #### PostgreSQL
 
 - `median`
-
-#### SAP HANA
-
-  - `date_trunc`
-  - `hex`
-  - `median`
 
 #### Apache Drill
 

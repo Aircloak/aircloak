@@ -180,6 +180,27 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
+    test "grouping sets" do
+      assert_query(
+        "select v, sum(c) from #{@vt} group by v order by v",
+        """
+          select
+            user_id, length(dec_b64(value)) as v, count(*) as c 
+          from #{@emulated} 
+          group by grouping sets ((user_id, v), user_id)
+        """,
+        %{
+          rows: [
+            %{occurrences: 1, row: [1, 20]},
+            %{occurrences: 1, row: [3, 40]},
+            %{occurrences: 1, row: [4, 20]},
+            %{occurrences: 1, row: [5, 20]},
+            %{occurrences: 1, row: [nil, 140]}
+          ]
+        }
+      )
+    end
+
     test "where function" do
       assert_query(
         "select avg(v) from #{@vt}",

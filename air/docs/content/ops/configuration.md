@@ -219,7 +219,9 @@ The options have the following meaning:
   expected to contain the DNs of the groups.
 
 If a valid LDAP configuration is present, Insights Air will periodically sync with the LDAP server to update the list of
-users and groups. The syncs will occur immediately after Insights Air starts and every hour after that.
+users and groups. The syncs will occur immediately after Insights Air starts and every hour after that. You can also
+trigger a sync manually by going to `Admin -> Users` or `Admin -> Groups` and clicking `Sync Now` next to the LDAP
+section.
 
 The users and groups created in this way can only be managed in LDAP. That is, their details such as user logins, user
 names, and group names cannot be altered through the Insights Air interface. Furthermore, group membership can also only

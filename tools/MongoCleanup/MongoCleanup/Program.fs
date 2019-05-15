@@ -1,19 +1,19 @@
-open System
 open Argu
-open MongoDB.Driver
-open MongoDB.Bson
-open System.IO
 open FSharp.Json
 open MongoCleanup
+open MongoDB.Bson
+open MongoDB.Driver
+open System
+open System.Collections.Generic
+open System.IO
 open System.Security.Cryptography
 
 type CLIArguments =
-    |  [<Mandatory>] Cloak_Config of path : string
+    | [<Mandatory>] Cloak_Config of path : string
     interface IArgParserTemplate with
         member s.Usage =
             match s with
-            | Cloak_Config _ ->
-                "specify the cloak config describing the data source"
+            | Cloak_Config _ -> "specify the cloak config describing the data source"
 
 type ConnectionProperties =
     { hostname : string
@@ -52,8 +52,9 @@ type CloakConfig =
 
 type BsonUpdate = BsonValue -> BsonValue
 
-let optionParser =
-    ArgumentParser.Create<CLIArguments>(programName = "MongoCleanup")
+type UserIds = Map<Projection * string, BsonValue>
+
+let optionParser = ArgumentParser.Create<CLIArguments>(programName = "MongoCleanup")
 
 let rec update' (document : BsonDocument) (keys : string list) (f : BsonUpdate) =
     match keys with
@@ -67,7 +68,9 @@ let rec update' (document : BsonDocument) (keys : string list) (f : BsonUpdate) 
         if document.Contains(key) then
             match document.GetValue(key).BsonType with
             | BsonType.Document -> update' (document.GetValue(key).AsBsonDocument) rest f
-            | BsonType.Array -> for item in document.GetValue(key).AsBsonArray do update' item.AsBsonDocument rest f
+            | BsonType.Array ->
+                for item in document.GetValue(key).AsBsonArray do
+                    update' item.AsBsonDocument rest f
             | _ -> ()
 
 let update (document : BsonDocument) (key : string) (f : BsonUpdate) : unit =
@@ -84,32 +87,39 @@ let safely<'T when 'T :> BsonValue> (f : unit -> 'T) : BsonValue =
     | :? FormatException -> bsonNull
 
 let textToInteger (value : BsonValue) : BsonValue =
-    safely (fun () -> value.AsString |> System.Int64.Parse |> BsonInt64)
+    safely (fun () ->
+        value.AsString
+        |> System.Int64.Parse
+        |> BsonInt64)
 
 let textToReal (value : BsonValue) : BsonValue =
-    safely (fun () -> value.AsString |> System.Double.Parse |> BsonDouble)
+    safely (fun () ->
+        value.AsString
+        |> System.Double.Parse
+        |> BsonDouble)
 
 let textToDate (value : BsonValue) : BsonValue =
     safely (fun () -> System.DateTime.Parse(value.AsString) |> BsonDateTime)
-
-let realToInteger (value : BsonValue) : BsonValue =
-    safely (fun () -> BsonInt64(int64 value.AsDouble))
-
-let realToBoolean (value : BsonValue) : BsonValue =
-    safely (fun () -> BsonBoolean(value.AsDouble <> 0.0))
+let realToInteger (value : BsonValue) : BsonValue = safely (fun () -> BsonInt64(int64 value.AsDouble))
+let realToBoolean (value : BsonValue) : BsonValue = safely (fun () -> BsonBoolean(value.AsDouble <> 0.0))
 
 let textToBoolean (value : BsonValue) : BsonValue =
-    safely (fun () -> value.AsString |> System.Boolean.Parse |> BsonBoolean)
+    safely (fun () ->
+        value.AsString
+        |> System.Boolean.Parse
+        |> BsonBoolean)
 
 let base64 (value : BsonValue) : BsonValue =
-    safely (fun () -> value.AsString |> System.Convert.FromBase64String |> BsonBinaryData)
+    safely (fun () ->
+        value.AsString
+        |> System.Convert.FromBase64String
+        |> BsonBinaryData)
 
 let substring (from : int32) (length : int32) (value : BsonValue) : BsonValue =
     safely (fun () -> value.AsString.Substring(from, length) |> BsonString)
 
 let convertToBytes (value : BsonValue) : byte [] =
-    if value.IsBsonBinaryData
-    then value.AsByteArray
+    if value.IsBsonBinaryData then value.AsByteArray
     else System.Text.Encoding.ASCII.GetBytes value.AsString
 
 let decodeAES (key : string option) (value : BsonValue) : BsonValue =
@@ -119,21 +129,17 @@ let decodeAES (key : string option) (value : BsonValue) : BsonValue =
         use alg = new RijndaelManaged()
         alg.Key <- System.Text.Encoding.ASCII.GetBytes key
         alg.IV <- List.replicate 16 0uy |> List.toArray<byte>
-
         let decryptor = alg.CreateDecryptor(alg.Key, alg.IV)
-
         try
             use memoryStream = new MemoryStream(convertToBytes value)
             use cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read)
             use reader = new StreamReader(cryptoStream)
-
             let plaintext = reader.ReadToEnd()
             upcast BsonString(plaintext)
-        with
-        | _ -> bsonNull
+        with _ -> bsonNull
 
 let substringDecoder (decoder : Decoder) =
-    match decoder.from, decoder.length with
+    match (decoder.from, decoder.length) with
     | Some(from), Some(length) -> substring from length
     | _ -> failwith "The substring decoder requires specifying from and for"
 
@@ -152,34 +158,38 @@ let applyDecoder (document : BsonDocument) (decoder : Decoder) : unit =
             | "base64" -> update document column base64
             | "substring" -> update document column (substringDecoder decoder)
             | _ -> ()
-
     try
         applyDecoder' document decoder
-    with
-    | e -> printfn "Error %A when applying %A" e.Message decoder
+    with e -> printfn "Error %A when applying %A" e.Message decoder
 
 let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
     for decoder in decoders do
         applyDecoder document decoder
 
 let readCollection (db : IMongoDatabase) (name : string) : seq<BsonDocument> =
-    upcast db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToList()
+    seq {
+        for doc in (db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToCursor().ToEnumerable()) do
+            yield doc
+    }
+
+let countCollection (db : IMongoDatabase) (name : string) : int =
+    let filter = Builders<BsonDocument>.Filter.Empty
+    db.GetCollection<BsonDocument>(name).CountDocuments(filter) |> int
 
 let shouldDelete (config : CloakTable) (doc : BsonDocument) : bool =
     match config.deleteIf with
     | None -> false
     | Some(deleteIf) ->
-        deleteIf |> Seq.exists (fun deleteIf ->
-            doc.Contains(deleteIf.field) &&
-                Seq.exists ((=) (doc.GetValue(deleteIf.field).ToString())) deleteIf.values
-        )
+        deleteIf
+        |> Seq.exists
+               (fun deleteIf ->
+               doc.Contains(deleteIf.field)
+               && Seq.exists ((=) (doc.GetValue(deleteIf.field).ToString())) deleteIf.values)
 
 let docToWriteModel (config : CloakTable) (doc : BsonDocument) : WriteModel<BsonDocument> =
     let field = StringFieldDefinition<BsonDocument, BsonValue>("_id")
     let filter = Builders<BsonDocument>.Filter.Eq(field, doc.GetValue("_id"))
-
-    if shouldDelete config doc
-    then upcast DeleteOneModel<BsonDocument>(filter)
+    if shouldDelete config doc then upcast DeleteOneModel<BsonDocument>(filter)
     else upcast ReplaceOneModel<BsonDocument>(filter, doc)
 
 let writeCollection (db : IMongoDatabase) (name : string) (config : CloakTable) (documents : seq<BsonDocument>) : unit =
@@ -189,25 +199,14 @@ let writeCollection (db : IMongoDatabase) (name : string) (config : CloakTable) 
         documents
         |> Seq.map (docToWriteModel config)
         |> Seq.cast
-
     collection.BulkWrite(updates) |> ignore
 
-let batchesOf n =
-   Seq.mapi (fun i v -> i / n, v) >>
-   Seq.groupBy fst >>
-   Seq.map snd >>
-   Seq.map (Seq.map snd)
-
-let decode (documents : seq<BsonDocument>) (decoders : Decoder list) : Async<unit> =
-    documents
-    |> batchesOf 1000
-    |> Seq.map (fun batch -> async {
-        for doc in batch do
-            applyDecoders decoders doc
-        ProgressBar.tick <| Seq.length batch
-    })
-    |> Async.Parallel
-    |> Async.Ignore
+let decode (documents : seq<BsonDocument>) (decoders : Decoder list option) : unit =
+    match decoders with
+    | None -> ()
+    | Some decoders ->
+        for document in documents do
+            applyDecoders decoders document
 
 let mongoConnString (cloakConfig : CloakConfig) : string =
     let options = cloakConfig.parameters
@@ -219,104 +218,104 @@ let mongoConnString (cloakConfig : CloakConfig) : string =
         | (Some(user), None) -> sprintf "%s@" user
         | (Some(user), Some(pass)) -> sprintf "%s:%s@" user pass
         | (None, Some(pass)) -> sprintf ":%s@" pass
-    sprintf "mongodb://%s%s:%i" userpass options.hostname port
+    sprintf "mongodb://%s%s:%i/%s" userpass options.hostname port options.database
 
 let acUserId = "_ac_user_id"
 
 let guessUserId (data : seq<BsonDocument>) (proposed : string) : string =
-    if Seq.forall (fun (x : BsonDocument) -> not (x.Contains proposed)) data
-        then proposed else acUserId
+    if Seq.forall (fun (x : BsonDocument) -> not (x.Contains proposed)) data then proposed
+    else acUserId
 
-let projectOne (data : Map<string, seq<BsonDocument>>) (config : Map<string, CloakTable>) (table : string) : Map<string, CloakTable> =
-    let tableConfig = config.Item(table)
-    let { table = target; foreignKey = foreignKey; primaryKey = primaryKey } = tableConfig.projection.Value
-    let userIdKey = config.Item(target).userId.Value
-    let newUserIdKey = guessUserId (data.Item table) userIdKey
+let rec projectionChain (config : Map<string, CloakTable>) (table : CloakTable) : string list =
+    match table.projection with
+    | None -> []
+    | Some(projection) -> projection.table :: projectionChain config (config.Item projection.table)
 
-    let userIds =
-        data.Item target
-        |> Seq.filter (fun doc -> doc.Contains(userIdKey))
-        |> Seq.filter (fun doc -> doc.Contains(primaryKey))
-        |> Seq.map (fun doc -> (doc.GetValue(primaryKey).ToString(), doc.GetValue(userIdKey)))
-        |> Map.ofSeq
+let dependsOn (config : Map<string, CloakTable>) (table1 : KeyValuePair<string, CloakTable>)
+    (table2 : KeyValuePair<string, CloakTable>) : int =
+    if Seq.contains table2.Key (projectionChain config table1.Value) then 1
+    elif Seq.contains table1.Key (projectionChain config table2.Value) then -1
+    else 0
 
-    for document in data.Item(table) do
-        if document.Contains(foreignKey) then
-            match Map.tryFind (document.GetValue(foreignKey).ToString()) userIds with
-            | Some userId -> document.Add(newUserIdKey, userId) |> ignore
-            | None -> ()
+let rec userId (config : CloakConfig) (table : string) : string =
+    match config.tables.Item(table).projection with
+    | Some projection -> userId config projection.table
+    | None -> Option.defaultValue "_ac_user_id" (config.tables.Item(table).userId)
 
-    data.Item(table) |> Seq.length |> ProgressBar.tick
+let projectWithUserIds (batch : seq<BsonDocument>) (table : string) (config : CloakConfig) (userIds : UserIds) : unit =
+    let userIdField = userId config table
+    match config.tables.Item(table).projection with
+    | None -> ()
+    | Some projection ->
+        for document in batch do
+            if document.Contains(projection.foreignKey) then
+                match Map.tryFind (projection, document.GetValue(projection.foreignKey).ToString()) userIds with
+                | Some userId ->
+                    document.Remove(userIdField)
+                    document.Add(userIdField, userId) |> ignore
+                | None -> ()
 
-    Map.add table { tableConfig with projection = None; userId = Some(newUserIdKey) } config
+let saveUserIds (userIds : UserIds) (batch : seq<BsonDocument>) (table : string) (config : CloakConfig) : UserIds =
+    let userId = userId config table
+    let tableConfig = config.tables.Item table
 
-let rec project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonDocument>>) : unit =
-    let canProject =
-        config
-        |> Seq.filter (fun kv -> kv.Value.projection.IsSome)
-        |> Seq.filter (fun kv -> config.Item(kv.Value.projection.Value.table).userId.IsSome)
-        |> Seq.map (fun kv -> kv.Key)
+    let toPreserve =
+        config.tables
+        |> Seq.choose (fun table -> table.Value.projection)
+        |> Seq.filter (fun projection -> projection.table = table)
 
-    match Seq.toList canProject with
-    | [] -> ()
-    | canProject ->
-        let config = List.fold (projectOne data) config canProject
-        project config data
+    let saveUserIds'' (document : BsonDocument) userIds projection =
+        if not (shouldDelete tableConfig document) && document.Contains(projection.primaryKey) && document.Contains(userId) then
+            Map.add (projection, document.GetValue(projection.primaryKey).ToString()) (document.GetValue(userId))
+                userIds
+        else userIds
+
+    let saveUserIds' userIds document = Seq.fold (saveUserIds'' document) userIds toPreserve
+    Seq.fold saveUserIds' userIds batch
+
+let processOne (db : IMongoDatabase) (config : CloakConfig) (table : string) (userIds : UserIds)
+    (batch : seq<BsonDocument>) : UserIds =
+    let tableConfig = config.tables.Item(table)
+    decode batch tableConfig.decoders
+    projectWithUserIds batch table config userIds
+    writeCollection db table tableConfig batch
+    saveUserIds userIds batch table config
 
 let run (options : ParseResults<CLIArguments>) : unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)
     let jsonConfig = JsonConfig.create (jsonFieldNaming = Json.snakeCase)
-    let config =
-        stream.ReadToEnd() |> Json.deserializeEx<CloakConfig> jsonConfig
-    let conn = config |> mongoConnString |> MongoClient
+    let config = stream.ReadToEnd() |> Json.deserializeEx<CloakConfig> jsonConfig
+    printfn "Connecting..."
+    let conn =
+        config
+        |> mongoConnString
+        |> MongoClient
+
     let db = conn.GetDatabase config.parameters.database
-
     printfn "Reading data..."
-    let data = config.tables |> Map.map (fun k _ -> readCollection db k)
+    let toProcess =
+        config.tables
+        |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection)
+        |> Seq.sortWith (dependsOn config.tables)
 
+    let mutable userIds = Map.empty
     use bar = ProgressBar.start 100
-
-    async {
-        let toDecode = config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders)
-        let itemsToDecode = toDecode |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length) |> Seq.sum
-        ProgressBar.reset itemsToDecode "Applying decoders"
-
-        let! _ =
-            toDecode
-            |> Seq.map (fun kv -> decode (data.Item kv.Key) kv.Value.decoders.Value)
-            |> Async.Parallel
-
-        let toProject = config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.projection)
-        let itemsToProject = toProject |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length) |> Seq.sum
-        ProgressBar.reset itemsToProject "Applying projections"
-
-        project config.tables data
-
-        let toWrite =
-            config.tables
-            |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection)
-        let itemsToWrite = toProject |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length) |> Seq.sum
-        ProgressBar.reset itemsToWrite "Writing data"
-
-        let! _ =
-            toWrite
-            |> Seq.map (fun kv -> async {
-                for batch in data.Item kv.Key |> batchesOf 1000 do
-                    writeCollection db kv.Key (config.tables.Item kv.Key) batch
-                    ProgressBar.tick <| Seq.length batch
-            })
-            |> Async.Parallel
-
-        ProgressBar.finish()
-    } |> Async.RunSynchronously
+    for kv in toProcess do
+        ProgressBar.reset (countCollection db kv.Key) (sprintf "Processing %s" kv.Key)
+        userIds <- readCollection db kv.Key
+                   |> Seq.chunkBySize 1000
+                   |> Seq.map (fun chunk ->
+                          ProgressBar.tick 1000
+                          chunk)
+                   |> Seq.fold (processOne db config kv.Key) userIds
+    ProgressBar.finish "Success"
 
 [<EntryPoint>]
 let main argv =
     try
         optionParser.ParseCommandLine(inputs = argv, raiseOnUsage = true) |> run
-        printfn "Success"
     with
     | :? Argu.ArguParseException as e -> printfn "%s" e.Message
-    | e -> printfn "Unexpected error:\n%A" e
-
+    | e ->
+        printfn "Unexpected error:\n%A" e
     0 // return an integer exit code

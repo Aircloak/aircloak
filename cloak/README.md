@@ -68,21 +68,6 @@ the PostgreSQL container: `DB_PORT=20002 ./regenerate-db.sh`.
 
 If everything is properly installed and setup, standard tests invoked with `make test` should pass.
 
-#### Working with SAP HANA data sources on local machine
-
-In order to work with SAP HANA data source, you need to choose a schema you'll work on. You can define your schema in
-the `dev.local.exs` file:
-
-```elixir
-config :cloak, :sap_hana, default_schema: your_schema_name
-```
-
-Make sure to choose something unique for the schema name, such as your own name. Once you configured the schema, you
-need to run `make regenerate-db` again.
-
-If you want to run SAP HANA tests locally, you'll also need to add a `test.local.exs` file with the same configuration.
-You can safely use the same schema in the test environment.
-
 ### Cloak configuration
 
 Cloaks have two sets of configuration files.
@@ -175,7 +160,6 @@ By default, only native PostgreSQL adapter is tested locally, while MongoDB and 
 this you can run following commands:
 
 - `mix test --only mongodb` - to run only MongoDB tests
-- `mix test --only saphana` - to run only SAP HANA tests
 - `mix test --only compliance` - to run only the compliance tests
 - `make test_all` - to run all tests which are running on CI: standard tests, MongoDB tests, and tests for all other
   database adapters (MySQL, PostgreSQL through ODBC, ...). Note however that compliance tests are going to be executed
@@ -183,10 +167,6 @@ this you can run following commands:
 
 In order to have working tests on other drivers, you need to start corresponding database servers locally - see
 [Installing database servers](#installing-database-servers).
-
-Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local CI container
-with `make ci.compliance`. See [Using CI container to unit test other
-databases](#using-ci-container-to-unit-test-other-databases) for detailed instructions.
 
 #### Running a specific compliance test
 
@@ -228,7 +208,7 @@ If you want to test some specific databases, you can set the `CLOAK_DATA_SOURCES
 only PostgreSQL and MongoDB 3.4, you can run the following command:
 
 ```
-CLOAK_DATA_SOURCES="postgresql9.4 mongodb3.4" make ci.compliance
+CLOAK_DATA_SOURCES="postgresql9.6 mongodb3.4" make ci.compliance
 ```
 
 The `CLOAK_DATA_SOURCES` env var is a whitespace separated list of data source names which you want to use in the test
@@ -242,11 +222,11 @@ COMPLIANCE_USERS=50 make ci.compliance
 
 #### Using CI container to unit test other databases
 
-CI container can also be used to unit test other databases, such as SAP HANA, or MongoDb. In this configuration, you
+CI container can also be used to unit test other databases, such as Oracle, or MongoDb. In this configuration, you
 need to explicitly set the data sources to PostgreSQL, when starting the CI container.
 
 ```
-CLOAK_DATA_SOURCES="postgresql9.4" make ci.compliance
+CLOAK_DATA_SOURCES="postgresql9.6" make ci.compliance
 ```
 
 In the container, you now need to manually start local MongoDb instance:
@@ -260,7 +240,6 @@ Now you can invoke the following commands:
 ```
 mix test --include exclude_in_dev
 mix test --only mongodb
-mix test --only saphana
 ```
 
 #### Running fuzz tests
@@ -373,8 +352,8 @@ Note that the tests submit results to InfluxDB - it will be started with `start_
 
 #### Working in a dev container
 
-Dev container is built to allow developers who work on macOS to develop against SAP HANA database. Before starting the container, you need to first build the air container and start it locally (with `air/build-image.sh` and `air/container.sh console`). Then, you can start the cloak dev container by going to the cloak folder and invoking `make dev-container`.
+Dev container is built to allow developers who work on macOS to develop against other databases, such as Oracle. Before starting the container, you need to first build the air container and start it locally (with `air/build-image.sh` and `air/container.sh console`). Then, you can start the cloak dev container by going to the cloak folder and invoking `make dev-container`.
 
-Once the container is started, you can start the cloak with `make start`, and visit `http://localhost:8080`. At this point, you should be able to access SAP HANA datasources.
+Once the container is started, you can start the cloak with `make start`, and visit `http://localhost:8080`. At this point, you should be able to access Oracle datasources.
 
 The source files of the cloak project are mounted into the container. Therefore, you can freely edit the source files, and restart the cloak without needing to rebuild and restart the container.

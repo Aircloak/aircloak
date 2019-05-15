@@ -2,7 +2,7 @@ defmodule AirWeb.Admin.GroupController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.Service.{DataSource, User}
+  alias Air.Service.{DataSource, User, Group, LDAP}
 
   plug(:load_group when action in [:edit, :update, :delete])
 
@@ -21,8 +21,8 @@ defmodule AirWeb.Admin.GroupController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    {groups, ldap_groups} = User.all_groups() |> Enum.sort_by(& &1.name) |> Enum.split_with(&(&1.source == :native))
-    render(conn, "index.html", groups: groups, ldap_groups: ldap_groups)
+    {groups, ldap_groups} = Group.all() |> Enum.sort_by(& &1.name) |> Enum.split_with(&(&1.source == :native))
+    render(conn, "index.html", groups: groups, ldap_enabled?: LDAP.enabled?(), ldap_groups: ldap_groups)
   end
 
   def new(conn, _params),
@@ -31,7 +31,7 @@ defmodule AirWeb.Admin.GroupController do
         conn,
         "new.html",
         data: edit_form_data(nil, nil),
-        changeset: User.empty_group_changeset()
+        changeset: Group.empty_changeset()
       )
 
   def edit(conn, _params) do
@@ -42,7 +42,7 @@ defmodule AirWeb.Admin.GroupController do
       "edit.html",
       data: edit_form_data(nil, group),
       group: group,
-      changeset: User.group_to_changeset(group)
+      changeset: Group.to_changeset(group)
     )
   end
 
@@ -63,7 +63,7 @@ defmodule AirWeb.Admin.GroupController do
   end
 
   def create(conn, params) do
-    case User.create_group(params["group"]) do
+    case Group.create(params["group"]) do
       {:ok, group} ->
         audit_log(conn, "Created group", name: group.name)
 
@@ -79,7 +79,7 @@ defmodule AirWeb.Admin.GroupController do
   def delete(conn, _params) do
     group = conn.assigns.group
 
-    verify_last_admin_deleted(User.delete_group(group), conn, fn {:ok, _} ->
+    verify_last_admin_deleted(Group.delete(group), conn, fn {:ok, _} ->
       audit_log(conn, "Removed group", name: group.name)
 
       conn
@@ -88,12 +88,21 @@ defmodule AirWeb.Admin.GroupController do
     end)
   end
 
+  def sync_ldap(conn, _params) do
+    case LDAP.sync() do
+      :ok -> put_flash(conn, :info, "LDAP sync finished.")
+      {:error, :timeout} -> put_flash(conn, :info, "LDAP sync is being performed in the background.")
+      {:error, error} -> put_flash(conn, :error, "LDAP sync failed, reason: #{inspect(error)}.")
+    end
+    |> redirect(to: admin_group_path(conn, :index))
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp load_group(conn, _) do
-    case User.load_group(conn.params["id"]) do
+    case Group.load(conn.params["id"]) do
       nil -> not_found(conn)
       group -> assign(conn, :group, group)
     end
@@ -143,6 +152,6 @@ defmodule AirWeb.Admin.GroupController do
 
   defp verify_last_admin_deleted(result, _conn, fun), do: fun.(result)
 
-  defp update_group(group = %{source: :ldap}, params), do: User.update_group_data_sources(group, params)
-  defp update_group(group = %{source: :native}, params), do: User.update_group(group, params)
+  defp update_group(group = %{source: :ldap}, params), do: Group.update_data_sources(group, params)
+  defp update_group(group = %{source: :native}, params), do: Group.update(group, params)
 end

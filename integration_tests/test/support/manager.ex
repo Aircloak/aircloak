@@ -1,5 +1,6 @@
 defmodule IntegrationTest.Manager do
   import Ecto.Query, only: [from: 2]
+  import IntegrationTest.Helpers
 
   alias Air.Repo
   alias Air.Schemas.{AnalystTable, DataSource, ExportForAircloak, Group, Query, ResultChunk, User, View}
@@ -39,16 +40,13 @@ defmodule IntegrationTest.Manager do
 
   def login(user), do: Air.Service.User.main_login(user)
 
-  def create_air_user(group \\ nil) do
-    group = group || Repo.one!(from(group in Group, where: group.name == @admin_group_name))
+  def admin_group(), do: Repo.one!(from(group in Group, where: group.name == @admin_group_name))
 
-    user =
-      Air.Service.User.create!(%{
-        login: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
-        name: "user_#{:erlang.unique_integer([:positive])}",
-        groups: [group.id]
-      })
+  def create_admin_user(), do: create_air_user(admin_group())
 
+  def create_air_user(group) do
+    user_name = unique_name(:user)
+    user = Air.Service.User.create!(%{login: "#{user_name}@aircloak.com", name: user_name, groups: [group.id]})
     token = Air.Service.User.reset_password_token(user)
 
     {:ok, user} =
@@ -56,6 +54,10 @@ defmodule IntegrationTest.Manager do
         password: @user_password,
         password_confirmation: @user_password
       })
+
+    ExUnit.Callbacks.on_exit(fn ->
+      with {:ok, user} <- Air.Service.User.load(user.id), do: Air.Service.User.delete(user)
+    end)
 
     user
   end
@@ -88,7 +90,25 @@ defmodule IntegrationTest.Manager do
 
     Application.start(:cloak)
     :ok = create_users_table(skip_db_create: true)
+    :ok = create_integers(skip_db_create: true)
     ensure_cloak_connected()
+  end
+
+  def reset_air() do
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      Ecto.Migrator.run(
+        Air.Repo,
+        Application.app_dir(:air, "priv/repo/migrations"),
+        :down,
+        all: true
+      )
+
+      Application.stop(:air)
+
+      :jobs.delete_queue(Air.PsqlServer.ShadowDb.Manager)
+      Application.start(:air)
+      await_data_source()
+    end)
   end
 
   # -------------------------------------------------------------------
@@ -106,13 +126,26 @@ defmodule IntegrationTest.Manager do
     Cloak.Test.DB.start_link()
     :ok = create_users_table()
     :ok = insert_rows(1..100, "users", ["name", "height"], ["john", 180])
+
+    :ok = create_integers()
+
+    :ok =
+      Cloak.Test.DB.insert_data(
+        "integers",
+        ~w/user_id value/,
+        Enum.map(1..1_000, &["user_1", &1])
+      )
   end
 
   defp create_users_table(opts \\ []) do
     Cloak.Test.DB.create_table("users", "name TEXT, height INTEGER", opts)
   end
 
-  defp setup_air_database() do
+  defp create_integers(opts \\ []) do
+    Cloak.Test.DB.create_table("integers", "value INTEGER", opts)
+  end
+
+  def setup_air_database() do
     # delete previous entries
     Repo.delete_all(View)
     Repo.delete_all("data_sources_groups")
@@ -124,7 +157,16 @@ defmodule IntegrationTest.Manager do
     Repo.delete_all(Group)
 
     # create group
-    admin_group = Air.Service.User.create_group!(%{name: @admin_group_name, admin: true})
+    admin_group = Air.Service.Group.create!(%{name: @admin_group_name, admin: true})
+
+    {:ok, _aircloak_admin} =
+      Air.Service.User.create_onboarding_admin_user(%{
+        "master_password" => "super_secret_master_password",
+        "name" => "aircloak_admin",
+        "login" => "admin@aircloak.com",
+        "password" => "password1234",
+        "password_confirmation" => "password1234"
+      })
 
     # connect data source to group
     from(data_source in DataSource, where: data_source.name == @data_source_name)

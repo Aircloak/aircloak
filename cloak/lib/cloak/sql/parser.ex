@@ -74,7 +74,7 @@ defmodule Cloak.Sql.Parser do
   @type parsed_query :: %{
           command: :select | :show,
           columns: [column | {column, :as, String.t()} | {:*, String.t()} | :*],
-          group_by: [column],
+          grouping_sets: [[column]],
           from: from_clause,
           where: where_clause,
           order_by: [{column, :asc | :desc, :nulls_first | :nulls_last | :nulls_natural}],

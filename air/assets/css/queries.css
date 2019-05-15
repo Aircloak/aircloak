@@ -15,11 +15,11 @@
   z-index: -1;
 }
 
-.panel-body .ReactCodeMirror {
+.panel-body .react-codemirror2 {
   margin: -15px -15px 20px -15px;
 }
 
-.panel-success .panel-body .ReactCodeMirror {
+.panel-success .panel-body .react-codemirror2 {
   margin: -15px -15px 0px -15px;
 }
 
@@ -28,19 +28,19 @@
   overflow-x: auto;
 }
 
-.panel-danger .ReactCodeMirror {
+.panel-danger .react-codemirror2 {
   border-bottom: 1px solid rgb(235, 204, 209);
 }
 
-.panel-success .ReactCodeMirror {
+.panel-success .react-codemirror2 {
   border-bottom: 1px solid rgb(214, 233, 198);
 }
 
-.panel-warning .ReactCodeMirror {
+.panel-warning .react-codemirror2 {
   border-bottom: 1px solid rgb(250, 235, 204);
 }
 
-.panel-info .ReactCodeMirror {
+.panel-info .react-codemirror2 {
   border-bottom: 1px solid rgb(188, 232, 241);
 }
 

@@ -22,7 +22,7 @@
           <%= if logged_in?(@conn) do %>
             <%= navbar_link(@conn, "User Guide", "/docs/", rel: "help", target: "_blank") %>
             <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+              <a href="#" id="navbar_dropdown" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
                 <span class="glyphicon glyphicon-cog"></span> <span class="caret"></span>
               </a>
 
@@ -37,6 +37,10 @@
 
                 <%= if permitted?(@conn, AirWeb.ProfileController, :edit) do %>
                   <%= navbar_link(@conn, "Settings", profile_path(@conn, :edit)) %>
+                <% end %>
+
+                <%= if AirWeb.SharedView.licensed_feature?(:email_support) do %>
+                  <%= navbar_link(@conn, "Support", support_path(@conn, :index)) %>
                 <% end %>
 
                 <%= if admin?(@conn) do %>

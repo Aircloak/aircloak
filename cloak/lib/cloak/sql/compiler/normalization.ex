@@ -26,7 +26,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
       |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
       |> Helpers.apply_bottom_up(&normalize_non_anonymizing_noise/1)
-      |> Helpers.apply_bottom_up(&remove_constant_group_by/1)
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
@@ -86,22 +85,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
       end)
 
   # -------------------------------------------------------------------
-  # Removing GROUP BY constant
-  # -------------------------------------------------------------------
-
-  defp remove_constant_group_by(query) do
-    if Enum.all?(query.columns, &Expression.constant?/1) do
-      put_in(
-        query,
-        [Lens.key(:group_by) |> Lens.all() |> Lens.filter(&Expression.constant?/1)],
-        Expression.constant(:integer, 1)
-      )
-    else
-      update_in(query, [Lens.key(:group_by)], fn group_by -> Enum.reject(group_by, &Expression.constant?/1) end)
-    end
-  end
-
-  # -------------------------------------------------------------------
   # Normalizing comparisons
   # -------------------------------------------------------------------
 
@@ -141,14 +124,17 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp normalize_constants(query),
     do: update_in(query, [Query.Lenses.terminals() |> Lens.filter(&Expression.constant?/1)], &do_normalize_constants/1)
 
-  defp do_normalize_constants(expression = %Expression{function?: true, aggregate?: false}) do
-    case Expression.const_value(expression) do
-      nil ->
+  defp do_normalize_constants(expression = %Expression{function?: true, aggregate?: false, function_args: args}) do
+    case {Expression.const_value(expression), Enum.any?(args, &is_nil(&1.value))} do
+      {nil, true} ->
+        Expression.null()
+
+      {nil, false} ->
         raise CompilationError,
           source_location: expression.source_location,
           message: "Failed to evaluate expression `#{Expression.display(expression)}`."
 
-      value ->
+      {value, _} ->
         Expression.constant(expression.type, value, expression.parameter_index)
         |> Expression.set_location(expression.source_location)
         |> put_in([Lens.key(:alias)], expression.alias)
@@ -305,8 +291,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp normalize_non_anonymizing_noise(query), do: query
 
-  defp group_global_aggregators(%Query{group_by: []} = query),
-    do: %Query{query | group_by: [Expression.constant(:real, 0.0)]}
+  defp group_global_aggregators(%Query{group_by: [], grouping_sets: []} = query),
+    do: %Query{query | group_by: [], grouping_sets: [[]]}
 
   defp group_global_aggregators(query), do: query
 
@@ -357,30 +343,37 @@ defmodule Cloak.Sql.Compiler.Normalization do
     if Helpers.aggregates?(query) do
       %Query{query | distinct?: false}
     else
-      %Query{query | distinct?: false, group_by: columns}
+      columns = columns |> Enum.reject(&Expression.constant?/1)
+      %Query{query | distinct?: false, group_by: columns, grouping_sets: Helpers.default_grouping_sets(columns)}
     end
   end
 
   defp rewrite_distinct(%Query{distinct?: true, columns: [_ | _] = columns, group_by: [_ | _] = group_by} = query) do
     cond do
-      # - SELECT DISTINCT a, b FROM table GROUP a, b
-      # - SELECT DISTINCT a FROM table GROUP a, b
+      # - SELECT DISTINCT a, b FROM table GROUP BY a, b
+      # - SELECT DISTINCT a FROM table GROUP BY a, b
       all_non_aggregates_grouped_by?(query) and not Helpers.aggregates?(query) ->
         functional_group_bys = Enum.filter(group_by, &Expression.member?(columns, &1))
-        %Query{query | distinct?: false, group_by: functional_group_bys}
 
-      # - SELECT DISTINCT a, count(*) FROM table GROUP a
+        %Query{
+          query
+          | distinct?: false,
+            group_by: functional_group_bys,
+            grouping_sets: Helpers.default_grouping_sets(functional_group_bys)
+        }
+
+      # - SELECT DISTINCT a, count(*) FROM table GROUP BY a
       # - SELECT DISTINCT count(*) FROM table
       all_non_aggregates_grouped_by?(query) and Helpers.aggregates?(query) and not any_unselected_group_bys?(query) ->
         %Query{query | distinct?: false}
 
       # Currently not handled because it requires a complex subquery rewrite:
-      # - SELECT DISTINCT a, count(*) FROM table GROUP a, b
+      # - SELECT DISTINCT a, count(*) FROM table GROUP BY a, b
       Helpers.aggregates?(query) and any_unselected_group_bys?(query) ->
         reject_unselected_group_by(query)
 
       # These can't be transformed correctly because the query is illegal
-      # - SELECT DISTINCT a, b FROM table GROUP a
+      # - SELECT DISTINCT a, b FROM table GROUP BY a
       true ->
         query
     end

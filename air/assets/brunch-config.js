@@ -83,7 +83,7 @@ exports.config = {
       "react-dom",
       "react-bootstrap",
       "codemirror",
-      "react-codemirror",
+      "react-codemirror2",
       "jquery",
       "mousetrap",
       "plotly.js",

@@ -439,6 +439,10 @@ defmodule Cloak.Sql.Expression.Test do
              )
              |> Expression.display() == "bucket(1 by 10 align lower)"
     end
+
+    test "null" do
+      assert Expression.null() |> Expression.display() == "NULL"
+    end
   end
 
   describe "display_name" do
@@ -449,6 +453,10 @@ defmodule Cloak.Sql.Expression.Test do
                :integer
              )
              |> Expression.display_name() == "`bucket`"
+    end
+
+    test "null" do
+      assert Expression.null() |> Expression.display_name() == "`NULL`"
     end
   end
 
