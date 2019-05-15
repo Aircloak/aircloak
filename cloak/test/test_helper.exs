@@ -2,7 +2,6 @@
 File.rm(Cloak.DataSource.Isolators.PersistentKeyValue.cache_file())
 
 Compliance.Runtime.start_link()
-Cloak.SapHanaHelpers.delete_test_schemas()
 Cloak.Test.DB.start_link()
 
 ExUnit.start(

@@ -108,16 +108,12 @@ defmodule Cloak.DataSource.StreamerTest do
   end
 
   defp with_short_connection_timeout(timeout \\ 50, fun) do
-    connect_retries = Application.get_env(:cloak, :connect_retries)
     data_source_config = Application.get_env(:cloak, :data_source)
-
-    Application.put_env(:cloak, :connect_retries, 0)
     Application.put_env(:cloak, :data_source, Keyword.put(data_source_config, :connect_timeout, timeout))
 
     try do
       fun.()
     after
-      Application.put_env(:cloak, :connect_retries, connect_retries)
       Application.put_env(:cloak, :data_source, data_source_config)
     end
   end

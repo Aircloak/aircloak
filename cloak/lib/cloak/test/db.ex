@@ -108,19 +108,13 @@ defmodule Cloak.Test.DB do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp conn_execute!(data_source, fun, retries \\ Application.fetch_env!(:cloak, :connect_retries)) do
+  defp conn_execute!(data_source, fun) do
     case Cloak.DataSource.Connection.execute(data_source, fun) do
       {:ok, result} ->
         result
 
       {:error, connection_error} ->
-        if retries > 0 do
-          # retrying in tests, since there are occasional connection failures with SAP HANA
-          Process.sleep(500)
-          execute!(data_source, fun, retries - 1)
-        else
-          raise Cloak.Query.ExecutionError, message: connection_error
-        end
+        raise Cloak.Query.ExecutionError, message: connection_error
     end
   end
 
