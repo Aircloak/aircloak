@@ -75,10 +75,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
 
   defp finish_pipeline(%Query{selected_tables: [table]} = query, top_level?) do
-    if(used_array_size_columns(query) == [],
-      do: [],
-      else: Projector.project_array_sizes(table)
-    ) ++
+    Projector.project_array_sizes(table) ++
       parse_conditions(query.where) ++
       parse_query(query, top_level?)
   end
@@ -467,12 +464,6 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       lhs_field: lhs_field,
       rhs_field: rhs_field
     }
-  end
-
-  defp used_array_size_columns(query) do
-    Query.Lenses.query_expressions()
-    |> Lens.filter(&(&1.name != nil and Schema.is_array_size?(&1.name)))
-    |> Lens.to_list(query)
   end
 
   defp add_join_timing_protection(pipeline, %{ast: query, join_timing_protection?: true}) do
