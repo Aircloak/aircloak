@@ -40,6 +40,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> Helpers.apply_bottom_up(&reject_null_user_ids/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&compute_aggregators/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&expand_virtual_tables/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&protect_against_join_timing_attacks/1, analyst_tables?: false)
 
   # -------------------------------------------------------------------
   # UID handling
@@ -330,4 +331,35 @@ defmodule Cloak.Sql.Compiler.Execution do
     end)
     |> Optimizer.optimize_columns_from_subqueries()
   end
+
+  # -------------------------------------------------------------------
+  # Protect against join timing attacks
+  #
+  # For details, see `docs/anonymization.md`.
+  # -------------------------------------------------------------------
+
+  defp protect_against_join_timing_attacks(query), do: %Query{query | from: protect_joins(query.from)}
+
+  defp protect_joins({:join, join}) do
+    {lhs, rhs} =
+      if join.type == :right_outer_join do
+        {join.lhs, protect_join_branch(join.rhs)}
+      else
+        {protect_join_branch(join.lhs), join.rhs}
+      end
+
+    {:join, %{join | lhs: protect_joins(lhs), rhs: protect_joins(rhs)}}
+  end
+
+  defp protect_joins(query), do: query
+
+  defp query_has_db_filters?(query),
+    do: Lenses.db_filter_clauses() |> Lens.reject(&is_nil/1) |> Lens.to_list(query) != []
+
+  defp query_needs_protection?(query), do: query.type == :restricted and query_has_db_filters?(query)
+
+  defp protect_join_branch({:subquery, subquery}),
+    do: {:subquery, Map.put(subquery, :join_timing_protection?, query_needs_protection?(subquery.ast))}
+
+  defp protect_join_branch(branch), do: branch
 end

@@ -212,66 +212,66 @@ This bucket is also checked for low-count using the same procedure, and if it is
 
 For example, for the following input:
 
-|   x   | y | count |
-|:-----:|:-:|:-----:|
-| a     | 1 | 10    |
-| a     | 2 | 2     |
-| a     | 3 | 3     |
-| b     | 2 | 7     |
-| b     | 4 | 8     |
-| b     | 1 | 4     |
-| b     | 7 | 3     |
-| b     | 9 | 4     |
-| b     | 5 | 4     |
-| c     | 1 | 3     |
-| d     | 2 | 3     |
+|   x   |   y   | count |
+| :---: | :---: | :---: |
+|   a   |   1   |  10   |
+|   a   |   2   |   2   |
+|   a   |   3   |   3   |
+|   b   |   2   |   7   |
+|   b   |   4   |   8   |
+|   b   |   1   |   4   |
+|   b   |   7   |   3   |
+|   b   |   9   |   4   |
+|   b   |   5   |   4   |
+|   c   |   1   |   3   |
+|   d   |   2   |   3   |
 
 First, the low-count buckets would be extracted:
 
-|   x   | y | count |
-|:-----:|:-:|:-----:|
-| a     | 2 | 2     |
-| a     | 3 | 3     |
-| b     | 1 | 4     |
-| b     | 7 | 3     |
-| b     | 9 | 4     |
-| b     | 5 | 4     |
-| c     | 1 | 3     |
-| d     | 1 | 3     |
+|   x   |   y   | count |
+| :---: | :---: | :---: |
+|   a   |   2   |   2   |
+|   a   |   3   |   3   |
+|   b   |   1   |   4   |
+|   b   |   7   |   3   |
+|   b   |   9   |   4   |
+|   b   |   5   |   4   |
+|   c   |   1   |   3   |
+|   d   |   1   |   3   |
 
 Then, the first column from right (`y`) is censored (using `*`), and the low-count buckets are re-aggregated:
 
-|   x   | y | count |
-|:-----:|:-:|:-----:|
-| a     | * | 5     |
-| b     | * | 15    |
-| c     | * | 3     |
-| d     | * | 3     |
+|   x   |   y   | count |
+| :---: | :---: | :---: |
+|   a   |   *   |   5   |
+|   b   |   *   |  15   |
+|   c   |   *   |   3   |
+|   d   |   *   |   3   |
 
 The resulting bucket list is low-count filtered again and the high-count buckets are put in list of output buckets.
 The remaining low-count buckets are:
 
-|   x   | y | count |
-|:-----:|:-:|:-----:|
-| c     | * | 3     |
-| d     | * | 3     |
+|   x   |   y   | count |
+| :---: | :---: | :---: |
+|   c   |   *   |   3   |
+|   d   |   *   |   3   |
 
 The next column in the list (`x`) is censored and the buckets are re-aggregated, resulting in:
 
-|   x   | y | count |
-|:-----:|:-:|:-----:|
-|   *   | * | 6     |
+|   x   |   y   | count |
+| :---: | :---: | :---: |
+|   *   |   *   |   6   |
 
 Which passes the low-count filter and is put in the final output list of buckets, which is:
 
-|   x   | y | count |
-|:-----:|:-:|:-----:|
-| a     | 1 | 10    |
-| a     | * | 5     |
-| b     | 2 | 7     |
-| b     | 4 | 8     |
-| b     | * | 15    |
-| *     | * | 6     |
+|   x   |   y   | count |
+| :---: | :---: | :---: |
+|   a   |   1   |  10   |
+|   a   |   *   |   5   |
+|   b   |   2   |   7   |
+|   b   |   4   |   8   |
+|   b   |   *   |  15   |
+|   *   |   *   |   6   |
 
 
 ## Fixed alignment
@@ -519,15 +519,15 @@ of the following aggregating functions without `distinct` (except `count(distinc
 The following table shows the mapping between the anonymized aggregator and the offloaded version:
 
 |   aggregator   |                     translation                     |
-|:--------------:|:---------------------------------------------------:|
-| count(x)       | sum(count(per-user x))                              |
-| sum(x)         | sum(sum(per-user x))                                |
-| min(x)         | min(min(per-user x))                                |
-| max(x)         | max(max(per-user x))                                |
-| avg(X)         | sum(sum(per-user x)) / sum(count(per-user x))       |
-| count_noise(x) | sum_noise(count(per-user x))                        |
-| sum_noise(x)   | sum_noise(sum(per-user x))                          |
-| avg_noise(x)   | sum_noise(sum(per-user x)) / sum(count(per-user x)) |
+| :------------: | :-------------------------------------------------: |
+|    count(x)    |               sum(count(per-user x))                |
+|     sum(x)     |                sum(sum(per-user x))                 |
+|     min(x)     |                min(min(per-user x))                 |
+|     max(x)     |                max(max(per-user x))                 |
+|     avg(X)     |    sum(sum(per-user x)) / sum(count(per-user x))    |
+| count_noise(x) |            sum_noise(count(per-user x))             |
+|  sum_noise(x)  |             sum_noise(sum(per-user x))              |
+|  avg_noise(x)  | sum_noise(sum(per-user x)) / sum(count(per-user x)) |
 
 
 ## Statistics-based (no-uid) anonymization
@@ -632,3 +632,13 @@ follows:
  We first extract the sums of squared values: `sum_sqrs1 = (sd1^2 + avg1^2) * count1` and
  `sum_sqrs2 = (sd2^2 + avg2^2) * count2`, we then add them together to get the combined sum of squared values,
  resulting in: `combined_sd = sqrt(combined_sum_sqrs / combined_count - combined_avg^2)`
+
+## Protection against join timing attacks
+
+Backends will execute a join branch only when needed.
+This can be used to detect when a condition matches a row or not by measuring the execution time of a query which
+joins a subquery with filters with another long running subquery.
+We detect and mark such vulnerable subqueries and we make sure, when offloading them to the backend, that they always
+return at least one invalid row that doesn't match anything else. We can't use `NULL` values for the fake row, as the
+optimizer can detect it won't match the filtering conditions and it will drop it prematurely, so we generate values
+with a high chance of not matching any of the key columns that are required by joins in restricted queries.

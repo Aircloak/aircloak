@@ -4,6 +4,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   alias Cloak.Sql.{Query, Expression, Condition, LikePattern}
   alias Cloak.Query.ExecutionError
   alias Cloak.DataSource.MongoDB.{Schema, Projector}
+  alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
   # API
@@ -69,6 +70,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp start_pipeline({:subquery, subquery}, _table, conditions) do
     {collection, pipeline} = build(subquery.ast, false)
+    pipeline = add_join_timing_protection(pipeline, subquery)
     {collection, pipeline, conditions}
   end
 
@@ -419,7 +421,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
           as: as
         }
       },
-      %{"$unwind": %{path: "$" <> as}}
+      %{"$unwind": "$" <> as}
     ]
   end
 
@@ -462,9 +464,40 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     }
   end
 
-  def used_array_size_columns(query) do
+  defp used_array_size_columns(query) do
     Query.Lenses.query_expressions()
     |> Lens.filter(&(&1.name != nil and Schema.is_array_size?(&1.name)))
     |> Lens.to_list(query)
   end
+
+  defp add_join_timing_protection(pipeline, %{ast: query, join_timing_protection?: true}) do
+    [
+      %{
+        "$facet": %{
+          rows: pipeline
+        }
+      },
+      %{
+        "$project": %{
+          rows: %{
+            "$cond": [
+              %{
+                "$eq": ["$rows", []]
+              },
+              [query.db_columns |> Enum.map(&{Expression.title(&1), Table.invalid_value(&1.type)}) |> Enum.into(%{})],
+              "$rows"
+            ]
+          }
+        }
+      },
+      %{
+        "$unwind": "$rows"
+      },
+      %{
+        "$replaceRoot": %{newRoot: "$rows"}
+      }
+    ]
+  end
+
+  defp add_join_timing_protection(pipeline, _subquery), do: pipeline
 end

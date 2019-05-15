@@ -41,6 +41,7 @@
     },
     "transactions": {
       "db_name": "transactions",
+      "content_type": "personal",
       "keys": [
         {"account": "account_id"}
       ]

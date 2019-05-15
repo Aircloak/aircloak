@@ -8,6 +8,17 @@
 
 - The LDAP section has a `Sync now` button in `Admin -> Users` and `Admin -> Groups`
 
+## Version 19.2.1
+
+### Bugfixes
+
+- Fixed parsing of data source configuration files using the `keys` and `content_type` fields simultaneously.
+
+### Enhancements
+
+- Added protection against join timing attacks.
+- Added protection against exceptions in offloaded functions attacks.
+
 ## Version 19.2.0
 
 [Upgrade guide](docs/ops/upgrading.html)
