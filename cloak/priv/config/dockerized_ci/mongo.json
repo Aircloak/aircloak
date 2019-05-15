@@ -1,12 +1,11 @@
 {
   "driver": "mongodb",
-  "name": "mongodb3.4",
+  "name": "mongodb",
   "parameters": {
-    "hostname": "mongo3.4",
+    "hostname": "mongo3.6",
     "username": "root",
     "database": "cloak_compliance"
   },
   "encoded": false,
-  "tables": {
-  }
+  "tables": {}
 }

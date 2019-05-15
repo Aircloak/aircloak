@@ -205,10 +205,10 @@ run tests with `mix test --only compliance`. The container uses the source files
 easily edit those files and repeatedly run the tests without needing to rebuild the image.
 
 If you want to test some specific databases, you can set the `CLOAK_DATA_SOURCES` env variable. For example, to test
-only PostgreSQL and MongoDB 3.4, you can run the following command:
+only PostgreSQL and MongoDB 3.6, you can run the following command:
 
 ```
-CLOAK_DATA_SOURCES="postgresql9.6 mongodb3.4" make ci.compliance
+CLOAK_DATA_SOURCES="postgresql9.6 mongodb3.6" make ci.compliance
 ```
 
 The `CLOAK_DATA_SOURCES` env var is a whitespace separated list of data source names which you want to use in the test
