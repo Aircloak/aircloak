@@ -111,7 +111,4 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
 
   defp update_bounds(fun, [bounds]) when fun in ["floor", "ceil", "round", "trunc"], do: bounds
   defp update_bounds(_, _), do: :unknown
-
-  defp floor(number), do: number |> :math.floor() |> round()
-  defp ceil(number), do: number |> :math.ceil() |> round()
 end
