@@ -250,6 +250,14 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "select * location in source" do
+    assert_parse("select * from bar", select(columns: [{:*, {1, 8}}]))
+  end
+
+  test "select table.* location in source" do
+    assert_parse("select bar.* from bar", select(columns: [{{:*, "bar"}, {1, 8}}]))
+  end
+
   test "fully qualified table name" do
     assert_parse(
       "select foo from bar.baz",
@@ -279,7 +287,7 @@ defmodule Cloak.Sql.Parser.Test do
   end
 
   test "all fields" do
-    assert_parse("select * from baz", select(columns: [:*], from: unquoted("baz")))
+    assert_parse("select * from baz", select(columns: [{:*, _}], from: unquoted("baz")))
   end
 
   test "whitespaces are ignored" do
@@ -1620,7 +1628,7 @@ defmodule Cloak.Sql.Parser.Test do
         FROM baz
         -- Comment at the end...
       """),
-      select(columns: [:*], from: unquoted("baz"))
+      select(columns: [{:*, _}], from: unquoted("baz"))
     )
   end
 
@@ -1638,16 +1646,16 @@ defmodule Cloak.Sql.Parser.Test do
         select(columns: [identifier("foo")], from: {unquoted("baz"), :as, "b"})
       )
 
-  test "select all from a table", do: assert_parse("select foo.* from foo", select(columns: [{:*, "foo"}]))
+  test "select all from a table", do: assert_parse("select foo.* from foo", select(columns: [{{:*, "foo"}, _}]))
 
   test "select all from a quoted table",
-    do: assert_parse("select \"foo bar\".* from foo", select(columns: [{:*, "foo bar"}]))
+    do: assert_parse("select \"foo bar\".* from foo", select(columns: [{{:*, "foo bar"}, _}]))
 
   test "select all from a table in a comma-separated list",
     do:
       assert_parse(
         "select x, foo.*, y, bar.* from foo",
-        select(columns: [identifier("x"), {:*, "foo"}, identifier("y"), {:*, "bar"}])
+        select(columns: [identifier("x"), {{:*, "foo"}, _}, identifier("y"), {{:*, "bar"}, _}])
       )
 
   test "sample from table", do: assert_parse("select x from foo sample_users 10%", select(sample_rate: 10))

@@ -162,13 +162,15 @@ defmodule Cloak.Sql.Parser.Internal do
     either_deepest_error(typed_literal(), any_constant())
   end
 
-  defp select_column(), do: choice_deepest_error([keyword(:*), select_all_from_table(), plain_select_column()])
+  defp select_column(), do: choice_deepest_error([select_all(), select_all_from_table(), plain_select_column()])
 
-  defp select_all_from_table(),
-    do:
-      pipe([identifier(), keyword(:.), keyword(:*)], fn [{_type, table_name}, :., :*] ->
-        {:*, table_name}
-      end)
+  defp select_all(), do: pipe([next_position(), keyword(:*)], fn [location, _] -> {:*, location} end)
+
+  defp select_all_from_table() do
+    pipe([next_position(), identifier(), keyword(:.), keyword(:*)], fn [location, {_type, table_name}, :., :*] ->
+      {{:*, table_name}, location}
+    end)
+  end
 
   defp plain_select_column() do
     pipe(

@@ -1211,12 +1211,6 @@ defmodule Cloak.Sql.Compiler.Test do
     assert reason == "Table alias `a` used more than once."
   end
 
-  test "selecting all from a non-selected table" do
-    assert {:error, reason} = compile("select t2.* from t1", data_source())
-
-    assert reason == "Select clause `t2`.* cannot be resolved because the table does not exist in the `FROM` list."
-  end
-
   test "the first argument to date_trunc has to be a constant" do
     assert {:error, reason} = compile("select date_trunc(string, column) from table", data_source())
 
