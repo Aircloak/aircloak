@@ -83,23 +83,52 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function("trunc", [31, -1]) == 30
   end
 
-  test "div" do
-    assert apply_function("div", [12, 3]) == 4
-    assert apply_function("div", [13, 3]) == 4
-    assert apply_function("div", [nil, 3]) == nil
-    assert apply_function("div", [2, nil]) == nil
+  for fun <- ~w(/ unsafe_div) do
+    test fun do
+      assert apply_function(unquote(fun), [12, 3]) == 4
+      assert_in_delta(apply_function(unquote(fun), [13, 3]), 4.33, 0.01)
+      assert apply_function(unquote(fun), [nil, 3]) == nil
+      assert apply_function(unquote(fun), [2, nil]) == nil
+    end
   end
 
-  test "%" do
-    assert apply_function("%", [13, 3]) == 1
-    assert apply_function("%", [nil, 3]) == nil
-    assert apply_function("%", [13, nil]) == nil
+  test "checked_div" do
+    assert apply_function("checked_div", [12, 3, 0.0001]) == 4
+    assert apply_function("checked_div", [12, 0.000001, 0.0001]) == nil
   end
 
-  test "^" do
-    assert apply_function("^", [2, 3]) == 8
-    assert apply_function("^", [2, nil]) == nil
-    assert apply_function("^", [nil, 3]) == nil
+  for fun <- ~w(% unsafe_mod checked_mod) do
+    test fun do
+      assert apply_function(unquote(fun), [13, 3]) == 1
+      assert apply_function(unquote(fun), [nil, 3]) == nil
+      assert apply_function(unquote(fun), [13, nil]) == nil
+    end
+  end
+
+  for fun <- ~w(^ unsafe_pow) do
+    test fun do
+      assert apply_function(unquote(fun), [2, 3]) == 8
+      assert apply_function(unquote(fun), [2, nil]) == nil
+      assert apply_function(unquote(fun), [nil, 3]) == nil
+    end
+  end
+
+  for fun <- ~w(+ unsafe_add) do
+    test fun do
+      assert apply_function(unquote(fun), [2, 3]) == 5
+    end
+  end
+
+  for fun <- ~w(- unsafe_sub) do
+    test fun do
+      assert apply_function(unquote(fun), [2, 3]) == -1
+    end
+  end
+
+  for fun <- ~w(* unsafe_mul) do
+    test fun do
+      assert apply_function(unquote(fun), [2, 3]) == 6
+    end
   end
 
   test "length" do

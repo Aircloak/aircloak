@@ -7,7 +7,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   @dummy_bounds {10, 20}
 
   alias Cloak.Sql.{Expression, Query}
-  alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.Compiler.{Helpers, BoundChecker}
 
   # -------------------------------------------------------------------
   # API functions
@@ -20,6 +20,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
       subquery
       |> propagate_subquery_bounds()
       |> update_in([Query.Lenses.query_expressions()], &analyze_expression/1)
+      |> update_in([Query.Lenses.query_expressions()], &BoundChecker.check_expression/1)
     end)
   end
 

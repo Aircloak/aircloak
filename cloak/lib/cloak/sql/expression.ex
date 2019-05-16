@@ -371,6 +371,8 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("trunc", [value]), do: trunc(value)
   defp do_apply("trunc", [value, precision]), do: do_trunc(value, precision)
   defp do_apply("div", [x, y]), do: div(x, y)
+  defp do_apply("unsafe_mod", [x, y]), do: do_apply("%", [x, y])
+  defp do_apply("checked_mod", [x, y]), do: do_apply("%", [x, y])
   defp do_apply("%", [x, y]), do: rem(x, y)
   defp do_apply("length", [string]), do: codepoints_length(string)
   defp do_apply("lower", [string]), do: String.downcase(string)
@@ -417,26 +419,27 @@ defmodule Cloak.Sql.Expression do
 
   defp do_apply("extract_words", [nil]), do: [nil]
   defp do_apply("extract_words", [string]), do: String.split(string)
+  defp do_apply("unsafe_pow", [x, y]) when x >= 0, do: do_apply("^", [x, y])
   defp do_apply("^", [x, y]) when x >= 0, do: :math.pow(x, y)
+  defp do_apply("unsafe_mul", [x, y]), do: do_apply("*", [x, y])
   defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
   defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])
   defp do_apply("*", [x, y]), do: x * y
+  defp do_apply("unsafe_div", [x, y]), do: do_apply("/", [x, y])
+  defp do_apply("checked_div", [x, y, epsilon]), do: if(abs(y) < epsilon, do: nil, else: x / y)
   defp do_apply("/", [x = %Duration{}, y]), do: Duration.scale(x, 1 / y)
   defp do_apply("/", [x, y]), do: x / y
-
+  defp do_apply("unsafe_add", [x, y]), do: do_apply("+", [x, y])
   defp do_apply("+", [x = %Date{}, y = %Duration{}]), do: x |> Timex.to_naive_datetime() |> Timex.add(y)
-
   defp do_apply("+", [x = %NaiveDateTime{}, y = %Duration{}]), do: Timex.add(x, y)
   defp do_apply("+", [x = %Duration{}, y = %Duration{}]), do: Duration.add(x, y)
   defp do_apply("+", [x = %Duration{}, y]), do: do_apply("+", [y, x])
   defp do_apply("+", [x = %Time{}, y = %Duration{}]), do: add_to_time(x, y)
   defp do_apply("+", [x, y]), do: x + y
+  defp do_apply("unsafe_sub", [x, y]), do: do_apply("-", [x, y])
   defp do_apply("-", [x = %Date{}, y = %Date{}]), do: Timex.diff(x, y, :duration)
-
   defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]), do: Timex.diff(x, y, :duration)
-
   defp do_apply("-", [x = %Time{}, y = %Time{}]), do: Duration.sub(Duration.from_time(x), Duration.from_time(y))
-
   defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
