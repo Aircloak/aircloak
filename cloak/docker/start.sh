@@ -39,4 +39,12 @@ for driver in /odbc_drivers/*; do
   fi
 done
 
+if [ "$CRASH_DUMP" == "true" ]; then
+  mkdir -p /crash_dump
+  chmod -R o+w /crash_dump
+  export ERL_CRASH_DUMP="/crash_dump/erl_crash.dump"
+else
+  export ERL_CRASH_DUMP="/dev/null"
+fi
+
 exec gosu deployer /aircloak/cloak/bin/cloak foreground

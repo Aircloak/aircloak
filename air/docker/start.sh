@@ -18,4 +18,12 @@ PRIV_DIR=/aircloak/air/lib/air-$VERSION/priv
 mkdir -p ${PRIV_DIR}
 ln -sFf /runtime_config ${PRIV_DIR}/config
 
+if [ "$CRASH_DUMP" == "true" ]; then
+  mkdir -p /crash_dump
+  chmod -R o+w /crash_dump
+  export ERL_CRASH_DUMP="/crash_dump/erl_crash.dump"
+else
+  export ERL_CRASH_DUMP="/dev/null"
+fi
+
 exec gosu deployer /aircloak/air/bin/air foreground
