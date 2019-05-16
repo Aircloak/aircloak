@@ -47,13 +47,38 @@ defmodule Cloak.SQL.Compiler.BoundChecker.Test do
       assert %Expression{function: "/", function_args: [^dividend, ^divisor]} =
                BoundChecker.check_expression(function("/", [dividend, divisor]))
     end
+
+    test "integer expression with result within 64bit unsigned bounds" do
+      a = in_bounds({10, 20})
+      expression = function("+", [a, a]) |> in_bounds({100, 200})
+      assert %Expression{function: "unsafe_add", function_args: [^a, ^a]} = BoundChecker.check_expression(expression)
+    end
+
+    test "integer expression with result outside of 64bit unsigned bounds" do
+      a = in_bounds({10, 20})
+      max_int = 9_223_372_036_854_775_807
+      expression = function("+", [a, a]) |> in_bounds({0, max_int + 1})
+      assert ^expression = BoundChecker.check_expression(expression)
+    end
+
+    test "real expression with magnitude of result smaller than 1.0e100" do
+      a = in_bounds({10, 20})
+      expression = function("+", [a, a], :real) |> in_bounds({0, 1.0e50})
+      assert %Expression{function: "unsafe_add", function_args: [^a, ^a]} = BoundChecker.check_expression(expression)
+    end
+
+    test "real expression with magnitude of result larger than 1.0e100" do
+      a = in_bounds({10, 20})
+      expression = function("+", [a, a], :real) |> in_bounds({0, 1.0e101})
+      assert ^expression = BoundChecker.check_expression(expression)
+    end
   end
 
-  defp in_bounds(bounds) do
-    Expression.constant(:integer, 0) |> put_in([Lens.key(:bounds)], bounds)
+  defp in_bounds(expression \\ Expression.constant(:integer, 0), bounds) do
+    put_in(expression, [Lens.key(:bounds)], bounds)
   end
 
-  defp function(name, args) do
-    Expression.function(name, args, :integer)
+  defp function(name, args, type \\ :integer) do
+    Expression.function(name, args, type)
   end
 end
