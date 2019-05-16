@@ -12,6 +12,12 @@ defmodule Cloak.Sql.Compiler.BoundChecker do
     update_in(expression, [Query.Lenses.all_expressions() |> Lens.filter(&(&1.function == "/"))], &do_check_division/1)
   end
 
+  defp do_check_division(expression = %Expression{function: "/", function_args: [%{bounds: :unknown}, _]}),
+    do: expression
+
+  defp do_check_division(expression = %Expression{function: "/", function_args: [_, %{bounds: :unknown}]}),
+    do: expression
+
   defp do_check_division(expression = %Expression{function: "/", function_args: [dividend, divisor]}) do
     case {spans_zero?(divisor.bounds), div_epsilon(dividend)} do
       {false, _} ->
