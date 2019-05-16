@@ -8,7 +8,8 @@ defmodule Cloak.Sql.Compiler.BoundChecker do
     "-" => "unsafe_sub",
     "/" => "unsafe_div",
     "*" => "unsafe_mul",
-    "^" => "unsafe_pow"
+    "^" => "unsafe_pow",
+    "%" => "unsafe_mod"
   }
 
   def check_expression(expression) do
