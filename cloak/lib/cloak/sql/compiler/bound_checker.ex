@@ -11,6 +11,7 @@ defmodule Cloak.Sql.Compiler.BoundChecker do
     "^" => "unsafe_pow",
     "%" => "unsafe_mod"
   }
+  @divisions ~w(/ %)
 
   def check_expression(expression) do
     expression
@@ -37,14 +38,28 @@ defmodule Cloak.Sql.Compiler.BoundChecker do
   defp within_bounds?(_, _), do: false
 
   defp check_division(expression) do
-    update_in(expression, [Query.Lenses.all_expressions() |> Lens.filter(&(&1.function == "/"))], &do_check_division/1)
+    update_in(
+      expression,
+      [Query.Lenses.all_expressions() |> Lens.filter(&(&1.function in @divisions))],
+      &do_check_division/1
+    )
   end
 
-  defp do_check_division(expression = %Expression{function: "/", function_args: [%{bounds: :unknown}, _]}),
-    do: expression
+  defp do_check_division(expression = %Expression{function: f, function_args: [%{bounds: :unknown}, _]})
+       when f in @divisions,
+       do: expression
 
-  defp do_check_division(expression = %Expression{function: "/", function_args: [_, %{bounds: :unknown}]}),
-    do: expression
+  defp do_check_division(expression = %Expression{function: f, function_args: [_, %{bounds: :unknown}]})
+       when f in @divisions,
+       do: expression
+
+  defp do_check_division(expression = %Expression{function: "%", function_args: [_, divisor], bounds: bounds}) do
+    cond do
+      !within_bounds?(:integer, bounds) -> expression
+      spans_zero?(divisor.bounds) -> %{expression | function: "checked_mod"}
+      true -> %{expression | function: "unsafe_mod"}
+    end
+  end
 
   defp do_check_division(expression = %Expression{function: "/", function_args: [dividend, divisor]}) do
     case {spans_zero?(divisor.bounds), div_epsilon(dividend)} do

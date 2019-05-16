@@ -4,6 +4,8 @@ defmodule Cloak.SQL.Compiler.BoundChecker.Test do
   alias Cloak.Sql.Compiler.BoundChecker
   alias Cloak.Sql.Expression
 
+  @max_int 9_223_372_036_854_775_807
+
   describe ".check_expression" do
     test "/ with safe argument bounds results in an unsafe_div" do
       dividend = in_bounds({10, 20})
@@ -40,12 +42,36 @@ defmodule Cloak.SQL.Compiler.BoundChecker.Test do
                BoundChecker.check_expression(function("/", [dividend, divisor]))
     end
 
-    test "with unknown bounds on divisor" do
+    test "/ with unknown bounds on divisor" do
       dividend = in_bounds({10, 20})
       divisor = in_bounds(:unknown)
 
       assert %Expression{function: "/", function_args: [^dividend, ^divisor]} =
                BoundChecker.check_expression(function("/", [dividend, divisor]))
+    end
+
+    test "% with divisor spanning 0" do
+      expression =
+        %Expression{function: "%", function_args: [in_bounds({10, 20}), in_bounds({-10, 10})]}
+        |> in_bounds({0, 100})
+
+      assert BoundChecker.check_expression(expression) == %{expression | function: "checked_mod"}
+    end
+
+    test "% with divisor not spanning 0" do
+      expression =
+        %Expression{function: "%", function_args: [in_bounds({10, 20}), in_bounds({-100, -10})]}
+        |> in_bounds({0, 100})
+
+      assert BoundChecker.check_expression(expression) == %{expression | function: "unsafe_mod"}
+    end
+
+    test "% with too large output bounds" do
+      expression =
+        %Expression{function: "%", function_args: [in_bounds({10, 20}), in_bounds({-100, -10})]}
+        |> in_bounds({0, @max_int + 1})
+
+      assert BoundChecker.check_expression(expression) == expression
     end
 
     test "integer expression with result within 64bit unsigned bounds" do
@@ -56,8 +82,7 @@ defmodule Cloak.SQL.Compiler.BoundChecker.Test do
 
     test "integer expression with result outside of 64bit unsigned bounds" do
       a = in_bounds({10, 20})
-      max_int = 9_223_372_036_854_775_807
-      expression = function("+", [a, a]) |> in_bounds({0, max_int + 1})
+      expression = function("+", [a, a]) |> in_bounds({0, @max_int + 1})
       assert ^expression = BoundChecker.check_expression(expression)
     end
 
