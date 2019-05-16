@@ -18,6 +18,39 @@ defmodule Aircloak.Functions do
     "div" => %{alternative: "/"}
   }
 
+  @pow_specs %{[numeric, numeric] => :real}
+
+  @add_specs Map.merge(arithmetic_operation, %{
+               [:date, :interval] => :datetime,
+               [:time, :interval] => :time,
+               [:datetime, :interval] => :datetime,
+               [:interval, :date] => :datetime,
+               [:interval, :time] => :time,
+               [:interval, :datetime] => :datetime,
+               [:interval, :interval] => :interval
+             })
+  @sub_specs Map.merge(arithmetic_operation, %{
+               [:date, :date] => :interval,
+               [:time, :time] => :interval,
+               [:datetime, :datetime] => :interval,
+               [:date, :interval] => :datetime,
+               [:time, :interval] => :time,
+               [:datetime, :interval] => :datetime,
+               [:interval, :interval] => :interval
+             })
+
+  @mul_specs Map.merge(arithmetic_operation, %{
+               [:interval, numeric] => :interval,
+               [numeric, :interval] => :interval
+             })
+
+  @div_specs %{
+    [numeric, numeric] => :real,
+    [:interval, {:or, [:integer, :real]}] => :interval
+  }
+
+  @mod_specs %{[:integer, :integer] => :integer}
+
   @functions %{
                ~w(count) => %{attributes: [:aggregator], type_specs: %{[:any] => :integer}},
                ~w(count_noise) => %{
@@ -102,52 +135,18 @@ defmodule Aircloak.Functions do
                  attributes: [:math, :restricted]
                },
                ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
-               ~w(^) => %{type_specs: %{[numeric, numeric] => :real}, attributes: [:math]},
-               ~w(+) => %{
-                 type_specs:
-                   Map.merge(arithmetic_operation, %{
-                     [:date, :interval] => :datetime,
-                     [:time, :interval] => :time,
-                     [:datetime, :interval] => :datetime,
-                     [:interval, :date] => :datetime,
-                     [:interval, :time] => :time,
-                     [:interval, :datetime] => :datetime,
-                     [:interval, :interval] => :interval
-                   }),
-                 attributes: [:math]
-               },
-               ~w(-) => %{
-                 type_specs:
-                   Map.merge(arithmetic_operation, %{
-                     [:date, :date] => :interval,
-                     [:time, :time] => :interval,
-                     [:datetime, :datetime] => :interval,
-                     [:date, :interval] => :datetime,
-                     [:time, :interval] => :time,
-                     [:datetime, :interval] => :datetime,
-                     [:interval, :interval] => :interval
-                   }),
-                 attributes: [:math]
-               },
-               ~w(*) => %{
-                 type_specs:
-                   Map.merge(arithmetic_operation, %{
-                     [:interval, numeric] => :interval,
-                     [numeric, :interval] => :interval
-                   }),
-                 attributes: [:math]
-               },
-               ~w(/) => %{
-                 type_specs: %{
-                   [numeric, numeric] => :real,
-                   [:interval, {:or, [:integer, :real]}] => :interval
-                 },
-                 attributes: [:math]
-               },
-               ~w(%) => %{
-                 type_specs: %{[:integer, :integer] => :integer},
-                 attributes: [:math, :restricted]
-               },
+               ~w(^) => %{type_specs: @pow_specs, attributes: [:math]},
+               ~w(unsafe_pow) => %{type_specs: @pow_specs, attributes: [:math, :internal]},
+               ~w(+) => %{type_specs: @add_specs, attributes: [:math]},
+               ~w(unsafe_add) => %{type_specs: @add_specs, attributes: [:math, :internal]},
+               ~w(-) => %{type_specs: @sub_specs, attributes: [:math]},
+               ~w(unsafe_sub) => %{type_specs: @sub_specs, attributes: [:math, :internal]},
+               ~w(*) => %{type_specs: @mul_specs, attributes: [:math]},
+               ~w(unsafe_mul) => %{type_specs: @mul_specs, attributes: [:math, :internal]},
+               ~w(/) => %{type_specs: @div_specs, attributes: [:math]},
+               ~w(unsafe_div checked_div) => %{type_specs: @div_specs, attributes: [:math, :internal]},
+               ~w(%) => %{type_specs: @mod_specs, attributes: [:math, :restricted]},
+               ~w(unsafe_mod checked_mod) => %{type_specs: @mod_specs, attributes: [:math, :restricted, :internal]},
                ~w(length) => %{type_specs: %{[:text] => :integer}, attributes: [:restricted]},
                ~w(lower upper) => %{type_specs: %{[:text] => :text}},
                ~w(left right) => %{
