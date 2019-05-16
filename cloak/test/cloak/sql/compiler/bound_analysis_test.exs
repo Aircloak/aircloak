@@ -38,34 +38,33 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     end
   end
 
-  describe ".analyze_expression" do
+  describe ".set_bounds" do
     test "integer constants" do
-      assert {2, 2} = BoundAnalysis.analyze_expression(Expression.constant(:integer, 2)).bounds
+      assert {2, 2} = BoundAnalysis.set_bounds(Expression.constant(:integer, 2)).bounds
     end
 
     test "real constants" do
-      assert {2, 2} = BoundAnalysis.analyze_expression(Expression.constant(:real, 2)).bounds
+      assert {2, 2} = BoundAnalysis.set_bounds(Expression.constant(:real, 2)).bounds
     end
 
     test "small real constants" do
-      assert {0, 1} = BoundAnalysis.analyze_expression(Expression.constant(:real, 0.01)).bounds
+      assert {0, 1} = BoundAnalysis.set_bounds(Expression.constant(:real, 0.01)).bounds
     end
 
     test "other constants" do
-      assert :unknown = BoundAnalysis.analyze_expression(Expression.constant(:text, "Some text")).bounds
+      assert :unknown = BoundAnalysis.set_bounds(Expression.constant(:text, "Some text")).bounds
     end
 
     test "columns with bounds set are ignored" do
-      assert BoundAnalysis.analyze_expression(column_in_bounds({10, 20})) == column_in_bounds({10, 20})
+      assert BoundAnalysis.set_bounds(column_in_bounds({10, 20})) == column_in_bounds({10, 20})
     end
 
     test "[temporary] columns with no bounds are set to [10 - 20]" do
-      assert {10, 20} = BoundAnalysis.analyze_expression(column_in_bounds(:unknown)).bounds
+      assert {10, 20} = BoundAnalysis.set_bounds(column_in_bounds(:unknown)).bounds
     end
 
     test "sqrt bounds are tight for positive input bounds" do
-      assert {10, 20} =
-               BoundAnalysis.analyze_expression(function_expression("sqrt", [column_in_bounds({100, 400})])).bounds
+      assert {10, 20} = BoundAnalysis.set_bounds(function_expression("sqrt", [column_in_bounds({100, 400})])).bounds
     end
 
     property "bounds can be computed for simplest arguments to function" do
@@ -73,7 +72,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
         arity = Function.info(function) |> Keyword.fetch!(:arity)
         args = 1..arity |> Enum.map(fn _ -> column_in_bounds({2, 2}) end)
         expression = function_expression(name, args)
-        assert BoundAnalysis.analyze_expression(expression).bounds != :unknown
+        assert BoundAnalysis.set_bounds(expression).bounds != :unknown
       end
     end
 
@@ -102,8 +101,107 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     end
   end
 
+  describe ".analyze_safety" do
+    @max_int 9_223_372_036_854_775_807
+
+    test "/ with safe argument bounds results in an unsafe_div" do
+      dividend = column_in_bounds({10, 20})
+      divisor = column_in_bounds({10, 20})
+
+      assert %Expression{function: "unsafe_div", function_args: [^dividend, ^divisor]} =
+               BoundAnalysis.analyze_safety(function("/", [dividend, divisor]))
+    end
+
+    test "/ with reasonable argument bounds results in a checked_div" do
+      dividend = column_in_bounds({10, 20})
+      divisor = column_in_bounds({-10, 10})
+
+      assert %Expression{function: "checked_div", function_args: [^dividend, ^divisor, epsilon]} =
+               BoundAnalysis.analyze_safety(function("/", [dividend, divisor]))
+
+      assert epsilon < 1
+      assert 20 / epsilon < 1.0e101
+    end
+
+    test "/ with unreasonable argument bounds results in a /" do
+      dividend = column_in_bounds({round(-1.0e200), round(1.0e200)})
+      divisor = column_in_bounds({-1, 1})
+
+      assert %Expression{function: "/", function_args: [^dividend, ^divisor]} =
+               BoundAnalysis.analyze_safety(function("/", [dividend, divisor]))
+    end
+
+    test "/ with unknown bounds on dividend" do
+      dividend = column_in_bounds(:unknown)
+      divisor = column_in_bounds({10, 20})
+
+      assert %Expression{function: "/", function_args: [^dividend, ^divisor]} =
+               BoundAnalysis.analyze_safety(function("/", [dividend, divisor]))
+    end
+
+    test "/ with unknown bounds on divisor" do
+      dividend = column_in_bounds({10, 20})
+      divisor = column_in_bounds(:unknown)
+
+      assert %Expression{function: "/", function_args: [^dividend, ^divisor]} =
+               BoundAnalysis.analyze_safety(function("/", [dividend, divisor]))
+    end
+
+    test "% with divisor spanning 0" do
+      expression =
+        %Expression{function: "%", function_args: [column_in_bounds({10, 20}), column_in_bounds({-10, 10})]}
+        |> set_bounds({0, 100})
+
+      assert BoundAnalysis.analyze_safety(expression) == %{expression | function: "checked_mod"}
+    end
+
+    test "% with divisor not spanning 0" do
+      expression =
+        %Expression{function: "%", function_args: [column_in_bounds({10, 20}), column_in_bounds({-100, -10})]}
+        |> set_bounds({0, 100})
+
+      assert BoundAnalysis.analyze_safety(expression) == %{expression | function: "unsafe_mod"}
+    end
+
+    test "% with too large output bounds" do
+      expression =
+        %Expression{function: "%", function_args: [column_in_bounds({10, 20}), column_in_bounds({-100, -10})]}
+        |> set_bounds({0, @max_int + 1})
+
+      assert BoundAnalysis.analyze_safety(expression) == expression
+    end
+
+    test "integer expression with result within 64bit unsigned bounds" do
+      a = column_in_bounds({10, 20})
+      expression = function("+", [a, a]) |> set_bounds({100, 200})
+      assert %Expression{function: "unsafe_add", function_args: [^a, ^a]} = BoundAnalysis.analyze_safety(expression)
+    end
+
+    test "integer expression with result outside of 64bit unsigned bounds" do
+      a = column_in_bounds({10, 20})
+      expression = function("+", [a, a]) |> set_bounds({0, @max_int + 1})
+      assert ^expression = BoundAnalysis.analyze_safety(expression)
+    end
+
+    test "real expression with magnitude of result smaller than 1.0e100" do
+      a = column_in_bounds({10, 20})
+      expression = function("+", [a, a], :real) |> set_bounds({0, 1.0e50})
+      assert %Expression{function: "unsafe_add", function_args: [^a, ^a]} = BoundAnalysis.analyze_safety(expression)
+    end
+
+    test "real expression with magnitude of result larger than 1.0e100" do
+      a = column_in_bounds({10, 20})
+      expression = function("+", [a, a], :real) |> set_bounds({0, 1.0e101})
+      assert ^expression = BoundAnalysis.analyze_safety(expression)
+    end
+  end
+
+  defp function(name, args, type \\ :integer) do
+    Expression.function(name, args, type)
+  end
+
   defp unknown_or_within_bounds(expression, values, function) do
-    case BoundAnalysis.analyze_expression(expression).bounds do
+    case BoundAnalysis.set_bounds(expression).bounds do
       :unknown ->
         true
 
@@ -114,7 +212,11 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
   end
 
   defp column_in_bounds(bounds) do
-    %{Expression.column(%{name: "column", type: "real"}, table()) | bounds: bounds}
+    Expression.column(%{name: "column", type: "real"}, table()) |> set_bounds(bounds)
+  end
+
+  defp set_bounds(expression, bounds) do
+    put_in(expression, [Lens.key(:bounds)], bounds)
   end
 
   defp function_expression(function_name, args) do
