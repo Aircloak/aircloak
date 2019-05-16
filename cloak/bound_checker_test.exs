@@ -8,7 +8,7 @@ defmodule Cloak.SQL.Compiler.BoundChecker.Test do
     dividend = in_bounds({10, 20})
     divisor = in_bounds({10, 20})
 
-    assert %Expression{function: "/", function_args: [^dividend, ^divisor]} =
+    assert %Expression{function: "unsafe_div", function_args: [^dividend, ^divisor]} =
              BoundChecker.check_expression(function("/", [dividend, divisor]))
   end
 
@@ -23,7 +23,13 @@ defmodule Cloak.SQL.Compiler.BoundChecker.Test do
     assert 20 / epsilon < 1.0e101
   end
 
-  test "/ with unreasonable argument bounds results in a / (unsafe operation)"
+  test "/ with unreasonable argument bounds results in a /" do
+    dividend = in_bounds({round(-1.0e200), round(1.0e200)})
+    divisor = in_bounds({-1, 1})
+
+    assert %Expression{function: "/", function_args: [^dividend, ^divisor]} =
+             BoundChecker.check_expression(function("/", [dividend, divisor]))
+  end
 
   test "with unknown bounds on dividend"
 

@@ -13,16 +13,24 @@ defmodule Cloak.Sql.Compiler.BoundChecker do
   end
 
   defp do_check_division(expression = %Expression{function: "/", function_args: [dividend, divisor]}) do
-    {min, max} = divisor.bounds
+    case {spans_zero?(divisor.bounds), div_epsilon(dividend)} do
+      {false, _} ->
+        %{expression | function: "unsafe_div"}
 
-    if min > 0 || max < 0 do
-      expression
-    else
-      %{expression | function: "checked_div", function_args: [dividend, divisor, div_epsilon(dividend)]}
+      {_, {:ok, epsilon}} ->
+        %{expression | function: "checked_div", function_args: [dividend, divisor, epsilon]}
+
+      _ ->
+        expression
     end
   end
 
+  defp spans_zero?({min, max}), do: min < 1 && max > -1
+
   defp div_epsilon(%{bounds: {min, max}}) do
-    max(abs(min), abs(max)) / @large_number
+    magnitude = max(abs(min), abs(max))
+    if magnitude < @large_number, do: {:ok, magnitude / @large_number}, else: :error
+  rescue
+    _ -> :error
   end
 end
