@@ -5,7 +5,7 @@ defmodule Cloak.Test.MongoHelpers do
 
   defmacro assert_query(context, query, expected_response) do
     quote do
-      supported_mongo_versions = ["3.4.0"]
+      supported_mongo_versions = ["3.6.0"]
 
       [first_response | other_responses] =
         supported_mongo_versions

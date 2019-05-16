@@ -75,11 +75,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
 
   defp finish_pipeline(%Query{selected_tables: [table]} = query, top_level?) do
-    if(used_array_size_columns(query) == [],
-      do: [],
-      else: Projector.project_array_sizes(table)
-    ) ++
-      (table.columns |> Enum.map(& &1.name) |> parse_conditions(query.where)) ++
+    Projector.project_array_sizes(table) ++
+      parse_conditions(query.where) ++
       parse_query(query, top_level?)
   end
 
@@ -220,10 +217,15 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     {conditions, extra_columns}
   end
 
-  defp parse_conditions(existing_fields, conditions) do
+  defp parse_conditions(conditions) do
     {conditions, extra_columns} = extract_columns_from_conditions(conditions)
-    Projector.project_extra_columns(existing_fields, extra_columns) ++ filter_data(conditions)
+    project_extra_columns(extra_columns) ++ filter_data(conditions)
   end
+
+  defp project_extra_columns([]), do: []
+
+  defp project_extra_columns(extra_columns),
+    do: [%{"$addFields": extra_columns |> Enum.map(&Projector.project_column/1) |> Enum.into(%{})}]
 
   defp unwind_arrays(_path, _path \\ "")
   defp unwind_arrays([], _path), do: []
@@ -405,7 +407,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       having = extract_column_top_from_conditions(having, aggregators, groups)
 
       [%{"$group": group}] ++
-        parse_conditions(Map.keys(group), having) ++
+        parse_conditions(having) ++
         Projector.project_columns(column_tops) ++
         order_and_range(query) ++ project_top_columns(column_tops, top_level?)
     end
@@ -462,12 +464,6 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       lhs_field: lhs_field,
       rhs_field: rhs_field
     }
-  end
-
-  defp used_array_size_columns(query) do
-    Query.Lenses.query_expressions()
-    |> Lens.filter(&(&1.name != nil and Schema.is_array_size?(&1.name)))
-    |> Lens.to_list(query)
   end
 
   defp add_join_timing_protection(pipeline, %{ast: query, join_timing_protection?: true}) do

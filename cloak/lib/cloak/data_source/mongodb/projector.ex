@@ -20,32 +20,21 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   def project_array_sizes(%{columns: columns, collection: name}) when is_binary(name) do
     columns
     |> Enum.map(& &1.name)
-    |> Enum.split_with(&Schema.is_array_size?/1)
+    |> Enum.filter(&Schema.is_array_size?/1)
     |> case do
-      {[], _regular_columns} ->
+      [] ->
         []
 
-      {array_sizes, regular_columns} ->
-        projected_columns =
-          Enum.map(regular_columns, &{&1, true}) ++
-            Enum.map(array_sizes, &{&1, &1 |> Schema.array_size_field() |> map_array_size()})
+      array_sizes ->
+        new_columns =
+          array_sizes |> Enum.map(&{&1, &1 |> Schema.array_size_field() |> map_array_size()}) |> Enum.into(%{})
 
-        [%{"$project": Enum.into(projected_columns, %{"_id" => false})}]
+        [%{"$addFields": new_columns}]
     end
   end
 
   # table is subquery
   def project_array_sizes(_table), do: []
-
-  @doc "Creates a MongoDB projection that adds a set of extra columns needed for later filtering."
-  @spec project_extra_columns(list, list) :: [map]
-  def project_extra_columns(_existing_fields, []), do: []
-
-  def project_extra_columns(existing_fields, extra_columns) do
-    projected_columns = Enum.map(existing_fields, &{&1, true}) ++ Enum.map(extra_columns, &project_column/1)
-
-    [%{"$project": Enum.into(projected_columns, %{"_id" => false})}]
-  end
 
   @doc "Creates a MongoDB projection from a column."
   @spec project_column(Expression.t()) :: {String.t(), atom | map}
