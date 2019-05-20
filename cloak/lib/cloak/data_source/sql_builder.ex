@@ -213,7 +213,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: column |> column_name(sql_dialect_module(query).quote_char()) |> cast_type(column.type, query)
 
   defp cast_type(value, :unknown, query), do: sql_dialect_module(query).cast_sql(value, :unknown, :text)
-
+  defp cast_type(value, :integer, query), do: sql_dialect_module(query).cast_sql(value, :unknown, :integer)
   defp cast_type(value, _type, _query), do: value
 
   defp from_clause({:join, join}, query) do
