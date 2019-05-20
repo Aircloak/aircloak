@@ -193,7 +193,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
         %{expression | function: "unsafe_div"}
 
       {_, {:ok, epsilon}} ->
-        %{expression | function: "checked_div", function_args: [dividend, divisor, epsilon]}
+        %{expression | function: "checked_div", function_args: [dividend, divisor, Expression.constant(:real, epsilon)]}
 
       _ ->
         expression

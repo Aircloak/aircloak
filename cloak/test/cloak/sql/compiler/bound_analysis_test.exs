@@ -116,7 +116,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       dividend = column_in_bounds({10, 20})
       divisor = column_in_bounds({-10, 10})
 
-      assert %Expression{function: "checked_div", function_args: [^dividend, ^divisor, epsilon]} =
+      assert %Expression{function: "checked_div", function_args: [^dividend, ^divisor, %Expression{value: epsilon}]} =
                BoundAnalysis.analyze_safety(function("/", [dividend, divisor]))
 
       assert epsilon < 1
