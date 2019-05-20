@@ -173,10 +173,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
       child_types
       |> Enum.flat_map(& &1.history_of_restricted_transformations)
       |> prepend_if({:restricted_function, name}, restricted_function?(constant_involved?, name))
-      |> prepend_if(
-        {:potentially_crashing_function, name},
-        performs_potentially_crashing_function?(name, child_types)
-      )
 
     %Type{type | history_of_restricted_transformations: full_history}
   end
@@ -188,14 +184,4 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   defp restricted_function?(_constant_involved? = true, name),
     do: Function.restricted_function?(name) or Function.math_function?(name)
-
-  defp performs_potentially_crashing_function?(division, [_, child_type]) when division in ["/", "%"],
-    # This allows division by a pure constant, but not by a column influenced by a constant
-    do: child_type.constant_involved? && not child_type.constant?
-
-  defp performs_potentially_crashing_function?("sqrt", [child_type]),
-    # This allows usage of square root on a pure constant, but not by a column influenced by a constant
-    do: child_type.constant_involved? && not child_type.constant?
-
-  defp performs_potentially_crashing_function?(_other, _child_type), do: false
 end
