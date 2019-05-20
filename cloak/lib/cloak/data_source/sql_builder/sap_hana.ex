@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday
-      sqrt floor ceil abs round trunc mod ^ % * / + -
+      sqrt floor ceil abs round trunc mod
       length lower upper btrim/1 ltrim rtrim left right substring concat
       cast coalesce bool_op hash
     )
@@ -25,15 +25,6 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   end
 
   def function_sql("quarter", [arg]), do: ["CAST(SUBSTRING(QUARTER(", arg, "), 7, 1) AS integer)"]
-
-  def function_sql("%", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
-  def function_sql("/", [arg1, arg2]), do: ["(TO_DECIMAL(", arg1, ") / NULLIF(TO_DECIMAL(", arg2, "), 0))"]
-
-  for binary_operator <- ~w(+ - *) do
-    def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
-  end
-
-  def function_sql("^", [arg1, arg2]), do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POWER(", arg1, ", ", arg2, ") END"]
 
   def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
 
