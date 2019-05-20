@@ -36,7 +36,7 @@ defmodule Cloak.DataSource.ConnectionTest do
         )
       end)
 
-    assert_receive {:driver_conn, driver_conn}
+    assert_receive {:driver_conn, driver_conn}, 200
 
     Process.exit(client, :shutdown)
     assert_receive {:DOWN, ^mref, _, _, _}
