@@ -11,7 +11,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       do: assert(type_first_column("SELECT abs(numeric) FROM table").applied_functions == ["abs"])
 
     test "records usage of math functions",
-      do: assert(type_first_column("SELECT numeric + numeric FROM table").applied_functions == ["+"])
+      do: assert(type_first_column("SELECT numeric + numeric FROM table").applied_functions == ["unsafe_add"])
 
     test "records functions used across subqueries",
       do:
@@ -22,14 +22,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
         assert(
           type_first_column("SELECT abs(numeric + numeric) FROM table").applied_functions == [
             "abs",
-            "+"
+            "unsafe_add"
           ]
         )
 
     test "records multiple functions top down (function repeats)",
       do:
         assert(
-          type_first_column("SELECT abs(numeric + abs(numeric)) FROM table").applied_functions == ["abs", "+", "abs"]
+          type_first_column("SELECT abs(numeric + abs(numeric)) FROM table").applied_functions == [
+            "abs",
+            "unsafe_add",
+            "abs"
+          ]
         )
   end
 
@@ -90,23 +94,26 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
     test "for function with discontinuious function pow" do
       type = type_first_column("SELECT pow(numeric, 10) FROM table")
-      assert type.history_of_restricted_transformations == [{:restricted_function, "^"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "unsafe_pow"}]
     end
 
     test "even when multiple occur" do
       type = type_first_column("SELECT abs(pow(numeric, 10)) FROM table")
 
-      assert type.history_of_restricted_transformations == [{:restricted_function, "abs"}, {:restricted_function, "^"}]
+      assert type.history_of_restricted_transformations == [
+               {:restricted_function, "abs"},
+               {:restricted_function, "unsafe_pow"}
+             ]
     end
 
     test "does not record discontinuous functions when they appear in an un-restricted form" do
       type = type_first_column("SELECT pow(cast(sqrt(numeric) as float), 10) FROM table")
-      assert type.history_of_restricted_transformations == [{:restricted_function, "^"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "unsafe_pow"}]
     end
 
     test "records math influenced by a constant as a potential offense" do
       type = type_first_column("SELECT numeric + 10 FROM table")
-      assert type.history_of_restricted_transformations == [{:restricted_function, "+"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "unsafe_add"}]
     end
 
     test "does not record math between non-constant influenced columns" do
@@ -117,13 +124,19 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     test "records multiple math offenses" do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t")
 
-      assert type.history_of_restricted_transformations == [{:restricted_function, "+"}, {:restricted_function, "-"}]
+      assert type.history_of_restricted_transformations == [
+               {:restricted_function, "unsafe_add"},
+               {:restricted_function, "unsafe_sub"}
+             ]
     end
 
     test "records multiple instances of the same offense" do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric + 1 as numeric FROM table) t")
 
-      assert type.history_of_restricted_transformations == [{:restricted_function, "+"}, {:restricted_function, "+"}]
+      assert type.history_of_restricted_transformations == [
+               {:restricted_function, "unsafe_add"},
+               {:restricted_function, "unsafe_add"}
+             ]
     end
 
     test "records restricted functions when it believes a constant has been constructed" do
@@ -132,7 +145,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
           SELECT abs(pow(numeric, numeric) + pow(numeric, numeric)) FROM table
         """)
 
-      assert type.history_of_restricted_transformations == [{:restricted_function, "abs"}, {:restricted_function, "+"}]
+      assert type.history_of_restricted_transformations == [
+               {:restricted_function, "abs"},
+               {:restricted_function, "unsafe_add"}
+             ]
     end
   end
 
