@@ -42,7 +42,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   """
   @spec set_bounds(Expression.t()) :: Expression.t()
   def set_bounds(expression),
-    do: update_in(expression, [Query.Lenses.all_expressions()], &do_analyze_expression/1)
+    do: update_in(expression, [Query.Lenses.all_expressions()], &do_set_bounds/1)
 
   @doc """
   Changes the functions used in the expression to their unsafe or checked versions if possible.
@@ -73,29 +73,29 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     )
   end
 
-  defp do_analyze_expression(expression = %Expression{constant?: true, value: value}) when value in [:*, nil],
+  defp do_set_bounds(expression = %Expression{constant?: true, value: value}) when value in [:*, nil],
     do: expression
 
-  defp do_analyze_expression(expression = %Expression{type: type, constant?: true, value: value})
+  defp do_set_bounds(expression = %Expression{type: type, constant?: true, value: value})
        when type in [:integer, :real],
        do: %{expression | bounds: {floor(value), ceil(value)}}
 
-  defp do_analyze_expression(expression = %Expression{constant?: false, function?: false, bounds: :unknown}),
+  defp do_set_bounds(expression = %Expression{constant?: false, function?: false, bounds: :unknown}),
     do: %{expression | bounds: @dummy_bounds}
 
-  defp do_analyze_expression(expression = %Expression{constant?: false, function?: false}),
+  defp do_set_bounds(expression = %Expression{constant?: false, function?: false}),
     do: expression
 
-  defp do_analyze_expression(expression = %Expression{function?: true, function_args: [:*]}),
+  defp do_set_bounds(expression = %Expression{function?: true, function_args: [:*]}),
     do: expression
 
-  defp do_analyze_expression(expression = %Expression{function?: true, function_args: [{:distinct, _}]}),
+  defp do_set_bounds(expression = %Expression{function?: true, function_args: [{:distinct, _}]}),
     do: expression
 
-  defp do_analyze_expression(expression = %Expression{function?: true, function: name, function_args: args}),
+  defp do_set_bounds(expression = %Expression{function?: true, function: name, function_args: args}),
     do: %{expression | bounds: update_bounds(name, Enum.map(args, & &1.bounds))}
 
-  defp do_analyze_expression(expression), do: %{expression | bounds: :unknown}
+  defp do_set_bounds(expression), do: %{expression | bounds: :unknown}
 
   defp update_bounds("+", [{min1, max1}, {min2, max2}]), do: {min1 + min2, max1 + max2}
   defp update_bounds("-", [{min1, max1}, {min2, max2}]), do: {min1 - max2, max1 - min2}
