@@ -51,6 +51,10 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       assert {0, 1} = BoundAnalysis.set_bounds(Expression.constant(:real, 0.01)).bounds
     end
 
+    test "null numeric constants" do
+      assert :unknown = BoundAnalysis.set_bounds(Expression.constant(:real, nil)).bounds
+    end
+
     test "other constants" do
       assert :unknown = BoundAnalysis.set_bounds(Expression.constant(:text, "Some text")).bounds
     end
