@@ -74,3 +74,5 @@ config :cloak, :flush_query_log_timeout, 0
 
 # using connection retries in tests, since there are occasional failures with SAP HANA
 config :cloak, connect_retries: 10, connect_retry_delay: 500
+
+config :ex_unit, assert_receive_timeout: 500
