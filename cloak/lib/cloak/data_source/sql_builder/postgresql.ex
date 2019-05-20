@@ -17,8 +17,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   @unsafe_operators %{
     "unsafe_add" => "+",
     "unsafe_sub" => "-",
-    "unsafe_mul" => "*",
-    "unsafe_mod" => "%"
+    "unsafe_mul" => "*"
   }
 
   @impl Dialect
@@ -28,6 +27,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
       year quarter month day hour minute second weekday date_trunc
       sqrt floor ceil abs round trunc mod ^ * / + - %
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
+      checked_mod checked_div
       length lower upper btrim ltrim rtrim left right substring concat
       hex cast coalesce hash bool_op
     )
@@ -48,10 +48,15 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   def function_sql("unsafe_div", [arg1, arg2]), do: ["(", arg1, " :: double precision / ", arg2, ")"]
 
+  def function_sql("checked_div", [arg1, arg2, epsilon]),
+    do: ["CASE WHEN ABS(", arg2, ") < ", epsilon, " THEN NULL ELSE (", arg1, " :: double precision / ", arg2, ") END"]
+
   def function_sql("/", [arg1, arg2]),
     do: function_sql("pg_temp.ac_div", [[arg1, " :: double precision"], ["NULLIF(", arg2, ", 0)"]])
 
-  def function_sql("%", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
+  def function_sql("%", [arg1, arg2]), do: ["PG_TEMP.AC_MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
+  def function_sql("checked_mod", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
+  def function_sql("unsafe_mod", [arg1, arg2]), do: ["MOD(", arg1, ", ", arg2, ")"]
 
   for {function, operator} <- @unsafe_operators do
     def function_sql(unquote(function), [arg1, arg2]), do: ["(", arg1, unquote(operator), arg2, ")"]
