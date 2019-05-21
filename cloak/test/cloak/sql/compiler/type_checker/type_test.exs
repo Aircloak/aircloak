@@ -11,7 +11,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       do: assert(type_first_column("SELECT abs(numeric) FROM table").applied_functions == ["abs"])
 
     test "records usage of math functions",
-      do: assert(type_first_column("SELECT numeric + numeric FROM table").applied_functions == ["unsafe_add"])
+      do: assert(type_first_column("SELECT numeric + numeric FROM table").applied_functions == ["+"])
 
     test "records functions used across subqueries",
       do:
@@ -22,7 +22,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
         assert(
           type_first_column("SELECT abs(numeric + numeric) FROM table").applied_functions == [
             "abs",
-            "unsafe_add"
+            "+"
           ]
         )
 
@@ -31,7 +31,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
         assert(
           type_first_column("SELECT abs(numeric + abs(numeric)) FROM table").applied_functions == [
             "abs",
-            "unsafe_add",
+            "+",
             "abs"
           ]
         )
@@ -94,7 +94,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
     test "for function with discontinuious function pow" do
       type = type_first_column("SELECT pow(numeric, 10) FROM table")
-      assert type.history_of_restricted_transformations == [{:restricted_function, "unsafe_pow"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "^"}]
     end
 
     test "even when multiple occur" do
@@ -102,18 +102,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
       assert type.history_of_restricted_transformations == [
                {:restricted_function, "abs"},
-               {:restricted_function, "unsafe_pow"}
+               {:restricted_function, "^"}
              ]
     end
 
     test "does not record discontinuous functions when they appear in an un-restricted form" do
       type = type_first_column("SELECT pow(cast(sqrt(numeric) as float), 10) FROM table")
-      assert type.history_of_restricted_transformations == [{:restricted_function, "unsafe_pow"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "^"}]
     end
 
     test "records math influenced by a constant as a potential offense" do
       type = type_first_column("SELECT numeric + 10 FROM table")
-      assert type.history_of_restricted_transformations == [{:restricted_function, "unsafe_add"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "+"}]
     end
 
     test "does not record math between non-constant influenced columns" do
@@ -125,8 +125,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t")
 
       assert type.history_of_restricted_transformations == [
-               {:restricted_function, "unsafe_add"},
-               {:restricted_function, "unsafe_sub"}
+               {:restricted_function, "+"},
+               {:restricted_function, "-"}
              ]
     end
 
@@ -134,8 +134,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric + 1 as numeric FROM table) t")
 
       assert type.history_of_restricted_transformations == [
-               {:restricted_function, "unsafe_add"},
-               {:restricted_function, "unsafe_add"}
+               {:restricted_function, "+"},
+               {:restricted_function, "+"}
              ]
     end
 
@@ -147,7 +147,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
       assert type.history_of_restricted_transformations == [
                {:restricted_function, "abs"},
-               {:restricted_function, "unsafe_add"}
+               {:restricted_function, "+"}
              ]
     end
   end
@@ -246,12 +246,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
   end
 
   defp compile!(query_string) do
-    {:ok, result} = compile(query_string)
-    result
+    query_string
+    |> Parser.parse!()
+    |> Compiler.core_compile!(nil, data_source(), [], %{})
+    |> Compiler.Optimizer.optimize_per_user_aggregation()
+    |> Compiler.Anonymization.compile()
+    |> Compiler.NoiseLayers.compile()
   end
-
-  defp compile(query_string),
-    do: query_string |> Parser.parse!() |> Compiler.compile(nil, data_source(), [], %{})
 
   defp data_source() do
     %{
