@@ -38,6 +38,8 @@ defmodule Air do
     "#{vm_short_name}@#{hostname}"
   end
 
+  @doc "Returns the configured name of the aircloak instance."
+  @spec name() :: String.t()
   def name(), do: Aircloak.DeployConfig.fetch!("name")
 
   # -------------------------------------------------------------------
