@@ -150,15 +150,27 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     update_in(
       expression,
       [Query.Lenses.all_expressions() |> Lens.filter(&(&1.function in Map.keys(@unsafe_names)))],
-      fn expression = %Expression{function: name, type: type, bounds: bounds} ->
-        if within_bounds?(type, bounds) do
-          %{expression | function: Map.fetch!(@unsafe_names, name)}
+      fn expression ->
+        if safe_to_execute?(expression) do
+          %{expression | function: Map.fetch!(@unsafe_names, expression.function)}
         else
           expression
         end
       end
     )
   end
+
+  defp safe_to_execute?(%Expression{function: "^", type: type, bounds: bounds, function_args: [base, _]}) do
+    {base_min, _} = base.bounds
+
+    if base_min < 0 do
+      false
+    else
+      within_bounds?(type, bounds)
+    end
+  end
+
+  defp safe_to_execute?(%Expression{type: type, bounds: bounds}), do: within_bounds?(type, bounds)
 
   defp within_bounds?(:integer, {min, max}), do: min > -@max_int && max < @max_int
   defp within_bounds?(:real, {min, max}), do: min > -@large_float_number && max < @large_float_number

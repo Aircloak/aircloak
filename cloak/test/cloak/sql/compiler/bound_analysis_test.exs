@@ -198,6 +198,13 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       expression = function("+", [a, a], :real) |> set_bounds({0, 1.0e101})
       assert ^expression = BoundAnalysis.analyze_safety(expression)
     end
+
+    test "^ that could result in a complex number" do
+      a = column_in_bounds({-20, 20})
+      b = column_in_bounds({-1, 1})
+      expression = function("^", [a, b], :real) |> set_bounds({-20, 20})
+      assert ^expression = BoundAnalysis.analyze_safety(expression)
+    end
   end
 
   defp function(name, args, type \\ :integer) do
