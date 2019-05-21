@@ -50,7 +50,7 @@ defmodule IntegrationTest.Acceptance.ViewTest do
         login_as_admin()
         view_name = unique_name(:view)
         create_new_selectable(unquote(selectable_type), view_name, "select * from users")
-        assert_has(:xpath, "#{selectable_row_xpath(view_name)}/..//a[text()='Delete']")
+        assert_has(nil, :xpath, "#{selectable_row_xpath(view_name)}/..//a[text()='Delete']", attempts: 50)
         click({:xpath, "#{selectable_row_xpath(view_name)}/..//a[text()='Delete']"})
         accept_dialog()
         refute_has(nil, :xpath, selectable_row_xpath(view_name), attempts: 10)
@@ -114,7 +114,7 @@ defmodule IntegrationTest.Acceptance.ViewTest do
   defp edit_selectable(type, name, changes) do
     visit_data_source(IntegrationTest.Manager.data_source_name())
 
-    assert_has(:xpath, "#{selectable_row_xpath(name)}/..//a[text()='Edit']")
+    assert_has(nil, :xpath, "#{selectable_row_xpath(name)}/..//a[text()='Edit']", attempts: 50)
     click({:xpath, "#{selectable_row_xpath(name)}/..//a[text()='Edit']"})
 
     with {:ok, new_name} <- Keyword.fetch(changes, :name), do: fill_field(name_input(type), new_name)
