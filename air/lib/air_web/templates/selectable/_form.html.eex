@@ -68,6 +68,7 @@
         userId: <%= @conn.assigns.current_user.id %>,
         dataSourceName: "<%= @data_source.name %>",
         socketToken: "<%= AirWeb.Plug.Session.current_token(@conn) %>",
+        browserSocketTransport: "<%= Air.browser_socket_transport() %>",
         supportsCreateTable: <%= @data_source.supports_analyst_tables %>
       };
 

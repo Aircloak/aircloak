@@ -1,14 +1,29 @@
 // @flow
 
-import {Socket} from "phoenix";
+import {Socket, LongPoll} from "phoenix";
 
 type Callback = (event: any) => void;
 type Callbacks = {joined?: Callback, failedJoin?: Callback, handleEvent?: Callback};
 
 export class FrontendSocket {
-  constructor(userToken: string) {
-    this.socket = new Socket("/frontend/socket", {params: {token: userToken}});
+  constructor(transportName: string, userToken: string) {
+    this.socket = new Socket(
+      "/frontend/socket",
+      {
+        params: {token: userToken},
+        transport: FrontendSocket.transport(transportName),
+      }
+    );
+
     this.socket.connect();
+  }
+
+  static transport(transportName: string) {
+    switch (transportName) {
+      case "websocket": return WebSocket;
+      case "long_polling": return LongPoll;
+      default: return WebSocket;
+    }
   }
 
   socket: Socket;
