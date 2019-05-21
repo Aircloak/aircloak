@@ -1,6 +1,6 @@
 By default, Erlang crash dumps in release images are not generated. Such configuration prevents possible information leaks, and reduces storage requirements of the system.
 
-However, in some cases the Aircloak support might need to collect and analyze a crash dump to understand the problem. This procedure has to be performed in coordination with the operators of the Aircloak system. The operator must be informed that a crash dump may contain sensitive information. Therefore, it's advised that the crash dump file is never shared with anyone (not even with the Aircloak support), and that it is analyzed by the customer's operator.
+However, in some cases the Aircloak support might need to collect and analyze a crash dump to understand a problem. This procedure has to be performed in coordination with the operators of the Aircloak system. The operator must be informed that a crash dump likely contains sensitive information. Therefore, it's advised that the crash dump file is never shared with anyone (not even with the Aircloak support), and that it is analyzed by the customer's operator.
 
 To collect the crash dump, the docker container must be stopped, and then started again with the following parameters:
 
