@@ -121,6 +121,10 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
        when from in [:real, :integer] and to in [:real, :integer],
        do: %{expression | bounds: bounds}
 
+  defp do_set_bounds(expression = %Expression{function: {:cast, to}, function_args: [%{type: :boolean}]})
+       when to in [:real, :integer],
+       do: %{expression | bounds: {0, 1}}
+
   defp do_set_bounds(expression = %Expression{function?: true, function: name, function_args: args}),
     do: %{expression | bounds: update_bounds(name, Enum.map(args, & &1.bounds))}
 

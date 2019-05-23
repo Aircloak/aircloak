@@ -85,6 +85,19 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       assert {100, 200} = expression.bounds
     end
 
+    test "cast from boolean to integer" do
+      expression =
+        BoundAnalysis.set_bounds(function_expression({:cast, :integer}, [column_in_bounds(:unknown, :boolean)]))
+
+      assert {0, 1} = expression.bounds
+    end
+
+    test "cast from boolean to real" do
+      expression = BoundAnalysis.set_bounds(function_expression({:cast, :real}, [column_in_bounds(:unknown, :boolean)]))
+
+      assert {0, 1} = expression.bounds
+    end
+
     test "other cast" do
       expression =
         BoundAnalysis.set_bounds(function_expression({:cast, :integer}, [column_in_bounds({100, 200}, :timestamp)]))
