@@ -72,7 +72,8 @@ section is as follows:
   "keyfile": string,
   "privacy_policy_file": string,
   "license_file": string,
-  "users_and_datasources_file": string
+  "users_and_datasources_file": string,
+  "browser_long_polling": boolean
 },
 ```
 
@@ -107,6 +108,8 @@ The final two parameters `certfile` and `keyfile` are optional. They are used to
 The ports on which the site will listen are hardcoded. HTTP traffic is served via port 8080, while HTTPS is served via 8443. As explained in the [Installation guide](installation.md#insights-air), you can use the Docker port mapping option to decide under which port numbers you want to expose these endpoints on the host server.
 
 We strongly suggest only exposing the Insights Air interface to clients using HTTPS. You might want to terminate the SSL connection at a reverse proxy such as [nginx](https://nginx.org/) or [apache](https://httpd.apache.org/), or alternatively make use of the HTTPS server offered as part of Insights Air.
+
+By default, when Insights Air is accessed from the browser, a websocket connection is established. This connection is used to push real-time notifications in various situations. If Insights Air is behind a proxy, and you don't want to allow forwarding of websocket connections, you can explicitly force the long polling protocol. This can be done by setting the `browser_long_polling` option to `true`.
 
 ### Insights Air PostgreSQL interface configuration
 

@@ -8,6 +8,7 @@
       var props = {
         CSRFToken: "<%= @csrf_token %>",
         socketToken: "<%= @socket_token %>",
+        browserSocketTransport: "<%= Air.browser_socket_transport() %>",
         userId: "<%= @current_user.id %>",
         queries: <%= to_json(format_queries(@running_queries)) %>,
         cloak_stats: <%= to_json(@cloak_stats) %>

@@ -38,7 +38,19 @@ defmodule Air do
     "#{vm_short_name}@#{hostname}"
   end
 
+  @doc "Returns the configured name of the aircloak instance."
+  @spec name() :: String.t()
   def name(), do: Aircloak.DeployConfig.fetch!("name")
+
+  @doc "Returns the socket transport for browser clients."
+  @spec browser_socket_transport() :: :long_polling | :websocket
+  def browser_socket_transport() do
+    case site_setting("browser_long_polling") do
+      {:ok, true} -> :long_polling
+      {:ok, false} -> :websocket
+      :error -> :websocket
+    end
+  end
 
   # -------------------------------------------------------------------
   # Application behaviour functions
