@@ -177,6 +177,14 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     end
   end
 
+  defp update_bounds("trunc", [{min, max}, {precision_min, _precision_max}]) do
+    if precision_min < 0 do
+      {if(min < 0, do: min, else: 0), max(max, 0)}
+    else
+      {min, max}
+    end
+  end
+
   defp update_bounds(fun, [bounds]) when fun in ["floor", "ceil", "round", "trunc"], do: bounds
   defp update_bounds(_, _), do: :unknown
 

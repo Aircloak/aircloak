@@ -335,12 +335,15 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       constant({"round", &Kernel.round/1}),
       constant({"round", &safe_round/2}),
       constant({"trunc", &Kernel.trunc/1}),
+      constant({"trunc", &safe_trunc/2}),
       constant({"sqrt", &safe_sqrt/1}),
       constant({"%", &round_rem/2})
     ])
   end
 
   defp safe_round(number, precision), do: Cloak.Math.round(number, precision |> round() |> min(15) |> max(-100))
+
+  defp safe_trunc(number, precision), do: Cloak.Math.trunc(number, precision |> round() |> min(15) |> max(-100))
 
   defp safe_pow(a, b), do: if(a < 0, do: :math.pow(a, :math.floor(b)), else: :math.pow(a, b))
 
