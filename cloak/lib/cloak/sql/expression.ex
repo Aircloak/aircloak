@@ -369,7 +369,7 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("round", [value]), do: round(value)
   defp do_apply("round", [value, precision]), do: Cloak.Math.round(value, precision)
   defp do_apply("trunc", [value]), do: trunc(value)
-  defp do_apply("trunc", [value, precision]), do: do_trunc(value, precision)
+  defp do_apply("trunc", [value, precision]), do: Cloak.Math.trunc(value, precision)
   defp do_apply("div", [x, y]), do: div(x, y)
   defp do_apply("unsafe_mod", [x, y]), do: do_apply("%", [x, y])
   defp do_apply("checked_mod", [x, y]), do: do_apply("%", [x, y])
@@ -452,17 +452,6 @@ defmodule Cloak.Sql.Expression do
     do: Float.floor(value / bucket_size) * bucket_size + 0.5 * bucket_size
 
   defp do_apply("coalesce", values), do: Enum.find(values, & &1)
-
-  defp do_trunc(value, 0), do: trunc(value)
-
-  defp do_trunc(value, precision) when precision < 0,
-    do: trunc(value * :math.pow(10, precision)) * :math.pow(10, -precision)
-
-  defp do_trunc(value, _precision) when is_integer(value), do: value
-
-  defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
-
-  defp do_trunc(value, precision), do: value |> :erlang.float() |> Float.floor(precision)
 
   defp left(nil, _), do: nil
   defp left(_, nil), do: nil
