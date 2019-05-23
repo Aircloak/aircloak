@@ -71,6 +71,27 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       assert {10, 20} = BoundAnalysis.set_bounds(function_expression("sqrt", [column_in_bounds({100, 400})])).bounds
     end
 
+    test "cast from integer to real" do
+      expression =
+        BoundAnalysis.set_bounds(function_expression({:cast, :real}, [column_in_bounds({100, 200}, :integer)]))
+
+      assert {100, 200} = expression.bounds
+    end
+
+    test "cast from real to integer" do
+      expression =
+        BoundAnalysis.set_bounds(function_expression({:cast, :integer}, [column_in_bounds({100, 200}, :real)]))
+
+      assert {100, 200} = expression.bounds
+    end
+
+    test "other cast" do
+      expression =
+        BoundAnalysis.set_bounds(function_expression({:cast, :integer}, [column_in_bounds({100, 200}, :timestamp)]))
+
+      assert :unknown = expression.bounds
+    end
+
     property "bounds can be computed for simplest arguments to function" do
       check all {name, function} <- function() do
         arity = Function.info(function) |> Keyword.fetch!(:arity)
