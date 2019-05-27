@@ -1,0 +1,65 @@
+defmodule Cloak.DataSource.Bounds.Compute.Test do
+  use ExUnit.Case, async: true
+  use ExUnitProperties
+  import StreamData
+
+  alias Cloak.DataSource.Bounds.Compute
+  alias Cloak.Query.Anonymizer
+
+  describe ".max" do
+    property "it's money-aligned" do
+      check all data <- input_data() do
+        assert money_aligned?(Compute.max(data))
+      end
+    end
+
+    property "the range from max to previous money-aligned number contains a large number of entries" do
+      check all data <- input_data() do
+        case Compute.max(data) do
+          :error ->
+            :ok
+
+          {:ok, result} ->
+            previous = money_aligned_numbers() |> Enum.take_while(&(&1 < result)) |> List.last()
+            assert Enum.count(data, &(&1 > previous && &1 <= result)) >= Anonymizer.config(:bound_size_cutoff)
+        end
+      end
+    end
+  end
+
+  test "the min is the negative of the max of negatives"
+
+  defp input_data() do
+    one_of([
+      list_of(float()),
+      list_of(integer()),
+      data_with_outliers(float(), &float/1),
+      data_with_outliers(integer(), &min_max_integer/1)
+    ])
+  end
+
+  defp data_with_outliers(default_item_generator, item_generator) do
+    bind(list_of(default_item_generator, min_length: 1), fn items ->
+      min = Enum.max(items)
+      max = if(min < 0, do: min / 10, else: min * 10)
+
+      list_of(item_generator.(min: min, max: max), min_length: 1, max_length: div(length(items), 10) + 1)
+      |> map(fn outliers -> items ++ outliers end)
+    end)
+  end
+
+  defp min_max_integer(options) do
+    min = Keyword.get(options, :min, 0)
+    max = Keyword.get(options, :max, 100) |> round()
+    integer(min..max)
+  end
+
+  defp money_aligned?(number), do: Enum.find(money_aligned_numbers(), &(&1 >= number)) == number
+
+  defp money_aligned_numbers() do
+    [1, 2, 5]
+    |> Stream.iterate(fn [a, b, c] -> [a * 10, b * 10, c * 10] end)
+    |> Stream.flat_map(& &1)
+    |> Stream.take(1000)
+  end
+end
