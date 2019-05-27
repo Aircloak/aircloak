@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.Bounds.Compute do
   def max(data) do
     data
     |> Enum.sort(&Kernel.>/2)
-    |> Enum.drop(bound_size_cutoff())
+    |> Enum.drop(bound_size_cutoff() - 1)
     |> case do
       [] -> :error
       [number | _rest] -> {:ok, lteq_money_aligned(number)}
