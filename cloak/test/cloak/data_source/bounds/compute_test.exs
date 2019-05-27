@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
       end
     end
 
-    property "the range from max to previous money-aligned number contains a large number of entries" do
+    property "there is a large number of entries gteq max" do
       check all data <- input_data() do
         case Compute.max(data) do
           :error ->
@@ -29,7 +29,28 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
     end
   end
 
-  test "the min is the negative of the max of negatives"
+  describe ".min" do
+    property "it's money-aligned" do
+      check all data <- input_data() do
+        case Compute.min(data) do
+          :error -> :ok
+          {:ok, result} -> assert money_aligned?(result)
+        end
+      end
+    end
+
+    property "there is a large number of entries lteq min" do
+      check all data <- input_data() do
+        case Compute.min(data) do
+          :error ->
+            :ok
+
+          {:ok, result} ->
+            assert Enum.count(data, &(&1 <= result)) >= Anonymizer.config(:bound_size_cutoff)
+        end
+      end
+    end
+  end
 
   defp input_data() do
     one_of([

@@ -11,6 +11,12 @@ defmodule Cloak.DataSource.Bounds.Compute do
     end
   end
 
+  def min(data) do
+    with {:ok, result} <- data |> Enum.map(&(-&1)) |> max() do
+      {:ok, -result}
+    end
+  end
+
   defp lteq_money_aligned(number) when number < 0 do
     [-1, -2, -5]
     |> Stream.iterate(fn [a, b, c] -> [a * 10, b * 10, c * 10] end)
