@@ -9,7 +9,10 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
   describe ".max" do
     property "it's money-aligned" do
       check all data <- input_data() do
-        assert money_aligned?(Compute.max(data))
+        case Compute.max(data) do
+          :error -> :ok
+          {:ok, result} -> assert money_aligned?(result)
+        end
       end
     end
 
@@ -20,8 +23,7 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
             :ok
 
           {:ok, result} ->
-            previous = money_aligned_numbers() |> Enum.take_while(&(&1 < result)) |> List.last()
-            assert Enum.count(data, &(&1 > previous && &1 <= result)) >= Anonymizer.config(:bound_size_cutoff)
+            assert Enum.count(data, &(&1 >= result)) >= Anonymizer.config(:bound_size_cutoff)
         end
       end
     end
@@ -54,11 +56,11 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
     integer(min..max)
   end
 
-  defp money_aligned?(number), do: Enum.find(money_aligned_numbers(), &(&1 >= number)) == number
+  defp money_aligned?(number), do: number in money_aligned_numbers()
 
   defp money_aligned_numbers() do
-    [1, 2, 5]
-    |> Stream.iterate(fn [a, b, c] -> [a * 10, b * 10, c * 10] end)
+    [1, 2, 5, 0, -1, -2, -5]
+    |> Stream.iterate(fn items -> Enum.map(items, &(&1 * 10)) end)
     |> Stream.flat_map(& &1)
     |> Stream.take(1000)
   end
