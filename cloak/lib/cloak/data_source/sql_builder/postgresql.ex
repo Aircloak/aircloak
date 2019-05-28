@@ -54,7 +54,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def function_sql("/", [arg1, arg2]),
     do: function_sql("pg_temp.ac_div", [[arg1, " :: double precision"], arg2])
 
-  def function_sql("%", [arg1, arg2]), do: ["PG_TEMP.AC_MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
+  def function_sql("%", args), do: function_sql("checked_mod", args)
   def function_sql("checked_mod", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
   def function_sql("unsafe_mod", [arg1, arg2]), do: ["MOD(", arg1, ", ", arg2, ")"]
 
