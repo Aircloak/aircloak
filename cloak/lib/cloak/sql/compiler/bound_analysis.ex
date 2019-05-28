@@ -17,7 +17,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   }
   @divisions ~w(/ %)
 
-  alias Cloak.Sql.{Expression, Query, Function}
+  alias Cloak.Sql.{Expression, Query}
   alias Cloak.Sql.Compiler.Helpers
 
   # -------------------------------------------------------------------
@@ -32,7 +32,6 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
       |> propagate_subquery_bounds()
       |> update_in([Query.Lenses.query_expressions()], &set_bounds/1)
       |> update_in([Query.Lenses.query_expressions()], &analyze_safety/1)
-      |> update_in([Query.Lenses.query_expressions()], &cast_arguments/1)
     end)
   end
 
@@ -56,30 +55,6 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     |> check_division()
     |> check_pow()
     |> check_functions()
-  end
-
-  @doc """
-  Casts integer arguments of mathematical functions to integer.
-
-  The reason for this (seemingly useless) cast is that some of these arguments will be smaller than 64bit in the
-  database.
-  """
-  @spec cast_arguments(Expression.t()) :: Expression.t()
-  def cast_arguments(expression) do
-    update_in(
-      expression,
-      [
-        Query.Lenses.all_expressions()
-        |> Lens.filter(&Function.has_attribute?(&1, :math))
-        |> Lens.key(:function_args)
-        |> Lens.all()
-        |> Lens.reject(&Expression.constant?/1)
-        |> Lens.filter(&(&1.type == :integer))
-      ],
-      fn argument ->
-        Expression.function({:cast, :integer}, [argument], :integer)
-      end
-    )
   end
 
   # -------------------------------------------------------------------

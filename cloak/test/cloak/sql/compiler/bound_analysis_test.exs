@@ -221,48 +221,6 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     end
   end
 
-  describe ".cast_arguments" do
-    test "casts arguments of math functions" do
-      a = column_in_bounds(:unknown, :integer)
-      b = column_in_bounds(:unknown, :integer)
-      expression = function("+", [a, b], :real)
-
-      assert %Expression{
-               function: "+",
-               function_args: [
-                 %Expression{function: {:cast, :integer}, function_args: [^a]},
-                 %Expression{function: {:cast, :integer}, function_args: [^b]}
-               ]
-             } = BoundAnalysis.cast_arguments(expression)
-    end
-
-    test "ignores reals" do
-      a = column_in_bounds(:unknown, :integer)
-      b = column_in_bounds(:unknown, :real)
-      expression = function("+", [a, b], :real)
-
-      assert %Expression{
-               function: "+",
-               function_args: [%Expression{function: {:cast, :integer}, function_args: [^a]}, ^b]
-             } = BoundAnalysis.cast_arguments(expression)
-    end
-
-    test "ignores arguments of non-math functions" do
-      a = column_in_bounds(:unknown, :integer)
-      expression = function({:cast, :string}, [a], :string)
-
-      assert ^expression = BoundAnalysis.cast_arguments(expression)
-    end
-
-    test "ignores constants" do
-      a = column_in_bounds({10, 20})
-      b = Expression.constant(:integer, 20)
-      expression = function("+", [a, b])
-
-      assert %Expression{function: "+", function_args: [_, ^b]} = BoundAnalysis.cast_arguments(expression)
-    end
-  end
-
   defp function(name, args, type \\ :integer) do
     Expression.function(name, args, type)
   end
