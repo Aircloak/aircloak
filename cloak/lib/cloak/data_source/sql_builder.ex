@@ -182,24 +182,6 @@ defmodule Cloak.DataSource.SqlBuilder do
     Support.function_sql("sum", [arg |> cast(:real) |> to_fragment(query)], sql_dialect_module(query))
   end
 
-  defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, query)
-       when fun_name in ~w(+ - *) do
-    # Force arithmetic operations to use the highest integer precision.
-    args =
-      case args do
-        [%Expression{type: :integer, constant?: false} = arg1, %Expression{type: :integer} = arg2] ->
-          [cast(arg1, :integer), arg2]
-
-        [%Expression{type: :integer, constant?: true} = arg1, %Expression{type: :integer} = arg2] ->
-          [arg1, cast(arg2, :integer)]
-
-        args ->
-          args
-      end
-
-    Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, query)), sql_dialect_module(query))
-  end
-
   defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, query),
     do: Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, query)), sql_dialect_module(query))
 
