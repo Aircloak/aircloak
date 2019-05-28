@@ -243,7 +243,5 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   defp div_epsilon(%{bounds: {min, max}}) do
     magnitude = max(abs(min), abs(max))
     if magnitude < @large_float_number, do: {:ok, magnitude / @large_float_number}, else: :error
-  rescue
-    _ -> :error
   end
 end
