@@ -136,7 +136,7 @@ defmodule Aircloak.Functions do
                },
                ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
                ~w(^) => %{type_specs: @pow_specs, attributes: [:math]},
-               ~w(unsafe_pow) => %{type_specs: @pow_specs, attributes: [:math, :internal]},
+               ~w(checked_pow unsafe_pow) => %{type_specs: @pow_specs, attributes: [:math, :internal]},
                ~w(+) => %{type_specs: @add_specs, attributes: [:math]},
                ~w(unsafe_add) => %{type_specs: @add_specs, attributes: [:math, :internal]},
                ~w(-) => %{type_specs: @sub_specs, attributes: [:math]},

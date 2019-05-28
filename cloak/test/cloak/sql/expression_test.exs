@@ -105,7 +105,7 @@ defmodule Cloak.Sql.Expression.Test do
     end
   end
 
-  for fun <- ~w(^ unsafe_pow) do
+  for fun <- ~w(^ unsafe_pow checked_pow) do
     test fun do
       assert apply_function(unquote(fun), [2, 3]) == 8
       assert apply_function(unquote(fun), [2, nil]) == nil

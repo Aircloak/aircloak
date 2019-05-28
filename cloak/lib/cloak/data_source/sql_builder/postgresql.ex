@@ -27,7 +27,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
       year quarter month day hour minute second weekday date_trunc
       sqrt floor ceil abs round trunc mod ^ * / + - %
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
-      checked_mod checked_div
+      checked_mod checked_div checked_pow
       length lower upper btrim ltrim rtrim left right substring concat
       hex cast coalesce hash bool_op
     )
@@ -67,6 +67,9 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   end
 
   def function_sql("unsafe_pow", [arg1, arg2]), do: ["power(", arg1, ", ", arg2, ")"]
+
+  def function_sql("checked_pow", [arg1, arg2]),
+    do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE power(", arg1, ", ", arg2, ") END"]
 
   def function_sql("^", [arg1, arg2]),
     do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE pg_temp.ac_pow(", arg1, ", ", arg2, ") END"]

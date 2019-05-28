@@ -54,6 +54,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   def analyze_safety(expression) do
     expression
     |> check_division()
+    |> check_pow()
     |> check_functions()
   end
 
@@ -176,7 +177,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
       expression,
       [Query.Lenses.all_expressions() |> Lens.filter(&(&1.function in Map.keys(@unsafe_names)))],
       fn expression ->
-        if safe_to_execute?(expression) do
+        if within_bounds?(expression.type, expression.bounds) do
           %{expression | function: Map.fetch!(@unsafe_names, expression.function)}
         else
           expression
@@ -184,22 +185,6 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
       end
     )
   end
-
-  defp safe_to_execute?(%Expression{function: "^", type: type, bounds: bounds, function_args: [base, _]}) do
-    {base_min, _} = base.bounds
-
-    if base_min < 0 do
-      false
-    else
-      within_bounds?(type, bounds)
-    end
-  end
-
-  defp safe_to_execute?(%Expression{type: type, bounds: bounds}), do: within_bounds?(type, bounds)
-
-  defp within_bounds?(:integer, {min, max}), do: min > -@max_int && max < @max_int
-  defp within_bounds?(:real, {min, max}), do: min > -@large_float_number && max < @large_float_number
-  defp within_bounds?(_, _), do: false
 
   defp check_division(expression) do
     update_in(
@@ -238,10 +223,30 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     end
   end
 
+  defp check_pow(expression) do
+    update_in(
+      expression,
+      [Query.Lenses.all_expressions() |> Lens.filter(&(&1.function == "^"))],
+      fn expression = %Expression{function: "^", type: type, bounds: bounds, function_args: [base, _]} ->
+        {base_min, _} = base.bounds
+
+        if within_bounds?(type, bounds) and base_min < 0 do
+          %{expression | function: "checked_pow"}
+        else
+          expression
+        end
+      end
+    )
+  end
+
   defp spans_zero?({min, max}), do: min < 1 && max > -1
 
   defp div_epsilon(%{bounds: {min, max}}) do
     magnitude = max(abs(min), abs(max))
     if magnitude < @large_float_number, do: {:ok, magnitude / @large_float_number}, else: :error
   end
+
+  defp within_bounds?(:integer, {min, max}), do: min > -@max_int && max < @max_int
+  defp within_bounds?(:real, {min, max}), do: min > -@large_float_number && max < @large_float_number
+  defp within_bounds?(_, _), do: false
 end

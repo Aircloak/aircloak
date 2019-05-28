@@ -199,11 +199,25 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       assert ^expression = BoundAnalysis.analyze_safety(expression)
     end
 
+    test "^ that is out of bounds" do
+      a = column_in_bounds({-20, 20})
+      b = column_in_bounds({-1, 1})
+      expression = function("^", [a, b], :real) |> set_bounds({0, 1.0e300})
+      assert %Expression{function: "^", function_args: [^a, ^b]} = BoundAnalysis.analyze_safety(expression)
+    end
+
     test "^ that could result in a complex number" do
       a = column_in_bounds({-20, 20})
       b = column_in_bounds({-1, 1})
       expression = function("^", [a, b], :real) |> set_bounds({-20, 20})
-      assert ^expression = BoundAnalysis.analyze_safety(expression)
+      assert %Expression{function: "checked_pow", function_args: [^a, ^b]} = BoundAnalysis.analyze_safety(expression)
+    end
+
+    test "^ that is totally safe" do
+      a = column_in_bounds({10, 20})
+      b = column_in_bounds({1, 2})
+      expression = function("^", [a, b], :real) |> set_bounds({100, 200})
+      assert %Expression{function: "unsafe_pow", function_args: [^a, ^b]} = BoundAnalysis.analyze_safety(expression)
     end
   end
 
