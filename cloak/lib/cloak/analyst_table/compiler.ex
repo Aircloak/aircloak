@@ -64,7 +64,6 @@ defmodule Cloak.AnalystTable.Compiler do
       query =
         Compiler.core_compile!(parsed_query, analyst, data_source, parameters, views)
         |> Compiler.NoiseLayers.compile()
-        |> Compiler.BoundAnalysis.analyze_query()
         |> Cloak.Query.AnalystTables.resolve()
 
       {:subquery, %{ast: subquery}} = query.from

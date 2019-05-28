@@ -114,7 +114,7 @@ defmodule Cloak.AnalystTable.CompilerTest do
       {:ok, query} = compile("table_name", "select user_id, x * x AS x from mv1")
 
       assert db_select(query) ==
-               ~s/SELECT "mv1"."user_id" AS "user_id",(CAST("mv1"."x" AS bigint)*CAST("mv1"."x" AS bigint)) AS / <>
+               ~s/SELECT "mv1"."user_id" AS "user_id",PG_TEMP.AC_MUL(CAST("mv1"."x" AS bigint), "mv1"."x") AS / <>
                  ~s/"x","mv1"."x" AS "__ac_nlc__0" FROM "cloak_test"."mv1" AS "mv1"/
     end
 
@@ -123,18 +123,18 @@ defmodule Cloak.AnalystTable.CompilerTest do
 
       assert db_select(query) ==
                ~s/SELECT "mv1"."user_id" AS "user_id","mv1"."x" AS "__ac_nlc__0"/ <>
-                 ~s/ FROM "cloak_test"."mv1" AS "mv1" WHERE (CAST("mv1"."x" AS bigint)*CAST("mv1"."x" AS bigint)) = 10/
+                 ~s/ FROM "cloak_test"."mv1" AS "mv1" WHERE PG_TEMP.AC_MUL(CAST("mv1"."x" AS bigint), "mv1"."x") = 10/
     end
 
     test "with aggregation" do
       {:ok, query} = compile("table_name", "select user_id, x * x AS x FROM mv1 GROUP BY 1, 2")
 
       assert db_select(query) ==
-               ~s/SELECT "mv1"."user_id" AS "user_id",(CAST("mv1"."x" AS bigint)*CAST("mv1"."x" AS bigint)) AS "x",/ <>
+               ~s/SELECT "mv1"."user_id" AS "user_id",PG_TEMP.AC_MUL(CAST("mv1"."x" AS bigint), "mv1"."x") AS "x",/ <>
                  ~s/MIN("mv1"."x") AS "__ac_nlc__0",/ <>
                  ~s/MAX("mv1"."x") AS "__ac_nlc__1",COUNT(*) AS "__ac_nlc__2"/ <>
                  ~s/ FROM "cloak_test"."mv1" AS "mv1"/ <>
-                 ~s/ GROUP BY "mv1"."user_id", (CAST("mv1"."x" AS bigint)*CAST("mv1"."x" AS bigint))/
+                 ~s/ GROUP BY "mv1"."user_id", PG_TEMP.AC_MUL(CAST("mv1"."x" AS bigint), "mv1"."x")/
     end
   end
 
