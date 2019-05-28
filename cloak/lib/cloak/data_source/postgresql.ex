@@ -147,7 +147,7 @@ defmodule Cloak.DataSource.PostgreSQL do
       :ignore
   end
 
-  @number_types ["BIGINT", "INTEGER", "NUMERIC", "DOUBLE PRECISION"]
+  @number_types ["BIGINT", "DOUBLE PRECISION"]
 
   @cast_udfs [
     {"ac_text_to_integer(value TEXT) RETURNS BIGINT", "CAST(value AS BIGINT)"},
@@ -176,17 +176,12 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp udfs(), do: @cast_udfs ++ math_udfs()
 
   defp math_udfs() do
-    operators = [{"ac_mul", "*"}, {"ac_add", "+"}, {"ac_sub", "-"}, {"ac_div", "/"}]
-    functions = [{"ac_pow", "power"}]
+    operators = [{"ac_mul", "*"}, {"ac_add", "+"}, {"ac_sub", "-"}, {"ac_div", "/"}, {"ac_pow", "^"}]
 
     for type1 <- @number_types, type2 <- @number_types, {name, operator} <- operators do
       return_type = return_type(type1, type2)
       {"#{name}(a #{type1}, b #{type2}) RETURNS #{return_type}", "CAST(a #{operator} b AS #{return_type})"}
-    end ++
-      for type1 <- @number_types, type2 <- @number_types, {name, function} <- functions do
-        return_type = return_type(type1, type2)
-        {"#{name}(a #{type1}, b #{type2}) RETURNS #{return_type}", "CAST(#{function}(a, b) AS #{return_type})"}
-      end
+    end
   end
 
   defp return_type("DOUBLE PRECISION", _), do: "DOUBLE PRECISION"
