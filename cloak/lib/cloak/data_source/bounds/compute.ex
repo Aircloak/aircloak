@@ -1,18 +1,18 @@
 defmodule Cloak.DataSource.Bounds.Compute do
-  alias Cloak.Query.Anonymizer
+  import Kernel, except: [max: 2]
 
-  def max(data) do
+  def max(data, bound_size_cutoff) do
     data
     |> Enum.sort(&Kernel.>/2)
-    |> Enum.drop(bound_size_cutoff() - 1)
+    |> Enum.drop(bound_size_cutoff - 1)
     |> case do
       [] -> :error
       [number | _rest] -> {:ok, lteq_money_aligned(number)}
     end
   end
 
-  def min(data) do
-    with {:ok, result} <- data |> Enum.map(&(-&1)) |> max() do
+  def min(data, bound_size_cutoff) do
+    with {:ok, result} <- data |> Enum.map(&(-&1)) |> max(bound_size_cutoff) do
       {:ok, -result}
     end
   end
@@ -33,6 +33,4 @@ defmodule Cloak.DataSource.Bounds.Compute do
     |> Enum.take_while(&(&1 <= number))
     |> List.last()
   end
-
-  defp bound_size_cutoff(), do: Anonymizer.config(:bound_size_cutoff)
 end

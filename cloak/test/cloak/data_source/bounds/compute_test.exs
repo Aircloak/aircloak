@@ -4,12 +4,11 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
   import StreamData
 
   alias Cloak.DataSource.Bounds.Compute
-  alias Cloak.Query.Anonymizer
 
   describe ".max" do
     property "it's money-aligned" do
-      check all data <- input_data() do
-        case Compute.max(data) do
+      check all data <- input_data(), cutoff <- integer(1..20) do
+        case Compute.max(data, cutoff) do
           :error -> :ok
           {:ok, result} -> assert money_aligned?(result)
         end
@@ -17,13 +16,13 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
     end
 
     property "there is a large number of entries gteq max" do
-      check all data <- input_data() do
-        case Compute.max(data) do
+      check all data <- input_data(), cutoff <- integer(1..20) do
+        case Compute.max(data, cutoff) do
           :error ->
             :ok
 
           {:ok, result} ->
-            assert Enum.count(data, &(&1 >= result)) >= Anonymizer.config(:bound_size_cutoff)
+            assert Enum.count(data, &(&1 >= result)) >= cutoff
         end
       end
     end
@@ -31,8 +30,8 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
 
   describe ".min" do
     property "it's money-aligned" do
-      check all data <- input_data() do
-        case Compute.min(data) do
+      check all data <- input_data(), cutoff <- integer(1..20) do
+        case Compute.min(data, cutoff) do
           :error -> :ok
           {:ok, result} -> assert money_aligned?(result)
         end
@@ -40,13 +39,13 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
     end
 
     property "there is a large number of entries lteq min" do
-      check all data <- input_data() do
-        case Compute.min(data) do
+      check all data <- input_data(), cutoff <- integer(1..20) do
+        case Compute.min(data, cutoff) do
           :error ->
             :ok
 
           {:ok, result} ->
-            assert Enum.count(data, &(&1 <= result)) >= Anonymizer.config(:bound_size_cutoff)
+            assert Enum.count(data, &(&1 <= result)) >= cutoff
         end
       end
     end
