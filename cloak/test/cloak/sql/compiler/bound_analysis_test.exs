@@ -6,6 +6,22 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
   alias Cloak.Sql.Expression
   alias Cloak.DataSource.Table
 
+  defmacrop assert_unknown_or_within_bounds(expression, values, function) do
+    quote bind_quoted: [expression: expression, values: values, function: function] do
+      case BoundAnalysis.set_bounds(expression).bounds do
+        :unknown ->
+          true
+
+        {min, max} ->
+          result = apply(function, values)
+
+          assert result <= max && result >= min,
+                 "Bounds calculated: #{inspect({min, max})}. " <>
+                   "Result of applying #{inspect(function)} to #{inspect(values)} is #{result}."
+      end
+    end
+  end
+
   describe ".analyze_query" do
     test "sets bounds for each expression in the query" do
       assert {11, 21} = hd(compile!("SELECT 1 + column FROM table").columns).bounds
@@ -71,6 +87,40 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       assert {10, 20} = BoundAnalysis.set_bounds(function_expression("sqrt", [column_in_bounds({100, 400})])).bounds
     end
 
+    test "cast from integer to real" do
+      expression =
+        BoundAnalysis.set_bounds(function_expression({:cast, :real}, [column_in_bounds({100, 200}, :integer)]))
+
+      assert {100, 200} = expression.bounds
+    end
+
+    test "cast from real to integer" do
+      expression =
+        BoundAnalysis.set_bounds(function_expression({:cast, :integer}, [column_in_bounds({100, 200}, :real)]))
+
+      assert {100, 200} = expression.bounds
+    end
+
+    test "cast from boolean to integer" do
+      expression =
+        BoundAnalysis.set_bounds(function_expression({:cast, :integer}, [column_in_bounds(:unknown, :boolean)]))
+
+      assert {0, 1} = expression.bounds
+    end
+
+    test "cast from boolean to real" do
+      expression = BoundAnalysis.set_bounds(function_expression({:cast, :real}, [column_in_bounds(:unknown, :boolean)]))
+
+      assert {0, 1} = expression.bounds
+    end
+
+    test "other cast" do
+      expression =
+        BoundAnalysis.set_bounds(function_expression({:cast, :integer}, [column_in_bounds({100, 200}, :timestamp)]))
+
+      assert :unknown = expression.bounds
+    end
+
     property "bounds can be computed for simplest arguments to function" do
       check all {name, function} <- function() do
         arity = Function.info(function) |> Keyword.fetch!(:arity)
@@ -86,7 +136,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
                 values <- values(bounds),
                 max_runs: 500 do
         expression = function_expression(name, Enum.map(bounds, &column_in_bounds/1))
-        assert unknown_or_within_bounds(expression, values, function)
+        assert_unknown_or_within_bounds(expression, values, function)
       end
     end
 
@@ -94,14 +144,21 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       bounds = [{-147, -20}, {-216, -175}]
       values = [-26.553144616558242, -216.0]
       expression = function_expression("^", Enum.map(bounds, &column_in_bounds/1))
-      assert unknown_or_within_bounds(expression, values, &:math.pow/2)
+      assert_unknown_or_within_bounds(expression, values, &:math.pow/2)
     end
 
     test "generated example 2" do
       bounds = [{-134, -12}, {-310, -162}]
       values = [-73.22209099941092, -172.57340641899032]
       expression = function_expression("^", Enum.map(bounds, &column_in_bounds/1))
-      assert unknown_or_within_bounds(expression, values, &safe_pow/2)
+      assert_unknown_or_within_bounds(expression, values, &safe_pow/2)
+    end
+
+    test "generated example 3" do
+      bounds = [{-2, 7}, {-8, 6}]
+      values = [7.0, -1.0]
+      expression = function_expression("round", Enum.map(bounds, &column_in_bounds/1))
+      assert_unknown_or_within_bounds(expression, values, &safe_round/2)
     end
   end
 
@@ -225,17 +282,6 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     Expression.function(name, args, type)
   end
 
-  defp unknown_or_within_bounds(expression, values, function) do
-    case BoundAnalysis.set_bounds(expression).bounds do
-      :unknown ->
-        true
-
-      {min, max} ->
-        result = apply(function, values)
-        result <= max && result >= min
-    end
-  end
-
   defp column_in_bounds(bounds, type \\ :real) do
     Expression.column(%{name: "column", type: type}, table()) |> set_bounds(bounds)
   end
@@ -259,11 +305,17 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       constant({"floor", &:math.floor/1}),
       constant({"ceil", &:math.ceil/1}),
       constant({"round", &Kernel.round/1}),
+      constant({"round", &safe_round/2}),
       constant({"trunc", &Kernel.trunc/1}),
+      constant({"trunc", &safe_trunc/2}),
       constant({"sqrt", &safe_sqrt/1}),
       constant({"%", &round_rem/2})
     ])
   end
+
+  defp safe_round(number, precision), do: Cloak.Math.round(number, precision |> round() |> min(15) |> max(-100))
+
+  defp safe_trunc(number, precision), do: Cloak.Math.trunc(number, precision |> round() |> min(15) |> max(-100))
 
   defp safe_pow(a, b), do: if(a < 0, do: :math.pow(a, :math.floor(b)), else: :math.pow(a, b))
 

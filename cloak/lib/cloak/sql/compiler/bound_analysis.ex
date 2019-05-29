@@ -93,6 +93,14 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   defp do_set_bounds(expression = %Expression{function?: true, function_args: [{:distinct, _}]}),
     do: expression
 
+  defp do_set_bounds(expression = %Expression{function: {:cast, to}, function_args: [%{bounds: bounds, type: from}]})
+       when from in [:real, :integer] and to in [:real, :integer],
+       do: %{expression | bounds: bounds}
+
+  defp do_set_bounds(expression = %Expression{function: {:cast, to}, function_args: [%{type: :boolean}]})
+       when to in [:real, :integer],
+       do: %{expression | bounds: {0, 1}}
+
   defp do_set_bounds(expression = %Expression{function?: true, function: name, function_args: args}),
     do: %{expression | bounds: update_bounds(name, Enum.map(args, & &1.bounds))}
 
@@ -135,6 +143,27 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   defp update_bounds("%", [_, {min, max}]) do
     divisor = max(abs(min), abs(max))
     {-divisor, divisor}
+  end
+
+  defp update_bounds("round", [{min, max}, {precision_min, _precision_max}]) do
+    if precision_min < 0 do
+      round_to = Cloak.Math.int_pow(10, -precision_min)
+      {(div(min, round_to) - 1) * round_to, (div(max, round_to) + 1) * round_to}
+    else
+      {min, max}
+    end
+  end
+
+  defp update_bounds("trunc", [{min, max}, {precision_min, precision_max}]) do
+    for bound <- [min, max], precision <- [precision_min, precision_max] do
+      if precision >= 0 do
+        bound
+      else
+        trunc_to = Cloak.Math.int_pow(10, -precision)
+        div(bound, trunc_to) * trunc_to
+      end
+    end
+    |> Enum.min_max()
   end
 
   defp update_bounds(fun, [bounds]) when fun in ["floor", "ceil", "round", "trunc"], do: bounds
