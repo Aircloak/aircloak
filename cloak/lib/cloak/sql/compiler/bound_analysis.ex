@@ -178,12 +178,16 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     end
   end
 
-  defp update_bounds("trunc", [{min, max}, {precision_min, _precision_max}]) do
-    if precision_min < 0 do
-      {if(min < 0, do: min, else: 0), max(max, 0)}
-    else
-      {min, max}
+  defp update_bounds("trunc", [{min, max}, {precision_min, precision_max}]) do
+    for bound <- [min, max], precision <- [precision_min, precision_max] do
+      if precision >= 0 do
+        bound
+      else
+        trunc_to = Cloak.Math.int_pow(10, -precision)
+        div(bound, trunc_to) * trunc_to
+      end
     end
+    |> Enum.min_max()
   end
 
   defp update_bounds(fun, [bounds]) when fun in ["floor", "ceil", "round", "trunc"], do: bounds
