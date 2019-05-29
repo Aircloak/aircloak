@@ -13,6 +13,7 @@ defmodule Cloak.Math do
 
   2. It accepts integers as the first argument
   """
+  @spec round(number(), integer()) :: number()
   def round(value, precision) when precision < 0,
     do: round(value * :math.pow(10, precision)) * :math.pow(10, -precision)
 
@@ -27,6 +28,7 @@ defmodule Cloak.Math do
       iex> Cloak.Math.trunc(123, -1)
       120.0
   """
+  @spec trunc(number(), integer()) :: number()
   def trunc(value, 0), do: trunc(value)
 
   def trunc(value, precision) when precision < 0,
