@@ -51,6 +51,27 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
     end
   end
 
+  describe ".extend" do
+    test "simple case" do
+      assert {1, 200} = Compute.extend({10, 20})
+    end
+
+    property "produces a larger bound containing the original" do
+      check all number1 <- integer(), number2 <- integer() do
+        {input_min, input_max} = [number1, number2] |> Enum.min_max()
+        {output_min, output_max} = Compute.extend({input_min, input_max})
+
+        assert sign(input_min) == sign(output_min)
+        assert sign(input_max) == sign(input_max)
+        assert output_min <= input_min
+        assert output_max >= input_max
+        assert output_max - output_min >= input_max - input_min
+      end
+    end
+  end
+
+  defp sign(x), do: if(x < 0, do: -1, else: 1)
+
   defp input_data() do
     one_of([
       list_of(float()),
