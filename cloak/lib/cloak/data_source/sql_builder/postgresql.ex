@@ -8,12 +8,26 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   use Cloak.DataSource.SqlBuilder.Dialect
   alias Cloak.DataSource.SqlBuilder.Dialect
 
+  @aliases %{
+    "+" => "ac_add",
+    "*" => "ac_mul",
+    "-" => "ac_sub"
+  }
+
+  @unsafe_operators %{
+    "unsafe_add" => "+",
+    "unsafe_sub" => "-",
+    "unsafe_mul" => "*"
+  }
+
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
       variance variance_distinct
       year quarter month day hour minute second weekday date_trunc
       sqrt floor ceil abs round trunc mod ^ * / + - %
+      unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
+      checked_mod checked_div checked_pow
       length lower upper btrim ltrim rtrim left right substring concat
       hex cast coalesce hash bool_op
     )
@@ -32,14 +46,33 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
-  def function_sql("/", [arg1, arg2]), do: ["(", arg1, " :: double precision / NULLIF(", arg2, ", 0))"]
-  def function_sql("%", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
+  def function_sql("unsafe_div", [arg1, arg2]), do: ["(", arg1, " :: double precision / ", arg2, ")"]
 
-  for binary_operator <- ~w(+ - *) do
-    def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
+  def function_sql("checked_div", [arg1, arg2, epsilon]),
+    do: ["CASE WHEN ABS(", arg2, ") < ", epsilon, " THEN NULL ELSE (", arg1, " :: double precision / ", arg2, ") END"]
+
+  def function_sql("/", [arg1, arg2]),
+    do: function_sql("pg_temp.ac_div", [[arg1, " :: double precision"], arg2])
+
+  def function_sql("%", args), do: function_sql("checked_mod", args)
+  def function_sql("checked_mod", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
+  def function_sql("unsafe_mod", [arg1, arg2]), do: ["MOD(", arg1, ", ", arg2, ")"]
+
+  for {function, operator} <- @unsafe_operators do
+    def function_sql(unquote(function), [arg1, arg2]), do: ["(", arg1, unquote(operator), arg2, ")"]
   end
 
-  def function_sql("^", [arg1, arg2]), do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POWER(", arg1, ", ", arg2, ") END"]
+  for {function, alias} <- @aliases do
+    def function_sql(unquote(function), args), do: function_sql("pg_temp.#{unquote(alias)}", args)
+  end
+
+  def function_sql("unsafe_pow", [arg1, arg2]), do: ["power(", arg1, ", ", arg2, ")"]
+
+  def function_sql("checked_pow", [arg1, arg2]),
+    do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE power(", arg1, ", ", arg2, ") END"]
+
+  def function_sql("^", [arg1, arg2]),
+    do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE pg_temp.ac_pow(", arg1, ", ", arg2, ") END"]
 
   def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
 

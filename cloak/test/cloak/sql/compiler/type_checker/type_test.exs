@@ -29,7 +29,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     test "records multiple functions top down (function repeats)",
       do:
         assert(
-          type_first_column("SELECT abs(numeric + abs(numeric)) FROM table").applied_functions == ["abs", "+", "abs"]
+          type_first_column("SELECT abs(numeric + abs(numeric)) FROM table").applied_functions == [
+            "abs",
+            "+",
+            "abs"
+          ]
         )
   end
 
@@ -96,7 +100,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     test "even when multiple occur" do
       type = type_first_column("SELECT abs(pow(numeric, 10)) FROM table")
 
-      assert type.history_of_restricted_transformations == [{:restricted_function, "abs"}, {:restricted_function, "^"}]
+      assert type.history_of_restricted_transformations == [
+               {:restricted_function, "abs"},
+               {:restricted_function, "^"}
+             ]
     end
 
     test "does not record discontinuous functions when they appear in an un-restricted form" do
@@ -117,13 +124,19 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     test "records multiple math offenses" do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t")
 
-      assert type.history_of_restricted_transformations == [{:restricted_function, "+"}, {:restricted_function, "-"}]
+      assert type.history_of_restricted_transformations == [
+               {:restricted_function, "+"},
+               {:restricted_function, "-"}
+             ]
     end
 
     test "records multiple instances of the same offense" do
       type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric + 1 as numeric FROM table) t")
 
-      assert type.history_of_restricted_transformations == [{:restricted_function, "+"}, {:restricted_function, "+"}]
+      assert type.history_of_restricted_transformations == [
+               {:restricted_function, "+"},
+               {:restricted_function, "+"}
+             ]
     end
 
     test "records restricted functions when it believes a constant has been constructed" do
@@ -132,7 +145,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
           SELECT abs(pow(numeric, numeric) + pow(numeric, numeric)) FROM table
         """)
 
-      assert type.history_of_restricted_transformations == [{:restricted_function, "abs"}, {:restricted_function, "+"}]
+      assert type.history_of_restricted_transformations == [
+               {:restricted_function, "abs"},
+               {:restricted_function, "+"}
+             ]
     end
   end
 
@@ -230,12 +246,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
   end
 
   defp compile!(query_string) do
-    {:ok, result} = compile(query_string)
-    result
+    query_string
+    |> Parser.parse!()
+    |> Compiler.core_compile!(nil, data_source(), [], %{})
+    |> Compiler.Optimizer.optimize_per_user_aggregation()
+    |> Compiler.Anonymization.compile()
+    |> Compiler.NoiseLayers.compile()
   end
-
-  defp compile(query_string),
-    do: query_string |> Parser.parse!() |> Compiler.compile(nil, data_source(), [], %{})
 
   defp data_source() do
     %{

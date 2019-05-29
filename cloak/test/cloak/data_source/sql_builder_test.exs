@@ -10,7 +10,7 @@ defmodule Cloak.DataSource.SqlBuilderTest do
   doctest SqlBuilder
 
   test "non-text column is not force casted",
-    do: refute(sql_string("select int from table") =~ ~r/CAST\("table"\."int"/)
+    do: refute(sql_string("select int from table") =~ ~r/CAST\("table"\."int".*?text\)/)
 
   test "workaround for text comparisons on SQL Server ignoring trailing spaces",
     do: assert(sql_string("select count(*) from table where string = 'ab'", SQLServer) =~ "= N'ab.')")

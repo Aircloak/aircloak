@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
       variance variance_distinct
       year month day hour minute second date_trunc
-      sqrt floor ceil abs round trunc * / + - ^ %
+      sqrt floor ceil abs round trunc
       length lower upper btrim ltrim rtrim left right substring concat
       cast coalesce hash bool_op
     )

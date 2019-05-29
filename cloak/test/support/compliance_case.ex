@@ -38,6 +38,23 @@ defmodule ComplianceCase do
     do: %{context | data_sources: Enum.reject(data_sources, &(&1.driver == driver))}
 
   @doc false
+  defmacro assert_not_failing(context, query) do
+    quote bind_quoted: [context: context, query: query] do
+      cond do
+        Enum.empty?(context.data_sources) ->
+          :ok
+
+        context.disabled ->
+          :ok
+
+        true ->
+          delta = Map.get(context, :delta, 0.0001)
+          assert_query_not_failing(query, delta: delta, data_sources: context.data_sources, timeout: @timeout)
+      end
+    end
+  end
+
+  @doc false
   defmacro assert_consistent_and_not_failing(context, query) do
     quote bind_quoted: [context: context, query: query] do
       cond do

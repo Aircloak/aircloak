@@ -5,7 +5,9 @@ Enum.each(
     "<col1> - <col2>",
     "<col1> / <col2>",
     "<col1> ^ <col2>",
+    "<col1> / (<col2> - 15)",
     "cast(<col1>, integer) % cast(<col2>, integer)",
+    "cast(<col1>, integer) % cast(<col2> - 15, integer)",
     "pow(<col1>, <col2>)",
     "bucket(<col1> by <col2>)",
     "bucket(<col1> by <col2> align lower)",
@@ -31,6 +33,7 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} parameter 1 subquery"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
           context
+          |> disable_divide_by_zero_for_mongo(unquote(function))
           |> assert_consistent_and_not_failing("""
             SELECT
               output
@@ -48,6 +51,7 @@ Enum.each(
           @tag compliance: "#{function} #{column} #{table} parameter 2 subquery"
           test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
             context
+            |> disable_divide_by_zero_for_mongo(unquote(function))
             |> assert_consistent_and_not_failing("""
               SELECT
                 output
@@ -65,6 +69,7 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} parameter 1 query"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
           context
+          |> disable_divide_by_zero_for_mongo(unquote(function))
           |> assert_consistent_and_not_failing("""
             SELECT
               #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
@@ -77,6 +82,7 @@ Enum.each(
           @tag compliance: "#{function} #{column} #{table} parameter 2 query"
           test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
             context
+            |> disable_divide_by_zero_for_mongo(unquote(function))
             |> assert_consistent_and_not_failing("""
               SELECT
                 #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
@@ -86,6 +92,10 @@ Enum.each(
           end
         end
       end)
+
+      def disable_divide_by_zero_for_mongo(context, function) do
+        disable_for(context, Cloak.DataSource.MongoDB, function =~ ~r/\/|%.*-/)
+      end
     end
   end
 )

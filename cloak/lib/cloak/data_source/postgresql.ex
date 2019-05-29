@@ -147,7 +147,9 @@ defmodule Cloak.DataSource.PostgreSQL do
       :ignore
   end
 
-  @udfs [
+  @number_types ["BIGINT", "DOUBLE PRECISION"]
+
+  @cast_udfs [
     {"ac_text_to_integer(value TEXT) RETURNS BIGINT", "CAST(value AS BIGINT)"},
     {"ac_text_to_real(value TEXT) RETURNS DOUBLE PRECISION", "CAST(value AS DOUBLE PRECISION)"},
     {"ac_text_to_date(value TEXT) RETURNS DATE", "CAST(value AS DATE)"},
@@ -156,7 +158,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   ]
 
   defp register_udfs!(connection) do
-    for {header, body} <- @udfs do
+    for {header, body} <- udfs() do
       function = """
       CREATE OR REPLACE FUNCTION pg_temp.#{header} AS $$
       BEGIN
@@ -170,6 +172,21 @@ defmodule Cloak.DataSource.PostgreSQL do
       execute!(connection, function)
     end
   end
+
+  defp udfs(), do: @cast_udfs ++ math_udfs()
+
+  defp math_udfs() do
+    operators = [{"ac_mul", "*"}, {"ac_add", "+"}, {"ac_sub", "-"}, {"ac_div", "/"}, {"ac_pow", "^"}]
+
+    for type1 <- @number_types, type2 <- @number_types, {name, operator} <- operators do
+      return_type = return_type(type1, type2)
+      {"#{name}(a #{type1}, b #{type2}) RETURNS #{return_type}", "CAST(a #{operator} b AS #{return_type})"}
+    end
+  end
+
+  defp return_type("DOUBLE PRECISION", _), do: "DOUBLE PRECISION"
+  defp return_type(_, "DOUBLE PRECISION"), do: "DOUBLE PRECISION"
+  defp return_type(_, _), do: "BIGINT"
 
   # -------------------------------------------------------------------
   # Selected data mapping functions

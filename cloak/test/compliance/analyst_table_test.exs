@@ -329,7 +329,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "reporting anonymization error in a combination of user query and the analyst table SQL" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _} = create_or_update(1, "table36", "select user_id as uid, height + 1 as h1 from users", data_source)
+          {:ok, _} = create_or_update(1, "table36", "select user_id as uid, sqrt(height) as h1 from users", data_source)
 
           assert_query(
             """
