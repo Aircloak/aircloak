@@ -171,7 +171,8 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
 
   defp update_bounds("round", [{min, max}, {precision_min, _precision_max}]) do
     if precision_min < 0 do
-      {if(min < 0, do: 2 * min, else: 0), if(max < 0, do: 0, else: 2 * max)}
+      round_to = Cloak.Math.int_pow(10, -precision_min)
+      {(div(min, round_to) - 1) * round_to, (div(max, round_to) + 1) * round_to}
     else
       {min, max}
     end

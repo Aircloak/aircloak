@@ -37,4 +37,21 @@ defmodule Cloak.Math do
   def trunc(value, _precision) when is_integer(value), do: value
   def trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
   def trunc(value, precision), do: value |> :erlang.float() |> Float.floor(precision)
+
+  @doc """
+  Computes a to the bth power.
+
+  Differs from `:math.pow/2` in that it assumes the base is an integer and the exponent is a non-negative integer.
+  Consequently, it produces an integer result with unlimited precision.
+
+      iex> Cloak.Math.int_pow(12, 20)
+      3833759992447475122176
+  """
+  @spec int_pow(integer(), non_neg_integer()) :: integer()
+  def int_pow(_base, 0), do: 1
+
+  def int_pow(base, exponent) do
+    partial = int_pow(base, div(exponent, 2))
+    if(rem(exponent, 2) == 0, do: partial * partial, else: partial * partial * base)
+  end
 end
