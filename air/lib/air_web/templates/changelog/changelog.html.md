@@ -3,10 +3,12 @@
 ### __Breaking changes__
 
 - `GROUP BY` clause is no longer allowed to contain constants.
+- Minimum supported MongoDB version is now `3.6`.
 
 ### Enhancements
 
 - The LDAP section has a `Sync now` button in `Admin -> Users` and `Admin -> Groups`
+- Improved offloading of joins on MongoDB.
 
 ## Version 19.2.1
 
