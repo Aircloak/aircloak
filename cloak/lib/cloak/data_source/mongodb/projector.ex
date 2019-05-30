@@ -38,8 +38,8 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   @doc "Creates a MongoDB projection from a column."
   @spec project_column(Expression.t()) :: {String.t(), atom | map}
-  def project_column(%Expression{name: name, alias: nil}), do: {name, true}
-  def project_column(%Expression{name: name, alias: name}), do: {name, true}
+  def project_column(%Expression{table: %{name: table}, name: name, alias: alias}) when alias in [nil, name],
+    do: {name, "$#{table}.#{name}"}
 
   def project_column(%Expression{
         aggregate?: true,
@@ -60,6 +60,10 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         })
 
   def project_column(column), do: {project_alias(column.alias), begin_parse_column(column)}
+
+  @doc "Parses an expression for inclusion in the MongoDB aggregation pipeline."
+  @spec parse_expression(Expression.t()) :: atom | map
+  def parse_expression(expression), do: begin_parse_column(expression)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -95,7 +99,8 @@ defmodule Cloak.DataSource.MongoDB.Projector do
        when fun != nil,
        do: Enum.flat_map(args, &extract_fields/1)
 
-  defp extract_fields(%Expression{name: name}) when is_binary(name), do: [name]
+  defp extract_fields(%Expression{table: :unknown, name: name}) when is_binary(name), do: [name]
+  defp extract_fields(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: [table <> "." <> name]
 
   defp parse_column(:*), do: :*
   defp parse_column({:distinct, column}), do: {:distinct, parse_column(column)}
@@ -116,7 +121,8 @@ defmodule Cloak.DataSource.MongoDB.Projector do
        when fun != nil,
        do: parse_function(fun, Enum.map(args, &parse_column/1))
 
-  defp parse_column(%Expression{name: name}) when is_binary(name), do: "$" <> name
+  defp parse_column(%Expression{table: :unknown, name: name}) when is_binary(name), do: "$" <> name
+  defp parse_column(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: "$#{table}.#{name}"
 
   defp parse_function("left", [string, count]), do: %{"$substrCP": [string, 0, count]}
 
