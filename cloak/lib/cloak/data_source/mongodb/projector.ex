@@ -67,7 +67,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   defp map_array_size(name), do: %{"$size": %{"$ifNull": ["$" <> name, []]}}
 
-  defp begin_parse_column(%Expression{function?: true, function: fun} = column) when fun != nil do
+  defp begin_parse_column(%Expression{function?: true, function: fun} = column) when fun not in [nil, "coalesce"] do
     column
     |> extract_fields()
     |> Enum.map(&%{"$gt": ["$" <> &1, nil]})
@@ -269,6 +269,9 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   @bool_operators %{"=" => "$eq", "<>" => "$neq", ">" => "$gt", ">=" => "$gte", "<" => "$lt", "<=" => "$lte"}
   defp parse_function("bool_op", [%{"$literal": op}, arg1, arg2]),
     do: %{Map.fetch!(@bool_operators, op) => [arg1, arg2]}
+
+  defp parse_function("coalesce", [arg]), do: arg
+  defp parse_function("coalesce", [first | rest]), do: %{"$ifNull": [first, parse_function("coalesce", rest)]}
 
   defp parse_function(name, _args) when is_binary(name),
     do: raise(ExecutionError, message: "Function `#{name}` is not supported in subqueries on MongoDB data sources.")
