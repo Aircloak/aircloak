@@ -401,23 +401,23 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_join_condition({:or, lhs, rhs}), do: %{"$or": [parse_join_condition(lhs), parse_join_condition(rhs)]}
 
   defp parse_join_condition({:comparison, subject, operator, target}),
-    do: %{parse_operator(operator) => [Projector.parse_expression(subject), Projector.parse_expression(target)]}
+    do: %{parse_operator(operator) => [Projector.project_expression(subject), Projector.project_expression(target)]}
 
   defp parse_join_condition({:not, {:comparison, subject, :=, target}}),
-    do: %{"$ne": [Projector.parse_expression(subject), Projector.parse_expression(target)]}
+    do: %{"$ne": [Projector.project_expression(subject), Projector.project_expression(target)]}
 
   defp parse_join_condition({:not, {:comparison, subject, :<>, target}}),
-    do: %{"$eq": [Projector.parse_expression(subject), Projector.parse_expression(target)]}
+    do: %{"$eq": [Projector.project_expression(subject), Projector.project_expression(target)]}
 
-  defp parse_join_condition({:is, subject, :null}), do: %{"$gt": [Projector.parse_expression(subject), nil]}
+  defp parse_join_condition({:is, subject, :null}), do: %{"$gt": [Projector.project_expression(subject), nil]}
 
-  defp parse_join_condition({:not, {:is, subject, :null}}), do: %{"$lte": [Projector.parse_expression(subject), true]}
+  defp parse_join_condition({:not, {:is, subject, :null}}), do: %{"$lte": [Projector.project_expression(subject), true]}
 
   defp parse_join_condition({:in, subject, targets}),
-    do: %{"$in": [Projector.parse_expression(subject), Enum.map(targets, &Projector.parse_expression/1)]}
+    do: %{"$in": [Projector.project_expression(subject), Enum.map(targets, &Projector.project_expression/1)]}
 
   defp parse_join_condition({:not, {:in, subject, targets}}),
-    do: %{"$nin": [Projector.parse_expression(subject), Enum.map(targets, &Projector.parse_expression/1)]}
+    do: %{"$nin": [Projector.project_expression(subject), Enum.map(targets, &Projector.project_expression/1)]}
 
   defp filter_join_data(nil), do: []
   defp filter_join_data(condition), do: [%{"$match": %{"$expr": parse_join_condition(condition)}}]

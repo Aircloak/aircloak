@@ -48,7 +48,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         function_args: [arg],
         alias: alias
       }),
-      do: {project_alias(alias), parse_function(fun, begin_parse_column(arg))}
+      do: {project_alias(alias), parse_function(fun, begin_parse_expression(arg))}
 
   def project_column(%Expression{constant?: true, alias: empty_alias} = constant)
       when empty_alias in [nil, ""],
@@ -59,11 +59,11 @@ defmodule Cloak.DataSource.MongoDB.Projector do
           | alias: "alias_#{System.unique_integer([:positive])}"
         })
 
-  def project_column(column), do: {project_alias(column.alias), begin_parse_column(column)}
+  def project_column(column), do: {project_alias(column.alias), begin_parse_expression(column)}
 
   @doc "Parses an expression for inclusion in the MongoDB aggregation pipeline."
-  @spec parse_expression(Expression.t()) :: atom | map
-  def parse_expression(expression), do: begin_parse_column(expression)
+  @spec project_expression(Expression.t()) :: atom | map
+  def project_expression(expression), do: begin_parse_expression(expression)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -71,18 +71,19 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   defp map_array_size(name), do: %{"$size": %{"$ifNull": ["$" <> name, []]}}
 
-  defp begin_parse_column(%Expression{function?: true, function: fun} = column) when fun not in [nil, "coalesce"] do
-    column
+  defp begin_parse_expression(%Expression{function?: true, function: fun} = expression)
+       when fun not in [nil, "coalesce"] do
+    expression
     |> extract_fields()
     |> Enum.map(&%{"$gt": ["$" <> &1, nil]})
     |> case do
-      [] -> parse_column(column)
-      [non_null_arg] -> %{"$cond": [non_null_arg, parse_column(column), nil]}
-      non_null_args -> %{"$cond": [%{"$and": non_null_args}, parse_column(column), nil]}
+      [] -> parse_expression(expression)
+      [non_null_arg] -> %{"$cond": [non_null_arg, parse_expression(expression), nil]}
+      non_null_args -> %{"$cond": [%{"$and": non_null_args}, parse_expression(expression), nil]}
     end
   end
 
-  defp begin_parse_column(column), do: parse_column(column)
+  defp begin_parse_expression(expression), do: parse_expression(expression)
 
   defp project_alias(name) do
     if not Expression.valid_alias?(name),
@@ -91,7 +92,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     name
   end
 
-  defp extract_fields({:distinct, column}), do: extract_fields(column)
+  defp extract_fields({:distinct, expression}), do: extract_fields(expression)
   defp extract_fields(:*), do: []
   defp extract_fields(%Expression{constant?: true}), do: []
 
@@ -102,27 +103,27 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp extract_fields(%Expression{table: :unknown, name: name}) when is_binary(name), do: [name]
   defp extract_fields(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: [table <> "." <> name]
 
-  defp parse_column(:*), do: :*
-  defp parse_column({:distinct, column}), do: {:distinct, parse_column(column)}
+  defp parse_expression(:*), do: :*
+  defp parse_expression({:distinct, expression}), do: {:distinct, parse_expression(expression)}
 
-  defp parse_column(%Expression{constant?: true, value: %Timex.Duration{} = value}),
+  defp parse_expression(%Expression{constant?: true, value: %Timex.Duration{} = value}),
     do: %{"$literal": Timex.Duration.to_seconds(value)}
 
-  defp parse_column(%Expression{constant?: true, value: value}), do: %{"$literal": value}
+  defp parse_expression(%Expression{constant?: true, value: value}), do: %{"$literal": value}
 
-  defp parse_column(%Expression{function?: true, function: {:cast, type}, function_args: [value]}),
-    do: parse_function("cast", [parse_column(value), value.type, type])
+  defp parse_expression(%Expression{function?: true, function: {:cast, type}, function_args: [value]}),
+    do: parse_function("cast", [parse_expression(value), value.type, type])
 
-  defp parse_column(%Expression{function?: true, function: fun, function_args: [arg]})
+  defp parse_expression(%Expression{function?: true, function: fun, function_args: [arg]})
        when fun != nil,
-       do: parse_function(fun, parse_column(arg))
+       do: parse_function(fun, parse_expression(arg))
 
-  defp parse_column(%Expression{function?: true, function: fun, function_args: args})
+  defp parse_expression(%Expression{function?: true, function: fun, function_args: args})
        when fun != nil,
-       do: parse_function(fun, Enum.map(args, &parse_column/1))
+       do: parse_function(fun, Enum.map(args, &parse_expression/1))
 
-  defp parse_column(%Expression{table: :unknown, name: name}) when is_binary(name), do: "$" <> name
-  defp parse_column(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: "$#{table}.#{name}"
+  defp parse_expression(%Expression{table: :unknown, name: name}) when is_binary(name), do: "$" <> name
+  defp parse_expression(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: "$#{table}.#{name}"
 
   defp parse_function("left", [string, count]), do: %{"$substrCP": [string, 0, count]}
 
