@@ -96,7 +96,7 @@ const App = {
     }
   },
 
-  buildSocket: (props) => new FrontendSocket(props.socketToken),
+  buildSocket: (props) => new FrontendSocket(props.browserSocketTransport, props.socketToken),
 };
 
 if (window.pageConfig !== undefined) {

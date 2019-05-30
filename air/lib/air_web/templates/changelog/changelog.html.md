@@ -9,6 +9,7 @@
 
 - The LDAP section has a `Sync now` button in `Admin -> Users` and `Admin -> Groups`
 - Improved offloading of joins on MongoDB.
+- It is possible to force long polling instead of websocket as a transport mechanism for pushing notifications to browsers. See [Insights Air configuration](docs/ops/configuration.html#insights-air-configuration) for details.
 
 ## Version 19.2.1
 
