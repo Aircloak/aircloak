@@ -54,11 +54,14 @@ config :cloak, :anonymizer,
   sum_noise_sigma_scale_params: {1, 0.5},
 
   # This value specifies the isolating factor threshold. See `Isolating columns` in anonymization.md.
-  isolating_column_threshold: 0.8,
+  isolating_column_threshold: 0.8
 
-  # This value specifies how many users are needed to establish the min/max bound for a given column. See `Bound
-  # analysis` in anonymization.md.
-  bound_size_cutoff: 10
+# These values specify how many users are needed to establish the min/max bound for a given column. See `Bound
+# analysis` in anonymization.md.
+config :cloak, :bound_size_cutoff,
+  min: 10,
+  mean: 20,
+  std_dev: 5
 
 config :cloak, :shadow_tables,
   # Number of allowed negative conditions with rare values. See `Shadow tables` in anonymization.md.

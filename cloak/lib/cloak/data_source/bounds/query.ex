@@ -40,7 +40,11 @@ defmodule Cloak.DataSource.Bounds.Query do
   end
 
   defp cutoff(table_name, column_name) do
-    {cutoff, _rng} = {table_name, column_name} |> Cloak.RNG.term_to_rng() |> Cloak.RNG.gauss(5, 3)
-    round(cutoff)
+    {cutoff, _rng} =
+      {table_name, column_name} |> Cloak.RNG.term_to_rng() |> Cloak.RNG.gauss(config(:mean), config(:std_dev))
+
+    cutoff |> round() |> max(config(:min))
   end
+
+  defp config(name), do: Application.get_env(:cloak, :bound_size_cutoff) |> Keyword.fetch!(name)
 end

@@ -46,6 +46,13 @@ config :cloak, :anonymizer,
   # analysis` in anonymization.md.
   bound_size_cutoff: 10
 
+# These values specify how many users are needed to establish the min/max bound for a given column. See `Bound
+# analysis` in anonymization.md.
+config :cloak, :bound_size_cutoff,
+  min: 1,
+  mean: 5,
+  std_dev: 0
+
 config :cloak, :shadow_tables,
   # Number of allowed negative conditions with rare values. See `Shadow tables` in anonymization.md.
   # In production it's set to 1 by default, but it's kept at 2 for tests as it easier to validate

@@ -18,10 +18,6 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
   setup do
     :ok = Cloak.Test.DB.clear_table("bounds")
     :ok = Cloak.Test.DB.clear_table("bounds with spaces")
-
-    anonymizer_config = Application.get_env(:cloak, :anonymizer)
-    Application.put_env(:cloak, :anonymizer, anonymizer_config |> Keyword.put(:bound_size_cutoff, 5))
-    on_exit(fn -> Application.put_env(:cloak, :anonymizer, anonymizer_config) end)
   end
 
   test "computes min and max if there are > cutoff users" do
