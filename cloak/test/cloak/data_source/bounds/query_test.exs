@@ -10,7 +10,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
     :ok =
       Cloak.Test.DB.create_table(
         "bounds with spaces",
-        "\"user id\" INTEGER, \"val ue\" INTEGER",
+        "\"user id\" TEXT, \"val ue\" INTEGER",
         user_id: "user id"
       )
   end
@@ -66,5 +66,19 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
     end
   end
 
-  test "names with spaces are handled properly"
+  test "names with spaces are handled properly" do
+    :ok =
+      Cloak.Test.DB.insert_data("bounds with spaces", ["\"user id\"", "\"val ue\""], [
+        ["user1", 10],
+        ["user2", 10],
+        ["user3", 30],
+        ["user4", 30],
+        ["user5", 30],
+        ["user6", 30]
+      ])
+
+    for data_source <- DataSource.all() do
+      assert Query.bounds(data_source, "bounds with spaces", "val ue") == {5, 100}
+    end
+  end
 end
