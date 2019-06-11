@@ -1,5 +1,36 @@
 defmodule Air.PsqlServer do
-  @moduledoc "Server for PostgreSQL protocol which allows PostgreSQL clients to query cloaks."
+  @moduledoc """
+  Server for PostgreSQL protocol which allows PostgreSQL clients to query cloaks.
+
+  ## Modules
+
+  The PostgreSQL functionality is broken into multiple different modules inside the `Air.PsqlServer` namespace:
+
+    - `Air.PsqlServer.RanchServer` implements a generic PostgreSQL SSL server which is agnostic of Aircloak specifics.
+        This module can be thought of as a behaviour, while `Air.PsqlServer` is a concrete callback module which
+        provides Aircloak specific details.
+
+    - `Air.PsqlServer.Protocol` is the module which contains the generic implementation of the PostgreSQL protocol.
+
+    - `Air.PsqlServer.QueryExecution` contains the implementation of the query execution in the context of the Aircloak
+       system.
+
+    - `Air.PsqlServer.ShadowDb` module implements the shadow db functionality. A shadow db is a local database which
+       corresponds in structure to a cloak datasource. There is one shadow db per each known datasource. These databases
+       is used by `Air.PsqlServer.QueryExecution` to execute meta queries (statements which are querying the database
+       structure).
+
+    - `Air.PsqlServer.ConnectionRegistry` is responsible for tracking connection processes, mostly for the purpose of
+       query cancellation.
+
+
+  ## Process structure
+
+  The functionality is supported by various processes. All the processes reside under the `Air.PsqlServer` supervisor.
+  At the high-level there are three different services: the shadow db (powered by the Air.PsqlServer.ShadowDb), the
+  connection registry (powered by `Air.PsqlServer.ConnectionRegistry`), and the TCP server (powered by
+  `Air.PsqlServer.RanchServer`).
+  """
 
   alias Air.PsqlServer.{RanchServer, ConnectionRegistry, QueryExecution}
   alias Air.Service.{User, DataSource}
