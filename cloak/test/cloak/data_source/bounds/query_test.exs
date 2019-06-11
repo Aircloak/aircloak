@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
   alias Cloak.DataSource.Bounds.Query
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("bounds", "value INTEGER, pk INTEGER")
+    :ok = Cloak.Test.DB.create_table("bounds", "value INTEGER, string TEXT, pk INTEGER")
 
     :ok =
       Cloak.Test.DB.create_table(
@@ -50,7 +50,21 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
     end
   end
 
-  test "non-numeric columns have unknown bounds"
+  test "non-numeric columns have unknown bounds" do
+    :ok =
+      Cloak.Test.DB.insert_data("bounds", ["user_id", "string"], [
+        ["user1", "a"],
+        ["user2", "a"],
+        ["user3", "b"],
+        ["user4", "b"],
+        ["user5", "b"],
+        ["user6", "b"]
+      ])
+
+    for data_source <- DataSource.all() do
+      assert Query.bounds(data_source, "bounds", "string") == :unknown
+    end
+  end
 
   test "names with spaces are handled properly"
 end

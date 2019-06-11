@@ -9,13 +9,22 @@ defmodule Cloak.DataSource.Bounds.Query do
   def bounds(data_source, table_name, column) do
     table_name = String.to_existing_atom(table_name)
 
-    with cutoff = cutoff(table_name, column),
+    with true <- numeric?(data_source, table_name, column),
+         cutoff = cutoff(table_name, column),
          {:ok, max} <- Compute.max(maxes(data_source, table_name, column), cutoff),
          {:ok, min} <- Compute.min(mins(data_source, table_name, column), cutoff) do
       Compute.extend({min, max})
     else
       _ -> :unknown
     end
+  end
+
+  defp numeric?(data_source, table_name, column) do
+    column =
+      data_source.tables[table_name].columns
+      |> Enum.find(&(&1.name == column))
+
+    column.type in [:integer, :real]
   end
 
   defp maxes(data_source, table_name, column), do: extremes(data_source, table_name, column, "DESC", &max/2)
