@@ -1,5 +1,28 @@
 defmodule Cloak.AnalystTable do
-  @moduledoc "Service for working with analyst tables"
+  @moduledoc """
+  Service for working with analyst tables.
+
+  ## Modules
+
+  The analyst table functionality is implemented across a couple of modules:
+
+    - `Cloak.AnalystTable` is the module which contains services for manipulating analyst tables, such as creating,
+      updating, removing, and listing the tables.
+
+    - `Cloak.Query.AnalystTables` is the main client logic of analyst table functionality. This is the module which is
+      used in the cloak compiler to resolve analyst table references.
+
+    - `Cloak.DataSource.Driver.SQL.AnalystTables` is the supporting driver functionality for manipulating analyst tables
+       in SQL based drivers, such as PostgreSQL or MySql.
+
+
+  ## Process structure
+
+  This module powers the main process which orchestrates creation of different tables. This process is a
+  [Parent.GenServer](https://hexdocs.pm/parent/Parent.GenServer.html). Each table is created (or updated) in a separate
+  child process. To prevent database overload, we allow at most 5 simultaneous table creations. See the implementation
+  of `Cloak.AnalystTable.Jobs` for details.
+  """
 
   use Parent.GenServer
   require Logger
