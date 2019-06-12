@@ -5,6 +5,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
   alias Cloak.Sql.Compiler.BoundAnalysis
   alias Cloak.Sql.Expression
   alias Cloak.DataSource.Table
+  alias Cloak.TestBoundsCache
 
   defmacrop assert_unknown_or_within_bounds(expression, values, function) do
     quote bind_quoted: [expression: expression, values: values, function: function] do
@@ -24,10 +25,14 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
 
   describe ".analyze_query" do
     test "sets bounds for each expression in the query" do
-      assert {11, 21} = hd(compile!("SELECT 1 + column FROM table").columns).bounds
+      TestBoundsCache.set(data_source(), "table", "column", {100, 200})
+
+      assert {101, 201} = hd(compile!("SELECT 1 + column FROM table").columns).bounds
     end
 
     test "propagates bounds from subqueries" do
+      TestBoundsCache.set(data_source(), "table", "column", {10, 20})
+
       compiled = compile!("SELECT foo FROM (SELECT 1 + column AS foo FROM table) bar")
       assert {11, 21} = hd(compiled.columns).bounds
     end
@@ -75,12 +80,9 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       assert :unknown = BoundAnalysis.set_bounds(Expression.constant(:text, "Some text")).bounds
     end
 
-    test "columns with bounds set are ignored" do
+    test "columns are ignored" do
       assert BoundAnalysis.set_bounds(column_in_bounds({10, 20})) == column_in_bounds({10, 20})
-    end
-
-    test "[temporary] columns with no bounds are set to [10 - 20]" do
-      assert {10, 20} = BoundAnalysis.set_bounds(column_in_bounds(:unknown)).bounds
+      assert BoundAnalysis.set_bounds(column_in_bounds(:unknown)) == column_in_bounds(:unknown)
     end
 
     test "sqrt bounds are tight for positive input bounds" do

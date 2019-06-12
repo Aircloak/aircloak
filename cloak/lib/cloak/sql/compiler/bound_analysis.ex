@@ -4,7 +4,6 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   the columns. Currently all columns are set to the dummy bounds of {10, 20} and the analysis proceeds from there.
   """
 
-  @dummy_bounds {10, 20}
   @large_float_number 1.0e100
   @max_int 9_223_372_036_854_775_807
   @unsafe_names %{
@@ -19,6 +18,9 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
 
   alias Cloak.Sql.{Expression, Query}
   alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.DataSource.Bounds
+
+  use Lens.Macros
 
   # -------------------------------------------------------------------
   # API functions
@@ -29,7 +31,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   def analyze_query(query) do
     Helpers.apply_bottom_up(query, fn subquery ->
       subquery
-      |> propagate_subquery_bounds()
+      |> set_leaf_bounds()
       |> update_in([Query.Lenses.query_expressions()], &set_bounds/1)
       |> update_in([Query.Lenses.query_expressions()], &analyze_safety/1)
     end)
@@ -61,17 +63,20 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   # Bound computation
   # -------------------------------------------------------------------
 
-  defp propagate_subquery_bounds(query) do
-    update_in(
-      query,
-      [Query.Lenses.query_expressions() |> Query.Lenses.leaf_expressions() |> Lens.reject(&Expression.constant?/1)],
-      fn expression ->
-        case Query.resolve_subquery_column(expression, query) do
-          :database_column -> expression
-          {column, _subquery} -> %{expression | bounds: column.bounds}
-        end
+  defp set_leaf_bounds(query) do
+    update_in(query, [leaf_expressions()], fn expression ->
+      case Query.resolve_subquery_column(expression, query) do
+        :database_column ->
+          %{expression | bounds: Bounds.bounds(query.data_source, expression.table.name, expression.name)}
+
+        {column, _subquery} ->
+          %{expression | bounds: column.bounds}
       end
-    )
+    end)
+  end
+
+  deflensp leaf_expressions() do
+    Query.Lenses.query_expressions() |> Query.Lenses.leaf_expressions() |> Lens.reject(&Expression.constant?/1)
   end
 
   defp do_set_bounds(expression = %Expression{constant?: true, value: value}) when value in [:*, nil],
@@ -80,9 +85,6 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   defp do_set_bounds(expression = %Expression{type: type, constant?: true, value: value})
        when type in [:integer, :real],
        do: %{expression | bounds: {floor(value), ceil(value)}}
-
-  defp do_set_bounds(expression = %Expression{constant?: false, function?: false, bounds: :unknown}),
-    do: %{expression | bounds: @dummy_bounds}
 
   defp do_set_bounds(expression = %Expression{constant?: false, function?: false}),
     do: expression
