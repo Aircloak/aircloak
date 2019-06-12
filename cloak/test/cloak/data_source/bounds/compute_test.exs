@@ -61,8 +61,8 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
         {input_min, input_max} = [number1, number2] |> Enum.min_max()
         {output_min, output_max} = Compute.extend({input_min, input_max})
 
-        assert sign(input_min) == sign(output_min)
-        assert sign(input_max) == sign(input_max)
+        assert output_min == 0 || sign(input_min) == sign(output_min)
+        assert output_max == 0 || sign(input_max) == sign(output_max)
         assert output_min <= input_min
         assert output_max >= input_max
         assert output_max - output_min >= input_max - input_min
