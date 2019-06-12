@@ -1,11 +1,24 @@
 defmodule Cloak.DataSource.Bounds.Query do
-  alias Cloak.Sql.{Parser, Compiler}
+  @moduledoc "Implements querying the database to find the bounds of a column."
+
+  alias Cloak.Sql.{Parser, Compiler, Expression}
   alias Cloak.DataSource.SqlBuilder
   alias Cloak.DataSource.Bounds.Compute
   alias Cloak.Query.DbEmulator
 
   @query_limit 1000
 
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Queries the data source for the bounds of the given column in the given table.
+
+  Always returns either computed bounds or `:unknown` if they cannot be computed (for example because there are too few
+  users). Returns `:unknown` for all non-numeric columns.
+  """
+  @spec bounds(Cloak.DataSource.t(), String.t(), String.t()) :: Expression.bounds()
   def bounds(data_source, table_name, column) do
     table_name = String.to_existing_atom(table_name)
 
@@ -18,6 +31,10 @@ defmodule Cloak.DataSource.Bounds.Query do
       _ -> :unknown
     end
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp numeric?(data_source, table_name, column) do
     column =
