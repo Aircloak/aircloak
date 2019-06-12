@@ -232,7 +232,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   defp check_pow(expression) do
     update_in(
       expression,
-      [Query.Lenses.all_expressions() |> Lens.filter(&(&1.function == "^"))],
+      [Query.Lenses.all_expressions() |> Lens.filter(&(&1.function == "^")) |> Lens.filter(&(&1.bounds != :unknown))],
       fn expression = %Expression{function: "^", type: type, bounds: bounds, function_args: [base, _]} ->
         {base_min, _} = base.bounds
 
