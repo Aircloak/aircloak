@@ -8,6 +8,7 @@ defmodule Cloak.AnalystTable.CompilerTest do
   setup_all do
     Cloak.Test.DB.create_table("mv1", "x integer, y text")
     Cloak.Test.DB.create_table("mv2", "x integer, y text", db_name: "db_name_mv2")
+    Cloak.TestBoundsCache.set(data_source(), "mv1", "x", {10, 20})
   end
 
   describe "compiled sql - " do
