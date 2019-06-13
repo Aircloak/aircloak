@@ -64,7 +64,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp project_top_columns(_columns, _top_level? = false), do: []
 
-  defp project_top_column(%Expression{constant?: true} = constant), do: %{"$literal": map_constant(constant)}
+  defp project_top_column(%Expression{constant?: true} = constant), do: Projector.project_expression(constant)
+
   defp project_top_column(column), do: "$#{Expression.title(column)}"
 
   defp parse_query(%Query{subquery?: false} = query, _top_level? = true),
@@ -88,67 +89,56 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_operator(:<=), do: :"$lte"
   defp parse_operator(:<>), do: :"$ne"
 
-  @epoch :calendar.datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}})
-  defp map_constant(%Expression{constant?: true, value: %NaiveDateTime{} = datetime}),
-    do: DateTime.from_naive!(datetime, "Etc/UTC")
+  defp map_column(%Expression{table: :unknown, name: name}) when is_binary(name), do: name
+  defp map_column(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: table <> "." <> name
 
-  defp map_constant(%Expression{constant?: true, value: %Date{} = date}),
-    do:
-      {Date.to_erl(date), {0, 0, 0}}
-      |> :calendar.datetime_to_gregorian_seconds()
-      |> Kernel.-(@epoch)
-      |> DateTime.from_unix!()
-
-  defp map_constant(%Expression{constant?: true, value: %Timex.Duration{} = duration}),
-    do: Timex.Duration.to_seconds(duration)
-
-  defp map_constant(%Expression{constant?: true, value: value}), do: value
-
-  defp map_constant(_),
-    do: raise(ExecutionError, message: "Conditions on MongoDB data sources have to be between a column and a constant.")
-
-  defp map_field(%Expression{table: :unknown, name: name}) when is_binary(name), do: name
-  defp map_field(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: table <> "." <> name
-
-  defp map_field(_),
-    do: raise(ExecutionError, message: "Conditions on MongoDB data sources have to be between a column and a constant.")
+  defp map_column(_),
+    do: raise(ExecutionError, message: "Condition on MongoDB data source expects a column as subject.")
 
   defp parse_where_condition({:and, lhs, rhs}), do: %{"$and": [parse_where_condition(lhs), parse_where_condition(rhs)]}
 
   defp parse_where_condition({:or, lhs, rhs}), do: %{"$or": [parse_where_condition(lhs), parse_where_condition(rhs)]}
 
-  defp parse_where_condition({:comparison, subject, operator, value}),
-    do: %{map_field(subject) => %{parse_operator(operator) => map_constant(value)}}
+  defp parse_where_condition({:comparison, subject, operator, target}),
+    do: %{
+      "$expr": %{
+        parse_operator(operator) => [Projector.project_expression(subject), Projector.project_expression(target)]
+      }
+    }
 
-  defp parse_where_condition({:not, {:comparison, subject, :=, value}}),
-    do: %{map_field(subject) => %{"$ne": map_constant(value)}}
+  defp parse_where_condition({:not, {:comparison, subject, :=, target}}),
+    do: %{"$expr": %{"$ne": [Projector.project_expression(subject), Projector.project_expression(target)]}}
 
-  defp parse_where_condition({:not, {:comparison, subject, :<>, value}}),
-    do: %{map_field(subject) => %{"$eq": map_constant(value)}}
+  defp parse_where_condition({:not, {:comparison, subject, :<>, target}}),
+    do: %{"$expr": %{"$eq": [Projector.project_expression(subject), Projector.project_expression(target)]}}
 
-  defp parse_where_condition({:is, subject, :null}), do: %{map_field(subject) => nil}
+  defp parse_where_condition({:is, subject, :null}), do: %{map_column(subject) => nil}
 
-  defp parse_where_condition({:not, {:is, subject, :null}}), do: %{map_field(subject) => %{"$ne": nil}}
+  defp parse_where_condition({:not, {:is, subject, :null}}), do: %{map_column(subject) => %{"$ne": nil}}
 
-  defp parse_where_condition({:in, subject, values}),
-    do: %{map_field(subject) => %{"$in": Enum.map(values, &map_constant/1)}}
+  defp parse_where_condition({:in, subject, targets}),
+    do: %{
+      "$expr": %{"$in": [Projector.project_expression(subject), Enum.map(targets, &Projector.project_expression/1)]}
+    }
 
-  defp parse_where_condition({:not, {:in, subject, values}}),
-    do: %{map_field(subject) => %{"$nin": Enum.map(values, &map_constant/1)}}
+  defp parse_where_condition({:not, {:in, subject, targets}}),
+    do: %{
+      "$expr": %{"$nin": [Projector.project_expression(subject), Enum.map(targets, &Projector.project_expression/1)]}
+    }
 
-  defp parse_where_condition({:like, subject, pattern}), do: %{map_field(subject) => regex(pattern, "ms")}
+  defp parse_where_condition({:like, subject, pattern}), do: %{map_column(subject) => regex(pattern, "ms")}
 
-  defp parse_where_condition({:ilike, subject, pattern}), do: %{map_field(subject) => regex(pattern, "msi")}
+  defp parse_where_condition({:ilike, subject, pattern}), do: %{map_column(subject) => regex(pattern, "msi")}
 
   defp parse_where_condition({:not, {:like, subject, pattern}}),
-    do: %{map_field(subject) => %{"$not": regex(pattern, "ms")}}
+    do: %{map_column(subject) => %{"$not": regex(pattern, "ms")}}
 
   defp parse_where_condition({:not, {:ilike, subject, pattern}}),
-    do: %{map_field(subject) => %{"$not": regex(pattern, "msi")}}
+    do: %{map_column(subject) => %{"$not": regex(pattern, "msi")}}
 
-  defp regex(pattern, options),
+  defp regex(%Expression{constant?: true, value: pattern}, options),
     do: %BSON.Regex{
-      pattern: LikePattern.to_regex_pattern(map_constant(pattern)),
+      pattern: LikePattern.to_regex_pattern(pattern),
       options: options
     }
 
@@ -385,32 +375,6 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     end
   end
 
-  defp parse_join_condition({:and, lhs, rhs}), do: %{"$and": [parse_join_condition(lhs), parse_join_condition(rhs)]}
-
-  defp parse_join_condition({:or, lhs, rhs}), do: %{"$or": [parse_join_condition(lhs), parse_join_condition(rhs)]}
-
-  defp parse_join_condition({:comparison, subject, operator, target}),
-    do: %{parse_operator(operator) => [Projector.project_expression(subject), Projector.project_expression(target)]}
-
-  defp parse_join_condition({:not, {:comparison, subject, :=, target}}),
-    do: %{"$ne": [Projector.project_expression(subject), Projector.project_expression(target)]}
-
-  defp parse_join_condition({:not, {:comparison, subject, :<>, target}}),
-    do: %{"$eq": [Projector.project_expression(subject), Projector.project_expression(target)]}
-
-  defp parse_join_condition({:is, subject, :null}), do: %{"$gt": [Projector.project_expression(subject), nil]}
-
-  defp parse_join_condition({:not, {:is, subject, :null}}), do: %{"$lte": [Projector.project_expression(subject), true]}
-
-  defp parse_join_condition({:in, subject, targets}),
-    do: %{"$in": [Projector.project_expression(subject), Enum.map(targets, &Projector.project_expression/1)]}
-
-  defp parse_join_condition({:not, {:in, subject, targets}}),
-    do: %{"$nin": [Projector.project_expression(subject), Enum.map(targets, &Projector.project_expression/1)]}
-
-  defp filter_join_data(nil), do: []
-  defp filter_join_data(condition), do: [%{"$match": %{"$expr": parse_join_condition(condition)}}]
-
   defp process_columns_for_lookup(condition, source_tables) do
     Query.Lenses.leaf_expressions()
     |> Lens.key(:table)
@@ -419,7 +383,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
 
   defp join_pipeline(collection, pipeline, conditions, source_tables, outer_join?) do
-    on_stage = conditions |> process_columns_for_lookup(source_tables) |> filter_join_data()
+    on_stage = conditions |> process_columns_for_lookup(source_tables) |> filter_data()
     namespace = "ac_join_accumulator"
 
     [

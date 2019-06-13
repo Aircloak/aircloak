@@ -201,4 +201,14 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
       %{rows: [%{occurrences: 20, row: [30]}, %{occurrences: 5, row: [nil]}]}
     )
   end
+
+  test "cross join with tables", context do
+    assert_query(
+      context,
+      """
+        SELECT age FROM "left" AS l, "right" as r WHERE l.id = r.id AND age BETWEEN 0 AND 100
+      """,
+      %{rows: [%{occurrences: 20, row: [30]}]}
+    )
+  end
 end

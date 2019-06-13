@@ -106,6 +106,17 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_expression(:*), do: :*
   defp parse_expression({:distinct, expression}), do: {:distinct, parse_expression(expression)}
 
+  @epoch :calendar.datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}})
+  defp parse_expression(%Expression{constant?: true, value: %NaiveDateTime{} = datetime}),
+    do: DateTime.from_naive!(datetime, "Etc/UTC")
+
+  defp parse_expression(%Expression{constant?: true, value: %Date{} = date}),
+    do:
+      {Date.to_erl(date), {0, 0, 0}}
+      |> :calendar.datetime_to_gregorian_seconds()
+      |> Kernel.-(@epoch)
+      |> DateTime.from_unix!()
+
   defp parse_expression(%Expression{constant?: true, value: %Timex.Duration{} = value}),
     do: %{"$literal": Timex.Duration.to_seconds(value)}
 

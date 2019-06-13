@@ -347,12 +347,8 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "error on invalid conditions", context do
-    assert_query(context, "SELECT COUNT(name) FROM #{@user_table} WHERE true = true", %{
-      error: "Conditions on MongoDB data sources have to be between a column and a constant."
-    })
-
-    assert_query(context, "SELECT COUNT(name) FROM #{@user_table} WHERE age = age + 0", %{
-      error: "Conditions on MongoDB data sources have to be between a column and a constant."
+    assert_query(context, "SELECT COUNT(name) FROM #{@user_table} WHERE TRUE IS NOT NULL", %{
+      error: "Condition on MongoDB data source expects a column as subject."
     })
   end
 

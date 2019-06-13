@@ -273,7 +273,9 @@ defmodule Cloak.DataSource.MongoDB do
   defp supported_join?(_from), do: true
 
   defp supported_join_filters?(conditions) do
-    Query.Lenses.conditions() |> Lens.filter(&(Condition.verb(&1) in [:like, :ilike])) |> Lens.to_list(conditions) == []
+    Query.Lenses.conditions()
+    |> Lens.filter(&(Condition.verb(&1) in [:like, :ilike, :is]))
+    |> Lens.to_list(conditions) == []
   end
 
   defp supports_order_by?(%{type: :anonymized}), do: true
