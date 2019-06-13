@@ -4,6 +4,7 @@ defmodule Cloak.DataSource.SqlBuilderTest do
   use ExUnitProperties
   alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.Sql.Query
+  alias Cloak.TestBoundsCache
   import Cloak.Test.QueryHelpers
   import StreamData
 
@@ -44,6 +45,13 @@ defmodule Cloak.DataSource.SqlBuilderTest do
         assert_raise ArgumentError, fn -> SqlBuilder.table_name_parts(table_name) end
       end
     end
+  end
+
+  test "columns with known bounds are restricted" do
+    TestBoundsCache.set(data_source(PostgreSQL), "table", "int", {100, 200})
+
+    assert sql_string("SELECT COUNT(*) FROM table WHERE int = 10", PostgreSQL) =~
+             ~s[CASE WHEN "table"."int" < 100 THEN 100 WHEN "table"."int" > 200 THEN 200 ELSE "table"."int" END]
   end
 
   test "build userid join string" do

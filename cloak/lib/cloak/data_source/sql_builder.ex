@@ -199,8 +199,19 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{constant?: true, value: value}, query),
     do: constant_to_fragment(value, query)
 
-  defp column_sql(%Expression{function?: false, constant?: false} = column, query),
-    do: column |> column_name(sql_dialect_module(query).quote_char()) |> cast_type(column.type, query)
+  defp column_sql(%Expression{function?: false, constant?: false, bounds: bounds} = column, query) do
+    sql = column |> column_name(sql_dialect_module(query).quote_char()) |> cast_type(column.type, query)
+
+    case Query.resolve_subquery_column(column, query) do
+      :database_column -> restrict(sql, bounds)
+      _ -> sql
+    end
+  end
+
+  defp restrict(sql, :unknown), do: sql
+
+  defp restrict(sql, {min, max}),
+    do: ["CASE WHEN ", sql, " < #{min} THEN #{min} WHEN ", sql, " > #{max} THEN #{max} ELSE ", sql, " END"]
 
   defp force_max_precision(expression = %Expression{constant?: true}), do: expression
   defp force_max_precision(expression = %Expression{type: type}), do: cast(expression, type)
