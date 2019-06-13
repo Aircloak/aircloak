@@ -46,35 +46,6 @@ defmodule Cloak.DataSource.SqlBuilderTest do
     end
   end
 
-  defp sql_string(query, dialect \\ PostgreSQL) do
-    compiled_query =
-      query
-      |> compile!(data_source(Module.concat(Cloak.DataSource, dialect)))
-      |> Query.resolve_db_columns()
-
-    SqlBuilder.build(compiled_query)
-  end
-
-  defp data_source(driver) do
-    %{
-      name: "data_source",
-      driver: driver,
-      tables: %{
-        table:
-          Table.new(
-            "table",
-            "uid",
-            db_name: "table",
-            columns: [
-              Table.column("uid", :integer),
-              Table.column("string", :text),
-              Table.column("int", :integer)
-            ]
-          )
-      }
-    }
-  end
-
   test "build userid join string" do
     tables = %{
       uid_table: %{
@@ -106,6 +77,39 @@ defmodule Cloak.DataSource.SqlBuilderTest do
     assert SqlBuilder.build_table_chain_with_user_id(tables, :no_uid_table) ==
              {~s("uid_table"."uid"),
               ~s("no_uid_table" INNER JOIN "uid_table" ON "no_uid_table"."key1" = "uid_table"."key2")}
+  end
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
+
+  defp sql_string(query, dialect \\ PostgreSQL) do
+    compiled_query =
+      query
+      |> compile!(data_source(Module.concat(Cloak.DataSource, dialect)))
+      |> Query.resolve_db_columns()
+
+    SqlBuilder.build(compiled_query)
+  end
+
+  defp data_source(driver) do
+    %{
+      name: "data_source",
+      driver: driver,
+      tables: %{
+        table:
+          Table.new(
+            "table",
+            "uid",
+            db_name: "table",
+            columns: [
+              Table.column("uid", :integer),
+              Table.column("string", :text),
+              Table.column("int", :integer)
+            ]
+          )
+      }
+    }
   end
 
   # -------------------------------------------------------------------
