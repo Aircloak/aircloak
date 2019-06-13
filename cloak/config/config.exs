@@ -12,7 +12,7 @@ config :logger,
   truncate: 65536,
   backends: [:console, Cloak.Query.LogCollector],
   console: [
-    format: "$time [$level] $metadata$message\n",
+    format: "$date $time [$level] $metadata$message\n",
     metadata: [:query_id]
   ]
 

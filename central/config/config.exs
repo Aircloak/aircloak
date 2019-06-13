@@ -23,7 +23,7 @@ config :central, :https_port, 7443
 
 # Configures Elixir's Logger
 config :logger, :console,
-  format: "$time $metadata[$level] $metadata $message\n",
+  format: "$date $time $metadata[$level] $metadata $message\n",
   metadata: [:request_id, :customer, :air]
 
 # Configure phoenix generators
