@@ -681,3 +681,32 @@ We detect and mark such vulnerable subqueries and we make sure, when offloading 
 return at least one invalid row that doesn't match anything else. We can't use `NULL` values for the fake row, as the
 optimizer can detect it won't match the filtering conditions and it will drop it prematurely, so we generate values
 with a high chance of not matching any of the key columns that are required by joins in restricted queries.
+
+### Overflow protection and bound analysis
+
+To protect against overflow all data source adapters should implement safe versions of mathematical operators that don't
+cause an error when an overflow occurs, returning `NULL` or `+/- inf` instead as appropriate. However, these safe
+versions can be significantly slower than the regular operators. To improve upon this, cloak analyzes the bounds on the
+values an expression can take and replaces regular operators with `unsafe_{add/mul/etc.}` where it finds that the
+operation can safely be performed with a builtin operator.
+
+The process takes form of a series of rules for extending the bounds of operands onto an operation. For example, if
+`a` is in the bounds `{Amin, Amax}` and `b` is in the bounds `{Bmin, Bmax}`, then `a + b` is known to be in the bounds
+`{Amin + Bmin, Amax + Bmax}`.
+
+As inputs to this process bounds for each column must be computed. This is done as follows:
+
+1. Take the top/bottom 1000 values from a given column
+2. Keep only 1 biggest/smallest value for each user out of those
+3. Randomly select a cutoff with `mean` and `stddev` taken from config
+  * The cutoff won't be lower than a `min`, also taken from config
+  * The RNG for the cutoff is seeded with the table and column name, giving the same result on every run
+4. Ignore the top/bottom `cutoff` values from step 2.
+5. Take the top/bottom value after that and find the smallest money-aligned value above/below it
+6. Given both a min and max computed this way create an extended bound
+  * If min is negative while max is positive, multiply both by 10
+  * If both are positive, multiply max by 10 and divide min by 10
+  * If both are negative, multiply min by 10 and divide max by 10
+7. If there are not enough values to compute either `min` or `max`, set the bounds to `:unknown`
+
+Any operation including things with `:unknown` bounds has to be computed using the safe versions of the operators.
