@@ -233,6 +233,30 @@ defmodule Cloak.DataSource.MongoDBTest do
     )
   end
 
+  test "simple order by in standard query", context do
+    assert_query(
+      context,
+      """
+        SELECT val FROM #{@userless_table} ORDER BY 1 DESC
+      """,
+      %{
+        rows: [%{row: [3]}, %{row: [2]}, %{row: [1]}, %{row: [nil]}]
+      }
+    )
+  end
+
+  test "complex order by in standard query", context do
+    assert_query(
+      context,
+      """
+        SELECT val + 1 AS x FROM #{@userless_table} ORDER BY 1 DESC
+      """,
+      %{
+        rows: [%{row: [4]}, %{row: [3]}, %{row: [2]}, %{row: [nil]}]
+      }
+    )
+  end
+
   test "explicit nulls directive gets emulated", context do
     assert_query(
       context,

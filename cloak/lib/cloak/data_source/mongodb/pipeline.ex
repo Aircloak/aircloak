@@ -247,12 +247,6 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp limit_rows(nil), do: []
   defp limit_rows(amount), do: [%{"$limit": amount}]
 
-  defp simple_order_by?(query),
-    do:
-      query
-      |> Query.order_by_expressions()
-      |> Enum.all?(&(&1.name != nil))
-
   defp compile_columns(query) do
     # Complex columns referenced by the `ORDER BY` clause, that are not already selected,
     # need to be named and included in the projected columns list so that the `$sort` step can reference them.
@@ -377,12 +371,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Enum.uniq()
 
     if aggregators == [] and query.grouping_sets == [] do
-      if simple_order_by?(query) do
-        # if $sort and $limit steps are first, collection indexes might be used to speed up the pipeline
-        order_and_range(query) ++ Projector.project_columns(columns)
-      else
-        Projector.project_columns(columns) ++ order_and_range(query)
-      end ++ project_top_columns(columns, top_level?)
+      Projector.project_columns(columns) ++ order_and_range(query) ++ project_top_columns(columns, top_level?)
     else
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
