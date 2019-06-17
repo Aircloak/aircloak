@@ -13,11 +13,20 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         "\"user id\" TEXT, \"val ue\" INTEGER",
         user_id: "user id"
       )
+
+    :ok =
+      Cloak.Test.DB.create_table("public bounds", "id INTEGER, value INTEGER",
+        user_id: nil,
+        add_user_id: false,
+        content_type: :public,
+        keys: %{"id" => :product_id}
+      )
   end
 
   setup do
     :ok = Cloak.Test.DB.clear_table("bounds")
     :ok = Cloak.Test.DB.clear_table("bounds with spaces")
+    :ok = Cloak.Test.DB.clear_table("public bounds")
   end
 
   test "computes min and max if there are > cutoff users" do
@@ -79,6 +88,24 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
 
     for data_source <- DataSource.all() do
       assert Query.bounds(data_source, "bounds with spaces", "val ue") == {5, 100}
+    end
+  end
+
+  test "computes the true min and max (extended) for public tables" do
+    :ok =
+      Cloak.Test.DB.insert_data("public bounds", ["id", "value"], [
+        [1, 20],
+        [2, 30]
+      ])
+
+    for data_source <- DataSource.all() do
+      assert Query.bounds(data_source, "public bounds", "value") == {2, 300}
+    end
+  end
+
+  test "public table with no data" do
+    for data_source <- DataSource.all() do
+      assert Query.bounds(data_source, "public bounds", "value") == :unknown
     end
   end
 end

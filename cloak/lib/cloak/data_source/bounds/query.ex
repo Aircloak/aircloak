@@ -22,6 +22,25 @@ defmodule Cloak.DataSource.Bounds.Query do
   def bounds(data_source, table_name, column) do
     table_name = String.to_existing_atom(table_name)
 
+    case data_source.tables[table_name].content_type do
+      :public -> public_bounds(data_source, table_name, column)
+      _ -> private_bounds(data_source, table_name, column)
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp public_bounds(data_source, table_name, column) do
+    with {:ok, min, max} <- min_max(data_source, table_name, column) do
+      Compute.extend({min, max})
+    else
+      _ -> :unknown
+    end
+  end
+
+  defp private_bounds(data_source, table_name, column) do
     with true <- numeric?(data_source, table_name, column),
          cutoff = cutoff(table_name, column),
          {:ok, max} <- Compute.max(maxes(data_source, table_name, column), cutoff),
@@ -31,10 +50,6 @@ defmodule Cloak.DataSource.Bounds.Query do
       _ -> :unknown
     end
   end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
 
   defp numeric?(data_source, table_name, column) do
     column =
@@ -57,12 +72,29 @@ defmodule Cloak.DataSource.Bounds.Query do
       ORDER BY 2 #{sort_order}
       LIMIT #{@query_limit}
     """
+    |> run_query(data_source)
+    |> Enum.group_by(&hd/1, &Enum.at(&1, 1))
+    |> Enum.map(fn {_user_id, values} -> Enum.reduce(values, comparison_function) end)
+  end
+
+  defp min_max(data_source, table_name, column) do
+    """
+    SELECT MIN("#{table_name}"."#{column}"), MAX("#{table_name}"."#{column}")
+    FROM "#{table_name}"
+    """
+    |> run_query(data_source)
+    |> case do
+      [[nil, nil]] -> :error
+      [[min, max]] -> {:ok, min, max}
+    end
+  end
+
+  defp run_query(query, data_source) do
+    query
     |> Parser.parse!()
     |> Compiler.compile_direct!(nil, data_source)
     |> DbEmulator.compile()
     |> DbEmulator.select()
-    |> Enum.group_by(&hd/1, &Enum.at(&1, 1))
-    |> Enum.map(fn {_user_id, values} -> Enum.reduce(values, comparison_function) end)
   end
 
   defp cutoff(table_name, column_name) do
