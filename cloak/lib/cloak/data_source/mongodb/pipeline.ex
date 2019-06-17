@@ -12,80 +12,60 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   @doc "Builds a MongoDB aggregation pipeline from a compiled query."
   @spec build(Query.t()) :: {String.t(), [map]}
-  def build(_query, _top_level? \\ true)
-
-  def build(%Query{selected_tables: [table]} = query, top_level?) do
-    {collection, pipeline, conditions} = start_pipeline(query.from, table, query.where)
+  def build(query, top_level? \\ true) do
+    {collection, pipeline, conditions} = start_pipeline(query.from, query.selected_tables, query.where)
     {collection, pipeline ++ finish_pipeline(%Query{query | where: conditions}, top_level?)}
-  end
-
-  def build(%Query{from: {:join, join}} = query, top_level?) do
-    join_info = join_info(join, query.selected_tables)
-
-    # The `$lookup` operator projects a foreign document into the specified field from the current document.
-    # We create an unique name under which the fields of the projected document will live for the duration of the query.
-    namespace = "ac_temp_ns_#{:erlang.unique_integer([:positive])}"
-
-    rhs_table_columns = Enum.map(join_info.rhs_table.columns, &%{&1 | name: namespace <> "." <> &1.name})
-
-    join_table = %{
-      name: "join",
-      db_name: "join",
-      columns: join_info.lhs_table.columns ++ rhs_table_columns
-    }
-
-    query =
-      Query.Lenses.query_expressions()
-      |> Lens.filter(&(&1.name != nil and &1.table == join_info.rhs_table))
-      |> Lens.map(query, &%Expression{&1 | name: namespace <> "." <> &1.name})
-
-    {collection, pipeline, conditions} = start_pipeline(join_info.lhs, join_info.lhs_table, query.where)
-
-    pipeline =
-      pipeline ++
-        lookup_table(
-          join_info.rhs_table.collection,
-          join_info.lhs_field,
-          join_info.rhs_field,
-          namespace
-        ) ++
-        unwind_arrays(join_info.rhs_table.array_path, namespace <> ".") ++
-        finish_pipeline(
-          %Query{query | where: conditions, selected_tables: [join_table]},
-          top_level?
-        )
-
-    {collection, pipeline}
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp start_pipeline(table_name, table, conditions) when is_binary(table_name) do
+  defp start_pipeline(table_name, selected_tables, conditions) when is_binary(table_name) do
+    table = Enum.find(selected_tables, &(&1.name == table_name))
     {complex_conditions, basic_conditions} = extract_basic_conditions(table, conditions)
-    pipeline = filter_data(basic_conditions) ++ unwind_arrays(table.array_path)
+
+    pipeline =
+      filter_data(basic_conditions) ++
+        unwind_arrays(table.array_path) ++
+        Projector.project_array_sizes(table) ++
+        move_root_to(table_name)
+
     {table.collection, pipeline, complex_conditions}
   end
 
-  defp start_pipeline({:subquery, subquery}, _table, conditions) do
+  defp start_pipeline({:subquery, subquery}, _selected_tables, conditions) do
     {collection, pipeline} = build(subquery.ast, false)
-    pipeline = add_join_timing_protection(pipeline, subquery)
+    pipeline = add_join_timing_protection(pipeline, subquery) ++ move_root_to(subquery.alias)
     {collection, pipeline, conditions}
   end
 
-  defp finish_pipeline(%Query{selected_tables: [table]} = query, top_level?) do
-    Projector.project_array_sizes(table) ++
-      parse_conditions(query.where) ++
-      parse_query(query, top_level?)
+  defp start_pipeline({:join, %{type: :right_outer_join} = join}, selected_tables, conditions) do
+    join = %{join | type: :left_outer_join, lhs: join.rhs, rhs: join.lhs}
+    start_pipeline({:join, join}, selected_tables, conditions)
   end
+
+  defp start_pipeline({:join, join}, selected_tables, conditions) do
+    {lhs_collection, lhs_pipeline, nil} = start_pipeline(join.lhs, selected_tables, nil)
+    {rhs_collection, rhs_pipeline, nil} = start_pipeline(join.rhs, selected_tables, nil)
+
+    lhs_tables = tables_in_branch(join.lhs)
+    outer_join? = join.type == :left_outer_join
+    pipeline = lhs_pipeline ++ join_pipeline(rhs_collection, rhs_pipeline, join.conditions, lhs_tables, outer_join?)
+
+    {lhs_collection, pipeline, conditions}
+  end
+
+  defp finish_pipeline(query, top_level?),
+    do: parse_conditions(query.where) ++ parse_query(query, top_level?)
 
   defp project_top_columns(columns, _top_level? = true),
     do: [%{"$project": %{row: Enum.map(columns, &project_top_column/1), _id: false}}]
 
   defp project_top_columns(_columns, _top_level? = false), do: []
 
-  defp project_top_column(%Expression{constant?: true} = constant), do: %{"$literal": map_constant(constant)}
+  defp project_top_column(%Expression{constant?: true} = constant), do: Projector.project_expression(constant)
+
   defp project_top_column(column), do: "$#{Expression.title(column)}"
 
   defp parse_query(%Query{subquery?: false} = query, _top_level? = true),
@@ -109,66 +89,56 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_operator(:<=), do: :"$lte"
   defp parse_operator(:<>), do: :"$ne"
 
-  @epoch :calendar.datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}})
-  defp map_constant(%Expression{constant?: true, value: %NaiveDateTime{} = datetime}),
-    do: DateTime.from_naive!(datetime, "Etc/UTC")
+  defp map_column(%Expression{table: :unknown, name: name}) when is_binary(name), do: name
+  defp map_column(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: table <> "." <> name
 
-  defp map_constant(%Expression{constant?: true, value: %Date{} = date}),
-    do:
-      {Date.to_erl(date), {0, 0, 0}}
-      |> :calendar.datetime_to_gregorian_seconds()
-      |> Kernel.-(@epoch)
-      |> DateTime.from_unix!()
-
-  defp map_constant(%Expression{constant?: true, value: %Timex.Duration{} = duration}),
-    do: Timex.Duration.to_seconds(duration)
-
-  defp map_constant(%Expression{constant?: true, value: value}), do: value
-
-  defp map_constant(_),
-    do: raise(ExecutionError, message: "Conditions on MongoDB data sources have to be between a column and a constant.")
-
-  defp map_field(%Expression{name: field}) when is_binary(field), do: field
-
-  defp map_field(_),
-    do: raise(ExecutionError, message: "Conditions on MongoDB data sources have to be between a column and a constant.")
+  defp map_column(_),
+    do: raise(ExecutionError, message: "Condition on MongoDB data source expects a column as subject.")
 
   defp parse_where_condition({:and, lhs, rhs}), do: %{"$and": [parse_where_condition(lhs), parse_where_condition(rhs)]}
 
   defp parse_where_condition({:or, lhs, rhs}), do: %{"$or": [parse_where_condition(lhs), parse_where_condition(rhs)]}
 
-  defp parse_where_condition({:comparison, subject, operator, value}),
-    do: %{map_field(subject) => %{parse_operator(operator) => map_constant(value)}}
+  defp parse_where_condition({:comparison, subject, operator, target}),
+    do: %{
+      "$expr": %{
+        parse_operator(operator) => [Projector.project_expression(subject), Projector.project_expression(target)]
+      }
+    }
 
-  defp parse_where_condition({:not, {:comparison, subject, :=, value}}),
-    do: %{map_field(subject) => %{"$ne": map_constant(value)}}
+  defp parse_where_condition({:not, {:comparison, subject, :=, target}}),
+    do: %{"$expr": %{"$ne": [Projector.project_expression(subject), Projector.project_expression(target)]}}
 
-  defp parse_where_condition({:not, {:comparison, subject, :<>, value}}),
-    do: %{map_field(subject) => %{"$eq": map_constant(value)}}
+  defp parse_where_condition({:not, {:comparison, subject, :<>, target}}),
+    do: %{"$expr": %{"$eq": [Projector.project_expression(subject), Projector.project_expression(target)]}}
 
-  defp parse_where_condition({:is, subject, :null}), do: %{map_field(subject) => nil}
+  defp parse_where_condition({:is, subject, :null}), do: %{map_column(subject) => nil}
 
-  defp parse_where_condition({:not, {:is, subject, :null}}), do: %{map_field(subject) => %{"$ne": nil}}
+  defp parse_where_condition({:not, {:is, subject, :null}}), do: %{map_column(subject) => %{"$ne": nil}}
 
-  defp parse_where_condition({:in, subject, values}),
-    do: %{map_field(subject) => %{"$in": Enum.map(values, &map_constant/1)}}
+  defp parse_where_condition({:in, subject, targets}),
+    do: %{
+      "$expr": %{"$in": [Projector.project_expression(subject), Enum.map(targets, &Projector.project_expression/1)]}
+    }
 
-  defp parse_where_condition({:not, {:in, subject, values}}),
-    do: %{map_field(subject) => %{"$nin": Enum.map(values, &map_constant/1)}}
+  defp parse_where_condition({:not, {:in, subject, targets}}),
+    do: %{
+      "$expr": %{"$nin": [Projector.project_expression(subject), Enum.map(targets, &Projector.project_expression/1)]}
+    }
 
-  defp parse_where_condition({:like, subject, pattern}), do: %{map_field(subject) => regex(pattern, "ms")}
+  defp parse_where_condition({:like, subject, pattern}), do: %{map_column(subject) => regex(pattern, "ms")}
 
-  defp parse_where_condition({:ilike, subject, pattern}), do: %{map_field(subject) => regex(pattern, "msi")}
+  defp parse_where_condition({:ilike, subject, pattern}), do: %{map_column(subject) => regex(pattern, "msi")}
 
   defp parse_where_condition({:not, {:like, subject, pattern}}),
-    do: %{map_field(subject) => %{"$not": regex(pattern, "ms")}}
+    do: %{map_column(subject) => %{"$not": regex(pattern, "ms")}}
 
   defp parse_where_condition({:not, {:ilike, subject, pattern}}),
-    do: %{map_field(subject) => %{"$not": regex(pattern, "msi")}}
+    do: %{map_column(subject) => %{"$not": regex(pattern, "msi")}}
 
-  defp regex(pattern, options),
+  defp regex(%Expression{constant?: true, value: pattern}, options),
     do: %BSON.Regex{
-      pattern: LikePattern.to_regex_pattern(map_constant(pattern)),
+      pattern: LikePattern.to_regex_pattern(pattern),
       options: options
     }
 
@@ -177,6 +147,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
     {table_conditions, other_tables_conditions} =
       Condition.partition(basic_conditions, &(Condition.subject(&1).table.name == table.name))
+
+    table_conditions =
+      Query.Lenses.conditions_terminals() |> Lens.map(table_conditions, &%Expression{&1 | table: :unknown})
 
     {Condition.combine(:and, complex_conditions, other_tables_conditions), table_conditions}
   end
@@ -263,12 +236,6 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp limit_rows(nil), do: []
   defp limit_rows(amount), do: [%{"$limit": amount}]
-
-  defp simple_order_by?(query),
-    do:
-      query
-      |> Query.order_by_expressions()
-      |> Enum.all?(&(&1.name != nil))
 
   defp compile_columns(query) do
     # Complex columns referenced by the `ORDER BY` clause, that are not already selected,
@@ -394,12 +361,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Enum.uniq()
 
     if aggregators == [] and query.grouping_sets == [] do
-      if simple_order_by?(query) do
-        # if $sort and $limit steps are first, collection indexes might be used to speed up the pipeline
-        order_and_range(query) ++ Projector.project_columns(columns)
-      else
-        Projector.project_columns(columns) ++ order_and_range(query)
-      end ++ project_top_columns(columns, top_level?)
+      Projector.project_columns(columns) ++ order_and_range(query) ++ project_top_columns(columns, top_level?)
     else
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
@@ -413,58 +375,48 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     end
   end
 
-  defp lookup_table(name, local_field, foreign_field, as) do
+  defp process_columns_for_lookup(condition, source_tables) do
+    Query.Lenses.leaf_expressions()
+    |> Lens.key(:table)
+    |> Lens.filter(&(is_map(&1) and &1.name in source_tables))
+    |> Lens.map(condition, fn table -> %{table | name: "$" <> table.name} end)
+  end
+
+  defp join_pipeline(collection, pipeline, conditions, source_tables, outer_join?) do
+    on_stage = conditions |> process_columns_for_lookup(source_tables) |> filter_data()
+    namespace = "ac_join_accumulator"
+
     [
       %{
         "$lookup": %{
-          from: name,
-          localField: local_field,
-          foreignField: foreign_field,
-          as: as
+          from: collection,
+          let: for(table <- source_tables, into: %{}, do: {table, "$" <> table}),
+          pipeline: pipeline ++ on_stage,
+          as: namespace
         }
       },
-      %{"$unwind": "$" <> as}
+      %{
+        "$unwind": %{
+          path: "$" <> namespace,
+          preserveNullAndEmptyArrays: outer_join?
+        }
+      },
+      %{
+        "$replaceRoot": %{
+          newRoot: %{
+            "$mergeObjects": ["$" <> namespace, "$$ROOT"]
+          }
+        }
+      },
+      %{"$project": %{namespace => 0}}
     ]
   end
 
-  defp get_join_branch_name(name) when is_binary(name), do: name
-  defp get_join_branch_name({:subquery, %{alias: name}}) when is_binary(name), do: name
+  defp tables_in_branch(name) when is_binary(name), do: [name]
+  defp tables_in_branch({:subquery, subquery}), do: [subquery.alias]
+  defp tables_in_branch({:join, join}), do: tables_in_branch(join.lhs) ++ tables_in_branch(join.rhs)
 
-  defp join_info(
-         %{type: :inner_join, lhs: lhs, rhs: {:subquery, subquery}, conditions: condition},
-         tables
-       ),
-       do:
-         join_info(
-           %{type: :inner_join, lhs: {:subquery, subquery}, rhs: lhs, conditions: condition},
-           tables
-         )
-
-  defp join_info(%{type: :inner_join, lhs: lhs, rhs: rhs_name, conditions: condition}, tables)
-       when is_binary(rhs_name) do
-    lhs_name = get_join_branch_name(lhs)
-
-    {lhs_field, rhs_field} =
-      case condition do
-        {:comparison, %{table: %{name: ^lhs_name}} = local, :=, %{table: %{name: ^rhs_name}} = foreign} ->
-          {local.name, foreign.name}
-
-        {:comparison, %{table: %{name: ^rhs_name}} = foreign, :=, %{table: %{name: ^lhs_name}} = local} ->
-          {local.name, foreign.name}
-      end
-
-    lhs_table = Enum.find(tables, &(&1.name == lhs_name))
-    rhs_table = Enum.find(tables, &(&1.name == rhs_name))
-    true = lhs_table != nil and rhs_table != nil
-
-    %{
-      lhs: lhs,
-      lhs_table: lhs_table,
-      rhs_table: rhs_table,
-      lhs_field: lhs_field,
-      rhs_field: rhs_field
-    }
-  end
+  defp move_root_to(path), do: [%{"$replaceRoot": %{newRoot: %{path => "$$ROOT"}}}]
 
   defp add_join_timing_protection(pipeline, %{ast: query, join_timing_protection?: true}) do
     [

@@ -168,4 +168,47 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
       %{rows: [%{occurrences: 1, row: [20]}]}
     )
   end
+
+  test "join with like filter", context do
+    assert_query(
+      context,
+      """
+        SELECT round(MEDIAN(salary)) FROM "left"
+          INNER JOIN "right" ON "left".id = "right".id AND name LIKE 'user%'
+      """,
+      %{rows: [%{occurrences: 1, row: [77]}]}
+    )
+  end
+
+  test "triple join", context do
+    assert_query(
+      context,
+      """
+        SELECT count(*) FROM "left"
+          JOIN (SELECT id AS rid FROM "right") AS t ON "left".id = rid
+          JOIN "right" ON rid = "right".id
+      """,
+      %{rows: [%{occurrences: 1, row: [20]}]}
+    )
+  end
+
+  test "right join", context do
+    assert_query(
+      context,
+      """
+        SELECT age FROM "right" RIGHT JOIN "left" ON "left".id = "right".id
+      """,
+      %{rows: [%{occurrences: 20, row: [30]}, %{occurrences: 5, row: [nil]}]}
+    )
+  end
+
+  test "cross join with tables", context do
+    assert_query(
+      context,
+      """
+        SELECT age FROM "left" AS l, "right" as r WHERE l.id = r.id AND age BETWEEN 0 AND 100
+      """,
+      %{rows: [%{occurrences: 20, row: [30]}]}
+    )
+  end
 end

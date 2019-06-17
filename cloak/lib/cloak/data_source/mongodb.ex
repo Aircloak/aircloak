@@ -35,7 +35,7 @@ defmodule Cloak.DataSource.MongoDB do
     name of the table being the base table name suffixed with the array name, separated by `_`.
   """
 
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.Sql.{Query, Expression, Condition}
   alias Cloak.Query.ExecutionError
   alias Cloak.DataSource.{Driver, MongoDB.Schema, MongoDB.Pipeline}
 
@@ -248,7 +248,7 @@ defmodule Cloak.DataSource.MongoDB do
     cast_integer_to_boolean cast_real_to_boolean cast_boolean_to_integer cast_boolean_to_real
     cast_boolean_to_text cast_text_to_boolean cast_integer_to_real cast_datetime_to_text
     ^ abs ceil floor round sqrt trunc quarter div cast_real_to_integer min max avg
-    length left right substring cast_real_to_text cast_integer_to_text bool_op
+    length left right substring cast_real_to_text cast_integer_to_text bool_op coalesce
   )
 
   defp supported_functions(version) do
@@ -264,12 +264,19 @@ defmodule Cloak.DataSource.MongoDB do
 
   defp function_signature(%Expression{function?: true, function: name}), do: name
 
-  defp supports_joins?(%Query{from: {:join, join}} = query) do
-    join.type == :inner_join and supports_join_conditions?(join.conditions) and
-      supports_join_branches?(query.selected_tables, join.lhs, join.rhs)
-  end
+  defp supports_joins?(query),
+    do: supported_join?(query.from) and not Enum.any?(query.selected_tables, & &1[:sharded?])
 
-  defp supports_joins?(_query), do: true
+  defp supported_join?({:join, join}),
+    do: supported_join_filters?(join.conditions) and supported_join?(join.lhs) and supported_join?(join.rhs)
+
+  defp supported_join?(_from), do: true
+
+  defp supported_join_filters?(conditions) do
+    Query.Lenses.conditions()
+    |> Lens.filter(&(Condition.verb(&1) in [:like, :ilike, :is]))
+    |> Lens.to_list(conditions) == []
+  end
 
   defp supports_order_by?(%{type: :anonymized}), do: true
 
@@ -281,25 +288,6 @@ defmodule Cloak.DataSource.MongoDB do
         {_, :desc, :nulls_last} -> true
         _ -> false
       end)
-
-  defp supports_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
-
-  defp supports_join_conditions?(_conditions), do: false
-
-  defp supports_join_branches?(selected_tables, lhs, rhs),
-    do:
-      (is_binary(lhs) or is_binary(rhs)) and simple_branch?(lhs) and simple_branch?(rhs) and
-        not sharded_table?(selected_tables, lhs) and not sharded_table?(selected_tables, rhs)
-
-  defp simple_branch?({:join, _}), do: false
-  defp simple_branch?(_), do: true
-
-  defp sharded_table?(selected_tables, table) when is_binary(table) do
-    table = Enum.find(selected_tables, &(&1.name == table))
-    table != nil and table.sharded?
-  end
-
-  defp sharded_table?(_selected_tables, _table), do: false
 
   # Offloaded global aggregators do not work properly as the `$group` operator return an empty output on empty input.
   defp supports_aggregators?(%Query{aggregators: [_ | _], implicit_count?: false, type: :standard}), do: false

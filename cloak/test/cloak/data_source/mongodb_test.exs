@@ -233,6 +233,30 @@ defmodule Cloak.DataSource.MongoDBTest do
     )
   end
 
+  test "simple order by in standard query", context do
+    assert_query(
+      context,
+      """
+        SELECT val FROM #{@userless_table} ORDER BY 1 DESC
+      """,
+      %{
+        rows: [%{row: [3]}, %{row: [2]}, %{row: [1]}, %{row: [nil]}]
+      }
+    )
+  end
+
+  test "complex order by in standard query", context do
+    assert_query(
+      context,
+      """
+        SELECT val + 1 AS x FROM #{@userless_table} ORDER BY 1 DESC
+      """,
+      %{
+        rows: [%{row: [4]}, %{row: [3]}, %{row: [2]}, %{row: [nil]}]
+      }
+    )
+  end
+
   test "explicit nulls directive gets emulated", context do
     assert_query(
       context,
@@ -323,12 +347,8 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "error on invalid conditions", context do
-    assert_query(context, "SELECT COUNT(name) FROM #{@user_table} WHERE true = true", %{
-      error: "Conditions on MongoDB data sources have to be between a column and a constant."
-    })
-
-    assert_query(context, "SELECT COUNT(name) FROM #{@user_table} WHERE age = age + 0", %{
-      error: "Conditions on MongoDB data sources have to be between a column and a constant."
+    assert_query(context, "SELECT COUNT(name) FROM #{@user_table} WHERE TRUE IS NOT NULL", %{
+      error: "Condition on MongoDB data source expects a column as subject."
     })
   end
 
