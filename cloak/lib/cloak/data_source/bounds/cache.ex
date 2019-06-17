@@ -17,6 +17,11 @@ defmodule Cloak.DataSource.Bounds.Cache do
   def lookup(cache_ref \\ __MODULE__, data_source, table_name, column_name),
     do: Cache.lookup(cache_ref, data_source, table_name, column_name)
 
+  @doc "Returns the cached bound value, waiting until it's computed if it's not yet in the cache."
+  @spec value(Cloak.DataSource.t(), String.t(), String.t()) :: Expression.bounds()
+  def value(cache_ref \\ __MODULE__, data_source, table_name, column_name),
+    do: Cache.value(cache_ref, data_source, table_name, column_name)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
