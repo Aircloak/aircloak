@@ -69,7 +69,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp map_array_size(name), do: %{"$size": %{"$ifNull": ["$" <> name, []]}}
+  defp map_array_size(name), do: %{"$cond": [%{"$gt": ["$" <> name, nil]}, %{"$size": "$" <> name}, nil]}
 
   defp begin_parse_expression(%Expression{function?: true, function: fun} = expression)
        when fun not in [nil, "coalesce"] do

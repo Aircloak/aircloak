@@ -171,6 +171,12 @@ defmodule Cloak.DataSource.MongoDBTest do
     })
   end
 
+  test "NULL values in virtual columns", context do
+    assert_query(context, "SELECT COUNT(bills#), COUNT(*) FROM #{@user_table}", %{
+      rows: [%{occurrences: 1, row: [10, 19]}]
+    })
+  end
+
   test "complex queries on virtual columns and tables", context do
     assert_query(
       context,
