@@ -9,10 +9,14 @@ defmodule Cloak.Sql.Expression do
   alias Timex.Duration
 
   @type column_type :: DataSource.Table.data_type() | :like_pattern | :interval | nil
+
   @type function_name ::
           String.t()
           | {:cast, DataSource.Table.data_type() | :varbinary | {:native_type, String.t()}}
           | {:bucket, :lower | :upper | :middle}
+
+  @type bounds :: :unknown | {integer(), integer()}
+
   @type t :: %__MODULE__{
           table: :unknown | DataSource.Table.t(),
           name: String.t() | nil,
@@ -29,8 +33,9 @@ defmodule Cloak.Sql.Expression do
           parameter_index: pos_integer | nil,
           synthetic?: boolean,
           source_location: Cloak.Sql.Parser.location(),
-          bounds: :unknown | {integer(), integer()}
+          bounds: bounds
         }
+
   defstruct table: :unknown,
             name: nil,
             alias: nil,

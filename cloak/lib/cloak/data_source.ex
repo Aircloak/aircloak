@@ -510,7 +510,8 @@ defmodule Cloak.DataSource do
             Cloak.DataSource.Connection.Pool,
             gen_server(__MODULE__, nil, name: __MODULE__),
             Supervisor.child_spec(Cloak.DataSource.Isolators, id: :isolators),
-            Supervisor.child_spec(Cloak.DataSource.Shadows, id: :shadows)
+            Supervisor.child_spec(Cloak.DataSource.Shadows, id: :shadows),
+            Supervisor.child_spec(Cloak.DataSource.Bounds, id: :bounds)
           ],
           strategy: :rest_for_one
         ),

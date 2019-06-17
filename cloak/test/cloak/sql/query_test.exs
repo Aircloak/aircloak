@@ -343,12 +343,12 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "features->expressions" do
     test "includes representations of expressions used" do
-      assert ["(median (unsafe_add const (sqrt col)))", "(unsafe_add col const)", "const"] =
+      assert ["(median (+ const (sqrt col)))", "(+ col const)", "const"] =
                features_from("SELECT median(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
     end
 
     test "resolves references into subqueries" do
-      assert ["(median (unsafe_add col const))"] =
+      assert ["(median (+ col const))"] =
                features_from("SELECT median(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
     end
 

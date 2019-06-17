@@ -56,6 +56,13 @@ config :cloak, :anonymizer,
   # This value specifies the isolating factor threshold. See `Isolating columns` in anonymization.md.
   isolating_column_threshold: 0.8
 
+# These values specify how many users are needed to establish the min/max bound for a given column. See `Overflow
+# protection and bound analysis` in anonymization.md.
+config :cloak, :bound_size_cutoff,
+  min: 10,
+  mean: 20,
+  std_dev: 5
+
 config :cloak, :shadow_tables,
   # Number of allowed negative conditions with rare values. See `Shadow tables` in anonymization.md.
   max_rare_negative_conditions: 1,

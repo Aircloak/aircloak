@@ -295,25 +295,11 @@ defmodule Cloak.Query.Anonymizer do
   defp add_noise(%{rngs: rngs} = anonymizer, {mean, sd_scale}) do
     {noise, rngs} =
       Enum.reduce(rngs, {0, []}, fn rng, {noise, rngs} ->
-        {sample, rng} = gauss(rng)
+        {sample, rng} = Cloak.RNG.gauss(rng)
         {noise + sample, [rng | rngs]}
       end)
 
     {mean + noise * sd_scale, %{anonymizer | rngs: Enum.reverse(rngs)}}
-  end
-
-  defp gauss(rng) do
-    {rand1, rng} = :rand.uniform_s(rng)
-    {rand2, rng} = :rand.uniform_s(rng)
-    {gauss(rand1, rand2), rng}
-  end
-
-  # Generates a gaussian distributed random number from two
-  # uniform distributed numbers by the Box-Muller method.
-  defp gauss(rand1, rand2) when rand1 > 0 do
-    r1 = -2.0 * :math.log(rand1)
-    r2 = 2.0 * :math.pi() * rand2
-    :math.sqrt(r1) * :math.cos(r2)
   end
 
   # Computes the noisy sum of a collection of positive numbers.

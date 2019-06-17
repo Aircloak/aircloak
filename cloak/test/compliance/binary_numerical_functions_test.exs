@@ -33,7 +33,7 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} parameter 1 subquery"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
           context
-          |> disable_divide_by_zero_for_mongo(unquote(function))
+          |> disable_divide_by_zero(unquote(function))
           |> assert_consistent_and_not_failing("""
             SELECT
               output
@@ -51,7 +51,7 @@ Enum.each(
           @tag compliance: "#{function} #{column} #{table} parameter 2 subquery"
           test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
             context
-            |> disable_divide_by_zero_for_mongo(unquote(function))
+            |> disable_divide_by_zero(unquote(function))
             |> assert_consistent_and_not_failing("""
               SELECT
                 output
@@ -69,7 +69,7 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} parameter 1 query"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
           context
-          |> disable_divide_by_zero_for_mongo(unquote(function))
+          |> disable_divide_by_zero(unquote(function))
           |> assert_consistent_and_not_failing("""
             SELECT
               #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
@@ -82,7 +82,7 @@ Enum.each(
           @tag compliance: "#{function} #{column} #{table} parameter 2 query"
           test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
             context
-            |> disable_divide_by_zero_for_mongo(unquote(function))
+            |> disable_divide_by_zero(unquote(function))
             |> assert_consistent_and_not_failing("""
               SELECT
                 #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
@@ -93,8 +93,12 @@ Enum.each(
         end
       end)
 
-      def disable_divide_by_zero_for_mongo(context, function) do
-        disable_for(context, Cloak.DataSource.MongoDB, function =~ ~r/\/|%.*-/)
+      def disable_divide_by_zero(context, function) do
+        context
+        # Mongo returns inf instead of nil
+        |> disable_for(Cloak.DataSource.MongoDB, function =~ ~r/\/|%.*-/)
+        # SQLServer orders nulls last instead of first
+        |> disable_for(Cloak.DataSource.SQLServer, function =~ ~r/\/|%.*-/)
       end
     end
   end

@@ -1,0 +1,73 @@
+defmodule Cloak.DataSource.Bounds.Compute do
+  @moduledoc "Implements computing column bounds giving a set of high/low values."
+
+  import Kernel, except: [max: 2]
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Returns a money-aligned, safe upper bound for a column.
+
+  The provided data should be the largest values for that column, with at most one value taken from each user.
+  """
+  @spec max([number], pos_integer) :: {:ok, integer()} | :error
+  def max(data, bound_size_cutoff) do
+    data
+    |> Enum.sort(&Kernel.>/2)
+    |> Enum.drop(bound_size_cutoff - 1)
+    |> case do
+      [] -> :error
+      [number | _rest] -> {:ok, lteq_money_aligned(number)}
+    end
+  end
+
+  @doc """
+  Returns a money-aligned, safe lower bound for a column.
+
+  The provided data should be the smallest values for that column, with at most one value taken from each user.
+  """
+  @spec min([number], pos_integer) :: {:ok, integer()} | :error
+  def min(data, bound_size_cutoff) do
+    with {:ok, result} <- data |> Enum.map(&(-&1)) |> max(bound_size_cutoff) do
+      {:ok, -result}
+    end
+  end
+
+  @doc """
+  Extends money-aligned bounds by around 10x.
+
+  It will preserve the relative position of both bounds to 0. Note that if both bounds have the same sign and the
+  smaller absolute value is below 10, then the resulting bounds will include 0.
+  """
+  @spec extend({integer, integer}) :: {integer, integer}
+  def extend({min, max}) do
+    cond do
+      min <= 0 and max <= 0 -> {min * 10, div(max, 10)}
+      min >= 0 and max >= 0 -> {div(min, 10), max * 10}
+      true -> {min * 10, max * 10}
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp lteq_money_aligned(number) when number < 0 do
+    [-1, -2, -5]
+    |> Stream.iterate(fn [a, b, c] -> [a * 10, b * 10, c * 10] end)
+    |> Stream.flat_map(& &1)
+    |> Enum.find(&(&1 <= number))
+  end
+
+  defp lteq_money_aligned(number) when number <= 1, do: 0
+
+  defp lteq_money_aligned(number) do
+    [1, 2, 5]
+    |> Stream.iterate(fn [a, b, c] -> [a * 10, b * 10, c * 10] end)
+    |> Stream.flat_map(& &1)
+    |> Enum.take_while(&(&1 <= number))
+    |> List.last()
+  end
+end
