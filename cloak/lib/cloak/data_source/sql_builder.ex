@@ -203,15 +203,15 @@ defmodule Cloak.DataSource.SqlBuilder do
     sql = column |> column_name(sql_dialect_module(query).quote_char()) |> cast_type(column.type, query)
 
     case Query.resolve_subquery_column(column, query) do
-      :database_column -> restrict(sql, bounds)
+      :database_column -> restrict(column.type, sql, bounds)
       _ -> sql
     end
   end
 
-  defp restrict(sql, :unknown), do: sql
-
-  defp restrict(sql, {min, max}),
+  defp restrict(type, sql, {min, max}) when type in [:integer, :real],
     do: ["CASE WHEN ", sql, " < #{min} THEN #{min} WHEN ", sql, " > #{max} THEN #{max} ELSE ", sql, " END"]
+
+  defp restrict(_type, sql, _bounds), do: sql
 
   defp force_max_precision(expression = %Expression{constant?: true}), do: expression
   defp force_max_precision(expression = %Expression{type: type}), do: cast(expression, type)
