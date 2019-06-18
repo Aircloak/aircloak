@@ -59,6 +59,20 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
     end
   end
 
+  test "user id bounds" do
+    :ok =
+      Cloak.Test.DB.create_table("bounds_user_id", "id INTEGER",
+        user_id: "id",
+        add_user_id: false
+      )
+
+    :ok = Cloak.Test.DB.insert_data("bounds_user_id", ["id"], [[10], [11], [12], [13], [20], [30]])
+
+    for data_source <- DataSource.all() do
+      assert Query.bounds(data_source, "bounds_user_id", "id") == {2, 100}
+    end
+  end
+
   test "non-numeric columns have unknown bounds" do
     :ok =
       Cloak.Test.DB.insert_data("bounds", ["user_id", "string"], [

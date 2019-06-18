@@ -73,7 +73,10 @@ defmodule Cloak.DataSource.Bounds.Query do
       LIMIT #{@query_limit}
     """
     |> run_query(data_source)
-    |> Enum.group_by(&hd/1, &Enum.at(&1, 1))
+    |> Enum.group_by(&hd/1, fn
+      [user_id] -> user_id
+      [_user_id, value] -> value
+    end)
     |> Enum.map(fn {_user_id, values} -> Enum.reduce(values, comparison_function) end)
   end
 
