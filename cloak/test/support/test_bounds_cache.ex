@@ -20,6 +20,9 @@ defmodule Cloak.TestBoundsCache do
     Agent.update(__MODULE__, &Map.put(&1, {data_source.name, table, column}, :forward))
   end
 
+  def data_sources_changed(),
+    do: send(Cloak.DataSource.Bounds.Cache, {:data_sources_changed, Cloak.DataSource.all()})
+
   def child_spec(_) do
     Aircloak.ChildSpec.supervisor(
       [
