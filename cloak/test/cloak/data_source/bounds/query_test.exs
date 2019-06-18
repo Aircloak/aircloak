@@ -15,7 +15,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
       )
 
     :ok =
-      Cloak.Test.DB.create_table("public bounds", "id INTEGER, value INTEGER, float REAL",
+      Cloak.Test.DB.create_table("public bounds", "id INTEGER, value INTEGER, float REAL, string TEXT",
         user_id: nil,
         add_user_id: false,
         content_type: :public,
@@ -132,6 +132,18 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
   test "public table with no data" do
     for data_source <- DataSource.all() do
       assert Query.bounds(data_source, "public bounds", "value") == :unknown
+    end
+  end
+
+  test "public table with non-numeric column" do
+    :ok =
+      Cloak.Test.DB.insert_data("public bounds", ["id", "string"], [
+        [1, "a"],
+        [2, "b"]
+      ])
+
+    for data_source <- DataSource.all() do
+      assert Query.bounds(data_source, "public bounds", "string") == :unknown
     end
   end
 end
