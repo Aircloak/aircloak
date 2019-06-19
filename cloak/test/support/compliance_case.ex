@@ -192,7 +192,7 @@ defmodule ComplianceCase do
   @doc false
   def data_sources(),
     # using a global transaction here to prevent simultaneous concurrent datasource loads
-    do: :global.trans({__MODULE__, :data_sources}, &get_data_sources/0, [node()])
+    do: :global.trans({__MODULE__, self()}, &get_data_sources/0, [node()])
 
   defp get_data_sources() do
     # we're caching datasource definition to prevent repeated datasource reloading
