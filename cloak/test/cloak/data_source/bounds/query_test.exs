@@ -79,7 +79,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
 
     :ok = Cloak.Test.DB.insert_data("bounds_user_id", ["id"], [[10], [11], [12], [13], [20], [30]])
 
-    assert_bounds("bounds_user_id", "id", {2, 100})
+    assert_bounds("bounds_user_id", "id", :unknown)
   end
 
   test "non-numeric columns have unknown bounds" do

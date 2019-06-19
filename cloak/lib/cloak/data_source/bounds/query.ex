@@ -42,7 +42,8 @@ defmodule Cloak.DataSource.Bounds.Query do
   end
 
   defp private_bounds(data_source, table_name, column) do
-    with true <- numeric?(data_source, table_name, column),
+    with false <- data_source.tables[table_name].user_id == column,
+         true <- numeric?(data_source, table_name, column),
          cutoff = cutoff(table_name, column),
          {:ok, max} <- Compute.max(maxes(data_source, table_name, column), cutoff),
          {:ok, min} <- Compute.min(mins(data_source, table_name, column), cutoff) do
