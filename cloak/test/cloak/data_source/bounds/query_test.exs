@@ -40,9 +40,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         ["user6", 30]
       ])
 
-    for data_source <- DataSource.all() do
-      assert Query.bounds(data_source, "bounds", "value") == {5, 100}
-    end
+    assert_bounds("bounds", "value", {5, 100})
   end
 
   test "ignores NULLs" do
@@ -57,9 +55,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         ["user7", nil]
       ])
 
-    for data_source <- DataSource.all() do
-      assert Query.bounds(data_source, "bounds", "value") == {5, 100}
-    end
+    assert_bounds("bounds", "value", {5, 100})
   end
 
   test "returns unknown if there are not enough users" do
@@ -71,9 +67,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         ["user4", 30]
       ])
 
-    for data_source <- DataSource.all() do
-      assert Query.bounds(data_source, "bounds", "value") == :unknown
-    end
+    assert_bounds("bounds", "value", :unknown)
   end
 
   test "user id bounds" do
@@ -85,9 +79,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
 
     :ok = Cloak.Test.DB.insert_data("bounds_user_id", ["id"], [[10], [11], [12], [13], [20], [30]])
 
-    for data_source <- DataSource.all() do
-      assert Query.bounds(data_source, "bounds_user_id", "id") == {2, 100}
-    end
+    assert_bounds("bounds_user_id", "id", {2, 100})
   end
 
   test "non-numeric columns have unknown bounds" do
@@ -101,9 +93,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         ["user6", "b"]
       ])
 
-    for data_source <- DataSource.all() do
-      assert Query.bounds(data_source, "bounds", "string") == :unknown
-    end
+    assert_bounds("bounds", "string", :unknown)
   end
 
   test "names with spaces are handled properly" do
@@ -117,9 +107,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         ["user6", 30]
       ])
 
-    for data_source <- DataSource.all() do
-      assert Query.bounds(data_source, "bounds with spaces", "val ue") == {5, 100}
-    end
+    assert_bounds("bounds with spaces", "val ue", {5, 100})
   end
 
   test "computes the true min and max (extended) for public tables" do
@@ -129,9 +117,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         [2, 30]
       ])
 
-    for data_source <- DataSource.all() do
-      assert Query.bounds(data_source, "public bounds", "value") == {2, 300}
-    end
+    assert_bounds("public bounds", "value", {2, 300})
   end
 
   test "float column in public table" do
@@ -141,15 +127,11 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         [2, 30.33]
       ])
 
-    for data_source <- DataSource.all() do
-      assert Query.bounds(data_source, "public bounds", "float") == {2, 300}
-    end
+    assert_bounds("public bounds", "float", {2, 300})
   end
 
   test "public table with no data" do
-    for data_source <- DataSource.all() do
-      assert Query.bounds(data_source, "public bounds", "value") == :unknown
-    end
+    assert_bounds("public bounds", "value", :unknown)
   end
 
   test "public table with non-numeric column" do
@@ -159,9 +141,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         [2, "b"]
       ])
 
-    for data_source <- DataSource.all() do
-      assert Query.bounds(data_source, "public bounds", "string") == :unknown
-    end
+    assert_bounds("public bounds", "string", :unknown)
   end
 
   test "ignores NULLs in public tables" do
@@ -171,8 +151,12 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         [2, nil]
       ])
 
+    assert_bounds("public bounds", "value", {2, 200})
+  end
+
+  def assert_bounds(table, column, bounds) do
     for data_source <- DataSource.all() do
-      assert Query.bounds(data_source, "public bounds", "value") == {2, 200}
+      assert Query.bounds(data_source, table, column) == bounds
     end
   end
 end
