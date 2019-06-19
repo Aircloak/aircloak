@@ -191,12 +191,11 @@ defmodule ComplianceCase do
       )
 
   @doc false
-  def data_sources(),
-    # using a global transaction here to prevent simultaneous concurrent datasource loads
-    do: :global.trans({__MODULE__, :data_sources}, &get_data_sources/0, [node()])
+  def data_sources(), do: :global.trans({__MODULE__, self()}, &get_data_sources/0)
 
   defp get_data_sources() do
     # we're caching datasource definition to prevent repeated datasource reloading
+
     cached_data_sources = Application.get_env(:cloak, :cached_data_sources, %{})
     compliance_file = if System.get_env("CI") == "true", do: "dockerized_ci", else: "compliance"
 
@@ -204,7 +203,7 @@ defmodule ComplianceCase do
       :error ->
         data_sources = Compliance.DataSources.all_from_config_initialized(compliance_file)
         Application.put_env(:cloak, :cached_data_sources, Map.put(cached_data_sources, compliance_file, data_sources))
-        for data_source <- data_sources, do: Cloak.DataSource.replace_data_source_config(data_source)
+        for data_source <- data_sources, do: Cloak.DataSource.replace_data_source_config_sync(data_source)
         Cloak.TestIsolatorsCache.data_sources_changed()
         Cloak.TestShadowCache.data_sources_changed()
         Cloak.TestBoundsCache.data_sources_changed()
