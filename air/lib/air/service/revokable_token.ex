@@ -79,7 +79,7 @@ defmodule Air.Service.RevokableToken do
   """
   @spec verify_and_revoke(String.t(), RevokableToken.RevokableTokenType.t()) :: {:ok, term()} | {:error, :invalid_token}
   def verify_and_revoke(token, type) do
-    :global.trans({__MODULE__, token}, fn ->
+    :global.trans({__MODULE__, self()}, fn ->
       result = verify(token, type)
       revoke(token, type)
       result
