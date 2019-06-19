@@ -45,6 +45,23 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
     end
   end
 
+  test "ignores NULLs" do
+    :ok =
+      Cloak.Test.DB.insert_data("bounds", ["user_id", "value"], [
+        ["user1", 10],
+        ["user2", 10],
+        ["user3", 30],
+        ["user4", 30],
+        ["user5", 30],
+        ["user6", 30],
+        ["user7", nil]
+      ])
+
+    for data_source <- DataSource.all() do
+      assert Query.bounds(data_source, "bounds", "value") == {5, 100}
+    end
+  end
+
   test "returns unknown if there are not enough users" do
     :ok =
       Cloak.Test.DB.insert_data("bounds", ["user_id", "value"], [
@@ -144,6 +161,18 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
 
     for data_source <- DataSource.all() do
       assert Query.bounds(data_source, "public bounds", "string") == :unknown
+    end
+  end
+
+  test "ignores NULLs in public tables" do
+    :ok =
+      Cloak.Test.DB.insert_data("public bounds", ["id", "value"], [
+        [1, 20],
+        [2, nil]
+      ])
+
+    for data_source <- DataSource.all() do
+      assert Query.bounds(data_source, "public bounds", "value") == {2, 200}
     end
   end
 end

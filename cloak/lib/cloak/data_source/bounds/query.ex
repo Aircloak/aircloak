@@ -70,6 +70,7 @@ defmodule Cloak.DataSource.Bounds.Query do
     """
       SELECT #{user_id}, "#{table_name}"."#{column}"
       FROM #{table_chain}
+      WHERE "#{table_name}"."#{column}" IS NOT NULL
       ORDER BY 2 #{sort_order}
       LIMIT #{@query_limit}
     """
