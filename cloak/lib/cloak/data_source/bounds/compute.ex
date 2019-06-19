@@ -42,6 +42,9 @@ defmodule Cloak.DataSource.Bounds.Compute do
   smaller absolute value is below 10, then the resulting bounds will include 0.
   """
   @spec extend({integer, integer}) :: {integer, integer}
+  def extend({min, max}) when max < min, do: extend({max, min})
+  def extend({0, 0}), do: {-1, 1}
+
   def extend({min, max}) do
     cond do
       min <= 0 and max <= 0 -> {min * 10, div(max, 10)}
@@ -54,7 +57,7 @@ defmodule Cloak.DataSource.Bounds.Compute do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp lteq_money_aligned(number) when number < 0 do
+  defp lteq_money_aligned(number) when number <= 0 do
     [-1, -2, -5]
     |> Stream.iterate(fn [a, b, c] -> [a * 10, b * 10, c * 10] end)
     |> Stream.flat_map(& &1)

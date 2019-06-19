@@ -40,7 +40,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         ["user6", 30]
       ])
 
-    assert_bounds("bounds", "value", {5, 100})
+    assert_bounds("bounds", "value", {1, 500})
   end
 
   test "ignores NULLs" do
@@ -55,7 +55,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         ["user7", nil]
       ])
 
-    assert_bounds("bounds", "value", {5, 100})
+    assert_bounds("bounds", "value", {1, 500})
   end
 
   test "returns unknown if there are not enough users" do
@@ -107,7 +107,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         ["user6", 30]
       ])
 
-    assert_bounds("bounds with spaces", "val ue", {5, 100})
+    assert_bounds("bounds with spaces", "val ue", {1, 500})
   end
 
   test "computes the true min and max (extended) for public tables" do
