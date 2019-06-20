@@ -682,7 +682,7 @@ return at least one invalid row that doesn't match anything else. We can't use `
 optimizer can detect it won't match the filtering conditions and it will drop it prematurely, so we generate values
 with a high chance of not matching any of the key columns that are required by joins in restricted queries.
 
-### Overflow protection and bound analysis
+## Overflow protection and bound analysis
 
 To protect against overflow all data source adapters should implement safe versions of mathematical operators that don't
 cause an error when an overflow occurs, returning `NULL` or `+/- inf` instead, as appropriate. However, these safe
@@ -711,3 +711,9 @@ As inputs to this process, bounds for each column must be computed. This is done
 7. If there are not enough values to compute either `min` or `max`, set the bounds to `:unknown`
 
 Any operation including things with `:unknown` bounds has to be computed using the safe versions of the operators.
+
+The computed bounds might be below certain values that exist in the database, because they need to be anonymous. This
+could lead to a potential attack where an attacker produces an expression that is safe to execute given our estimate of
+the bounds, but causes a DB crash given these outlier values. In order to protect from this, values selected from the DB
+for columns where bounds have been computed are restricted to within those bounds. That is, any value larger than the
+estimated `max` is selected as `max` instead of the true value, and similarly for `min`.
