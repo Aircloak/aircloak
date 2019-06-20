@@ -177,9 +177,10 @@ defmodule Cloak.DataSource.SqlBuilder do
        ) do
     sql = arg |> to_fragment(query) |> sql_dialect_module(query).cast_sql(arg.type, to_type)
 
-    case Query.resolve_subquery_column(arg, query) do
-      :database_column -> restrict(to_type, sql, arg.bounds)
-      _ -> sql
+    if Query.database_column?(arg, query) do
+      restrict(to_type, sql, arg.bounds)
+    else
+      sql
     end
   end
 
@@ -214,9 +215,10 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{function?: false, constant?: false, bounds: bounds} = column, query) do
     sql = column |> column_name(sql_dialect_module(query).quote_char()) |> cast_type(column.type, query)
 
-    case Query.resolve_subquery_column(column, query) do
-      :database_column -> restrict(column.type, sql, bounds)
-      _ -> sql
+    if Query.database_column?(column, query) do
+      restrict(column.type, sql, bounds)
+    else
+      sql
     end
   end
 
