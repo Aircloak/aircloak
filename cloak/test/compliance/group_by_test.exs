@@ -8,6 +8,7 @@ defmodule Compliance.GroupByTest do
       |> disable_for(Cloak.DataSource.SQLServer, unquote(column) == "name")
       |> disable_for(Cloak.DataSource.MySQL, unquote(column) == "name")
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
+      |> disable_for(Cloak.DataSource.Drill, true)
       |> disable_for(:all, unquote(table) == "users_public" and unquote(column) == "name")
       |> assert_consistent_and_not_failing("""
         SELECT #{unquote(column)}, COUNT(DISTINCT #{unquote(uid)})
