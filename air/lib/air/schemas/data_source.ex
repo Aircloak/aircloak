@@ -15,8 +15,10 @@ defmodule Air.Schemas.DataSource do
     field(:columns_count, :integer)
     field(:isolated_computed_count, :integer)
     field(:shadow_tables_computed_count, :integer)
+    field(:bounds_computed_count, :integer)
     field(:isolated_failed, {:array, :string})
     field(:shadow_tables_failed, {:array, :string})
+    field(:bounds_failed, {:array, :string})
     field(:pending_delete, :boolean)
     field(:supports_analyst_tables, :boolean)
 
