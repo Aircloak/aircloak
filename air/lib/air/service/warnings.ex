@@ -66,6 +66,7 @@ defmodule Air.Service.Warnings do
     offline_datasources(data_sources, :high) ++
       failed_isolator(data_sources, :medium) ++
       failed_shadow_tables(data_sources, :medium) ++
+      failed_bounds(data_sources, :medium) ++
       broken_datasources(data_sources, :medium) ++ no_group(data_sources, :low) ++ no_users(data_sources, :low)
   end
 
@@ -102,6 +103,19 @@ defmodule Air.Service.Warnings do
         "Cloak could not compute frequent values from columns #{columns}." <>
           " The columns will be treated as having no frequent values." <>
           " See the Restrictions section of the user guide for more information."
+
+      problem(data_source, message, severity)
+    end
+  end
+
+  defp failed_bounds(data_sources, severity) do
+    for data_source = %{bounds_failed: failed = [_ | _]} <- data_sources do
+      columns = failed |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
+
+      message =
+        "Cloak could not compute bounds for columns #{columns}." <>
+          " Thes columns will be treated as unbounded," <>
+          " which might result in query emulation for some mathematical operations."
 
       problem(data_source, message, severity)
     end
