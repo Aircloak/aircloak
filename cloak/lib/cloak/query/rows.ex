@@ -3,7 +3,7 @@ defmodule Cloak.Query.Rows do
   alias Cloak.Sql.{Expression, Query, Condition, Compiler}
 
   @type groups :: %{Cloak.DataSource.row() => group_data}
-  @type group_updater :: (group_data, Cloak.DataSource.row() | Cloak.Query.Result.bucket() -> group_data)
+  @type group_updater :: (integer(), group_data, Cloak.DataSource.row() | Cloak.Query.Result.bucket() -> group_data)
   @type group_data :: any
 
   # -------------------------------------------------------------------
@@ -39,8 +39,8 @@ defmodule Cloak.Query.Rows do
   end
 
   @doc "Groups input rows according to the query specification."
-  @spec group(Enumerable.t(), Query.t(), group_data, group_updater) :: groups
-  def group(rows, query, default_group_data, group_updater) do
+  @spec group(Enumerable.t(), Query.t(), (integer() -> group_data), group_updater) :: groups
+  def group(rows, query, group_initializer, group_updater) do
     {grouping_sets, group_expressions} = grouping_sets(query)
 
     Enum.reduce(rows, %{}, fn row_or_bucket, groups ->
@@ -49,7 +49,7 @@ defmodule Cloak.Query.Rows do
 
       grouping_sets
       |> Enum.with_index()
-      |> Enum.reduce(groups, fn {grouping_set, group_index}, groups ->
+      |> Enum.reduce(groups, fn {grouping_set, grouping_set_index}, groups ->
         group =
           group_values
           |> Enum.with_index(0)
@@ -57,8 +57,8 @@ defmodule Cloak.Query.Rows do
             if index in grouping_set, do: value, else: nil
           end)
 
-        group_data = Map.get(groups, [group_index | group], default_group_data)
-        Map.put(groups, [group_index | group], group_updater.(group_data, row_or_bucket))
+        group_data = Map.get(groups, [grouping_set_index | group], group_initializer.(grouping_set_index))
+        Map.put(groups, [grouping_set_index | group], group_updater.(grouping_set_index, group_data, row_or_bucket))
       end)
     end)
   end

@@ -23,7 +23,7 @@ defmodule Cloak.Query.Aggregator.UserId do
   def users_count(aggregation_data) when is_map(aggregation_data), do: Enum.count(aggregation_data)
 
   @doc "Returns the function for digesting the data for a group."
-  @spec group_updater(NoiseLayers.processed(), Query.t()) :: Rows.group_updater()
+  @spec group_updater(%{integer() => NoiseLayer.processed()}, Query.t()) :: Rows.group_updater()
   def group_updater(processed_noise_layers, query) do
     {per_user_aggregators, aggregated_columns} =
       query.aggregators
@@ -33,7 +33,7 @@ defmodule Cloak.Query.Aggregator.UserId do
 
     default_accumulators = List.duplicate(nil, Enum.count(aggregated_columns))
 
-    fn {user_rows, noise_accumulator}, row ->
+    fn grouping_set_index, {user_rows, noise_accumulator}, row ->
       [user_id | _rest] = row
       values = Enum.map(aggregated_columns, &Expression.value(&1, row))
 
@@ -42,7 +42,8 @@ defmodule Cloak.Query.Aggregator.UserId do
         |> Map.put_new(user_id, default_accumulators)
         |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
 
-      noise_accumulator = NoiseLayer.accumulate(processed_noise_layers, noise_accumulator, row)
+      noise_accumulator =
+        processed_noise_layers |> Map.fetch!(grouping_set_index) |> NoiseLayer.accumulate(noise_accumulator, row)
 
       {user_rows, noise_accumulator}
     end

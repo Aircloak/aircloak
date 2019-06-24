@@ -93,17 +93,21 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
     results =
       stream
-      |> Rows.group(query, [nil | defaults], fn [aggregated_unreliability | aggregated_values], row_or_bucket ->
-        {row, unreliable} = bucket_data(row_or_bucket)
-        aggregated_unreliability = merge_unreliable_flags(aggregated_unreliability, unreliable)
+      |> Rows.group(
+        query,
+        fn _grouping_set_index -> [nil | defaults] end,
+        fn _grouping_set_index, [aggregated_unreliability | aggregated_values], row_or_bucket ->
+          {row, unreliable} = bucket_data(row_or_bucket)
+          aggregated_unreliability = merge_unreliable_flags(aggregated_unreliability, unreliable)
 
-        aggregated_values =
-          aggregated_values
-          |> Enum.zip(accumulators)
-          |> Enum.map(fn {value, accumulator} -> accumulator.(row, value) end)
+          aggregated_values =
+            aggregated_values
+            |> Enum.zip(accumulators)
+            |> Enum.map(fn {value, accumulator} -> accumulator.(row, value) end)
 
-        [aggregated_unreliability | aggregated_values]
-      end)
+          [aggregated_unreliability | aggregated_values]
+        end
+      )
       |> Stream.map(fn {group_values, [aggregated_unreliability | aggregated_values]} ->
         aggregated_values =
           aggregated_values

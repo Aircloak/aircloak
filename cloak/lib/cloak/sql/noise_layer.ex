@@ -4,12 +4,13 @@ defmodule Cloak.Sql.NoiseLayer do
   alias Cloak.Sql.{Expression, NoiseLayer.Normalizer}
   use Bitwise
 
-  @type t :: %__MODULE__{base: any, expressions: [Expression.t()]}
+  @type grouping_set_index :: integer() | nil
+  @type t :: %__MODULE__{base: any, expressions: [Expression.t()], grouping_set_index: grouping_set_index}
   @type hash_set :: MapSet.t()
   @type accumulator :: [hash_set]
   @type processed :: {[Expression.t()], [[integer()]]}
 
-  defstruct [:base, :expressions]
+  defstruct [:base, :expressions, :grouping_set_index]
 
   defimpl Inspect do
     import Inspect.Algebra
@@ -17,7 +18,8 @@ defmodule Cloak.Sql.NoiseLayer do
     def inspect(noise_layer, opts) do
       data = %{
         base: noise_layer.base,
-        expressions: Enum.map(noise_layer.expressions, &Expression.display/1)
+        expressions: Enum.map(noise_layer.expressions, &Expression.display/1),
+        grouping_set_index: noise_layer.grouping_set_index
       }
 
       concat(["#NoiseLayer<", to_doc(data, opts), ">"])
@@ -29,8 +31,9 @@ defmodule Cloak.Sql.NoiseLayer do
   # -------------------------------------------------------------------
 
   @doc "Returns a noise layer with the given base data, based on the given list of expressions."
-  @spec new(any, [Expression.t()]) :: t
-  def new(base, expressions), do: %__MODULE__{base: base, expressions: expressions}
+  @spec new(any, [Expression.t()], grouping_set_index) :: t
+  def new(base, expressions, grouping_set_index \\ nil),
+    do: %__MODULE__{base: base, expressions: expressions, grouping_set_index: grouping_set_index}
 
   @doc "Returns an intial accumulator for gathering the values of a list of noise layers over a set of rows."
   @spec new_accumulator([t]) :: accumulator
@@ -44,6 +47,11 @@ defmodule Cloak.Sql.NoiseLayer do
     indices_list = Enum.map(layers, &expressions_to_indices(&1.expressions, unique_expressions))
     {unique_expressions, indices_list}
   end
+
+  @doc "Filters the noise layers that apply to the specified grouping set."
+  @spec filter_layers_for_grouping_set([t], integer()) :: [t]
+  def filter_layers_for_grouping_set(layers, grouping_set_index),
+    do: Enum.filter(layers, &(&1.grouping_set_index in [nil, grouping_set_index]))
 
   @doc "Adds the values from the given row to the noise layer accumulator."
   @spec accumulate(processed, accumulator, Row.t()) :: accumulator

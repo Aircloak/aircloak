@@ -278,4 +278,88 @@ defmodule Cloak.Query.AnonymizationTest do
       )
     end
   end
+
+  describe "using grouping sets doesn't change the group noise" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..10, "anonymizations", ["number", "string"], [1, "aa"])
+      :ok = insert_rows(_user_ids = 5..15, "anonymizations", ["number", "string"], [1, "ab"])
+      :ok = insert_rows(_user_ids = 5..15, "anonymizations", ["number", "string"], [1, "ba"])
+      :ok = insert_rows(_user_ids = 15..25, "anonymizations", ["number", "string"], [1, "bb"])
+
+      anonymizer_config = Application.get_env(:cloak, :anonymizer)
+
+      Application.put_env(
+        :cloak,
+        :anonymizer,
+        anonymizer_config
+        |> Keyword.put(:outliers_count, {2, 4, 0.5})
+        |> Keyword.put(:low_count_soft_lower_bound, {5, 1})
+        |> Keyword.put(:sum_noise_sigma, 3)
+        |> Keyword.put(:sum_noise_sigma_scale_params, {1, 0.5})
+      )
+
+      on_exit(fn -> Application.put_env(:cloak, :anonymizer, anonymizer_config) end)
+
+      :ok
+    end
+
+    test "simple uid anon" do
+      assert_query(
+        """
+          select count(*), median(0) from anonymizations
+        """,
+        %{
+          rows: [
+            %{row: [count, _]}
+          ]
+        }
+      )
+
+      assert_query(
+        """
+          select left(string, 1), count(*), median(0)
+          from anonymizations
+          group by grouping sets (1, ())
+          order by 1
+        """,
+        %{
+          rows: [
+            %{row: ["a", _, _]},
+            %{row: ["b", _, _]},
+            %{row: [nil, ^count, _]}
+          ]
+        }
+      )
+    end
+
+    test "uid anon with filter" do
+      assert_query(
+        """
+          select count(*), median(0) from anonymizations where number = 1
+        """,
+        %{
+          rows: [
+            %{row: [count, _]}
+          ]
+        }
+      )
+
+      assert_query(
+        """
+          select left(string, 1), count(*), median(0)
+          from anonymizations
+          where number = 1
+          group by grouping sets (1, ())
+          order by 1
+        """,
+        %{
+          rows: [
+            %{row: ["a", _, _]},
+            %{row: ["b", _, _]},
+            %{row: [nil, ^count, _]}
+          ]
+        }
+      )
+    end
+  end
 end

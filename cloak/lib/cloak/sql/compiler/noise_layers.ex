@@ -321,10 +321,23 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
   end
 
-  defp group_by_noise_layers(query, top_level_uid) do
-    non_uid_group_by_clauses()
-    |> raw_columns(query)
+  defp group_by_noise_layers(%Query{type: :restricted} = query, top_level_uid) do
+    query.group_by
+    |> Enum.filter(&(not match?(%Expression{user_id?: true}, &1)))
+    |> raw_columns()
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
+  end
+
+  defp group_by_noise_layers(%Query{type: :anonymized} = query, top_level_uid) do
+    query.grouping_sets
+    |> Enum.with_index()
+    |> Enum.flat_map(fn {grouping_set, index} ->
+      grouping_set
+      |> Enum.map(&Enum.at(query.group_by, &1))
+      |> Enum.filter(&(not match?(%Expression{user_id?: true}, &1)))
+      |> raw_columns()
+      |> Enum.flat_map(&[static_noise_layer(&1, &1, nil, index), uid_noise_layer(&1, &1, top_level_uid, nil, index)])
+    end)
   end
 
   defp in_noise_layers(query, top_level_uid),
@@ -421,8 +434,28 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # UID handling
   # -------------------------------------------------------------------
 
-  defp add_generic_uid_layer_if_needed(query = %{noise_layers: []}, top_level_uid),
+  defp add_generic_uid_layer_for_grouping_set(noise_layers, grouping_set_index, top_level_uid) do
+    noise_layers
+    |> NoiseLayer.filter_layers_for_grouping_set(grouping_set_index)
+    |> case do
+      [] -> [NoiseLayer.new(nil, [top_level_uid], grouping_set_index) | noise_layers]
+      _ -> noise_layers
+    end
+  end
+
+  defp add_generic_uid_layer_if_needed(query = %{noise_layers: [], grouping_sets: []}, top_level_uid),
     do: %{query | noise_layers: [NoiseLayer.new(nil, [top_level_uid])]}
+
+  defp add_generic_uid_layer_if_needed(query = %{grouping_sets: [_ | _]}, top_level_uid) do
+    noise_layers =
+      Enum.reduce(
+        0..(Enum.count(query.grouping_sets) - 1),
+        query.noise_layers,
+        &add_generic_uid_layer_for_grouping_set(&2, &1, top_level_uid)
+      )
+
+    %{query | noise_layers: noise_layers}
+  end
 
   defp add_generic_uid_layer_if_needed(query, _top_level_uid), do: query
 
@@ -473,7 +506,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Lens.to_list(data)
       |> Enum.map(&%Expression{&1 | user_id?: false})
 
-  defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil) do
+  defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil, grouping_set_index \\ nil) do
     expressions = [
       _min = layer_expression,
       _max = layer_expression,
@@ -481,16 +514,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       top_level_uid
     ]
 
-    build_noise_layer(base_column, extras, expressions)
+    build_noise_layer(base_column, extras, expressions, grouping_set_index)
   end
 
-  defp static_noise_layer(base_column, layer_expression, extras \\ nil) do
+  defp static_noise_layer(base_column, layer_expression, extras \\ nil, grouping_set_index \\ nil) do
     expressions = [_min = layer_expression, _max = layer_expression, count_of_one()]
-    build_noise_layer(base_column, extras, expressions)
+    build_noise_layer(base_column, extras, expressions, grouping_set_index)
   end
 
-  defp build_noise_layer(base_column, extras, expressions),
-    do: NoiseLayer.new({table_name(base_column.table), base_column.name, extras}, expressions)
+  defp build_noise_layer(base_column, extras, expressions, grouping_set_index \\ nil),
+    do: NoiseLayer.new({table_name(base_column.table), base_column.name, extras}, expressions, grouping_set_index)
 
   defp count_of_one(), do: Expression.constant(:integer, 1)
 
@@ -519,12 +552,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.reject(&fk_pk_condition?/1)
     |> Lens.reject(&uid_null_conditions?/1)
     |> Lens.reject(&clear_condition?/1)
-  end
-
-  deflensp non_uid_group_by_clauses() do
-    Lens.key(:group_by)
-    |> Lens.all()
-    |> Lens.filter(&(not match?(%Expression{user_id?: true}, &1)))
   end
 
   deflensp db_conditions() do
