@@ -32,7 +32,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
   end
 
   @doc "Returns the function for digesting the data for a group."
-  @spec group_updater(NoiseLayer.processed(), Query.t()) :: Rows.group_updater()
+  @spec group_updater(%{integer() => NoiseLayer.processed()}, Query.t()) :: Rows.group_updater()
   def group_updater(processed_noise_layers, query) do
     [min_uid_column, max_uid_column | per_user_aggregators] = query.aggregators
     [count_duid_column | _] = query.db_columns
@@ -41,9 +41,11 @@ defmodule Cloak.Query.Aggregator.Statistics do
     aggregation_statistics_columns = Enum.map(per_user_aggregators, &extract_args(&1.function_args))
     statistics_columns = [bucket_statistics_columns | aggregation_statistics_columns]
 
-    fn {accumulated_statistics, default_noise_layers}, row_or_bucket ->
+    fn grouping_set_index, {statistics_accumulator, noise_accumulator}, row_or_bucket ->
       fields = Rows.fields(row_or_bucket)
-      noise_accumulator = NoiseLayer.accumulate(processed_noise_layers, default_noise_layers, fields)
+
+      noise_accumulator =
+        processed_noise_layers |> Map.fetch!(grouping_set_index) |> NoiseLayer.accumulate(noise_accumulator, fields)
 
       [[count_duid, min_uid, max_uid] | aggregation_statistics] =
         Enum.map(statistics_columns, fn columns_group ->
@@ -51,7 +53,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
         end)
 
       statistics = [[count_duid, MapSet.new([min_uid, max_uid])] | aggregation_statistics]
-      {merge_aggregation_data(accumulated_statistics, statistics), noise_accumulator}
+      {merge_aggregation_data(statistics_accumulator, statistics), noise_accumulator}
     end
   end
 

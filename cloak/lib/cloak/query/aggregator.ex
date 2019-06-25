@@ -55,11 +55,32 @@ defmodule Cloak.Query.Aggregator do
   """
   @spec group(Enumerable.t(), Query.t()) :: Rows.groups()
   def group(rows, query) do
-    default_noise_layers = NoiseLayer.new_accumulator(query.noise_layers)
-    processed_noise_layers = NoiseLayer.pre_process_layers(query.noise_layers)
-    merging_fun = aggregation_sub_module(query).group_updater(processed_noise_layers, query)
+    grouping_sets_count = grouping_sets_count(query.grouping_sets)
 
-    Rows.group(rows, query, {%{}, default_noise_layers}, merging_fun)
+    default_noise_layers =
+      for grouping_set_index <- 0..(grouping_sets_count - 1), into: %{} do
+        default_noise_layers =
+          query.noise_layers
+          |> NoiseLayer.filter_layers_for_grouping_set(grouping_set_index)
+          |> NoiseLayer.new_accumulator()
+
+        {grouping_set_index, default_noise_layers}
+      end
+
+    processed_noise_layers =
+      for grouping_set_index <- 0..(grouping_sets_count - 1), into: %{} do
+        processed_noise_layers =
+          query.noise_layers
+          |> NoiseLayer.filter_layers_for_grouping_set(grouping_set_index)
+          |> NoiseLayer.pre_process_layers()
+
+        {grouping_set_index, processed_noise_layers}
+      end
+
+    group_updater = aggregation_sub_module(query).group_updater(processed_noise_layers, query)
+    group_initializer = &{%{}, Map.fetch!(default_noise_layers, &1)}
+
+    Rows.group(rows, query, group_initializer, group_updater)
   end
 
   @doc """
@@ -278,4 +299,7 @@ defmodule Cloak.Query.Aggregator do
       &%{&1 | row: Enum.map(selected_columns_indices, fn index -> Enum.at(&1.row, index) end)}
     )
   end
+
+  defp grouping_sets_count([]), do: 1
+  defp grouping_sets_count(grouping_sets), do: Enum.count(grouping_sets)
 end
