@@ -52,12 +52,12 @@ analysis](/sql/restrictions.md#column-analysis) for more on why this analysis is
 host or data source by clicking on the tabs on top. For each group the following values will be listed:
 
 - Columns - total number of database columns in the given group
-- Analysis successful - number of columns for which all aspects of the analysis have completed successfully
-- Analysis pending - number of columns that still require at least one aspect of the analysis to complete
-- Analysis failed - number of columns for which one of the aspects of analysis failed unexpectedly (for example because
+- Analyzed - number of columns for which all aspects of the analysis have completed successfully
+- Processing - number of columns that still require at least one aspect of the analysis to complete
+- Failed - number of columns for which at least one of the aspects of analysis failed unexpectedly (for example because
   of a database timeout)
-- (Isolators/Rare values) computed - number of columns for which this aspect of the analysis completed successfully
-- (Isolators/Rare values) failed - number of columns for which this aspect of the analysis failed
+- Isolators/Rare values/Bounds - there are three numbers under each of these headings separated by `/`, signifying for
+  how many columns this aspect of analysis is successful, pending, and failed, respectively.
 
 Note that columns for which an aspect of analysis failed will be treated as not yet analyzed in that respect. This will
 put some additional restrictions on their usage in queries, as described in [the section on column

@@ -423,15 +423,36 @@ resource-intensive for large data sources. See [Manually classifying isolating
 columns](/ops/configuration.md#manually-classifying-isolating-columns) for information on alternative means of
 classifying isolating columns.
 
+## Column bounds
+
+Some mathematical operations can cause an overflow and result in an error when performed in the database. To avoid such
+cases, Insights Cloak analyzes the query and finds potentially problematic operations, making sure that either:
+
+- The input columns to these operations have data distributed in such a way that there won't be a problem. For example,
+  dividing by a column that is always positive will never result in a divide-by-zero error.
+- The operations are performed using a potentially slower but safe method.
+
+To perform this analysis, Insights Cloak needs to find the range of values that each numeric column takes called the
+column bounds. Note that the actual bounds used by Insights Cloak will actually be an anonymized range based on the true
+bounds. Note also, that any data found outside of these anonymized bounds will be treated as if it had the
+maximum/minimum value instead. The bounds are computed with some "extra room", so this can most often happen in the
+case of a value being an extreme outlier.
+
+So long as this analysis is not complete for a certain column, mathematical operations on that column need to be
+performed using the safe method, wich might be slower on some data sources. For certain data sources (MongoDB, Microsoft
+SQL Server) these operations are safe by default, the analysis does not need to be performed and it won't result in
+any slowdown.
+
 ## Column analysis
 
-In order to apply the restrictions described in [Number of conditions](#number-of-conditions) and [Isolating
-columns](#isolating-columns) Insights Cloak needs to analyze the contents of the data source. This process might take
-some time, but the data source is available for querying while the analysis is under way. While the analysis is
-incomplete Insights Cloak needs to make conservative assumptions about the data. As a result, all columns are treated
-as if they were isolating and had no frequent values, until the analysis is completed for a particular column.
+In order to apply the restrictions described in [Number of conditions](#number-of-conditions), [Isolating
+columns](#isolating-columns), and [Column bounds](#column-bounds),  Insights Cloak needs to analyze the contents of the
+data source. This process might take some time, but the data source is available for querying while the analysis is
+under way. While the analysis is incomplete Insights Cloak needs to make conservative assumptions about the data. As a
+result, all columns are treated as if they were isolating and had no frequent values, until the analysis is completed
+for a particular column.
 
-You can check the status of a table by using the `SHOW COLUMNS` statement:
+You can check the isolator status of a table by using the `SHOW COLUMNS` statement:
 
 ```sql
 SHOW COLUMNS FROM users
