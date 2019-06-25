@@ -3,7 +3,8 @@ defmodule Air.Service.DataSource.Column do
 
   @doc "Returns true if both the shadow table and isolators have been computed for the column, false otherwise."
   @spec analyzed_successfully?(map()) :: boolean()
-  def analyzed_successfully?(column), do: isolators_computed?(column) and shadow_computed?(column)
+  def analyzed_successfully?(column),
+    do: isolators_computed?(column) and shadow_computed?(column) and bounds_computed?(column)
 
   @doc "Returns true if the column has neither been analyzed correctly nor failed yet, false otherwise."
   @spec analysis_pending?(map()) :: boolean()
@@ -11,7 +12,7 @@ defmodule Air.Service.DataSource.Column do
 
   @doc "Returns true if either the shadow table or isolators have failed to compute for the column, false otherwise."
   @spec analysis_failed?(map()) :: boolean()
-  def analysis_failed?(column), do: isolators_failed?(column) or shadow_failed?(column)
+  def analysis_failed?(column), do: isolators_failed?(column) or shadow_failed?(column) or bounds_failed?(column)
 
   @doc "Returns true if isolators have been computed for the column, false otherwise."
   @spec isolators_computed?(map()) :: boolean()
@@ -28,4 +29,12 @@ defmodule Air.Service.DataSource.Column do
   @doc "Returns true if the shadow table has failed to compute for the column, false otherwise."
   @spec shadow_failed?(map()) :: boolean()
   def shadow_failed?(column), do: column["shadow_table"] == "failed"
+
+  @doc "Returns true if the bounds have been computed for the column, false otherwise."
+  @spec bounds_computed?(map()) :: boolean()
+  def bounds_computed?(column), do: column["bounds"] == "ok"
+
+  @doc "Returns true if the bound computation failed for the column, false otherwise."
+  @spec bounds_failed?(map()) :: boolean()
+  def bounds_failed?(column), do: column["bounds"] == "failed"
 end
