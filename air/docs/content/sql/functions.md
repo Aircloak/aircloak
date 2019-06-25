@@ -461,7 +461,7 @@ TRIM(' osxt' ' some text ')
 -- 'me te'
 
 TRIM(BOTH FROM ' some text ')
--- 'some text '
+-- 'some text'
 ```
 
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
