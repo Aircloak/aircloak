@@ -35,7 +35,7 @@ defmodule Cloak.DataSource.Bounds.Query do
   defp public_bounds(data_source, table_name, column) do
     with true <- numeric?(data_source, table_name, column),
          {:ok, min, max} <- min_max(data_source, table_name, column) do
-      Compute.extend({round(min), round(max)})
+      Compute.extend({min |> :math.floor() |> round(), max |> :math.ceil() |> round()})
     else
       _ -> :unknown
     end
