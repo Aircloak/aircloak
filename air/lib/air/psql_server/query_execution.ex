@@ -140,6 +140,7 @@ defmodule Air.PsqlServer.QueryExecution do
     RanchServer.run_async(
       fn ->
         case Air.PsqlServer.ShadowDb.query(
+               conn.assigns.user,
                conn.assigns.data_source_name,
                query,
                Enum.map(params || [], fn {_type, value} -> value end)

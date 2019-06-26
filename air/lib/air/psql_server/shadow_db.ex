@@ -11,6 +11,7 @@ defmodule Air.PsqlServer.ShadowDb do
   require Aircloak.DeployConfig
   alias Aircloak.ChildSpec
   alias Air.PsqlServer.ShadowDb.{Connection, ConnectionPool, Database, Manager}
+  alias Air.Schemas.User
 
   @database_supervisor __MODULE__.Databases
   @registry __MODULE__.Registry
@@ -42,32 +43,32 @@ defmodule Air.PsqlServer.ShadowDb do
   end
 
   @doc "Executes the query on the given data source."
-  @spec query(String.t(), String.t(), [term]) :: Connection.query_result()
-  def query(data_source_name, query, params) do
-    ensure_database!(data_source_name)
-    Manager.wait_until_initialized(data_source_name)
+  @spec query(User.t(), String.t(), String.t(), [term]) :: Connection.query_result()
+  def query(user, data_source_name, query, params) do
+    ensure_database!(user, data_source_name)
+    Manager.wait_until_initialized(user, data_source_name)
     ConnectionPool.query(data_source_name, query, params)
   end
 
   @doc "Parses the query on the given data source."
-  @spec parse(String.t(), String.t()) :: Connection.parse_result()
-  def parse(data_source_name, query) do
-    ensure_database!(data_source_name)
-    Manager.wait_until_initialized(data_source_name)
+  @spec parse(User.t(), String.t(), String.t()) :: Connection.parse_result()
+  def parse(user, data_source_name, query) do
+    ensure_database!(user, data_source_name)
+    Manager.wait_until_initialized(user, data_source_name)
     ConnectionPool.parse(data_source_name, query)
   end
 
   @doc "Updates the shadow database for the given data source."
-  @spec update(String.t()) :: :ok
-  def update(data_source_name) do
-    ensure_database!(data_source_name)
-    Manager.update_definition(data_source_name)
+  @spec update(User.t(), String.t()) :: :ok
+  def update(user, data_source_name) do
+    ensure_database!(user, data_source_name)
+    Manager.update_definition(user, data_source_name)
   end
 
   @doc "Drops the given shadow database."
-  @spec drop(String.t()) :: :ok
-  def drop(data_source_name) do
-    with pid when is_pid(pid) <- Database.whereis(data_source_name),
+  @spec drop(User.t(), String.t()) :: :ok
+  def drop(user, data_source_name) do
+    with pid when is_pid(pid) <- Database.whereis(user, data_source_name),
          do: DynamicSupervisor.terminate_child(@database_supervisor, pid)
 
     # Manager.drop_database creates a connection and closes it, and closing a connection requires the client process to
@@ -75,19 +76,20 @@ defmodule Air.PsqlServer.ShadowDb do
     # separate task.
     Task.start_link(fn ->
       Process.flag(:trap_exit, true)
-      Manager.drop_database(data_source_name)
+      Manager.drop_database(user, data_source_name)
     end)
 
     :ok
   end
 
   @doc "Returns the name of the shadow database for the given data source."
-  @spec db_name(String.t()) :: String.t()
-  defdelegate db_name(data_source), to: Manager
+  @spec db_name(User.t(), String.t()) :: String.t()
+  defdelegate db_name(user, data_source), to: Manager
 
   @doc "Returns the registered name for the process related to the given data source in a given role."
-  @spec registered_name(String.t(), term()) :: {:via, module, {atom, term}}
-  def registered_name(data_source_name, role), do: {:via, Registry, {@registry, {data_source_name, role}}}
+  @spec registered_name(User.t(), String.t(), term()) :: {:via, module, {atom, term}}
+  def registered_name(user, data_source_name, role),
+    do: {:via, Registry, {@registry, {user.id, data_source_name, role}}}
 
   # -------------------------------------------------------------------
   # Supervisor callbacks
@@ -121,9 +123,9 @@ defmodule Air.PsqlServer.ShadowDb do
     }
   end
 
-  defp ensure_database!(data_source_name) do
-    with nil <- Database.whereis(data_source_name) do
-      case DynamicSupervisor.start_child(@database_supervisor, {Database, data_source_name}) do
+  defp ensure_database!(user, data_source_name) do
+    with nil <- Database.whereis(user, data_source_name) do
+      case DynamicSupervisor.start_child(@database_supervisor, {Database, {user, data_source_name}}) do
         {:ok, _pid} -> :ok
         {:error, {:already_started, _pid}} -> :ok
       end

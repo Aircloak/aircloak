@@ -27,7 +27,9 @@ defmodule Air.Service.Cloak do
     {data_source_names, cloak_info, data_source_schemas} =
       GenServer.call(@serializer_name, {:register, cloak_info, data_sources})
 
-    Enum.each(data_sources, &Air.PsqlServer.ShadowDb.update(&1.name))
+    data_sources
+    |> Enum.map(&DataSource.by_name(&1.name))
+    |> Enum.each(&update_data_source(&1))
 
     Registry.register(@all_cloak_registry_name, :all_cloaks, cloak_info)
 
@@ -111,6 +113,12 @@ defmodule Air.Service.Cloak do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp update_data_source(data_source),
+    do:
+      data_source
+      |> DataSource.users()
+      |> Enum.each(&Air.PsqlServer.ShadowDb.update(&1, data_source.name))
 
   defp unregister_cloak() do
     Registry.unregister(@all_cloak_registry_name, :all_cloaks)

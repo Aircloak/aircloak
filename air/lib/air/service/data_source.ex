@@ -230,10 +230,12 @@ defmodule Air.Service.DataSource do
   """
   @spec delete!(DataSource.t(), (() -> any), (() -> any)) :: :ok
   def delete!(data_source, success_callback, failure_callback) do
+    users = users(data_source)
+
     Task.Supervisor.start_child(@delete_supervisor, fn ->
       case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
         {:ok, _} ->
-          Air.PsqlServer.ShadowDb.drop(data_source.name)
+          Enum.map(users, &Air.PsqlServer.ShadowDb.drop(&1, data_source.name))
           success_callback.()
 
         {:error, _} ->
