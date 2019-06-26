@@ -21,4 +21,4 @@ config :air, Air.PsqlServer, port: 8433
 
 # Unit tests register multiple datasources with random names which leads to explosion of shadow databases.
 # Since we don't need shadow dbs in unit tests (they are used only in integration tests), we're disabling them
-config :air, :shadow_db?, false
+config :air, :shadow_db?, true
