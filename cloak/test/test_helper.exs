@@ -1,5 +1,6 @@
-# removing isolators cache to prevent it from constantly growing
 File.rm(Cloak.DataSource.Isolators.PersistentKeyValue.cache_file())
+File.rm(Cloak.DataSource.Shadows.PersistentKeyValue.cache_file())
+File.rm(Cloak.DataSource.Bounds.PersistentKeyValue.cache_file())
 
 Compliance.Runtime.start_link()
 Cloak.SapHanaHelpers.delete_test_schemas()

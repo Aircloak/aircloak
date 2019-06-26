@@ -35,14 +35,15 @@ defmodule Cloak.DataSource.Bounds.Query do
   defp public_bounds(data_source, table_name, column) do
     with true <- numeric?(data_source, table_name, column),
          {:ok, min, max} <- min_max(data_source, table_name, column) do
-      Compute.extend({min, max})
+      Compute.extend({min |> :math.floor() |> round(), max |> :math.ceil() |> round()})
     else
       _ -> :unknown
     end
   end
 
   defp private_bounds(data_source, table_name, column) do
-    with true <- numeric?(data_source, table_name, column),
+    with false <- data_source.tables[table_name].user_id == column,
+         true <- numeric?(data_source, table_name, column),
          cutoff = cutoff(table_name, column),
          {:ok, max} <- Compute.max(maxes(data_source, table_name, column), cutoff),
          {:ok, min} <- Compute.min(mins(data_source, table_name, column), cutoff) do
@@ -70,11 +71,12 @@ defmodule Cloak.DataSource.Bounds.Query do
     """
       SELECT #{user_id}, "#{table_name}"."#{column}"
       FROM #{table_chain}
+      WHERE "#{table_name}"."#{column}" IS NOT NULL
       ORDER BY 2 #{sort_order}
       LIMIT #{@query_limit}
     """
     |> run_query(data_source)
-    |> Enum.group_by(&hd/1, &Enum.at(&1, 1))
+    |> Enum.group_by(&hd/1, fn [_user_id, value] -> value end)
     |> Enum.map(fn {_user_id, values} -> Enum.reduce(values, comparison_function) end)
   end
 

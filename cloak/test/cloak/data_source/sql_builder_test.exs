@@ -4,6 +4,7 @@ defmodule Cloak.DataSource.SqlBuilderTest do
   use ExUnitProperties
   alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.Sql.Query
+  alias Cloak.TestBoundsCache
   import Cloak.Test.QueryHelpers
   import StreamData
 
@@ -46,33 +47,11 @@ defmodule Cloak.DataSource.SqlBuilderTest do
     end
   end
 
-  defp sql_string(query, dialect \\ PostgreSQL) do
-    compiled_query =
-      query
-      |> compile!(data_source(Module.concat(Cloak.DataSource, dialect)))
-      |> Query.resolve_db_columns()
+  test "columns with known bounds are restricted" do
+    TestBoundsCache.set(data_source(PostgreSQL), "table", "int", {100, 200})
 
-    SqlBuilder.build(compiled_query)
-  end
-
-  defp data_source(driver) do
-    %{
-      name: "data_source",
-      driver: driver,
-      tables: %{
-        table:
-          Table.new(
-            "table",
-            "uid",
-            db_name: "table",
-            columns: [
-              Table.column("uid", :integer),
-              Table.column("string", :text),
-              Table.column("int", :integer)
-            ]
-          )
-      }
-    }
+    assert sql_string("SELECT COUNT(*) FROM table WHERE int = 10", PostgreSQL) =~
+             ~s[CASE WHEN "table"."int" < 100 THEN 100 WHEN "table"."int" > 200 THEN 200 ELSE "table"."int" END]
   end
 
   test "build userid join string" do
@@ -106,6 +85,39 @@ defmodule Cloak.DataSource.SqlBuilderTest do
     assert SqlBuilder.build_table_chain_with_user_id(tables, :no_uid_table) ==
              {~s("uid_table"."uid"),
               ~s("no_uid_table" INNER JOIN "uid_table" ON "no_uid_table"."key1" = "uid_table"."key2")}
+  end
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
+
+  defp sql_string(query, dialect \\ PostgreSQL) do
+    compiled_query =
+      query
+      |> compile!(data_source(Module.concat(Cloak.DataSource, dialect)))
+      |> Query.resolve_db_columns()
+
+    SqlBuilder.build(compiled_query)
+  end
+
+  defp data_source(driver) do
+    %{
+      name: "data_source",
+      driver: driver,
+      tables: %{
+        table:
+          Table.new(
+            "table",
+            "uid",
+            db_name: "table",
+            columns: [
+              Table.column("uid", :integer),
+              Table.column("string", :text),
+              Table.column("int", :integer)
+            ]
+          )
+      }
+    }
   end
 
   # -------------------------------------------------------------------
