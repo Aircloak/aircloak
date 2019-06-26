@@ -56,8 +56,8 @@ host or data source by clicking on the tabs on top. For each group the following
 - Processing - number of columns that still require at least one aspect of the analysis to complete
 - Failed - number of columns for which at least one of the aspects of analysis failed unexpectedly (for example because
   of a database timeout)
-- Isolators/Rare values/Bounds - there are three numbers under each of these headings separated by `/`, signifying for
-  how many columns this aspect of analysis is successful, pending, and failed, respectively.
+- Isolators/Rare values/Bounds - there are three numbers under each of these headings separated by `/`. The values
+  represent the number of successful, pending, and failed column analyses, respectively.
 
 Note that columns for which an aspect of analysis failed will be treated as not yet analyzed in that respect. This will
 put some additional restrictions on their usage in queries, as described in [the section on column

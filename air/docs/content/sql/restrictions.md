@@ -432,11 +432,11 @@ cases, Insights Cloak analyzes the query and finds potentially problematic opera
   dividing by a column that is always positive will never result in a divide-by-zero error.
 - The operations are performed using a potentially slower but safe method.
 
-To perform this analysis, Insights Cloak needs to find the range of values that each numeric column takes called the
-column bounds. Note that the actual bounds used by Insights Cloak will actually be an anonymized range based on the true
-bounds. Note also, that any data found outside of these anonymized bounds will be treated as if it had the
-maximum/minimum value instead. The bounds are computed with some "extra room", so this can most often happen in the
-case of a value being an extreme outlier.
+Insights Cloak needs the lower and upper bounds of the values in numeric columns in order to perform this analysis.
+Note that the actual bounds used by Insights Cloak will be based on the true bounds, but anonymized. Note also, that any
+data found outside of these anonymized bounds will be treated as if it had the maximum/minimum anonymized value instead.
+The bounds are computed with some "extra room", so this can most often happen in the case of a value being an extreme
+outlier.
 
 So long as this analysis is not complete for a certain column, mathematical operations on that column need to be
 performed using the safe method, wich might be slower on some data sources. For certain data sources (MongoDB, Microsoft
@@ -446,7 +446,7 @@ any slowdown.
 ## Column analysis
 
 In order to apply the restrictions described in [Number of conditions](#number-of-conditions), [Isolating
-columns](#isolating-columns), and [Column bounds](#column-bounds),  Insights Cloak needs to analyze the contents of the
+columns](#isolating-columns), and [Column bounds](#column-bounds), Insights Cloak needs to analyze the contents of the
 data source. This process might take some time, but the data source is available for querying while the analysis is
 under way. While the analysis is incomplete Insights Cloak needs to make conservative assumptions about the data. As a
 result, all columns are treated as if they were isolating and had no frequent values, until the analysis is completed
