@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.Bounds.Query do
   @moduledoc "Implements querying the database to find the bounds of a column."
 
   alias Cloak.Sql.{Parser, Compiler, Expression}
-  alias Cloak.DataSource.SqlBuilder
+  alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.DataSource.Bounds.Compute
   alias Cloak.Query.DbEmulator
 
@@ -21,10 +21,16 @@ defmodule Cloak.DataSource.Bounds.Query do
   @spec bounds(Cloak.DataSource.t(), String.t(), String.t()) :: Expression.bounds()
   def bounds(data_source, table_name, column) do
     table_name = String.to_existing_atom(table_name)
+    table = data_source.tables[table_name]
 
-    case data_source.tables[table_name].content_type do
-      :public -> public_bounds(data_source, table_name, column)
-      _ -> private_bounds(data_source, table_name, column)
+    with false <- Table.key?(table, column),
+         true <- numeric?(data_source, table_name, column) do
+      case table.content_type do
+        :public -> public_bounds(data_source, table_name, column)
+        _ -> private_bounds(data_source, table_name, column)
+      end
+    else
+      _ -> :unknown
     end
   end
 
@@ -33,8 +39,7 @@ defmodule Cloak.DataSource.Bounds.Query do
   # -------------------------------------------------------------------
 
   defp public_bounds(data_source, table_name, column) do
-    with true <- numeric?(data_source, table_name, column),
-         {:ok, min, max} <- min_max(data_source, table_name, column) do
+    with {:ok, min, max} <- min_max(data_source, table_name, column) do
       Compute.extend({round(min), round(max)})
     else
       _ -> :unknown
@@ -42,9 +47,7 @@ defmodule Cloak.DataSource.Bounds.Query do
   end
 
   defp private_bounds(data_source, table_name, column) do
-    with false <- data_source.tables[table_name].user_id == column,
-         true <- numeric?(data_source, table_name, column),
-         cutoff = cutoff(table_name, column),
+    with cutoff = cutoff(table_name, column),
          {:ok, max} <- Compute.max(maxes(data_source, table_name, column), cutoff),
          {:ok, min} <- Compute.min(mins(data_source, table_name, column), cutoff) do
       Compute.extend({min, max})
