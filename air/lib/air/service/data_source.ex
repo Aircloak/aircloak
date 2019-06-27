@@ -219,7 +219,12 @@ defmodule Air.Service.DataSource do
     with {:ok, data_source} <- data_source |> data_source_changeset(params) |> Repo.update() do
       new_users = Repo.preload(data_source, groups: :users).groups |> Stream.flat_map(& &1.users) |> MapSet.new()
       revoked_users = MapSet.difference(old_users, new_users)
+
       Enum.each(revoked_users, &Air.Service.AnalystTable.delete_all(&1, data_source))
+
+      new_users
+      |> Enum.each(&Air.PsqlServer.ShadowDb.update(&1, data_source.name))
+
       {:ok, data_source}
     end
   end

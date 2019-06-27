@@ -3,7 +3,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
   use Air.SchemaCase, async: false
 
   alias Air.TestRepoHelper
-  alias Air.Service.User
+  alias Air.Service.{User, DataSource}
   import Aircloak.AssertionHelper
 
   setup_all do
@@ -28,14 +28,28 @@ defmodule Air.PsqlServer.ShadowDbTest do
       group = TestRepoHelper.create_group!()
       data_source = create_data_source!(%{groups: [group.id]})
       user = TestRepoHelper.create_user!()
+
       refute shadow_db_exists(context, user, data_source)
+
       User.update!(user, %{groups: [group.id]})
 
       assert soon(shadow_db_exists(context, user, data_source), 5000),
              "Shadow db should be created after user is assigned to group"
     end
 
-    test "Regular user: Adding a data source to a group should create shadow dbs for all users in the group"
+    test "Regular user: Adding a data source to a group should create shadow dbs for all users in the group", context do
+      group = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{groups: [group.id]})
+      data_source = create_data_source!()
+
+      refute shadow_db_exists(context, user, data_source)
+
+      DataSource.update!(data_source, %{groups: [group.id]})
+
+      assert soon(shadow_db_exists(context, user, data_source), 5000),
+             "Shadow db should be created after user is assigned to group"
+    end
+
     test "Regular user: Removing a data source from a group should remove the corresponding shadow dbs"
     test "Regular user: Removing a user from a group should remove the corresponding shadow dbs"
 
