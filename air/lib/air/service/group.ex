@@ -54,11 +54,16 @@ defmodule Air.Service.Group do
   def update(group, params, options \\ []) do
     check_ldap!(group, options)
 
-    AdminGuard.commit_if_active_last_admin(fn ->
-      group
-      |> group_changeset(params, options)
-      |> Repo.update()
-    end)
+    conditionally_alter_shadow_dbs(
+      group,
+      fn ->
+        AdminGuard.commit_if_active_last_admin(fn ->
+          group
+          |> group_changeset(params, options)
+          |> Repo.update()
+        end)
+      end
+    )
   end
 
   @doc "Updates only the data sources of the given group."
@@ -81,21 +86,10 @@ defmodule Air.Service.Group do
   def delete(group, options \\ []) do
     check_ldap!(group, options)
 
-    group = group |> Repo.preload(:users)
-
-    affected_users =
-      group.users
-      |> Enum.map(&{&1, Air.Service.DataSource.for_user(&1)})
-
-    AdminGuard.commit_if_active_last_admin(fn -> Repo.delete(group) end)
-    |> case do
-      {:ok, _} = result ->
-        drop_orphaned_shadow_dbs(affected_users)
-        result
-
-      other ->
-        other
-    end
+    conditionally_alter_shadow_dbs(
+      group,
+      fn -> AdminGuard.commit_if_active_last_admin(fn -> Repo.delete(group) end) end
+    )
   end
 
   @doc "Loads the group with the given id."
@@ -175,14 +169,37 @@ defmodule Air.Service.Group do
     |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
   end
 
-  defp drop_orphaned_shadow_dbs(users_and_data_sources) do
-    users_and_data_sources
-    |> Enum.each(fn {user, originally_accessible_data_sources} ->
-      accessible_data_sources = Air.Service.DataSource.for_user(user)
+  defp conditionally_alter_shadow_dbs(group, alteration_function) do
+    group = group |> Repo.preload(:users)
 
-      originally_accessible_data_sources
-      |> Enum.reject(&Enum.member?(accessible_data_sources, &1))
-      |> Enum.each(&Air.PsqlServer.ShadowDb.drop(user, &1.name))
-    end)
+    users_and_data_sources_before =
+      group.users
+      |> Enum.map(&{&1, Air.Service.DataSource.for_user(&1)})
+      |> Enum.into(%{})
+
+    case alteration_function.() do
+      {:ok, altered_group} = result ->
+        for {user, originally_accessible_data_sources} <- users_and_data_sources_before do
+          accessible_data_sources = Air.Service.DataSource.for_user(user)
+
+          originally_accessible_data_sources
+          |> Enum.reject(&Enum.member?(accessible_data_sources, &1))
+          |> Enum.each(&Air.PsqlServer.ShadowDb.drop(user, &1.name))
+        end
+
+        altered_group = Repo.preload(altered_group, :users)
+
+        for user <- altered_group.users, not Map.has_key?(users_and_data_sources_before, user) do
+          # We do not have a handle on which data sources this user already had access to
+          # prior to joining this group. They could all be a result of joining the group.
+          Air.Service.DataSource.for_user(user)
+          |> Enum.each(&Air.PsqlServer.ShadowDb.update(user, &1.name))
+        end
+
+        result
+
+      other ->
+        other
+    end
   end
 end
