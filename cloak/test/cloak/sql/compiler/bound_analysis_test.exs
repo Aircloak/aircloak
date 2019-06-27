@@ -123,6 +123,13 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       assert :unknown = expression.bounds
     end
 
+    for function <- ~w(avg min max median) do
+      test function do
+        assert {123, 245} =
+                 BoundAnalysis.set_bounds(function_expression(unquote(function), [column_in_bounds({123, 245})])).bounds
+      end
+    end
+
     property "bounds can be computed for simplest arguments to function" do
       check all {name, function} <- function() do
         arity = Function.info(function) |> Keyword.fetch!(:arity)
