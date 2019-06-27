@@ -168,7 +168,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     |> Enum.min_max()
   end
 
-  defp update_bounds(fun, [bounds]) when fun in ["floor", "ceil", "round", "trunc"], do: bounds
+  defp update_bounds(fun, [bounds]) when fun in ~w(floor ceil round trunc min max avg median), do: bounds
   defp update_bounds(_, _), do: :unknown
 
   defp floor(number), do: number |> :math.floor() |> round()
