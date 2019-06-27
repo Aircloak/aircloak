@@ -40,7 +40,7 @@ defmodule Cloak.DataSource.Bounds.Query do
 
   defp public_bounds(data_source, table_name, column) do
     with {:ok, min, max} <- min_max(data_source, table_name, column) do
-      Compute.extend({round(min), round(max)})
+      Compute.extend({min |> :math.floor() |> round(), max |> :math.ceil() |> round()})
     else
       _ -> :unknown
     end
@@ -79,10 +79,7 @@ defmodule Cloak.DataSource.Bounds.Query do
       LIMIT #{@query_limit}
     """
     |> run_query(data_source)
-    |> Enum.group_by(&hd/1, fn
-      [user_id] -> user_id
-      [_user_id, value] -> value
-    end)
+    |> Enum.group_by(&hd/1, fn [_user_id, value] -> value end)
     |> Enum.map(fn {_user_id, values} -> Enum.reduce(values, comparison_function) end)
   end
 

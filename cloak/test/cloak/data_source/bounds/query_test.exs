@@ -137,7 +137,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         [2, 30.33]
       ])
 
-    assert_bounds("public bounds", "float", {2, 300})
+    assert_bounds("public bounds", "float", {2, 310})
   end
 
   test "public table with no data" do

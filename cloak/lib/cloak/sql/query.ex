@@ -331,6 +331,7 @@ defmodule Cloak.Sql.Query do
   @doc """
   Returns true if the given expression is a raw database column, false otherwise.
   """
+  @spec database_column?(Expression.t(), t) :: boolean
   def database_column?(column, query), do: is_nil(source_subquery(column, query))
 
   @doc """
