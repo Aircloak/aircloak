@@ -81,7 +81,17 @@ defmodule Air.PsqlServer.ShadowDbTest do
   describe "deletion" do
     test "If a user is deleted, then all related shadow dbs should be removed"
     test "If a group is deleted, the orphaned shadow dbs should be removed"
-    test "If a data source is deleted then all related shadow dbs should be removed"
+
+    test "If a data source is deleted then all related shadow dbs should be removed", context do
+      group = TestRepoHelper.create_group!()
+      data_source = create_data_source!(%{groups: [group.id]})
+      user = TestRepoHelper.create_user!(%{groups: [group.id]})
+      trigger_shadow_db_creation(context, user, data_source)
+
+      DataSource.delete!(data_source, fn -> :ok end, fn -> :ok end)
+
+      assert soon(not shadow_db_exists(context, user, data_source), 5000), "Shadow db should have been removed"
+    end
   end
 
   describe "selectables" do

@@ -243,7 +243,7 @@ defmodule Air.Service.DataSource do
     Task.Supervisor.start_child(@delete_supervisor, fn ->
       case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
         {:ok, _} ->
-          Enum.map(users, &Air.PsqlServer.ShadowDb.drop(&1, data_source.name))
+          Enum.each(users, &Air.PsqlServer.ShadowDb.drop(&1, data_source.name))
           success_callback.()
 
         {:error, _} ->
