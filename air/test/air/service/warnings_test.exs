@@ -22,6 +22,15 @@ defmodule Air.Service.WarningsTest do
       errors: []
     }
   ]
+  @data_sources_with_failed_bounds [
+    %{
+      name: @data_source_name,
+      tables: [
+        %{id: "failed_table", columns: [%{name: "failed_bounds", shadow_table: :ok, isolated: true, bounds: :failed}]}
+      ],
+      errors: []
+    }
+  ]
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -75,6 +84,11 @@ defmodule Air.Service.WarningsTest do
   test "warning when data source has failed shadows" do
     start_cloak_channel(@data_sources_with_failed_shadows)
     assert problem_with_description(~r/could not compute frequent values from columns `failed_table.failed_shadow`/)
+  end
+
+  test "warning when data source has failed bounds" do
+    start_cloak_channel(@data_sources_with_failed_bounds)
+    assert problem_with_description(~r/could not compute bounds for columns `failed_table.failed_bounds`/)
   end
 
   describe("problems_for_resource") do

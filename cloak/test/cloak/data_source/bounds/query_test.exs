@@ -82,6 +82,16 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
     assert_bounds("bounds_user_id", "id", :unknown)
   end
 
+  test "key bounds" do
+    :ok =
+      Cloak.Test.DB.insert_data("public bounds", ["id"], [
+        [10],
+        [20]
+      ])
+
+    assert_bounds("public bounds", "id", :unknown)
+  end
+
   test "non-numeric columns have unknown bounds" do
     :ok =
       Cloak.Test.DB.insert_data("bounds", ["user_id", "string"], [

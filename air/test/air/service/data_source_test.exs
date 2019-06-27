@@ -283,6 +283,26 @@ defmodule Air.Service.DataSourceTest do
       assert data_source.shadow_tables_failed == ["table_id.failure"]
     end
 
+    test "should compute and store bound status" do
+      tables = [
+        %{
+          id: "table_id",
+          columns: [
+            %{name: "col1", isolated: true, shadow_table: :ok, bounds: :ok},
+            %{name: "col2", isolated: true, shadow_table: :ok, bounds: :ok},
+            %{name: "failure", isolated: true, shadow_table: :ok, bounds: :failed},
+            %{name: "col3", isolated: true, shadow_table: :ok, bounds: :other}
+          ]
+        }
+      ]
+
+      data_source = DataSource.create_or_update_data_source(%{name: "new_name", tables: tables})
+
+      assert data_source.columns_count == 4
+      assert data_source.bounds_computed_count == 2
+      assert data_source.bounds_failed == ["table_id.failure"]
+    end
+
     test "[Issue #3208] does not crash for old cloaks" do
       tables = [
         %{

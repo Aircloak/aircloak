@@ -34,11 +34,27 @@ defmodule Air.Service.DataSource.Column.Test do
     refute Column.shadow_failed?(column("pending", data_source))
   end
 
+  test ".bounds_computed?", %{data_source: data_source} do
+    assert Column.bounds_computed?(column("all_ok", data_source))
+    assert Column.bounds_computed?(column("isolated_failed", data_source))
+    refute Column.bounds_computed?(column("bounds_failed", data_source))
+    refute Column.bounds_computed?(column("pending", data_source))
+  end
+
+  test ".bounds_failed?", %{data_source: data_source} do
+    refute Column.bounds_failed?(column("all_ok", data_source))
+    refute Column.bounds_failed?(column("isolated_failed", data_source))
+    assert Column.bounds_failed?(column("bounds_failed", data_source))
+    refute Column.bounds_failed?(column("pending", data_source))
+  end
+
   test ".analyzed_successfully?", %{data_source: data_source} do
     assert Column.analyzed_successfully?(column("all_ok", data_source))
     refute Column.analyzed_successfully?(column("isolated_failed", data_source))
     refute Column.analyzed_successfully?(column("shadow_failed", data_source))
     refute Column.analyzed_successfully?(column("pending", data_source))
+    refute Column.analyzed_successfully?(column("bounds_pending", data_source))
+    refute Column.analyzed_successfully?(column("bounds_failed", data_source))
   end
 
   test ".analysis_failed?", %{data_source: data_source} do
@@ -46,6 +62,8 @@ defmodule Air.Service.DataSource.Column.Test do
     assert Column.analysis_failed?(column("isolated_failed", data_source))
     assert Column.analysis_failed?(column("shadow_failed", data_source))
     refute Column.analysis_failed?(column("pending", data_source))
+    refute Column.analysis_failed?(column("bounds_pending", data_source))
+    assert Column.analysis_failed?(column("bounds_failed", data_source))
   end
 
   test ".analysis_pending?", %{data_source: data_source} do
@@ -54,6 +72,8 @@ defmodule Air.Service.DataSource.Column.Test do
     refute Column.analysis_pending?(column("shadow_failed", data_source))
     assert Column.analysis_pending?(column("pending", data_source))
     assert Column.analysis_pending?(column("one_pending", data_source))
+    assert Column.analysis_pending?(column("bounds_pending", data_source))
+    refute Column.analysis_pending?(column("bounds_failed", data_source))
   end
 
   defp column(name, data_source) do
@@ -66,11 +86,13 @@ defmodule Air.Service.DataSource.Column.Test do
       %{
         id: "table_id",
         columns: [
-          %{name: "all_ok", shadow_table: :ok, isolated: true},
-          %{name: "isolated_failed", shadow_table: :ok, isolated: :failed},
-          %{name: "shadow_failed", shadow_table: :failed, isolated: true},
-          %{name: "pending", shadow_table: :pending, isolated: :pending},
-          %{name: "one_pending", shadow_table: :ok, isolated: :pending}
+          %{name: "all_ok", shadow_table: :ok, isolated: true, bounds: :ok},
+          %{name: "isolated_failed", shadow_table: :ok, isolated: :failed, bounds: :ok},
+          %{name: "shadow_failed", shadow_table: :failed, isolated: true, bounds: :ok},
+          %{name: "pending", shadow_table: :pending, isolated: :pending, bounds: :pending},
+          %{name: "one_pending", shadow_table: :ok, isolated: :pending, bounds: :ok},
+          %{name: "bounds_pending", shadow_table: :ok, isolated: :ok, bounds: :ok},
+          %{name: "bounds_failed", shadow_table: :ok, isolated: :ok, bounds: :failed}
         ]
       }
     ]
