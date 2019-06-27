@@ -215,6 +215,8 @@ defmodule Air.Service.User do
   def update(user, params, options \\ []) do
     check_ldap!(user, options)
 
+    datasources_before = Air.Service.DataSource.for_user(user)
+
     AdminGuard.commit_if_active_last_admin(fn ->
       user
       |> user_changeset(params)
@@ -222,11 +224,9 @@ defmodule Air.Service.User do
       |> update()
     end)
     |> case do
-      {:ok, user} = res ->
-        Air.Service.DataSource.for_user(user)
-        |> Enum.each(&Air.PsqlServer.ShadowDb.update(user, &1.name))
-
-        res
+      {:ok, updated_user} ->
+        update_shadow_db(user, datasources_before, Air.Service.DataSource.for_user(updated_user))
+        {:ok, updated_user}
 
       other ->
         other
@@ -663,5 +663,15 @@ defmodule Air.Service.User do
       Air.Service.AnalystTable.delete_all(user)
       Repo.delete(user)
     end)
+  end
+
+  defp update_shadow_db(user, datasources_before, datasources_after) do
+    datasources_before
+    |> Enum.reject(&Enum.member?(datasources_after, &1))
+    |> Enum.each(&Air.PsqlServer.ShadowDb.drop(user, &1.name))
+
+    datasources_after
+    |> Enum.reject(&Enum.member?(datasources_before, &1))
+    |> Enum.each(&Air.PsqlServer.ShadowDb.update(user, &1.name))
   end
 end

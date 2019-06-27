@@ -51,7 +51,17 @@ defmodule Air.PsqlServer.ShadowDbTest do
     end
 
     test "Regular user: Removing a data source from a group should remove the corresponding shadow dbs"
-    test "Regular user: Removing a user from a group should remove the corresponding shadow dbs"
+
+    test "Regular user: Removing a user from a group should remove the corresponding shadow dbs", context do
+      group = TestRepoHelper.create_group!()
+      data_source = create_data_source!(%{groups: [group.id]})
+      user = TestRepoHelper.create_user!(%{groups: [group.id]})
+      trigger_shadow_db_creation(context, user, data_source)
+
+      User.update!(user, %{groups: []})
+
+      assert soon(not shadow_db_exists(context, user, data_source), 5000), "Shadow db should have been removed"
+    end
 
     test "LDAP user: Assigning a user to a group, should create shadow dbs for the groups data sources"
     test "LDAP user: Adding a data source to a group should create shadow dbs for all users in the group"
@@ -103,5 +113,12 @@ defmodule Air.PsqlServer.ShadowDbTest do
       ])
 
     TestRepoHelper.create_data_source!(Map.merge(%{tables: tables}, params))
+  end
+
+  def trigger_shadow_db_creation(context, user, data_source) do
+    Air.PsqlServer.ShadowDb.update(user, data_source.name)
+
+    assert soon(shadow_db_exists(context, user, data_source), 5000),
+           "Shadow db should have been created or updated"
   end
 end
