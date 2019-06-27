@@ -2,12 +2,39 @@ defmodule Air.PsqlServer.ShadowDbTest do
   # because of shared mode
   use Air.SchemaCase, async: false
 
+  alias Air.TestRepoHelper
+  alias Air.Service.User
   import Aircloak.AssertionHelper
 
-  alias Air.TestRepoHelper
+  setup_all do
+    params = Air.PsqlServer.ShadowDb.connection_params()
+
+    {:ok, pid} =
+      Postgrex.start_link(
+        hostname: params.host,
+        database: params.name,
+        username: params.user,
+        port: params.port,
+        ssl: params.ssl,
+        password: params.password
+      )
+
+    [shadow_db_conn: pid]
+  end
 
   describe "datasource access change" do
-    test "Regular user: Assigning a user to a group, should create shadow dbs for the groups data sources"
+    test "Regular user: Assigning a user to a group, should create shadow dbs for the groups data sources",
+         context do
+      group = TestRepoHelper.create_group!()
+      data_source = create_data_source!(%{groups: [group.id]})
+      user = TestRepoHelper.create_user!()
+      refute shadow_db_exists(context, user, data_source)
+      User.update!(user, %{groups: [group.id]})
+
+      assert soon(shadow_db_exists(context, user, data_source), 5000),
+             "Shadow db should be created after user is assigned to group"
+    end
+
     test "Regular user: Adding a data source to a group should create shadow dbs for all users in the group"
     test "Regular user: Removing a data source from a group should remove the corresponding shadow dbs"
     test "Regular user: Removing a user from a group should remove the corresponding shadow dbs"
@@ -40,5 +67,27 @@ defmodule Air.PsqlServer.ShadowDbTest do
   describe "psql interface" do
     test "Views should be listed amongst tables"
     test "Analyst tables should be listed amongst tables"
+  end
+
+  defp shadow_db_exists(context, user, data_source) do
+    result =
+      Postgrex.query!(
+        context.shadow_db_conn,
+        "SELECT distinct datname FROM pg_catalog.pg_database WHERE datname LIKE 'aircloak_shadow%'",
+        []
+      )
+
+    result.rows
+    |> List.flatten()
+    |> Enum.member?(Air.PsqlServer.ShadowDb.db_name(user, data_source.name))
+  end
+
+  def create_data_source!(params \\ %{}) do
+    tables =
+      Jason.encode!([
+        %{columns: [%{key_type: "user_id", name: "uid", type: "integer", user_id: true}], id: "table_name"}
+      ])
+
+    TestRepoHelper.create_data_source!(Map.merge(%{tables: tables}, params))
   end
 end

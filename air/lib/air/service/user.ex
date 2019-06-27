@@ -221,6 +221,16 @@ defmodule Air.Service.User do
       |> merge(change_main_login(user, &main_login_changeset(&1, params)))
       |> update()
     end)
+    |> case do
+      {:ok, user} = res ->
+        Air.Service.DataSource.for_user(user)
+        |> Enum.each(&Air.PsqlServer.ShadowDb.update(user, &1.name))
+
+        res
+
+      other ->
+        other
+    end
   end
 
   @doc """
