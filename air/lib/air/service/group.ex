@@ -80,7 +80,22 @@ defmodule Air.Service.Group do
   @spec delete(Group.t(), change_options) :: {:ok, Group.t()} | {:error, :forbidden_no_active_admin}
   def delete(group, options \\ []) do
     check_ldap!(group, options)
+
+    group = group |> Repo.preload(:users)
+
+    affected_users =
+      group.users
+      |> Enum.map(&{&1, Air.Service.DataSource.for_user(&1)})
+
     AdminGuard.commit_if_active_last_admin(fn -> Repo.delete(group) end)
+    |> case do
+      {:ok, _} = result ->
+        drop_orphaned_shadow_dbs(affected_users)
+        result
+
+      other ->
+        other
+    end
   end
 
   @doc "Loads the group with the given id."
@@ -158,5 +173,16 @@ defmodule Air.Service.Group do
     group
     |> cast(params, [])
     |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
+  end
+
+  defp drop_orphaned_shadow_dbs(users_and_data_sources) do
+    users_and_data_sources
+    |> Enum.each(fn {user, originally_accessible_data_sources} ->
+      accessible_data_sources = Air.Service.DataSource.for_user(user)
+
+      originally_accessible_data_sources
+      |> Enum.reject(&Enum.member?(accessible_data_sources, &1))
+      |> Enum.each(&Air.PsqlServer.ShadowDb.drop(user, &1.name))
+    end)
   end
 end

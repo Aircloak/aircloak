@@ -3,7 +3,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
   use Air.SchemaCase, async: false
 
   alias Air.TestRepoHelper
-  alias Air.Service.{User, DataSource}
+  alias Air.Service.{User, Group, DataSource}
   import Aircloak.AssertionHelper
 
   setup_all do
@@ -90,7 +90,25 @@ defmodule Air.PsqlServer.ShadowDbTest do
       assert soon(not shadow_db_exists(context, user, data_source), 5000), "Shadow db should have been removed"
     end
 
-    test "If a group is deleted, the orphaned shadow dbs should be removed"
+    test "If a group is deleted, the orphaned shadow dbs should be removed", context do
+      group1 = TestRepoHelper.create_group!()
+      group2 = TestRepoHelper.create_group!()
+
+      data_source1 = create_data_source!(%{groups: [group1.id]})
+      data_source2 = create_data_source!(%{groups: [group1.id, group2.id]})
+
+      user = TestRepoHelper.create_user!(%{groups: [group1.id, group2.id]})
+
+      trigger_shadow_db_creation(context, user, data_source1)
+      trigger_shadow_db_creation(context, user, data_source2)
+
+      Group.delete!(group1)
+
+      assert soon(not shadow_db_exists(context, user, data_source1), 5000),
+             "Orphaned shadow db should have been removed"
+
+      assert shadow_db_exists(context, user, data_source2), "Shadow db for still accessible data source should remain"
+    end
 
     test "If a data source is deleted then all related shadow dbs should be removed", context do
       group = TestRepoHelper.create_group!()
