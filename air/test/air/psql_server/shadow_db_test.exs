@@ -50,7 +50,16 @@ defmodule Air.PsqlServer.ShadowDbTest do
              "Shadow db should be created after user is assigned to group"
     end
 
-    test "Regular user: Removing a data source from a group should remove the corresponding shadow dbs"
+    test "Regular user: Removing a data source from a group should remove the corresponding shadow dbs", context do
+      group = TestRepoHelper.create_group!()
+      data_source = create_data_source!(%{groups: [group.id]})
+      user = TestRepoHelper.create_user!(%{groups: [group.id]})
+      trigger_shadow_db_creation(context, user, data_source)
+
+      DataSource.update!(data_source, %{groups: []})
+
+      assert soon(not shadow_db_exists(context, user, data_source), 5000), "Shadow db should have been removed"
+    end
 
     test "Regular user: Removing a user from a group should remove the corresponding shadow dbs", context do
       group = TestRepoHelper.create_group!()

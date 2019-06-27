@@ -225,6 +225,9 @@ defmodule Air.Service.DataSource do
       new_users
       |> Enum.each(&Air.PsqlServer.ShadowDb.update(&1, data_source.name))
 
+      revoked_users
+      |> Enum.each(&Air.PsqlServer.ShadowDb.drop(&1, data_source.name))
+
       {:ok, data_source}
     end
   end
