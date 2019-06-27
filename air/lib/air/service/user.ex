@@ -659,10 +659,22 @@ defmodule Air.Service.User do
   defp merge_login_errors(other), do: other
 
   defp do_delete(user) do
+    data_sources = Air.Service.DataSource.for_user(user)
+
     Repo.transaction(fn ->
       Air.Service.AnalystTable.delete_all(user)
       Repo.delete(user)
     end)
+    |> case do
+      {:ok, _} = result ->
+        data_sources
+        |> Enum.each(&Air.PsqlServer.ShadowDb.drop(user, &1.name))
+
+        result
+
+      other ->
+        other
+    end
   end
 
   defp update_shadow_db(user, datasources_before, datasources_after) do
