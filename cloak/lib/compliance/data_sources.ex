@@ -240,7 +240,8 @@ defmodule Compliance.DataSources do
         %{
           decoders: Map.get(definition, :decoders, []),
           query: nil,
-          content_type: Map.get(definition, :content_type, :private)
+          content_type: Map.get(definition, :content_type, :private),
+          keys: Map.get(definition, :keys, %{})
         }
         |> add_uid_construct(name)
         |> Map.put(:db_name, handler_for_data_source(data_source_scaffold).db_table_name("#{db_name}#{table_postfix}"))
