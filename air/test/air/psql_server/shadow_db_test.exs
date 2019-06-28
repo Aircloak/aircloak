@@ -4,7 +4,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
   alias Air.TestRepoHelper
   alias Air.Service.{User, Group, DataSource}
-  alias Air.Service.LDAP.{Sync, User, Group}
+  alias Air.Service.LDAP
   import Aircloak.AssertionHelper
 
   setup_all do
@@ -84,16 +84,28 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       refute shadow_db_exists(context, user, data_source)
 
-      Sync.sync(
-        [%User{dn: "user dn", login: "alice", name: "Alice the Magnificent"}],
-        [%Group{dn: "group dn", name: "group", member_ids: ["alice"]}]
+      LDAP.Sync.sync(
+        [%LDAP.User{dn: "user dn", login: "alice", name: "Alice the Magnificent"}],
+        [%LDAP.Group{dn: "group dn", name: "group", member_ids: ["alice"]}]
       )
 
       assert soon(shadow_db_exists(context, user, data_source), 5000),
              "Shadow db should be created after user is assigned to group"
     end
 
-    test "LDAP user: Adding a data source to a group should create shadow dbs for all users in the group"
+    test "LDAP user: Adding a data source to a group should create shadow dbs for all users in the group", context do
+      group = TestRepoHelper.create_group!(%{ldap_dn: "group dn"}) |> Repo.preload(:data_sources)
+      user = TestRepoHelper.create_user!(%{ldap_dn: "user dn", login: "alice", groups: [group.id]})
+      data_source = create_data_source!()
+
+      refute shadow_db_exists(context, user, data_source)
+
+      Group.update_data_sources(group, %{data_sources: [data_source.id]})
+
+      assert soon(shadow_db_exists(context, user, data_source), 5000),
+             "Shadow db should be created after a data source is assigned to group"
+    end
+
     test "LDAP user: Removing a data source from a group should remove the corresponding shadow dbs"
     test "LDAP user: Removing a user from a group should remove the corresponding shadow dbs"
   end

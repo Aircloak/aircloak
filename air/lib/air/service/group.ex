@@ -69,9 +69,14 @@ defmodule Air.Service.Group do
   @doc "Updates only the data sources of the given group."
   @spec update_data_sources(Group.t(), map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
   def update_data_sources(group, params) do
-    group
-    |> data_source_changeset(params)
-    |> Repo.update()
+    conditionally_alter_shadow_dbs(
+      group,
+      fn ->
+        group
+        |> data_source_changeset(params)
+        |> Repo.update()
+      end
+    )
   end
 
   @doc "Deletes the given group, raises on error."
@@ -185,6 +190,10 @@ defmodule Air.Service.Group do
           originally_accessible_data_sources
           |> Enum.reject(&Enum.member?(accessible_data_sources, &1))
           |> Enum.each(&Air.PsqlServer.ShadowDb.drop(user, &1.name))
+
+          accessible_data_sources
+          |> Enum.reject(&Enum.member?(originally_accessible_data_sources, &1))
+          |> Enum.each(&Air.PsqlServer.ShadowDb.update(user, &1.name))
         end
 
         altered_group = Repo.preload(altered_group, :users)
