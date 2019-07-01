@@ -106,7 +106,20 @@ defmodule Air.PsqlServer.ShadowDbTest do
              "Shadow db should be created after a data source is assigned to group"
     end
 
-    test "LDAP user: Removing a data source from a group should remove the corresponding shadow dbs"
+    # The inverse of this test, namely removing a group from a data source, is equivalent to the non-LDAP one
+    test "LDAP user: Removing a data source from a group should remove the corresponding shadow dbs", context do
+      group = TestRepoHelper.create_group!(%{ldap_dn: "group dn"})
+      user = TestRepoHelper.create_user!(%{ldap_dn: "user dn", login: "alice", groups: [group.id]})
+      data_source = create_data_source!(%{groups: [group.id]})
+      trigger_shadow_db_creation(context, user, data_source)
+
+      Group.load(group.id)
+      |> Group.update_data_sources(%{data_sources: []})
+
+      assert soon(not shadow_db_exists(context, user, data_source), 5000),
+             "Shadow db should be removed after data source is removed from the group"
+    end
+
     test "LDAP user: Removing a user from a group should remove the corresponding shadow dbs"
   end
 
