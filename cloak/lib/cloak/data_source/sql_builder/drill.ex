@@ -14,6 +14,8 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
       variance variance_distinct
       year month day hour minute second date_trunc
+      unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_mod
+      checked_mod checked_div checked_pow
       sqrt floor ceil abs round trunc
       length lower upper btrim ltrim rtrim left right substring concat
       cast coalesce hash bool_op
@@ -40,14 +42,30 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
 
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
-  def function_sql("/", [arg1, arg2]), do: ["(CAST(", arg1, " AS double) / NULLIF(", arg2, ", 0))"]
-  def function_sql("%", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
+  def function_sql("unsafe_div", [arg1, arg2]), do: ["(CAST(", arg1, " AS double) / ", arg2, ")"]
 
-  for binary_operator <- ~w(+ - *) do
-    def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
+  def function_sql("checked_div", [arg1, arg2, epsilon]),
+    do: [
+      "CASE WHEN ",
+      function_sql("abs", [arg2]),
+      " < ",
+      epsilon,
+      " THEN NULL ELSE ",
+      function_sql("unsafe_div", [arg1, arg2]),
+      " END"
+    ]
+
+  def function_sql("unsafe_mod", [arg1, arg2]), do: ["MOD(", arg1, ", ", arg2, ")"]
+  def function_sql("checked_mod", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
+
+  for {function, operator} <- %{"unsafe_add" => "+", "unsafe_sub" => "-", "unsafe_mul" => "*"} do
+    def function_sql(unquote(function), [arg1, arg2]), do: ["(", arg1, unquote(operator), arg2, ")"]
   end
 
-  def function_sql("^", [arg1, arg2]), do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
+  def function_sql("unsafe_pow", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
+
+  def function_sql("checked_pow", [arg1, arg2]),
+    do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
 
   def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
 
