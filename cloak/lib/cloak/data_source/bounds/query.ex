@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.Bounds.Query do
   @moduledoc "Implements querying the database to find the bounds of a column."
 
   alias Cloak.Sql.{Parser, Compiler, Expression}
-  alias Cloak.DataSource.{SqlBuilder, Table}
+  alias Cloak.DataSource.{SQLServer, MongoDB, SqlBuilder, Table}
   alias Cloak.DataSource.Bounds.Compute
   alias Cloak.Query.DbEmulator
 
@@ -23,7 +23,8 @@ defmodule Cloak.DataSource.Bounds.Query do
     table_name = String.to_existing_atom(table_name)
     table = data_source.tables[table_name]
 
-    with false <- Table.key?(table, column),
+    with false <- overflow_safe?(data_source),
+         false <- Table.key?(table, column),
          true <- numeric?(data_source, table_name, column) do
       case table.content_type do
         :public -> public_bounds(data_source, table_name, column)
@@ -109,6 +110,8 @@ defmodule Cloak.DataSource.Bounds.Query do
 
     cutoff |> round() |> max(config(:min))
   end
+
+  defp overflow_safe?(data_source), do: data_source.driver in [SQLServer, MongoDB]
 
   defp config(name), do: Application.get_env(:cloak, :bound_size_cutoff) |> Keyword.fetch!(name)
 end

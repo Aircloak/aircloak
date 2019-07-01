@@ -43,6 +43,13 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
     assert_bounds("bounds", "value", {1, 500})
   end
 
+  for data_source <- [DataSource.SQLServer, DataSource.MongoDB] do
+    test "shortcircuits to `:unknown` for totally safe data source #{data_source}" do
+      data_source = Cloak.DataSource.all() |> hd() |> Map.put(:driver, unquote(data_source))
+      assert Query.bounds(data_source, "bounds", "value") == :unknown
+    end
+  end
+
   test "ignores NULLs" do
     :ok =
       Cloak.Test.DB.insert_data("bounds", ["user_id", "value"], [
