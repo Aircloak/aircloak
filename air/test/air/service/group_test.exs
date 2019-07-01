@@ -108,6 +108,17 @@ defmodule Air.Service.Group.Test do
   end
 
   describe ".update_data_sources" do
+    test "can remove all data sources from group" do
+      data_source = TestRepoHelper.create_data_source!()
+      group = TestRepoHelper.create_group!(%{data_sources: [data_source.id]})
+      assert [%{id: data_source_id}] = Group.load(group.id).data_sources
+      assert data_source_id == data_source.id
+
+      Group.update_data_sources(group, %{data_sources: []})
+
+      assert [] == Group.load(group.id).data_sources
+    end
+
     test "can change data source assignments" do
       group = TestRepoHelper.create_group!() |> Air.Repo.preload(:data_sources)
       data_source = TestRepoHelper.create_data_source!()
