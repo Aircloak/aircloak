@@ -24,7 +24,18 @@ defmodule Air.PsqlServer.ShadowDbTest do
   end
 
   describe "datasource access change" do
-    test "Regular user: Assigning a user to a group, should create shadow dbs for the groups data sources"
+    test "Regular user: Assigning a user to a group, should create shadow dbs for the groups data sources", context do
+      group = TestRepoHelper.create_group!() |> Repo.preload(:users)
+      data_source = create_data_source!(%{groups: [group.id]})
+      user = TestRepoHelper.create_user!()
+
+      refute shadow_db_exists(context, user, data_source)
+
+      Group.update!(group, %{users: [user.id]})
+
+      assert soon(shadow_db_exists(context, user, data_source), 5000),
+             "Shadow db should be created after user is assigned to group"
+    end
 
     test "Regular user: Assigning a group to a user, should create shadow dbs for the groups data sources",
          context do
