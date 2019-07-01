@@ -40,14 +40,13 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("quarter", args), do: ["TRUNC((", function_sql("month", args), " - 1) / 3) + 1"]
 
-  def function_sql("unsafe_div", [arg1, arg2]), do: ["(", arg1, " / ", arg2, ")"]
   def function_sql("unsafe_mod", [arg1, arg2]), do: ["MOD(", arg1, ", ", arg2, ")"]
   def function_sql("checked_mod", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
 
   def function_sql("checked_div", [arg1, arg2, epsilon]),
     do: ["CASE WHEN ", function_sql("abs", [arg2]), " < ", epsilon, " THEN NULL ELSE ", arg1, " / ", arg2, " END"]
 
-  for {function, operator} <- %{"unsafe_add" => "+", "unsafe_sub" => "-", "unsafe_mul" => "*"} do
+  for {function, operator} <- %{"unsafe_add" => "+", "unsafe_sub" => "-", "unsafe_mul" => "*", "unsafe_div" => "/"} do
     def function_sql(unquote(function), [arg1, arg2]), do: ["(", arg1, unquote(operator), arg2, ")"]
   end
 
