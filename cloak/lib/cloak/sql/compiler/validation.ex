@@ -21,6 +21,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_aggregators/1)
     Helpers.each_subquery(query, &verify_group_by_constants/1)
     Helpers.each_subquery(query, &verify_group_by_functions/1)
+    Helpers.each_subquery(query, &verify_grouping_sets/1)
     Helpers.each_subquery(query, &verify_standard_joins/1)
     Helpers.each_subquery(query, &verify_where/1)
     Helpers.each_subquery(query, &verify_having/1)
@@ -268,6 +269,17 @@ defmodule Cloak.Sql.Compiler.Validation do
           source_location: aggregate.source_location,
           message:
             "Aggregate function `#{Function.readable_name(aggregate.function)}` can not be used in the `GROUP BY` clause."
+    end
+  end
+
+  defp verify_grouping_sets(query) do
+    case query.grouping_sets -- Enum.uniq(query.grouping_sets) do
+      [] ->
+        :ok
+
+      _ ->
+        raise CompilationError,
+          message: "Duplicated grouping sets used in the `GROUP BY` clause."
     end
   end
 
