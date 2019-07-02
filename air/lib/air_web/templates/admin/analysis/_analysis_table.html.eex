@@ -3,13 +3,12 @@
     <tr>
       <th>Source</th>
       <th>Columns</th>
-      <th>Analysis successful</th>
-      <th>Analysis pending</th>
-      <th>Analysis failed</th>
-      <th>Isolators computed</th>
-      <th>Isolators failed</th>
-      <th>Rare values computed</th>
-      <th>Rare values failed</th>
+      <th>Analyzed</th>
+      <th>Processing</th>
+      <th>Failed</th>
+      <th>Isolators</th>
+      <th>Rare values</th>
+      <th>Bounds</th>
     </tr>
 
     <tr>
@@ -18,10 +17,21 @@
       <th><%= total(@groups, :analyzed_successfully) %></th>
       <th><%= total(@groups, :analysis_pending) %></th>
       <th><%= total(@groups, :analysis_failed) %></th>
-      <th><%= total(@groups, :isolators_computed) %></th>
-      <th><%= total(@groups, :isolators_failed) %></th>
-      <th><%= total(@groups, :rare_values_computed) %></th>
-      <th><%= total(@groups, :rare_values_failed) %></th>
+      <th>
+        <%= total(@groups, :isolators_computed) %> /
+        <%= total(@groups, :isolators_pending) %> /
+        <%= total(@groups, :isolators_failed) %>
+      </th>
+      <th>
+        <%= total(@groups, :rare_values_computed) %> /
+        <%= total(@groups, :rare_values_pending) %> /
+        <%= total(@groups, :rare_values_failed) %>
+      </th>
+      <th>
+        <%= total(@groups, :bounds_computed) %> /
+        <%= total(@groups, :bounds_pending) %> /
+        <%= total(@groups, :bounds_failed) %>
+      </th>
     </tr>
   </thead>
 
@@ -39,10 +49,9 @@
         <td><%= group.analyzed_successfully %></td>
         <td><%= group.analysis_pending %></td>
         <td><%= group.analysis_failed %></td>
-        <td><%= group.isolators_computed %></td>
-        <td><%= group.isolators_failed %></td>
-        <td><%= group.rare_values_computed %></td>
-        <td><%= group.rare_values_failed %></td>
+        <td><%= group.isolators_computed %> / <%= group.isolators_pending %> / <%= group.isolators_failed %></td>
+        <td><%= group.rare_values_computed %> / <%= group.rare_values_pending %> / <%= group.rare_values_failed %></td>
+        <td><%= group.bounds_computed %> / <%= group.bounds_pending %> / <%= group.bounds_failed %></td>
       </tr>
     <% end %>
   </tbody>

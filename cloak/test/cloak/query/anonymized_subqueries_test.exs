@@ -88,7 +88,7 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
       %{
         rows: [
           %{row: [nil], unreliable: true},
-          %{row: [7], unreliable: false}
+          %{row: [6], unreliable: false}
         ]
       }
     )
@@ -97,7 +97,7 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
   test "propagate unreliability flag through aggregation" do
     assert_query(
       "select sum(m) from (select median(i) as m from anon_sq group by i % 1) as t",
-      %{rows: [%{row: [6], unreliable: true}]}
+      %{rows: [%{row: [5], unreliable: true}]}
     )
   end
 
@@ -113,9 +113,9 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
       """,
       %{
         rows: [
-          %{row: [6, 5], unreliable: false},
-          %{row: [6, nil], unreliable: true},
-          %{row: [nil, 5], unreliable: true},
+          %{row: [5, 6], unreliable: false},
+          %{row: [5, nil], unreliable: true},
+          %{row: [nil, 6], unreliable: true},
           %{row: [nil, nil], unreliable: true}
         ]
       }

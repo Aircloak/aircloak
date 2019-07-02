@@ -51,7 +51,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
       """
         SELECT round(MEDIAN(salary)) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE age = 30
       """,
-      %{rows: [%{occurrences: 1, row: [68]}]}
+      %{rows: [%{occurrences: 1, row: [127]}]}
     )
   end
 
@@ -107,7 +107,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
         FROM "left" INNER JOIN "right"
         ON "left".id = "right".id AND age + 1 = 31
       """,
-      %{rows: [%{occurrences: 1, row: [68]}]}
+      %{rows: [%{occurrences: 1, row: [127]}]}
     )
   end
 
@@ -176,7 +176,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
         SELECT round(MEDIAN(salary)) FROM "left"
           INNER JOIN "right" ON "left".id = "right".id AND name LIKE 'user%'
       """,
-      %{rows: [%{occurrences: 1, row: [77]}]}
+      %{rows: [%{occurrences: 1, row: [133]}]}
     )
   end
 

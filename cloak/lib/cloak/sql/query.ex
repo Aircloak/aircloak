@@ -331,15 +331,19 @@ defmodule Cloak.Sql.Query do
       |> Lens.map(query, fn _ -> new_expression end)
 
   @doc """
+  Returns true if the given expression is a raw database column, false otherwise.
+  """
+  @spec database_column?(Expression.t(), t) :: boolean
+  def database_column?(column, query), do: is_nil(source_subquery(column, query))
+
+  @doc """
   Finds the subquery a given column comes from.
 
   Returns `:database_column` if the column does not come from any subquery. Otherwise returns `{column, subquery}`.
   """
   @spec resolve_subquery_column(Expression.t(), t) :: :database_column | {Expression.t(), t}
   def resolve_subquery_column(column, query) do
-    Lens.to_list(Lenses.direct_subqueries(), query)
-    |> Enum.find(&(&1.alias == column.table.name))
-    |> case do
+    case source_subquery(column, query) do
       nil ->
         :database_column
 
@@ -384,6 +388,11 @@ defmodule Cloak.Sql.Query do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp source_subquery(column, query) do
+    Lens.to_list(Lenses.direct_subqueries(), query)
+    |> Enum.find(&(&1.alias == column.table.name))
+  end
 
   defp make_query(analyst_id, data_source, query_string, parameters, views) do
     with {:ok, parsed_query} <- Parser.parse(query_string) do

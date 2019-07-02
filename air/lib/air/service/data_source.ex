@@ -405,7 +405,7 @@ defmodule Air.Service.DataSource do
 
   @data_source_fields ~w(
     name tables errors description columns_count isolated_computed_count isolated_failed shadow_tables_computed_count
-    shadow_tables_failed database_host supports_analyst_tables
+    shadow_tables_failed bounds_computed_count bounds_failed database_host supports_analyst_tables
   )a
   defp data_source_changeset(data_source, params),
     do:
@@ -433,6 +433,8 @@ defmodule Air.Service.DataSource do
       isolated_failed: filter_columns(tables, &(&1 |> Map.get(:isolated, false) == :failed)),
       shadow_tables_computed_count: count_columns(tables, &(&1 |> Map.get(:shadow_table, :ok) == :ok)),
       shadow_tables_failed: filter_columns(tables, &(&1 |> Map.get(:shadow_table) == :failed)),
+      bounds_computed_count: count_columns(tables, &(&1 |> Map.get(:bounds, :ok) == :ok)),
+      bounds_failed: filter_columns(tables, &(&1 |> Map.get(:bounds) == :failed)),
       supports_analyst_tables: Map.get(data_source_map, :supports_analyst_tables, false)
     }
   end

@@ -9,10 +9,14 @@ defmodule Cloak.Sql.Expression do
   alias Timex.Duration
 
   @type column_type :: DataSource.Table.data_type() | :like_pattern | :interval | nil
+
   @type function_name ::
           String.t()
           | {:cast, DataSource.Table.data_type() | :varbinary | {:native_type, String.t()}}
           | {:bucket, :lower | :upper | :middle}
+
+  @type bounds :: :unknown | {integer(), integer()}
+
   @type t :: %__MODULE__{
           table: :unknown | DataSource.Table.t(),
           name: String.t() | nil,
@@ -29,8 +33,9 @@ defmodule Cloak.Sql.Expression do
           parameter_index: pos_integer | nil,
           synthetic?: boolean,
           source_location: Cloak.Sql.Parser.location(),
-          bounds: :unknown | {integer(), integer()}
+          bounds: bounds
         }
+
   defstruct table: :unknown,
             name: nil,
             alias: nil,
@@ -374,10 +379,12 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("ceil", [value]), do: value |> Float.ceil() |> round()
   defp do_apply("abs", [value]), do: abs(value)
   defp do_apply("round", [value]), do: round(value)
-  defp do_apply("round", [value, precision]), do: do_round(value, precision)
+  defp do_apply("round", [value, precision]), do: Cloak.Math.round(value, precision)
   defp do_apply("trunc", [value]), do: trunc(value)
-  defp do_apply("trunc", [value, precision]), do: do_trunc(value, precision)
+  defp do_apply("trunc", [value, precision]), do: Cloak.Math.trunc(value, precision)
   defp do_apply("div", [x, y]), do: div(x, y)
+  defp do_apply("unsafe_mod", [x, y]), do: do_apply("%", [x, y])
+  defp do_apply("checked_mod", [x, y]), do: do_apply("%", [x, y])
   defp do_apply("%", [x, y]), do: rem(x, y)
   defp do_apply("length", [string]), do: codepoints_length(string)
   defp do_apply("lower", [string]), do: String.downcase(string)
@@ -424,26 +431,28 @@ defmodule Cloak.Sql.Expression do
 
   defp do_apply("extract_words", [nil]), do: [nil]
   defp do_apply("extract_words", [string]), do: String.split(string)
+  defp do_apply("unsafe_pow", [x, y]) when x >= 0, do: do_apply("^", [x, y])
+  defp do_apply("checked_pow", [x, y]) when x >= 0, do: do_apply("^", [x, y])
   defp do_apply("^", [x, y]) when x >= 0, do: :math.pow(x, y)
+  defp do_apply("unsafe_mul", [x, y]), do: do_apply("*", [x, y])
   defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
   defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])
   defp do_apply("*", [x, y]), do: x * y
+  defp do_apply("unsafe_div", [x, y]), do: do_apply("/", [x, y])
+  defp do_apply("checked_div", [x, y, epsilon]), do: if(abs(y) < epsilon, do: nil, else: x / y)
   defp do_apply("/", [x = %Duration{}, y]), do: Duration.scale(x, 1 / y)
   defp do_apply("/", [x, y]), do: x / y
-
+  defp do_apply("unsafe_add", [x, y]), do: do_apply("+", [x, y])
   defp do_apply("+", [x = %Date{}, y = %Duration{}]), do: x |> Timex.to_naive_datetime() |> Timex.add(y)
-
   defp do_apply("+", [x = %NaiveDateTime{}, y = %Duration{}]), do: Timex.add(x, y)
   defp do_apply("+", [x = %Duration{}, y = %Duration{}]), do: Duration.add(x, y)
   defp do_apply("+", [x = %Duration{}, y]), do: do_apply("+", [y, x])
   defp do_apply("+", [x = %Time{}, y = %Duration{}]), do: add_to_time(x, y)
   defp do_apply("+", [x, y]), do: x + y
+  defp do_apply("unsafe_sub", [x, y]), do: do_apply("-", [x, y])
   defp do_apply("-", [x = %Date{}, y = %Date{}]), do: Timex.diff(x, y, :duration)
-
   defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]), do: Timex.diff(x, y, :duration)
-
   defp do_apply("-", [x = %Time{}, y = %Time{}]), do: Duration.sub(Duration.from_time(x), Duration.from_time(y))
-
   defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
@@ -456,23 +465,6 @@ defmodule Cloak.Sql.Expression do
     do: Float.floor(value / bucket_size) * bucket_size + 0.5 * bucket_size
 
   defp do_apply("coalesce", values), do: Enum.find(values, & &1)
-
-  defp do_trunc(value, 0), do: trunc(value)
-
-  defp do_trunc(value, precision) when precision < 0,
-    do: trunc(value * :math.pow(10, precision)) * :math.pow(10, -precision)
-
-  defp do_trunc(value, _precision) when is_integer(value), do: value
-
-  defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
-
-  defp do_trunc(value, precision), do: value |> :erlang.float() |> Float.floor(precision)
-
-  defp do_round(value, precision) when precision < 0,
-    do: round(value * :math.pow(10, precision)) * :math.pow(10, -precision)
-
-  defp do_round(value, _precision) when is_integer(value), do: value
-  defp do_round(value, precision), do: Float.round(value, precision)
 
   defp left(nil, _), do: nil
   defp left(_, nil), do: nil

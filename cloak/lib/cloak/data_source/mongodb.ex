@@ -244,7 +244,8 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   @supported_functions ~w(
-    + - * / % count sum || concat lower upper year month day weekday hour minute second
+    + - * / % unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod checked_div checked_mod
+    count sum || concat lower upper year month day weekday hour minute second
     cast_integer_to_boolean cast_real_to_boolean cast_boolean_to_integer cast_boolean_to_real
     cast_boolean_to_text cast_text_to_boolean cast_integer_to_real cast_datetime_to_text
     ^ abs ceil floor round sqrt trunc quarter div cast_real_to_integer min max avg

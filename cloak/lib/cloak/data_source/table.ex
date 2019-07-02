@@ -122,6 +122,10 @@ defmodule Cloak.DataSource.Table do
   def invalid_value(:interval), do: Timex.Duration.zero()
   def invalid_value(_), do: nil
 
+  @doc "Returns true if the column with the given name is a key in this table, false otherwise."
+  @spec key?(t, String.t()) :: boolean
+  def key?(table, column_name), do: Map.has_key?(table.keys, column_name)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

@@ -14,11 +14,28 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
       variance variance_distinct
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod ^ * / + - %
+      unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
+      checked_mod checked_div checked_pow
       length lower upper ltrim rtrim left right substring concat
       hex cast coalesce hash bool_op
     )
 
+  @aliases %{
+    "unsafe_pow" => "^",
+    "checked_pow" => "^",
+    "unsafe_mul" => "*",
+    "unsafe_div" => "/",
+    "unsafe_add" => "+",
+    "unsafe_sub" => "-",
+    "unsafe_mod" => "%",
+    "checked_mod" => "%"
+  }
+
   @impl Dialect
+  for {function, alias} <- @aliases do
+    def function_sql(unquote(function), args), do: function_sql(unquote(alias), args)
+  end
+
   for datepart <- ~w(year month day hour minute second quarter) do
     def function_sql(unquote(datepart), args), do: ["DATEPART(", unquote(datepart), ", ", args, ")"]
   end
@@ -47,6 +64,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("substring", [arg1, arg2]), do: ["SUBSTRING(", arg1, ", ", arg2, ", LEN(", arg1, "))"]
 
   def function_sql("^", [arg1, arg2]), do: ["POWER(", cast_sql(arg1, :numeric, :real), ", ", arg2, ")"]
+  def function_sql("checked_div", [arg1, arg2, _epsilon]), do: function_sql("/", [arg1, arg2])
   def function_sql("/", [arg1, arg2]), do: ["(", cast_sql(arg1, :numeric, :real), " / ", arg2, ")"]
 
   for binary_operator <- ~w(+ - * %) do

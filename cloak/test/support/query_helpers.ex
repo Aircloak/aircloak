@@ -3,6 +3,34 @@ defmodule Cloak.Test.QueryHelpers do
 
   alias Cloak.Sql.{Compiler, Parser, Query, Expression}
 
+  defmacro assert_query_not_failing(query, options \\ []) do
+    quote bind_quoted: [
+            query: query,
+            parameters: Keyword.get(options, :parameters, []),
+            views: Keyword.get(options, :views, quote(do: %{})),
+            analyst_id: Keyword.get(options, :analyst_id),
+            data_sources: Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all())),
+            timeout: Keyword.get(options, :timeout, :timer.hours(1)),
+            delta: Keyword.get(options, :delta, 0.0001)
+          ] do
+      run_query = &Cloak.Query.Runner.run_sync("1", analyst_id, &1, query, parameters, views)
+
+      data_sources
+      |> Task.async_stream(
+        fn data_source ->
+          {us, result} = :timer.tc(fn -> run_query.(data_source) end)
+          Compliance.Runtime.record(data_source, _ms = div(us, 1000))
+          result
+        end,
+        timeout: timeout,
+        on_timeout: :kill_task
+      )
+      |> Enum.each(fn result ->
+        assert {:ok, %{rows: _}} = result
+      end)
+    end
+  end
+
   defmacro assert_query_consistency(query, options \\ []) do
     quote bind_quoted: [
             query: query,
