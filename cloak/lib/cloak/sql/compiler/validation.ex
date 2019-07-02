@@ -21,6 +21,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_aggregators/1)
     Helpers.each_subquery(query, &verify_group_by_constants/1)
     Helpers.each_subquery(query, &verify_group_by_functions/1)
+    Helpers.each_subquery(query, &verify_grouping_sets/1)
     Helpers.each_subquery(query, &verify_standard_joins/1)
     Helpers.each_subquery(query, &verify_where/1)
     Helpers.each_subquery(query, &verify_having/1)
@@ -191,37 +192,6 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_group_by_constants(query) do
-    query.group_by
-    |> Enum.filter(&Expression.constant?/1)
-    |> case do
-      [] ->
-        :ok
-
-      [expression | _] ->
-        raise CompilationError,
-          source_location: expression.source_location,
-          message: "Constant expression `#{Expression.display(expression)}` can not be used in the `GROUP BY` clause."
-    end
-  end
-
-  defp verify_group_by_functions(query) do
-    query.group_by
-    |> Enum.filter(&aggregate_expression?/1)
-    |> case do
-      [] ->
-        :ok
-
-      [expression | _] ->
-        [aggregate | _] = aggregate_subexpressions(expression)
-
-        raise CompilationError,
-          source_location: aggregate.source_location,
-          message:
-            "Aggregate function `#{Function.readable_name(aggregate.function)}` can not be used in the `GROUP BY` clause."
-    end
-  end
-
   defp verify_constants(query) do
     Lenses.query_expressions()
     |> Lens.filter(& &1.constant?)
@@ -266,6 +236,52 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_constant(_expression), do: :ok
+
+  # -------------------------------------------------------------------
+  # GROUP BY
+  # -------------------------------------------------------------------
+
+  defp verify_group_by_constants(query) do
+    query.group_by
+    |> Enum.filter(&Expression.constant?/1)
+    |> case do
+      [] ->
+        :ok
+
+      [expression | _] ->
+        raise CompilationError,
+          source_location: expression.source_location,
+          message: "Constant expression `#{Expression.display(expression)}` can not be used in the `GROUP BY` clause."
+    end
+  end
+
+  defp verify_group_by_functions(query) do
+    query.group_by
+    |> Enum.filter(&aggregate_expression?/1)
+    |> case do
+      [] ->
+        :ok
+
+      [expression | _] ->
+        [aggregate | _] = aggregate_subexpressions(expression)
+
+        raise CompilationError,
+          source_location: aggregate.source_location,
+          message:
+            "Aggregate function `#{Function.readable_name(aggregate.function)}` can not be used in the `GROUP BY` clause."
+    end
+  end
+
+  defp verify_grouping_sets(query) do
+    case query.grouping_sets -- Enum.uniq(query.grouping_sets) do
+      [] ->
+        :ok
+
+      _ ->
+        raise CompilationError,
+          message: "Duplicated grouping sets used in the `GROUP BY` clause."
+    end
+  end
 
   # -------------------------------------------------------------------
   # Joins

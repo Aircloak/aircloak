@@ -108,6 +108,11 @@ defmodule Cloak.Query.ErrorTest do
     assert error =~ ~r/`name` from table `test_errors` needs to appear in the `GROUP BY` clause/
   end
 
+  test "query reports an error when using duplicated grouping sets" do
+    assert_query("select name, height from test_errors group by grouping sets ((1, 2), (1, 2))", %{error: error})
+    assert error =~ ~r/Duplicated grouping sets used in the `GROUP BY` clause/
+  end
+
   test "query reports an error on runner crash" do
     ExUnit.CaptureLog.capture_log(fn ->
       assert_query(:invalid_query_type, %{error: "Unknown cloak error."})
