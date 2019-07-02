@@ -176,7 +176,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
         SELECT round(MEDIAN(salary)) FROM "left"
           INNER JOIN "right" ON "left".id = "right".id AND name LIKE 'user%'
       """,
-      %{rows: [%{occurrences: 1, row: [77]}]}
+      %{rows: [%{occurrences: 1, row: [133]}]}
     )
   end
 
