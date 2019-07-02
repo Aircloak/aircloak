@@ -43,7 +43,8 @@ Enum.each(
                 #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
               FROM #{unquote(table)}
             ) table_alias
-            ORDER BY output NULLS LAST
+            WHERE output IS NOT NULL
+            ORDER BY output
           """)
         end
 
@@ -61,7 +62,8 @@ Enum.each(
                   #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
                 FROM #{unquote(table)}
               ) table_alias
-              ORDER BY output NULLS LAST
+              WHERE output IS NOT NULL
+              ORDER BY output
             """)
           end
         end
@@ -74,7 +76,8 @@ Enum.each(
             SELECT
               #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
             FROM #{unquote(table)}
-            ORDER BY output NULLS LAST
+            WHERE output IS NOT NULL
+            ORDER BY output
           """)
         end
 
@@ -87,7 +90,8 @@ Enum.each(
               SELECT
                 #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
               FROM #{unquote(table)}
-              ORDER BY output NULLS LAST
+              WHERE output IS NOT NULL
+              ORDER BY output
             """)
           end
         end
