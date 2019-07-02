@@ -44,6 +44,7 @@
   - [IN, NOT IN, NOT LIKE, and <>](sql/restrictions.md#in-not-in-not-like-and-)
   - [Number of conditions](sql/restrictions.md#number-of-conditions)
   - [Isolating columns](sql/restrictions.md#isolating-columns)
+  - [Column bounds](sql/restrictions.md#column-bounds)
   - [Column analysis](sql/restrictions.md#column-analysis)
 - [Best practises](sql/best-practises.md)
   - [Changes to results](sql/best-practises.md#how-anonymisation-alters-results)

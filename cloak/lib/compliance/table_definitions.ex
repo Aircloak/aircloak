@@ -137,6 +137,10 @@ defmodule Compliance.TableDefinitions do
           nullable: %{type: :real, decoders: [:text_to_real]},
           birthday: %{type: :date},
           column_with_a_very_long_name: %{type: :text}
+        },
+        keys: %{
+          "user_id" => :user_id,
+          "id" => :user_fk
         }
       },
       addresses: %{
@@ -152,6 +156,9 @@ defmodule Compliance.TableDefinitions do
           },
           "home.postal_code": %{type: :integer, decoders: [:text_to_integer]},
           "work.postal_code": %{type: :integer, decoders: [:text_to_integer]}
+        },
+        keys: %{
+          "user_fk" => :user_fk
         }
       },
       notes: %{
@@ -160,6 +167,10 @@ defmodule Compliance.TableDefinitions do
           id: %{type: :integer},
           title: %{type: :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
           content: %{type: :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]}
+        },
+        keys: %{
+          "user_fk" => :user_fk,
+          "id" => :note_id
         }
       },
       notes_changes: %{
@@ -175,6 +186,9 @@ defmodule Compliance.TableDefinitions do
             decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]
           },
           "changes.date": %{type: :datetime, decoders: [:text_to_datetime]}
+        },
+        keys: %{
+          "note_id" => :note_id
         }
       },
       users_public: %{

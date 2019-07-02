@@ -48,7 +48,7 @@ function ensure_database_containers {
   ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Sql{}server1' \
     microsoft/mssql-server-linux:2017-latest
 
-  ensure_supporting_container oracle11g -e ORACLE_DISABLE_ASYNCH_IO=true wnameless/oracle-xe-11g
+  ensure_supporting_container oracle11g -e ORACLE_DISABLE_ASYNCH_IO=true quay.io/aircloak/oracle-xe-11g
 }
 
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo

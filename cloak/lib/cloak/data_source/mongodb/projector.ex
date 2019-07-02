@@ -180,8 +180,13 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   for {name, translation} <- %{
         "*" => "$multiply",
+        "unsafe_mul" => "$multiply",
         "+" => "$add",
+        "unsafe_add" => "$add",
         "-" => "$subtract",
+        "unsafe_sub" => "$subtract",
+        "unsafe_div" => "$divide",
+        "unsafe_mod" => "$mod",
         "floor" => "$floor",
         "ceil" => "$ceil",
         "trunc" => "$trunc",
@@ -207,6 +212,8 @@ defmodule Cloak.DataSource.MongoDB.Projector do
       },
       do: defp(parse_function(unquote(name), args), do: %{unquote(translation) => args})
 
+  defp parse_function("checked_div", [dividend, divisor, _epsilon]), do: parse_function("/", [dividend, divisor])
+
   defp parse_function("/", [dividend, divisor]),
     do: %{
       "$cond": [
@@ -215,6 +222,8 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         %{"$divide": [dividend, divisor]}
       ]
     }
+
+  defp parse_function("checked_mod", [dividend, divisor]), do: parse_function("%", [dividend, divisor])
 
   defp parse_function("%", [dividend, divisor]),
     do: %{

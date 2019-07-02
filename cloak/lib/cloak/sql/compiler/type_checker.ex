@@ -23,7 +23,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
     Helpers.each_subquery(query, fn subquery ->
       unless subquery.type == :standard do
-        verify_usage_of_potentially_crashing_functions(subquery)
         verify_allowed_usage_of_math(subquery)
         verify_lhs_of_in_is_clear(subquery)
         verify_not_equals_is_clear(subquery)
@@ -42,31 +41,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
   # Top-level checks
   # -------------------------------------------------------------------
-
-  defp verify_usage_of_potentially_crashing_functions(%Query{columns: columns} = query),
-    do:
-      Query.Lenses.db_filter_clauses()
-      |> Query.Lenses.conditions()
-      |> Query.Lenses.operands()
-      |> Lens.to_list(query)
-      |> Enum.concat(columns)
-      |> Enum.each(fn column ->
-        type = Type.establish_type(column, query)
-
-        if potentially_crashing_function?(type) do
-          raise CompilationError,
-            source_location: column.source_location,
-            message: """
-            Functions are not allowed to be used in ways that could cause a database exception.
-            This situation arises when a column or constant value is divided (`/`)
-            by an expression that both contains a database column as well as a constant value
-            (for example `age / (age - 20)`), or if the square root is taken of an expression that
-            contains a database column as well as a constant value (for example `sqrt(age - 20)`).
-            Please note that the system will also classify certain uses of math as potentially being
-            a constant, such as `div(age, age)`.
-            """
-        end
-      end)
 
   def verify_allowed_usage_of_math(query),
     do:
@@ -370,13 +344,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp potentially_crashing_function?(type),
-    do:
-      Enum.any?(type.history_of_restricted_transformations, fn
-        {:potentially_crashing_function, _} -> true
-        _ -> false
-      end)
 
   defp restricted_transformations_count(type),
     do:

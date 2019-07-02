@@ -138,11 +138,11 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "function used" do
-      assert %{
-               functions: ["abs", "cast", "min", "max"],
-               top_level_functions: [],
-               subquery_functions: ["abs", "cast", "min", "max"]
-             } = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
+      result = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
+
+      assert Enum.sort(result.functions) == ["abs", "cast", "max", "min"]
+      assert result.top_level_functions == []
+      assert Enum.sort(result.subquery_functions) == ["abs", "cast", "max", "min"]
     end
 
     test "function used in WHERE" do

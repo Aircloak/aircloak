@@ -1,0 +1,40 @@
+defmodule Cloak.DataSource.Bounds do
+  @moduledoc "Entry point for checking column bounds."
+
+  require Aircloak
+  require Cloak.Sql.Expression
+
+  @cache_module Aircloak.in_env(test: Cloak.TestBoundsCache, else: Cloak.DataSource.Bounds.Cache)
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Returns the bounds of the given column."
+  @spec bounds(Cloak.DataSource.t(), String.t(), String.t()) :: Expression.bounds()
+  def bounds(data_source, table, column) do
+    case cache_lookup(data_source, table, column) do
+      {:ok, result} -> result
+      _ -> :unknown
+    end
+  end
+
+  defdelegate cache_lookup(data_source, table_name, column_name), to: @cache_module, as: :lookup
+
+  # -------------------------------------------------------------------
+  # Supervison tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(arg) do
+    Aircloak.ChildSpec.supervisor(
+      [
+        # The cache table is owned by a separate process. This is mostly done for testing purposes, but it also improves
+        # fault-tolerance. If the cache process crashes, the cache table will survive.
+        __MODULE__.PersistentKeyValue,
+        {@cache_module, arg}
+      ],
+      strategy: :rest_for_one
+    )
+  end
+end

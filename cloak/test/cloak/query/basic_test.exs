@@ -498,7 +498,7 @@ defmodule Cloak.Query.BasicTest do
     test "median" do
       assert_query("select median(height) from heights", %{
         columns: ["median"],
-        rows: [%{row: [178], occurrences: 1}]
+        rows: [%{row: [179], occurrences: 1}]
       })
     end
 
@@ -554,7 +554,7 @@ defmodule Cloak.Query.BasicTest do
     test "median(qualified_column)" do
       assert_query("select median(heights.height) from heights", %{
         columns: ["median"],
-        rows: [%{row: [178], occurrences: 1}]
+        rows: [%{row: [179], occurrences: 1}]
       })
     end
   end
@@ -619,7 +619,7 @@ defmodule Cloak.Query.BasicTest do
     test "median" do
       assert_query("select median(height) from heights", %{
         columns: ["median"],
-        rows: [%{row: [-185], occurrences: 1}]
+        rows: [%{row: [-184], occurrences: 1}]
       })
     end
   end
@@ -684,7 +684,7 @@ defmodule Cloak.Query.BasicTest do
     test "median" do
       assert_query("select median(height) from heights", %{
         columns: ["median"],
-        rows: [%{row: [-179], occurrences: 1}]
+        rows: [%{row: [-176], occurrences: 1}]
       })
     end
   end
@@ -1659,7 +1659,7 @@ defmodule Cloak.Query.BasicTest do
           height, count(distinct height), min(height), max(height), median(height), round(avg(height))
         from heights group by height
       """,
-      %{rows: [%{row: [:*, 8, 154, 176, 168, 167]}]}
+      %{rows: [%{row: [:*, 8, 153, 177, 173, 167]}]}
     )
   end
 

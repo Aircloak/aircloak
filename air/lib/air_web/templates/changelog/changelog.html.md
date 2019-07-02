@@ -13,6 +13,10 @@
 
 ## Version 19.2.1
 
+### Known issues
+
+- Some queries on Drill cause a CyclicMetadataException
+
 ### Bugfixes
 
 - Fixed parsing of data source configuration files using the `keys` and `content_type` fields simultaneously.

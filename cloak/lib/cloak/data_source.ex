@@ -261,6 +261,11 @@ defmodule Cloak.DataSource do
     {:reply, :ok, nil, :hibernate}
   end
 
+  def handle_call({:update_data_source_sync, data_source}, _from, state) do
+    {_, state, _} = handle_cast({:update_data_source, data_source}, state)
+    {:reply, :ok, state, :hibernate}
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -371,8 +376,11 @@ defmodule Cloak.DataSource do
     Map.put(data_source, :analyst_tables_enabled, Map.get(data_source, :analyst_tables_enabled, false))
   end
 
+  defp replace_data_source_config(data_source), do: GenServer.cast(__MODULE__, {:update_data_source, data_source})
+
   @doc false
-  def replace_data_source_config(data_source), do: GenServer.cast(__MODULE__, {:update_data_source, data_source})
+  def replace_data_source_config_sync(data_source),
+    do: GenServer.call(__MODULE__, {:update_data_source_sync, data_source})
 
   # We need a name for the data source in order for the Air to have something to attach
   # potential errors to. Therefore if none exists, we'll create a dummy name based on
@@ -480,7 +488,8 @@ defmodule Cloak.DataSource do
             Cloak.DataSource.Connection.Pool,
             gen_server(__MODULE__, nil, name: __MODULE__),
             Supervisor.child_spec(Cloak.DataSource.Isolators, id: :isolators),
-            Supervisor.child_spec(Cloak.DataSource.Shadows, id: :shadows)
+            Supervisor.child_spec(Cloak.DataSource.Shadows, id: :shadows),
+            Supervisor.child_spec(Cloak.DataSource.Bounds, id: :bounds)
           ],
           strategy: :rest_for_one
         ),

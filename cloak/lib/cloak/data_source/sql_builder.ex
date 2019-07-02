@@ -182,26 +182,16 @@ defmodule Cloak.DataSource.SqlBuilder do
     Support.function_sql("sum", [arg |> cast(:real) |> to_fragment(query)], sql_dialect_module(query))
   end
 
-  defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, query)
-       when fun_name in ~w(+ - *) do
-    # Force arithmetic operations to use the highest integer precision.
+  defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, query) do
     args =
-      case args do
-        [%Expression{type: :integer, constant?: false} = arg1, %Expression{type: :integer} = arg2] ->
-          [cast(arg1, :integer), arg2]
-
-        [%Expression{type: :integer, constant?: true} = arg1, %Expression{type: :integer} = arg2] ->
-          [arg1, cast(arg2, :integer)]
-
-        args ->
-          args
+      if Cloak.Sql.Function.math_function?(fun_name) do
+        Enum.map(args, &force_max_precision/1)
+      else
+        args
       end
 
     Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, query)), sql_dialect_module(query))
   end
-
-  defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, query),
-    do: Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, query)), sql_dialect_module(query))
 
   defp column_sql(%Expression{constant?: true, type: :like_pattern, value: value}, _query),
     do: like_pattern_to_fragment(value)
@@ -209,8 +199,23 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{constant?: true, value: value}, query),
     do: constant_to_fragment(value, query)
 
-  defp column_sql(%Expression{function?: false, constant?: false} = column, query),
-    do: column |> column_name(sql_dialect_module(query).quote_char()) |> cast_type(column.type, query)
+  defp column_sql(%Expression{function?: false, constant?: false, bounds: bounds} = column, query) do
+    sql = column |> column_name(sql_dialect_module(query).quote_char()) |> cast_type(column.type, query)
+
+    if Query.database_column?(column, query) do
+      restrict(column.type, sql, bounds)
+    else
+      sql
+    end
+  end
+
+  defp restrict(type, sql, {min, max}) when type in [:integer, :real],
+    do: ["CASE WHEN ", sql, " < #{min} THEN #{min} WHEN ", sql, " > #{max} THEN #{max} ELSE ", sql, " END"]
+
+  defp restrict(_type, sql, _bounds), do: sql
+
+  defp force_max_precision(expression = %Expression{constant?: true}), do: expression
+  defp force_max_precision(expression = %Expression{type: type}), do: cast(expression, type)
 
   defp cast_type(value, :unknown, query), do: sql_dialect_module(query).cast_sql(value, :unknown, :text)
 

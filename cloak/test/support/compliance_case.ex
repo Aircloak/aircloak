@@ -21,6 +21,7 @@ defmodule ComplianceCase do
         column <- table.columns do
       Cloak.TestIsolatorsCache.forward_isolator(data_source, table.name, column.name)
       Cloak.TestShadowCache.forward(data_source, table.name, column.name)
+      Cloak.TestBoundsCache.forward(data_source, table.name, column.name)
     end
 
     {:ok, data_sources: data_sources(), disabled: false}
@@ -36,6 +37,23 @@ defmodule ComplianceCase do
 
   def disable_for(%{data_sources: data_sources} = context, driver, true),
     do: %{context | data_sources: Enum.reject(data_sources, &(&1.driver == driver))}
+
+  @doc false
+  defmacro assert_not_failing(context, query) do
+    quote bind_quoted: [context: context, query: query] do
+      cond do
+        Enum.empty?(context.data_sources) ->
+          :ok
+
+        context.disabled ->
+          :ok
+
+        true ->
+          delta = Map.get(context, :delta, 0.0001)
+          assert_query_not_failing(query, delta: delta, data_sources: context.data_sources, timeout: @timeout)
+      end
+    end
+  end
 
   @doc false
   defmacro assert_consistent_and_not_failing(context, query) do
@@ -173,12 +191,11 @@ defmodule ComplianceCase do
       )
 
   @doc false
-  def data_sources(),
-    # using a global transaction here to prevent simultaneous concurrent datasource loads
-    do: :global.trans({__MODULE__, :data_sources}, &get_data_sources/0, [node()])
+  def data_sources(), do: :global.trans({__MODULE__, self()}, &get_data_sources/0)
 
   defp get_data_sources() do
     # we're caching datasource definition to prevent repeated datasource reloading
+
     cached_data_sources = Application.get_env(:cloak, :cached_data_sources, %{})
     compliance_file = if System.get_env("CI") == "true", do: "dockerized_ci", else: "compliance"
 
@@ -186,9 +203,10 @@ defmodule ComplianceCase do
       :error ->
         data_sources = Compliance.DataSources.all_from_config_initialized(compliance_file)
         Application.put_env(:cloak, :cached_data_sources, Map.put(cached_data_sources, compliance_file, data_sources))
-        for data_source <- data_sources, do: Cloak.DataSource.replace_data_source_config(data_source)
+        for data_source <- data_sources, do: Cloak.DataSource.replace_data_source_config_sync(data_source)
         Cloak.TestIsolatorsCache.data_sources_changed()
         Cloak.TestShadowCache.data_sources_changed()
+        Cloak.TestBoundsCache.data_sources_changed()
         data_sources
 
       {:ok, data_sources} ->
