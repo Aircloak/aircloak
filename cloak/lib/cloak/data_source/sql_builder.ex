@@ -171,19 +171,6 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{function?: true, function: "-", type: :interval, function_args: args}, query),
     do: sql_dialect_module(query).date_subtraction_expression(Enum.map(args, &to_fragment(&1, query)))
 
-  defp column_sql(
-         %Expression{function: {:cast, to_type}, function_args: [arg = %{function?: false, constant?: false}]},
-         query
-       ) do
-    sql = arg |> to_fragment(query) |> sql_dialect_module(query).cast_sql(arg.type, to_type)
-
-    if Query.database_column?(arg, query) do
-      restrict(to_type, sql, arg.bounds)
-    else
-      sql
-    end
-  end
-
   defp column_sql(%Expression{function: {:cast, to_type}, function_args: [arg]}, query),
     do: arg |> to_fragment(query) |> sql_dialect_module(query).cast_sql(arg.type, to_type)
 
