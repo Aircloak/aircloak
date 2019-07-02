@@ -43,6 +43,7 @@ Enum.each(
                 #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
               FROM #{unquote(table)}
             ) table_alias
+            WHERE output IS NOT NULL
             ORDER BY output
           """)
         end
@@ -61,6 +62,7 @@ Enum.each(
                   #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
                 FROM #{unquote(table)}
               ) table_alias
+              WHERE output IS NOT NULL
               ORDER BY output
             """)
           end
@@ -74,6 +76,7 @@ Enum.each(
             SELECT
               #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
             FROM #{unquote(table)}
+            WHERE output IS NOT NULL
             ORDER BY output
           """)
         end
@@ -87,6 +90,7 @@ Enum.each(
               SELECT
                 #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
               FROM #{unquote(table)}
+              WHERE output IS NOT NULL
               ORDER BY output
             """)
           end
@@ -94,11 +98,7 @@ Enum.each(
       end)
 
       def disable_divide_by_zero(context, function) do
-        context
-        # Mongo returns inf instead of nil
-        |> disable_for(Cloak.DataSource.MongoDB, function =~ ~r/\/|%.*-/)
-        # SQLServer orders nulls last instead of first
-        |> disable_for(Cloak.DataSource.SQLServer, function =~ ~r/\/|%.*-/)
+        disable_for(context, Cloak.DataSource.MongoDB, function =~ ~r/\/|%.*-/)
       end
     end
   end
