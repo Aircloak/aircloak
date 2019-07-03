@@ -224,6 +224,9 @@ defmodule Aircloak.Functions do
                ~w(current_time) => %{
                  type_specs: %{[] => :time},
                  attributes: [:pseudoconstant]
+               },
+               ~w(grouping_id) => %{
+                 type_specs: %{[{:many1, :any}] => :integer}
                }
              }
              |> Enum.flat_map(fn {functions, traits} -> Enum.map(functions, &{&1, traits}) end)

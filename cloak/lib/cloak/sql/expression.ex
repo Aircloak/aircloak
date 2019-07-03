@@ -5,7 +5,7 @@ defmodule Cloak.Sql.Expression do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{LikePattern, Query}
+  alias Cloak.Sql.{LikePattern, Query, Function}
   alias Timex.Duration
 
   @type column_type :: DataSource.Table.data_type() | :like_pattern | :interval | nil
@@ -465,6 +465,11 @@ defmodule Cloak.Sql.Expression do
     do: Float.floor(value / bucket_size) * bucket_size + 0.5 * bucket_size
 
   defp do_apply("coalesce", values), do: Enum.find(values, & &1)
+
+  defp do_apply("grouping_id", [group_index, bits_indices, grouping_sets]) do
+    group = Enum.at(grouping_sets, group_index)
+    Enum.reduce(bits_indices, 0, &(if(&1 in group, do: 0, else: 1) + 2 * &2))
+  end
 
   defp left(nil, _), do: nil
   defp left(_, nil), do: nil

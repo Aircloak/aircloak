@@ -166,8 +166,12 @@ defmodule Cloak.Sql.Function do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_well_typed?(function, [{:many1, type}]),
-    do: Enum.all?(arguments(function), &type_matches?(type, &1))
+  defp do_well_typed?(function, [{:many1, type}]) do
+    case arguments(function) do
+      [] -> false
+      args -> Enum.all?(args, &type_matches?(type, &1))
+    end
+  end
 
   defp do_well_typed?(function, argument_types) do
     length(arguments(function)) <= length(argument_types) &&

@@ -23,12 +23,12 @@ defmodule Cloak.Query.Rows do
   @spec extract_groups(Enumerable.t(), [Expression.t()], Query.t()) :: Enumerable.t()
   def extract_groups(rows, columns_to_select, query) do
     selected_columns = [:group_index | group_expressions(query) ++ query.aggregators]
-    columns_to_select = Enum.map(columns_to_select, &update_row_index(&1, selected_columns))
+    columns_to_select = Enum.map(columns_to_select, &update_row_index(query, &1, selected_columns))
 
     filters =
       Query.Lenses.conditions()
       |> Query.Lenses.operands()
-      |> Lens.map(query.having, &update_row_index(&1, selected_columns))
+      |> Lens.map(query.having, &update_row_index(query, &1, selected_columns))
       |> Condition.to_function()
 
     rows
@@ -89,11 +89,27 @@ defmodule Cloak.Query.Rows do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp update_row_index(column, selected_columns) do
+  defp update_row_index(query, %Expression{function: "grouping_id", function_args: args} = column, _selected_columns) do
+    bits_indices =
+      Enum.map(args, fn column ->
+        Enum.find_index(query.group_by, &Expression.equals?(&1, column))
+      end)
+
+    %Expression{
+      column
+      | function_args: [
+          %Expression{name: "group_index", row_index: 0},
+          Expression.constant(:any, bits_indices),
+          Expression.constant(:any, query.grouping_sets)
+        ]
+    }
+  end
+
+  defp update_row_index(query, column, selected_columns) do
     case Enum.find_index(selected_columns, &Expression.equals?(&1, column)) do
       nil ->
         if column.function? do
-          args = Enum.map(column.function_args, &update_row_index(&1, selected_columns))
+          args = Enum.map(column.function_args, &update_row_index(query, &1, selected_columns))
           %Expression{column | function_args: args}
         else
           column
