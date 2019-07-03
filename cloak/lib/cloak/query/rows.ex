@@ -99,8 +99,8 @@ defmodule Cloak.Query.Rows do
       column
       | function_args: [
           %Expression{name: "group_index", row_index: 0},
-          Expression.constant(:any, bits_indices),
-          Expression.constant(:any, query.grouping_sets)
+          Expression.constant(:unknown, bits_indices),
+          Expression.constant(:unknown, query.grouping_sets)
         ]
     }
   end
