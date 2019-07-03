@@ -468,7 +468,10 @@ defmodule Cloak.Sql.Expression do
 
   defp do_apply("grouping_id", [group_index, bits_indices, grouping_sets]) do
     group = Enum.at(grouping_sets, group_index)
-    Enum.reduce(bits_indices, 0, &(if(&1 in group, do: 0, else: 1) + 2 * &2))
+
+    Enum.reduce(bits_indices, 0, fn group_item, bitmask ->
+      bitmask * 2 + if group_item in group, do: 0, else: 1
+    end)
   end
 
   defp left(nil, _), do: nil
