@@ -5,7 +5,7 @@ defmodule Cloak.Sql.Expression do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{LikePattern, Query, Function}
+  alias Cloak.Sql.{LikePattern, Query}
   alias Timex.Duration
 
   @type column_type :: DataSource.Table.data_type() | :like_pattern | :interval | nil
