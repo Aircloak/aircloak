@@ -117,7 +117,10 @@ defmodule Cloak.Query.ErrorTest do
     assert_query("select grouping_id(abs(height)) from test_errors group by height", %{error: error})
 
     assert error =~
-             ~r/Arguments to function `grouping_id` have to be from the list of expressions used in the `GROUP BY` clause/
+             Regex.compile!(
+               "Arguments to function `grouping_id` have to be from the list of " <>
+                 "expressions used in the `GROUP BY` clause"
+             )
   end
 
   test "query reports an error when using `grouping_id` in an invalid clause" do
