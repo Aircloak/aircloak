@@ -23,6 +23,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_group_by_functions/1)
     Helpers.each_subquery(query, &verify_grouping_sets/1)
     Helpers.each_subquery(query, &verify_grouping_id_usage/1)
+    Helpers.each_subquery(query, &verify_grouping_id_args/1)
     Helpers.each_subquery(query, &verify_standard_joins/1)
     Helpers.each_subquery(query, &verify_where/1)
     Helpers.each_subquery(query, &verify_having/1)
@@ -298,7 +299,9 @@ defmodule Cloak.Sql.Compiler.Validation do
           source_location: column.source_location,
           message: "Function `grouping_id` can not be used in the `WHERE` or `GROUP BY` clauses."
     end
+  end
 
+  defp verify_grouping_id_args(query) do
     Lenses.query_expressions()
     |> Lens.filter(&(&1.function == "grouping_id"))
     |> Lens.to_list(query)
