@@ -70,7 +70,7 @@ defmodule Compliance.DataSource.SQLServer do
     |> :odbc.connect(auto_commit: :on, binary_strings: :on, tuple_row: :off)
     |> case do
       {:ok, connection} -> connection
-      {:error, error} -> raise error
+      {:error, error} -> raise to_string(error)
     end
   end
 

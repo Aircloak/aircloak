@@ -66,7 +66,7 @@ defmodule Compliance.DataSource.Oracle do
     |> :odbc.connect(scrollable_cursors: :off, binary_strings: :on, tuple_row: :off)
     |> case do
       {:ok, connection} -> connection
-      {:error, error} -> raise error
+      {:error, error} -> raise to_string(error)
     end
   end
 
