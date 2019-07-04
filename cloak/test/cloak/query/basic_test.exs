@@ -1800,6 +1800,32 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
+  test "grouping_id" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["name", "height"], ["Alice", 170])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["name", "height"], ["Charlie", 180])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["name", "height"], ["John", 170])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["name", "height"], ["Bob", 180])
+
+    assert_query(
+      "select name, height, grouping_id(name, height) from heights group by grouping sets ((), (1), (2), (1, 2))",
+      %{
+        rows: [
+          %{row: [nil, nil, 3]},
+          %{row: ["Alice", nil, 1]},
+          %{row: ["Bob", nil, 1]},
+          %{row: ["Charlie", nil, 1]},
+          %{row: ["John", nil, 1]},
+          %{row: [nil, 170, 2]},
+          %{row: [nil, 180, 2]},
+          %{row: ["Alice", 170, 0]},
+          %{row: ["Bob", 180, 0]},
+          %{row: ["Charlie", 180, 0]},
+          %{row: ["John", 170, 0]}
+        ]
+      }
+    )
+  end
+
   test "distinct in subquery with group by" do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
     :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])

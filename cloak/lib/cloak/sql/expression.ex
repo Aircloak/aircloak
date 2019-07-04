@@ -466,6 +466,14 @@ defmodule Cloak.Sql.Expression do
 
   defp do_apply("coalesce", values), do: Enum.find(values, & &1)
 
+  defp do_apply("grouping_id", [group_index, bits_indices, grouping_sets]) do
+    group = Enum.at(grouping_sets, group_index)
+
+    Enum.reduce(bits_indices, 0, fn group_item, bitmask ->
+      bitmask * 2 + if group_item in group, do: 0, else: 1
+    end)
+  end
+
   defp left(nil, _), do: nil
   defp left(_, nil), do: nil
   defp left(string, count) when count < 0, do: slice_codepoints(string, 0, max(codepoints_length(string) + count, 0))

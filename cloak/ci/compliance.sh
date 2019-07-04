@@ -93,7 +93,7 @@ function start_dev_container {
     --name $oracle_container_id \
     --network=container:$container_id \
     -e ORACLE_DISABLE_ASYNCH_IO=true \
-    wnameless/oracle-xe-11g
+    oracle-xe-11g
 
   printf "\nyou can start the system with \`make start\`\n\n"
 

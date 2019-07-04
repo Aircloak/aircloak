@@ -108,6 +108,26 @@ defmodule Cloak.Query.ErrorTest do
     assert error =~ ~r/`name` from table `test_errors` needs to appear in the `GROUP BY` clause/
   end
 
+  test "query reports an error when calling `grouping_id` without any arguments" do
+    assert_query("select grouping_id() from test_errors group by height", %{error: error})
+    assert error =~ ~r/Function `grouping_id` requires arguments of type .*, but got ()/
+  end
+
+  test "query reports an error when calling `grouping_id` with invalid arguments" do
+    assert_query("select grouping_id(abs(height)) from test_errors group by height", %{error: error})
+
+    assert error =~
+             Regex.compile!(
+               "Arguments to function `grouping_id` have to be from the list of " <>
+                 "expressions used in the `GROUP BY` clause"
+             )
+  end
+
+  test "query reports an error when using `grouping_id` in an invalid clause" do
+    assert_query("select count(*) from test_errors where grouping_id(height) = 0 group by height", %{error: error})
+    assert error =~ ~r/Function `grouping_id` can not be used in the `WHERE` or `GROUP BY` clauses/
+  end
+
   test "query reports an error when using duplicated grouping sets" do
     assert_query("select name, height from test_errors group by grouping sets ((1, 2), (1, 2))", %{error: error})
     assert error =~ ~r/Duplicated grouping sets used in the `GROUP BY` clause/
