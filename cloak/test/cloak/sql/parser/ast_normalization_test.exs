@@ -17,6 +17,13 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
     end
   end
 
+  test "normalizing WHERE to DNF" do
+    assert_equivalent(
+      "SELECT * FROM table WHERE x = 1 AND (y = 2 OR z = 3)",
+      "SELECT * FROM table WHERE (x = 1 AND y = 2) OR (x = 1 AND z = 3)"
+    )
+  end
+
   describe "rewriting NOT IN" do
     test "with one element in LHS",
       do:

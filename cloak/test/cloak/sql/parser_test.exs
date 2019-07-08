@@ -1586,9 +1586,9 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "parsing of `and` / `or` / parens conditions" do
     assert_parse(
-      "select count(*) from x where (a > 0 or a <> 2) and b = 3",
+      "select count(*) from x having (a > 0 or a <> 2) and b = 3",
       select(
-        where:
+        having:
           {:and,
            {:or, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("a"), :<>, constant(2)}},
            {:comparison, identifier("b"), :=, constant(3)}}

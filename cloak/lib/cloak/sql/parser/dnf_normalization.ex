@@ -29,7 +29,7 @@ defmodule Cloak.Sql.Parser.DNFNormalization do
   defp push_in_conjunction(formula) do
     update_in(formula, [Query.Lenses.all_conditions()], fn
       {:and, {:or, a, b}, c} -> push_in_conjunction({:or, {:and, a, c}, {:and, b, c}})
-      {:and, c, {:or, a, b}} -> push_in_conjunction({:or, {:and, a, c}, {:and, b, c}})
+      {:and, a, {:or, b, c}} -> push_in_conjunction({:or, {:and, a, b}, {:and, a, c}})
       other -> other
     end)
   end
