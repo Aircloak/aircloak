@@ -7,7 +7,6 @@ defmodule Compliance.GroupByTest do
       context
       |> disable_unicode(unquote(table), unquote(column))
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
-      |> disable_for(Cloak.DataSource.Drill, true)
       |> disable_for(:all, unquote(table) == "users_public" and unquote(column) == "name")
       |> assert_consistent_and_not_failing("""
         SELECT #{unquote(column)}, COUNT(DISTINCT #{unquote(uid)})

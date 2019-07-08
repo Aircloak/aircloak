@@ -215,7 +215,6 @@ defmodule Compliance.DataSources do
   defp handler_for_data_source(%{driver: Cloak.DataSource.MySQL}), do: Compliance.DataSource.MySQL
   defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServer}), do: Compliance.DataSource.SQLServer
   defp handler_for_data_source(%{driver: Cloak.DataSource.MongoDB}), do: Compliance.DataSource.MongoDB
-  defp handler_for_data_source(%{driver: Cloak.DataSource.Drill}), do: Compliance.DataSource.Drill
   defp handler_for_data_source(%{driver: Cloak.DataSource.Oracle}), do: Compliance.DataSource.Oracle
 
   # -------------------------------------------------------------------
