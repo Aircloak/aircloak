@@ -28,18 +28,9 @@ defmodule Cloak.Sql.Parser.DNFNormalization do
 
   defp push_in_conjunction(formula) do
     update_in(formula, [Query.Lenses.all_conditions()], fn
-      {:and, {:or, a, b}, {:or, c, d}} ->
-        {:or, {:or, push_in_conjunction({:and, a, c}), push_in_conjunction({:and, a, d})},
-         {:or, push_in_conjunction({:and, b, c}), push_in_conjunction({:and, b, d})}}
-
-      {:and, {:or, a, b}, c} ->
-        {:or, push_in_conjunction({:and, a, c}), push_in_conjunction({:and, b, c})}
-
-      {:and, c, {:or, a, b}} ->
-        {:or, push_in_conjunction({:and, a, c}), push_in_conjunction({:and, b, c})}
-
-      other ->
-        other
+      {:and, {:or, a, b}, c} -> push_in_conjunction({:or, {:and, a, c}, {:and, b, c}})
+      {:and, c, {:or, a, b}} -> push_in_conjunction({:or, {:and, a, c}, {:and, b, c}})
+      other -> other
     end)
   end
 
