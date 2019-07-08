@@ -20,6 +20,13 @@ defmodule Cloak.Sql.Parser.DNFNormalization.Test do
         assert dnf?(DNFNormalization.dnf(formula))
       end
     end
+
+    property "does nothing when acting on a conjunction" do
+      check all terms <- uniq_list_of(atom(:alphanumeric), length: 10),
+                formula <- conjunction(terms) do
+        assert DNFNormalization.dnf(formula) == formula
+      end
+    end
   end
 
   defp dnf?(formula, top_level? \\ true)
@@ -37,6 +44,14 @@ defmodule Cloak.Sql.Parser.DNFNormalization.Test do
   defp assignment(terms) do
     list_of(boolean(), length: length(terms))
     |> map(fn bools -> terms |> Enum.zip(bools) |> Enum.into(%{}) end)
+  end
+
+  defp conjunction(terms, depth \\ 10) do
+    frequency([{10, :term}, {depth, :and}])
+    |> bind(fn
+      :term -> one_of([{:not, one_of(terms)}, one_of(terms)])
+      :and -> {:and, conjunction(terms, depth - 1), conjunction(terms, depth - 1)}
+    end)
   end
 
   defp formula(terms, depth \\ 10) do
