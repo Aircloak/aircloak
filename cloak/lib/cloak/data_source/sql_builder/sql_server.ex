@@ -17,7 +17,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
       length lower upper ltrim rtrim left right substring concat
-      hex cast coalesce hash bool_op
+      hex cast coalesce hash bool_op grouping_id
     )
 
   @aliases %{

@@ -1800,7 +1800,27 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
-  test "grouping_id" do
+  test "grouping_id in top query" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["name", "height"], ["Alice", 170])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["name", "height"], ["Charlie", 180])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["name", "height"], ["John", 170])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["name", "height"], ["Bob", 180])
+
+    assert_query(
+      """
+      select median(gid) from (
+        select user_id, name, height, grouping_id(name, height) as gid
+        from heights
+        group by grouping sets ((1, 2), (1, 3), (1, 2, 3))
+      ) as t
+      """,
+      %{
+        rows: [%{row: [1]}]
+      }
+    )
+  end
+
+  test "grouping_id in subquery" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["name", "height"], ["Alice", 170])
     :ok = insert_rows(_user_ids = 10..19, "heights", ["name", "height"], ["Charlie", 180])
     :ok = insert_rows(_user_ids = 20..29, "heights", ["name", "height"], ["John", 170])

@@ -29,7 +29,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
       length lower upper btrim ltrim rtrim left right substring concat
-      hex cast coalesce hash bool_op
+      hex cast coalesce hash bool_op grouping_id
     )
 
   @impl Dialect
@@ -75,6 +75,8 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
     do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE pg_temp.ac_pow(", arg1, ", ", arg2, ") END"]
 
   def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
+
+  def function_sql("grouping_id", args), do: function_sql("grouping", args)
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 

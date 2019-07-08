@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
       checked_mod checked_div checked_pow
       sqrt floor ceil abs round trunc
       length lower upper btrim ltrim rtrim left right substring concat
-      hex cast coalesce hash bool_op
+      hex cast coalesce hash bool_op grouping_id
     )
 
   @impl Dialect
