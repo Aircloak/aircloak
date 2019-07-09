@@ -11,7 +11,7 @@ defmodule Air.Schemas.AuditLog do
     field(:metadata, :map)
     belongs_to(:user, User)
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   @required_fields ~w(event metadata)a

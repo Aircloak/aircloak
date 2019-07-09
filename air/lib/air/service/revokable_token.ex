@@ -119,7 +119,7 @@ defmodule Air.Service.RevokableToken do
     Ecto.build_assoc(user, :revokable_tokens, %{
       type: type,
       payload: :erlang.term_to_binary(payload),
-      valid_until: valid_until(valid_for_seconds)
+      valid_until: valid_for_seconds |> valid_until() |> NaiveDateTime.truncate(:second)
     })
     |> Repo.insert!()
   end
