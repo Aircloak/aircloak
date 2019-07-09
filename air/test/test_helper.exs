@@ -13,6 +13,6 @@ Air.Repo.delete_all(Air.Schemas.DataSource)
 Air.Repo.delete_all(Air.Schemas.AuditLog)
 Air.Repo.delete_all(Air.Schemas.License)
 
-Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, :manual)
-
 :ok = "priv/dev_license.lic" |> File.read!() |> Air.Service.License.load()
+
+Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, :manual)
