@@ -28,7 +28,7 @@ defmodule Compliance.GroupByTest do
       |> assert_consistent_and_not_failing("""
         SELECT COUNT(*), COUNT(DISTINCT uid), MEDIAN(c) FROM (
           SELECT #{unquote(uid)} AS uid, #{unquote(column)}, COUNT(*) AS c
-          FROM #{unquote(table)} GROUP BY GROUPING SETS ((), 1, (1, 2)) ORDER BY 1, 2
+          FROM #{unquote(table)} GROUP BY GROUPING SETS (1, (1, 2)) ORDER BY 1, 2
         ) t
       """)
     end

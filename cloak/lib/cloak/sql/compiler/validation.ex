@@ -21,7 +21,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_aggregators/1)
     Helpers.each_subquery(query, &verify_group_by_constants/1)
     Helpers.each_subquery(query, &verify_group_by_functions/1)
-    Helpers.each_subquery(query, &verify_grouping_sets/1)
+    Helpers.each_subquery(query, &verify_grouping_sets_uniqueness/1)
     Helpers.each_subquery(query, &verify_grouping_id_usage/1)
     Helpers.each_subquery(query, &verify_grouping_id_args/1)
     Helpers.each_subquery(query, &verify_standard_joins/1)
@@ -44,6 +44,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
     Helpers.each_subquery(query, &verify_sample_rate/1)
+    Helpers.each_subquery(query, &verify_grouping_sets_uid/1)
     query
   end
 
@@ -274,7 +275,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_grouping_sets(query) do
+  defp verify_grouping_sets_uniqueness(query) do
     case query.grouping_sets -- Enum.uniq(query.grouping_sets) do
       [] ->
         :ok
@@ -284,6 +285,17 @@ defmodule Cloak.Sql.Compiler.Validation do
           message: "Duplicated grouping sets used in the `GROUP BY` clause."
     end
   end
+
+  defp verify_grouping_sets_uid(%Query{type: :restricted} = query) do
+    Enum.map(query.grouping_sets, fn grouping_set ->
+      unless Enum.any?(grouping_set, &(query.group_by |> Enum.at(&1) |> Expression.key_type() == :user_id)) do
+        raise CompilationError,
+          message: "Grouping set in restricted query doesn't contain a user id."
+      end
+    end)
+  end
+
+  defp verify_grouping_sets_uid(_query), do: :ok
 
   defp verify_grouping_id_usage(query) do
     Lens.keys([:where, :group_by])

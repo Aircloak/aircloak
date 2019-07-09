@@ -133,6 +133,19 @@ defmodule Cloak.Query.ErrorTest do
     assert error =~ ~r/Duplicated grouping sets used in the `GROUP BY` clause/
   end
 
+  test "query reports an error when grouping set in restricted query doesn't contain user id" do
+    assert_query(
+      """
+      select count(*) from (
+        select user_id, name from test_errors group by grouping sets ((1), (), (1, 2))
+      ) t
+      """,
+      %{error: error}
+    )
+
+    assert error =~ ~r/Grouping set in restricted query doesn't contain a user id/
+  end
+
   test "query reports an error on runner crash" do
     ExUnit.CaptureLog.capture_log(fn ->
       assert_query(:invalid_query_type, %{error: "Unknown cloak error."})
