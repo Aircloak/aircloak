@@ -35,6 +35,16 @@ defmodule Compliance.GroupByTest do
     end
   end)
 
+  @tag compliance: "grouping_id in standard query"
+  test "grouping_id in standard query", context do
+    context
+    |> assert_consistent_and_not_failing("""
+      SELECT age, height, cast(birthday as date), GROUPING_ID(age, height, cast(birthday as date)) FROM users_public
+      GROUP BY GROUPING SETS ((), 1, 2, 3, (1, 2), (2, 3), (1, 2, 3))
+      ORDER BY 1 NULLS FIRST, 2 NULLS FIRST, 3 NULLS FIRST, 4
+    """)
+  end
+
   Enum.each(all_columns(), fn {column, table, uid} ->
     @tag compliance: "#{column} #{table} uid-query grouping sets"
     test "grouping sets for #{column} in uid-based query on #{table}", context do
