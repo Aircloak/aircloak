@@ -43,11 +43,15 @@ defmodule Cloak.DataSource.SQLJoinTimingTest do
   defp benchmark(query) do
     [data_source | _] = Cloak.DataSource.all()
     data_source = Map.put(data_source, :statistics_anonymization, false)
+    warmup(data_source, query)
+
     start_time = :erlang.monotonic_time(:milli_seconds)
     for _i <- 1..@iterations, do: run_query(data_source, query)
     end_time = :erlang.monotonic_time(:milli_seconds) - start_time
     end_time / @iterations
   end
+
+  defp warmup(data_source, query), do: run_query(data_source, query)
 
   defp run_query(data_source, query) do
     %{rows: [%{row: [_]}]} = Cloak.Query.Runner.run_sync("1", nil, data_source, query, [], %{})
