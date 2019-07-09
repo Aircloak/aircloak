@@ -3,7 +3,7 @@ defmodule DataSource do
 
   schema "data_sources" do
     field(:name, :string)
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   def changeset(model, params \\ %{}) do

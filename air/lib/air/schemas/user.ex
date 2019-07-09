@@ -34,7 +34,7 @@ defmodule Air.Schemas.User do
       on_replace: :delete
     )
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
 
     # number format overrides
     field(:decimal_sep, :string)

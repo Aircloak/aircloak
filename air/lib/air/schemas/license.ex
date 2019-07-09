@@ -7,7 +7,7 @@ defmodule Air.Schemas.License do
 
   schema "licenses" do
     field(:text, :string)
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   @required_fields ~w(text)a

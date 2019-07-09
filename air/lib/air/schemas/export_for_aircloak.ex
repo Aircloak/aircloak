@@ -7,7 +7,7 @@ defmodule Air.Schemas.ExportForAircloak do
   schema "exports_for_aircloak" do
     field(:payload, :binary)
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   # -------------------------------------------------------------------

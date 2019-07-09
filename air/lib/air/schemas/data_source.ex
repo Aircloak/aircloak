@@ -32,7 +32,7 @@ defmodule Air.Schemas.DataSource do
       on_replace: :delete
     )
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   # --------------------------------------------------------------------

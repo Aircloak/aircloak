@@ -23,7 +23,7 @@ defmodule Air.Schemas.RevokableToken do
     field(:payload, :binary)
     field(:valid_until, :naive_datetime)
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   @required_fields ~w(type payload valid_until)a

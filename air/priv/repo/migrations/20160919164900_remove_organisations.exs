@@ -12,7 +12,7 @@ defmodule Air.Repo.Migrations.RemoveOrganisations do
   def down do
     create table(:organisations) do
       add(:name, :string)
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
 
     alter table(:users) do

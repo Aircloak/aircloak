@@ -12,6 +12,6 @@ defmodule Air.Schemas.Settings do
     field(:thousand_sep, :string)
     field(:decimal_digits, :integer)
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 end

@@ -5,7 +5,7 @@ defmodule Air.Repo.Migrations.AddLicenses do
     create table(:licenses) do
       add(:text, :text)
 
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
   end
 end

@@ -27,7 +27,7 @@ defmodule Air.Schemas.ApiToken do
     field(:last_used_at, :naive_datetime)
     belongs_to(:user, Air.Schemas.User, references: :id)
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   @required_fields ~w(description user_id access)a

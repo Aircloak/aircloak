@@ -13,7 +13,7 @@ defmodule Air.Repo.Migrations.CreateLogins do
       add(:login_type, :login_type, null: false)
       add(:hashed_password, :string, null: false)
 
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
 
     create(unique_index(:logins, [:login]))
