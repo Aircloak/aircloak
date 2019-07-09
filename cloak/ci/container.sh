@@ -24,14 +24,6 @@ function prepare_for_compliance {
   container_name=$1
   ensure_database_containers
 
-  drill_container_name="${container_name}_drill1.15"
-  docker run \
-    --detach --name $drill_container_name -it \
-    -v $(pwd)/cloak/ci/data:/tmp/data \
-    harisekhon/apache-drill:1.15
-
-  docker network connect --alias drill1.15 $container_name $drill_container_name
-
   for db_container in postgres9.6 mongo3.6 mysql5.7 sqlserver2017 oracle11g; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container

@@ -63,7 +63,6 @@ Enum.each(
           context
           |> disable_for(Cloak.DataSource.MongoDB, String.starts_with?(function, ~w(lower lcase upper ucase)))
           |> disable_for(Cloak.DataSource.SQLServer, String.starts_with?(function, ~w(lower lcase upper ucase)))
-          |> disable_for(Cloak.DataSource.Drill, String.contains?(function, ~w(lower lcase upper ucase trim)))
           |> disable_for(Cloak.DataSource.Oracle, function in ["substring(<col> FROM 10 FOR 10)", "right(<col>, 10)"])
         else
           context
