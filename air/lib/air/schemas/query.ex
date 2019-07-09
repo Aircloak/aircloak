@@ -51,7 +51,7 @@ defmodule Air.Schemas.Query do
     belongs_to(:data_source, DataSource)
     has_many(:result_chunks, ResultChunk)
 
-    timestamps(usec: true)
+    timestamps(type: :naive_datetime_usec)
   end
 
   @required_fields ~w()a
