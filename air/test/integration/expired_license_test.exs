@@ -3,9 +3,17 @@ defmodule ExpiredLicenseTest do
 
   import Air.{TestConnHelper, TestRepoHelper}
 
+  alias Ecto.Adapters.SQL.Sandbox
+
   setup do
     :ok = "priv/expired_dev_license.lic" |> File.read!() |> Air.Service.License.load()
-    on_exit(fn -> "priv/dev_license.lic" |> File.read!() |> Air.Service.License.load() end)
+
+    on_exit(fn ->
+      :ok = Sandbox.checkout(Air.Repo)
+      Sandbox.mode(Air.Repo, :auto)
+      "priv/dev_license.lic" |> File.read!() |> Air.Service.License.load()
+    end)
+
     user = create_user!()
     admin = create_admin_user!()
     admin = Air.Service.User.load!(admin.id)
