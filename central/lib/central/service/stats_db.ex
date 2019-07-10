@@ -13,7 +13,7 @@ defmodule Central.Service.StatsDB do
   @doc "Stored query stats in MongoDB for analytics purposes."
   @spec record_query(Map.t()) :: :ok | :error
   def record_query(params) do
-    case Mongo.insert_one(:mongo, "queries", params, pool: DBConnection.Poolboy) do
+    case Mongo.insert_one(:mongo, "queries", params) do
       {:ok, _} ->
         :ok
 
@@ -34,6 +34,6 @@ defmodule Central.Service.StatsDB do
       |> Aircloak.atomize_keys()
       |> Map.to_list()
 
-    worker(Mongo, [[name: :mongo, pool: DBConnection.Poolboy] ++ provided_config])
+    worker(Mongo, [[name: :mongo, pool_size: 10] ++ provided_config])
   end
 end
