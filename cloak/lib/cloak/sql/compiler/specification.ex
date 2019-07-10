@@ -385,7 +385,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         raise CompilationError,
           message:
             "Selecting all from subquery `#{table_name}` is not supported" <>
-              " because the column name `#{column_name}` is ambigous."
+              " because the column name `#{column_name}` is ambiguous."
     end
   end
 

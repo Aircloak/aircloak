@@ -50,7 +50,7 @@ defmodule Cloak.Query.ErrorTest do
     assert error =~ ~r/Cannot cast `0` to datetime./
   end
 
-  test "reports an error on ambigous usage of an alias occurring multiple times" do
+  test "reports an error on ambiguous usage of an alias occurring multiple times" do
     assert_query("select count(*) as x, count(height) as x from test_errors order by x", %{
       error: error
     })
