@@ -13,7 +13,7 @@ defmodule Central.Schemas.Customer do
 
     has_many(:licenses, License)
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   @required_fields ~w(name)a

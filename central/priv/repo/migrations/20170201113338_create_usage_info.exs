@@ -3,11 +3,11 @@ defmodule Central.Repo.Migrations.CreateUsageInfo do
 
   def change do
     create table(:usage_info) do
-      add(:air_utc_time, :naive_datetime, null: false)
+      add(:air_utc_time, :naive_datetime_usec, null: false)
       add(:data, :map, null: false)
       add(:customer_id, references(:customers), null: false)
       add(:air_id, references(:airs), null: false)
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
   end
 end

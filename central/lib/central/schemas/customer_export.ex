@@ -7,8 +7,8 @@ defmodule Central.Schemas.CustomerExport do
 
   schema "customer_exports" do
     field(:export_id, :integer)
-    field(:created_at, :naive_datetime)
+    field(:created_at, :naive_datetime_usec)
     belongs_to(:customer, Central.Schemas.Customer)
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 end
