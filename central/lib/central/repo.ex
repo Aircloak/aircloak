@@ -1,7 +1,6 @@
 defmodule Central.Repo do
   @moduledoc false
-  use Ecto.Repo, otp_app: :central
-  use Aircloak.ChildSpec.Supervisor
+  use Ecto.Repo, otp_app: :central, adapter: Ecto.Adapters.Postgres
   require Aircloak.DeployConfig
 
   require Logger

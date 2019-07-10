@@ -42,7 +42,6 @@ config :central, Central.Guardian,
   verify_issuer: true
 
 config :central, Central.Repo,
-  adapter: Ecto.Adapters.Postgres,
   pool_size: 10,
   # We need it to work with `pgbouncer` (see https://github.com/elixir-ecto/postgrex#pgbouncer)
   prepare: :unnamed
