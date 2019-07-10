@@ -1305,7 +1305,7 @@ defmodule Cloak.Sql.Compiler.Test do
     {:error, error} =
       compile("select * from (select uid, count(*), count(numeric) from table group by 1) t", data_source())
 
-    assert error =~ "Selecting all from subquery `t` is not supported because the column name `count` is ambigous."
+    assert error =~ "Selecting all from subquery `t` is not supported because the column name `count` is ambiguous."
   end
 
   test "quoted alias reference",
