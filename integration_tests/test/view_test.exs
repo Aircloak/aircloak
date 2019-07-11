@@ -57,7 +57,7 @@ defmodule IntegrationTest.ViewTest do
     name = unique_name(:view)
     {:ok, _} = Air.Service.AnalystTable.create(context.user, Manager.data_source(), name, "select * from users")
     assert {:error, changeset} = create_view(context.user, name, "select * from users")
-    assert changeset.errors[:name] == {"has already been taken", []}
+    assert {"has already been taken", _} = changeset.errors[:name]
   end
 
   defp create_view(user, name, sql), do: Air.Service.View.create(user, Manager.data_source(), name, sql)
