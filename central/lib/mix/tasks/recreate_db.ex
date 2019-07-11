@@ -8,6 +8,7 @@ defmodule Mix.Tasks.Central.RecreateDb do
 
   @impl Mix.Task
   def run(_args) do
+    Application.load(:central)
     Central.Repo.configure()
     Enum.each(["ecto.drop", "ecto.create", "ecto.migrate", "seed"], &Mix.Task.run/1)
   end
