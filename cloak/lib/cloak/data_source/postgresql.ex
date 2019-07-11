@@ -78,8 +78,7 @@ defmodule Cloak.DataSource.PostgreSQL do
         [
           types: Postgrex.DefaultTypes,
           sync_connect: true,
-          backoff_type: :stop,
-          pool: DBConnection.Connection
+          backoff_type: :stop
         ]
 
     case Postgrex.start_link(parameters) do
