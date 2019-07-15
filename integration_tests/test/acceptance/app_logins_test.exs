@@ -4,16 +4,25 @@ defmodule IntegrationTest.Acceptance.AppLoginsTest do
 
   test "creating an app login" do
     {login, password} = create_app_login()
-    assert {:ok, _conn} = connect(login, password)
+    assert can_query?(connect(login, password))
   end
 
   test "revoking an app login" do
     Process.flag(:trap_exit, true)
     {login, password} = create_app_login()
+    old_conn = connect(login, password)
     click({:xpath, "//td[text()='#{login}']/..//a[text()='Revoke']"})
     accept_dialog()
     assert_has(:xpath, "//*[contains(text(), 'Login revoked')]")
-    assert {:error, _reason} = connect(login, password)
+
+    refute can_query?(old_conn)
+    refute can_query?(connect(login, password))
+  end
+
+  defp can_query?(conn) do
+    match?({:ok, _}, Postgrex.query(conn, "SELECT 1", []))
+  rescue
+    _ -> false
   end
 
   defp create_app_login() do
