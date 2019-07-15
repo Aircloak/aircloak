@@ -145,7 +145,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  expressions: [
                    %Expression{name: "__ac_group_0"},
                    %Expression{name: "__ac_group_0"},
-                   %Expression{name: "__ac_agg_0_sum"}
+                   %Expression{name: "__ac_nlc__1"}
                  ]
                },
                %{
@@ -153,7 +153,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  expressions: [
                    %Expression{name: "__ac_group_0"},
                    %Expression{name: "__ac_group_0"},
-                   %Expression{name: "__ac_agg_0_sum"},
+                   %Expression{name: "__ac_nlc__1"},
                    %Expression{user_id?: true}
                  ]
                }
