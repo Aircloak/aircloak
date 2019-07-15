@@ -6,6 +6,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   alias Cloak.Sql.{Query, Expression, Query.Lenses}
   alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
   # API functions
@@ -77,11 +78,77 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   defp statistics_anonymization_enabled?(data_source), do: data_source[:statistics_anonymization] != false
 
+  defp offload_grouping_sets(query) do
+    {:subquery, uid_grouping_query} = query.from
+    [uid_grouping_table] = query.selected_tables
+
+    uid_grouping_query = %{uid_grouping_query | ast: push_grouping_sets(query, uid_grouping_query.ast)}
+
+    grouping_id_column = Table.column("__ac_grouping_id", :integer)
+    uid_grouping_table = %{uid_grouping_table | columns: [grouping_id_column | uid_grouping_table.columns]}
+
+    %Query{query | selected_tables: [uid_grouping_table], from: {:subquery, uid_grouping_query}}
+  end
+
+  defp select_column_in_query(query, column) do
+    %Query{
+      query
+      | columns: query.columns ++ [column],
+        column_titles: query.column_titles ++ [Expression.title(column)]
+    }
+  end
+
+  defp select_grouping_id_column(query) do
+    grouping_id =
+      Expression.function("grouping_id", query.group_by, :integer)
+      |> set_fields(alias: "__ac_grouping_id", synthetic?: true)
+
+    select_column_in_query(query, grouping_id)
+  end
+
+  defp add_user_id_to_grouping_sets(grouping_sets, group_by) do
+    uid_index = Enum.find_index(group_by, & &1.user_id?)
+    Enum.map(grouping_sets, &[uid_index | &1])
+  end
+
+  defp translate_grouping_sets(grouping_sets, group_by, target_query) do
+    Enum.map(grouping_sets, fn grouping_set ->
+      Enum.map(grouping_set, fn top_index ->
+        top_column = Enum.at(group_by, top_index)
+        select_index = Enum.find_index(target_query.column_titles, &(&1 == top_column.name))
+        inner_column = Enum.at(target_query.columns, select_index)
+        Enum.find_index(target_query.group_by, &Expression.equals?(&1, inner_column))
+      end)
+    end)
+  end
+
+  defp push_grouping_sets(%Query{grouping_sets: grouping_sets, group_by: group_by}, inner_query)
+       when length(grouping_sets) > 1 do
+    grouping_sets =
+      grouping_sets
+      |> translate_grouping_sets(group_by, inner_query)
+      |> add_user_id_to_grouping_sets(inner_query.group_by)
+
+    # Groups marked as synthetic will be ignored by the noise layers compiler.
+    group_by = Enum.map(inner_query.group_by, &set_fields(&1, synthetic?: true))
+
+    %Query{inner_query | grouping_sets: grouping_sets, group_by: group_by}
+    |> select_grouping_id_column()
+  end
+
+  defp push_grouping_sets(_top_query, inner_query) do
+    grouping_id = Expression.constant(:integer, 0) |> set_fields(alias: "__ac_grouping_id", synthetic?: true)
+    select_column_in_query(inner_query, grouping_id)
+  end
+
   defp convert_to_statistics_anonymization(query) do
+    query = offload_grouping_sets(query)
+
     {:subquery, %{ast: uid_grouping_query}} = query.from
     [uid_grouping_table] = query.selected_tables
 
-    groups = aggregation_groups(uid_grouping_query, uid_grouping_table)
+    grouping_id = column_from_synthetic_table(uid_grouping_table, "__ac_grouping_id")
+    groups = [grouping_id | aggregation_groups(uid_grouping_query, uid_grouping_table)]
 
     {count_duid, min_uid, max_uid} = uid_statistics(uid_grouping_table)
     aggregators = [count_duid, min_uid, max_uid | aggregation_statistics(query.aggregators)]
@@ -110,17 +177,18 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     inner_table = Helpers.create_table_from_columns(inner_columns, "__ac_statistics")
 
     # Since only referenced columns are selected from the inner query, we need to add dummy
-    # references to the min and max user ids, in order to keep them in the aggregation input.
+    # references to the min/max user ids and grouping id, in order to keep them in the aggregation input.
     # The user ids count column has the `user_id?` flag set, so it will be automatically selected,
     # as it will take place of user id column for the synthetic statistics query.
     min_uid_top_ref = column_from_synthetic_table(inner_table, "__ac_min_uid")
     max_uid_top_ref = column_from_synthetic_table(inner_table, "__ac_max_uid")
+    grouping_id_top_ref = column_from_synthetic_table(inner_table, "__ac_grouping_id")
 
     %Query{
       query
       | from: {:subquery, %{ast: inner_query, alias: inner_table.name}},
         selected_tables: [inner_table],
-        aggregators: [min_uid_top_ref, max_uid_top_ref | query.aggregators],
+        aggregators: [grouping_id_top_ref, min_uid_top_ref, max_uid_top_ref | query.aggregators],
         where: nil
     }
     |> update_in(
