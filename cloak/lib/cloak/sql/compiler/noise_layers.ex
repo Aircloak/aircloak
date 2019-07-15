@@ -103,7 +103,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Lens.key(:ast)
       |> Lens.reject(&(&1.type == :standard))
 
-  defp push_noise_layer(query, %NoiseLayer{base: {_table, column, extras}, expressions: [min, max | rest]}) do
+  defp push_noise_layer(query, %NoiseLayer{
+         base: {_table, column, extras},
+         expressions: [min, max | rest],
+         grouping_set_index: grouping_set_index
+       }) do
     {:ok, expression} = find_column(column, query)
 
     layers =
@@ -111,7 +115,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.map(fn column ->
         min = if(Expression.column?(expression) and Expression.constant?(min), do: min, else: column)
         max = if(Expression.column?(expression) and Expression.constant?(max), do: max, else: column)
-        build_noise_layer(column, extras, [min, max | rest])
+        build_noise_layer(column, extras, [min, max | rest], grouping_set_index)
       end)
       |> finalize(query)
 
@@ -534,7 +538,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     build_noise_layer(base_column, extras, expressions, grouping_set_index)
   end
 
-  defp build_noise_layer(base_column, extras, expressions, grouping_set_index \\ nil),
+  defp build_noise_layer(base_column, extras, expressions, grouping_set_index),
     do: NoiseLayer.new({table_name(base_column.table), base_column.name, extras}, expressions, grouping_set_index)
 
   defp count_of_one(), do: Expression.constant(:integer, 1)
