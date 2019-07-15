@@ -57,7 +57,8 @@ defmodule Cloak.Sql.Expression do
     import Inspect.Algebra
 
     def inspect(expression, _opts) do
-      concat(["#Expression<", Cloak.Sql.Expression.display(expression), ">"])
+      synthetic = if expression.synthetic?, do: "Synth", else: ""
+      concat(["#", synthetic, "Expression<", Cloak.Sql.Expression.display(expression), ">"])
     end
   end
 
