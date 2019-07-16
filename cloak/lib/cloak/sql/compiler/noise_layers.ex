@@ -300,7 +300,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       Lens.key(:columns)
       |> Lens.all()
       |> Lens.reject(&needs_aggregation?(query, &1))
-      |> non_synthetic()
+      |> non_synthetic_expressions()
       |> raw_columns(query)
       |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
@@ -326,7 +326,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     query
     |> basic_conditions()
     |> Query.Lenses.operands()
-    |> non_synthetic()
+    |> non_synthetic_expressions()
     |> raw_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
   end
@@ -334,7 +334,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp group_by_noise_layers(%Query{type: :restricted} = query, top_level_uid) do
     Lens.all()
     |> non_uid_expressions()
-    |> non_synthetic()
+    |> non_synthetic_expressions()
     |> raw_columns(query.group_by)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
   end
@@ -347,7 +347,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
       Lens.all()
       |> non_uid_expressions()
-      |> non_synthetic()
+      |> non_synthetic_expressions()
       |> raw_columns(group)
       |> Enum.flat_map(&[static_noise_layer(&1, &1, nil, index), uid_noise_layer(&1, &1, top_level_uid, nil, index)])
     end)
@@ -358,7 +358,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       conditions_satisfying(&Condition.in?/1)
       |> Lens.to_list(query)
       |> Enum.flat_map(fn {:in, column, constants} ->
-        non_synthetic()
+        non_synthetic_expressions()
         |> raw_columns(column)
         |> Enum.flat_map(fn column ->
           [
@@ -373,7 +373,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       query
       |> Range.find_ranges()
       |> Enum.flat_map(fn %{column: column, interval: range} ->
-        non_synthetic()
+        non_synthetic_expressions()
         |> raw_columns(column)
         |> Enum.flat_map(
           &[
@@ -398,7 +398,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
          top_level_uid
        ),
        do:
-         non_synthetic()
+         non_synthetic_expressions()
          |> raw_columns(column)
          |> Enum.flat_map(
            &[
@@ -413,7 +413,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
          top_level_uid
        ),
        do:
-         non_synthetic()
+         non_synthetic_expressions()
          |> raw_columns(column)
          |> Enum.flat_map(
            &[
@@ -435,7 +435,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     conditions_satisfying(&Condition.not_like?/1)
     |> Lens.to_list(query)
     |> Enum.flat_map(fn {:not, {_kind, column, _pattern}} ->
-      non_synthetic()
+      non_synthetic_expressions()
       |> raw_columns(column)
       |> Enum.flat_map(
         &[
@@ -554,7 +554,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
   end
 
-  deflensp non_synthetic(), do: Lens.filter(&(not &1.synthetic?))
+  deflensp non_synthetic_expressions(), do: Lens.filter(&(not &1.synthetic?))
 
   deflensp clear_conditions(), do: db_conditions() |> Lens.filter(&clear_condition?/1)
 
