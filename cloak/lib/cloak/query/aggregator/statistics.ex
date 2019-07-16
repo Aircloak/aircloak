@@ -19,12 +19,19 @@ defmodule Cloak.Query.Aggregator.Statistics do
   @doc "Processes the query before the start of the aggregation pipeline."
   @spec pre_process(Query.t()) :: Query.t()
   def pre_process(query) do
-    [%Expression{name: "__ac_min_uid"}, %Expression{name: "__ac_max_uid"} | aggregators] = query.aggregators
+    [
+      %Expression{name: "__ac_grouping_id"},
+      %Expression{name: "__ac_min_uid"},
+      %Expression{name: "__ac_max_uid"} | aggregators
+    ] = query.aggregators
+
     %Query{query | aggregators: aggregators}
   end
 
   @doc "Returns the number of distinct users in the aggregation data."
   @spec users_count(t) :: pos_integer()
+  def users_count(%{}), do: 0
+
   def users_count(aggregation_data) when is_list(aggregation_data) do
     [bucket_statistics | _] = aggregation_data
     [count_duid | _] = bucket_statistics
@@ -34,32 +41,40 @@ defmodule Cloak.Query.Aggregator.Statistics do
   @doc "Returns the function for digesting the data for a group."
   @spec group_updater(%{integer() => NoiseLayer.processed()}, Query.t()) :: Rows.group_updater()
   def group_updater(processed_noise_layers, query) do
-    [min_uid_column, max_uid_column | per_user_aggregators] = query.aggregators
+    [grouping_id_column, min_uid_column, max_uid_column | per_user_aggregators] = query.aggregators
     [count_duid_column | _] = query.db_columns
 
     bucket_statistics_columns = [count_duid_column, min_uid_column, max_uid_column]
     aggregation_statistics_columns = Enum.map(per_user_aggregators, &extract_args(&1.function_args))
     statistics_columns = [bucket_statistics_columns | aggregation_statistics_columns]
 
+    grouping_ids_map = map_grouping_sets(query.grouping_sets)
+
     fn grouping_set_index, {statistics_accumulator, noise_accumulator}, row_or_bucket ->
       fields = Rows.fields(row_or_bucket)
+      grouping_id = Expression.value(grouping_id_column, fields)
 
-      noise_accumulator =
-        processed_noise_layers |> Map.fetch!(grouping_set_index) |> NoiseLayer.accumulate(noise_accumulator, fields)
+      if Map.fetch!(grouping_ids_map, grouping_id) == grouping_set_index do
+        noise_accumulator =
+          processed_noise_layers |> Map.fetch!(grouping_set_index) |> NoiseLayer.accumulate(noise_accumulator, fields)
 
-      [[count_duid, min_uid, max_uid] | aggregation_statistics] =
-        Enum.map(statistics_columns, fn columns_group ->
-          Enum.map(columns_group, &Expression.value(&1, fields))
-        end)
+        [[count_duid, min_uid, max_uid] | aggregation_statistics] =
+          Enum.map(statistics_columns, fn columns_group ->
+            Enum.map(columns_group, &Expression.value(&1, fields))
+          end)
 
-      statistics = [[count_duid, MapSet.new([min_uid, max_uid])] | aggregation_statistics]
-      {merge_aggregation_data(statistics_accumulator, statistics), noise_accumulator}
+        statistics = [[count_duid, MapSet.new([min_uid, max_uid])] | aggregation_statistics]
+        {merge_aggregation_data(statistics_accumulator, statistics), noise_accumulator}
+      else
+        {statistics_accumulator, noise_accumulator}
+      end
     end
   end
 
   @doc "Called to merge two aggregation accumulators for the same group into one."
   @spec merge_aggregation_data(t, t) :: t
-  def merge_aggregation_data(%{}, statistics) when is_list(statistics), do: statistics
+  def merge_aggregation_data(%{}, statistics), do: statistics
+  def merge_aggregation_data(statistics, %{}), do: statistics
 
   def merge_aggregation_data(statistics1, statistics2) when is_list(statistics1) and is_list(statistics2) do
     [[count_duid1, uids1] | aggregation_statistics1] = statistics1
@@ -175,4 +190,19 @@ defmodule Cloak.Query.Aggregator.Statistics do
 
   defp extract_arg({:distinct, arg}), do: arg
   defp extract_arg(arg), do: arg
+
+  defp map_grouping_sets(grouping_sets) when length(grouping_sets) > 1 do
+    group_size = grouping_sets |> List.flatten() |> Enum.max()
+
+    for {grouping_set, index} <- Enum.with_index(grouping_sets), into: %{} do
+      id =
+        Enum.reduce(0..group_size, 0, fn group_item, bitmask ->
+          bitmask * 2 + if group_item in grouping_set, do: 0, else: 1
+        end)
+
+      {id, index}
+    end
+  end
+
+  defp map_grouping_sets(_grouping_sets), do: %{0 => 0}
 end

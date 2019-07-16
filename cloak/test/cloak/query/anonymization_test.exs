@@ -244,11 +244,11 @@ defmodule Cloak.Query.AnonymizationTest do
             %{row: ["a", "b", 11]},
             %{row: ["b", "a", 11]},
             %{row: ["b", "b", 11]},
-            %{row: ["a", nil, 13]},
-            %{row: ["b", nil, 13]},
-            %{row: [nil, "a", 13]},
-            %{row: [nil, "b", 13]},
-            %{row: [nil, nil, 17]}
+            %{row: ["a", nil, 16]},
+            %{row: ["b", nil, 21]},
+            %{row: [nil, "a", 16]},
+            %{row: [nil, "b", 21]},
+            %{row: [nil, nil, 26]}
           ]
         }
       )
@@ -268,11 +268,11 @@ defmodule Cloak.Query.AnonymizationTest do
             %{row: ["a", "b", 11]},
             %{row: ["b", "a", 11]},
             %{row: ["b", "b", 11]},
-            %{row: ["a", nil, 13]},
-            %{row: ["b", nil, 13]},
-            %{row: [nil, "a", 13]},
-            %{row: [nil, "b", 13]},
-            %{row: [nil, nil, 17]}
+            %{row: ["a", nil, 16]},
+            %{row: ["b", nil, 21]},
+            %{row: [nil, "a", 16]},
+            %{row: [nil, "b", 21]},
+            %{row: [nil, nil, 26]}
           ]
         }
       )
@@ -357,6 +357,65 @@ defmodule Cloak.Query.AnonymizationTest do
             %{row: ["a", _, _]},
             %{row: ["b", _, _]},
             %{row: [nil, ^count, _]}
+          ]
+        }
+      )
+    end
+
+    test "simple stats anon" do
+      assert_query(
+        """
+          select count(*) from anonymizations
+        """,
+        %{
+          rows: [
+            %{row: [count]}
+          ]
+        }
+      )
+
+      assert_query(
+        """
+          select left(string, 1), count(*)
+          from anonymizations
+          group by grouping sets (1, ())
+          order by 1
+        """,
+        %{
+          rows: [
+            %{row: ["a", _]},
+            %{row: ["b", _]},
+            %{row: [nil, ^count]}
+          ]
+        }
+      )
+    end
+
+    test "stats anon with filter" do
+      assert_query(
+        """
+          select count(*) from anonymizations where number = 1
+        """,
+        %{
+          rows: [
+            %{row: [count]}
+          ]
+        }
+      )
+
+      assert_query(
+        """
+          select left(string, 1), count(*)
+          from anonymizations
+          where number = 1
+          group by grouping sets (1, ())
+          order by 1
+        """,
+        %{
+          rows: [
+            %{row: ["a", _]},
+            %{row: ["b", _]},
+            %{row: [nil, ^count]}
           ]
         }
       )

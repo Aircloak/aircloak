@@ -145,7 +145,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  expressions: [
                    %Expression{name: "__ac_group_0"},
                    %Expression{name: "__ac_group_0"},
-                   %Expression{name: "__ac_agg_0_sum"}
+                   %Expression{name: "__ac_nlc__1"}
                  ]
                },
                %{
@@ -153,7 +153,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  expressions: [
                    %Expression{name: "__ac_group_0"},
                    %Expression{name: "__ac_group_0"},
-                   %Expression{name: "__ac_agg_0_sum"},
+                   %Expression{name: "__ac_nlc__1"},
                    %Expression{user_id?: true}
                  ]
                }
@@ -758,6 +758,55 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
              ] = result.noise_layers
 
       assert 1 = Enum.count(subquery.db_columns, &match?(%Expression{name: "numeric"}, &1))
+    end
+
+    test "adds a uid and static noise layer for columns filtered with GROUPING SETS - stats anon" do
+      result = compile!("SELECT numeric, numeric2 FROM table GROUP BY GROUPING SETS (1, 2)")
+
+      assert [
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [
+                   %Expression{name: "__ac_group_0"},
+                   %Expression{name: "__ac_group_0"},
+                   %Expression{name: "__ac_nlc__1"}
+                 ],
+                 grouping_set_index: 0
+               },
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [
+                   %Expression{name: "__ac_group_0"},
+                   %Expression{name: "__ac_group_0"},
+                   %Expression{name: "__ac_nlc__1"},
+                   %Expression{user_id?: true}
+                 ],
+                 grouping_set_index: 0
+               },
+               %{
+                 base: {"table", "numeric2", nil},
+                 expressions: [
+                   %Expression{name: "__ac_group_1"},
+                   %Expression{name: "__ac_group_1"},
+                   %Expression{name: "__ac_nlc__1"}
+                 ],
+                 grouping_set_index: 1
+               },
+               %{
+                 base: {"table", "numeric2", nil},
+                 expressions: [
+                   %Expression{name: "__ac_group_1"},
+                   %Expression{name: "__ac_group_1"},
+                   %Expression{name: "__ac_nlc__1"},
+                   %Expression{user_id?: true}
+                 ],
+                 grouping_set_index: 1
+               }
+             ] = result.noise_layers
+
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "__ac_group_0"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "__ac_group_1"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{user_id?: true}, &1))
     end
 
     test "floating columns that are not aggregated" do
