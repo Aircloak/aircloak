@@ -129,10 +129,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
       |> translate_grouping_sets(group_by, inner_query)
       |> add_user_id_to_grouping_sets(inner_query.group_by)
 
-    # Groups marked as synthetic will be ignored by the noise layers compiler.
-    group_by = Enum.map(inner_query.group_by, &set_fields(&1, synthetic?: true))
-
-    %Query{inner_query | grouping_sets: grouping_sets, group_by: group_by}
+    %Query{inner_query | grouping_sets: grouping_sets}
     |> select_grouping_id_column()
   end
 
@@ -193,7 +190,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     }
     |> update_in(
       [Lenses.query_expressions() |> Lens.filter(&is_binary(&1.name))],
-      &set_fields(&1, table: inner_table, synthetic?: true)
+      &set_fields(&1, table: inner_table)
     )
     |> update_in(
       [Lenses.query_expressions() |> Lens.filter(& &1.aggregate?)],

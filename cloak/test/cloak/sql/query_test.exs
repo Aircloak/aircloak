@@ -137,6 +137,7 @@ defmodule Cloak.Sql.QueryTest do
                features_from("SELECT height FROM feat_users")
     end
 
+    @tag :pending
     test "function used" do
       result = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
 
@@ -172,6 +173,7 @@ defmodule Cloak.Sql.QueryTest do
                features_from("SELECT height FROM feat_users")
     end
 
+    @tag :pending
     test "function used" do
       assert %{
                top_level_select_functions: [],

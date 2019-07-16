@@ -195,7 +195,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       |> Enum.reject(& &1.user_id?)
       |> Enum.uniq_by(&Expression.semantic/1)
       |> Enum.with_index()
-      |> Enum.map(fn {column, index} -> %Expression{column | alias: "__ac_group_#{index}"} end)
+      |> Enum.map(fn {column, index} -> %Expression{column | alias: "__ac_group_#{index}", synthetic?: true} end)
 
     aggregated_columns =
       query.aggregators

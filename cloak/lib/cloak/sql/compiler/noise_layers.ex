@@ -331,16 +331,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
   end
 
-  defp group_by_noise_layers(%Query{type: :restricted} = query, top_level_uid) do
-    Lens.all()
-    |> non_uid_expressions()
-    |> non_synthetic_expressions()
-    |> raw_columns(query.group_by)
-    |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
-  end
-
-  defp group_by_noise_layers(%Query{type: :anonymized} = query, top_level_uid) do
-    query.grouping_sets
+  defp group_by_noise_layers(%Query{type: :anonymized, grouping_sets: grouping_sets} = query, top_level_uid)
+       when length(grouping_sets) > 1 do
+    grouping_sets
     |> Enum.with_index()
     |> Enum.flat_map(fn {grouping_set, index} ->
       group = Enum.map(grouping_set, &Enum.at(query.group_by, &1))
@@ -351,6 +344,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> raw_columns(group)
       |> Enum.flat_map(&[static_noise_layer(&1, &1, nil, index), uid_noise_layer(&1, &1, top_level_uid, nil, index)])
     end)
+  end
+
+  defp group_by_noise_layers(query, top_level_uid) do
+    Lens.all()
+    |> non_uid_expressions()
+    |> non_synthetic_expressions()
+    |> raw_columns(query.group_by)
+    |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
   end
 
   defp in_noise_layers(query, top_level_uid),
