@@ -827,3 +827,35 @@ FROM people
   -------------------+-----------+-------------------+--------------
    29.44782928323982 |    0.0029 | 883.4329967124744 |         0.09
 ```
+
+## Special functions
+
+### grouping_id
+
+Returns an integer bitmask for the columns used in the current grouping set.
+Can only be used in the `SELECT`, `HAVING` and `ORDER BY` clauses when the `GROUP BY` clause is specified.
+
+Each `grouping_id` argument must be an element of the `GROUP BY` list. Bits are assigned with the rightmost argument
+being the least-significant bit; each bit is 0 if the corresponding expression is included in the grouping criteria of
+the grouping set generating the result row, and 1 if it is not.
+
+```sql
+SELECT
+	alive, age, grouping_id(alive, age)
+FROM demographics
+GROUP BY CUBE (1, 2)
+ORDER BY 3
+
+   alive |  age  | grouping_id
+   ------+-------+------------
+   false |  75   |      0
+   true  |  18   |      0
+   true  |   *   |      0
+   false |   *   |      0
+   false |       |      1
+   true  |       |      1
+         |  35   |      2
+         |  55   |      2
+         |   *   |      2
+         |       |      3
+```
