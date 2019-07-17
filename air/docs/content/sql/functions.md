@@ -841,21 +841,25 @@ the grouping set generating the result row, and 1 if it is not.
 
 ```sql
 SELECT
-	alive, age, grouping_id(alive, age)
+   alive,
+   bucket(age by 10) as age,
+   count(*),
+   grouping_id(alive, bucket(age by 10))
 FROM demographics
 GROUP BY CUBE (1, 2)
-ORDER BY 3
 
-   alive |  age  | grouping_id
-   ------+-------+------------
-   false |  75   |      0
-   true  |  18   |      0
-   true  |   *   |      0
-   false |   *   |      0
-   false |       |      1
-   true  |       |      1
-         |  35   |      2
-         |  55   |      2
-         |   *   |      2
-         |       |      3
+   alive |  age  | count | grouping_id
+   ------+-------+-------+------------
+   false |   *   |  10   |      0
+   false |  20   |   7   |      0
+   true  |  10   |   3   |      0
+   true  |  20   |   2   |      0
+   true  |  30   |   4   |      0
+   false |       |  14   |      1
+   true  |       |  13   |      1
+         |   *   |   2   |      2
+         |  10   |   7   |      2
+         |  20   |  10   |      2
+         |  30   |   6   |      2
+         |       |  31   |      3
 ```
