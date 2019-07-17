@@ -500,27 +500,27 @@ CAST('NOT A NUMBER', integer)
 
 Types can be converted according to the following tables:
 
-| from\to   | text | integer | real | boolean |
-|----------:|:----:|:-------:|:----:|:-------:|
-| text      | ✓    | ✓       | ✓    | ✓       |
-| integer   | ✓    | ✓       | ✓    | ✓       |
-| real      | ✓    | ✓       | ✓    | ✓       |
-| boolean   | ✓    | ✓       | ✓    | ✓       |
-| date      | ✓    |         |      |         |
-| time      | ✓    |         |      |         |
-| datetime  | ✓    |         |      |         |
-| interval  | ✓    |         |      |         |
+| from\to  | text  | integer | real  | boolean |
+| :------- | :---: | :-----: | :---: | :-----: |
+| text     |   ✓   |    ✓    |   ✓   |    ✓    |
+| integer  |   ✓   |    ✓    |   ✓   |    ✓    |
+| real     |   ✓   |    ✓    |   ✓   |    ✓    |
+| boolean  |   ✓   |    ✓    |   ✓   |    ✓    |
+| date     |   ✓   |         |       |         |
+| time     |   ✓   |         |       |         |
+| datetime |   ✓   |         |       |         |
+| interval |   ✓   |         |       |         |
 
-| from\to   | date | time | datetime  | interval |
-|----------:|:----:|:----:|:---------:|:--------:|
-| text      | ✓    | ✓    | ✓         | ✓        |
-| integer   |      |      |           |          |
-| real      |      |      |           |          |
-| boolean   |      |      |           |          |
-| date      | ✓    |      |           |          |
-| time      |      | ✓    |           |          |
-| datetime  | ✓    | ✓    | ✓         |          |
-| interval  |      |      |           | ✓        |
+| from\to  | date  | time  | datetime | interval |
+| :------- | :---: | :---: | :------: | :------: |
+| text     |   ✓   |   ✓   |    ✓     |    ✓     |
+| integer  |       |       |          |          |
+| real     |       |       |          |          |
+| boolean  |       |       |          |          |
+| date     |   ✓   |       |          |          |
+| time     |       |   ✓   |          |          |
+| datetime |   ✓   |   ✓   |    ✓     |          |
+| interval |       |       |          |    ✓     |
 
 A cast may fail even when it's valid according to the table. For example a text field may contain data that
 does not have the correct format. In that case a `NULL` is returned.
