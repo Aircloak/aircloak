@@ -58,6 +58,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   def establish_type(:*, _query), do: column(:*)
   def establish_type(%Expression{constant?: true}, _query), do: constant()
 
+  def establish_type(%Expression{function: "grouping_id"}, _query), do: constant()
+
   def establish_type(%Expression{function: nil} = column, query), do: expand_from_subquery(column, query)
 
   def establish_type(function = %Expression{function?: true}, query), do: type_for_function(function, query)
