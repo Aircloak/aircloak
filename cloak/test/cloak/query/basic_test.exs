@@ -1802,7 +1802,7 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
-  test "grouping_id in top query" do
+  test "grouping_id in subquery" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["name", "height"], ["Alice", 170])
     :ok = insert_rows(_user_ids = 10..19, "heights", ["name", "height"], ["Charlie", 180])
     :ok = insert_rows(_user_ids = 20..29, "heights", ["name", "height"], ["John", 170])
@@ -1822,7 +1822,7 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
-  test "grouping_id in subquery" do
+  test "grouping_id in top query" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["name", "height"], ["Alice", 170])
     :ok = insert_rows(_user_ids = 10..19, "heights", ["name", "height"], ["Charlie", 180])
     :ok = insert_rows(_user_ids = 20..29, "heights", ["name", "height"], ["John", 170])
