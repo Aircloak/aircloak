@@ -61,19 +61,19 @@ defmodule Cloak.Query.Anonymizer do
   Sufficiently large means the bucket size is greater or equal to the:
 
   1. low_count_absolute_lower_bound
-  2. noisy low_count_soft_lower_bound
+  2. noisy soft_lower_bound
 
   See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
   on the user list provided, giving the same answer every time for the given list of users.
   """
-  @spec sufficiently_large?(t, non_neg_integer) :: boolean
-  def sufficiently_large?(anonymizer, count) do
+  @spec sufficiently_large?(t, non_neg_integer, atom) :: boolean
+  def sufficiently_large?(anonymizer, count, soft_lower_bound \\ :low_count_soft_lower_bound) do
     absolute_lower_bound = config(:low_count_absolute_lower_bound)
 
     if count < absolute_lower_bound do
       false
     else
-      {noisy_lower_bound, _anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
+      {noisy_lower_bound, _anonymizer} = add_noise(anonymizer, config(soft_lower_bound))
 
       count >= round(noisy_lower_bound)
     end
