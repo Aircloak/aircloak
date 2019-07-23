@@ -4,7 +4,9 @@ defmodule IntegrationTest.Acceptance.AppLoginsTest do
 
   test "creating an app login" do
     {login, password} = create_app_login()
-    assert can_query?(connect(login, password))
+    {:ok, conn} = connect(login, password)
+
+    assert can_query?(conn)
   end
 
   test "revoking an app login" do
