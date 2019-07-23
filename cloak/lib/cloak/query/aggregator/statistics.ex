@@ -170,12 +170,27 @@ defmodule Cloak.Query.Aggregator.Statistics do
           {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma} = Anonymizer.noisy_statistics(anonymizer, statistics)
 
           case aggregator.alias do
-            "count" -> (noisy_sum || 0) |> round() |> Kernel.max(Anonymizer.config(:low_count_absolute_lower_bound))
-            "sum" -> float_to_type(noisy_sum, aggregator.type)
-            "min" -> float_to_type(noisy_min, aggregator.type)
-            "max" -> float_to_type(noisy_max, aggregator.type)
-            "count_noise" -> noisy_sum_sigma
-            "sum_noise" -> noisy_sum_sigma
+            "count" ->
+              (noisy_sum || 0) |> round() |> Kernel.max(Anonymizer.config(:low_count_absolute_lower_bound))
+
+            "sum" ->
+              float_to_type(noisy_sum, aggregator.type)
+
+            "min" ->
+              if sufficient_users_for_minmax?(anonymizer, count),
+                do: float_to_type(noisy_min, aggregator.type),
+                else: nil
+
+            "max" ->
+              if sufficient_users_for_minmax?(anonymizer, count),
+                do: float_to_type(noisy_max, aggregator.type),
+                else: nil
+
+            "count_noise" ->
+              noisy_sum_sigma
+
+            "sum_noise" ->
+              noisy_sum_sigma
           end
       end)
 
@@ -205,4 +220,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
   end
 
   defp map_grouping_sets(_grouping_sets), do: %{0 => 0}
+
+  defp sufficient_users_for_minmax?(anonymizer, count),
+    do: Anonymizer.sufficiently_large?(anonymizer, count, :stats_minmax_soft_lower_bound)
 end

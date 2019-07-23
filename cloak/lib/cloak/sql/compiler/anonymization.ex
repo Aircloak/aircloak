@@ -72,7 +72,9 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     |> Enum.empty?()
   end
 
-  defp aggregator_supports_statistics?(%Expression{function: function}) when function in ["min", "max"], do: false
+  defp aggregator_supports_statistics?(%Expression{function: function, type: type})
+       when function in ["min", "max"] and type in [:date, :time, :datetime],
+       do: false
 
   defp aggregator_supports_statistics?(_aggregator), do: true
 
