@@ -500,27 +500,27 @@ CAST('NOT A NUMBER', integer)
 
 Types can be converted according to the following tables:
 
-| from\to   | text | integer | real | boolean |
-|----------:|:----:|:-------:|:----:|:-------:|
-| text      | ✓    | ✓       | ✓    | ✓       |
-| integer   | ✓    | ✓       | ✓    | ✓       |
-| real      | ✓    | ✓       | ✓    | ✓       |
-| boolean   | ✓    | ✓       | ✓    | ✓       |
-| date      | ✓    |         |      |         |
-| time      | ✓    |         |      |         |
-| datetime  | ✓    |         |      |         |
-| interval  | ✓    |         |      |         |
+| from\to  | text  | integer | real  | boolean |
+| :------- | :---: | :-----: | :---: | :-----: |
+| text     |   ✓   |    ✓    |   ✓   |    ✓    |
+| integer  |   ✓   |    ✓    |   ✓   |    ✓    |
+| real     |   ✓   |    ✓    |   ✓   |    ✓    |
+| boolean  |   ✓   |    ✓    |   ✓   |    ✓    |
+| date     |   ✓   |         |       |         |
+| time     |   ✓   |         |       |         |
+| datetime |   ✓   |         |       |         |
+| interval |   ✓   |         |       |         |
 
-| from\to   | date | time | datetime  | interval |
-|----------:|:----:|:----:|:---------:|:--------:|
-| text      | ✓    | ✓    | ✓         | ✓        |
-| integer   |      |      |           |          |
-| real      |      |      |           |          |
-| boolean   |      |      |           |          |
-| date      | ✓    |      |           |          |
-| time      |      | ✓    |           |          |
-| datetime  | ✓    | ✓    | ✓         |          |
-| interval  |      |      |           | ✓        |
+| from\to  | date  | time  | datetime | interval |
+| :------- | :---: | :---: | :------: | :------: |
+| text     |   ✓   |   ✓   |    ✓     |    ✓     |
+| integer  |       |       |          |          |
+| real     |       |       |          |          |
+| boolean  |       |       |          |          |
+| date     |   ✓   |       |          |          |
+| time     |       |   ✓   |          |          |
+| datetime |   ✓   |   ✓   |    ✓     |          |
+| interval |       |       |          |    ✓     |
 
 A cast may fail even when it's valid according to the table. For example a text field may contain data that
 does not have the correct format. In that case a `NULL` is returned.
@@ -826,4 +826,40 @@ FROM people
           avg        | avg_noise |      square       | square_noise
   -------------------+-----------+-------------------+--------------
    29.44782928323982 |    0.0029 | 883.4329967124744 |         0.09
+```
+
+## Special functions
+
+### grouping_id
+
+Returns an integer bitmask for the columns used in the current grouping set.
+Can only be used in the `SELECT`, `HAVING` and `ORDER BY` clauses when the `GROUP BY` clause is specified.
+
+Each `grouping_id` argument must be an element of the `GROUP BY` list. Bits are assigned with the rightmost argument
+being the least-significant bit; each bit is 0 if the corresponding expression is included in the grouping criteria of
+the grouping set generating the result row, and 1 if it is not.
+
+```sql
+SELECT
+   alive,
+   bucket(age by 10) as age,
+   count(*),
+   grouping_id(alive, bucket(age by 10))
+FROM demographics
+GROUP BY CUBE (1, 2)
+
+   alive |  age  | count | grouping_id
+   ------+-------+-------+------------
+   false |   *   |  10   |      0
+   false |  20   |   7   |      0
+   true  |  10   |   3   |      0
+   true  |  20   |   2   |      0
+   true  |  30   |   4   |      0
+   false |       |  14   |      1
+   true  |       |  13   |      1
+         |   *   |   2   |      2
+         |  10   |   7   |      2
+         |  20   |  10   |      2
+         |  30   |   6   |      2
+         |       |  31   |      3
 ```

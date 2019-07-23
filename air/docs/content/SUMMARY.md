@@ -65,6 +65,7 @@
   - [String functions](sql/functions.md#string-functions)
   - [Casting](sql/functions.md#casting)
   - [Aggregation functions](sql/functions.md#aggregation-functions)
+  - [Special functions](sql/functions.md#special-functions)
 - [API](api.md)
   - [Authentication](api.md#authentication)
   - [Data sources](api/data_sources.md)

@@ -1802,7 +1802,7 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
-  test "grouping_id in top query" do
+  test "grouping_id in subquery" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["name", "height"], ["Alice", 170])
     :ok = insert_rows(_user_ids = 10..19, "heights", ["name", "height"], ["Charlie", 180])
     :ok = insert_rows(_user_ids = 20..29, "heights", ["name", "height"], ["John", 170])
@@ -1822,7 +1822,7 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
-  test "grouping_id in subquery" do
+  test "grouping_id in top query" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["name", "height"], ["Alice", 170])
     :ok = insert_rows(_user_ids = 10..19, "heights", ["name", "height"], ["Charlie", 180])
     :ok = insert_rows(_user_ids = 20..29, "heights", ["name", "height"], ["John", 170])
@@ -1843,6 +1843,35 @@ defmodule Cloak.Query.BasicTest do
           %{row: ["Bob", 180, 0]},
           %{row: ["Charlie", 180, 0]},
           %{row: ["John", 170, 0]}
+        ]
+      }
+    )
+  end
+
+  test "grouping_id with bucket column" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["name", "height"], ["Alice", 170])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["name", "height"], ["Charlie", 180])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["name", "height"], ["John", 170])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["name", "height"], ["Bob", 180])
+
+    assert_query(
+      """
+      select name, bucket(height by 10), grouping_id(name, bucket(height by 10))
+      from heights group by grouping sets ((), (1), (2), (1, 2))
+      """,
+      %{
+        rows: [
+          %{row: [nil, nil, 3]},
+          %{row: ["Alice", nil, 1]},
+          %{row: ["Bob", nil, 1]},
+          %{row: ["Charlie", nil, 1]},
+          %{row: ["John", nil, 1]},
+          %{row: [nil, 170.0, 2]},
+          %{row: [nil, 180.0, 2]},
+          %{row: ["Alice", 170.0, 0]},
+          %{row: ["Bob", 180.0, 0]},
+          %{row: ["Charlie", 180.0, 0]},
+          %{row: ["John", 170.0, 0]}
         ]
       }
     )
