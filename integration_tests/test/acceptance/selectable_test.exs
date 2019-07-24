@@ -46,7 +46,7 @@ defmodule IntegrationTest.Acceptance.ViewTest do
         refute_has(:xpath, selectable_row_xpath(original_name))
       end
 
-      @tag timeout: 15_000
+      @tag timeout: 60_000
       test "deleting" do
         login_as_admin()
         view_name = unique_name(:view)
