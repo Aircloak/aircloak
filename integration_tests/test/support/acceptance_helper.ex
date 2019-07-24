@@ -121,18 +121,6 @@ defmodule IntegrationTest.AcceptanceHelper do
     %{name: name, login: login, password: password}
   end
 
-  def create_user(login, name, fun \\ fn -> :ok end) do
-    in_another_session(fn ->
-      login_as_admin()
-      visit_admin_page("Users")
-      click({:xpath, "//a[text()='Add a user']"})
-      fill_field({:xpath, "//input[@id='user_login']"}, login)
-      fill_field({:xpath, "//input[@id='user_name']"}, name)
-      click({:xpath, "//button[text()='Save']"})
-      fun.()
-    end)
-  end
-
   def visit_data_source(name) do
     click({:xpath, "//nav//a[text()='Data sources']"})
     click({:xpath, "//a[text()='#{name}']"})

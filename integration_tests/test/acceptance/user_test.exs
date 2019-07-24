@@ -1,29 +1,33 @@
 defmodule IntegrationTest.Acceptance.UserTest do
   use IntegrationTest.AcceptanceCase, async: true
 
+  setup do
+    login_as_admin()
+    :ok
+  end
+
   test "adding a user" do
     login = random_string()
     name = random_string()
+    perform_user_creation(login, name)
 
-    create_user(login, name, fn -> assert_has(:xpath, "//*[text()='User created']") end)
-    login_as_admin()
+    assert_has(:xpath, "//*[text()='User created']")
     visit_admin_page("Users")
     assert_has(:xpath, "//*[text()='#{name}']")
     assert_has(:xpath, "//*[text()='#{login}']")
   end
 
   test "errors adding a user" do
-    create_user("", "", fn ->
-      assert_has(:xpath, "//*[text()='Oops, something went wrong! Please check the errors below.']")
-      assert_has(:xpath, empty_error("user_login"))
-      assert_has(:xpath, empty_error("user_name"))
-    end)
+    perform_user_creation("", "")
+
+    assert_has(:xpath, "//*[text()='Oops, something went wrong! Please check the errors below.']")
+    assert_has(:xpath, empty_error("user_login"))
+    assert_has(:xpath, empty_error("user_name"))
   end
 
   test "removing a user" do
     user = create_user()
 
-    login_as_admin()
     visit_admin_page("Users")
     click(user_button(user.name, "Permanently delete"))
     accept_dialog()
@@ -37,13 +41,20 @@ defmodule IntegrationTest.Acceptance.UserTest do
   test "disabling and enabling a user" do
     user = create_user()
 
-    login_as_admin()
     visit_admin_page("Users")
     click(user_button(user.name, "Disable"))
     assert_has(:xpath, disabled_user(user.name))
 
     click(user_button(user.name, "Enable"))
     refute_has(:xpath, disabled_user(user.name))
+  end
+
+  def perform_user_creation(login, name) do
+    visit_admin_page("Users")
+    click({:xpath, "//a[text()='Add a user']"})
+    fill_field({:xpath, "//input[@id='user_login']"}, login)
+    fill_field({:xpath, "//input[@id='user_name']"}, name)
+    click({:xpath, "//button[text()='Save']"})
   end
 
   defp empty_error(input_id),
