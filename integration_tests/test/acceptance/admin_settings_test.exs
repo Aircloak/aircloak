@@ -19,10 +19,11 @@ defmodule IntegrationTest.Acceptance.AdminSettingsTest do
     assert_has(:css, ".panel-success")
     assert_has(:xpath, ".//td[text()='1.000.000,10000']")
   after
-    visit_admin_page("Settings")
-    fill_field({:css, "#settings_decimal_sep"}, ".")
-    fill_field({:css, "#settings_thousand_sep"}, " ")
-    fill_field({:css, "#settings_decimal_digits"}, "3")
-    click({:xpath, "//button[text()='Save']"})
+    {:ok, _} =
+      Air.Service.User.update_profile_settings(default_admin(), %{
+        decimal_sep: ".",
+        thousand_sep: " ",
+        decimal_digits: 3
+      })
   end
 end
