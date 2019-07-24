@@ -1,5 +1,5 @@
 defmodule IntegrationTest.Acceptance.ViewTest do
-  use IntegrationTest.AcceptanceCase, async: true
+  use IntegrationTest.AcceptanceCase, async: false
   import IntegrationTest.Helpers
 
   for selectable_type <- [:view, :table] do
