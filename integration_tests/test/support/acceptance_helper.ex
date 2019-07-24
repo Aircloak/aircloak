@@ -110,22 +110,13 @@ defmodule IntegrationTest.AcceptanceHelper do
   end
 
   def create_user() do
-    login = random_string()
     name = random_string()
+    login = random_string()
     password = random_string()
 
-    password_reset_url =
-      create_user(login, name, fn ->
-        click({:xpath, "//a[text()='Reset password']"})
-        visible_text({:xpath, "//*[@id='reset-link']"})
-      end)
-
-    in_another_session(fn ->
-      navigate_to(password_reset_url)
-      fill_field({:xpath, "//input[@id='user_password']"}, password)
-      fill_field({:xpath, "//input[@id='user_password_confirmation']"}, password)
-      click({:xpath, "//button[text()='Save']"})
-    end)
+    user = Air.Service.User.create!(%{name: name, login: login})
+    password_token = Air.Service.User.reset_password_token(user, ldap: :any)
+    {:ok, _} = Air.Service.User.reset_password(password_token, %{password: password, password_confirmation: password})
 
     %{name: name, login: login, password: password}
   end
