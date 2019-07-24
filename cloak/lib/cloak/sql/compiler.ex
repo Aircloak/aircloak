@@ -34,7 +34,6 @@ defmodule Cloak.Sql.Compiler do
   def compile!(parsed_query, analyst_id, data_source, parameters, views) do
     parsed_query
     |> core_compile!(analyst_id, data_source, parameters, views)
-    |> Compiler.Optimizer.optimize_per_user_aggregation()
     |> Compiler.Anonymization.compile()
     |> Compiler.NoiseLayers.compile()
     |> Compiler.BoundAnalysis.analyze_query()
