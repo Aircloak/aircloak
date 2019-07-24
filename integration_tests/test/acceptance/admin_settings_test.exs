@@ -1,5 +1,5 @@
 defmodule IntegrationTest.Acceptance.AdminSettingsTest do
-  use IntegrationTest.AcceptanceCase, async: true
+  use IntegrationTest.AcceptanceCase, async: false
   import IntegrationTest.Manager
 
   test "changing number format" do
