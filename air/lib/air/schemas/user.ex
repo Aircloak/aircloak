@@ -12,6 +12,7 @@ defmodule Air.Schemas.User do
   @type permissions :: %{role_key => [operation] | :all}
 
   schema "users" do
+    field(:login, :string, virtual: true)
     field(:name, :string)
     field(:pseudonym, :string)
     field(:ldap_dn, :string)
@@ -33,7 +34,7 @@ defmodule Air.Schemas.User do
       on_replace: :delete
     )
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
 
     # number format overrides
     field(:decimal_sep, :string)

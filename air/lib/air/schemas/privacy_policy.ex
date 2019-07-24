@@ -14,7 +14,7 @@ defmodule Air.Schemas.PrivacyPolicy do
     field(:content, :string)
     field(:changes, :string)
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   # -------------------------------------------------------------------

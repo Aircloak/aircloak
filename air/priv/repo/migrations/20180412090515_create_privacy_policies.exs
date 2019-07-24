@@ -5,7 +5,7 @@ defmodule Air.Repo.Migrations.CreatePrivacyPolicies do
     create table(:privacy_policies) do
       add(:content, :text)
 
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
   end
 end

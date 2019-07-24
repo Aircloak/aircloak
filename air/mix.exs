@@ -66,12 +66,14 @@ defmodule Air.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 2.2.11", override: true},
+      {:ecto, "~> 3.1.7", override: true},
+      {:ecto_sql, "~> 3.1.6"},
       {:earmark, "~> 1.2", override: true},
-      {:postgrex, github: "sasa1977/postgrex", tag: "0.13.5", override: true},
+      {:postgrex, "~> 0.14.3", override: true},
+      {:poolboy, "~> 1.5.2"},
       {:phoenix, "~> 1.4.1", override: true},
       {:phoenix_pubsub, "~> 1.1"},
-      {:phoenix_ecto, "~> 3.0"},
+      {:phoenix_ecto, "~> 4.0"},
       {:phoenix_html, "~> 2.10.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_gen_socket_client, "~> 2.1"},
@@ -82,8 +84,8 @@ defmodule Air.Mixfile do
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:csv, "~> 1.4.2"},
-      {:phoenix_mtm, "~> 0.5.0"},
-      {:scrivener_ecto, "~> 1.0"},
+      {:phoenix_mtm, "~> 1.0.0"},
+      {:scrivener_ecto, "~> 2.2"},
       {:scrivener_html, "~> 1.1"},
       {:decimal, "~> 1.4"},
       {:remote_ip, "~> 0.1.4"},

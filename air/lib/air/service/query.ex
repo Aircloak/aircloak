@@ -355,7 +355,7 @@ defmodule Air.Service.Query do
 
     %{
       last_state_change_at: NaiveDateTime.utc_now(),
-      time_spent: Map.put(query.time_spent, query.query_state, time_spent_current_state)
+      time_spent: Map.put(query.time_spent, to_string(query.query_state), time_spent_current_state)
     }
   end
 

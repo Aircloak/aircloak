@@ -13,17 +13,17 @@ defmodule Central.Repo.Migrations.DropAirCloakAndUsageInfoTables do
       add(:customer_id, references(:customers, on_delete: :delete_all), null: false)
       add(:status, :integer, null: false)
       add(:version, :string)
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
 
     create(unique_index(:airs, [:name, :customer_id]))
 
     create table(:usage_info) do
-      add(:air_utc_time, :naive_datetime, null: false)
+      add(:air_utc_time, :naive_datetime_usec, null: false)
       add(:data, :map, null: false)
       add(:customer_id, references(:customers), null: false)
       add(:air_id, references(:airs), null: false)
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
 
     create table(:cloaks) do
@@ -32,7 +32,7 @@ defmodule Central.Repo.Migrations.DropAirCloakAndUsageInfoTables do
       add(:status, :integer, null: false)
       add(:version, :string)
       add(:data_source_names, {:array, :string}, null: false, default: [])
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
 
     create(unique_index(:cloaks, [:name, :air_id]))

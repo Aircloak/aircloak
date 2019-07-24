@@ -44,14 +44,14 @@ defmodule Air.Schemas.Query do
     field(:context, Context)
     field(:result, :map)
     field(:time_spent, :map, default: State.all() |> Enum.map(&{to_string(&1), 0}) |> Enum.into(%{}))
-    field(:last_state_change_at, :naive_datetime)
+    field(:last_state_change_at, :naive_datetime_usec)
     field(:audit_meta, :map)
 
     belongs_to(:user, User)
     belongs_to(:data_source, DataSource)
     has_many(:result_chunks, ResultChunk)
 
-    timestamps(usec: true)
+    timestamps(type: :naive_datetime_usec)
   end
 
   @required_fields ~w()a

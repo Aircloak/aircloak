@@ -26,7 +26,7 @@ defmodule Air.Schemas.Login do
     field(:password, :string, virtual: true)
     field(:password_confirmation, :string, virtual: true)
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   defimpl Inspect do

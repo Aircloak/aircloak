@@ -7,6 +7,6 @@ defmodule Central.Schemas.AirRPC do
 
   @primary_key {:id, :string, []}
   schema "air_rpcs" do
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 end

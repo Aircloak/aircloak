@@ -7,7 +7,7 @@ defmodule Central.Repo.Migrations.CreateUser do
       add(:hashed_password, :string)
       add(:name, :string)
 
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
 
     # We want the uniqueness constraint to be

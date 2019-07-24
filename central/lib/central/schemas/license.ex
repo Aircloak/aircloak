@@ -16,7 +16,7 @@ defmodule Central.Schemas.License do
 
     belongs_to(:customer, Customer)
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   @required_fields ~w(name length_in_days auto_renew revoked)a

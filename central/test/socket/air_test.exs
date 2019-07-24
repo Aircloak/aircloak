@@ -165,5 +165,5 @@ defmodule CentralWeb.Socket.AirTest do
 
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 
-  defp query_count(id), do: Mongo.count!(:mongo, "queries", [test_id: id], pool: DBConnection.Poolboy)
+  defp query_count(id), do: Mongo.count!(:mongo, "queries", test_id: id)
 end

@@ -6,7 +6,7 @@ defmodule Central.Repo.Migrations.CreateLicenses do
       add(:customer_id, references(:customers))
       add(:name, :string)
 
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
   end
 end

@@ -5,7 +5,7 @@ defmodule Air.Repo.Migrations.CreateSettings do
     create table(:settings) do
       add(:query_retention_days, :integer)
 
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
   end
 end

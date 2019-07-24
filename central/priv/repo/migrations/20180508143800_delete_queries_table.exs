@@ -12,7 +12,7 @@ defmodule Central.Repo.Migrations.DeleteQueriesTable do
       add(:customer_id, references(:customers, on_delete: :delete_all))
       add(:aux, :map, default: fragment("'{}'::jsonb"))
 
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
   end
 end

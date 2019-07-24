@@ -10,7 +10,7 @@ defmodule Air.Schemas.CentralCall do
     field(:event, :string)
     field(:payload, :map)
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   @required_fields ~w(event payload)a

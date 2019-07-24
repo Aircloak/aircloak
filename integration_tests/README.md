@@ -13,7 +13,11 @@ The project also includes acceptance tests. These tests are executed via Chrome 
 
 The acceptance tests are by default disabled on the developer machine. To run them locally, you need to perform the following steps:
 
-1. `docker run --rm -it -p 4444:4444 --shm-size=2g selenium/standalone-chrome:latest`
+1. `docker run --rm -it -p 4444:4444 --shm-size=2g selenium/standalone-chrome:3.13.0`
+  * You can also use `docker run --rm -it -p 4444:4444 -p 5900:5900 --shm-size=2g selenium/standalone-chrome-debug:3.13.0`
+    to enable connecting to the running container via VNC to see what's happening (the password is "secret"). You will
+    also need to change `Hound.start_session()` to `Hound.start_session(browser: :chrome)` in
+    `test/support/acceptance_case.ex`, as the default session uses `:chrome_headless`.
 2. `export AIR_IP=IP_ADDRESS`, where the `IP_ADDRESS` is the address of the developer machine in your local network (e.g. `192.168.1.2`)
 3. `mix test --include acceptance` or `mix test --only acceptance`
 

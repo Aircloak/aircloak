@@ -34,6 +34,6 @@ defmodule Air.Schemas.Group do
       on_replace: :delete
     )
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 end

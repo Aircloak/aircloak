@@ -19,7 +19,9 @@ defmodule BOM.Whitelist do
       {"jamdb_oracle", "0.2.0"} => %{type: :mit, text: :provided},
       {"makeup_elixir", "0.8.0"} => %{type: :bsd_4_clause, text: :standard},
       {"scrivener", "2.3.0"} => %{type: :mit, text: :standard},
+      {"scrivener", "2.7.0"} => %{type: :mit, text: :provided},
       {"scrivener_ecto", "1.2.2"} => %{type: :mit, text: :standard},
+      {"scrivener_ecto", "2.2.0"} => %{type: :mit, text: :provided},
       {"scrivener_html", "1.3.3"} => %{type: :mit, text: :standard}
     },
     :node => %{

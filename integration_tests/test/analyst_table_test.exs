@@ -96,7 +96,7 @@ defmodule IntegrationTest.AnalystTableTest do
     name = unique_name(:table)
     {:ok, _table} = create_table(context.user, name, "select user_id, name from users")
     assert {:error, changeset} = create_table(context.user, name, "select user_id, name from users")
-    assert changeset.errors[:name] == {"has already been taken", []}
+    assert {"has already been taken", _} = changeset.errors[:name]
   end
 
   test "successful table update", context do
@@ -210,7 +210,7 @@ defmodule IntegrationTest.AnalystTableTest do
     {:ok, _} = Air.Service.View.create(context.user, Manager.data_source(), name, "select user_id, name from users")
 
     assert {:error, changeset} = create_table(context.user, name, "select * from some_view")
-    assert changeset.errors[:name] == {"has already been taken", []}
+    assert {"has already been taken", _} = changeset.errors[:name]
   end
 
   test "views are revalidated after analyst table is deleted", context do
