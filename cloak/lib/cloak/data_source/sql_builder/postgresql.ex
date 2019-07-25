@@ -123,6 +123,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   @impl Dialect
   def literal(%Timex.Duration{} = value), do: ["interval '", interval_to_string(value), ?']
+  def literal(number) when is_integer(number), do: [to_string(number), "::BIGINT"]
   def literal(value), do: Dialect.literal_default(value)
 
   @impl Dialect
