@@ -249,7 +249,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     query_string
     |> Parser.parse!()
     |> Compiler.core_compile!(nil, data_source(), [], %{})
-    |> Compiler.Optimizer.optimize_per_user_aggregation()
     |> Compiler.Anonymization.compile()
     |> Compiler.NoiseLayers.compile()
   end
