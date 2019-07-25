@@ -36,6 +36,11 @@ defmodule IntegrationTest.Manager do
 
   def data_source(), do: Repo.get_by(DataSource, name: @data_source_name)
 
+  def default_admin() do
+    {:ok, admin} = Air.Service.User.get_by_login("admin@aircloak.com")
+    admin
+  end
+
   def user_password(), do: @user_password
 
   def login(user), do: Air.Service.User.main_login(user)
