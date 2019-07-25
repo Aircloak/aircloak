@@ -125,7 +125,7 @@ defmodule Cloak.AnalystTable.CompilerTest do
       assert db_select(query) ==
                ~s/SELECT "mv1"."user_id" AS "user_id","mv1"."x" AS "__ac_nlc__0"/ <>
                  ~s/ FROM "cloak_test"."mv1" AS "mv1"/ <>
-                 ~s/ WHERE PG_TEMP.AC_MUL(CAST("mv1"."x" AS bigint), CAST("mv1"."x" AS bigint)) = 10/
+                 ~s/ WHERE PG_TEMP.AC_MUL(CAST("mv1"."x" AS bigint), CAST("mv1"."x" AS bigint)) = 10::BIGINT/
     end
 
     test "with aggregation" do

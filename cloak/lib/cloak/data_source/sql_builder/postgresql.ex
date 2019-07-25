@@ -38,8 +38,8 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   end
 
   def function_sql("weekday", args), do: ["EXTRACT(DOW FROM ", args, ")"]
-  def function_sql("trunc", [arg1, arg2]), do: ["TRUNC(CAST(", arg1, " AS decimal), ", arg2, ")"]
-  def function_sql("round", [arg1, arg2]), do: ["ROUND(CAST(", arg1, " AS decimal), ", arg2, ")"]
+  def function_sql("trunc", [arg1, arg2]), do: ["TRUNC(CAST(", arg1, " AS decimal), ", arg2, "::integer)"]
+  def function_sql("round", [arg1, arg2]), do: ["ROUND(CAST(", arg1, " AS decimal), ", arg2, "::integer)"]
   def function_sql("hex", [arg]), do: ["ENCODE(CONVERT_TO(", arg, ", 'utf8'), 'hex')"]
 
   def function_sql("hash", [arg]), do: ["SUBSTR(MD5(", arg, "::text), 5, 8)"]
@@ -77,6 +77,11 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
 
   def function_sql("grouping_id", args), do: function_sql("grouping", args)
+  def function_sql("left", [text, arg]), do: ["LEFT(", text, ", ", arg, "::integer)"]
+  def function_sql("right", [text, arg]), do: ["RIGHT(", text, ", ", arg, "::integer)"]
+
+  def function_sql("substring", [text | args]),
+    do: ["SUBSTRING(", text, ", ", args |> Enum.map(&[&1, "::integer"]) |> Enum.intersperse(", "), ?)]
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
