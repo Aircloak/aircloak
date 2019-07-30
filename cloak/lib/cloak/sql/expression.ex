@@ -583,7 +583,11 @@ defmodule Cloak.Sql.Expression do
   defp cast(value, :boolean) when is_binary(value) do
     case String.downcase(value) do
       "true" -> true
+      "t" -> true
+      "1" -> true
       "false" -> false
+      "f" -> false
+      "0" -> false
       _ -> nil
     end
   end
