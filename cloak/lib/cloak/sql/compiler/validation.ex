@@ -95,7 +95,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       raise(
         CompilationError,
         source_location: source_location,
-        message: "`case` function requires at least one test branch and the default branch."
+        message: "`case` expression requires at least one test branch and the default branch."
       )
     end
 
@@ -109,7 +109,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise(
           CompilationError,
           source_location: arg.source_location,
-          message: "`case` function requires a `boolean` argument for the test condition."
+          message: "`case` expression requires a `boolean` argument for the test condition."
         )
 
       _ ->
@@ -130,7 +130,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise(
           CompilationError,
           source_location: source_location,
-          message: "`case` function requires that all branches return the same type."
+          message: "`case` expression requires that all branches return the same type."
         )
     end
   end
