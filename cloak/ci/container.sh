@@ -40,7 +40,10 @@ function ensure_database_containers {
   ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Sql{}server1' \
     microsoft/mssql-server-linux:2017-latest
 
-  ensure_supporting_container oracle11g -e ORACLE_DISABLE_ASYNCH_IO=true oracle-xe-11g
+  ensure_supporting_container oracle11g -e ORACLE_DISABLE_ASYNCH_IO=true \
+    --mount type=bind,src=$(pwd)/cloak/ci/init_oracle.sql,dst=/docker-entrypoint-initdb.d/init_oracle.sql \
+    --mount type=bind,src=$(pwd)/cloak/ci/oracle_udfs.sql,dst=/mnt/cloak/oracle_udfs.sql \
+    oracle-xe-11g
 }
 
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo
