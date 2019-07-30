@@ -1291,9 +1291,9 @@ defmodule Cloak.Sql.Compiler.Test do
     )
   end
 
-  test "internal functions don't exist from the analyst's perspective" do
+  test "unsafe functions can't be used in non-standard queries" do
     assert {:error, error} = compile("SELECT dec_b64(string) FROM table", data_source())
-    assert error =~ "Function `dec_b64` can only be used internally."
+    assert error =~ "Function `dec_b64` can only be used in non-anonymizing queries."
   end
 
   test "rejects usage of distinct in non-aggregates" do

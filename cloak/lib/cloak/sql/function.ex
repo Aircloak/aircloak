@@ -137,15 +137,15 @@ defmodule Cloak.Sql.Function do
   @spec implicit_range?(t | Parser.function_name() | nil) :: boolean
   def implicit_range?(param), do: has_attribute?(param, :implicit_range)
 
-  @doc "Returns true if the given function is internal, false otherwise."
-  @spec internal?(t | Parser.function_name() | nil) :: boolean
-  def internal?(param), do: has_attribute?(param, :internal)
+  @doc "Returns true if the given function is unsafe, false otherwise."
+  @spec unsafe?(t | Parser.function_name() | nil) :: boolean
+  def unsafe?(param), do: has_attribute?(param, :unsafe)
 
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t()}}
   def deprecation_info({:function, name, _, _} = function) do
-    case {internal?(function), exists?(function), Aircloak.Functions.deprecated_functions()[canonical_name(name)]} do
-      {true, _, _} -> {:error, :internal_function}
+    case {unsafe?(function), exists?(function), Aircloak.Functions.deprecated_functions()[canonical_name(name)]} do
+      {true, _, _} -> {:error, :unsafe_function}
       {_, true, _} -> {:error, :function_exists}
       {_, false, nil} -> {:error, :not_found}
       {_, false, value} -> {:ok, value}

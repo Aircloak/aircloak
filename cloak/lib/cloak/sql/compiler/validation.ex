@@ -116,11 +116,11 @@ defmodule Cloak.Sql.Compiler.Validation do
       )
     end
 
-    if Function.internal?(name) do
+    if query.type != :standard and Function.unsafe?(name) do
       raise(
         CompilationError,
         source_location: expression.source_location,
-        message: "Function `#{Function.readable_name(name)}` can only be used internally."
+        message: "Function `#{Function.readable_name(name)}` can only be used in non-anonymizing queries."
       )
     end
 

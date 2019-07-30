@@ -29,7 +29,7 @@ defmodule Cloak.Compliance.QueryGenerator do
                     attributes = Map.get(properties, :attributes, [])
                     Enum.map(properties.type_specs, &{name, &1, attributes})
                   end)
-                  |> Enum.filter(fn {_, _, attributes} -> not (:internal in attributes) end)
+                  |> Enum.filter(fn {_, _, attributes} -> not (:unsafe in attributes) end)
 
   # -------------------------------------------------------------------
   # API functions
