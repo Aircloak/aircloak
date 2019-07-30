@@ -1296,6 +1296,26 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ "Function `dec_b64` can only be used in non-anonymizing queries."
   end
 
+  test "`case` requires a default branch" do
+    assert {:error, "`case` function requires at least one test branch and the default branch."} =
+             compile("select case(true, string) from table", data_source())
+  end
+
+  test "`case` requires at least one test branch" do
+    assert {:error, "`case` function requires at least one test branch and the default branch."} =
+             compile("select case(string) from table", data_source())
+  end
+
+  test "`case` test conditions have to be booleans" do
+    assert {:error, "`case` function requires a `boolean` argument for the test condition."} =
+             compile("select case(true, 1, string, 0, 2) from table", data_source())
+  end
+
+  test "`case` return values have to be identical" do
+    assert {:error, "`case` function requires that all branches return the same type."} =
+             compile("select case(false, string, 2) from table", data_source())
+  end
+
   test "rejects usage of distinct in non-aggregates" do
     {:error, error} = compile("select length(distinct string) from table", data_source())
     assert error =~ "`DISTINCT` specified in non-aggregating function `length`."
