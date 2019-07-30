@@ -161,5 +161,5 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   def case_default(args), do: ["CASE", case_branches(args), " END"]
 
   defp case_branches([if_arg, then_arg | rest]), do: [" WHEN ", if_arg, " THEN ", then_arg, case_branches(rest)]
-  defp case_branches([end_branch]), do: [" ELSE ", end_branch]
+  defp case_branches([else_branch]), do: [" ELSE ", else_branch]
 end
