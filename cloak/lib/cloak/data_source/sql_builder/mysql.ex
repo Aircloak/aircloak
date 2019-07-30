@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
       checked_mod checked_div checked_pow
       sqrt floor ceil abs round trunc
       length lower upper btrim/1 ltrim/1 rtrim/1 left right substring concat
-      hex cast coalesce hash bool_op
+      hex cast coalesce hash bool_op case
     )
 
   @impl Dialect
@@ -58,6 +58,8 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   def function_sql("checked_pow", [arg1, arg2]),
     do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
+
+  def function_sql("case", args), do: Dialect.case_default(args)
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 

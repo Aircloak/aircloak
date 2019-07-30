@@ -727,4 +727,25 @@ defmodule Cloak.Query.DBEmulatorTest do
       %{rows: [%{row: ["123"]}]}
     )
   end
+
+  test "emulated `case` function" do
+    for i <- 1..10,
+        do: :ok = insert_rows(_user_ids = i..i, "#{@emulated_insert}", ["value"], [Base.encode64("#{rem(i, 2)}")])
+
+    assert_query(
+      "select n from #{@vt} order by 1",
+      "select user_id, case(cast(dec_b64(value) as boolean), 1, 0) as n from #{@emulated}",
+      %{rows: [%{row: [0], occurrences: 5}, %{row: [1], occurrences: 5}]}
+    )
+  end
+
+  test "offloaded `case` function" do
+    for i <- 1..10, do: :ok = insert_rows(_user_ids = i..i, "#{@emulated_insert}", ["number"], [i])
+
+    assert_query(
+      "select n from #{@vt} order by 1",
+      "select user_id, case(cast(number % 2 as boolean), 1, 0) as n from #{@emulated}",
+      %{rows: [%{row: [0], occurrences: 5}, %{row: [1], occurrences: 5}]}
+    )
+  end
 end

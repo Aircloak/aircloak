@@ -156,4 +156,10 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   def literal_default(value) when is_binary(value), do: [?', value, ?']
 
   def literal_default(nil), do: "NULL"
+
+  @spec case_default([Cloak.DataSource.field()]) :: iodata
+  def case_default(args), do: ["CASE", case_branches(args), " END"]
+
+  defp case_branches([if_arg, then_arg | rest]), do: [" WHEN ", if_arg, " THEN ", then_arg, case_branches(rest)]
+  defp case_branches([end_branch]), do: [" ELSE ", end_branch]
 end
