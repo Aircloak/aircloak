@@ -1,0 +1,17 @@
+{
+  "driver": "oracle",
+  "name": "oracle_safe",
+  "parameters": {
+    "hostname": "oracle11g",
+    "port": 1521,
+    "username": "system",
+    "password": "oracle",
+    "database": "XE",
+    "sid": "XE",
+    "aircloak_udfs": true
+  },
+  "encoded": false,
+  "tables": {
+  },
+  "analyst_tables_enabled": true
+}

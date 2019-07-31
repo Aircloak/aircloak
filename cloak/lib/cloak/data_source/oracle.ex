@@ -37,6 +37,15 @@ defmodule Cloak.DataSource.Oracle do
   def supports_query?(query), do: query.type == :anonymized or query.offset == 0
 
   @impl Driver
+  def supports_function?(expression = %Expression{function: name}, data_source) do
+    if name in ~w(*) do
+      Map.get(data_source[:parameters], :aircloak_udfs, false)
+    else
+      SqlBuilder.Support.supports_function?(expression, data_source)
+    end
+  end
+
+  @impl Driver
   def supports_analyst_tables?(), do: true
 
   # -------------------------------------------------------------------
