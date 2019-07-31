@@ -10,6 +10,8 @@ defmodule Cloak.DataSource.Oracle do
   alias Cloak.DataSource.{RODBC, Table}
   alias Cloak.Sql.{Expression, Query, Compiler.Helpers, Function}
 
+  @mathematical_operators ~w(+ - * / ^)
+
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -38,7 +40,7 @@ defmodule Cloak.DataSource.Oracle do
 
   @impl Driver
   def supports_function?(expression = %Expression{function: name}, data_source) do
-    if name in ~w(*) do
+    if name in @mathematical_operators do
       Map.get(data_source[:parameters], :aircloak_udfs, false)
     else
       SqlBuilder.Support.supports_function?(expression, data_source)

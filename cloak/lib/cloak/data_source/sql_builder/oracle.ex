@@ -12,6 +12,14 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   alias Cloak.DataSource.SqlBuilder.Dialect
   alias Cloak.Query.ExecutionError
 
+  @safe_aliases %{
+    "+" => "plus",
+    "*" => "mul",
+    "-" => "sub",
+    "/" => "div",
+    "^" => "pow"
+  }
+
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct sum_distinct min_distinct max_distinct avg_distinct
@@ -84,7 +92,9 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("hash", [arg]), do: ["TO_CHAR(ORA_HASH(", arg, "), '#{@fmt_no_extra_whitespace}0000000X')"]
 
-  def function_sql("*", args), do: function_sql("aircloak.mul", args)
+  for {operator, alias} <- @safe_aliases do
+    def function_sql(unquote(operator), args), do: function_sql("aircloak.#{unquote(alias)}", args)
+  end
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
