@@ -91,11 +91,11 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_case_arguments(source_location, args) do
-    if rem(length(args), 2) == 0 or length(args) < 3 do
+    if rem(length(args), 2) == 0 do
       raise(
         CompilationError,
         source_location: source_location,
-        message: "`case` expression requires at least one test branch and the default branch."
+        message: "`case` expression requires a default branch."
       )
     end
 

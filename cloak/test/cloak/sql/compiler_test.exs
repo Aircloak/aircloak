@@ -1297,13 +1297,12 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "`case` requires a default branch" do
-    assert {:error, "`case` expression requires at least one test branch and the default branch."} =
+    assert {:error, "`case` expression requires a default branch."} =
              compile("select case(true, string) from table", data_source())
   end
 
-  test "`case` requires at least one test branch" do
-    assert {:error, "`case` expression requires at least one test branch and the default branch."} =
-             compile("select case(string) from table", data_source())
+  test "`case` with default branch only works" do
+    assert {:ok, _} = compile("select case(string) from table", data_source())
   end
 
   test "`case` test conditions have to be booleans" do
