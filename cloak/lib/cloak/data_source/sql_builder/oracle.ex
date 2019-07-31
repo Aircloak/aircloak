@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
       checked_mod checked_div checked_pow
       sqrt floor ceil abs round trunc
       length lower upper btrim ltrim rtrim left right substring concat
-      hex cast coalesce hash bool_op grouping_id
+      hex cast coalesce hash bool_op grouping_id case
     )
 
   @impl Dialect
@@ -83,6 +83,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def function_sql("btrim", [arg1, arg2]), do: ["TRIM(", arg1, " FROM ", arg2, ")"]
 
   def function_sql("hash", [arg]), do: ["TO_CHAR(ORA_HASH(", arg, "), '#{@fmt_no_extra_whitespace}0000000X')"]
+
+  def function_sql("case", args), do: Dialect.case_default(args)
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 

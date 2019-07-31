@@ -72,7 +72,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp map_array_size(name), do: %{"$cond": [%{"$gt": ["$" <> name, nil]}, %{"$size": "$" <> name}, nil]}
 
   defp begin_parse_expression(%Expression{function?: true, function: fun} = expression)
-       when fun not in [nil, "coalesce"] do
+       when fun not in [nil, "coalesce", "case"] do
     expression
     |> extract_fields()
     |> Enum.map(&%{"$gt": ["$" <> &1, nil]})
@@ -300,6 +300,22 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_function("coalesce", [arg]), do: arg
   defp parse_function("coalesce", [first | rest]), do: %{"$ifNull": [first, parse_function("coalesce", rest)]}
 
+  defp parse_function("case", args) do
+    {branches, default} = parse_case(args, [])
+
+    %{
+      "$switch": %{
+        branches: branches,
+        default: default
+      }
+    }
+  end
+
   defp parse_function(name, _args) when is_binary(name),
     do: raise(ExecutionError, message: "Function `#{name}` is not supported in subqueries on MongoDB data sources.")
+
+  defp parse_case([if_arg, then_arg | rest], branches),
+    do: parse_case(rest, [%{case: if_arg, then: then_arg} | branches])
+
+  defp parse_case([else_arg], branches), do: {Enum.reverse(branches), else_arg}
 end

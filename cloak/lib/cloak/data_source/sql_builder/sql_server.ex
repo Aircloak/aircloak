@@ -17,7 +17,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
       length lower upper ltrim rtrim left right substring concat
-      hex cast coalesce hash bool_op grouping_id
+      hex cast coalesce hash bool_op grouping_id case
     )
 
   @aliases %{
@@ -70,6 +70,8 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   for binary_operator <- ~w(+ - * %) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
+
+  def function_sql("case", args), do: Dialect.case_default(args)
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 

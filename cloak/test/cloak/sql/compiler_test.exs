@@ -1291,9 +1291,28 @@ defmodule Cloak.Sql.Compiler.Test do
     )
   end
 
-  test "internal functions don't exist from the analyst's perspective" do
+  test "unsafe functions can't be used in non-standard queries" do
     assert {:error, error} = compile("SELECT dec_b64(string) FROM table", data_source())
-    assert error =~ "Function `dec_b64` can only be used internally."
+    assert error =~ "Function `dec_b64` can only be used in non-anonymizing queries."
+  end
+
+  test "`case` requires a default branch" do
+    assert {:error, "`case` expression requires a default branch."} =
+             compile("select case(true, string) from table", data_source())
+  end
+
+  test "`case` with default branch only works" do
+    assert {:ok, _} = compile("select case(string) from table", data_source())
+  end
+
+  test "`case` test conditions have to be booleans" do
+    assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
+             compile("select case(true, 1, string, 0, 2) from table", data_source())
+  end
+
+  test "`case` return values have to be identical" do
+    assert {:error, "`case` expression requires that all branches return the same type."} =
+             compile("select case(false, string, 2) from table", data_source())
   end
 
   test "rejects usage of distinct in non-aggregates" do

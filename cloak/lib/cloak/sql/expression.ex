@@ -475,6 +475,8 @@ defmodule Cloak.Sql.Expression do
     end)
   end
 
+  defp do_apply("case", args), do: case(args)
+
   defp left(nil, _), do: nil
   defp left(_, nil), do: nil
   defp left(string, count) when count < 0, do: slice_codepoints(string, 0, max(codepoints_length(string) + count, 0))
@@ -583,7 +585,11 @@ defmodule Cloak.Sql.Expression do
   defp cast(value, :boolean) when is_binary(value) do
     case String.downcase(value) do
       "true" -> true
+      "t" -> true
+      "1" -> true
       "false" -> false
+      "f" -> false
+      "0" -> false
       _ -> nil
     end
   end
@@ -630,4 +636,7 @@ defmodule Cloak.Sql.Expression do
     {value, padding} = String.split_at(value, -last)
     if padding == String.duplicate(<<last>>, last), do: value, else: nil
   end
+
+  defp case([if_arg, then_arg | rest]) when is_boolean(if_arg), do: if(if_arg, do: then_arg, else: case(rest))
+  defp case([else_arg]), do: else_arg
 end
