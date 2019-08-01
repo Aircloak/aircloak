@@ -85,7 +85,54 @@ defmodule Cloak.Sql.Compiler.Validation do
           message: "`DISTINCT` specified in non-aggregating function `#{Function.readable_name(name)}`."
         )
 
+    if name == "case", do: verify_case_arguments(expression.source_location, args)
+
     :ok
+  end
+
+  defp verify_case_arguments(source_location, args) do
+    if rem(length(args), 2) == 0 do
+      raise(
+        CompilationError,
+        source_location: source_location,
+        message: "`case` expression requires a default branch."
+      )
+    end
+
+    args
+    |> Enum.take_every(2)
+    |> Enum.reverse()
+    |> Enum.drop(1)
+    |> Enum.reject(&(&1.type == :boolean))
+    |> case do
+      [arg | _] ->
+        raise(
+          CompilationError,
+          source_location: arg.source_location,
+          message: "`case` expression requires a `boolean` argument for the test condition."
+        )
+
+      _ ->
+        :ok
+    end
+
+    default_arg = args |> Enum.reverse() |> Enum.at(0)
+    then_args = args |> Enum.drop(1) |> Enum.take_every(2)
+
+    [default_arg | then_args]
+    |> Enum.map(& &1.type)
+    |> Enum.uniq()
+    |> case do
+      [_type] ->
+        :ok
+
+      _ ->
+        raise(
+          CompilationError,
+          source_location: source_location,
+          message: "`case` expression requires that all branches return the same type."
+        )
+    end
   end
 
   defp verify_anonymization_functions_usage(query) do
@@ -108,19 +155,11 @@ defmodule Cloak.Sql.Compiler.Validation do
       )
     end
 
-    if Function.has_attribute?(name, {:not_in, query.type}) do
+    if query.type != :standard and Function.unsafe?(name) do
       raise(
         CompilationError,
         source_location: expression.source_location,
-        message: "Function `#{Function.readable_name(name)}` is not allowed in `#{query.type}` subqueries."
-      )
-    end
-
-    if Function.internal?(name) do
-      raise(
-        CompilationError,
-        source_location: expression.source_location,
-        message: "Function `#{Function.readable_name(name)}` can only be used internally."
+        message: "Function `#{Function.readable_name(name)}` can only be used in non-anonymizing queries."
       )
     end
 

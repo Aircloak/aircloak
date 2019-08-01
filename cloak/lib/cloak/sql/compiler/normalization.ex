@@ -25,6 +25,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&rewrite_distinct/1)
       |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
       |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
+      |> Helpers.apply_bottom_up(&remove_conditionless_cases/1)
       |> Helpers.apply_bottom_up(&normalize_non_anonymizing_noise/1)
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
@@ -402,4 +403,18 @@ defmodule Cloak.Sql.Compiler.Normalization do
       columns
       |> Enum.reject(&Helpers.aggregated_column?/1)
       |> Enum.all?(&Expression.member?(group_bys, &1))
+
+  # -------------------------------------------------------------------
+  # Removing conditionless cases
+  # -------------------------------------------------------------------
+
+  defp remove_conditionless_cases(query),
+    do:
+      update_in(query, [Query.Lenses.terminals()], fn
+        %Expression{function: "case", function_args: [expr]} ->
+          expr
+
+        other ->
+          other
+      end)
 end

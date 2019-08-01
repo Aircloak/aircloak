@@ -46,12 +46,6 @@ defmodule Cloak.Sql.Function.Test do
     test "#{inspect(function)} has implicit range behaviuor", do: assert(Function.implicit_range?(unquote(function)))
   end)
 
-  @internal_functions ~w(coalesce dec_b64 dec_aes_cbc128)
-  Enum.each(@internal_functions, fn internal_function ->
-    test "#{internal_function} is registered as an internal function",
-      do: assert(Function.internal?(unquote(internal_function)))
-  end)
-
   for function <- ~w(floor ceil) do
     test "#{function} argument types" do
       assert well_typed?(unquote(function), [:integer])

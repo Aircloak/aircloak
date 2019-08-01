@@ -728,4 +728,15 @@ defmodule Cloak.DataSource.MongoDBTest do
       rows: [%{occurrences: 1, row: [nil]}, %{occurrences: 1, row: [true]}, %{occurrences: 1, row: [false]}]
     })
   end
+
+  test "case in standard query", context do
+    assert_query(context, "SELECT case(cast(val - 1 as boolean), 1, -1) FROM #{@userless_table} ORDER BY 1", %{
+      rows: [
+        %{occurrences: 1, row: [-1]},
+        %{occurrences: 1, row: [-1]},
+        %{occurrences: 1, row: [1]},
+        %{occurrences: 1, row: [1]}
+      ]
+    })
+  end
 end
