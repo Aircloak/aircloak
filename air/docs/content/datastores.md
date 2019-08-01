@@ -278,6 +278,39 @@ Apache Drill doesn't support `CROSS JOIN` natively, so any `CROSS JOIN` will be 
 
 - `OFFSET` clause is currently not supported.
 
+#### Safe functions {#oracle-safe-functions}
+
+By default, mathematical operations in Oracle are unsafe (see [the section on Column
+bounds](/sql/restrictions.md#column-bounds) for more on this topic). Aircloak provides safe versions of these
+operations, but they require manual installation by the database server administrator. The benefits of doing so are
+increased query performance when mathematical operations are involved. In order to install (or update) the Aircloak
+user defined functions (UDFs), perform the following steps:
+
+1. Run the `dbmsstdx.sql` script provided by Oracle to enable user-defined functions. You only need to do this once.
+  * You can use `find $ORACLE_HOME -name dbmsstdx.sql` in the command line to find the script. If you cannot locate the
+  script in your installation, contact Oracle support for an appropriate script to use with your version.
+  * Run `$ sqlplus / as sysdba` when logged in as the linux user who owns the oracle installation to login as the
+  `sysdba` role.
+  * Run `@/path/to/dbmsstdx.sql` in the SQL prompt that appears.
+2. Run the contents of <a href="/aircloak_udfs.sql" target="_blank">aircloak_udfs.sql</a> on the schema for
+   which you want to enable the Aircloak UDFs. This step will also update the UDFs if a newer version is provided by
+   Aircloak.
+  * Log in as `sysdba` as in the previous point.
+  * Run `ALTER SESSION SET CURRENT_SCHEMA = schema_name` where `schema_name` is the schema for which you want to enable
+  the UDFs.
+  * Run `@/path/to/aircloak_udfs.sql`.
+3. Update the configuration for your Oracle data source.
+  * In the `parameters` section add an `aircloak_udfs` key with a `true` value:
+  ```json
+    {
+      ...
+      "parameters": {
+        ...
+        "aircloak_udfs": true
+      }
+    }
+  ```
+
 ### PostgreSQL
 
 -  Data source user must have the `USAGE` privilege.
