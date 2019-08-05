@@ -54,7 +54,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   defp compile_anonymization(%Query{command: :select, type: :anonymized} = query) do
     cond do
-      supports_statistics_anonymization?(query) -> query |> group_by_uid() |> convert_to_statistics_anonymization()
+      supports_statistics_anonymization?(query) -> convert_to_statistics_anonymization(query)
       needs_uid_grouping?(query) -> group_by_uid(query)
       true -> query
     end
@@ -157,8 +157,38 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   end
 
   defp convert_to_statistics_anonymization(query) do
-    query = offload_grouping_sets(query)
+    uid_grouped_query = query |> group_by_uid() |> offload_grouping_sets()
+    regular_statistics_query = compute_main_statistics(uid_grouped_query)
 
+    regular_statistics_table = Helpers.create_table_from_columns(regular_statistics_query.columns, "__ac_statistics")
+
+    # Since only referenced columns are selected from the inner query, we need to add dummy
+    # references to the min/max user ids and grouping id, in order to keep them in the aggregation input.
+    # The user ids count column has the `user_id?` flag set, so it will be automatically selected,
+    # as it will take place of user id column for the synthetic statistics query.
+    min_uid_top_ref = column_from_synthetic_table(regular_statistics_table, "__ac_min_uid")
+    max_uid_top_ref = column_from_synthetic_table(regular_statistics_table, "__ac_max_uid")
+    grouping_id_top_ref = column_from_synthetic_table(regular_statistics_table, "__ac_grouping_id")
+
+    %Query{
+      uid_grouped_query
+      | from: {:subquery, %{ast: regular_statistics_query, alias: regular_statistics_table.name}},
+        selected_tables: [regular_statistics_table],
+        aggregators: [grouping_id_top_ref, min_uid_top_ref, max_uid_top_ref | uid_grouped_query.aggregators],
+        where: nil
+    }
+    |> update_in(
+      [Lenses.query_expressions() |> Lens.filter(&is_binary(&1.name))],
+      &set_fields(&1, table: regular_statistics_table)
+    )
+    |> update_in(
+      [Lenses.query_expressions() |> Lens.filter(& &1.aggregate?)],
+      &update_stats_aggregator/1
+    )
+    |> Query.add_debug_info("Using statistics-based anonymization.")
+  end
+
+  defp compute_main_statistics(query) do
     {:subquery, %{ast: uid_grouping_query}} = query.from
     [uid_grouping_table] = query.selected_tables
 
@@ -171,7 +201,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     inner_columns = Enum.uniq(groups ++ aggregators)
     order_by = groups ++ [min_uid, max_uid]
 
-    inner_query = %Query{
+    %Query{
       query
       | subquery?: true,
         type: :restricted,
@@ -188,33 +218,6 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         distinct?: false,
         implicit_count?: false
     }
-
-    inner_table = Helpers.create_table_from_columns(inner_columns, "__ac_statistics")
-
-    # Since only referenced columns are selected from the inner query, we need to add dummy
-    # references to the min/max user ids and grouping id, in order to keep them in the aggregation input.
-    # The user ids count column has the `user_id?` flag set, so it will be automatically selected,
-    # as it will take place of user id column for the synthetic statistics query.
-    min_uid_top_ref = column_from_synthetic_table(inner_table, "__ac_min_uid")
-    max_uid_top_ref = column_from_synthetic_table(inner_table, "__ac_max_uid")
-    grouping_id_top_ref = column_from_synthetic_table(inner_table, "__ac_grouping_id")
-
-    %Query{
-      query
-      | from: {:subquery, %{ast: inner_query, alias: inner_table.name}},
-        selected_tables: [inner_table],
-        aggregators: [grouping_id_top_ref, min_uid_top_ref, max_uid_top_ref | query.aggregators],
-        where: nil
-    }
-    |> update_in(
-      [Lenses.query_expressions() |> Lens.filter(&is_binary(&1.name))],
-      &set_fields(&1, table: inner_table)
-    )
-    |> update_in(
-      [Lenses.query_expressions() |> Lens.filter(& &1.aggregate?)],
-      &update_stats_aggregator/1
-    )
-    |> Query.add_debug_info("Using statistics-based anonymization.")
   end
 
   defp column_from_synthetic_table(table, name) do
