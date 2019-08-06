@@ -281,34 +281,49 @@ let processOne (db : IMongoDatabase) (config : CloakConfig) (table : string) (us
     writeCollection db table tableConfig batch
     saveUserIds userIds batch table config
 
+let runMarkCollection = "_ac_mongo_cleanup"
+
+let alreadyRun (db: IMongoDatabase) =
+    countCollection db runMarkCollection > 0
+
+let markRun (db: IMongoDatabase) =
+    db.GetCollection<BsonDocument>(runMarkCollection).InsertOne(BsonDocument())
+
 let run (options : ParseResults<CLIArguments>) : unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)
     let jsonConfig = JsonConfig.create (jsonFieldNaming = Json.snakeCase)
     let config = stream.ReadToEnd() |> Json.deserializeEx<CloakConfig> jsonConfig
+
     printfn "Connecting..."
     let conn =
         config
         |> mongoConnString
         |> MongoClient
-
     let db = conn.GetDatabase config.parameters.database
-    printfn "Reading data..."
-    let toProcess =
-        config.tables
-        |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection)
-        |> Seq.sortWith (dependsOn config.tables)
 
-    let mutable userIds = Map.empty
-    use bar = ProgressBar.start 100
-    for kv in toProcess do
-        ProgressBar.reset (countCollection db kv.Key) (sprintf "Processing %s" kv.Key)
-        userIds <- readCollection db kv.Key
-                   |> Seq.chunkBySize 1000
-                   |> Seq.map (fun chunk ->
-                          ProgressBar.tick 1000
-                          chunk)
-                   |> Seq.fold (processOne db config kv.Key) userIds
-    ProgressBar.finish "Success"
+    if alreadyRun db
+    then
+        printfn "MongoCleanup was already run on this database. If this is not an accident, you need to start from a clean backup."
+    else
+        markRun db
+
+        printfn "Reading data..."
+        let toProcess =
+            config.tables
+            |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection)
+            |> Seq.sortWith (dependsOn config.tables)
+
+        let mutable userIds = Map.empty
+        use bar = ProgressBar.start 100
+        for kv in toProcess do
+            ProgressBar.reset (countCollection db kv.Key) (sprintf "Processing %s" kv.Key)
+            userIds <- readCollection db kv.Key
+                       |> Seq.chunkBySize 1000
+                       |> Seq.map (fun chunk ->
+                              ProgressBar.tick 1000
+                              chunk)
+                       |> Seq.fold (processOne db config kv.Key) userIds
+        ProgressBar.finish "Success"
 
 [<EntryPoint>]
 let main argv =
