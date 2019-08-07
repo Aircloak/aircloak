@@ -167,7 +167,7 @@ defmodule Cloak.DataSource.RODBC.Port do
           :ok -> {:halt, :ok}
           data -> {decode_values(data, []), :ok}
         end,
-        fn _ -> :ok end
+        fn :ok -> :ok end
       )
       |> Stream.chunk_every(columns_count)
 
@@ -186,14 +186,8 @@ defmodule Cloak.DataSource.RODBC.Port do
   defp decode_values(<<@type_f32, num::float-little-32, data::binary>>, acc),
     do: decode_values(data, [num | acc])
 
-  defp decode_values(<<@type_f32, _::32, data::binary>>, acc),
-    do: decode_values(data, [nil | acc])
-
   defp decode_values(<<@type_f64, num::float-little-64, data::binary>>, acc),
     do: decode_values(data, [num | acc])
-
-  defp decode_values(<<@type_f64, _::64, data::binary>>, acc),
-    do: decode_values(data, [nil | acc])
 
   defp decode_values(<<@type_str, len::unsigned-little-32, str::bytes-size(len), data::binary>>, acc),
     do: decode_values(data, [str | acc])
