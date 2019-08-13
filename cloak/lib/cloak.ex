@@ -24,8 +24,15 @@ defmodule Cloak do
 
     with {:ok, aes_key} <- Aircloak.DeployConfig.fetch("aes_key"), do: Application.put_env(:cloak, :aes_key, aes_key)
 
-    Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
+    with {:ok, _} = result <- Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do
+      log_startup()
+      result
+    end
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp children() do
     import Aircloak, only: [in_env: 1]
@@ -39,6 +46,12 @@ defmodule Cloak do
       in_env(test: nil, else: Cloak.MemoryReader)
     ]
     |> Enum.reject(&is_nil/1)
+  end
+
+  defp log_startup() do
+    {:ok, air_site} = Aircloak.DeployConfig.fetch("air_site")
+    version = Aircloak.Version.for_app(:cloak)
+    Logger.info("Insights Cloak version #{version} started [air_site: #{air_site}]")
   end
 
   defp set_salt() do
