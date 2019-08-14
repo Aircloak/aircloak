@@ -37,7 +37,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   def function_sql("hash", [arg]), do: ["SUBSTR(MD5(CAST(", arg, " AS char)), 5, 8)"]
 
-  def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
+  def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]), do: Dialect.bool_op_default(op, arg1, arg2)
 
   def function_sql("checked_mod", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
 

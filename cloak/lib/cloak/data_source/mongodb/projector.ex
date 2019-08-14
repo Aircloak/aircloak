@@ -294,6 +294,8 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   end
 
   @bool_operators %{"=" => "$eq", "<>" => "$neq", ">" => "$gt", ">=" => "$gte", "<" => "$lt", "<=" => "$lte"}
+  defp parse_function("bool_op", [%{"$literal": "<>"}, arg, nil]), do: %{"$gt": [arg, nil]}
+
   defp parse_function("bool_op", [%{"$literal": op}, arg1, arg2]),
     do: %{Map.fetch!(@bool_operators, op) => [arg1, arg2]}
 

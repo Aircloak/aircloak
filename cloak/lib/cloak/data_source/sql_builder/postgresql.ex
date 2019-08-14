@@ -44,7 +44,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   def function_sql("hash", [arg]), do: ["SUBSTR(MD5(", arg, "::text), 5, 8)"]
 
-  def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
+  def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: Dialect.bool_op_default(op, arg1, arg2)
 
   def function_sql("unsafe_div", [arg1, arg2]), do: ["(", arg1, " :: double precision / ", arg2, ")"]
 

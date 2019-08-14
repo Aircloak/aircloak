@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   @impl Dialect
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]) do
-    condition = [arg1, " ", op, " ", arg2]
+    condition = Dialect.bool_op_default(op, arg1, arg2)
     ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
   end
 

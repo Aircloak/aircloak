@@ -53,7 +53,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     do: function_sql("hex", [["SUBSTRING(HASHBYTES('md5', CAST(", arg, " AS varchar)), 3, 4)"]])
 
   def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]) do
-    condition = [arg1, " ", op, " ", arg2]
+    condition = Dialect.bool_op_default(op, arg1, arg2)
     ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
   end
 
