@@ -71,7 +71,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
-  def function_sql("case", args), do: Dialect.case_default(args)
+  def function_sql("case", args), do: ["CASE", case_branches(args), " END"]
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
@@ -138,4 +138,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   # https://github.com/Aircloak/aircloak/pull/3111/commits/b6c59287bd6602de7d3cbf32592119a70e8f3e53#r219216993
   defp sql_type(:text), do: "nvarchar(4000)"
   defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
+
+  defp case_branches([if_arg, then_arg | rest]), do: [" WHEN ", if_arg, " <> 0 THEN ", then_arg, case_branches(rest)]
+  defp case_branches([else_branch]), do: [" ELSE ", else_branch]
 end
