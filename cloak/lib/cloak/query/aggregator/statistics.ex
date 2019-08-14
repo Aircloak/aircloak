@@ -114,7 +114,14 @@ defmodule Cloak.Query.Aggregator.Statistics do
   # Internal functions
   # -------------------------------------------------------------------
 
+  # merge statistics for count(distinct uid)
   defp merge_aggregation_statistics(count_adder, [count1], [count2]), do: [count_adder.(count1, count2)]
+
+  # merge statistics for count(distinct column)
+  defp merge_aggregation_statistics(_count_adder, [count1, noise_factor1], [count2, noise_factor2]),
+    do: [max(count1, count2), max(noise_factor1, noise_factor2)]
+
+  # merge regular statistics
 
   defp merge_aggregation_statistics(_count_adder, [0, nil, nil, nil, nil], statistics2), do: statistics2
   defp merge_aggregation_statistics(_count_adder, statistics1, [0, nil, nil, nil, nil]), do: statistics1
@@ -160,6 +167,14 @@ defmodule Cloak.Query.Aggregator.Statistics do
         {%Expression{function: "count_noise", function_args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
           Anonymizer.noise_amount(1, anonymizer)
 
+        {%Expression{function: "count", function_args: [{:distinct, _}]}, [real_count, noise_factor]} ->
+          {noisy_count, _noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, {real_count, noise_factor})
+          noisy_count
+
+        {%Expression{function: "count_noise", function_args: [{:distinct, _}]}, [real_count, noise_factor]} ->
+          {_noisy_count, noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, {real_count, noise_factor})
+          noise_amount
+
         {_aggregator, [_count, nil, nil, nil, nil]} ->
           nil
 
@@ -201,10 +216,11 @@ defmodule Cloak.Query.Aggregator.Statistics do
   defp float_to_type(value, :integer), do: round(value)
   defp float_to_type(value, :real), do: value
 
-  defp extract_args(args), do: Enum.map(args, &extract_arg/1)
+  defp extract_args(args), do: Enum.flat_map(args, &extract_arg/1)
 
-  defp extract_arg({:distinct, arg}), do: arg
-  defp extract_arg(arg), do: arg
+  defp extract_arg({:distinct, args}) when is_list(args), do: args
+  defp extract_arg({:distinct, arg}), do: [arg]
+  defp extract_arg(arg), do: [arg]
 
   defp map_grouping_sets(grouping_sets) when length(grouping_sets) > 1 do
     group_size = grouping_sets |> List.flatten() |> Enum.max()

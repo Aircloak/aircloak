@@ -274,6 +274,18 @@ defmodule Cloak.Query.Anonymizer do
   @spec noise_amount(number, t) :: float
   def noise_amount(sigma, anonymizer), do: sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()
 
+  @doc "Computes the noisy count of distinct values from the no-uid statistics for a bucket."
+  @spec noisy_distinct_count(t, {non_neg_integer | nil, non_neg_integer | nil}) :: {float | nil, float | nil}
+  def noisy_distinct_count(_anonymizer, {nil, nil} = _statistics), do: {nil, nil}
+
+  def noisy_distinct_count(anonymizer, {count, noise_factor} = _statistics) do
+    {noise, _anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
+    count_sigma = noise_factor * 0.5
+    noise_amount = noise_amount(count_sigma, anonymizer)
+    noisy_count = count + noise * count_sigma
+    {noisy_count |> round() |> Kernel.max(0), noise_amount}
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

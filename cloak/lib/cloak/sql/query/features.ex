@@ -151,6 +151,9 @@ defmodule Cloak.Sql.Query.Features do
 
   defp build_expression_tree(%Expression{constant?: true}, _query), do: :const
 
+  defp build_expression_tree({:distinct, exprs}, query) when is_list(exprs),
+    do: [:distinct, Enum.map(exprs, &build_expression_tree(&1, query))]
+
   defp build_expression_tree({:distinct, expr}, query), do: [:distinct, build_expression_tree(expr, query)]
 
   defp build_expression_tree(:*, _query), do: :*
