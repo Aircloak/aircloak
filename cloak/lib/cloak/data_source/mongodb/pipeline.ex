@@ -112,9 +112,11 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:not, {:comparison, subject, :<>, target}}),
     do: %{"$expr": %{"$eq": [Projector.project_expression(subject), Projector.project_expression(target)]}}
 
-  defp parse_where_condition({:is, subject, :null}), do: %{map_column(subject) => nil}
+  defp parse_where_condition({:is, subject, :null}),
+    do: %{"$expr": %{"$eq": [Projector.project_expression(subject), nil]}}
 
-  defp parse_where_condition({:not, {:is, subject, :null}}), do: %{map_column(subject) => %{"$ne": nil}}
+  defp parse_where_condition({:not, {:is, subject, :null}}),
+    do: %{"$expr": %{"$gt": [Projector.project_expression(subject), nil]}}
 
   defp parse_where_condition({:in, subject, targets}),
     do: %{

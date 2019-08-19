@@ -275,7 +275,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   defp supported_join_filters?(conditions) do
     Query.Lenses.conditions()
-    |> Lens.filter(&(Condition.verb(&1) in [:like, :ilike, :is]))
+    |> Lens.filter(&(Condition.verb(&1) in [:like, :ilike]))
     |> Lens.to_list(conditions) == []
   end
 

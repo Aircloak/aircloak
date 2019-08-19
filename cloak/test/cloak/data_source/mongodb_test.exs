@@ -352,12 +352,6 @@ defmodule Cloak.DataSource.MongoDBTest do
     )
   end
 
-  test "error on invalid conditions", context do
-    assert_query(context, "SELECT COUNT(name) FROM #{@user_table} WHERE TRUE IS NOT NULL", %{
-      error: "Condition on MongoDB data source expects a column as subject."
-    })
-  end
-
   test "datetime support", context do
     assert_query(context, "SELECT DISTINCT date FROM #{@user_table} WHERE date IS NOT NULL", %{
       rows: [%{occurrences: 1, row: ["2015-07-26T19:50:03.000000"]}]
