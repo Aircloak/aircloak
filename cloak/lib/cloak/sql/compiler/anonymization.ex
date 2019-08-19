@@ -604,7 +604,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     target_column = column_from_synthetic_table(distinct_values_table, "__ac_target")
 
     count_distinct_values =
-      Expression.function("count", [target_column], :integer)
+      Expression.function("count", [target_column], :integer, true)
       |> set_fields(alias: "__ac_count_distinct", synthetic?: true)
 
     grouped_columns = [grouping_id, user_id | base_columns]
