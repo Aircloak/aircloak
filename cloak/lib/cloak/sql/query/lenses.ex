@@ -191,6 +191,17 @@ defmodule Cloak.Sql.Query.Lenses do
     end)
   end
 
+  @doc "Lens focusing on the individual conditions which are 'AND'-ed together."
+  deflens and_conditions() do
+    Lens.match(fn
+      {:or, _, _} -> Lens.empty()
+      {:and, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
+      list when is_list(list) -> Lens.all() |> conditions()
+      nil -> Lens.empty()
+      _ -> Lens.root()
+    end)
+  end
+
   @doc "Lens focusing on all conditions, both leaf and intermediate nodes (AND, OR, NOT)."
   deflens all_conditions() do
     Lens.match(fn

@@ -85,7 +85,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       subqueries()
       |> Lens.reject(&(&1.ast.type == :anonymized))
       |> Lens.map(branch, fn subquery ->
-        simple_conditions = Condition.reject(conditions, &(not simple_condition?.(&1, subquery.alias)))
+        simple_conditions = reject_and_conditions(conditions, &(not simple_condition?.(&1, subquery.alias)))
 
         %{subquery | ast: move_conditions_into_subquery(subquery.ast, simple_conditions)}
       end)
@@ -93,11 +93,11 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     unmovable_conditions =
       filter_conditions_from_subqueries(branch, conditions, fn name, acc ->
         if nullable_columns? do
-          Lenses.conditions()
+          Lenses.and_conditions()
           |> Lens.filter(&simple_condition?.(&1, name))
           |> Lens.map(acc, &{:not, {:is, Condition.subject(&1), :null}})
         else
-          Condition.reject(acc, &simple_condition?.(&1, name))
+          reject_and_conditions(acc, &simple_condition?.(&1, name))
         end
       end)
 
@@ -159,4 +159,19 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     {from, conditions} = move_simple_conditions_into_subqueries(query.from, query.where)
     %Query{query | from: from, where: conditions}
   end
+
+  defp reject_and_conditions(nil, _matcher), do: nil
+
+  defp reject_and_conditions({:and, lhs, rhs}, matcher) do
+    case {reject_and_conditions(lhs, matcher), reject_and_conditions(rhs, matcher)} do
+      {nil, nil} -> nil
+      {nil, rhs} -> rhs
+      {lhs, nil} -> lhs
+      {lhs, rhs} -> {:and, lhs, rhs}
+    end
+  end
+
+  defp reject_and_conditions({:or, lhs, rhs}, _matcher), do: {:or, lhs, rhs}
+
+  defp reject_and_conditions(condition, matcher), do: if(matcher.(condition), do: nil, else: condition)
 end
