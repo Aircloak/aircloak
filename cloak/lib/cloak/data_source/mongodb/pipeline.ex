@@ -379,7 +379,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     Query.Lenses.leaf_expressions()
     |> Lens.key(:table)
     |> Lens.filter(&(is_map(&1) and &1.name in source_tables))
-    |> Lens.map(condition, fn table -> %{table | name: "$" <> table.name} end)
+    |> Lens.map(condition, fn table -> %{table | name: "$t" <> table.name} end)
   end
 
   defp join_pipeline(collection, pipeline, conditions, source_tables, outer_join?) do
@@ -390,7 +390,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       %{
         "$lookup": %{
           from: collection,
-          let: for(table <- source_tables, into: %{}, do: {table, "$" <> table}),
+          let: for(table <- source_tables, into: %{}, do: {"t" <> table, "$" <> table}),
           pipeline: pipeline ++ on_stage,
           as: namespace
         }

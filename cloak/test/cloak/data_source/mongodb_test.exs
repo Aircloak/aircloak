@@ -739,4 +739,16 @@ defmodule Cloak.DataSource.MongoDBTest do
       ]
     })
   end
+
+  test "simple count(distinct)", context do
+    assert_query(context, "SELECT COUNT(DISTINCT name) FROM #{@user_table}", %{
+      rows: [%{occurrences: 1, row: [10]}]
+    })
+  end
+
+  test "count(distinct) with group", context do
+    assert_query(context, "SELECT male, COUNT(DISTINCT name) FROM #{@user_table} GROUP BY 1 ORDER BY 1", %{
+      rows: [%{occurrences: 1, row: [true, 10]}, %{occurrences: 1, row: [nil, nil]}]
+    })
+  end
 end
