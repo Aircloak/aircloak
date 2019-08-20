@@ -360,9 +360,9 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query(
       context,
       """
-        SELECT max(year) FROM (SELECT _id, year(date) FROM #{@user_table} WHERE date = '2015-07-26 19:50:03') AS t
+        SELECT max(year), count(year) FROM (SELECT _id, year(date) FROM #{@user_table} WHERE date = '2015-07-26 19:50:03') AS t
       """,
-      %{rows: [%{occurrences: 1, row: [2015]}]}
+      %{rows: [%{occurrences: 1, row: [2015, 13]}]}
     )
   end
 
@@ -742,7 +742,7 @@ defmodule Cloak.DataSource.MongoDBTest do
 
   test "count(distinct) with group", context do
     assert_query(context, "SELECT male, COUNT(DISTINCT name) FROM #{@user_table} GROUP BY 1 ORDER BY 1", %{
-      rows: [%{occurrences: 1, row: [true, 10]}, %{occurrences: 1, row: [nil, nil]}]
+      rows: [%{occurrences: 1, row: [true, 10]}, %{occurrences: 1, row: [nil, 0]}]
     })
   end
 end
