@@ -381,6 +381,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     Query.Lenses.leaf_expressions()
     |> Lens.key(:table)
     |> Lens.filter(&(is_map(&1) and &1.name in source_tables))
+    # MongoDB 3.6 only allows field names starting with lower-case characters in the `$lookup` stage.
+    # We prepend a `t` to each table name to avoid errors for invalid names.
     |> Lens.map(condition, fn table -> %{table | name: "$t" <> table.name} end)
   end
 
@@ -392,6 +394,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       %{
         "$lookup": %{
           from: collection,
+          # MongoDB 3.6 only allows field names starting with lower-case characters in the `$lookup` stage.
+          # We prepend a `t` to each table name to avoid errors for invalid names.
           let: for(table <- source_tables, into: %{}, do: {"t" <> table, "$" <> table}),
           pipeline: pipeline ++ on_stage,
           as: namespace
