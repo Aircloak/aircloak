@@ -122,7 +122,6 @@ defmodule Cloak.Query.Aggregator.Statistics do
     do: [max(count1, count2), max(noise_factor1, noise_factor2)]
 
   # merge regular statistics
-
   defp merge_aggregation_statistics(_count_adder, [0, nil, nil, nil, nil], statistics2), do: statistics2
   defp merge_aggregation_statistics(_count_adder, statistics1, [0, nil, nil, nil, nil]), do: statistics1
 
