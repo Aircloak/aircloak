@@ -11,6 +11,11 @@
 - Improved offloading of joins on MongoDB.
 - It is possible to force long polling instead of websocket as a transport mechanism for pushing notifications to browsers. See [Insights Air configuration](docs/ops/configuration.html#insights-air-configuration) for details.
 - Enabled statistics-based min/max aggregators (with a higher users count threshold).
+- Enabled statistics-based count(distinct) aggregators.
+
+### Bugfixes
+
+- Fixed handling of `null` and `undefined` values in MongoDB data sets.
 
 ## Version 19.2.1
 
