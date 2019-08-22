@@ -186,6 +186,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
           {:ok, _} =
             compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING max(left(string, 3)) = 'foo') x")
         )
+
+    test "allows string manipulation functions in top-level having",
+      do:
+        assert({:ok, _} = compile("SELECT string, COUNT(*) FROM table GROUP BY 1 HAVING upper(left(string, 1)) = 'f'"))
   end
 
   describe "ranges" do
@@ -310,6 +314,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "substring is allowed with NOT IN" do
       assert {:ok, _} =
                compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) NOT IN ('foo', 'bar')")
+    end
+  end
+
+  describe "arbitray math" do
+    test "allows arbitray math in top-level having" do
+      assert {:ok, _} =
+               compile(
+                 "SELECT float, COUNT(*) FROM table GROUP BY 1 HAVING float * 3 / (3 - float) + 1 - float * 2 = 7"
+               )
+    end
+
+    test "forbid arbitray math in where filter" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE float * 3 / (3 - float) + 1 - float * 2 = 7")
+      assert "Queries containing expressions with a high number of functions" <> _ = message
     end
   end
 
