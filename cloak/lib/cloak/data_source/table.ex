@@ -623,6 +623,13 @@ defmodule Cloak.DataSource.Table do
 
   def map_isolators({name, table}), do: {name, table}
 
+  defp map_content_type({name, %{user_id: nil}}) do
+    raise ExecutionError,
+      message:
+        "Table `#{name}` has the `user_id` field set to `null`. This is not supported. " <>
+          "Set the `content_type` field to `non-personal` instead and remove the `user_id` entry."
+  end
+
   defp map_content_type({name, %{user_id: _} = table}) do
     if table[:content_type] != nil do
       raise ExecutionError, message: "The `user_id` and `content_type` fields are both set for table `#{name}`."
