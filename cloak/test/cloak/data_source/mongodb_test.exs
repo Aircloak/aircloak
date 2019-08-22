@@ -352,12 +352,6 @@ defmodule Cloak.DataSource.MongoDBTest do
     )
   end
 
-  test "error on invalid conditions", context do
-    assert_query(context, "SELECT COUNT(name) FROM #{@user_table} WHERE TRUE IS NOT NULL", %{
-      error: "Condition on MongoDB data source expects a column as subject."
-    })
-  end
-
   test "datetime support", context do
     assert_query(context, "SELECT DISTINCT date FROM #{@user_table} WHERE date IS NOT NULL", %{
       rows: [%{occurrences: 1, row: ["2015-07-26T19:50:03.000000"]}]
@@ -366,9 +360,9 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query(
       context,
       """
-        SELECT max(year) FROM (SELECT _id, year(date) FROM #{@user_table} WHERE date = '2015-07-26 19:50:03') AS t
+        SELECT max(year), count(year) FROM (SELECT _id, year(date) FROM #{@user_table} WHERE date = '2015-07-26 19:50:03') AS t
       """,
-      %{rows: [%{occurrences: 1, row: [2015]}]}
+      %{rows: [%{occurrences: 1, row: [2015, 13]}]}
     )
   end
 
@@ -737,6 +731,18 @@ defmodule Cloak.DataSource.MongoDBTest do
         %{occurrences: 1, row: [1]},
         %{occurrences: 1, row: [1]}
       ]
+    })
+  end
+
+  test "simple count(distinct)", context do
+    assert_query(context, "SELECT COUNT(DISTINCT name) FROM #{@user_table}", %{
+      rows: [%{occurrences: 1, row: [10]}]
+    })
+  end
+
+  test "count(distinct) with group", context do
+    assert_query(context, "SELECT male, COUNT(DISTINCT name) FROM #{@user_table} GROUP BY 1 ORDER BY 1", %{
+      rows: [%{occurrences: 1, row: [true, 10]}, %{occurrences: 1, row: [nil, 0]}]
     })
   end
 end

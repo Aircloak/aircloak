@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   @impl Dialect
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]) do
-    condition = [arg1, " ", op, " ", arg2]
+    condition = Dialect.bool_op_default(op, arg1, arg2)
     ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
   end
 
@@ -84,7 +84,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("hash", [arg]), do: ["TO_CHAR(ORA_HASH(", arg, "), '#{@fmt_no_extra_whitespace}0000000X')"]
 
-  def function_sql("case", args), do: Dialect.case_default(args)
+  def function_sql("case", args), do: ["CASE", case_branches(args), " END"]
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
@@ -180,4 +180,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   defp sql_type(:text), do: "VARCHAR2"
   defp sql_type(:time), do: "TIME"
   defp sql_type({:native_type, type}), do: type
+
+  defp case_branches([if_arg, then_arg | rest]), do: [" WHEN ", if_arg, " <> 0 THEN ", then_arg, case_branches(rest)]
+  defp case_branches([else_branch]), do: [" ELSE ", else_branch]
 end

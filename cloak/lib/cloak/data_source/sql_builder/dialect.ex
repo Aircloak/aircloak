@@ -162,4 +162,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
 
   defp case_branches([if_arg, then_arg | rest]), do: [" WHEN ", if_arg, " THEN ", then_arg, case_branches(rest)]
   defp case_branches([else_branch]), do: [" ELSE ", else_branch]
+
+  @spec bool_op_default(Cloak.DataSource.field(), Cloak.DataSource.field(), Cloak.DataSource.field()) :: iodata
+  def bool_op_default("<>", arg, "NULL"), do: ["(", arg, " IS NOT NULL)"]
+  def bool_op_default("=", arg, "NULL"), do: ["(", arg, " IS NULL)"]
+  def bool_op_default(op, arg1, arg2), do: ["(", arg1, " ", op, " ", arg2, ")"]
 end

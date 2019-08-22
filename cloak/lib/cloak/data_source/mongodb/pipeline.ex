@@ -112,9 +112,11 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:not, {:comparison, subject, :<>, target}}),
     do: %{"$expr": %{"$eq": [Projector.project_expression(subject), Projector.project_expression(target)]}}
 
-  defp parse_where_condition({:is, subject, :null}), do: %{map_column(subject) => nil}
+  defp parse_where_condition({:is, subject, :null}),
+    do: %{"$expr": %{"$eq": [Projector.project_expression(subject), nil]}}
 
-  defp parse_where_condition({:not, {:is, subject, :null}}), do: %{map_column(subject) => %{"$ne": nil}}
+  defp parse_where_condition({:not, {:is, subject, :null}}),
+    do: %{"$expr": %{"$gt": [Projector.project_expression(subject), nil]}}
 
   defp parse_where_condition({:in, subject, targets}),
     do: %{
@@ -379,7 +381,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     Query.Lenses.leaf_expressions()
     |> Lens.key(:table)
     |> Lens.filter(&(is_map(&1) and &1.name in source_tables))
-    |> Lens.map(condition, fn table -> %{table | name: "$" <> table.name} end)
+    # MongoDB 3.6 only allows field names starting with lower-case characters in the `$lookup` stage.
+    # We prepend a `t` to each table name to avoid errors for invalid names.
+    |> Lens.map(condition, fn table -> %{table | name: "$t" <> table.name} end)
   end
 
   defp join_pipeline(collection, pipeline, conditions, source_tables, outer_join?) do
@@ -390,7 +394,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       %{
         "$lookup": %{
           from: collection,
-          let: for(table <- source_tables, into: %{}, do: {table, "$" <> table}),
+          # MongoDB 3.6 only allows field names starting with lower-case characters in the `$lookup` stage.
+          # We prepend a `t` to each table name to avoid errors for invalid names.
+          let: for(table <- source_tables, into: %{}, do: {"t" <> table, "$" <> table}),
           pipeline: pipeline ++ on_stage,
           as: namespace
         }

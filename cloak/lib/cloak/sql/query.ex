@@ -33,6 +33,8 @@ defmodule Cloak.Sql.Query do
 
   @type type :: :standard | :restricted | :anonymized
 
+  @type anonymization_type :: :statistics | :user_id
+
   @type t :: %__MODULE__{
           analyst_id: analyst_id,
           data_source: DataSource.t(),
@@ -63,6 +65,7 @@ defmodule Cloak.Sql.Query do
           view?: boolean,
           table_aliases: %{String.t() => DataSource.Table.t()},
           type: type,
+          anonymization_type: anonymization_type,
           available_tables: [DataSource.Table.t()],
           analyst_tables: %{String.t() => Cloak.AnalystTable.t()},
           analyst_table: nil | Cloak.AnalystTable.t(),
@@ -134,6 +137,7 @@ defmodule Cloak.Sql.Query do
             view?: false,
             table_aliases: %{},
             type: :restricted,
+            anonymization_type: :user_id,
             available_tables: [],
             analyst_tables: %{},
             analyst_table: nil,
