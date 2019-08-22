@@ -615,13 +615,13 @@ values for the aggregator to produce an anonymized result. The count of users ac
 statistics is passed through the LCF again before producing the final noisy result. If insufficient data is available,
 a `null` value will be returned.
 
-#### `COUNT(DISTINCT )`
+#### `COUNT(DISTINCT value)`
 
 For computing the anonymized count of distinct values we need the real count of distinct values and the noise factor.
-The noise factor is the maximum count of distinct at-risk values a user has. An at-risk value is a value that is
-associated with fewer than 3 users.
-The anonymized count is `real_count + noise_factor * 0.5 * noise`. If there are no at-risk values (noise factor is
- `null`), the real count is returned.
+The noise factor is the maximum count of distinct at-risk values any single user has. It represents the potential change
+to the count that would occur as a result of the user being excluded by the query. An at-risk value is a value that is
+associated with fewer than 3 users. The anonymized count is `real_count + noise_factor * 0.5 * noise`. If there are no 
+at-risk values (noise factor is `null`), the real count is returned.
 
 For each expression referenced by a `COUNT(DISTINCT value)` aggregator we create a sub-query to compute the real count
 and the noise factor needed for the anonymized result. Since computing these values is not compatible with the way the
@@ -630,11 +630,11 @@ from the original query, and then offloaded to the database.
 
 The algorithm for computing the real count of distinct values and the noise factor has 3 stages:
 
-1. First, for each group and distinct value, as the `user_id`, we return the `min(user_id)` if it is an at-risk value,
-   and `null` otherwise.
+1. First, for each group and distinct value, we return `min(user_id)` as the `user_id` if the value is at risk and
+  `null` otherwise.
 2. We then count the number of distinct values per each `user_id` and group.
 3. In the final stage, for each group, we add the counts of distinct values and compute the noise factor as the maximum
-   of the count of distinct values for non-null `user_ids`.
+  of the count of distinct values for non-null `user_ids`.
 
 For example, for an analyst provided query like this one:
 ```SQL
