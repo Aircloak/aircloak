@@ -349,7 +349,7 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "features->expressions" do
     test "includes representations of expressions used" do
-      assert ["(median (+ const (sqrt col)))", "(+ col const)", "const"] =
+      assert ["(median (+ const (sqrt col)))", "col", "const", "(+ col const)", "const"] =
                features_from("SELECT median(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
     end
 
