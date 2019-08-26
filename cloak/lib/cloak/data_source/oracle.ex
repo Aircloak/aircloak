@@ -59,17 +59,18 @@ defmodule Cloak.DataSource.Oracle do
   defp fix_column_types(rodbc_columns, connection, table) do
     # Oracle ODBC driver returns wrong information for some data types (see below). Therefore, we'll query the
     # metadata table ALL_TAB_COLUMNS to figure out the correct types.
+    # Oracle ODBC driver returns datetime for date type
+    # Oracle ODBC driver returns float for `NUMBER` type, so we need to check the scale to recognize integers
+
     correct_column_types =
-      %{
-        # Oracle ODBC driver returns datetime for date type
-        date: "DATA_TYPE = 'DATE'",
-        # Oracle ODBC driver returns float for `NUMBER` type, so we need to check the scale to recognize integers
-        integer: "DATA_TYPE = 'NUMBER' AND DATA_SCALE = 0"
-      }
-      |> Stream.flat_map(fn {type, type_filter} ->
-        connection
-        |> select!("SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE #{table_filter(table)} AND #{type_filter}")
-        |> Enum.map(fn [name] -> {name, type} end)
+      connection
+      |> select!("""
+        SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS
+        WHERE #{table_filter(table)} AND (DATA_TYPE = 'DATE' OR (DATA_TYPE = 'NUMBER' AND DATA_SCALE = 0))
+      """)
+      |> Enum.map(fn
+        [name, "DATE"] -> {name, :date}
+        [name, "NUMBER"] -> {name, :integer}
       end)
       |> Map.new()
 
