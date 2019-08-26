@@ -441,7 +441,8 @@ outlier.
 So long as this analysis is not complete for a certain column, mathematical operations on that column need to be
 performed using the safe method, wich might be slower on some data sources. For certain data sources (MongoDB, Microsoft
 SQL Server) these operations are safe by default, the analysis does not need to be performed and it won't result in
-any slowdown.
+any slowdown. In Oracle DB these operations are emulated by default. However, the database administrator can enable
+Aircloak UDFs to avoid this emulation - [see here for details](/datastores.md#oracle-safe-functions).
 
 ## Column analysis
 
