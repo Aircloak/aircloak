@@ -548,9 +548,11 @@ order to improve the quality of the estimation for the users count in the merged
 of distinct users, so we practically take two samples from each bucket which are then used to compute lower bounds
 for the users count).
 
+#### `COUNT/SUM/MIN/MAX/AVG(value)`
+
 For each aggregated value, we compute the following statistics from the per-user partial aggregations: `sum`, `min`,
-`max` and `stddev`. These are then used in the cloak to compute noisy values for the anonymized `count`, `sum`, `min`
-and `max` aggregators (`avg` is `sum/count_duid`, while `stddev` is `sqrt(sum(input^2)/count_duid -avg^2)`).
+`max` and `stddev`. These are then used in the cloak to compute noisy values for the anonymized `count`, `sum`, `min`,
+`max` and `stddev` aggregators (`avg` is `sum/count`).
 
 For example, a query like the following:
 
@@ -588,6 +590,7 @@ SELECT
   COUNT(uid) AS count_duid,
   MIN(uid) AS min_uid,
   MAX(uid) AS max_uid,
+  COUNT(agg_0) AS agg_0_count,
   SUM(agg_0) AS agg_0_sum,
   MIN(agg_0) AS agg_0_min,
   MAX(agg_0) AS agg_0_max,
@@ -611,6 +614,55 @@ Even if a bucket has enough distinct users to pass the LCF, it might not have en
 values for the aggregator to produce an anonymized result. The count of users actually contributing to the computed
 statistics is passed through the LCF again before producing the final noisy result. If insufficient data is available,
 a `null` value will be returned.
+
+#### `COUNT(DISTINCT value)`
+
+For computing the anonymized count of distinct values we need the real count of distinct values and the noise factor.
+The noise factor is the maximum count of distinct at-risk values any single user has. It represents the potential change
+to the count that would occur as a result of the user being excluded by the query. An at-risk value is a value that is
+associated with fewer than 3 users. The anonymized count is `real_count + noise_factor * 0.5 * noise`. If there are no 
+at-risk values (noise factor is `null`), the real count is returned.
+
+For each expression referenced by a `COUNT(DISTINCT value)` aggregator we create a sub-query to compute the real count
+and the noise factor needed for the anonymized result. Since computing these values is not compatible with the way the
+regular statistics are computed, separate sub-queries are needed. These are all then joined together, using the groups
+from the original query, and then offloaded to the database.
+
+The algorithm for computing the real count of distinct values and the noise factor has 3 stages:
+
+1. First, for each group and distinct value, we return `min(user_id)` as the `user_id` if the value is at risk and
+  `null` otherwise.
+2. We then count the number of distinct values per each `user_id` and group.
+3. In the final stage, for each group, we add the counts of distinct values and compute the noise factor as the maximum
+  of the count of distinct values for non-null `user_ids`.
+
+For example, for an analyst provided query like this one:
+```SQL
+SELECT column1, COUNT(DISTINCT column2) FROM table GROUP BY 1
+```
+the system will create this sub-query in order to provide the result for the `COUNT(DISTINCT column2)` aggregator:
+```SQL
+SELECT
+  group_0,
+  MAX(CAST((user_id IS NOT NULL) AS integer) * count_distinct) AS noise_factor,
+  SUM(count_distinct) AS count_distinct
+FROM (
+  SELECT
+    user_id,
+    group_0,
+    COUNT(target) AS count_distinct
+  FROM (
+    SELECT
+      column1 AS group_0,
+      column2 AS target,
+      CASE WHEN (COUNT(DISTINCT user_id) < 3) THEN MIN(user_id) ELSE NULL END AS user_id
+      FROM table
+      GROUP BY 1, 2
+  ) AS distinct_values
+  GROUP BY 1, 2
+) AS uid_grouping
+GROUP BY 1
+```
 
 ### Bucket merging
 

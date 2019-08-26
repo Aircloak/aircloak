@@ -26,34 +26,50 @@ defmodule Cloak.Query.AnonymizationTest do
       :ok
     end
 
-    test "counting values represented by many users" do
+    test "stats: counting values represented by many users" do
       assert_query("select count(distinct number) from anonymizations", %{
         columns: ["count"],
-        rows: [%{row: [5], occurrences: 1}]
+        rows: [%{row: [6], occurrences: 1}]
       })
     end
 
-    test "ignoring nils" do
+    test "uid: counting values represented by many users" do
+      assert_query("select count(distinct number), median(0) from anonymizations", %{
+        columns: ["count", _],
+        rows: [%{row: [5, _], occurrences: 1}]
+      })
+    end
+
+    test "stats: ignoring nils" do
       :ok = insert_rows(_user_ids = 41..49, "anonymizations", ["number"], [nil])
 
       assert_query("select count(distinct number) from anonymizations", %{
         columns: ["count"],
-        rows: [%{row: [5], occurrences: 1}]
+        rows: [%{row: [6], occurrences: 1}]
       })
     end
 
-    test "hiding users with many distinct values" do
+    test "uid: ignoring nils" do
+      :ok = insert_rows(_user_ids = 41..49, "anonymizations", ["number"], [nil])
+
+      assert_query("select count(distinct number), median(0) from anonymizations", %{
+        columns: ["count", _],
+        rows: [%{row: [5, _], occurrences: 1}]
+      })
+    end
+
+    test "uid: hiding users with many distinct values" do
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [151])
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [152])
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [153])
 
-      assert_query("select count(distinct number) from anonymizations", %{
-        columns: ["count"],
-        rows: [%{row: [5], occurrences: 1}]
+      assert_query("select count(distinct number), median(0) from anonymizations", %{
+        columns: ["count", _],
+        rows: [%{row: [5, _], occurrences: 1}]
       })
     end
 
-    test "a user with many non-unique values should be treated as one with few distinct values" do
+    test "uid: a user with many non-unique values should be treated as one with few distinct values" do
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [151])
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [152])
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [153])
@@ -61,7 +77,7 @@ defmodule Cloak.Query.AnonymizationTest do
 
       assert_query("select count(distinct number) from anonymizations", %{
         columns: ["count"],
-        rows: [%{row: [6], occurrences: 1}]
+        rows: [%{row: [9], occurrences: 1}]
       })
     end
   end
@@ -95,6 +111,17 @@ defmodule Cloak.Query.AnonymizationTest do
       assert Enum.all?(rows, fn %{row: [count]} -> count > 0 end)
     end
 
+    test "no-uid distinct" do
+      for i <- 1..50,
+          do: :ok = insert_rows(_user_ids = (i * 2)..100, "anonymizations", ["number", "string"], [i, "#{rem(i, 5)}"])
+
+      assert_query("select count(distinct number) from anonymizations group by string", %{
+        rows: rows
+      })
+
+      assert Enum.all?(rows, fn %{row: [count]} -> count > 0 end)
+    end
+
     test "uid" do
       for i <- 1..50, do: :ok = insert_rows(_user_ids = (i * 2)..100, "anonymizations", ["number"], [i])
 
@@ -119,19 +146,24 @@ defmodule Cloak.Query.AnonymizationTest do
   end
 
   test "reported noise scales with number of conditions" do
-    :ok = insert_rows(_user_ids = 0..10, "anonymizations", ["number"], [0])
+    for i <- 0..10, do: :ok = insert_rows(_user_ids = i..i, "anonymizations", ["number"], [i])
 
     assert_query(
-      "select count_noise(*), count_noise(distinct user_id) from anonymizations",
-      %{rows: [%{row: [1.0, 1.0]}]}
+      "select count_noise(*), count_noise(distinct user_id), count_noise(distinct number) from anonymizations",
+      %{rows: [%{row: [1.0, 1.0, distinct_noise]}]}
     )
+
+    assert_in_delta distinct_noise, 0.5, 0.01
 
     assert_query(
-      "select count_noise(*), count_noise(distinct user_id) from anonymizations where number between 1 and 100",
-      %{rows: [%{row: [c1, c2]}]}
+      """
+        select count_noise(*), count_noise(distinct user_id), count_noise(distinct number)
+        from anonymizations where number between 1 and 100
+      """,
+      %{rows: [%{row: [c1, c2, c3]}]}
     )
 
-    assert c1 > 1.0 and c2 > 1.0
+    assert c1 > 1.0 and c2 > 1.0 and c3 > 0.7
   end
 
   test "stddev with large values" do
@@ -277,6 +309,50 @@ defmodule Cloak.Query.AnonymizationTest do
         }
       )
     end
+
+    test "simple no-uid grouping sets with distinct" do
+      assert_query(
+        """
+          select
+            string, count(distinct number)
+          from anonymizations
+          group by grouping sets (1, ())
+        """,
+        %{
+          rows: [
+            %{row: ["aa", 1]},
+            %{row: ["ab", 1]},
+            %{row: ["ba", 1]},
+            %{row: ["bb", 1]},
+            %{row: [nil, 4]}
+          ]
+        }
+      )
+    end
+
+    test "complex no-uid grouping sets with distinct" do
+      assert_query(
+        """
+          select
+            left(string, 1), right(string, 1), count(distinct user_id), count(distinct number)
+          from anonymizations
+          group by grouping sets ((1, 2), 1, 2, ())
+        """,
+        %{
+          rows: [
+            %{row: ["a", "a", 11, 1]},
+            %{row: ["a", "b", 11, 1]},
+            %{row: ["b", "a", 11, 1]},
+            %{row: ["b", "b", 11, 1]},
+            %{row: ["a", nil, 16, 2]},
+            %{row: ["b", nil, 21, 2]},
+            %{row: [nil, "a", 16, 2]},
+            %{row: [nil, "b", 21, 2]},
+            %{row: [nil, nil, 26, 4]}
+          ]
+        }
+      )
+    end
   end
 
   describe "using grouping sets doesn't change the group noise" do
@@ -408,6 +484,35 @@ defmodule Cloak.Query.AnonymizationTest do
           select left(string, 1), count(*)
           from anonymizations
           where number = 1
+          group by grouping sets (1, ())
+          order by 1
+        """,
+        %{
+          rows: [
+            %{row: ["a", _]},
+            %{row: ["b", _]},
+            %{row: [nil, ^count]}
+          ]
+        }
+      )
+    end
+
+    test "distinct stats anon" do
+      assert_query(
+        """
+          select count(distinct number) from anonymizations
+        """,
+        %{
+          rows: [
+            %{row: [count]}
+          ]
+        }
+      )
+
+      assert_query(
+        """
+          select left(string, 1), count(distinct number)
+          from anonymizations
           group by grouping sets (1, ())
           order by 1
         """,

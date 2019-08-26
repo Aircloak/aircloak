@@ -964,7 +964,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "floating columns that are not aggregated" do
       result =
         compile!("""
-          SELECT COUNT(DISTINCT dummy) FROM (SELECT uid, dummy FROM
+          SELECT MEDIAN(0) FROM (SELECT uid, dummy FROM
             (SELECT uid, dummy FROM table WHERE numeric + 1 = 3 GROUP BY uid, dummy, dummy2) foo
           GROUP BY uid, dummy) bar
         """)

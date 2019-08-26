@@ -48,7 +48,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         function_args: [arg],
         alias: alias
       }),
-      do: {project_alias(alias), parse_function(fun, begin_parse_expression(arg))}
+      do: {project_alias(alias), parse_function(fun, parse_expression(arg))}
 
   def project_column(%Expression{constant?: true, alias: empty_alias} = constant)
       when empty_alias in [nil, ""],
@@ -59,31 +59,17 @@ defmodule Cloak.DataSource.MongoDB.Projector do
           | alias: "alias_#{System.unique_integer([:positive])}"
         })
 
-  def project_column(column), do: {project_alias(column.alias), begin_parse_expression(column)}
+  def project_column(column), do: {project_alias(column.alias), parse_expression(column)}
 
   @doc "Parses an expression for inclusion in the MongoDB aggregation pipeline."
   @spec project_expression(Expression.t()) :: atom | map
-  def project_expression(expression), do: begin_parse_expression(expression)
+  def project_expression(expression), do: parse_expression(expression)
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp map_array_size(name), do: %{"$cond": [%{"$gt": ["$" <> name, nil]}, %{"$size": "$" <> name}, nil]}
-
-  defp begin_parse_expression(%Expression{function?: true, function: fun} = expression)
-       when fun not in [nil, "coalesce", "case"] do
-    expression
-    |> extract_fields()
-    |> Enum.map(&%{"$gt": ["$" <> &1, nil]})
-    |> case do
-      [] -> parse_expression(expression)
-      [non_null_arg] -> %{"$cond": [non_null_arg, parse_expression(expression), nil]}
-      non_null_args -> %{"$cond": [%{"$and": non_null_args}, parse_expression(expression), nil]}
-    end
-  end
-
-  defp begin_parse_expression(expression), do: parse_expression(expression)
+  defp map_array_size(name), do: null_check("$" <> name, %{"$size": "$" <> name})
 
   defp project_alias(name) do
     if not Expression.valid_alias?(name),
@@ -91,17 +77,6 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
     name
   end
-
-  defp extract_fields({:distinct, expression}), do: extract_fields(expression)
-  defp extract_fields(:*), do: []
-  defp extract_fields(%Expression{constant?: true}), do: []
-
-  defp extract_fields(%Expression{function?: true, function: fun, function_args: args})
-       when fun != nil,
-       do: Enum.flat_map(args, &extract_fields/1)
-
-  defp extract_fields(%Expression{table: :unknown, name: name}) when is_binary(name), do: [name]
-  defp extract_fields(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: [table <> "." <> name]
 
   defp parse_expression(:*), do: :*
   defp parse_expression({:distinct, expression}), do: {:distinct, parse_expression(expression)}
@@ -136,21 +111,23 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_expression(%Expression{table: :unknown, name: name}) when is_binary(name), do: "$" <> name
   defp parse_expression(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: "$#{table}.#{name}"
 
-  defp parse_function("left", [string, count]), do: %{"$substrCP": [string, 0, count]}
+  defp parse_function("left", [string, count]), do: null_check(string, count, %{"$substrCP": [string, 0, count]})
 
   defp parse_function("right", [string, count]),
-    do: %{
-      "$substrCP": [
-        string,
-        %{"$max": [0, %{"$subtract": [%{"$strLenCP": string}, count]}]},
-        count
-      ]
-    }
+    do:
+      null_check(string, count, %{
+        "$substrCP": [
+          string,
+          %{"$max": [0, %{"$subtract": [%{"$strLenCP": string}, count]}]},
+          count
+        ]
+      })
 
   defp parse_function("substring", [string, from]),
-    do: %{"$substrCP": [string, %{"$subtract": [from, 1]}, %{"$strLenCP": string}]}
+    do: null_check(string, from, %{"$substrCP": [string, %{"$subtract": [from, 1]}, %{"$strLenCP": string}]})
 
-  defp parse_function("substring", [string, from, to]), do: %{"$substrCP": [string, %{"$subtract": [from, 1]}, to]}
+  defp parse_function("substring", [string, from, to]),
+    do: null_check(string, from, to, %{"$substrCP": [string, %{"$subtract": [from, 1]}, to]})
 
   defp parse_function("count", :*), do: %{"$sum": 1}
   defp parse_function(_, {:distinct, value}), do: %{"$addToSet": value}
@@ -179,6 +156,14 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   end
 
   for {name, translation} <- %{
+        "length" => "$strLenCP",
+        "lower" => "$toLower",
+        "upper" => "$toUpper",
+        "size" => "$size"
+      },
+      do: defp(parse_function(unquote(name), args), do: null_check(args, %{unquote(translation) => args}))
+
+  for {name, translation} <- %{
         "*" => "$multiply",
         "unsafe_mul" => "$multiply",
         "+" => "$add",
@@ -193,9 +178,6 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         "abs" => "$abs",
         "||" => "$concat",
         "concat" => "$concat",
-        "length" => "$strLenCP",
-        "lower" => "$toLower",
-        "upper" => "$toUpper",
         "year" => "$year",
         "month" => "$month",
         "day" => "$dayOfMonth",
@@ -207,8 +189,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         "avg" => "$avg",
         "min" => "$min",
         "max" => "$max",
-        "stddev" => "$stdDevSamp",
-        "size" => "$size"
+        "stddev" => "$stdDevSamp"
       },
       do: defp(parse_function(unquote(name), args), do: %{unquote(translation) => args})
 
@@ -254,27 +235,26 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   defp parse_function("variance", [value]), do: %{"$pow": [%{"$stdDevSamp" => [value]}, 2]}
 
-  defp parse_function("cast", [value, from, :text]) when from in [:real, :integer], do: %{"$substr": [value, 0, -1]}
+  defp parse_function("cast", [value, from, :text]) when from in [:real, :integer],
+    do: null_check(value, %{"$substr": [value, 0, -1]})
 
   defp parse_function("cast", [value, :integer, :real]), do: value
   defp parse_function("cast", [value, :real, :integer]), do: parse_function("round", value)
 
   defp parse_function("cast", [value, :boolean, :integer]),
-    do: %{"$cond": [%{"$eq": [value, nil]}, nil, %{"$cond": [value, 1, 0]}]}
+    do: null_check(value, %{"$cond": [value, 1, 0]})
 
   defp parse_function("cast", [value, :boolean, :real]),
-    do: %{"$cond": [%{"$eq": [value, nil]}, nil, %{"$cond": [value, 1.0, 0.0]}]}
+    do: null_check(value, %{"$cond": [value, 1.0, 0.0]})
 
   defp parse_function("cast", [value, :boolean, :text]),
-    do: %{"$cond": [%{"$eq": [value, nil]}, nil, %{"$cond": [value, "true", "false"]}]}
+    do: null_check(value, %{"$cond": [value, "true", "false"]})
 
   defp parse_function("cast", [value, :integer, :boolean]),
-    do: %{"$cond": [%{"$eq": [value, nil]}, nil, %{"$cond": [%{"$eq": [value, 0]}, false, true]}]}
+    do: null_check(value, %{"$cond": [%{"$eq": [value, 0]}, false, true]})
 
   defp parse_function("cast", [value, :real, :boolean]),
-    do: %{
-      "$cond": [%{"$eq": [value, nil]}, nil, %{"$cond": [%{"$eq": [value, 0.0]}, false, true]}]
-    }
+    do: null_check(value, %{"$cond": [%{"$eq": [value, 0.0]}, false, true]})
 
   defp parse_function("cast", [value, :text, :boolean]),
     do: %{
@@ -293,7 +273,10 @@ defmodule Cloak.DataSource.MongoDB.Projector do
       message: "Casting from `#{from}` to `#{to}` is not supported in subqueries on MongoDB data sources."
   end
 
-  @bool_operators %{"=" => "$eq", "<>" => "$neq", ">" => "$gt", ">=" => "$gte", "<" => "$lt", "<=" => "$lte"}
+  @bool_operators %{"=" => "$eq", "<>" => "$ne", ">" => "$gt", ">=" => "$gte", "<" => "$lt", "<=" => "$lte"}
+  defp parse_function("bool_op", [%{"$literal": "<>"}, arg, %{"$literal": nil}]), do: %{"$gt": [arg, nil]}
+  defp parse_function("bool_op", [%{"$literal": "="}, arg, %{"$literal": nil}]), do: %{"$lte": [arg, nil]}
+
   defp parse_function("bool_op", [%{"$literal": op}, arg1, arg2]),
     do: %{Map.fetch!(@bool_operators, op) => [arg1, arg2]}
 
@@ -318,4 +301,22 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     do: parse_case(rest, [%{case: if_arg, then: then_arg} | branches])
 
   defp parse_case([else_arg], branches), do: {Enum.reverse(branches), else_arg}
+
+  defp null_check(value1, value2, %{"$literal": _}, expression), do: null_check(value1, value2, expression)
+
+  defp null_check(value1, value2, value3, expression),
+    do: %{
+      "$cond": [
+        %{"$or": [%{"$lte": [value1, nil]}, %{"$lte": [value2, nil]}, %{"$lte": [value3, nil]}]},
+        nil,
+        expression
+      ]
+    }
+
+  defp null_check(value1, %{"$literal": _}, expression), do: null_check(value1, expression)
+
+  defp null_check(value1, value2, expression),
+    do: %{"$cond": [%{"$or": [%{"$lte": [value1, nil]}, %{"$lte": [value2, nil]}]}, nil, expression]}
+
+  defp null_check(value, expression), do: %{"$cond": [%{"$lte": [value, nil]}, nil, expression]}
 end

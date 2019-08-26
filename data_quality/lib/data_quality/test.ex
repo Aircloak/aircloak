@@ -65,8 +65,8 @@ defmodule DataQuality.Test do
         name: "COUNT",
         aggregates: [
           {:count, "count(*)"},
-          {:count, "count(distinct uid)"}
-          # count(distinct column) is not supported by no-uid design yet so not yet included
+          {:count, "count(distinct uid)"},
+          {:count, "count(distinct column)"}
         ]
       },
       %{

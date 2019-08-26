@@ -24,11 +24,10 @@ defmodule Cloak.Sql.Query.Lenses do
 
   @doc "Lens focusing on all outermost analyst provided elements in the top-level query."
   deflens analyst_provided_expressions() do
-    Lens.multiple([
+    Lens.both(
       Lens.keys([:columns, :group_by]) |> Lens.all(),
-      Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
-      filters_operands()
-    ])
+      db_filter_clauses() |> conditions_terminals() |> expressions()
+    )
     |> Lens.reject(& &1.synthetic?)
   end
 
@@ -184,6 +183,17 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens conditions() do
     Lens.match(fn
       {:or, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
+      {:and, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
+      list when is_list(list) -> Lens.all() |> conditions()
+      nil -> Lens.empty()
+      _ -> Lens.root()
+    end)
+  end
+
+  @doc "Lens focusing on the individual conditions which are 'AND'-ed together."
+  deflens and_conditions() do
+    Lens.match(fn
+      {:or, _, _} -> Lens.empty()
       {:and, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
       list when is_list(list) -> Lens.all() |> conditions()
       nil -> Lens.empty()

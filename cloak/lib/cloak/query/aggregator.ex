@@ -106,7 +106,7 @@ defmodule Cloak.Query.Aggregator do
 
   # We have two anonymizing aggregation algorithms: one that uses user ids and one that uses statistics (no-uid).
   # This function returns the sub-module responsible for implementing the algorithm-specific pipeline steps.
-  defp aggregation_sub_module(%Query{from: {:subquery, %{alias: "__ac_statistics"}}}), do: Statistics
+  defp aggregation_sub_module(%Query{anonymization_type: :statistics}), do: Statistics
   defp aggregation_sub_module(_query), do: UserId
 
   defp init_anonymizer(grouped_rows) do

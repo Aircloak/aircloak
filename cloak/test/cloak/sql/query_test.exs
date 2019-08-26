@@ -137,7 +137,7 @@ defmodule Cloak.Sql.QueryTest do
                features_from("SELECT height FROM feat_users")
     end
 
-    @tag :pending
+    @tag pending: "Needs #3265"
     test "function used" do
       result = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
 
@@ -173,7 +173,7 @@ defmodule Cloak.Sql.QueryTest do
                features_from("SELECT height FROM feat_users")
     end
 
-    @tag :pending
+    @tag pending: "Needs #3265"
     test "function used" do
       assert %{
                top_level_select_functions: [],
@@ -349,7 +349,7 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "features->expressions" do
     test "includes representations of expressions used" do
-      assert ["(median (+ const (sqrt col)))", "(+ col const)", "const"] =
+      assert ["(median (+ const (sqrt col)))", "col", "const", "(+ col const)", "const"] =
                features_from("SELECT median(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
     end
 
@@ -358,6 +358,7 @@ defmodule Cloak.Sql.QueryTest do
                features_from("SELECT median(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
     end
 
+    @tag pending: "Needs #3265"
     test "distinct" do
       assert ["(count (distinct col))"] = features_from("SELECT count(distinct height) FROM feat_users").expressions
     end
