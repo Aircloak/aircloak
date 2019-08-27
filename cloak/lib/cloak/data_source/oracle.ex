@@ -70,31 +70,29 @@ defmodule Cloak.DataSource.Oracle do
   defp fix_column_types(rodbc_columns, connection, table) do
     # Oracle ODBC driver returns wrong information for some data types (see below). Therefore, we'll query the
     # metadata table ALL_TAB_COLUMNS to figure out the correct types.
+    # Oracle ODBC driver returns datetime for date type
+    # Oracle ODBC driver returns float for `NUMBER` type, so we need to check the scale to recognize integers
+
     correct_column_types =
-      %{
-        # Oracle ODBC driver returns datetime for date type
-        date: "DATA_TYPE = 'DATE'",
-        # Oracle ODBC driver returns float for `NUMBER` type, so we need to check the scale to recognize integers
-        integer: "DATA_TYPE = 'NUMBER' and DATA_SCALE = 0"
-      }
-      |> Stream.flat_map(fn {type, filter} ->
-        connection
-        |> select!("SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE #{fix_column_types_filter(table, filter)}")
-        |> Enum.map(fn [name] -> {name, type} end)
+      connection
+      |> select!("""
+        SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS
+        WHERE #{table_filter(table)} AND (DATA_TYPE = 'DATE' OR (DATA_TYPE = 'NUMBER' AND DATA_SCALE = 0))
+      """)
+      |> Enum.map(fn
+        [name, "DATE"] -> {name, :date}
+        [name, "NUMBER"] -> {name, :integer}
       end)
       |> Map.new()
 
     Enum.map(rodbc_columns, &%{&1 | type: Map.get(correct_column_types, &1.name, &1.type)})
   end
 
-  defp fix_column_types_filter(table, filter) do
-    table_filters =
-      case SqlBuilder.table_name_parts(table.db_name) do
-        [table_name] -> ["TABLE_NAME = '#{table_name}'"]
-        [schema_name, table_name] -> ["OWNER = '#{schema_name}'", "TABLE_NAME = '#{table_name}'"]
-      end
-
-    Enum.join([filter | table_filters], " AND ")
+  defp table_filter(table) do
+    case SqlBuilder.table_name_parts(table.db_name) do
+      [table_name] -> "TABLE_NAME = '#{table_name}'"
+      [schema_name, table_name] -> "OWNER = '#{schema_name}' AND TABLE_NAME = '#{table_name}'"
+    end
   end
 
   # We need to perform explicit casting on some selected types, because ODBC driver can't handle them.

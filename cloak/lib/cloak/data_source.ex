@@ -301,7 +301,7 @@ defmodule Cloak.DataSource do
     data_sources = config_to_datasources(data_source_configs)
 
     data_sources
-    |> Task.async_stream(&add_tables/1, timeout: :timer.minutes(30), ordered: true)
+    |> Task.async_stream(&add_tables/1, timeout: :timer.minutes(30), ordered: true, on_timeout: :kill_task)
     |> Enum.zip(data_sources)
     |> Enum.map(&handle_add_tables_result/1)
     |> log_unclassified_columns()
@@ -309,11 +309,10 @@ defmodule Cloak.DataSource do
 
   defp handle_add_tables_result({{:ok, data_source}, _original_data_source}), do: data_source
 
-  defp handle_add_tables_result({{:exit, _}, original_data_source}) do
-    # If we came here, then the task running `add_tables` has crashed. We won't log the exit reason since it might
-    # contain database password.
+  # We ignore non-timeout exits, since we don't expect that the task traps exits.
+  defp handle_add_tables_result({{:exit, :timeout}, original_data_source}) do
     Logger.error("Data source `#{original_data_source.name}` is offline")
-    add_error_message(%{original_data_source | tables: %{}, status: :offline}, "connection error")
+    add_error_message(%{original_data_source | tables: %{}, status: :offline}, "timeout")
   end
 
   defp to_data_source(data_source) do
