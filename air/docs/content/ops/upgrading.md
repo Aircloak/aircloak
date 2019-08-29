@@ -120,20 +120,6 @@ New style table configuration:
 }
 ```
 
-#### Changes to the `db_name` field for Apache Drill data sources
-
- When quoting the database table name for Apache Drill data sources, double quotes (") characters have to be used 
- instead of back-ticks (\`).
-
- ```json
-"tables": {
-  "products": {
-    "db_name": "\"data/products.json\"",
-    ...
-  }
-}
-```
-
 ## Insights Air
 
 ### Configuration
