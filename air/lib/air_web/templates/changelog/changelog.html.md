@@ -14,6 +14,7 @@
 - Enabled statistics-based count(distinct) aggregators.
 - Added protection against join timing attacks.
 - Added protection against exceptions in offloaded functions attacks.
+- Added support for `GROUPING SETS`, `ROLLUP` and `CUBE`
 
 ### Bugfixes
 
