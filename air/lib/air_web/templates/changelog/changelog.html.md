@@ -12,25 +12,13 @@
 - It is possible to force long polling instead of websocket as a transport mechanism for pushing notifications to browsers. See [Insights Air configuration](docs/ops/configuration.html#insights-air-configuration) for details.
 - Enabled statistics-based min/max aggregators (with a higher users count threshold).
 - Enabled statistics-based count(distinct) aggregators.
+- Added protection against join timing attacks.
+- Added protection against exceptions in offloaded functions attacks.
 
 ### Bugfixes
 
 - Fixed handling of `null` and `undefined` values in MongoDB data sets.
-
-## Version 19.2.1
-
-### Known issues
-
-- Some queries on Drill cause a CyclicMetadataException
-
-### Bugfixes
-
 - Fixed parsing of data source configuration files using the `keys` and `content_type` fields simultaneously.
-
-### Enhancements
-
-- Added protection against join timing attacks.
-- Added protection against exceptions in offloaded functions attacks.
 
 ## Version 19.2.0
 
