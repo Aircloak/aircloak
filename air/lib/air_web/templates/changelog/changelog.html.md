@@ -20,6 +20,7 @@
 
 - Fixed handling of `null` and `undefined` values in MongoDB data sets.
 - Fixed parsing of data source configuration files using the `keys` and `content_type` fields simultaneously.
+- Anonymization restrictions were incorrectly applied to top-level `HAVING`-clauses
 
 ### Changes
 
