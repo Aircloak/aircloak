@@ -20,6 +20,10 @@
 - Fixed handling of `null` and `undefined` values in MongoDB data sets.
 - Fixed parsing of data source configuration files using the `keys` and `content_type` fields simultaneously.
 
+### Changes
+
+- Support for Apache Drill was deprecated.
+
 ## Version 19.2.0
 
 [Upgrade guide](docs/ops/upgrading.html)
