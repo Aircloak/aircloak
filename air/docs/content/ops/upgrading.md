@@ -13,7 +13,7 @@ for more details.
 
 #### Replacing the `user_id` field
 
-Setting the user id for a table is now done by setting a table key with the type `"user_id"`. 
+Setting the user id for a table is now done by setting a table key with the type `"user_id"`.
 
 Old style table configuration:
 ```json
