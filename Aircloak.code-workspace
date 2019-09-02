@@ -35,6 +35,9 @@
 		},
 		{
 			"path": "operator_guides"
+		},
+		{
+			"path": "data_quality"
 		}
 	],
 	"settings": {}
