@@ -14,18 +14,6 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
         end
       end
     end
-
-    property "there is a large number of entries gteq max" do
-      check all data <- input_data(), cutoff <- integer(1..20) do
-        case Compute.max(data, cutoff) do
-          :error ->
-            :ok
-
-          {:ok, result} ->
-            assert Enum.count(data, &(&1 >= result)) >= cutoff
-        end
-      end
-    end
   end
 
   describe ".min" do
@@ -34,18 +22,6 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
         case Compute.min(data, cutoff) do
           :error -> :ok
           {:ok, result} -> assert money_aligned?(result)
-        end
-      end
-    end
-
-    property "there is a large number of entries lteq min" do
-      check all data <- input_data(), cutoff <- integer(1..20) do
-        case Compute.min(data, cutoff) do
-          :error ->
-            :ok
-
-          {:ok, result} ->
-            assert Enum.count(data, &(&1 <= result)) >= cutoff
         end
       end
     end
