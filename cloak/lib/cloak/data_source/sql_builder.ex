@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   use Combine
   alias Cloak.Sql.{Query, Expression}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, Oracle, SAPHana}
+  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, Oracle}
   alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
@@ -467,7 +467,6 @@ defmodule Cloak.DataSource.SqlBuilder do
     from =
       case sql_dialect_module(query) do
         Oracle -> " FROM dual"
-        SAPHana -> " FROM dummy"
         _ -> ""
       end
 
