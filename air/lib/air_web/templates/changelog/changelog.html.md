@@ -26,6 +26,11 @@
 
 - Support for Apache Drill was deprecated.
 
+### Known issues
+
+- Views and analyst tables are not tracked in the shadow DB, so they won't appear in \d commands issued from psql or
+  in some tools that use pg-specific means of detecting the schema.
+
 ## Version 19.2.0
 
 [Upgrade guide](docs/ops/upgrading.html)
