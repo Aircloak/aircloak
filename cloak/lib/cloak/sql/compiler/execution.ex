@@ -353,8 +353,12 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp protect_joins(query), do: query
 
-  defp query_has_db_filters?(query),
-    do: Lenses.db_filter_clauses() |> Lens.reject(&is_nil/1) |> Lens.to_list(query) != []
+  defp query_has_db_filters?(query) do
+    Lenses.db_filter_clauses() |> Lens.reject(&is_nil/1) |> Lens.reject(&key_comparison?/1) |> Lens.to_list(query) != []
+  end
+
+  defp key_comparison?({:comparison, subject, :=, target}), do: Expression.key?(subject) and Expression.key?(target)
+  defp key_comparison?(_), do: false
 
   defp query_needs_protection?(query), do: query.type == :restricted and query_has_db_filters?(query)
 
