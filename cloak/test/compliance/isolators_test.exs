@@ -1,7 +1,27 @@
 defmodule Compliance.Isolators.Test do
   use ComplianceCase, async: true
 
-  Enum.each(all_columns(), fn {column, table, _} ->
+  [
+    {"height", "users"},
+    {"age", "users"},
+    {"id", "notes"},
+    {"user_fk", "addresses"},
+    {"home.postal_code", "addresses"},
+    {"work.postal_code", "addresses"},
+    {"user_fk", "notes"},
+    {"note_id", "notes_changes"},
+    {"date", "notes_changes"},
+    {"birthday", "users"},
+    {"name", "users"},
+    {"column_with_a_very_long_name", "users"},
+    {"home.city", "addresses"},
+    {"work.city", "addresses"},
+    {"title", "notes"},
+    {"content", "notes"},
+    {"change", "notes_changes"},
+    {"nullable", "users"}
+  ]
+  |> Enum.each(fn {column, table} ->
     @tag compliance: "isolator query on #{column} in #{table}"
     test "isolator query on #{column} from #{table}", context do
       results =

@@ -105,6 +105,10 @@ defmodule ComplianceCase do
     |> Enum.uniq()
   end
 
+  @addresses_user_id_chain "addresses a inner join users u on u.id = a.user_fk"
+  @notes_user_id_chain "notes n inner join users u on u.id = n.user_fk"
+  @notes_changes_user_id_chain "notes_changes nc inner join notes n on nc.note_id = n.id inner join users u on u.id = n.user_fk"
+
   @doc false
   def float_columns(),
     do: [
@@ -119,12 +123,12 @@ defmodule ComplianceCase do
       # {column name, table name, uid column in table}
       {"age", "users", "user_id"},
       {"age", "users_public", "user_id"},
-      {"id", "notes", "uid"},
-      {"user_fk", "addresses", "uid"},
-      {"home.postal_code", "addresses", "uid"},
-      {"work.postal_code", "addresses", "uid"},
-      {"user_fk", "notes", "uid"},
-      {"note_id", "notes_changes", "uid"}
+      {"n.id", @notes_user_id_chain, "user_id"},
+      {"user_fk", @addresses_user_id_chain, "user_id"},
+      {"home.postal_code", @addresses_user_id_chain, "user_id"},
+      {"work.postal_code", @addresses_user_id_chain, "user_id"},
+      {"user_fk", @notes_user_id_chain, "user_id"},
+      {"note_id", @notes_changes_user_id_chain, "user_id"}
     ]
 
   @doc false
@@ -137,7 +141,7 @@ defmodule ComplianceCase do
   def datetime_columns(),
     do: [
       # {column name, table name, uid column in table}
-      {"changes.date", "notes_changes", "uid"}
+      {"date", @notes_changes_user_id_chain, "user_id"}
     ]
 
   @doc false
@@ -156,13 +160,11 @@ defmodule ComplianceCase do
       {"name", "users_public", "user_id"},
       {"column_with_a_very_long_name", "users", "user_id"},
       {"column_with_a_very_long_name", "users_public", "user_id"},
-      {"home.city", "addresses", "uid"},
-      {"work.city", "addresses", "uid"},
-      {"title", "notes", "uid"},
-      {"content", "notes", "uid"},
-      {"title", "notes_changes", "uid"},
-      {"content", "notes_changes", "uid"},
-      {"changes.change", "notes_changes", "uid"}
+      {"home.city", @addresses_user_id_chain, "user_id"},
+      {"work.city", @addresses_user_id_chain, "user_id"},
+      {"title", @notes_user_id_chain, "user_id"},
+      {"content", @notes_user_id_chain, "user_id"},
+      {"change", @notes_changes_user_id_chain, "user_id"}
     ]
 
   def nullable_columns(),
@@ -176,9 +178,9 @@ defmodule ComplianceCase do
   def table_uids(),
     do: [
       {"users", "user_id"},
-      {"addresses", "uid"},
-      {"notes", "uid"},
-      {"notes_changes", "uid"}
+      {@addresses_user_id_chain, "user_id"},
+      {@notes_user_id_chain, "user_id"},
+      {@notes_changes_user_id_chain, "user_id"}
     ]
 
   @doc false

@@ -61,7 +61,8 @@ defmodule Compliance.Data do
     %{
       users: users_to_collection(users),
       addresses: addresses_to_collection(users),
-      notes: notes_to_collection(users)
+      notes: notes_to_collection(users),
+      notes_changes: notes_changes_to_collection(users)
     }
   end
 
@@ -116,7 +117,6 @@ defmodule Compliance.Data do
 
       %{
         id: note_id,
-        note_id: note_id,
         title: sample_randomly(samples.words, 2, 10),
         content: sample_randomly(samples.words, 0, 10),
         changes: generate_note_changes(note_id, samples)
@@ -214,17 +214,25 @@ defmodule Compliance.Data do
 
   defp users_to_collection(users), do: flatten_users(users)
 
-  defp addresses_to_collection(users),
-    do:
-      Enum.flat_map(users, fn user ->
-        for address <- user.addresses, do: Map.put(address, :user_fk, user.id)
-      end)
+  defp addresses_to_collection(users) do
+    Enum.flat_map(users, fn user ->
+      for address <- user.addresses, do: Map.put(address, :user_fk, user.id)
+    end)
+  end
 
-  defp notes_to_collection(users),
-    do:
-      Enum.flat_map(users, fn user ->
-        for note <- user.notes, do: Map.put(note, :user_fk, user.id)
+  defp notes_to_collection(users) do
+    Enum.flat_map(users, fn user ->
+      for note <- user.notes, do: Map.put(note, :user_fk, user.id)
+    end)
+  end
+
+  defp notes_changes_to_collection(users) do
+    Enum.flat_map(users, fn user ->
+      Enum.flat_map(user.notes, fn note ->
+        for change <- note.changes, do: Map.put(change, :note_id, change.note_id)
       end)
+    end)
+  end
 
   defp flatten_users(users),
     do:
@@ -270,15 +278,7 @@ defmodule Compliance.Data do
   defp flatten_notes_changes(users) do
     Enum.flat_map(users, fn user ->
       Enum.flat_map(user.notes, fn note ->
-        for change <- note.changes,
-            do: %{
-              id: note.id,
-              note_id: change.note_id,
-              title: note.title,
-              content: note.content,
-              "changes.change": change.change,
-              "changes.date": change.date
-            }
+        for change <- note.changes, do: Map.put(change, :note_id, change.note_id)
       end)
     end)
   end

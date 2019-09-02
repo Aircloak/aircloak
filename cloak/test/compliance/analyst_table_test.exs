@@ -430,7 +430,13 @@ defmodule Compliance.AnalystTableTest do
       test "analyst table is resolved before emulator" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
              true <- String.starts_with?(data_source.name, "postgresql") do
-          {:ok, _} = create_or_update(1, "table46", "select notes_changes.uid from notes_changes", data_source)
+          {:ok, _} =
+            create_or_update(
+              1,
+              "table46",
+              "select user_id as uid from notes n inner join users u on u.id = n.user_fk",
+              data_source
+            )
 
           assert_query(
             "select bar.foo from (select table46.uid, median(1) as foo from table46 group by 1) as bar",
@@ -443,7 +449,13 @@ defmodule Compliance.AnalystTableTest do
       test "aliasing analyst table" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
              true <- String.starts_with?(data_source.name, "postgresql") do
-          {:ok, _} = create_or_update(1, "table47", "select addresses.uid from addresses", data_source)
+          {:ok, _} =
+            create_or_update(
+              1,
+              "table47",
+              "select user_id as uid from addresses a inner join users u on u.id = a.user_fk",
+              data_source
+            )
 
           assert {:ok, _} =
                    create_or_update(
