@@ -66,7 +66,7 @@ defmodule DataQuality.Test do
         aggregates: [
           {:count, "count(*)"},
           {:count, "count(distinct uid)"},
-          {:count, "count(distinct column)"}
+          {:count, "count(distinct number)"}
         ]
       },
       %{
