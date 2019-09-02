@@ -3,7 +3,7 @@ defmodule Compliance.QueryFeatures.Test do
 
   @moduletag :query_features
 
-  Enum.each(table_uids(), fn {table, uid} ->
+  Enum.each(table_uids(), fn table ->
     @tag compliance: "offset and limit with order by constant on #{table}"
     test "offset and limit with order by constant on #{table}", context do
       context
@@ -21,7 +21,7 @@ defmodule Compliance.QueryFeatures.Test do
       context
       |> assert_consistent_and_not_failing("""
         SELECT COUNT(*) FROM (
-          SELECT #{unquote(uid)}, 'a constant'
+          SELECT user_id, 'a constant'
           FROM #{unquote(table)}
           ORDER BY 2 ASC NULLS FIRST
           LIMIT 10
@@ -35,7 +35,7 @@ defmodule Compliance.QueryFeatures.Test do
       context
       |> assert_consistent_and_not_failing("""
         SELECT COUNT(*) FROM (
-          SELECT #{unquote(uid)}, 'a constant'
+          SELECT user_id, 'a constant'
           FROM #{unquote(table)}
           ORDER BY 1, 2 DESC NULLS FIRST
           LIMIT 10
@@ -44,7 +44,7 @@ defmodule Compliance.QueryFeatures.Test do
     end
   end)
 
-  Enum.each(nullable_columns(), fn {column, table, uid} ->
+  Enum.each(nullable_columns(), fn {column, table} ->
     for direction <- ["ASC", "DESC", ""],
         nulls <- ["NULLS FIRST", "NULLS LAST"] do
       @tag compliance: "order by #{direction} #{nulls} on #{column} in #{table}"
@@ -65,7 +65,7 @@ defmodule Compliance.QueryFeatures.Test do
         context
         |> assert_consistent_and_not_failing("""
           SELECT foo FROM (
-            SELECT #{unquote(uid)}, BUCKET(#{unquote(column)} BY 0.1) AS foo
+            SELECT user_id, BUCKET(#{unquote(column)} BY 0.1) AS foo
             FROM #{unquote(table)}
             ORDER BY 1, 2 #{unquote(direction)} #{unquote(nulls)}
             LIMIT 10

@@ -113,74 +113,74 @@ defmodule ComplianceCase do
   def float_columns(),
     do: [
       # {column name, table name, uid column in table}
-      {"height", "users", "user_id"},
-      {"height", "users_public", "user_id"}
+      {"height", "users"},
+      {"height", "users_public"}
     ]
 
   @doc false
   def integer_columns(),
     do: [
       # {column name, table name, uid column in table}
-      {"age", "users", "user_id"},
-      {"age", "users_public", "user_id"},
-      {"n.id", @notes_user_id_chain, "user_id"},
-      {"user_fk", @addresses_user_id_chain, "user_id"},
-      {"home.postal_code", @addresses_user_id_chain, "user_id"},
-      {"work.postal_code", @addresses_user_id_chain, "user_id"},
-      {"user_fk", @notes_user_id_chain, "user_id"},
-      {"note_id", @notes_changes_user_id_chain, "user_id"}
+      {"age", "users"},
+      {"age", "users_public"},
+      {"n.id", @notes_user_id_chain},
+      {"user_fk", @addresses_user_id_chain},
+      {"work.postal_code", @addresses_user_id_chain},
+      {"home.postal_code", @addresses_user_id_chain},
+      {"user_fk", @notes_user_id_chain},
+      {"note_id", @notes_changes_user_id_chain}
     ]
 
   @doc false
   def numerical_columns(), do: float_columns() ++ integer_columns()
 
   @doc false
-  def raw_columns(columns), do: Enum.reject(columns, fn {name, _, _} -> String.contains?(name, "(") end)
+  def raw_columns(columns), do: Enum.reject(columns, fn {name, _} -> String.contains?(name, "(") end)
 
   @doc false
   def datetime_columns(),
     do: [
       # {column name, table name, uid column in table}
-      {"date", @notes_changes_user_id_chain, "user_id"}
+      {"date", @notes_changes_user_id_chain}
     ]
 
   @doc false
   def date_columns(),
     do: [
       # {column name, table name, uid column in table}
-      {"birthday", "users", "user_id"},
-      {"birthday", "users_public", "user_id"}
+      {"birthday", "users"},
+      {"birthday", "users_public"}
     ]
 
   @doc false
   def text_columns(),
     do: [
       # {column name, table name, uid column in table}
-      {"name", "users", "user_id"},
-      {"name", "users_public", "user_id"},
-      {"column_with_a_very_long_name", "users", "user_id"},
-      {"column_with_a_very_long_name", "users_public", "user_id"},
-      {"home.city", @addresses_user_id_chain, "user_id"},
-      {"work.city", @addresses_user_id_chain, "user_id"},
-      {"title", @notes_user_id_chain, "user_id"},
-      {"content", @notes_user_id_chain, "user_id"},
-      {"change", @notes_changes_user_id_chain, "user_id"}
+      {"name", "users"},
+      {"name", "users_public"},
+      {"column_with_a_very_long_name", "users"},
+      {"column_with_a_very_long_name", "users_public"},
+      {"home.city", @addresses_user_id_chain},
+      {"work.city", @addresses_user_id_chain},
+      {"title", @notes_user_id_chain},
+      {"content", @notes_user_id_chain},
+      {"change", @notes_changes_user_id_chain}
     ]
 
   def nullable_columns(),
     do: [
       # {column name, table name, uid column in table}
-      {"nullable", "users", "user_id"},
-      {"nullable", "users_public", "user_id"}
+      {"nullable", "users"},
+      {"nullable", "users_public"}
     ]
 
   @doc false
   def table_uids(),
     do: [
-      {"users", "user_id"},
-      {@addresses_user_id_chain, "user_id"},
-      {@notes_user_id_chain, "user_id"},
-      {@notes_changes_user_id_chain, "user_id"}
+      "users",
+      @addresses_user_id_chain,
+      @notes_user_id_chain,
+      @notes_changes_user_id_chain
     ]
 
   @doc false

@@ -1,14 +1,14 @@
 defmodule Compliance.WhereClauseFilters.Text do
   use ComplianceCase, async: true
 
-  Enum.each(numerical_columns() |> raw_columns(), fn {column, table, uid} ->
+  Enum.each(numerical_columns() |> raw_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} WHERE-clause equality in subquery"
     test "input #{column} with a WHERE-clause equality in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM (
-          SELECT #{unquote(uid)}
+          SELECT user_id
           FROM #{unquote(table)}
           WHERE #{unquote(column)} = 10
           GROUP BY 1
@@ -22,7 +22,7 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM (
-          SELECT #{unquote(uid)}
+          SELECT user_id
           FROM #{unquote(table)}
           WHERE #{unquote(column)} <> 10
           GROUP BY 1
@@ -36,7 +36,7 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM (
-          SELECT #{unquote(uid)}
+          SELECT user_id
           FROM #{unquote(table)}
           WHERE #{unquote(column)} IN (1, 2, 3)
           GROUP BY 1
@@ -50,7 +50,7 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM (
-          SELECT #{unquote(uid)}
+          SELECT user_id
           FROM #{unquote(table)}
           WHERE #{unquote(column)} NOT IN (1, 2)
           GROUP BY 1
@@ -99,14 +99,14 @@ defmodule Compliance.WhereClauseFilters.Text do
     end
   end)
 
-  Enum.each(text_columns(), fn {column, table, uid} ->
+  Enum.each(text_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} WHERE-clause equality in subquery"
     test "input #{column} with a WHERE-clause equality in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM (
-          SELECT #{unquote(uid)}
+          SELECT user_id
           FROM #{unquote(table)}
           WHERE #{unquote(column)} = 'Emma'
           GROUP BY 1
@@ -120,7 +120,7 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM (
-          SELECT #{unquote(uid)}
+          SELECT user_id
           FROM #{unquote(table)}
           WHERE #{unquote(column)} <> 'Emma'
           GROUP BY 1
@@ -134,7 +134,7 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM (
-          SELECT #{unquote(uid)}
+          SELECT user_id
           FROM #{unquote(table)}
           WHERE #{unquote(column)} LIKE '%Em%'
           GROUP BY 1
@@ -149,7 +149,7 @@ defmodule Compliance.WhereClauseFilters.Text do
         SELECT
           count(*)
         FROM (
-          SELECT #{unquote(uid)}
+          SELECT user_id
           FROM #{unquote(table)}
           WHERE #{unquote(column)} ILIKE '%eM%'
           GROUP BY 1
@@ -163,7 +163,7 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM (
-          SELECT #{unquote(uid)}
+          SELECT user_id
           FROM #{unquote(table)}
           WHERE #{unquote(column)} IN ('Emma', 'Herman', 'Berlin')
           GROUP BY 1
@@ -178,7 +178,7 @@ defmodule Compliance.WhereClauseFilters.Text do
         SELECT
           count(*)
         FROM (
-          SELECT #{unquote(uid)}
+          SELECT user_id
           FROM #{unquote(table)}
           WHERE #{unquote(column)} NOT IN ('Otto Emma', 'Bertha Emma')
           GROUP BY 1
@@ -267,7 +267,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     end
   end)
 
-  Enum.each(date_columns(), fn {column, table, _uid} ->
+  Enum.each(date_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} WHERE-clause equality in subquery"
     test "input #{column} with a WHERE-clause range on #{table}", context do
       context
@@ -280,7 +280,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     end
   end)
 
-  Enum.each(datetime_columns(), fn {column, table, _uid} ->
+  Enum.each(datetime_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} WHERE-clause equality in subquery"
     test "input #{column} with a WHERE-clause range on #{table}", context do
       context
