@@ -40,7 +40,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         ["user6", 30]
       ])
 
-    assert_bounds("bounds", "value", {1, 500})
+    assert_bounds("bounds", "value", {1, 200})
   end
 
   for data_source <- [DataSource.SQLServer, DataSource.MongoDB] do
@@ -62,16 +62,14 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         ["user7", nil]
       ])
 
-    assert_bounds("bounds", "value", {1, 500})
+    assert_bounds("bounds", "value", {1, 200})
   end
 
   test "returns unknown if there are not enough users" do
     :ok =
       Cloak.Test.DB.insert_data("bounds", ["user_id", "value"], [
         ["user1", 10],
-        ["user2", 10],
-        ["user3", 30],
-        ["user4", 30]
+        ["user2", nil]
       ])
 
     assert_bounds("bounds", "value", :unknown)
@@ -124,7 +122,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
         ["user6", 30]
       ])
 
-    assert_bounds("bounds with spaces", "val ue", {1, 500})
+    assert_bounds("bounds with spaces", "val ue", {1, 200})
   end
 
   test "computes the true min and max (extended) for public tables" do
