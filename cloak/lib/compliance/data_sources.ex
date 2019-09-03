@@ -1,8 +1,7 @@
 defmodule Compliance.DataSources do
   @moduledoc false
 
-  alias Compliance.{Data, TableDefinitions}
-  alias Cloak.DataSource.MongoDB
+  alias Compliance.TableDefinitions
 
   @plain_name_postfix ""
   @encoded_name_postfix "_encoded"
