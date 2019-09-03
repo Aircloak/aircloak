@@ -14,6 +14,14 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
         end
       end
     end
+
+    test "for positive numbers", do: assert({:ok, 5} = Compute.max([6, 4, 3, 7], 3))
+
+    test "for negative numbers", do: assert({:ok, -5} = Compute.max([-3, -6, -4, -7], 3))
+
+    test "for mostly-positive small values", do: assert({:ok, 1} = Compute.max([0.1, 0.6, 0.2, -0.3, 0.7], 3))
+
+    test "for mostly-negative small values", do: assert({:ok, 0} = Compute.max([-0.1, -0.6, 0.2, -0.3, -0.7], 3))
   end
 
   describe ".min" do
@@ -25,6 +33,14 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
         end
       end
     end
+
+    test "for positive numbers", do: assert({:ok, 5} = Compute.min([6, 4, 3, 7], 3))
+
+    test "for negative numbers", do: assert({:ok, -5} = Compute.min([-3, -6, -4, -7], 3))
+
+    test "for mostly-positive small values", do: assert({:ok, 0} = Compute.min([0.1, 0.6, 0.2, -0.3, 0.7], 3))
+
+    test "for mostly-negative small values", do: assert({:ok, -1} = Compute.min([-0.1, -0.6, 0.2, -0.3, -0.7], 3))
   end
 
   describe ".extend" do
@@ -48,7 +64,7 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
         assert input_max == 0 || output_max == 0 || sign(input_max) == sign(output_max)
         assert output_min <= input_min
         assert output_max >= input_max
-        assert output_max - output_min > input_max - input_min
+        assert output_max - output_min >= input_max - input_min
       end
     end
   end
