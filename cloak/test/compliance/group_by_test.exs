@@ -1,7 +1,7 @@
 defmodule Compliance.GroupByTest do
   use ComplianceCase, async: true
 
-  Enum.each(all_columns(), fn {column, table, uid} ->
+  Enum.each(all_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} group by"
     test "group by #{column} in query on #{table}", context do
       context
@@ -9,7 +9,7 @@ defmodule Compliance.GroupByTest do
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
       |> disable_for(:all, unquote(table) == "users_public" and unquote(column) == "name")
       |> assert_consistent_and_not_failing("""
-        SELECT #{unquote(column)}, COUNT(DISTINCT #{unquote(uid)})
+        SELECT #{unquote(column)}, COUNT(DISTINCT user_id)
         FROM #{unquote(table)} GROUP BY 1 ORDER BY 1 ASC NULLS FIRST
       """)
     end
@@ -20,14 +20,14 @@ defmodule Compliance.GroupByTest do
     assert_consistent_and_not_failing(context, "SELECT 0 FROM users_public GROUP BY ()")
   end
 
-  Enum.each(all_columns(), fn {column, table, uid} ->
+  Enum.each(all_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} subquery grouping sets"
     test "grouping sets for #{column} in subquery on #{table}", context do
       context
       |> disable_unicode(unquote(table), unquote(column))
       |> assert_consistent_and_not_failing("""
         SELECT COUNT(*), COUNT(DISTINCT uid), MEDIAN(c) FROM (
-          SELECT #{unquote(uid)} AS uid, #{unquote(column)}, COUNT(*) AS c
+          SELECT user_id AS uid, #{unquote(column)}, COUNT(*) AS c
           FROM #{unquote(table)} GROUP BY GROUPING SETS (1, (1, 2)) ORDER BY 1, 2
         ) t
       """)
@@ -44,7 +44,7 @@ defmodule Compliance.GroupByTest do
     """)
   end
 
-  Enum.each(all_columns(), fn {column, table, uid} ->
+  Enum.each(all_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} uid-query grouping sets"
     test "grouping sets for #{column} in uid-based query on #{table}", context do
       context
@@ -55,13 +55,13 @@ defmodule Compliance.GroupByTest do
         unquote(table) == "users_public" and unquote(column) == "column_with_a_very_long_name"
       )
       |> assert_consistent_and_not_failing("""
-        SELECT #{unquote(column)}, COUNT(*), COUNT(DISTINCT #{unquote(uid)}), MEDIAN(0) FROM
+        SELECT #{unquote(column)}, COUNT(*), COUNT(DISTINCT user_id), MEDIAN(0) FROM
         #{unquote(table)} GROUP BY GROUPING SETS ((), 1) ORDER BY 1 ASC NULLS FIRST, 2, 3
       """)
     end
   end)
 
-  Enum.each(all_columns(), fn {column, table, uid} ->
+  Enum.each(all_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} stats-query grouping sets"
     test "grouping sets for #{column} in stats-based query on #{table}", context do
       context
@@ -75,7 +75,7 @@ defmodule Compliance.GroupByTest do
         unquote(table) == "users_public" and unquote(column) == "column_with_a_very_long_name"
       )
       |> assert_consistent_and_not_failing("""
-        SELECT #{unquote(column)}, COUNT(*), COUNT(DISTINCT #{unquote(uid)}) FROM
+        SELECT #{unquote(column)}, COUNT(*), COUNT(DISTINCT user_id) FROM
         #{unquote(table)} GROUP BY GROUPING SETS ((), 1) ORDER BY 1 ASC NULLS FIRST, 2, 3
       """)
     end

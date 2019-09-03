@@ -41,14 +41,13 @@ defmodule Compliance.DataSource.MongoDB do
   def after_tables_created(state), do: state
 
   @impl Connector
-  def insert_rows(_table_name, _data, conn), do: conn
-
-  @impl Connector
-  def insert_documents(collection_name, documents, conn) do
-    converted_documents = convert_documents(documents)
-    Mongo.insert_many!(conn, collection_name, converted_documents)
+  def insert_rows(collection_name, data, conn) do
+    Mongo.insert_many!(conn, collection_name, data)
     conn
   end
+
+  @impl Connector
+  def prepare_data(data), do: data |> Compliance.Data.to_collections() |> convert_data()
 
   @impl Connector
   def terminate(_conn), do: :ok
@@ -57,8 +56,8 @@ defmodule Compliance.DataSource.MongoDB do
   # Internal functions
   # -------------------------------------------------------------------
 
-  def convert_documents(documents) do
-    Lens.map(dates_lens(), documents, fn
+  def convert_data(data) do
+    Lens.map(dates_lens(), data, fn
       date = %NaiveDateTime{} -> DateTime.from_naive!(date, "Etc/UTC")
       date = %Date{} -> {Date.to_erl(date), {0, 0, 0}} |> NaiveDateTime.from_erl!() |> DateTime.from_naive!("Etc/UTC")
     end)

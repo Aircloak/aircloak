@@ -1,7 +1,11 @@
 defmodule Compliance.Isolators.Test do
   use ComplianceCase, async: true
 
-  Enum.each(all_columns(), fn {column, table, _} ->
+  all_columns()
+  |> Enum.each(fn {column, from} ->
+    [table | _] = String.split(from)
+    column = if column == "n.id", do: "id", else: column
+
     @tag compliance: "isolator query on #{column} in #{table}"
     test "isolator query on #{column} from #{table}", context do
       results =

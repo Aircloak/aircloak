@@ -30,7 +30,7 @@ Enum.each(
           numerical_columns()
         end
 
-      Enum.each(columns, fn {column, table, uid} ->
+      Enum.each(columns, fn {column, table} ->
         function =
           if function == "cast(<col> as text)" do
             # In this case, we're numeric a float column to text. This can lead to some strange differences, such as
@@ -51,7 +51,7 @@ Enum.each(
               output
             FROM (
               SELECT
-                #{unquote(uid)},
+                user_id,
                 #{on_column(unquote(function), unquote(column))} as output
               FROM #{unquote(table)}
             ) table_alias

@@ -3,37 +3,7 @@ defmodule Compliance.QueryFeatures.Test do
 
   @moduletag :query_features
 
-  @tag compliance: "multiple join"
-  test "multiple join", context do
-    [{table1, uid1}, {table2, uid2}, {table3, uid3} | _] = table_uids()
-
-    context
-    |> assert_consistent_and_not_failing("""
-      SELECT COUNT(*)
-      FROM #{table1} INNER JOIN #{table2}
-      ON #{table1}.#{uid1} = #{table2}.#{uid2}
-      INNER JOIN #{table3}
-      ON #{table2}.#{uid2} = #{table3}.#{uid3}
-    """)
-  end
-
-  @tag compliance: "multiple join in subquery"
-  test "multiple join in subquery", context do
-    [{table1, uid1}, {table2, uid2}, {table3, uid3} | _] = table_uids()
-
-    context
-    |> assert_consistent_and_not_failing("""
-      SELECT COUNT(*) FROM (
-        SELECT #{table1}.#{uid1}
-        FROM #{table1} INNER JOIN #{table2}
-        ON #{table1}.#{uid1} = #{table2}.#{uid2}
-        INNER JOIN #{table3}
-        ON #{table2}.#{uid2} = #{table3}.#{uid3}
-      ) foo
-    """)
-  end
-
-  Enum.each(table_uids(), fn {table, uid} ->
+  Enum.each(table_uids(), fn table ->
     @tag compliance: "offset and limit with order by constant on #{table}"
     test "offset and limit with order by constant on #{table}", context do
       context
@@ -51,7 +21,7 @@ defmodule Compliance.QueryFeatures.Test do
       context
       |> assert_consistent_and_not_failing("""
         SELECT COUNT(*) FROM (
-          SELECT #{unquote(uid)}, 'a constant'
+          SELECT user_id, 'a constant'
           FROM #{unquote(table)}
           ORDER BY 2 ASC NULLS FIRST
           LIMIT 10
@@ -65,7 +35,7 @@ defmodule Compliance.QueryFeatures.Test do
       context
       |> assert_consistent_and_not_failing("""
         SELECT COUNT(*) FROM (
-          SELECT #{unquote(uid)}, 'a constant'
+          SELECT user_id, 'a constant'
           FROM #{unquote(table)}
           ORDER BY 1, 2 DESC NULLS FIRST
           LIMIT 10
@@ -74,7 +44,7 @@ defmodule Compliance.QueryFeatures.Test do
     end
   end)
 
-  Enum.each(nullable_columns(), fn {column, table, uid} ->
+  Enum.each(nullable_columns(), fn {column, table} ->
     for direction <- ["ASC", "DESC", ""],
         nulls <- ["NULLS FIRST", "NULLS LAST"] do
       @tag compliance: "order by #{direction} #{nulls} on #{column} in #{table}"
@@ -95,7 +65,7 @@ defmodule Compliance.QueryFeatures.Test do
         context
         |> assert_consistent_and_not_failing("""
           SELECT foo FROM (
-            SELECT #{unquote(uid)}, BUCKET(#{unquote(column)} BY 0.1) AS foo
+            SELECT user_id, BUCKET(#{unquote(column)} BY 0.1) AS foo
             FROM #{unquote(table)}
             ORDER BY 1, 2 #{unquote(direction)} #{unquote(nulls)}
             LIMIT 10

@@ -6,11 +6,10 @@ defmodule Compliance.TableDefinitions do
   @type column_type :: :integer | :real | :boolean | :text | :datetime | :date
 
   @doc "Returns the table definition for the normal table."
-  @spec plain(boolean) :: Map.t()
-  def plain(produce_collections_rather_than_tables),
+  @spec plain() :: Map.t()
+  def plain(),
     do:
       raw_table_definitions()
-      |> prepare_as_collections(produce_collections_rather_than_tables)
       |> Enum.map(fn {table, %{columns: raw_columns} = definitions} ->
         columns = Enum.map(raw_columns, fn {name, %{type: type}} -> {Atom.to_string(name), type} end)
 
@@ -19,11 +18,10 @@ defmodule Compliance.TableDefinitions do
       |> Enum.into(%{})
 
   @doc "Returns the table definition for the encoded table."
-  @spec encoded(boolean) :: Map.t()
-  def encoded(produce_collections_rather_than_tables),
+  @spec encoded() :: Map.t()
+  def encoded(),
     do:
       raw_table_definitions()
-      |> prepare_as_collections(produce_collections_rather_than_tables)
       |> Enum.map(fn {table, %{columns: raw_columns} = definitions} ->
         {columns, decoders} =
           raw_columns
@@ -96,34 +94,6 @@ defmodule Compliance.TableDefinitions do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp prepare_as_collections(collections, false), do: collections
-
-  defp prepare_as_collections(collections, true) do
-    {primary_collections, sub_collections} =
-      Enum.split_with(collections, fn {_name, definition} ->
-        is_nil(definition[:sub_collection_of])
-      end)
-
-    primary_collections = Enum.into(primary_collections, %{})
-
-    Enum.reduce(sub_collections, primary_collections, fn {_name, sub_collection}, primaries_acc ->
-      primary_name = sub_collection[:sub_collection_of]
-      primary_collection = primaries_acc[primary_name]
-
-      primary_columns =
-        Enum.reduce(sub_collection.columns, primary_collection.columns, fn {name, definition}, acc ->
-          if is_nil(Map.get(acc, name)) do
-            Map.put(acc, name, definition)
-          else
-            acc
-          end
-        end)
-
-      updated_primary_collection = Map.put(primary_collection, :columns, primary_columns)
-      Map.put(primaries_acc, primary_name, updated_primary_collection)
-    end)
-  end
-
   defp raw_table_definitions() do
     %{
       users: %{
@@ -141,7 +111,8 @@ defmodule Compliance.TableDefinitions do
         keys: %{
           "user_id" => :user_id,
           "id" => :user_fk
-        }
+        },
+        user_id: "user_id"
       },
       addresses: %{
         columns: %{
@@ -174,18 +145,16 @@ defmodule Compliance.TableDefinitions do
         }
       },
       notes_changes: %{
-        # I.e. this collection is really part of notes if considering it as a document
-        sub_collection_of: :notes,
         columns: %{
           id: %{type: :integer},
           note_id: %{type: :integer},
           title: %{type: :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
           content: %{type: :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
-          "changes.change": %{
+          change: %{
             type: :text,
             decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]
           },
-          "changes.date": %{type: :datetime, decoders: [:text_to_datetime]}
+          date: %{type: :datetime, decoders: [:text_to_datetime]}
         },
         keys: %{
           "note_id" => :note_id

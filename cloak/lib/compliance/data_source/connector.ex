@@ -19,8 +19,8 @@ defmodule Compliance.DataSource.Connector do
   @doc "Is expected to insert the provided data into the data source."
   @callback insert_rows(String.t(), [Map.t()], state) :: state
 
-  @doc "Is expected to insert the provided documents into the data source."
-  @callback insert_documents(String.t(), [Map.t()], state) :: state
+  @doc "Prepares the documents for insertion into the data source."
+  @callback prepare_data(Map.t()) :: Map.t()
 
   @doc "Invoked after all the tables have been created."
   @callback after_tables_created(state) :: state
@@ -46,7 +46,7 @@ defmodule Compliance.DataSource.Connector do
       def db_table_name(table_name), do: table_name
 
       @impl unquote(__MODULE__)
-      def insert_documents(_collection_name, _documents, conn), do: conn
+      defdelegate prepare_data(data), to: Compliance.Data, as: :flatten
 
       @impl unquote(__MODULE__)
       def adjust_data_source(data_source), do: data_source
