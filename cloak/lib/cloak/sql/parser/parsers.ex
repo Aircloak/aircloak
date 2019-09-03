@@ -294,6 +294,21 @@ defmodule Cloak.Sql.Parser.Parsers do
      end)).(state)
   end
 
+  @doc "Like sep_by1_eager, but allows 0 items to be parsed."
+  @spec sep_by_eager(Combine.previous_parser(), Combine.parser(), Combine.parser()) :: Combine.parser()
+  defparser sep_by_eager(state, term, separator) do
+    (switch([
+       {Base.pair_both(term, separator), sep_by1_eager(term, separator)},
+       {term, noop()},
+       {noop(), noop()}
+     ])
+     |> Base.map(fn
+       {[{first, sep}], [rest]} -> [first, sep | rest]
+       {[single], []} -> [single]
+       {[], []} -> []
+     end)).(state)
+  end
+
   @doc "Same as `choice_deepest_error([parser1, parser2])`"
   @spec either_deepest_error(Combine.previous_parser(), Combine.parser(), Combine.parser()) :: Combine.parser()
   defparser(

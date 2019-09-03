@@ -78,7 +78,7 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp select_columns() do
-    map(comma_delimited(select_column()), &{:columns, &1})
+    map(comma_delimited1(select_column()), &{:columns, &1})
   end
 
   defp column() do
@@ -305,7 +305,7 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp function_arguments() do
     choice_deepest_error([
-      comma_delimited(column()),
+      comma_delimited1(column()),
       distinct_identifier(),
       all_identifier(),
       keyword(:*)
@@ -477,7 +477,7 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp from_expression() do
     map(
-      comma_delimited(join_expression() |> map(&join_ast/1)),
+      comma_delimited1(join_expression() |> map(&join_ast/1)),
       &cross_joins/1
     )
   end
@@ -678,7 +678,7 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp in_values() do
-    pipe([keyword(:"("), comma_delimited(column()), keyword(:")")], fn [_, values, _] ->
+    pipe([keyword(:"("), comma_delimited1(column()), keyword(:")")], fn [_, values, _] ->
       values
     end)
   end
@@ -752,7 +752,7 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp optional_order_by() do
     switch([
-      {keyword(:order), pair_both(keyword(:by), comma_delimited(order_by_field()))},
+      {keyword(:order), pair_both(keyword(:by), comma_delimited1(order_by_field()))},
       {:else, noop()}
     ])
     |> map(fn {[:order], [{:by, fields}]} -> {:order_by, fields} end)
@@ -782,9 +782,9 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp any_grouping_sets() do
-    comma_delimited(
+    comma_delimited1(
       switch([
-        {keyword(:"("), pair_both(option(comma_delimited(column())), keyword(:")"))},
+        {keyword(:"("), pair_both(option(comma_delimited1(column())), keyword(:")"))},
         {:else, column()}
       ])
       |> map(fn
@@ -796,9 +796,9 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp non_empty_grouping_sets() do
-    comma_delimited(
+    comma_delimited1(
       switch([
-        {keyword(:"("), pair_both(comma_delimited(column()), keyword(:")"))},
+        {keyword(:"("), pair_both(comma_delimited1(column()), keyword(:")"))},
         {:else, column()}
       ])
       |> map(fn
@@ -865,7 +865,7 @@ defmodule Cloak.Sql.Parser.Internal do
     |> label(to_string(type))
   end
 
-  defp comma_delimited(term_parser) do
+  defp comma_delimited1(term_parser) do
     sep_by1_eager(term_parser, keyword(:","))
     |> map(fn [first | rest] -> [first | Enum.drop_every(rest, 2)] end)
   end

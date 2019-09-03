@@ -4,7 +4,23 @@ defmodule Cloak.Sql.Parser.Parsers.Test do
   import Combine.Parsers.Text
   import Cloak.Sql.Parser.Parsers
 
+  describe "sep_by_eager" do
+    test "no items", do: assert([[]] = Combine.parse("", sep_by_eager(char("a"), char(","))))
+
+    test "a single item", do: assert([["a"]] = Combine.parse("a", sep_by_eager(char("a"), char(","))))
+
+    test "a single wrong item", do: assert([[]] = Combine.parse("b", sep_by_eager(char("a"), char(","))))
+
+    test "multiple items",
+      do: assert([["a", ",", "a", ",", "a"]] = Combine.parse("a,a,a", sep_by_eager(char("a"), char(","))))
+
+    test "multiple items with a wrong one",
+      do: assert({:error, _} = Combine.parse("a,b,a", sep_by_eager(char("a"), char(","))))
+  end
+
   describe "sep_by1_eager" do
+    test "no items", do: assert({:error, _} = Combine.parse("", sep_by1_eager(char("a"), char(","))))
+
     test "a single item", do: assert([["a"]] = Combine.parse("a", sep_by1_eager(char("a"), char(","))))
 
     test "a single wrong item", do: assert({:error, _} = Combine.parse("b", sep_by1_eager(char("a"), char(","))))
