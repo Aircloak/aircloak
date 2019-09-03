@@ -476,7 +476,10 @@ defmodule Cloak.DataSource.SqlBuilder do
       |> Enum.map(&Table.invalid_value(&1.type))
       |> Enum.map(&constant_to_fragment(&1, query))
       |> join(", "),
-      from
+      from,
+      " WHERE NOT EXISTS(",
+      build_fragments(query),
+      ?)
     ]
   end
 
