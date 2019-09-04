@@ -106,6 +106,8 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   defp extract_groups(_), do: []
 
+  defp aggregators_lens(), do: Lenses.query_expressions() |> Lens.filter(& &1.aggregate?)
+
   # -------------------------------------------------------------------
   # Statistics computation
   # -------------------------------------------------------------------
@@ -275,10 +277,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         anonymization_type: :statistics,
         where: nil
     }
-    |> update_in(
-      [Lenses.query_expressions() |> Lens.filter(& &1.aggregate?)],
-      &update_stats_aggregator(&1, selected_tables, distinct_columns)
-    )
+    |> update_in([aggregators_lens()], &update_stats_aggregator(&1, selected_tables, distinct_columns))
     |> update_in(
       [Lenses.query_expressions() |> Lens.filter(&is_binary(&1.name)) |> Lens.reject(&(&1.table in selected_tables))],
       &set_fields(&1, table: regular_statistics_table)
@@ -474,10 +473,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         selected_tables: [inner_table],
         where: nil
     }
-    |> update_in(
-      [Lenses.query_expressions() |> Lens.filter(& &1.aggregate?)],
-      &update_uid_aggregator(&1, inner_table, aggregated_columns)
-    )
+    |> update_in([aggregators_lens()], &update_uid_aggregator(&1, inner_table, aggregated_columns))
     |> update_base_columns(grouped_columns, inner_table)
   end
 
