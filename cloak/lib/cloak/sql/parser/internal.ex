@@ -78,7 +78,7 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp select_columns() do
-    map(comma_delimited1(select_column()), &{:columns, &1})
+    map(comma_delimited(select_column()), &{:columns, &1})
   end
 
   defp column() do
@@ -863,6 +863,14 @@ defmodule Cloak.Sql.Parser.Internal do
     |> token(type)
     |> map(& &1.category)
     |> label(to_string(type))
+  end
+
+  defp comma_delimited(term_parser) do
+    sep_by_eager(term_parser, keyword(:","))
+    |> map(fn
+      [] -> []
+      [first | rest] -> [first | Enum.drop_every(rest, 2)]
+    end)
   end
 
   defp comma_delimited1(term_parser) do

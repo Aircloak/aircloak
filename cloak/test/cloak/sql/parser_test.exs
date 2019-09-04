@@ -181,6 +181,13 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "select no columns" do
+    assert_parse(
+      "select from bar",
+      select(columns: [], from: unquoted("bar"))
+    )
+  end
+
   test "identifier location in source" do
     assert_parse(
       "select foo\n, bar from baz",
