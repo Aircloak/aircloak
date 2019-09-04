@@ -72,7 +72,10 @@ defmodule Cloak.Query.Rows do
   def group_expressions(%Query{group_by: [], implicit_count?: true} = query) do
     # Group by is not provided, and no selected expression is an aggregation function ->
     #   we're grouping on all selected columns + non selected order by expressions.
-    Expression.unique(query.columns ++ non_selected_order_by_expressions(query))
+    case Expression.unique(query.columns ++ non_selected_order_by_expressions(query)) do
+      [] -> [Expression.null()]
+      expressions -> expressions
+    end
   end
 
   def group_expressions(%Query{group_by: [], implicit_count?: false}),
@@ -135,7 +138,7 @@ defmodule Cloak.Query.Rows do
   defp grouping_sets(%Query{grouping_sets: [], implicit_count?: true} = query) do
     # Group by is not provided, and no selected expression is an aggregation function ->
     #   we're grouping on all selected columns + non selected order by expressions.
-    groups = Expression.unique(query.columns ++ non_selected_order_by_expressions(query))
+    groups = group_expressions(query)
     {Compiler.Helpers.default_grouping_sets(groups), groups}
   end
 
