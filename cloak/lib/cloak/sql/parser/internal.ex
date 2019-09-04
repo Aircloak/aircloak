@@ -468,12 +468,7 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp all_identifier(), do: pair_right(keyword(:all), column())
 
-  defp from() do
-    pair_both(
-      keyword(:from),
-      from_expression()
-    )
-  end
+  defp from(), do: from_expression() |> map(&{:from, &1})
 
   defp from_expression() do
     map(
@@ -866,7 +861,7 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp comma_delimited(term_parser) do
-    sep_by_eager(term_parser, keyword(:","))
+    sep_by_until(term_parser, keyword(:","), keyword(:from))
     |> map(fn
       [] -> []
       [first | rest] -> [first | Enum.drop_every(rest, 2)]

@@ -4,18 +4,24 @@ defmodule Cloak.Sql.Parser.Parsers.Test do
   import Combine.Parsers.Text
   import Cloak.Sql.Parser.Parsers
 
-  describe "sep_by_eager" do
-    test "no items", do: assert([[]] = Combine.parse("", sep_by_eager(char("a"), char(","))))
+  describe "sep_by_until" do
+    test "no items and stop absent",
+      do: assert({:error, "Expected `a`" <> _} = Combine.parse("c", sep_by_until(char("a"), char(","), char(";"))))
 
-    test "a single item", do: assert([["a"]] = Combine.parse("a", sep_by_eager(char("a"), char(","))))
+    test "no items and stop present",
+      do: assert([[]] = Combine.parse(";", sep_by_until(char("a"), char(","), char(";"))))
 
-    test "a single wrong item", do: assert([[]] = Combine.parse("b", sep_by_eager(char("a"), char(","))))
+    test "a single item and stop present",
+      do: assert([["a"]] = Combine.parse("a;", sep_by_until(char("a"), char(","), char(";"))))
 
-    test "multiple items",
-      do: assert([["a", ",", "a", ",", "a"]] = Combine.parse("a,a,a", sep_by_eager(char("a"), char(","))))
+    test "a single item and stop absent",
+      do: assert([["a"]] = Combine.parse("a;", sep_by_until(char("a"), char(","), char(";"))))
+
+    test "multiple items and stop present",
+      do: assert([["a", ",", "a", ",", "a"]] = Combine.parse("a,a,a;", sep_by_until(char("a"), char(","), char(";"))))
 
     test "multiple items with a wrong one",
-      do: assert({:error, _} = Combine.parse("a,b,a", sep_by_eager(char("a"), char(","))))
+      do: assert({:error, "Expected `a`" <> _} = Combine.parse("a,b,a;", sep_by_until(char("a"), char(","), char(";"))))
   end
 
   describe "sep_by1_eager" do
