@@ -294,6 +294,26 @@ defmodule Cloak.Sql.Parser.Parsers do
      end)).(state)
   end
 
+  @doc """
+  Parses zero or more instances of `term` separated by `separator` and terminated by `stop`. Consumes separators eagerly
+  like `sep_by1_eager`. Having the `stop` be parsed by this parser allows better errors to be reported in case there is
+  a single wrong term.
+  """
+  @spec sep_by_until(Combine.previous_parser(), Combine.parser(), Combine.parser(), Combine.parser()) ::
+          Combine.parser()
+  defparser sep_by_until(state, term, separator, stop) do
+    (switch([
+       {stop, return(:stop)},
+       {Base.pair_both(term, separator), Base.pair_both(sep_by1_eager(term, separator), stop)},
+       {Base.pair_both(term, stop), return(:single)}
+     ])
+     |> Base.map(fn
+       {_, [:stop]} -> []
+       {[{first, sep}], [{rest, stop}]} -> [first, sep | rest]
+       {[{single, stop}], [:single]} -> [single]
+     end)).(state)
+  end
+
   @doc "Same as `choice_deepest_error([parser1, parser2])`"
   @spec either_deepest_error(Combine.previous_parser(), Combine.parser(), Combine.parser()) :: Combine.parser()
   defparser(

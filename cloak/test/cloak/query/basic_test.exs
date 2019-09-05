@@ -95,6 +95,28 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
+  test "select no columns" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", [], [])
+
+    assert_query("select from heights", %{
+      columns: [],
+      rows: [%{row: [], occurrences: 10}]
+    })
+  end
+
+  test "select no columns with group by" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [100])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["height"], [200])
+
+    assert_query("select from heights group by height", %{
+      columns: [],
+      rows: [
+        %{row: [], occurrences: 1},
+        %{row: [], occurrences: 1}
+      ]
+    })
+  end
+
   test "select using the `public.` prefix for a table" do
     assert_query("select height from public.heights", %{columns: ["height"], rows: _})
     assert_query(~s/select height from "public"."heights"/, %{columns: ["height"], rows: _})

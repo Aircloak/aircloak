@@ -181,6 +181,13 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "select no columns" do
+    assert_parse(
+      "select from bar",
+      select(columns: [], from: unquoted("bar"))
+    )
+  end
+
   test "identifier location in source" do
     assert_parse(
       "select foo\n, bar from baz",
@@ -1731,7 +1738,6 @@ defmodule Cloak.Sql.Parser.Test do
       {"identifier can't start with a number", "select 1foo from baz", "Expected `column definition`", {1, 8}},
       {"keyword is not identifier", "select select from baz", "Expected `column definition`", {1, 8}},
       {"from table is required", "select foo", "`from`", {1, 11}},
-      {"at least one column must be specified", "select from baz", "Expected `column definition`", {1, 8}},
       {"columns must be separated with a comma", "select foo bar from baz", "Expected `from`", {1, 12}},
       {"query must start with a select or show", "foo select foo bar from baz", "Expected `select or show`", {1, 1}},
       {"show requires tables or columns", "show foobar", "Expected `tables or columns`", {1, 6}},
