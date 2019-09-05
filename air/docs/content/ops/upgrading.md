@@ -13,7 +13,7 @@ for more details.
 
 #### Replacing the `user_id` field
 
-Setting the user id for a table is now done by setting a table key with the type `"user_id"`. 
+Setting the user id for a table is now done by setting a table key with the type `"user_id"`.
 
 Old style table configuration:
 ```json
@@ -115,20 +115,6 @@ New style table configuration:
 "tables": {
   "transactions": {
     "query": "SELECT CAST(beginDT AS datetime), CAST(endDT AS datetime), CAST(price AS real), * FROM transactions",
-    ...
-  }
-}
-```
-
-#### Changes to the `db_name` field for Apache Drill data sources
-
- When quoting the database table name for Apache Drill data sources, double quotes (") characters have to be used 
- instead of back-ticks (\`).
-
- ```json
-"tables": {
-  "products": {
-    "db_name": "\"data/products.json\"",
     ...
   }
 }

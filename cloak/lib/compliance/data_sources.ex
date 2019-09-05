@@ -1,8 +1,7 @@
 defmodule Compliance.DataSources do
   @moduledoc false
 
-  alias Compliance.{Data, TableDefinitions}
-  alias Cloak.DataSource.MongoDB
+  alias Compliance.TableDefinitions
 
   @plain_name_postfix ""
   @encoded_name_postfix "_encoded"
@@ -78,7 +77,7 @@ defmodule Compliance.DataSources do
   def complete_data_source_definitions(data_source_definition_templates, opts \\ []) do
     Enum.flat_map(data_source_definition_templates, fn data_source_definition_template ->
       plain_tables =
-        table_definitions(&TableDefinitions.plain/1, data_source_definition_template)
+        TableDefinitions.plain()
         |> create_table_structure(@plain_name_postfix, data_source_definition_template)
 
       plain_data_source =
@@ -92,7 +91,7 @@ defmodule Compliance.DataSources do
         [plain_data_source]
       else
         encoded_tables =
-          table_definitions(&TableDefinitions.encoded/1, data_source_definition_template)
+          TableDefinitions.encoded()
           |> create_table_structure(@encoded_name_postfix, data_source_definition_template)
           |> conditionally_disable_analysis_operations(Keyword.get(opts, :disable_analysis_operations, false))
 
@@ -128,11 +127,8 @@ defmodule Compliance.DataSources do
 
     conn = handler.connect(data_source)
 
-    plain_definitions = table_definitions(&TableDefinitions.plain/1, data_source)
-    create_tables(handler, conn, plain_definitions, @plain_name_postfix)
-
-    encoded_definitions = table_definitions(&TableDefinitions.encoded/1, data_source)
-    create_tables(handler, conn, encoded_definitions, @encoded_name_postfix)
+    create_tables(handler, conn, TableDefinitions.plain(), @plain_name_postfix)
+    create_tables(handler, conn, TableDefinitions.encoded(), @encoded_name_postfix)
 
     conn
     |> handler.after_tables_created()
@@ -159,15 +155,13 @@ defmodule Compliance.DataSources do
     Agent.cast(insert_server, fn nil ->
       handler = handler_for_data_source(data_source)
       conn = handler.connect(data_source)
-      plain_definitions = table_definitions(&TableDefinitions.plain/1, data_source)
-      encoded_definitions = table_definitions(&TableDefinitions.encoded/1, data_source)
 
       %{
         data_source: data_source,
         handler: handler,
         conn: conn,
-        plain_definitions: plain_definitions,
-        encoded_definitions: encoded_definitions
+        plain_definitions: TableDefinitions.plain(),
+        encoded_definitions: TableDefinitions.encoded()
       }
     end)
 
@@ -200,14 +194,12 @@ defmodule Compliance.DataSources do
   end
 
   defp insert_data(state, definitions, data, table_postfix) do
-    flattened_data = Data.flatten(data)
-    collections = Data.to_collections(data)
+    prepared_data = state.handler.prepare_data(data)
 
     definitions
     |> Enum.filter(fn {_, definition} -> definition[:db_name] == nil end)
     |> Enum.each(fn {name, _} ->
-      state.handler.insert_rows("#{name}#{table_postfix}", flattened_data[name], state.conn)
-      state.handler.insert_documents("#{name}#{table_postfix}", collections[name], state.conn)
+      state.handler.insert_rows("#{name}#{table_postfix}", prepared_data[name], state.conn)
     end)
   end
 
@@ -225,10 +217,6 @@ defmodule Compliance.DataSources do
 
   defp config_file_path(name), do: Path.join([Application.app_dir(:cloak, "priv"), "config", "#{name}.json"])
 
-  defp table_definitions(generator_fun, %{driver: MongoDB}), do: generator_fun.(true)
-
-  defp table_definitions(generator_fun, _data_source), do: generator_fun.(false)
-
   defp create_table_structure(definitions, table_postfix, data_source_scaffold) do
     definitions
     |> Enum.map(fn {name, definition} ->
@@ -239,9 +227,9 @@ defmodule Compliance.DataSources do
           decoders: Map.get(definition, :decoders, []),
           query: nil,
           content_type: Map.get(definition, :content_type, :private),
-          keys: Map.get(definition, :keys, %{})
+          keys: Map.get(definition, :keys, %{}),
+          user_id: Map.get(definition, :user_id, nil)
         }
-        |> add_uid_construct(name)
         |> Map.put(:db_name, handler_for_data_source(data_source_scaffold).db_table_name("#{db_name}#{table_postfix}"))
 
       {name, data_source_definition_template}
@@ -258,16 +246,6 @@ defmodule Compliance.DataSources do
       expanded_table_def = Map.merge(table_def, feature_disabling_configuration)
       {table_name, expanded_table_def}
     end)
-  end
-
-  defp add_uid_construct(%{content_type: :public} = data_source_definition_template, _name),
-    do: data_source_definition_template
-
-  defp add_uid_construct(data_source_definition_template, name) do
-    case Map.get(TableDefinitions.uid_definitions(), name) do
-      %{user_id: uid_column_name} -> Map.put(data_source_definition_template, :user_id, uid_column_name)
-      %{projection: projection} -> Map.put(data_source_definition_template, :projection, projection)
-    end
   end
 
   defp adjust_data_source(data_source), do: handler_for_data_source(data_source).adjust_data_source(data_source)

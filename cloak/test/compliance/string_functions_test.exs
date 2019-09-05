@@ -34,7 +34,7 @@ Enum.each(
 
       @moduletag :"#{function}"
 
-      Enum.each(text_columns(), fn {column, table, uid} ->
+      Enum.each(text_columns(), fn {column, table} ->
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
@@ -47,7 +47,7 @@ Enum.each(
               MEDIAN(1)
             FROM (
               SELECT
-                #{unquote(uid)},
+                user_id,
                 #{on_column(unquote(function), "\"#{unquote(column)}\"")} as output
               FROM #{unquote(table)}
               ORDER BY 1, 2

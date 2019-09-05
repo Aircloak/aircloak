@@ -358,4 +358,21 @@ defmodule Cloak.Query.JoinTest do
 
     assert [%{row: [70], occurrences: 1}] = rows
   end
+
+  test "RIGHT JOIN with filter" do
+    :ok = insert_rows(_user_ids = 1..4, "heights_join", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..5, "children_join", ["age"], [20])
+
+    assert_query(
+      """
+        SELECT sum(t2.age)
+        FROM
+          (SELECT user_id FROM heights_join) as t1
+        RIGHT JOIN
+          (SELECT user_id, age FROM children_join WHERE age = 20) AS t2
+        ON t1.user_id = t2.user_id
+      """,
+      %{rows: [%{row: [100], occurrences: 1}]}
+    )
+  end
 end

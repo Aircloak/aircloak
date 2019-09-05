@@ -46,7 +46,7 @@ config :cloak, :anonymizer,
 # protection and bound analysis` in anonymization.md.
 config :cloak, :bound_size_cutoff,
   min: 1,
-  mean: 5,
+  mean: 2,
   std_dev: 0
 
 config :cloak, :shadow_tables,

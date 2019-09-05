@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   use Combine
   alias Cloak.Sql.{Query, Expression}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, Oracle, SAPHana}
+  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, Oracle}
   alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
@@ -467,7 +467,6 @@ defmodule Cloak.DataSource.SqlBuilder do
     from =
       case sql_dialect_module(query) do
         Oracle -> " FROM dual"
-        SAPHana -> " FROM dummy"
         _ -> ""
       end
 
@@ -477,7 +476,10 @@ defmodule Cloak.DataSource.SqlBuilder do
       |> Enum.map(&Table.invalid_value(&1.type))
       |> Enum.map(&constant_to_fragment(&1, query))
       |> join(", "),
-      from
+      from,
+      " WHERE NOT EXISTS(",
+      build_fragments(query),
+      ?)
     ]
   end
 

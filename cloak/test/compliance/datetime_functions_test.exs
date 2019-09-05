@@ -32,18 +32,18 @@ Enum.each(
 
       columns = if function =~ ~r/<col>/, do: datetime_columns() ++ date_columns(), else: [hd(datetime_columns())]
 
-      Enum.each(columns, fn {column, table, uid} ->
+      Enum.each(columns, fn {column, table} ->
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
           |> disable_subquery_interval(unquote(function))
-          |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
+          |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table)})
           |> assert_consistent_and_not_failing("""
             SELECT
               output, MEDIAN(0)
             FROM (
               SELECT
-                #{unquote(uid)},
+                user_id,
                 #{on_column(unquote(function), unquote(column))} as output
               FROM #{unquote(table)}
               ORDER BY 1, 2
@@ -57,7 +57,7 @@ Enum.each(
         test "#{function} on input #{column} in query on #{table}", context do
           context
           |> disable_subquery_interval(unquote(function))
-          |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
+          |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table)})
           # SQL Server doesn't like `ORDER BY constant` clauses.
           |> disable_for(
             Cloak.DataSource.SQLServer,
@@ -78,7 +78,7 @@ Enum.each(
           |> disable_for(Cloak.DataSource.MySQL, true)
           |> disable_for(Cloak.DataSource.SQLServer, true)
           |> disable_for(Cloak.DataSource.MongoDB, true)
-          |> disable_for(Cloak.DataSource.Oracle, function =~ ~r/P1Y/ or function =~ ~r/P1M/)
+          |> disable_for(Cloak.DataSource.Oracle, function =~ ~r/P1Y/ or function =~ ~r/P1M/ or function =~ ~r/P1D/)
         else
           context
         end
@@ -108,7 +108,7 @@ Enum.each(
 
       @moduletag :"#{condition} in where"
 
-      Enum.each(datetime_columns(), fn {column, table, uid} ->
+      Enum.each(datetime_columns(), fn {column, table} ->
         @tag compliance: "#{condition} in where #{column} #{table} query"
         test "#{condition} on input #{column} in where in query on table #{table}", context do
           context
@@ -125,7 +125,7 @@ Enum.each(
           |> assert_consistent_and_not_failing("""
             SELECT COUNT(*)
             FROM (
-              SELECT #{unquote(uid)}
+              SELECT user_id
               FROM #{unquote(table)}
               WHERE #{on_column(unquote(condition), unquote(column))}
             ) foo
@@ -146,7 +146,7 @@ Enum.each(
 
       @moduletag :"#{function}"
 
-      Enum.each(datetime_columns(), fn {column, table, uid} ->
+      Enum.each(datetime_columns(), fn {column, table} ->
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
@@ -155,7 +155,7 @@ Enum.each(
               output
             FROM (
               SELECT
-                #{unquote(uid)},
+                user_id,
                 #{on_column(unquote(function), unquote(column))} as output
               FROM #{unquote(table)}
               ORDER BY 1, 2

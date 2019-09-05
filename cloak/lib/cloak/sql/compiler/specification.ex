@@ -477,6 +477,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       )
 
   defp column_title({:identifier, _table, {_, column}, _}, _selected_tables), do: column
+  defp column_title(:null, _selected_tables), do: nil
   defp column_title({:constant, _, _, _}, _selected_tables), do: nil
   defp column_title({:parameter, _}, _selected_tables), do: nil
 

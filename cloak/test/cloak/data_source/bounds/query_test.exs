@@ -69,9 +69,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
     :ok =
       Cloak.Test.DB.insert_data("bounds", ["user_id", "value"], [
         ["user1", 10],
-        ["user2", 10],
-        ["user3", 30],
-        ["user4", 30]
+        ["user2", nil]
       ])
 
     assert_bounds("bounds", "value", :unknown)

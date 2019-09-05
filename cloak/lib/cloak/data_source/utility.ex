@@ -55,7 +55,6 @@ defmodule Cloak.DataSource.Utility do
     {"mysql", Cloak.DataSource.MySQL},
     {"postgresql", Cloak.DataSource.PostgreSQL},
     {"sqlserver", Cloak.DataSource.SQLServer},
-    {"sqlserver_rodbc", Cloak.DataSource.SQLServer},
     {"oracle", Cloak.DataSource.Oracle}
   ]
 
@@ -70,7 +69,6 @@ defmodule Cloak.DataSource.Utility do
   @doc "Returns the data source type name given a driver module"
   @spec driver_to_name(atom) :: {:ok, String.t()} | {:error, :unknown}
   @driver_name_to_module_mappings
-  |> Enum.reject(fn {name, _driver} -> name in ~w(sqlserver) end)
   |> Enum.each(fn {name, driver} ->
     def driver_to_name(unquote(driver)), do: {:ok, unquote(name)}
   end)

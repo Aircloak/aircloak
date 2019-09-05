@@ -1,7 +1,7 @@
 defmodule Compliance.BooleanTest do
   use ComplianceCase, async: true
 
-  Enum.each(numerical_columns() |> raw_columns(), fn {column, table, uid} ->
+  Enum.each(numerical_columns() |> raw_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} select boolean in query"
     test "input cast(#{column} as boolean) in query on #{table}", context do
       context
@@ -18,7 +18,7 @@ defmodule Compliance.BooleanTest do
       |> assert_consistent_and_not_failing("""
         SELECT output FROM (
           SELECT
-            #{unquote(uid)},
+            user_id,
             CAST(#{unquote(column)} AS boolean) AS output
           FROM #{unquote(table)}
         ) table_alias
@@ -42,7 +42,7 @@ defmodule Compliance.BooleanTest do
       |> assert_consistent_and_not_failing("""
         SELECT COUNT(*) FROM (
           SELECT
-            #{unquote(uid)}
+            user_id
           FROM #{unquote(table)}
           WHERE CAST(#{unquote(column)} AS boolean)
         ) table_alias
@@ -55,7 +55,7 @@ defmodule Compliance.BooleanTest do
       |> assert_consistent_and_not_failing("""
         SELECT output FROM (
           SELECT
-            #{unquote(uid)},
+            user_id,
             CAST(CAST(#{unquote(column)} AS boolean) AS integer) AS output
           FROM #{unquote(table)}
         ) table_alias

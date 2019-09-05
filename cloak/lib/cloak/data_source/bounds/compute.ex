@@ -19,7 +19,7 @@ defmodule Cloak.DataSource.Bounds.Compute do
     |> Enum.drop(bound_size_cutoff - 1)
     |> case do
       [] -> :error
-      [number | _rest] -> {:ok, lteq_money_aligned(number)}
+      [number | _rest] -> {:ok, money_align_ceil(number)}
     end
   end
 
@@ -43,7 +43,6 @@ defmodule Cloak.DataSource.Bounds.Compute do
   """
   @spec extend({integer, integer}) :: {integer, integer}
   def extend({min, max}) when max < min, do: extend({max, min})
-  def extend({0, 0}), do: {-1, 1}
 
   def extend({min, max}) do
     cond do
@@ -57,20 +56,21 @@ defmodule Cloak.DataSource.Bounds.Compute do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp lteq_money_aligned(number) when number <= 0 do
+  defp money_align_ceil(number) when number <= -1 do
     [-1, -2, -5]
     |> Stream.iterate(fn [a, b, c] -> [a * 10, b * 10, c * 10] end)
     |> Stream.flat_map(& &1)
-    |> Enum.find(&(&1 <= number))
+    |> Stream.take_while(&(&1 >= number))
+    |> Enum.at(-1)
   end
 
-  defp lteq_money_aligned(number) when number <= 1, do: 0
+  defp money_align_ceil(number) when number < 0, do: 0
+  defp money_align_ceil(number) when number < 1, do: 1
 
-  defp lteq_money_aligned(number) do
+  defp money_align_ceil(number) do
     [1, 2, 5]
     |> Stream.iterate(fn [a, b, c] -> [a * 10, b * 10, c * 10] end)
     |> Stream.flat_map(& &1)
-    |> Enum.take_while(&(&1 <= number))
-    |> List.last()
+    |> Enum.find(&(&1 >= number))
   end
 end
