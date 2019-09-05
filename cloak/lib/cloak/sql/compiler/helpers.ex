@@ -80,7 +80,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
 
   @doc "Creates the default grouping sets from a set of columns."
   @spec default_grouping_sets([Expression.t()]) :: [[non_neg_integer()]]
-  def default_grouping_sets([]), do: []
+  def default_grouping_sets([]), do: [[]]
   def default_grouping_sets(columns), do: [Enum.to_list(0..(length(columns) - 1))]
 
   @doc "Returns all join conditions of the query."
