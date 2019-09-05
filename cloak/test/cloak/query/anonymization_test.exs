@@ -80,6 +80,33 @@ defmodule Cloak.Query.AnonymizationTest do
         rows: [%{row: [9], occurrences: 1}]
       })
     end
+
+    test "stats BUG: counting and grouping same column" do
+      assert_query("select number, count(distinct 1 + number) from anonymizations group by 1 order by 1", %{
+        rows: [
+          %{row: [160.0, 1]},
+          %{row: [170.0, 1]},
+          %{row: [175.0, 1]},
+          %{row: [180.0, 1]},
+          %{row: [190.0, 1]}
+        ]
+      })
+    end
+
+    test "stats BUG: counting complex expression" do
+      assert_query(
+        "select number, count(distinct length(string) + number) from anonymizations group by 1 order by 1",
+        %{
+          rows: [
+            %{row: [160.0, 0]},
+            %{row: [170.0, 0]},
+            %{row: [175.0, 0]},
+            %{row: [180.0, 0]},
+            %{row: [190.0, 0]}
+          ]
+        }
+      )
+    end
   end
 
   describe "noisy counts are always positive" do

@@ -106,6 +106,8 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   defp extract_groups(_), do: []
 
+  defp aggregators_lens(), do: Lenses.query_expressions() |> Lens.filter(& &1.aggregate?)
+
   # -------------------------------------------------------------------
   # Statistics computation
   # -------------------------------------------------------------------
@@ -221,21 +223,17 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   end
 
   defp convert_to_statistics_anonymization(query) do
-    # Split the aggregators requiring distinct statistics from those requiring regular statistics.
-    {distinct_aggregators, regular_aggregators} = Enum.split_with(query.aggregators, &distinct_column_count?/1)
-
-    uid_grouped_query = %Query{query | aggregators: regular_aggregators} |> group_by_uid() |> offload_grouping_sets()
+    uid_grouped_query = query |> group_by_uid() |> offload_grouping_sets()
 
     regular_statistics_query = compute_main_statistics(uid_grouped_query)
     regular_statistics_table = Helpers.create_table_from_columns(regular_statistics_query.columns, "__ac_regular_stats")
     regular_groups = aggregation_groups(regular_statistics_query, regular_statistics_table)
 
-    distinct_columns = target_columns_for_distinct_aggregators(distinct_aggregators)
-
     from = {:subquery, %{ast: regular_statistics_query, alias: regular_statistics_table.name}}
 
     {from, selected_tables} =
-      distinct_columns
+      query.aggregators
+      |> target_columns_for_distinct_aggregators()
       |> Enum.with_index()
       |> Enum.reduce({from, [regular_statistics_table]}, fn {distinct_column, index}, {from, selected_tables} ->
         distinct_statistics_query = compute_distinct_statistics(query, distinct_column)
@@ -256,9 +254,6 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         {from, selected_tables ++ [distinct_statistics_table]}
       end)
 
-    # Re-assemble the top-level aggregators.
-    aggregators = uid_grouped_query.aggregators ++ distinct_aggregators
-
     # Since only referenced columns are selected from the inner query, we need to add dummy
     # references to the min/max user ids and grouping id, in order to keep them in the aggregation input.
     # The user ids count column has the `user_id?` flag set, so it will be automatically selected,
@@ -267,18 +262,17 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     max_uid_top_ref = column_from_synthetic_table(regular_statistics_table, "__ac_max_uid")
     grouping_id_top_ref = column_from_synthetic_table(regular_statistics_table, "__ac_grouping_id")
 
+    distinct_columns = target_columns_for_distinct_aggregators(uid_grouped_query.aggregators)
+
     %Query{
       uid_grouped_query
       | from: from,
         selected_tables: selected_tables,
-        aggregators: [grouping_id_top_ref, min_uid_top_ref, max_uid_top_ref | aggregators],
+        aggregators: [grouping_id_top_ref, min_uid_top_ref, max_uid_top_ref | uid_grouped_query.aggregators],
         anonymization_type: :statistics,
         where: nil
     }
-    |> update_in(
-      [Lenses.query_expressions() |> Lens.filter(& &1.aggregate?)],
-      &update_stats_aggregator(&1, selected_tables, distinct_columns)
-    )
+    |> update_in([aggregators_lens()], &update_stats_aggregator(&1, selected_tables, distinct_columns))
     |> update_in(
       [Lenses.query_expressions() |> Lens.filter(&is_binary(&1.name)) |> Lens.reject(&(&1.table in selected_tables))],
       &set_fields(&1, table: regular_statistics_table)
@@ -374,11 +368,13 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   end
 
   defp aggregation_statistics(aggregators) do
-    Enum.flat_map(aggregators, fn
-      %Expression{function_args: [{:distinct, %Expression{user_id?: true}}]} ->
+    aggregators
+    |> Enum.map(fn %Expression{aggregate?: true, function_args: [arg]} -> arg end)
+    |> Enum.flat_map(fn
+      {:distinct, _} ->
         []
 
-      %Expression{aggregate?: true, function_args: [column]} ->
+      column ->
         for {function, type} <- [
               {"count", :integer},
               {"sum", column.type},
@@ -437,7 +433,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
     aggregated_columns =
       query.aggregators
-      |> Enum.reject(&match?(%Expression{function_args: [{:distinct, %Expression{user_id?: true}}]}, &1))
+      |> Enum.reject(&match?(%Expression{function_args: [{:distinct, _}]}, &1))
       |> Enum.map(&uid_aggregator/1)
       |> Enum.uniq_by(&Expression.semantic/1)
       |> Enum.with_index()
@@ -474,10 +470,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         selected_tables: [inner_table],
         where: nil
     }
-    |> update_in(
-      [Lenses.query_expressions() |> Lens.filter(& &1.aggregate?)],
-      &update_uid_aggregator(&1, inner_table, aggregated_columns)
-    )
+    |> update_in([aggregators_lens()], &update_uid_aggregator(&1, inner_table, aggregated_columns))
     |> update_base_columns(grouped_columns, inner_table)
   end
 
@@ -487,17 +480,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   defp uid_aggregator(%Expression{function: "sum_noise", function_args: [arg]} = expression),
     do: uid_aggregator(%Expression{expression | function: "sum", type: Function.type(arg)})
 
-  defp uid_aggregator(%Expression{function_args: [{:distinct, %Expression{user_id?: true} = user_id}]}),
-    do: user_id
-
   defp uid_aggregator(aggregator), do: aggregator
-
-  defp update_uid_aggregator(
-         %Expression{function_args: [{:distinct, %Expression{user_id?: true}}]} = aggregator,
-         _inner_table,
-         _aggregated_columns
-       ),
-       do: aggregator
 
   defp update_uid_aggregator(old_aggregator, inner_table, aggregated_columns) do
     uid_aggregator = uid_aggregator(old_aggregator)
@@ -537,8 +520,9 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   defp add_column_index_to_grouping_sets(grouping_sets, column_index),
     do: Enum.map(grouping_sets, &[column_index | &1])
 
-  defp target_columns_for_distinct_aggregators(distinct_aggregators) do
-    distinct_aggregators
+  defp target_columns_for_distinct_aggregators(aggregators) do
+    aggregators
+    |> Enum.filter(&distinct_column_count?/1)
     |> Enum.map(fn %Expression{function_args: [{:distinct, target_column}]} -> target_column end)
     |> Enum.uniq()
   end
