@@ -106,6 +106,11 @@ defmodule IntegrationTest.PostgrexTest do
     assert result.rows == [[1]]
   end
 
+  test "[Issue #3770] parameterized query with dates", context do
+    assert {:error, %{postgres: %{message: "Constant expression is out of valid range" <> _}}} =
+             Postgrex.query(context.conn, "SELECT * FROM users WHERE birthday = $1::date", [~D[4000-01-01]])
+  end
+
   defp param_select(conn, value, cast) do
     result = Postgrex.query!(conn, "select $1::#{cast} from users", [value])
     [[value]] = Enum.uniq(result.rows)
