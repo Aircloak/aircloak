@@ -41,7 +41,12 @@ defmodule Cloak.Query.Rows do
   @doc "Groups input rows according to the query specification."
   @spec group(Enumerable.t(), Query.t(), (integer() -> group_data), group_updater) :: groups
   def group(rows, query, group_initializer, group_updater) do
-    {grouping_sets, group_expressions} = grouping_sets(query)
+    group_expressions = group_expressions(query)
+
+    grouping_sets =
+      if query.grouping_sets != [],
+        do: query.grouping_sets,
+        else: Compiler.Helpers.default_grouping_sets(group_expressions)
 
     Enum.reduce(rows, %{}, fn row_or_bucket, groups ->
       fields = fields(row_or_bucket)
@@ -72,10 +77,7 @@ defmodule Cloak.Query.Rows do
   def group_expressions(%Query{group_by: [], implicit_count?: true} = query) do
     # Group by is not provided, and no selected expression is an aggregation function ->
     #   we're grouping on all selected columns + non selected order by expressions.
-    case Expression.unique(query.columns ++ non_selected_order_by_expressions(query)) do
-      [] -> [Expression.null()]
-      expressions -> expressions
-    end
+    Expression.unique(query.columns ++ non_selected_order_by_expressions(query))
   end
 
   def group_expressions(%Query{group_by: [], implicit_count?: false}),
@@ -130,20 +132,4 @@ defmodule Cloak.Query.Rows do
 
   defp select_values(bucket, expressions) when is_map(bucket),
     do: %{bucket | row: select_values(bucket.row, expressions)}
-
-  defp grouping_sets(%Query{grouping_sets: [_ | _]} = query),
-    # There are group by clauses -> we're grouping on these clauses
-    do: {query.grouping_sets, query.group_by}
-
-  defp grouping_sets(%Query{grouping_sets: [], implicit_count?: true} = query) do
-    # Group by is not provided, and no selected expression is an aggregation function ->
-    #   we're grouping on all selected columns + non selected order by expressions.
-    groups = group_expressions(query)
-    {Compiler.Helpers.default_grouping_sets(groups), groups}
-  end
-
-  defp grouping_sets(%Query{grouping_sets: [], implicit_count?: false}),
-    # Group by is not provided, and all expressions are aggregate functions
-    #   -> all rows fall in the same group
-    do: {[[]], []}
 end
