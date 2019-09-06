@@ -24,7 +24,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       available_tables: DataSource.tables(data_source),
       analyst_tables:
         Cloak.AnalystTable.analyst_tables(analyst_id, data_source) |> Stream.map(&{&1.name, &1}) |> Map.new(),
-      parameters: parameters,
+      parameters: cast_parameters(parameters),
       views: views
     }
     |> Map.merge(parsed_query)
@@ -34,6 +34,16 @@ defmodule Cloak.Sql.Compiler.Specification do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp cast_parameters(nil), do: nil
+  defp cast_parameters(parameters), do: Enum.map(parameters, &cast_parameter/1)
+
+  defp cast_parameter(%{type: :date, value: value}), do: %{type: :date, value: Date.from_iso8601!(value)}
+
+  defp cast_parameter(%{type: :datetime, value: value}),
+    do: %{type: :datetime, value: NaiveDateTime.from_iso8601!(value)}
+
+  defp cast_parameter(other), do: other
 
   @table_attributes ["name", "type"]
   defp compile_query(%Query{command: :show, show: :tables} = query),

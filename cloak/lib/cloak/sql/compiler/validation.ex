@@ -256,7 +256,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   @date_constant_min_year 1800
   @date_constant_max_year 2999
-  defp verify_constant(%Expression{value: %{} = value, type: type} = expression) when type in [:date, :datetime] do
+  defp verify_constant(%Expression{value: value, type: type} = expression) when type in [:date, :datetime] do
     if value.year < @date_constant_min_year or value.year > @date_constant_max_year do
       raise CompilationError,
         source_location: expression.source_location,
@@ -267,7 +267,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   @interval_constant_max_year 100
-  defp verify_constant(%Expression{value: %{} = value, type: :interval} = expression) do
+  defp verify_constant(%Expression{value: value, type: :interval} = expression) do
     if abs(Timex.Duration.to_days(value)) > @interval_constant_max_year * 365.25 do
       raise CompilationError,
         source_location: expression.source_location,
