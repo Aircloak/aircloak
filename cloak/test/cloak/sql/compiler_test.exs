@@ -1388,7 +1388,12 @@ defmodule Cloak.Sql.Compiler.Test do
              )
   end
 
-  test "casting interval parameter"
+  test "casting null parameter" do
+    assert {:ok, _} =
+             compile("SELECT COUNT(*) FROM table WHERE column = $1::datetime", data_source(),
+               parameters: [%{type: :date, value: nil}]
+             )
+  end
 
   defp compile_standard(query_string, data_source) do
     {:ok, parsed_query} = Parser.parse(query_string)

@@ -38,10 +38,11 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp cast_parameters(nil), do: nil
   defp cast_parameters(parameters), do: Enum.map(parameters, &cast_parameter/1)
 
-  defp cast_parameter(%{type: :date, value: value}), do: %{type: :date, value: Date.from_iso8601!(value)}
+  defp cast_parameter(parameter = %{value: nil}), do: parameter
+  defp cast_parameter(parameter = %{type: :date, value: value}), do: %{parameter | value: Date.from_iso8601!(value)}
 
-  defp cast_parameter(%{type: :datetime, value: value}),
-    do: %{type: :datetime, value: NaiveDateTime.from_iso8601!(value)}
+  defp cast_parameter(parameter = %{type: :datetime, value: value}),
+    do: %{parameter | value: NaiveDateTime.from_iso8601!(value)}
 
   defp cast_parameter(other), do: other
 
