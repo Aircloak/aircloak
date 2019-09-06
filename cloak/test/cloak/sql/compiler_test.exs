@@ -1400,6 +1400,13 @@ defmodule Cloak.Sql.Compiler.Test do
              )
   end
 
+  test "casting time parameter" do
+    assert [%{type: :time, value: ~T[10:20:30]}] =
+             compile!("SELECT COUNT(*) FROM table WHERE $1 = $1", data_source(),
+               parameters: [%{type: :time, value: "10:20:30"}]
+             ).parameters
+  end
+
   test "casting null parameter" do
     assert {:ok, _} =
              compile("SELECT COUNT(*) FROM table WHERE column = $1::datetime", data_source(),

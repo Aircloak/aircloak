@@ -40,7 +40,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp cast_parameter(parameter = %{value: nil}), do: parameter
 
-  defp cast_parameter(parameter = %{type: type, value: value}) when type in [:date, :datetime, :interval] do
+  defp cast_parameter(parameter = %{type: type, value: value}) when type in [:date, :datetime, :time, :interval] do
     case parse_parameter(type, value) do
       {:ok, result} -> %{parameter | value: result}
       _ -> raise CompilationError, message: "Invalid parameter format for type `#{type}` - `#{value}`."
@@ -51,6 +51,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp parse_parameter(:date, value), do: Date.from_iso8601(value)
   defp parse_parameter(:datetime, value), do: NaiveDateTime.from_iso8601(value)
+  defp parse_parameter(:time, value), do: Time.from_iso8601(value)
   defp parse_parameter(:interval, value), do: Timex.Duration.parse(value)
 
   @table_attributes ["name", "type"]
