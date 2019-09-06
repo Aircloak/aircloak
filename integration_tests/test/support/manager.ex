@@ -130,7 +130,7 @@ defmodule IntegrationTest.Manager do
   defp setup_cloak_database() do
     Cloak.Test.DB.start_link()
     :ok = create_users_table()
-    :ok = insert_rows(1..100, "users", ["name", "height", "birthday"], ["john", 180, ~D[2000-01-01]])
+    :ok = insert_rows(1..100, "users", ["name", "height"], ["john", 180])
 
     :ok = create_integers()
 
@@ -143,7 +143,7 @@ defmodule IntegrationTest.Manager do
   end
 
   defp create_users_table(opts \\ []) do
-    Cloak.Test.DB.create_table("users", "name TEXT, height INTEGER, birthday DATE", opts)
+    Cloak.Test.DB.create_table("users", "name TEXT, height INTEGER", opts)
   end
 
   defp create_integers(opts \\ []) do
