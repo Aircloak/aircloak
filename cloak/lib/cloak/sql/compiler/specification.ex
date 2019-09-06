@@ -39,12 +39,18 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp cast_parameters(parameters), do: Enum.map(parameters, &cast_parameter/1)
 
   defp cast_parameter(parameter = %{value: nil}), do: parameter
-  defp cast_parameter(parameter = %{type: :date, value: value}), do: %{parameter | value: Date.from_iso8601!(value)}
 
-  defp cast_parameter(parameter = %{type: :datetime, value: value}),
-    do: %{parameter | value: NaiveDateTime.from_iso8601!(value)}
+  defp cast_parameter(parameter = %{type: type, value: value}) when type in [:date, :datetime] do
+    case parse_parameter(type, value) do
+      {:ok, result} -> %{parameter | value: result}
+      _ -> raise CompilationError, message: "Invalid parameter format for type `#{type}` - `#{value}`."
+    end
+  end
 
   defp cast_parameter(other), do: other
+
+  defp parse_parameter(:date, value), do: Date.from_iso8601(value)
+  defp parse_parameter(:datetime, value), do: NaiveDateTime.from_iso8601(value)
 
   @table_attributes ["name", "type"]
   defp compile_query(%Query{command: :show, show: :tables} = query),

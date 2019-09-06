@@ -1372,7 +1372,12 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ "Constant expression is out of valid range: interval values have to be less than `100` years."
   end
 
-  test "invalid parameter format"
+  test "invalid parameter format" do
+    assert {:error, "Invalid parameter format for type `date` - `something stupid`."} =
+             compile("SELECT COUNT(*) FROM table WHERE column = $1::datetime", data_source(),
+               parameters: [%{type: :date, value: "something stupid"}]
+             )
+  end
 
   test "casting date parameter" do
     assert {:error, "Constant expression is out of valid range" <> _} =
