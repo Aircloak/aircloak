@@ -1393,6 +1393,13 @@ defmodule Cloak.Sql.Compiler.Test do
              )
   end
 
+  test "casting interval parameter" do
+    assert {:error, "Constant expression is out of valid range" <> _} =
+             compile("SELECT COUNT(*) FROM table WHERE $1 = $1", data_source(),
+               parameters: [%{type: :interval, value: "P1000Y"}]
+             )
+  end
+
   test "casting null parameter" do
     assert {:ok, _} =
              compile("SELECT COUNT(*) FROM table WHERE column = $1::datetime", data_source(),
