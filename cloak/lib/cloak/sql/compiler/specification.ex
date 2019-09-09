@@ -24,7 +24,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       available_tables: DataSource.tables(data_source),
       analyst_tables:
         Cloak.AnalystTable.analyst_tables(analyst_id, data_source) |> Stream.map(&{&1.name, &1}) |> Map.new(),
-      parameters: parameters,
+      parameters: cast_parameters(parameters),
       views: views
     }
     |> Map.merge(parsed_query)
@@ -34,6 +34,25 @@ defmodule Cloak.Sql.Compiler.Specification do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp cast_parameters(nil), do: nil
+  defp cast_parameters(parameters), do: Enum.map(parameters, &cast_parameter/1)
+
+  defp cast_parameter(parameter = %{value: nil}), do: parameter
+
+  defp cast_parameter(parameter = %{type: type, value: value}) when type in [:date, :datetime, :time, :interval] do
+    case parse_parameter(type, value) do
+      {:ok, result} -> %{parameter | value: result}
+      _ -> raise CompilationError, message: "Invalid parameter format for type `#{type}` - `#{value}`."
+    end
+  end
+
+  defp cast_parameter(other), do: other
+
+  defp parse_parameter(:date, value), do: Date.from_iso8601(value)
+  defp parse_parameter(:datetime, value), do: NaiveDateTime.from_iso8601(value)
+  defp parse_parameter(:time, value), do: Time.from_iso8601(value)
+  defp parse_parameter(:interval, value), do: Timex.Duration.parse(value)
 
   @table_attributes ["name", "type"]
   defp compile_query(%Query{command: :show, show: :tables} = query),
