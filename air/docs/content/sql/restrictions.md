@@ -289,7 +289,7 @@ SELECT COUNT(*) FROM table WHERE
 Because of this, the usage of operations on textual data has to be restricted to prevent circumvention of measures that
 would normally limit what can be done with range conditions. The restrictions on expressions containing text
 manipulation functions are the same as ones described for [implicit ranges](#implicit-ranges). In addition a result of
-text manipulation can only be compared to an column-only expression or a constant.
+text manipulation can not be compared to expressions mixing constants and columns.
 
 The following functions are treated as text manipulation functions: `left`, `right`, `rtrim`, `ltrim`, `trim`, and
 `substring`.
