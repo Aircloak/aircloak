@@ -31,7 +31,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         verify_string_based_expressions_are_clear(subquery)
         verify_ranges_are_clear(subquery)
         verify_isolator_conditions_are_clear(subquery)
-        verify_raw_inequalities(subquery)
       end
     end)
 
@@ -86,35 +85,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         lhs_type = Type.establish_type(lhs, query)
 
         if rhs_type.constant? do
-          unless Type.establish_type(lhs, query)
-                 |> Type.clear_column?(&(&1 in @allowed_not_equals_functions)),
-                 do:
-                   raise(
-                     CompilationError,
-                     source_location: lhs.source_location,
-                     message: """
-                     Only #{function_list(@allowed_not_equals_functions)} can be used in the arguments of an <> operator.
-                     For more information see the "Restrictions" section of the user guides.
-                     """
-                   )
-        else
-          {error, location} =
-            cond do
-              not Type.clear_column?(lhs_type) -> {true, lhs.source_location}
-              not Type.clear_column?(rhs_type) -> {true, rhs.source_location}
-              true -> {false, nil}
-            end
-
-          if error,
-            do:
-              raise(
-                CompilationError,
-                source_location: location,
-                message: """
-                No functions or mathematical operations are allowed when comparing two database columns with `<>`.
-                For more information see the "Restrictions" section of the user guides.
-                """
-              )
+          unless Type.clear_column?(lhs_type, &(&1 in @allowed_not_equals_functions)) do
+            raise(
+              CompilationError,
+              source_location: lhs.source_location,
+              message: """
+              Only #{function_list(@allowed_not_equals_functions)} can be used in the arguments of an <> operator.
+              For more information see the "Restrictions" section of the user guides.
+              """
+            )
+          end
         end
       end)
 
@@ -124,17 +104,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         lhs_type = Type.establish_type(lhs, query)
         rhs_type = Type.establish_type(rhs, query)
 
-        if Type.string_manipulation?(lhs_type) and not Type.clear_column?(rhs_type) and not rhs_type.constant?,
-          do:
-            raise(
-              CompilationError,
-              source_location: lhs.source_location,
-              message: """
-              Results of string manipulation functions can only be compared to constants.
-              For more information see the "Text operations" subsection of the "Restrictions" section
-              in the user guides.
-              """
-            )
+        if Type.string_manipulation?(lhs_type) and
+             (lhs_type.constant_involved? or rhs_type.constant_involved?) and
+             not Type.clear_column?(rhs_type) and
+             not rhs_type.constant?,
+           do:
+             raise(
+               CompilationError,
+               source_location: lhs.source_location,
+               message: """
+               Results of string manipulation functions can only be compared to constants or columns-only expressions.
+               For more information see the "Text operations" subsection of the "Restrictions" section
+               in the user guides.
+               """
+             )
       end)
 
   defp verify_string_based_expressions_are_clear(query),
@@ -310,35 +293,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       For further information see the "Number of conditions" subsection of the "Restrictions" section
       in the user guides.
       """
-  end
-
-  # -------------------------------------------------------------------
-  # Inequalities
-  # -------------------------------------------------------------------
-
-  defp verify_raw_inequalities(query) do
-    verify_conditions(query, &Condition.inequality?/1, fn condition ->
-      sides = Condition.targets(condition)
-
-      case {Enum.any?(sides, &Expression.constant?/1),
-            Enum.find(sides, &(not Type.establish_type(&1, query).raw_column?))} do
-        {true, _} ->
-          :ok
-
-        {_, nil} ->
-          :ok
-
-        {_, invalid} ->
-          raise(
-            CompilationError,
-            source_location: invalid.source_location,
-            message: """
-            Only unmodified columns can be used in inequalities without constants.
-            For further information see the "Ranges" subsection of the "Restrictions" section in the user guides.
-            """
-          )
-      end
-    end)
   end
 
   # -------------------------------------------------------------------
