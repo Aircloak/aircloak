@@ -1,5 +1,5 @@
 {
-  "driver": "sqlserver_rodbc",
+  "driver": "sqlserver",
   "name": "sqlserver",
   "parameters": {
     "hostname": "sqlserver2017",
@@ -11,6 +11,5 @@
     }
   },
   "encoded": false,
-  "tables": {
-  }
+  "tables": {}
 }
