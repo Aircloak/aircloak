@@ -288,7 +288,8 @@ SELECT COUNT(*) FROM table WHERE
 
 Because of this, the usage of operations on textual data has to be restricted to prevent circumvention of measures that
 would normally limit what can be done with range conditions. The restrictions on expressions containing text
-manipulation functions are the same as ones described for [implicit ranges](#implicit-ranges).
+manipulation functions are the same as ones described for [implicit ranges](#implicit-ranges). In addition a result of
+text manipulation can only be compared to an column-only expression or a constant.
 
 The following functions are treated as text manipulation functions: `left`, `right`, `rtrim`, `ltrim`, `trim`, and
 `substring`.
@@ -298,7 +299,7 @@ The following functions are treated as text manipulation functions: `left`, `rig
 SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = 'A'
 
 -- Incorrect - the results of a text operation are compared to a complex expression
-SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = UPPER(RIGHT('A' || name, 1))
+SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = UPPER(RIGHT(name, 1))
 ```
 
 Furthermore, the aggregators `min`, `max`, and `median` cannot be used on data of type `text` in anonymizing queries and
@@ -456,7 +457,7 @@ You can check the isolator status of a table by using the `SHOW COLUMNS` stateme
 SHOW COLUMNS FROM users
 
 | name       | type    | isolator? |
-|------------|---------|-----------|
+| ---------- | ------- | --------- |
 | uid        | integer | true      |
 | first_name | text    | false     |
 | last_name  | text    | true      |
