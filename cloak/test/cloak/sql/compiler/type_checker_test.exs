@@ -56,18 +56,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows column <> column",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric"))
 
-    test "forbids column <> unclear_column" do
-      assert {error, {1, 44}} = error_with_location("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
-
-      assert error =~
-               ~r/No functions or mathematical operations are allowed when comparing two database columns with `<>`./
+    test "allow column <> unclear_column" do
+      assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
     end
 
-    test "forbids unclear_column <> column" do
-      assert {error, {1, 34}} = error_with_location("SELECT COUNT(*) FROM table WHERE upper(string) <> string")
-
-      assert error =~
-               ~r/No functions or mathematical operations are allowed when comparing two database columns with `<>`./
+    test "allow unclear_column <> column" do
+      assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE upper(string) <> string")
     end
 
     test "allows clear <> lhs in subquery HAVING",
@@ -149,9 +143,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids complex expressions on the RHS of conditions with string manipulation functions",
       do:
         assert(
-          {:error, "Results of string manipulation functions can only be compared to constants." <> _} =
-            compile("SELECT COUNT(*) FROM table WHERE substring(string from 1) = lower(string)")
+          {:error,
+           "Results of string manipulation functions can only be compared to constants or columns-only expressions." <>
+             _} = compile("SELECT COUNT(*) FROM table WHERE substring(string from 1) = lower(string)")
         )
+
+    test "allow complex columns-only conditions with string manipulation functions",
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string) = rtrim(string)"))
 
     test "allows raw cast columns on the RHS of conditions with string manipulation functions",
       do:
@@ -207,11 +205,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} numeric2")
       end
 
-      test "forbids function(col1) #{operator} col2" do
-        assert {:error, narrative} =
-                 compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} sqrt(numeric2)")
-
-        assert narrative =~ ~r/Only unmodified columns can be used in inequalities/
+      test "allow function(col1) #{operator} col2" do
+        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} sqrt(numeric2)")
       end
     end
 
@@ -219,11 +214,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN numeric2 AND numeric3")
     end
 
-    test "forbids functions in col1 BETWEEN col2 AND col3" do
-      assert {:error, narrative} =
-               compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN sqrt(numeric2) AND numeric3")
-
-      assert narrative =~ ~r/Only unmodified columns can be used in inequalities/
+    test "allow functions in col1 BETWEEN col2 AND col3" do
+      assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN sqrt(numeric2) AND numeric3")
     end
 
     test "allows clear between arguments",
@@ -329,14 +321,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE float * 3 / (3 - float) + 1 - float * 2 = 7")
       assert "Queries containing expressions with a high number of functions" <> _ = message
     end
-  end
-
-  defp error_with_location(query_string) do
-    query_string |> Parser.parse!() |> Compiler.compile!(nil, data_source(), [], %{})
-    flunk("Expected an error")
-  rescue
-    e in Cloak.Sql.CompilationError ->
-      {e.message, e.source_location}
   end
 
   defp compile(query_string),

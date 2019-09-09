@@ -15,6 +15,7 @@
 - Added protection against join timing attacks.
 - Added protection against exceptions in offloaded functions attacks.
 - Added support for `GROUPING SETS`, `ROLLUP` and `CUBE`
+- Reduced restrictions for columns-only conditions.
 
 ### Bugfixes
 

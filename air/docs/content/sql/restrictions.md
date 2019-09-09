@@ -288,8 +288,7 @@ SELECT COUNT(*) FROM table WHERE
 
 Because of this, the usage of operations on textual data has to be restricted to prevent circumvention of measures that
 would normally limit what can be done with range conditions. The restrictions on expressions containing text
-manipulation functions are the same as ones described for [implicit ranges](#implicit-ranges). In addition a result of
-text manipulation can only be compared to an untransformed column or a constant.
+manipulation functions are the same as ones described for [implicit ranges](#implicit-ranges).
 
 The following functions are treated as text manipulation functions: `left`, `right`, `rtrim`, `ltrim`, `trim`, and
 `substring`.
@@ -299,7 +298,7 @@ The following functions are treated as text manipulation functions: `left`, `rig
 SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = 'A'
 
 -- Incorrect - the results of a text operation are compared to a complex expression
-SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = UPPER(RIGHT(name, 1))
+SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = UPPER(RIGHT('A' || name, 1))
 ```
 
 Furthermore, the aggregators `min`, `max`, and `median` cannot be used on data of type `text` in anonymizing queries and
@@ -322,12 +321,10 @@ SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
 
 Conditions using `IN` or `<>` cannot include any functions nor mathematical operations except the following: `lower`,
 `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `year`, `month`, `quarter`, `day`, `weekday`,
-`hour`, `minute`, `second`, and all aggregators (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`). Conditions using `NOT
-LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators.  A single `CAST` is allowed. Furthermore, one
-of the expressions being compared must be a constant. In the case of `IN` all items on the right-hand side of the `IN`
-operator must be constants. An exception to this is comparing two columns with `<>`, but in that case no functions can
-be used at all. The top-level `HAVING` clause is exempt from  all these restrictions - see [Top-level HAVING
-clause](#top-level-having-clause).
+`hour`, `minute`, `second`, and all aggregators (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`). Conditions using
+`NOT LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators. A single `CAST` is allowed.
+All items on the right-hand side of the `IN` operator must be constants.
+The top-level `HAVING` clause is exempt from  all these restrictions - see [Top-level HAVING clause](#top-level-having-clause).
 
 ```sql
 -- Correct
@@ -337,7 +334,7 @@ SELECT COUNT(*) FROM table WHERE lower(name) <> 'alice'
 SELECT COUNT(*) FROM table WHERE left(name, 1) <> 'a'
 
 -- Incorrect - a comparison between two complex expressions
-SELECT COUNT(*) FROM table WHERE lower(name) <> lower(surname)
+SELECT COUNT(*) FROM table WHERE lower(name) <> lower('A' || surname)
 
 -- Correct - top-level HAVING is exempt from restrictions
 SELECT COUNT(*) FROM table GROUP BY name HAVING left(name) <> 'a'
