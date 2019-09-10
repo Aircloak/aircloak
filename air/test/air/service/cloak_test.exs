@@ -136,21 +136,6 @@ defmodule Air.Service.Cloak.Test do
     assert [] == Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
   end
 
-  test "should allow old cloak's to connect" do
-    data_sources_old = [
-      data_source_with_columns([
-        %{
-          name: "column_name",
-          type: :integer,
-          user_id: false
-        }
-      ])
-    ]
-
-    Cloak.register(TestRepoHelper.cloak_info(), data_sources_old)
-    assert [] == Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
-  end
-
   test "should record differences in shadow db stats when all data sources done" do
     data_sources_done1 = [
       data_source_with_columns([
