@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   @moduledoc "Methods for query validation."
 
   alias Cloak.CyclicGraph
-  alias Cloak.Sql.{CompilationError, Expression, Function, Query, Condition}
+  alias Cloak.Sql.{CompilationError, Expression, Function, Query, Condition, Function}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
 
@@ -200,7 +200,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         true
 
       column.function? ->
-        column.aggregate? or Enum.all?(column.function_args, &valid_expression_in_aggregate?(query, &1))
+        Function.aggregator?(column) or Enum.all?(column.function_args, &valid_expression_in_aggregate?(query, &1))
 
       true ->
         false
@@ -753,6 +753,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp aggregate_subexpressions(expression),
     do:
       Query.Lenses.all_expressions()
-      |> Lens.filter(&match?(%{aggregate?: true}, &1))
+      |> Lens.filter(&Function.aggregator?/1)
       |> Lens.to_list(expression)
 end

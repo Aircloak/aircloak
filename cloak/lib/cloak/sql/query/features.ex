@@ -52,9 +52,8 @@ defmodule Cloak.Sql.Query.Features do
     query.columns |> Enum.filter(&aggregate?/1) |> Enum.count()
   end
 
-  defp aggregate?(%{aggregate?: true}), do: true
-  defp aggregate?(%{function?: true, function_args: args}), do: Enum.any?(args, &aggregate?/1)
-  defp aggregate?(_), do: false
+  defp aggregate?(expression),
+    do: Function.aggregator?(expression) or Enum.any?(expression.function_args, &aggregate?/1)
 
   defp selected_types(columns), do: columns |> Enum.map(&Function.type/1) |> Enum.map(&stringify/1)
 

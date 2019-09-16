@@ -5,7 +5,7 @@ defmodule Cloak.Sql.Expression do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{LikePattern, Query}
+  alias Cloak.Sql.{LikePattern, Query, Function}
   alias Timex.Duration
 
   @type column_type :: DataSource.Table.data_type() | :like_pattern | :interval | nil
@@ -29,7 +29,6 @@ defmodule Cloak.Sql.Expression do
           function: function_name | nil,
           function_args: [t],
           function?: boolean,
-          aggregate?: boolean,
           parameter_index: pos_integer | nil,
           synthetic?: boolean,
           source_location: Cloak.Sql.Parser.location(),
@@ -46,7 +45,6 @@ defmodule Cloak.Sql.Expression do
             value: nil,
             function: nil,
             function_args: [],
-            aggregate?: false,
             function?: false,
             parameter_index: nil,
             synthetic?: false,
@@ -96,19 +94,18 @@ defmodule Cloak.Sql.Expression do
     do: constant(:like_pattern, Cloak.Sql.LikePattern.new(pattern, escape_character))
 
   @doc "Creates a column representing a function call."
-  @spec function(function_name, [t | :* | {:distinct, t}], column_type, boolean) :: t
-  def function(function_name, function_args, type, aggregate? \\ false),
+  @spec function(function_name, [t | :* | {:distinct, t}], column_type) :: t
+  def function(function_name, function_args, type),
     do: %__MODULE__{
       function: function_name,
       function_args: function_args,
       type: type,
-      aggregate?: aggregate?,
       function?: true
     }
 
   @doc "Returns an expression representing a count(*)."
   @spec count_star() :: t
-  def count_star(), do: function("count", [:*], :integer, true)
+  def count_star(), do: function("count", [:*], :integer)
 
   @doc "Returns an expression representing the NULL constant."
   @spec null() :: t
@@ -118,8 +115,8 @@ defmodule Cloak.Sql.Expression do
   @spec constant?(Cloak.Sql.Parser.column() | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
 
-  def constant?(%__MODULE__{function?: true, aggregate?: false, function_args: args}),
-    do: Enum.all?(args, &constant?/1)
+  def constant?(%__MODULE__{function?: true, function_args: args} = expression),
+    do: not Function.aggregator?(expression) and Enum.all?(args, &constant?/1)
 
   def constant?(_), do: false
 

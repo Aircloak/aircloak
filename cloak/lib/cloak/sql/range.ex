@@ -115,11 +115,8 @@ defmodule Cloak.Sql.Range do
     end
   end
 
-  defp aggregate?(%Expression{aggregate?: true}), do: true
-
-  defp aggregate?(%Expression{function?: true, function_args: args}), do: Enum.any?(args, &aggregate?/1)
-
-  defp aggregate?(_), do: false
+  defp aggregate?(expression),
+    do: Function.aggregator?(expression) or Enum.any?(expression.function_args, &aggregate?/1)
 
   defp function_range(column), do: %__MODULE__{column: column, interval: :implicit}
 end

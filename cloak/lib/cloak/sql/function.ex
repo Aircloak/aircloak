@@ -27,6 +27,8 @@ defmodule Cloak.Sql.Function do
   def has_attribute?(%Expression{function?: true, function: name}, attribute),
     do: has_attribute?(name, attribute)
 
+  def has_attribute?(%Expression{function?: false}, _attribute), do: false
+
   def has_attribute?(name, attribute) do
     case Map.get(Aircloak.Functions.function_spec(), name) do
       nil -> false

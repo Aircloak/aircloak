@@ -78,7 +78,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   # returns true if the column contains an expression with non-aggregated user ids
   defp non_aggregated_uid_expression?(column),
     do:
-      [column] |> get_in([Lenses.all_expressions()]) |> Enum.all?(&(not &1.aggregate?)) and
+      [column] |> get_in([Lenses.all_expressions()]) |> Enum.all?(&(not Function.aggregator?(&1))) and
         [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
 
   # -------------------------------------------------------------------
@@ -173,7 +173,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       query
       |> Helpers.aggregator_sources()
       |> Enum.flat_map(&expand_arguments/1)
-      |> Enum.filter(&match?(%Expression{function?: true, aggregate?: true}, &1))
+      |> Enum.filter(&Function.aggregator?/1)
       |> Enum.map(&Expression.semantic/1)
       |> Expression.unique()
 

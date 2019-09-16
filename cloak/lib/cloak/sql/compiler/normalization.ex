@@ -123,10 +123,14 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # -------------------------------------------------------------------
 
   defp normalize_constants(query),
-    do: update_in(query, [Query.Lenses.terminals() |> Lens.filter(&Expression.constant?/1)], &do_normalize_constants/1)
+    do:
+      Query.Lenses.terminals()
+      |> Lens.filter(&Expression.constant?/1)
+      |> Lens.filter(&Expression.function?/1)
+      |> Lens.map(query, &do_normalize_constants/1)
 
-  defp do_normalize_constants(expression = %Expression{function?: true, aggregate?: false, function_args: args}) do
-    case {Expression.const_value(expression), Enum.any?(args, &is_nil(&1.value))} do
+  defp do_normalize_constants(expression) do
+    case {Expression.const_value(expression), Enum.any?(expression.function_args, &is_nil(&1.value))} do
       {nil, true} ->
         Expression.null()
 
@@ -141,8 +145,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
         |> put_in([Lens.key(:alias)], expression.alias)
     end
   end
-
-  defp do_normalize_constants(other), do: other
 
   # -------------------------------------------------------------------
   # Normalizing like patterns
@@ -251,8 +253,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
       Expression.function(
         "/",
         [
-          Expression.function("sum", [arg], :real, true),
-          Expression.function("count", [arg], :integer, true)
+          Expression.function("sum", [arg], :real),
+          Expression.function("count", [arg], :integer)
         ],
         :real
       )
@@ -262,8 +264,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
       Expression.function(
         "/",
         [
-          Expression.function("sum_noise", [arg], :real, true),
-          Expression.function("count", [arg], :integer, true)
+          Expression.function("sum_noise", [arg], :real),
+          Expression.function("count", [arg], :integer)
         ],
         :real
       )

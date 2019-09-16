@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
   @moduledoc "Contains functions related to compilation of noise layers."
 
-  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, Range}
+  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, Range, Function}
   alias Cloak.Sql.Compiler.Helpers
 
   use Lens.Macros
@@ -155,7 +155,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       query
       | columns: query.columns ++ noise_columns,
         column_titles: query.column_titles ++ Enum.map(noise_columns, &Expression.title/1),
-        aggregators: query.aggregators ++ Enum.filter(noise_columns, & &1.aggregate?)
+        aggregators: query.aggregators ++ Enum.filter(noise_columns, &Function.aggregator?/1)
     }
   end
 
@@ -209,14 +209,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp min_of_min(%Expression{constant?: true} = constant), do: constant
   defp min_of_min(%Expression{type: :boolean} = min), do: min |> cast(:integer) |> min_of_min() |> cast(:boolean)
-  defp min_of_min(min), do: Expression.function("min", [Expression.unalias(min)], min.type, _aggregate = true)
+  defp min_of_min(min), do: Expression.function("min", [Expression.unalias(min)], min.type)
 
   defp max_of_max(%Expression{constant?: true} = constant), do: constant
   defp max_of_max(%Expression{type: :boolean} = max), do: max |> cast(:integer) |> max_of_max() |> cast(:boolean)
-  defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type, _aggregate = true)
+  defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type)
 
-  defp sum_of_count(%Expression{value: 1}), do: Expression.function("count", [:*], :integer, _aggregate = true)
-  defp sum_of_count(count), do: Expression.function("sum", [Expression.unalias(count)], :integer, _aggregate = true)
+  defp sum_of_count(%Expression{value: 1}), do: Expression.function("count", [:*], :integer)
+  defp sum_of_count(count), do: Expression.function("sum", [Expression.unalias(count)], :integer)
 
   # -------------------------------------------------------------------
   # Computing base noise layers

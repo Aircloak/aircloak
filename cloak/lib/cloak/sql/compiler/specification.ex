@@ -645,8 +645,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         Expression.function(
           Function.canonical_name(name),
           args,
-          type,
-          Function.has_attribute?(name, :aggregator)
+          type
         )
     end
     |> Expression.set_location(location)

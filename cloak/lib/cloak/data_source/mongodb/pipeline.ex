@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.MongoDB.Pipeline do
   @moduledoc "MongoDB helper functions for mapping a query to an aggregation pipeline."
 
-  alias Cloak.Sql.{Query, Expression, Condition, LikePattern}
+  alias Cloak.Sql.{Query, Expression, Condition, LikePattern, Function}
   alias Cloak.Query.ExecutionError
   alias Cloak.DataSource.MongoDB.{Schema, Projector}
   alias Cloak.DataSource.Table
@@ -259,12 +259,11 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     %Query{query | db_columns: needed_columns, order_by: order_by}
   end
 
-  defp extract_aggregator(%Expression{aggregate?: true} = column), do: [column]
-
-  defp extract_aggregator(%Expression{function: fun} = column) when fun != nil,
-    do: Enum.flat_map(column.function_args, &extract_aggregator/1)
-
-  defp extract_aggregator(_column), do: []
+  defp extract_aggregator(expression) do
+    if Function.aggregator?(expression),
+      do: [expression],
+      else: Enum.flat_map(expression.function_args, &extract_aggregator/1)
+  end
 
   defp project_properties([]), do: nil
 
