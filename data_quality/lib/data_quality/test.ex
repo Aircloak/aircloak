@@ -17,7 +17,7 @@ defmodule DataQuality.Test do
   ]
 
   @type dimension :: {:dimension, String.t()} | {:bucket, integer}
-  @type aggregate :: {:count, String.t()} | :min | :max | :sum
+  @type aggregate :: {:count, String.t()} | :min | :max | :sum | :avg
 
   @type result :: %{
           aggregate: aggregate,
@@ -58,15 +58,13 @@ defmodule DataQuality.Test do
   @spec run(config) :: :ok
   @doc "Performs data quality test"
   def run(config) do
-    # Note AVG doesn't yet work for no-uid, so is not included.
-
     [
       %{
         name: "COUNT",
         aggregates: [
           {:count, "count(*)"},
           {:count, "count(distinct uid)"},
-          {:count, "count(distinct column)"}
+          {:count, "count(distinct number)"}
         ]
       },
       %{
@@ -80,6 +78,10 @@ defmodule DataQuality.Test do
       %{
         name: "SUM",
         aggregates: [:sum]
+      },
+      %{
+        name: "AVG",
+        aggregates: [:avg]
       }
     ]
     |> Query.measure(config, @dimensions)

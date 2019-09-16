@@ -6,8 +6,8 @@ Produces a data quality score for an Aircloak instance.
 - [Running](#running)
   - [Prerequisites](#prerequisites)
     - [R](#r)
-    - [Database](#database)
     - [Config](#config)
+    - [Database](#database)
     - [Running multiple Aircloak instances locally](#running-multiple-aircloak-instances-locally)
     - [Configuring data sources](#configuring-data-sources)
   - [Running data quality tests](#running-data-quality-tests)
@@ -48,15 +48,6 @@ as well as for rendering graphs of the anonymized results.
 Run `make setup-r` to install the necessary R libraries that will be needed to run the
 data quality tests.
 
-#### Database
-
-TL;DR: run `make recreate-db`
-
-You need a locally running Postgres database populated with test data in order to run the data quality tests.
-The `recreate-db` make-target will create the required user, database and data for the test.
-It requires that the default user used when calling the `psql` command without specifying a user
-has sufficient privileges to create new super users.
-
 #### Config
 
 The `config.json` file needs to be configured for your local setup.
@@ -93,6 +84,15 @@ and `<data_source_config>` takes the form:
 
 The `anonymized` list can contain any number of different Aircloaks. This is useful
 for comparing the quality between mutliple distinct versions of our system.
+
+#### Database
+
+TL;DR: run `make recreate-db`
+
+You need a locally running Postgres database populated with test data in order to run the data quality tests.
+The `recreate-db` make-target will create the required user, database and data for the test.
+It requires that the default user used when calling the `psql` command without specifying a user
+has sufficient privileges to create new super users.
 
 #### Running multiple Aircloak instances locally
 
