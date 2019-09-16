@@ -371,26 +371,6 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function({:bucket, :upper}, [3, 10]) == 10
   end
 
-  describe "first_column" do
-    test "nil if given constant column", do: assert(nil == Expression.first_column(%Expression{constant?: true}))
-
-    test "first db column if one present" do
-      return_column = %Expression{row_index: 1}
-
-      assert return_column ==
-               Expression.first_column(
-                 Expression.function(
-                   "f",
-                   [
-                     Expression.function("f", [%Expression{constant?: true}], nil),
-                     Expression.function("f", [%Expression{constant?: true}, return_column], nil)
-                   ],
-                   nil
-                 )
-               )
-    end
-  end
-
   describe "lowercase" do
     test "wraps expressions in lower case functions",
       do: assert(%Expression{function: "lower"} = Expression.lowercase(%Expression{type: :text}))

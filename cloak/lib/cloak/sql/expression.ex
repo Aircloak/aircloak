@@ -261,31 +261,6 @@ defmodule Cloak.Sql.Expression do
   def id(%__MODULE__{table: :unknown, name: name}), do: name
   def id(%__MODULE__{table: table, name: name}), do: "#{table.name}.#{name}"
 
-  @doc "Returns the list of arguments if the given Expression is a function expression, [] otherwise."
-  @spec arguments(t) :: [t]
-  def arguments(%__MODULE__{function?: true, args: args}), do: args
-  def arguments(_), do: []
-
-  @doc "Returns the first argument of the function expression."
-  @spec first_argument!(t) :: t
-  def first_argument!(%__MODULE__{function?: true, args: [arg | _]}), do: arg
-
-  @doc "Returns the first instance of a database column from the given expression. Nil if none can be found."
-  @spec first_column(t) :: t | nil
-  def first_column(%__MODULE__{constant?: true}), do: nil
-
-  def first_column(%__MODULE__{function?: true, args: args}) do
-    args
-    |> Enum.map(&first_column/1)
-    |> Enum.filter(& &1)
-    |> case do
-      [] -> nil
-      [column | _] -> column
-    end
-  end
-
-  def first_column(%__MODULE__{} = column), do: column
-
   @doc """
   Returns the list of unique expression.
   """

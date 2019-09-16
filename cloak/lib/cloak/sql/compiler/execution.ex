@@ -154,9 +154,10 @@ defmodule Cloak.Sql.Compiler.Execution do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
-  defp expand_arguments(column) do
-    (column |> Expression.arguments() |> Enum.flat_map(&expand_arguments/1)) ++ [column]
-  end
+  defp expand_arguments(%Expression{function?: true} = column),
+    do: [column | Enum.flat_map(column.args, &expand_arguments/1)]
+
+  defp expand_arguments(column), do: [column]
 
   defp compute_aggregators(%Query{group_by: [_ | _]} = query),
     do: %Query{query | aggregators: aggregators(query)}
