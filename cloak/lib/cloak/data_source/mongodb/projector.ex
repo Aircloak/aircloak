@@ -41,15 +41,6 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   def project_column(%Expression{table: %{name: table}, name: name, alias: alias}) when alias in [nil, name],
     do: {name, "$#{table}.#{name}"}
 
-  def project_column(%Expression{
-        aggregate?: true,
-        function?: true,
-        function: fun,
-        function_args: [arg],
-        alias: alias
-      }),
-      do: {project_alias(alias), parse_function(fun, parse_expression(arg))}
-
   def project_column(%Expression{constant?: true, alias: empty_alias} = constant)
       when empty_alias in [nil, ""],
       # We need to give an alias to unnamed constants
