@@ -45,7 +45,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
     [count_duid_column | _] = query.db_columns
 
     bucket_statistics_columns = [count_duid_column, min_uid_column, max_uid_column]
-    aggregation_statistics_columns = Enum.map(per_user_aggregators, &extract_args(&1.function_args))
+    aggregation_statistics_columns = Enum.map(per_user_aggregators, &extract_args(&1.args))
     statistics_columns = [bucket_statistics_columns | aggregation_statistics_columns]
 
     grouping_ids_map = map_grouping_sets(query.grouping_sets)
@@ -160,17 +160,17 @@ defmodule Cloak.Query.Aggregator.Statistics do
     aggregation_results =
       Enum.zip(aggregators, aggregation_statistics)
       |> Enum.map(fn
-        {%Expression{function: "count", function_args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
+        {%Expression{function: "count", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
           users_count
 
-        {%Expression{function: "count_noise", function_args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
+        {%Expression{function: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
           Anonymizer.noise_amount(1, anonymizer)
 
-        {%Expression{function: "count", function_args: [{:distinct, _}]}, [real_count, noise_factor]} ->
+        {%Expression{function: "count", args: [{:distinct, _}]}, [real_count, noise_factor]} ->
           {noisy_count, _noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, {real_count, noise_factor})
           noisy_count
 
-        {%Expression{function: "count_noise", function_args: [{:distinct, _}]}, [real_count, noise_factor]} ->
+        {%Expression{function: "count_noise", args: [{:distinct, _}]}, [real_count, noise_factor]} ->
           {_noisy_count, noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, {real_count, noise_factor})
           noise_amount
 

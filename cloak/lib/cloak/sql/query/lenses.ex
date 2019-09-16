@@ -304,7 +304,7 @@ defmodule Cloak.Sql.Query.Lenses do
         Lens.all() |> terminal_elements()
 
       %Expression{function?: true} ->
-        Lens.both(Lens.key(:function_args) |> terminal_elements, Lens.root())
+        Lens.both(Lens.key(:args) |> terminal_elements, Lens.root())
 
       _ ->
         Lens.root()

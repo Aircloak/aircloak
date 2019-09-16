@@ -94,7 +94,7 @@ defmodule Cloak.Query.Rows do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp update_row_index(query, %Expression{function: "grouping_id", function_args: args} = column, _selected_columns) do
+  defp update_row_index(query, %Expression{function: "grouping_id", args: args} = column, _selected_columns) do
     bits_indices =
       Enum.map(args, fn column ->
         Enum.find_index(query.group_by, &Expression.equals?(&1, column))
@@ -102,7 +102,7 @@ defmodule Cloak.Query.Rows do
 
     %Expression{
       column
-      | function_args: [
+      | args: [
           %Expression{name: "group_index", row_index: 0},
           Expression.constant(:unknown, bits_indices),
           Expression.constant(:unknown, query.grouping_sets)
@@ -114,8 +114,8 @@ defmodule Cloak.Query.Rows do
     case Enum.find_index(selected_columns, &Expression.equals?(&1, column)) do
       nil ->
         if column.function? do
-          args = Enum.map(column.function_args, &update_row_index(query, &1, selected_columns))
-          %Expression{column | function_args: args}
+          args = Enum.map(column.args, &update_row_index(query, &1, selected_columns))
+          %Expression{column | args: args}
         else
           column
         end

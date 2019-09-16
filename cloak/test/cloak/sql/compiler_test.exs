@@ -597,7 +597,7 @@ defmodule Cloak.Sql.Compiler.Test do
              columns: [
                %Expression{
                  function: "median",
-                 function_args: [column("table", "numeric")]
+                 args: [column("table", "numeric")]
                }
              ]
            } = compile!("select median(table.numeric) from table", data_source())
@@ -618,7 +618,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert [
              column("table", "column"),
-             %Expression{function: "median", function_args: [column("table", "column")]}
+             %Expression{function: "median", args: [column("table", "column")]}
            ] = result.columns
 
     conditions = conditions_list(result.where)

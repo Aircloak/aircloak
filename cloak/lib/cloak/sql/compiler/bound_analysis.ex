@@ -89,21 +89,21 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   defp do_set_bounds(expression = %Expression{constant?: false, function?: false}),
     do: expression
 
-  defp do_set_bounds(expression = %Expression{function?: true, function_args: [:*]}),
+  defp do_set_bounds(expression = %Expression{function?: true, args: [:*]}),
     do: expression
 
-  defp do_set_bounds(expression = %Expression{function?: true, function_args: [{:distinct, _}]}),
+  defp do_set_bounds(expression = %Expression{function?: true, args: [{:distinct, _}]}),
     do: expression
 
-  defp do_set_bounds(expression = %Expression{function: {:cast, to}, function_args: [%{bounds: bounds, type: from}]})
+  defp do_set_bounds(expression = %Expression{function: {:cast, to}, args: [%{bounds: bounds, type: from}]})
        when from in [:real, :integer] and to in [:real, :integer],
        do: %{expression | bounds: bounds}
 
-  defp do_set_bounds(expression = %Expression{function: {:cast, to}, function_args: [%{type: :boolean}]})
+  defp do_set_bounds(expression = %Expression{function: {:cast, to}, args: [%{type: :boolean}]})
        when to in [:real, :integer],
        do: %{expression | bounds: {0, 1}}
 
-  defp do_set_bounds(expression = %Expression{function?: true, function: name, function_args: args}),
+  defp do_set_bounds(expression = %Expression{function?: true, function: name, args: args}),
     do: %{expression | bounds: update_bounds(name, Enum.map(args, & &1.bounds))}
 
   defp do_set_bounds(expression), do: %{expression | bounds: :unknown}
@@ -197,15 +197,15 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     )
   end
 
-  defp do_check_division(expression = %Expression{function: f, function_args: [%{bounds: :unknown}, _]})
+  defp do_check_division(expression = %Expression{function: f, args: [%{bounds: :unknown}, _]})
        when f in @divisions,
        do: expression
 
-  defp do_check_division(expression = %Expression{function: f, function_args: [_, %{bounds: :unknown}]})
+  defp do_check_division(expression = %Expression{function: f, args: [_, %{bounds: :unknown}]})
        when f in @divisions,
        do: expression
 
-  defp do_check_division(expression = %Expression{function: "%", function_args: [_, divisor], bounds: bounds}) do
+  defp do_check_division(expression = %Expression{function: "%", args: [_, divisor], bounds: bounds}) do
     cond do
       !within_bounds?(:integer, bounds) -> expression
       spans_zero?(divisor.bounds) -> %{expression | function: "checked_mod"}
@@ -213,13 +213,13 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     end
   end
 
-  defp do_check_division(expression = %Expression{function: "/", function_args: [dividend, divisor]}) do
+  defp do_check_division(expression = %Expression{function: "/", args: [dividend, divisor]}) do
     case {spans_zero?(divisor.bounds), div_epsilon(dividend)} do
       {false, _} ->
         %{expression | function: "unsafe_div"}
 
       {_, {:ok, epsilon}} ->
-        %{expression | function: "checked_div", function_args: [dividend, divisor, Expression.constant(:real, epsilon)]}
+        %{expression | function: "checked_div", args: [dividend, divisor, Expression.constant(:real, epsilon)]}
 
       _ ->
         expression
@@ -230,7 +230,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     update_in(
       expression,
       [Query.Lenses.all_expressions() |> Lens.filter(&(&1.function == "^")) |> Lens.filter(&(&1.bounds != :unknown))],
-      fn expression = %Expression{function: "^", type: type, bounds: bounds, function_args: [base, _]} ->
+      fn expression = %Expression{function: "^", type: type, bounds: bounds, args: [base, _]} ->
         {base_min, _} = base.bounds
 
         if within_bounds?(type, bounds) and base_min < 0 do

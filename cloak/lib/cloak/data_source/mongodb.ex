@@ -260,7 +260,7 @@ defmodule Cloak.DataSource.MongoDB do
     end
   end
 
-  defp function_signature(%Expression{function: {:cast, type}, function_args: [value]}),
+  defp function_signature(%Expression{function: {:cast, type}, args: [value]}),
     do: "cast_#{value.type}_to_#{type}"
 
   defp function_signature(%Expression{function?: true, function: name}), do: name

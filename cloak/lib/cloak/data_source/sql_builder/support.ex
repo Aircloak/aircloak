@@ -31,14 +31,14 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp function_signature(%Expression{function: name, function_args: [{:distinct, _arg}]})
+  defp function_signature(%Expression{function: name, args: [{:distinct, _arg}]})
        when is_binary(name),
        do: {name <> "_distinct", 1}
 
-  defp function_signature(%Expression{function: name, function_args: args}) when is_binary(name),
+  defp function_signature(%Expression{function: name, args: args}) when is_binary(name),
     do: {name, length(args)}
 
-  defp function_signature(%Expression{function: {:cast, _target}, function_args: [_]}), do: {"cast", 1}
+  defp function_signature(%Expression{function: {:cast, _target}, args: [_]}), do: {"cast", 1}
 
-  defp function_signature(%Expression{function: {:bucket, _type}, function_args: [_, _]}), do: {"bucket", 2}
+  defp function_signature(%Expression{function: {:bucket, _type}, args: [_, _]}), do: {"bucket", 2}
 end

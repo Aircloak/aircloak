@@ -55,11 +55,11 @@ defmodule Cloak.Query.DbEmulator.Selector do
     Stream.map(stream, &select_fields(&1, columns))
   end
 
-  defp update_row_index(column = %Expression{function?: true, function_args: function_args}, source),
+  defp update_row_index(column = %Expression{function?: true, args: args}, source),
     do: %Expression{
       column
       | row_index: nil,
-        function_args: Enum.map(function_args, &update_row_index(&1, source))
+        args: Enum.map(args, &update_row_index(&1, source))
     }
 
   defp update_row_index(column = %Expression{constant?: true}, _source), do: column
@@ -132,61 +132,61 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp limit_rows(stream, %Query{limit: nil}), do: stream
   defp limit_rows(stream, %Query{limit: limit}), do: Stream.take(stream, limit)
 
-  defp aggregator_to_default(%Expression{function?: true, function_args: [{:distinct, _column}]}), do: MapSet.new()
+  defp aggregator_to_default(%Expression{function?: true, args: [{:distinct, _column}]}), do: MapSet.new()
 
   defp aggregator_to_default(%Expression{
          function?: true,
          function: "count",
-         function_args: [_column]
+         args: [_column]
        }),
        do: 0
 
   defp aggregator_to_default(%Expression{
          function?: true,
          function: "min",
-         function_args: [_column]
+         args: [_column]
        }),
        do: nil
 
   defp aggregator_to_default(%Expression{
          function?: true,
          function: "max",
-         function_args: [_column]
+         args: [_column]
        }),
        do: nil
 
   defp aggregator_to_default(%Expression{
          function?: true,
          function: "sum",
-         function_args: [_column]
+         args: [_column]
        }),
        do: nil
 
   defp aggregator_to_default(%Expression{
          function?: true,
          function: "avg",
-         function_args: [_column]
+         args: [_column]
        }),
        do: {nil, 0}
 
   defp aggregator_to_default(%Expression{
          function?: true,
          function: "stddev",
-         function_args: [_column]
+         args: [_column]
        }),
        do: []
 
   defp aggregator_to_default(%Expression{
          function?: true,
          function: "variance",
-         function_args: [_column]
+         args: [_column]
        }),
        do: []
 
   defp aggregator_to_default(%Expression{
          function?: true,
          function: "median",
-         function_args: [_column]
+         args: [_column]
        }),
        do: []
 
@@ -204,21 +204,21 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp aggregator_to_accumulator(%Expression{
          function?: true,
-         function_args: [{:distinct, column}]
+         args: [{:distinct, column}]
        }),
        do: null_ignore_accumulator(do: MapSet.put(accumulator, value))
 
   defp aggregator_to_accumulator(%Expression{
          function?: true,
          function: "count",
-         function_args: [:*]
+         args: [:*]
        }),
        do: fn _row, count -> count + 1 end
 
   defp aggregator_to_accumulator(%Expression{
          function?: true,
          function: "count",
-         function_args: [column]
+         args: [column]
        }) do
     null_ignore_accumulator do
       _ = value
@@ -229,28 +229,28 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp aggregator_to_accumulator(%Expression{
          function?: true,
          function: "sum",
-         function_args: [column]
+         args: [column]
        }),
        do: null_ignore_accumulator(do: (accumulator || 0) + value)
 
   defp aggregator_to_accumulator(%Expression{
          function?: true,
          function: "min",
-         function_args: [column]
+         args: [column]
        }),
        do: null_ignore_accumulator(do: Data.min(accumulator, value))
 
   defp aggregator_to_accumulator(%Expression{
          function?: true,
          function: "max",
-         function_args: [column]
+         args: [column]
        }),
        do: null_ignore_accumulator(do: Data.max(accumulator, value))
 
   defp aggregator_to_accumulator(%Expression{
          function?: true,
          function: "avg",
-         function_args: [column]
+         args: [column]
        }) do
     null_ignore_accumulator do
       {sum, count} = accumulator
@@ -261,84 +261,84 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp aggregator_to_accumulator(%Expression{
          function?: true,
          function: "stddev",
-         function_args: [column]
+         args: [column]
        }),
        do: null_ignore_accumulator(do: [value | accumulator])
 
   defp aggregator_to_accumulator(%Expression{
          function?: true,
          function: "variance",
-         function_args: [column]
+         args: [column]
        }),
        do: null_ignore_accumulator(do: [value | accumulator])
 
   defp aggregator_to_accumulator(%Expression{
          function?: true,
          function: "median",
-         function_args: [column]
+         args: [column]
        }),
        do: null_ignore_accumulator(do: [value | accumulator])
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "count",
-         function_args: [{:distinct, _column}]
+         args: [{:distinct, _column}]
        }),
        do: &MapSet.size(&1)
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "sum",
-         function_args: [{:distinct, _column}]
+         args: [{:distinct, _column}]
        }),
        do: &(&1 |> MapSet.to_list() |> Stats.sum())
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "min",
-         function_args: [{:distinct, _column}]
+         args: [{:distinct, _column}]
        }),
        do: &if(MapSet.size(&1) == 0, do: nil, else: set_min(&1))
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "max",
-         function_args: [{:distinct, _column}]
+         args: [{:distinct, _column}]
        }),
        do: &if(MapSet.size(&1) == 0, do: nil, else: set_max(&1))
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "avg",
-         function_args: [{:distinct, _column}]
+         args: [{:distinct, _column}]
        }),
        do: &(&1 |> MapSet.to_list() |> Stats.mean())
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "stddev",
-         function_args: [{:distinct, _column}]
+         args: [{:distinct, _column}]
        }),
        do: &(&1 |> MapSet.to_list() |> Stats.stddev())
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "variance",
-         function_args: [{:distinct, _column}]
+         args: [{:distinct, _column}]
        }),
        do: &(&1 |> MapSet.to_list() |> Stats.variance())
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "median",
-         function_args: [{:distinct, %Expression{type: :number}}]
+         args: [{:distinct, %Expression{type: :number}}]
        }),
        do: &(&1 |> MapSet.to_list() |> Stats.median())
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "median",
-         function_args: [{:distinct, _column}]
+         args: [{:distinct, _column}]
        }),
        do:
          &if(
@@ -350,35 +350,35 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "count",
-         function_args: [_column]
+         args: [_column]
        }),
        do: & &1
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "sum",
-         function_args: [_column]
+         args: [_column]
        }),
        do: & &1
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "min",
-         function_args: [_column]
+         args: [_column]
        }),
        do: & &1
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "max",
-         function_args: [_column]
+         args: [_column]
        }),
        do: & &1
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "avg",
-         function_args: [_column]
+         args: [_column]
        }),
        do: fn
          {nil, 0} -> nil
@@ -388,28 +388,28 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "stddev",
-         function_args: [_column]
+         args: [_column]
        }),
        do: &Stats.stddev/1
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "variance",
-         function_args: [_column]
+         args: [_column]
        }),
        do: &Stats.variance/1
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "median",
-         function_args: [%Expression{type: :number}]
+         args: [%Expression{type: :number}]
        }),
        do: &Stats.median/1
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
          function: "median",
-         function_args: [_column]
+         args: [_column]
        }),
        do: &if(&1 == [], do: nil, else: &1 |> sort() |> Enum.at(&1 |> Enum.count() |> div(2)))
 

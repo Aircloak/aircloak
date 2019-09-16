@@ -18,7 +18,7 @@ defmodule Cloak.Sql.Range.Test do
 
       assert [
                %Range{
-                 column: %{function: "avg", function_args: [%{name: "number"}]},
+                 column: %{function: "avg", args: [%{name: "number"}]},
                  interval: {10, 20}
                }
              ] = Range.find_ranges(subquery)

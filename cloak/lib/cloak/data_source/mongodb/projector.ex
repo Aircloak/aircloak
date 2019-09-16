@@ -88,14 +88,14 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   defp parse_expression(%Expression{constant?: true, value: value}), do: %{"$literal": value}
 
-  defp parse_expression(%Expression{function?: true, function: {:cast, type}, function_args: [value]}),
+  defp parse_expression(%Expression{function?: true, function: {:cast, type}, args: [value]}),
     do: parse_function("cast", [parse_expression(value), value.type, type])
 
-  defp parse_expression(%Expression{function?: true, function: fun, function_args: [arg]})
+  defp parse_expression(%Expression{function?: true, function: fun, args: [arg]})
        when fun != nil,
        do: parse_function(fun, parse_expression(arg))
 
-  defp parse_expression(%Expression{function?: true, function: fun, function_args: args})
+  defp parse_expression(%Expression{function?: true, function: fun, args: args})
        when fun != nil,
        do: parse_function(fun, Enum.map(args, &parse_expression/1))
 

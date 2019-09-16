@@ -53,7 +53,7 @@ defmodule Cloak.Sql.Query.Features do
   end
 
   defp aggregate?(expression),
-    do: Function.aggregator?(expression) or Enum.any?(expression.function_args, &aggregate?/1)
+    do: Function.aggregator?(expression) or Enum.any?(expression.args, &aggregate?/1)
 
   defp selected_types(columns), do: columns |> Enum.map(&Function.type/1) |> Enum.map(&stringify/1)
 
@@ -143,7 +143,7 @@ defmodule Cloak.Sql.Query.Features do
   defp expression_tree_to_lisp(other), do: to_string(other)
 
   defp build_expression_tree(
-         %Expression{function?: true, function: function, function_args: args},
+         %Expression{function?: true, function: function, args: args},
          query
        ),
        do: [Function.readable_name(function) | Enum.map(args, &build_expression_tree(&1, query))]

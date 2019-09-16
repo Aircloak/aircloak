@@ -62,7 +62,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp remove_redundant_casts(query),
     do:
       update_in(query, [Query.Lenses.terminals()], fn
-        %Expression{function: {:cast, type}, function_args: [expr = %Expression{type: type}]} ->
+        %Expression{function: {:cast, type}, args: [expr = %Expression{type: type}]} ->
           expr
 
         other ->
@@ -77,7 +77,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp remove_redundant_rounds(query),
     do:
       update_in(query, [Query.Lenses.terminals()], fn
-        %Expression{function: fun, function_args: [expr = %Expression{type: :integer}]}
+        %Expression{function: fun, args: [expr = %Expression{type: :integer}]}
         when fun in @round_funcs ->
           expr
 
@@ -130,7 +130,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Lens.map(query, &do_normalize_constants/1)
 
   defp do_normalize_constants(expression) do
-    case {Expression.const_value(expression), Enum.any?(expression.function_args, &is_nil(&1.value))} do
+    case {Expression.const_value(expression), Enum.any?(expression.args, &is_nil(&1.value))} do
       {nil, true} ->
         Expression.null()
 
@@ -177,7 +177,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # -------------------------------------------------------------------
 
   defp normalize_bucket(query),
-    do: Lens.map(Query.Lenses.buckets(), query, &expand_bucket(&1.function, &1.function_args))
+    do: Lens.map(Query.Lenses.buckets(), query, &expand_bucket(&1.function, &1.args))
 
   defp expand_bucket({:bucket, :lower}, [arg1, arg2]),
     # floor(arg1 / arg2) * arg2
@@ -246,9 +246,9 @@ defmodule Cloak.Sql.Compiler.Normalization do
     Expression.function("sqrt", [%Expression{stddev_expression | function: "variance_noise"}], :real)
   end
 
-  defp normalize_anonymizing_aggregator(%Expression{function_args: [{:distinct, _arg}]} = expression), do: expression
+  defp normalize_anonymizing_aggregator(%Expression{args: [{:distinct, _arg}]} = expression), do: expression
 
-  defp normalize_anonymizing_aggregator(%Expression{function: "avg", function_args: [arg]}),
+  defp normalize_anonymizing_aggregator(%Expression{function: "avg", args: [arg]}),
     do:
       Expression.function(
         "/",
@@ -259,7 +259,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
         :real
       )
 
-  defp normalize_anonymizing_aggregator(%Expression{function: "avg_noise", function_args: [arg]}),
+  defp normalize_anonymizing_aggregator(%Expression{function: "avg_noise", args: [arg]}),
     do:
       Expression.function(
         "/",
@@ -413,7 +413,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp remove_conditionless_cases(query),
     do:
       update_in(query, [Query.Lenses.terminals()], fn
-        %Expression{function: "case", function_args: [expr]} ->
+        %Expression{function: "case", args: [expr]} ->
           expr
 
         other ->

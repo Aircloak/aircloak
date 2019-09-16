@@ -66,7 +66,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   @uid_offloaded_aggregators ~w(count sum min max count_noise sum_noise)
   defp can_be_uid_grouped?(aggregator),
-    do: aggregator.function in @uid_offloaded_aggregators and not distinct_input?(aggregator.function_args)
+    do: aggregator.function in @uid_offloaded_aggregators and not distinct_input?(aggregator.args)
 
   defp distinct_input?([{:distinct, %Expression{user_id?: false}}]), do: true
   defp distinct_input?([_]), do: false
@@ -97,7 +97,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   defp distinct_column_count?(%Expression{
          function: function,
-         function_args: [{:distinct, %Expression{user_id?: false}}]
+         args: [{:distinct, %Expression{user_id?: false}}]
        })
        when function in ["count", "count_noise"],
        do: true
@@ -183,16 +183,16 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   end
 
   defp update_stats_aggregator(
-         %Expression{function_args: [{:distinct, %Expression{user_id?: true}}]} = aggregator,
+         %Expression{args: [{:distinct, %Expression{user_id?: true}}]} = aggregator,
          [regular_statistics_table | _distinct_statistics_tables],
          _distinct_columns
        ) do
     arg = Transformer.column_from_synthetic_table(regular_statistics_table, "__ac_count_duid")
-    %Expression{aggregator | function_args: [{:distinct, arg}]}
+    %Expression{aggregator | args: [{:distinct, arg}]}
   end
 
   defp update_stats_aggregator(
-         %Expression{function_args: [{:distinct, arg}]} = aggregator,
+         %Expression{args: [{:distinct, arg}]} = aggregator,
          [_regular_statistics_table | distinct_statistics_tables],
          distinct_columns
        ) do
@@ -200,23 +200,23 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     distinct_statistics_table = Enum.at(distinct_statistics_tables, table_index)
     real_count = Transformer.column_from_synthetic_table(distinct_statistics_table, "__ac_count_distinct")
     noise_factor = Transformer.column_from_synthetic_table(distinct_statistics_table, "__ac_noise_factor")
-    %Expression{aggregator | function_args: [{:distinct, [real_count, noise_factor]}]}
+    %Expression{aggregator | args: [{:distinct, [real_count, noise_factor]}]}
   end
 
   defp update_stats_aggregator(aggregator, [regular_statistics_table | _distinct_statistics_tables], _distinct_columns) do
-    [%Expression{name: "__ac_agg_" <> _ = name}] = aggregator.function_args
+    [%Expression{name: "__ac_agg_" <> _ = name}] = aggregator.args
 
     args =
       for input <- ~w(count sum min max stddev),
           do: Transformer.column_from_synthetic_table(regular_statistics_table, "#{name}_#{input}")
 
-    %Expression{aggregator | function_args: args}
+    %Expression{aggregator | args: args}
   end
 
   defp target_columns_for_distinct_aggregators(aggregators) do
     aggregators
     |> Enum.filter(&distinct_column_count?/1)
-    |> Enum.map(fn %Expression{function_args: [{:distinct, target_column}]} -> target_column end)
+    |> Enum.map(fn %Expression{args: [{:distinct, target_column}]} -> target_column end)
     |> Enum.uniq()
   end
 end

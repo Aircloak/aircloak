@@ -76,7 +76,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Enum.map(&verify_standard_function_usage/1)
   end
 
-  defp verify_standard_function_usage(%Expression{function: name, function_args: args} = expression) do
+  defp verify_standard_function_usage(%Expression{function: name, args: args} = expression) do
     if not Function.aggregator?(name) and match?([{:distinct, _}], args),
       do:
         raise(
@@ -144,7 +144,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_anonymization_function_usage(%Expression{function: name} = expression, query) do
     if query.type == :anonymized and name in ~w(min max median) and
-         expression.function_args |> Enum.at(0) |> Function.type() == :text do
+         expression.args |> Enum.at(0) |> Function.type() == :text do
       raise(
         CompilationError,
         source_location: expression.source_location,
@@ -200,7 +200,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         true
 
       column.function? ->
-        Function.aggregator?(column) or Enum.all?(column.function_args, &valid_expression_in_aggregate?(query, &1))
+        Function.aggregator?(column) or Enum.all?(column.args, &valid_expression_in_aggregate?(query, &1))
 
       true ->
         false
@@ -213,7 +213,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp invalid_columns_in_aggregate(query, expression) do
     cond do
       valid_expression_in_aggregate?(query, expression) -> []
-      expression.function? -> Enum.flat_map(expression.function_args, &invalid_columns_in_aggregate(query, &1))
+      expression.function? -> Enum.flat_map(expression.args, &invalid_columns_in_aggregate(query, &1))
       true -> [expression]
     end
   end
@@ -356,7 +356,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Lenses.query_expressions()
     |> Lens.filter(&(&1.function == "grouping_id"))
     |> Lens.to_list(query)
-    |> Enum.each(fn %Expression{function_args: args} ->
+    |> Enum.each(fn %Expression{args: args} ->
       Enum.each(args, fn column ->
         unless Expression.member?(query.group_by, column) do
           raise CompilationError,
@@ -734,7 +734,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_division_by_zero(query) do
     Lens.each(Lenses.query_expressions(), query, fn
-      %{function: "/", function_args: [_, divisor]} ->
+      %{function: "/", args: [_, divisor]} ->
         if Expression.constant?(divisor) and Expression.const_value(divisor) == 0 do
           raise CompilationError, message: "Division by zero.", source_location: divisor.source_location
         end

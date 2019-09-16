@@ -262,7 +262,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp extract_aggregator(expression) do
     if Function.aggregator?(expression),
       do: [expression],
-      else: Enum.flat_map(expression.function_args, &extract_aggregator/1)
+      else: Enum.flat_map(expression.args, &extract_aggregator/1)
   end
 
   defp project_properties([]), do: nil
@@ -289,7 +289,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp extract_column_top(%Expression{constant?: true} = column, _aggregators, _groups), do: column
 
   defp extract_column_top(
-         %Expression{function: "count", function_args: [{:distinct, _}]} = column,
+         %Expression{function: "count", args: [{:distinct, _}]} = column,
          aggregators,
          _groups
        ) do
@@ -300,12 +300,12 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       column
       | function?: true,
         function: "size",
-        function_args: [%Expression{name: "aggregated_#{index}", table: :unknown, type: :integer}]
+        args: [%Expression{name: "aggregated_#{index}", table: :unknown, type: :integer}]
     }
   end
 
   defp extract_column_top(
-         %Expression{function_args: [{:distinct, _}]} = column,
+         %Expression{args: [{:distinct, _}]} = column,
          aggregators,
          _groups
        ) do
@@ -314,7 +314,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
     %Expression{
       column
-      | function_args: [%Expression{name: "aggregated_#{index}", table: :unknown}]
+      | args: [%Expression{name: "aggregated_#{index}", table: :unknown}]
     }
   end
 
@@ -324,8 +324,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
         case Enum.find_index(groups, &Expression.equals?(column, &1)) do
           nil ->
             # Has to be a function call since the lookups failed.
-            args = Enum.map(column.function_args, &extract_column_top(&1, aggregators, groups))
-            %Expression{column | function_args: args}
+            args = Enum.map(column.args, &extract_column_top(&1, aggregators, groups))
+            %Expression{column | args: args}
 
           index ->
             %Expression{

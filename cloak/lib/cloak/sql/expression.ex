@@ -27,7 +27,7 @@ defmodule Cloak.Sql.Expression do
           constant?: boolean,
           value: any,
           function: function_name | nil,
-          function_args: [t],
+          args: [t],
           function?: boolean,
           parameter_index: pos_integer | nil,
           synthetic?: boolean,
@@ -44,7 +44,7 @@ defmodule Cloak.Sql.Expression do
             constant?: false,
             value: nil,
             function: nil,
-            function_args: [],
+            args: [],
             function?: false,
             parameter_index: nil,
             synthetic?: false,
@@ -95,10 +95,10 @@ defmodule Cloak.Sql.Expression do
 
   @doc "Creates a column representing a function call."
   @spec function(function_name, [t | :* | {:distinct, t}], column_type) :: t
-  def function(function_name, function_args, type),
+  def function(function_name, args, type),
     do: %__MODULE__{
       function: function_name,
-      function_args: function_args,
+      args: args,
       type: type,
       function?: true
     }
@@ -115,7 +115,7 @@ defmodule Cloak.Sql.Expression do
   @spec constant?(Cloak.Sql.Parser.column() | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
 
-  def constant?(%__MODULE__{function?: true, function_args: args} = expression),
+  def constant?(%__MODULE__{function?: true, args: args} = expression),
     do: not Function.aggregator?(expression) and Enum.all?(args, &constant?/1)
 
   def constant?(_), do: false
@@ -178,15 +178,15 @@ defmodule Cloak.Sql.Expression do
     do: display(%__MODULE__{expression | alias: nil}) <> " as #{alias}"
 
   def display(%__MODULE__{name: name}) when is_binary(name), do: name
-  def display(%__MODULE__{function: {:cast, type}, function_args: [arg]}), do: "cast(#{display(arg)} as #{type})"
+  def display(%__MODULE__{function: {:cast, type}, args: [arg]}), do: "cast(#{display(arg)} as #{type})"
 
-  def display(%__MODULE__{function: {:bucket, align}, function_args: [value, by]}),
+  def display(%__MODULE__{function: {:bucket, align}, args: [value, by]}),
     do: "bucket(#{display(value)} by #{display(by)} align #{align})"
 
-  def display(%__MODULE__{function: function, function_args: [arg1, arg2]}) when function in ~w(+ - / * ^ %),
+  def display(%__MODULE__{function: function, args: [arg1, arg2]}) when function in ~w(+ - / * ^ %),
     do: "#{display(arg1)} #{function} #{display(arg2)}"
 
-  def display(%__MODULE__{function: function, function_args: args}) when is_binary(function),
+  def display(%__MODULE__{function: function, args: args}) when is_binary(function),
     do: "#{function}(#{args |> Enum.map(&display/1) |> Enum.join(", ")})"
 
   def display(%__MODULE__{constant?: true, type: :text, value: value}), do: "'#{value}'"
@@ -207,7 +207,7 @@ defmodule Cloak.Sql.Expression do
   def value(expression, row \\ [])
   def value(%__MODULE__{constant?: true, value: value}, _row), do: value
 
-  def value(expression = %__MODULE__{function?: true, function_args: args, row_index: nil}, row),
+  def value(expression = %__MODULE__{function?: true, args: args, row_index: nil}, row),
     do: apply_function(expression, Enum.map(args, &value(&1, row)))
 
   def value(%__MODULE__{row_index: nil} = column, _row),
@@ -239,7 +239,7 @@ defmodule Cloak.Sql.Expression do
   @spec const_value(t) :: DataSource.field() | LikePattern.t()
   def const_value(%__MODULE__{constant?: true, value: value}), do: value
 
-  def const_value(expression = %__MODULE__{function?: true, function_args: args}),
+  def const_value(expression = %__MODULE__{function?: true, args: args}),
     do: apply_function(expression, Enum.map(args, &const_value/1))
 
   @doc "Checks two columns for equality."
@@ -250,7 +250,7 @@ defmodule Cloak.Sql.Expression do
   def equals?(%__MODULE__{} = c1, %__MODULE__{} = c2),
     do:
       c1.table == c2.table and c1.name == c2.name and c1.value == c2.value and c1.function == c2.function and
-        Enum.zip(c1.function_args, c2.function_args)
+        Enum.zip(c1.args, c2.args)
         |> Enum.all?(fn {arg1, arg2} -> equals?(arg1, arg2) end)
 
   def equals?(c1, c2), do: semantic(c1) == semantic(c2)
@@ -263,18 +263,18 @@ defmodule Cloak.Sql.Expression do
 
   @doc "Returns the list of arguments if the given Expression is a function expression, [] otherwise."
   @spec arguments(t) :: [t]
-  def arguments(%__MODULE__{function?: true, function_args: args}), do: args
+  def arguments(%__MODULE__{function?: true, args: args}), do: args
   def arguments(_), do: []
 
   @doc "Returns the first argument of the function expression."
   @spec first_argument!(t) :: t
-  def first_argument!(%__MODULE__{function?: true, function_args: [arg | _]}), do: arg
+  def first_argument!(%__MODULE__{function?: true, args: [arg | _]}), do: arg
 
   @doc "Returns the first instance of a database column from the given expression. Nil if none can be found."
   @spec first_column(t) :: t | nil
   def first_column(%__MODULE__{constant?: true}), do: nil
 
-  def first_column(%__MODULE__{function?: true, function_args: args}) do
+  def first_column(%__MODULE__{function?: true, args: args}) do
     args
     |> Enum.map(&first_column/1)
     |> Enum.filter(& &1)

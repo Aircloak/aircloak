@@ -175,7 +175,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp clear_range_lhs?(lhs, query, interval) do
     cond do
       Function.aggregator?(lhs) ->
-        lhs.function_args |> Enum.at(0) |> clear_range_lhs?(query, interval)
+        lhs.args |> Enum.at(0) |> clear_range_lhs?(query, interval)
 
       interval == :implicit ->
         not (lhs |> Type.establish_type(query) |> Type.unclear_implicit_range?())

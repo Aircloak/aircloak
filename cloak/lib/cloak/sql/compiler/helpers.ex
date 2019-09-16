@@ -64,7 +64,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def aggregated_column?({:distinct, _column}), do: true
 
   def aggregated_column?(column),
-    do: column.function? and (Function.aggregator?(column) or Enum.any?(column.function_args, &aggregated_column?/1))
+    do: column.function? and (Function.aggregator?(column) or Enum.any?(column.args, &aggregated_column?/1))
 
   @doc "Returns true if the query GROUPS BY columns"
   @spec group_by?(partial_query) :: boolean
