@@ -111,12 +111,12 @@ defmodule Cloak.Sql.Compiler.Helpers.Test do
     end
 
     test "true on non-selected group by" do
-      exp = %Expression{name: "group by"}
+      exp = %Expression{kind: :column, type: :integer, name: "group by"}
       assert [exp] == Helpers.non_selected_group_bys(%Query{group_by: [exp]})
     end
 
     test "ignores selected columns" do
-      exp = %Expression{name: "group by"}
+      exp = %Expression{kind: :column, type: :integer, name: "group by"}
       assert [] == Helpers.non_selected_group_bys(%Query{columns: [exp], group_by: [exp]})
     end
   end

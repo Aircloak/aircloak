@@ -295,9 +295,9 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
   defp required_groups(query),
     do: query |> grouped_columns() |> Enum.reject(& &1.user_id?) |> Enum.uniq_by(&Expression.semantic/1)
 
-  defp extract_groups(%Expression{name: name} = column) when is_binary(name), do: [column]
+  defp extract_groups(%Expression{kind: :column} = column), do: [column]
 
-  defp extract_groups(%Expression{function?: true} = expression) do
+  defp extract_groups(%Expression{kind: :function} = expression) do
     cond do
       Function.aggregator?(expression) ->
         []

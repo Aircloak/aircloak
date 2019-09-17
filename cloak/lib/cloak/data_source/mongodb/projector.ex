@@ -38,10 +38,11 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   @doc "Creates a MongoDB projection from a column."
   @spec project_column(Expression.t()) :: {String.t(), atom | map}
-  def project_column(%Expression{table: %{name: table}, name: name, alias: alias}) when alias in [nil, name],
-    do: {name, "$#{table}.#{name}"}
+  def project_column(%Expression{kind: :column, table: %{name: table}, name: name, alias: alias})
+      when alias in [nil, name],
+      do: {name, "$#{table}.#{name}"}
 
-  def project_column(%Expression{constant?: true, alias: empty_alias} = constant)
+  def project_column(%Expression{kind: :constant, alias: empty_alias} = constant)
       when empty_alias in [nil, ""],
       # We need to give an alias to unnamed constants
       do:
@@ -73,34 +74,32 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_expression({:distinct, expression}), do: {:distinct, parse_expression(expression)}
 
   @epoch :calendar.datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}})
-  defp parse_expression(%Expression{constant?: true, value: %NaiveDateTime{} = datetime}),
+  defp parse_expression(%Expression{kind: :constant, value: %NaiveDateTime{} = datetime}),
     do: DateTime.from_naive!(datetime, "Etc/UTC")
 
-  defp parse_expression(%Expression{constant?: true, value: %Date{} = date}),
+  defp parse_expression(%Expression{kind: :constant, value: %Date{} = date}),
     do:
       {Date.to_erl(date), {0, 0, 0}}
       |> :calendar.datetime_to_gregorian_seconds()
       |> Kernel.-(@epoch)
       |> DateTime.from_unix!()
 
-  defp parse_expression(%Expression{constant?: true, value: %Timex.Duration{} = value}),
+  defp parse_expression(%Expression{kind: :constant, value: %Timex.Duration{} = value}),
     do: %{"$literal": Timex.Duration.to_seconds(value)}
 
-  defp parse_expression(%Expression{constant?: true, value: value}), do: %{"$literal": value}
+  defp parse_expression(%Expression{kind: :constant, value: value}), do: %{"$literal": value}
 
-  defp parse_expression(%Expression{function?: true, function: {:cast, type}, args: [value]}),
+  defp parse_expression(%Expression{kind: :function, function: {:cast, type}, args: [value]}),
     do: parse_function("cast", [parse_expression(value), value.type, type])
 
-  defp parse_expression(%Expression{function?: true, function: fun, args: [arg]})
-       when fun != nil,
-       do: parse_function(fun, parse_expression(arg))
+  defp parse_expression(%Expression{kind: :function, function: fun, args: [arg]}),
+    do: parse_function(fun, parse_expression(arg))
 
-  defp parse_expression(%Expression{function?: true, function: fun, args: args})
-       when fun != nil,
-       do: parse_function(fun, Enum.map(args, &parse_expression/1))
+  defp parse_expression(%Expression{kind: :function, function: fun, args: args}),
+    do: parse_function(fun, Enum.map(args, &parse_expression/1))
 
-  defp parse_expression(%Expression{table: :unknown, name: name}) when is_binary(name), do: "$" <> name
-  defp parse_expression(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: "$#{table}.#{name}"
+  defp parse_expression(%Expression{kind: :column, table: :unknown, name: name}), do: "$" <> name
+  defp parse_expression(%Expression{kind: :column, table: %{name: table}, name: name}), do: "$#{table}.#{name}"
 
   defp parse_function("left", [string, count]), do: null_check(string, count, %{"$substrCP": [string, 0, count]})
 

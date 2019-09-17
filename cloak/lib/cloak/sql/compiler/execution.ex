@@ -154,7 +154,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   # Normal validators and compilers
   # -------------------------------------------------------------------
 
-  defp expand_arguments(%Expression{function?: true} = column),
+  defp expand_arguments(%Expression{kind: :function} = column),
     do: [column | Enum.flat_map(column.args, &expand_arguments/1)]
 
   defp expand_arguments(column), do: [column]

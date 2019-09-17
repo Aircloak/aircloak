@@ -24,10 +24,10 @@ defmodule Cloak.Sql.Function do
   def has_attribute?({:function, name, _, _}, attribute),
     do: has_attribute?(canonical_name(name), attribute)
 
-  def has_attribute?(%Expression{function?: true, function: name}, attribute),
+  def has_attribute?(%Expression{kind: :function, function: name}, attribute),
     do: has_attribute?(name, attribute)
 
-  def has_attribute?(%Expression{function?: false}, _attribute), do: false
+  def has_attribute?(%Expression{}, _attribute), do: false
 
   def has_attribute?(name, attribute) do
     case Map.get(Aircloak.Functions.function_spec(), name) do
@@ -59,7 +59,7 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns the return type of the given function call or nil if it is badly typed."
   @spec return_type(t) :: data_type | nil
-  def return_type(%Expression{function?: true, function: name, args: args}),
+  def return_type(%Expression{kind: :function, function: name, args: args}),
     do: return_type({:function, name, args, nil})
 
   def return_type(function = {:function, name, _, _}) do
@@ -195,10 +195,10 @@ defmodule Cloak.Sql.Function do
   defp type_matches?(:any, _), do: true
   defp type_matches?(_, :*), do: false
 
-  defp type_matches?({:constant, expected}, %{constant?: true, type: actual}),
+  defp type_matches?({:constant, expected}, %{kind: :constant, type: actual}),
     do: expected == actual
 
-  defp type_matches?({:constant, expected}, %{function?: true, args: args, type: actual}),
+  defp type_matches?({:constant, expected}, %{kind: :function, args: args, type: actual}),
     do: expected == actual and Enum.all?(args, &Expression.constant?/1)
 
   defp type_matches?(_expected_type, %Expression{value: nil, type: nil}), do: true

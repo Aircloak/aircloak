@@ -79,31 +79,33 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     Query.Lenses.query_expressions() |> Query.Lenses.leaf_expressions() |> Lens.reject(&Expression.constant?/1)
   end
 
-  defp do_set_bounds(expression = %Expression{constant?: true, value: value}) when value in [:*, nil],
+  defp do_set_bounds(expression = %Expression{kind: :constant, value: value}) when value in [:*, nil],
     do: expression
 
-  defp do_set_bounds(expression = %Expression{type: type, constant?: true, value: value})
+  defp do_set_bounds(expression = %Expression{kind: :constant, type: type, value: value})
        when type in [:integer, :real],
        do: %{expression | bounds: {floor(value), ceil(value)}}
 
-  defp do_set_bounds(expression = %Expression{constant?: false, function?: false}),
+  defp do_set_bounds(expression = %Expression{kind: :column}),
     do: expression
 
-  defp do_set_bounds(expression = %Expression{function?: true, args: [:*]}),
+  defp do_set_bounds(expression = %Expression{kind: :function, args: [:*]}),
     do: expression
 
-  defp do_set_bounds(expression = %Expression{function?: true, args: [{:distinct, _}]}),
+  defp do_set_bounds(expression = %Expression{kind: :function, args: [{:distinct, _}]}),
     do: expression
 
-  defp do_set_bounds(expression = %Expression{function: {:cast, to}, args: [%{bounds: bounds, type: from}]})
+  defp do_set_bounds(
+         expression = %Expression{kind: :function, function: {:cast, to}, args: [%{bounds: bounds, type: from}]}
+       )
        when from in [:real, :integer] and to in [:real, :integer],
        do: %{expression | bounds: bounds}
 
-  defp do_set_bounds(expression = %Expression{function: {:cast, to}, args: [%{type: :boolean}]})
+  defp do_set_bounds(expression = %Expression{kind: :function, function: {:cast, to}, args: [%{type: :boolean}]})
        when to in [:real, :integer],
        do: %{expression | bounds: {0, 1}}
 
-  defp do_set_bounds(expression = %Expression{function?: true, function: name, args: args}),
+  defp do_set_bounds(expression = %Expression{kind: :function, function: name, args: args}),
     do: %{expression | bounds: update_bounds(name, Enum.map(args, & &1.bounds))}
 
   defp do_set_bounds(expression), do: %{expression | bounds: :unknown}

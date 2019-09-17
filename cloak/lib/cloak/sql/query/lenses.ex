@@ -52,7 +52,7 @@ defmodule Cloak.Sql.Query.Lenses do
       %Query{type: :anonymized} -> db_filter_clauses() |> conditions_terminals() |> expressions()
       _ -> query_expressions()
     end)
-    |> Lens.filter(& &1.function?)
+    |> Lens.filter(&Expression.function?/1)
   end
 
   @doc "Lens focusing on raw (uncompiled) casts of parameters."
@@ -303,7 +303,7 @@ defmodule Cloak.Sql.Query.Lenses do
       elements when is_list(elements) ->
         Lens.all() |> terminal_elements()
 
-      %Expression{function?: true} ->
+      %Expression{kind: :function} ->
         Lens.both(Lens.key(:args) |> terminal_elements, Lens.root())
 
       _ ->
@@ -319,7 +319,7 @@ defmodule Cloak.Sql.Query.Lenses do
     end)
   end
 
-  defp do_leaf_expressions(lens), do: lens |> Lens.filter(&match?(%Expression{function?: false}, &1))
+  defp do_leaf_expressions(lens), do: Lens.reject(lens, &Expression.function?/1)
 
   deflensp join_elements() do
     Lens.match(fn

@@ -154,35 +154,35 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql({:distinct, column}, query),
     do: ["DISTINCT ", column_sql(column, query)]
 
-  defp column_sql(%Expression{alias: alias} = column, query) when alias != nil and alias != "" do
+  defp column_sql(%Expression{alias: alias} = column, query) when alias not in [nil, ""] do
     sql_dialect_module(query).alias_sql(
       column_sql(%Expression{column | alias: nil}, query),
       quote_name(alias, sql_dialect_module(query).quote_char())
     )
   end
 
-  defp column_sql(%Expression{function?: true, function: fun_name, type: type, args: args}, query)
+  defp column_sql(%Expression{kind: :function, function: fun_name, type: type, args: args}, query)
        when fun_name in ["+", "-"] and type in [:time, :date, :datetime],
        do: sql_dialect_module(query).time_arithmetic_expression(fun_name, Enum.map(args, &to_fragment(&1, query)))
 
-  defp column_sql(%Expression{function?: true, function: "/", type: :interval, args: args}, query),
+  defp column_sql(%Expression{kind: :function, function: "/", type: :interval, args: args}, query),
     do: sql_dialect_module(query).interval_division(Enum.map(args, &to_fragment(&1, query)))
 
-  defp column_sql(%Expression{function?: true, function: "-", type: :interval, args: args}, query),
+  defp column_sql(%Expression{kind: :function, function: "-", type: :interval, args: args}, query),
     do: sql_dialect_module(query).date_subtraction_expression(Enum.map(args, &to_fragment(&1, query)))
 
-  defp column_sql(%Expression{function: {:cast, to_type}, args: [arg]}, query),
+  defp column_sql(%Expression{kind: :function, function: {:cast, to_type}, args: [arg]}, query),
     do: arg |> to_fragment(query) |> sql_dialect_module(query).cast_sql(arg.type, to_type)
 
-  defp column_sql(expression = %Expression{function: "date_trunc", type: :date}, query),
+  defp column_sql(expression = %Expression{kind: :function, function: "date_trunc", type: :date}, query),
     do: column_sql(cast(%{expression | type: :datetime}, :date), query)
 
-  defp column_sql(%Expression{function?: true, function: "sum", args: [arg], type: :real}, query) do
+  defp column_sql(%Expression{kind: :function, function: "sum", args: [arg], type: :real}, query) do
     # Force `SUM` of reals to use double precision.
     Support.function_sql("sum", [arg |> cast(:real) |> to_fragment(query)], sql_dialect_module(query))
   end
 
-  defp column_sql(%Expression{function?: true, function: fun_name, args: args}, query) do
+  defp column_sql(%Expression{kind: :function, function: fun_name, args: args}, query) do
     args =
       if Cloak.Sql.Function.math_function?(fun_name) do
         Enum.map(args, &force_max_precision/1)
@@ -193,13 +193,13 @@ defmodule Cloak.DataSource.SqlBuilder do
     Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, query)), sql_dialect_module(query))
   end
 
-  defp column_sql(%Expression{constant?: true, type: :like_pattern, value: value}, _query),
+  defp column_sql(%Expression{kind: :constant, type: :like_pattern, value: value}, _query),
     do: like_pattern_to_fragment(value)
 
-  defp column_sql(%Expression{constant?: true, value: value}, query),
+  defp column_sql(%Expression{kind: :constant, value: value}, query),
     do: constant_to_fragment(value, query)
 
-  defp column_sql(%Expression{function?: false, constant?: false, bounds: bounds} = column, query) do
+  defp column_sql(%Expression{kind: :column, bounds: bounds} = column, query) do
     sql = column |> column_name(sql_dialect_module(query).quote_char()) |> cast_type(column.type, query)
 
     if Query.database_column?(column, query) do
@@ -214,7 +214,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp restrict(_type, sql, _bounds), do: sql
 
-  defp force_max_precision(expression = %Expression{constant?: true}), do: expression
+  defp force_max_precision(expression = %Expression{kind: :constant}), do: expression
   defp force_max_precision(expression = %Expression{type: type}), do: cast(expression, type)
 
   defp cast_type(value, :unknown, query), do: sql_dialect_module(query).cast_sql(value, :unknown, :text)
@@ -384,7 +384,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     [?', pattern, ?', "ESCAPE", ?', escape, ?']
   end
 
-  defp dot_terminate(%Expression{constant?: true, type: :text, value: value} = expression) when is_binary(value),
+  defp dot_terminate(%Expression{kind: :constant, type: :text, value: value} = expression) when is_binary(value),
     do: %Expression{expression | value: value <> "."}
 
   defp dot_terminate(%Expression{type: :text} = expression),

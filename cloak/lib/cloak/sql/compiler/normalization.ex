@@ -221,7 +221,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
         :real
       )
 
-  defp inverse_constant(%Expression{constant?: true, value: value}) when is_number(value),
+  defp inverse_constant(%Expression{kind: :constant, value: value}) when is_number(value),
     do: Expression.constant(:real, 1.0 / value)
 
   # -------------------------------------------------------------------
@@ -324,7 +324,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   end
 
   defp remove_constant_ordering(order_list),
-    do: Enum.reject(order_list, fn {expression, _direction, _nulls} -> expression.constant? end)
+    do: Enum.reject(order_list, fn {expression, _direction, _nulls} -> Expression.constant?(expression) end)
 
   # -------------------------------------------------------------------
   # DISTINCT rewriting

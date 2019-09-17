@@ -15,10 +15,12 @@ defmodule Cloak.Sql.NoiseLayer.Test do
     )
   end
 
+  defp row_index_expr(index), do: %Expression{kind: :column, type: :integer, row_index: index}
+
   test "accumulate changes results of evaluating expressions" do
     layers = [
-      NoiseLayer.new("alice", [%Expression{row_index: 1}, %Expression{row_index: 2}]),
-      NoiseLayer.new("bob", [%Expression{row_index: 0}])
+      NoiseLayer.new("alice", [row_index_expr(1), row_index_expr(2)]),
+      NoiseLayer.new("bob", [row_index_expr(0)])
     ]
 
     accumulator1 = new_accumulator(layers, [])
@@ -29,8 +31,8 @@ defmodule Cloak.Sql.NoiseLayer.Test do
 
   test "acc() + acc(data) = acc(data)" do
     layers = [
-      NoiseLayer.new("alice", [%Expression{row_index: 1}, %Expression{row_index: 2}]),
-      NoiseLayer.new("bob", [%Expression{row_index: 0}])
+      NoiseLayer.new("alice", [row_index_expr(1), row_index_expr(2)]),
+      NoiseLayer.new("bob", [row_index_expr(0)])
     ]
 
     accumulator1 = new_accumulator(layers, [])
@@ -41,7 +43,7 @@ defmodule Cloak.Sql.NoiseLayer.Test do
   end
 
   test "acc(data1) + acc(data2) = acc(data1 + data2)" do
-    layers = [NoiseLayer.new("xxx", [%Expression{row_index: 0}, %Expression{row_index: 2}])]
+    layers = [NoiseLayer.new("xxx", [row_index_expr(0), row_index_expr(2)])]
 
     accumulator1 = new_accumulator(layers, [["value1", false, 0]])
     accumulator2 = new_accumulator(layers, [["value2", true, 3.4]])
@@ -51,7 +53,7 @@ defmodule Cloak.Sql.NoiseLayer.Test do
   end
 
   test "acc(data1 + data2) = acc(data2 + data1)" do
-    layers = [NoiseLayer.new("xxx", [%Expression{row_index: 0}, %Expression{row_index: 2}])]
+    layers = [NoiseLayer.new("xxx", [row_index_expr(0), row_index_expr(2)])]
 
     accumulator1 = new_accumulator(layers, [["value1", false, 0], ["value2", true, 3.4]])
     accumulator2 = new_accumulator(layers, [["value2", true, 3.4], ["value1", false, 0]])
@@ -60,7 +62,7 @@ defmodule Cloak.Sql.NoiseLayer.Test do
   end
 
   test "acc(data1) != acc(data2)" do
-    layers = [NoiseLayer.new("xxx", [%Expression{row_index: 0}, %Expression{row_index: 2}])]
+    layers = [NoiseLayer.new("xxx", [row_index_expr(0), row_index_expr(2)])]
 
     accumulator1 = new_accumulator(layers, [["value1", true, 3.4]])
     accumulator2 = new_accumulator(layers, [["value2", true, 3.4]])
@@ -69,7 +71,7 @@ defmodule Cloak.Sql.NoiseLayer.Test do
   end
 
   test "acc(data) == acc(data)" do
-    layers = [NoiseLayer.new("xxx", [%Expression{row_index: 0}, %Expression{row_index: 2}])]
+    layers = [NoiseLayer.new("xxx", [row_index_expr(0), row_index_expr(2)])]
 
     accumulator1 = new_accumulator(layers, [["value", true, 3.4]])
     accumulator2 = new_accumulator(layers, [["value", false, 3.4]])
@@ -78,7 +80,7 @@ defmodule Cloak.Sql.NoiseLayer.Test do
   end
 
   test "acc(data1 + data1) = acc(data1)" do
-    layers = [NoiseLayer.new("xxx", [%Expression{row_index: 0}, %Expression{row_index: 2}])]
+    layers = [NoiseLayer.new("xxx", [row_index_expr(0), row_index_expr(2)])]
 
     accumulator1 = new_accumulator(layers, [["value1", false, 0], ["value1", true, 0]])
     accumulator2 = new_accumulator(layers, [["value1", false, 0]])

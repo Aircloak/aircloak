@@ -64,7 +64,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp project_top_columns(_columns, _top_level? = false), do: []
 
-  defp project_top_column(%Expression{constant?: true} = constant), do: Projector.project_expression(constant)
+  defp project_top_column(%Expression{kind: :constant} = constant), do: Projector.project_expression(constant)
 
   defp project_top_column(column), do: "$#{Expression.title(column)}"
 
@@ -89,8 +89,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_operator(:<=), do: :"$lte"
   defp parse_operator(:<>), do: :"$ne"
 
-  defp map_column(%Expression{table: :unknown, name: name}) when is_binary(name), do: name
-  defp map_column(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: table <> "." <> name
+  defp map_column(%Expression{kind: :column, table: :unknown, name: name}), do: name
+  defp map_column(%Expression{kind: :column, table: %{name: table}, name: name}), do: table <> "." <> name
 
   defp map_column(_),
     do: raise(ExecutionError, message: "Condition on MongoDB data source expects a column as subject.")
@@ -138,7 +138,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:not, {:ilike, subject, pattern}}),
     do: %{map_column(subject) => %{"$not": regex(pattern, "msi")}}
 
-  defp regex(%Expression{constant?: true, value: pattern}, options),
+  defp regex(%Expression{kind: :constant, value: pattern}, options),
     do: %BSON.Regex{
       pattern: LikePattern.to_regex_pattern(pattern),
       options: options
@@ -170,16 +170,16 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       Query.Lenses.conditions()
       |> Lens.to_list(conditions)
       |> Enum.flat_map(&Condition.targets/1)
-      |> Enum.filter(& &1.function?)
+      |> Enum.filter(&Expression.function?/1)
       |> Enum.uniq()
 
     conditions =
       Query.Lenses.conditions()
       |> Query.Lenses.operands()
-      |> Lens.filter(&match?(%Expression{function?: true}, &1))
+      |> Lens.filter(&Expression.function?/1)
       |> Lens.map(conditions, fn column ->
         index = Enum.find_index(extra_columns, &(&1 == column))
-        %Expression{name: "__condition_#{index}", type: column.type}
+        %Expression{kind: :column, name: "__condition_#{index}", table: :unknown, type: column.type}
       end)
 
     extra_columns =
@@ -286,7 +286,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
 
   # This extracts the upper part of a column that need to be projected after grouping is done.
-  defp extract_column_top(%Expression{constant?: true} = column, _aggregators, _groups), do: column
+  defp extract_column_top(%Expression{kind: :constant} = column, _aggregators, _groups), do: column
 
   defp extract_column_top(
          %Expression{function: "count", args: [{:distinct, _}]} = column,
@@ -298,9 +298,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
     %Expression{
       column
-      | function?: true,
+      | kind: :function,
         function: "size",
-        args: [%Expression{name: "aggregated_#{index}", table: :unknown, type: :integer}]
+        args: [%Expression{kind: :column, name: "aggregated_#{index}", table: :unknown, type: :integer}]
     }
   end
 
@@ -314,7 +314,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
     %Expression{
       column
-      | args: [%Expression{name: "aggregated_#{index}", table: :unknown}]
+      | args: [%Expression{kind: :column, name: "aggregated_#{index}", table: :unknown, type: column.type}]
     }
   end
 
@@ -329,15 +329,24 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
           index ->
             %Expression{
+              kind: :column,
               name: "_id.property_#{index}",
               table: :unknown,
+              type: column.type,
               alias: Expression.title(column)
             }
         end
 
       index ->
         aggregator = Enum.at(aggregators, index)
-        %Expression{name: "aggregated_#{index}", table: :unknown, alias: column.alias, type: aggregator.type}
+
+        %Expression{
+          kind: :column,
+          name: "aggregated_#{index}",
+          table: :unknown,
+          alias: column.alias,
+          type: aggregator.type
+        }
     end
   end
 

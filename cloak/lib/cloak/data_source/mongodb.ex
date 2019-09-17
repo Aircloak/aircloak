@@ -260,10 +260,10 @@ defmodule Cloak.DataSource.MongoDB do
     end
   end
 
-  defp function_signature(%Expression{function: {:cast, type}, args: [value]}),
+  defp function_signature(%Expression{kind: :function, function: {:cast, type}, args: [value]}),
     do: "cast_#{value.type}_to_#{type}"
 
-  defp function_signature(%Expression{function?: true, function: name}), do: name
+  defp function_signature(%Expression{kind: :function, function: name}), do: name
 
   defp supports_joins?(query),
     do: supported_join?(query.from) and not Enum.any?(query.selected_tables, & &1[:sharded?])

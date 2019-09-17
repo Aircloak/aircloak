@@ -435,7 +435,7 @@ defmodule Cloak.Sql.Query do
       query
       |> needed_columns()
       |> extract_columns()
-      |> Enum.reject(& &1.constant?)
+      |> Enum.reject(&Expression.constant?/1)
 
     List.wrap(Compiler.Helpers.id_column(query)) ++ used_columns
   end
@@ -480,7 +480,7 @@ defmodule Cloak.Sql.Query do
   end
 
   defp emulated_expression?(expression, data_source),
-    do: expression.function? and not data_source.driver.supports_function?(expression, data_source)
+    do: Expression.function?(expression) and not data_source.driver.supports_function?(expression, data_source)
 
   defp emulated_expression_condition?(condition, data_source) do
     Lenses.conditions_terminals()

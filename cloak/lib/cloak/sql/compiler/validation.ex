@@ -71,7 +71,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_standard_functions_usage(query) do
     Lenses.query_expressions()
-    |> Lens.filter(& &1.function?)
+    |> Lens.filter(&Expression.function?/1)
     |> Lens.to_list(query)
     |> Enum.map(&verify_standard_function_usage/1)
   end
@@ -137,7 +137,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_anonymization_functions_usage(query) do
     Lenses.query_expressions()
-    |> Lens.filter(& &1.function?)
+    |> Lens.filter(&Expression.function?/1)
     |> Lens.to_list(query)
     |> Enum.map(&verify_anonymization_function_usage(&1, query))
   end
@@ -199,7 +199,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       Expression.member?(query.group_by, column) ->
         true
 
-      column.function? ->
+      Expression.function?(column) ->
         Function.aggregator?(column) or Enum.all?(column.args, &valid_expression_in_aggregate?(query, &1))
 
       true ->
@@ -213,7 +213,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp invalid_columns_in_aggregate(query, expression) do
     cond do
       valid_expression_in_aggregate?(query, expression) -> []
-      expression.function? -> Enum.flat_map(expression.args, &invalid_columns_in_aggregate(query, &1))
+      Expression.function?(expression) -> Enum.flat_map(expression.args, &invalid_columns_in_aggregate(query, &1))
       true -> [expression]
     end
   end
@@ -236,7 +236,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_constants(query) do
     Lenses.query_expressions()
-    |> Lens.filter(& &1.constant?)
+    |> Lens.filter(&Expression.constant?/1)
     |> Lens.reject(&(&1.value == nil))
     |> Lens.to_list(query)
     |> Enum.map(&verify_constant/1)

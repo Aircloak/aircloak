@@ -18,34 +18,33 @@ defmodule Cloak.Sql.Expression do
   @type bounds :: :unknown | {integer(), integer()}
 
   @type t :: %__MODULE__{
+          kind: :column | :function | :constant,
           table: :unknown | DataSource.Table.t(),
           name: String.t() | nil,
           alias: String.t() | nil,
           type: column_type,
           user_id?: boolean,
           row_index: nil | Query.row_index(),
-          constant?: boolean,
           value: any,
           function: function_name | nil,
           args: [t],
-          function?: boolean,
           parameter_index: pos_integer | nil,
           synthetic?: boolean,
           source_location: Cloak.Sql.Parser.location(),
           bounds: bounds
         }
 
-  defstruct table: :unknown,
+  @enforce_keys [:kind, :type]
+  defstruct kind: nil,
+            table: :unknown,
             name: nil,
             alias: nil,
             type: nil,
             user_id?: false,
             row_index: nil,
-            constant?: false,
             value: nil,
             function: nil,
             args: [],
-            function?: false,
             parameter_index: nil,
             synthetic?: false,
             source_location: nil,
@@ -64,6 +63,7 @@ defmodule Cloak.Sql.Expression do
   @spec column(DataSource.column(), DataSource.table()) :: t
   def column(column, table) do
     %__MODULE__{
+      kind: :column,
       table: table,
       name: column.name,
       type: column.type,
@@ -76,13 +76,14 @@ defmodule Cloak.Sql.Expression do
   to a column in a subquery, not necessarily directly to a database column.
   """
   @spec column?(t) :: boolean
-  def column?(expression), do: not (expression.constant? or expression.function?)
+  def column?(%__MODULE__{kind: :column}), do: true
+  def column?(_), do: false
 
   @doc "Returns a column struct representing the constant `value`."
   @spec constant(column_type, any, pos_integer | nil) :: t
   def constant(type, value, parameter_index \\ nil),
     do: %__MODULE__{
-      constant?: true,
+      kind: :constant,
       value: value,
       type: normalize_type(type),
       parameter_index: parameter_index
@@ -97,10 +98,10 @@ defmodule Cloak.Sql.Expression do
   @spec function(function_name, [t | :* | {:distinct, t}], column_type) :: t
   def function(function_name, args, type),
     do: %__MODULE__{
+      kind: :function,
       function: function_name,
       args: args,
-      type: type,
-      function?: true
+      type: type
     }
 
   @doc "Returns an expression representing a count(*)."
@@ -113,16 +114,16 @@ defmodule Cloak.Sql.Expression do
 
   @doc "Returns true if the given term is a constant column, false otherwise."
   @spec constant?(Cloak.Sql.Parser.column() | t) :: boolean
-  def constant?(%__MODULE__{constant?: true}), do: true
+  def constant?(%__MODULE__{kind: :constant}), do: true
 
-  def constant?(%__MODULE__{function?: true, args: args} = expression),
+  def constant?(%__MODULE__{kind: :function, args: args} = expression),
     do: not Function.aggregator?(expression) and Enum.all?(args, &constant?/1)
 
   def constant?(_), do: false
 
   @doc "Returns true if the expression is a function call, false otherwise."
   @spec function?(Cloak.Sql.Parser.column() | t) :: boolean
-  def function?(%__MODULE__{function?: true}), do: true
+  def function?(%__MODULE__{kind: :function}), do: true
   def function?(_), do: false
 
   @doc "Sets the source location of the given expression to the given location."
@@ -132,7 +133,7 @@ defmodule Cloak.Sql.Expression do
   @doc "Returns the key type of the column, if any. Key types are provided by admins in the data source config file."
   @spec key_type(t) :: atom
   def key_type(%__MODULE__{user_id?: true}), do: :user_id
-  def key_type(%__MODULE__{name: name, table: table}) when is_binary(name) and is_map(table), do: table.keys[name]
+  def key_type(%__MODULE__{kind: :column, name: name, table: %{} = table}), do: table.keys[name]
   def key_type(_), do: nil
 
   @doc "Returns true if the given column is a key, false otherwise."
@@ -145,7 +146,7 @@ defmodule Cloak.Sql.Expression do
   This function should mostly be used when producing error messages.
   """
   @spec short_name(t) :: String.t()
-  def short_name(%__MODULE__{name: name}) when is_binary(name), do: "`#{name}`"
+  def short_name(%__MODULE__{kind: :column, name: name}), do: "`#{name}`"
   def short_name(x), do: display_name(x)
 
   @doc """
@@ -154,19 +155,19 @@ defmodule Cloak.Sql.Expression do
   This function should mostly be used when producing error messages.
   """
   @spec display_name(t) :: String.t()
-  def display_name(%__MODULE__{name: name, table: table}) when is_binary(name),
+  def display_name(%__MODULE__{kind: :column, name: name, table: table}),
     do: "`#{name}` from table `#{table.name}`"
 
   def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
-  def display_name(%__MODULE__{function: {:cast, _type}}), do: "`cast`"
-  def display_name(%__MODULE__{function: {:bucket, _align}}), do: "`bucket`"
-  def display_name(%__MODULE__{function: function}) when is_binary(function), do: "`#{function}`"
+  def display_name(%__MODULE__{kind: :function, function: {:cast, _type}}), do: "`cast`"
+  def display_name(%__MODULE__{kind: :function, function: {:bucket, _align}}), do: "`bucket`"
+  def display_name(%__MODULE__{kind: :function, function: function}), do: "`#{function}`"
 
-  def display_name(%__MODULE__{constant?: true, type: :interval, value: value}),
+  def display_name(%__MODULE__{kind: :constant, type: :interval, value: value}),
     do: "`#{Timex.Duration.to_string(value)}`"
 
-  def display_name(%__MODULE__{constant?: true, value: nil}), do: "`NULL`"
-  def display_name(%__MODULE__{constant?: true, value: value}), do: "`#{value}`"
+  def display_name(%__MODULE__{kind: :constant, value: nil}), do: "`NULL`"
+  def display_name(%__MODULE__{kind: :constant, value: value}), do: "`#{value}`"
 
   @doc """
   Returns the full expression as text.
@@ -177,37 +178,39 @@ defmodule Cloak.Sql.Expression do
   def display(%__MODULE__{alias: alias} = expression) when is_binary(alias),
     do: display(%__MODULE__{expression | alias: nil}) <> " as #{alias}"
 
-  def display(%__MODULE__{name: name}) when is_binary(name), do: name
-  def display(%__MODULE__{function: {:cast, type}, args: [arg]}), do: "cast(#{display(arg)} as #{type})"
+  def display(%__MODULE__{kind: :column, name: name}), do: name
 
-  def display(%__MODULE__{function: {:bucket, align}, args: [value, by]}),
+  def display(%__MODULE__{kind: :function, function: {:cast, type}, args: [arg]}),
+    do: "cast(#{display(arg)} as #{type})"
+
+  def display(%__MODULE__{kind: :function, function: {:bucket, align}, args: [value, by]}),
     do: "bucket(#{display(value)} by #{display(by)} align #{align})"
 
-  def display(%__MODULE__{function: function, args: [arg1, arg2]}) when function in ~w(+ - / * ^ %),
+  def display(%__MODULE__{kind: :function, function: function, args: [arg1, arg2]}) when function in ~w(+ - / * ^ %),
     do: "#{display(arg1)} #{function} #{display(arg2)}"
 
-  def display(%__MODULE__{function: function, args: args}) when is_binary(function),
+  def display(%__MODULE__{kind: :function, function: function, args: args}),
     do: "#{function}(#{args |> Enum.map(&display/1) |> Enum.join(", ")})"
 
-  def display(%__MODULE__{constant?: true, type: :text, value: value}), do: "'#{value}'"
+  def display(%__MODULE__{kind: :constant, type: :text, value: value}), do: "'#{value}'"
 
-  def display(%__MODULE__{constant?: true, type: :interval, value: value}),
+  def display(%__MODULE__{kind: :constant, type: :interval, value: value}),
     do: "interval '#{Duration.to_string(value)}'"
 
-  def display(%__MODULE__{constant?: true, type: type, value: value}) when type in [:date, :datetime, :time],
+  def display(%__MODULE__{kind: :constant, type: type, value: value}) when type in [:date, :datetime, :time],
     do: "#{type} '#{to_string(value)}'"
 
-  def display(%__MODULE__{constant?: true, value: nil}), do: "NULL"
-  def display(%__MODULE__{constant?: true, value: value}), do: to_string(value)
+  def display(%__MODULE__{kind: :constant, value: nil}), do: "NULL"
+  def display(%__MODULE__{kind: :constant, value: value}), do: to_string(value)
   def display({:distinct, expression}), do: "distinct #{display(expression)}"
   def display(value), do: to_string(value)
 
   @doc "Returns the column value of a database row."
   @spec value(t, DataSource.row()) :: DataSource.field() | :*
   def value(expression, row \\ [])
-  def value(%__MODULE__{constant?: true, value: value}, _row), do: value
+  def value(%__MODULE__{kind: :constant, value: value}, _row), do: value
 
-  def value(expression = %__MODULE__{function?: true, args: args, row_index: nil}, row),
+  def value(expression = %__MODULE__{kind: :function, args: args, row_index: nil}, row),
     do: apply_function(expression, Enum.map(args, &value(&1, row)))
 
   def value(%__MODULE__{row_index: nil} = column, _row),
@@ -237,29 +240,44 @@ defmodule Cloak.Sql.Expression do
 
   @doc "Returns the value of a constant expression."
   @spec const_value(t) :: DataSource.field() | LikePattern.t()
-  def const_value(%__MODULE__{constant?: true, value: value}), do: value
+  def const_value(%__MODULE__{kind: :constant, value: value}), do: value
 
-  def const_value(expression = %__MODULE__{function?: true, args: args}),
+  def const_value(expression = %__MODULE__{kind: :function, args: args}),
     do: apply_function(expression, Enum.map(args, &const_value/1))
 
   @doc "Checks two columns for equality."
   @spec equals?(any, any) :: boolean
   def equals?({:distinct, c1}, {:distinct, c2}), do: equals?(c1, c2)
-  def equals?(:*, :*), do: true
 
-  def equals?(%__MODULE__{} = c1, %__MODULE__{} = c2),
-    do:
-      c1.table == c2.table and c1.name == c2.name and c1.value == c2.value and c1.function == c2.function and
-        Enum.zip(c1.args, c2.args)
-        |> Enum.all?(fn {arg1, arg2} -> equals?(arg1, arg2) end)
+  def equals?(
+        %__MODULE__{kind: :column, name: name, table: table},
+        %__MODULE__{kind: :column, name: name, table: table}
+      ),
+      do: true
 
-  def equals?(c1, c2), do: semantic(c1) == semantic(c2)
+  def equals?(
+        %__MODULE__{kind: :constant, value: value, type: type},
+        %__MODULE__{kind: :constant, value: value, type: type}
+      ),
+      do: true
+
+  def equals?(
+        %__MODULE__{kind: :function, function: name, args: args1},
+        %__MODULE__{kind: :function, function: name, args: args2}
+      ),
+      do: Enum.zip(args1, args2) |> Enum.all?(fn {arg1, arg2} -> equals?(arg1, arg2) end)
+
+  def equals?(%__MODULE__{}, %__MODULE__{}), do: false
+
+  def equals?(c1, c2) when is_tuple(c1) and is_tuple(c2), do: semantic(c1) == semantic(c2)
+
+  def equals?(c1, c2), do: c1 == c2
 
   @doc "Returns a string id for the specified column."
   @spec id(t) :: nil | String.t()
-  def id(%__MODULE__{table: :unknown, name: nil, alias: alias}), do: alias
-  def id(%__MODULE__{table: :unknown, name: name}), do: name
-  def id(%__MODULE__{table: table, name: name}), do: "#{table.name}.#{name}"
+  def id(%__MODULE__{kind: :column, table: :unknown, name: name}), do: name
+  def id(%__MODULE__{kind: :column, table: table, name: name}), do: "#{table.name}.#{name}"
+  def id(%__MODULE__{alias: alias}), do: alias
 
   @doc """
   Returns the list of unique expression.
@@ -284,7 +302,7 @@ defmodule Cloak.Sql.Expression do
 
   @doc "Wraps a string expression in the lower case function"
   @spec lowercase(t) :: t
-  def lowercase(%__MODULE__{constant?: true, type: :text, value: value} = expression),
+  def lowercase(%__MODULE__{kind: :constant, type: :text, value: value} = expression),
     do: %__MODULE__{expression | value: String.downcase(value)}
 
   def lowercase(%__MODULE__{type: :text} = expression), do: function("lower", [expression], expression.type)
@@ -323,7 +341,7 @@ defmodule Cloak.Sql.Expression do
     end)
   end
 
-  defp apply_function(expression = %__MODULE__{function?: true}, args) do
+  defp apply_function(expression = %__MODULE__{kind: :function}, args) do
     if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)
   rescue
     _ -> nil

@@ -226,7 +226,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Enum.map(&elem(&1, 0))
   end
 
-  defp columns_with_queries(%{constant?: true}, _query), do: []
+  defp columns_with_queries(%{kind: :constant}, _query), do: []
 
   defp columns_with_queries(column, query) do
     case Query.resolve_subquery_column(column, query) do
