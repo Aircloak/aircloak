@@ -631,7 +631,21 @@ defmodule Air.Service.User do
 
   defp insert(changeset), do: in_transaction(fn -> changeset |> Repo.insert() |> merge_login_errors() end)
 
-  defp update(changeset), do: in_transaction(fn -> changeset |> Repo.update() |> merge_login_errors() end)
+  defp update(changeset) do
+    in_transaction(fn ->
+      with {:ok, user} <- changeset |> Repo.update() |> merge_login_errors() do
+        maybe_revoke_sessions(user, changeset)
+        {:ok, user}
+      end
+    end)
+  end
+
+  defp maybe_revoke_sessions(user, changeset) do
+    case changeset do
+      %{changes: %{logins: [%{changes: %{hashed_password: _}}]}} -> RevokableToken.revoke_all(user, :session)
+      _ -> :ignore
+    end
+  end
 
   defp in_transaction(action) do
     Repo.transaction(fn ->

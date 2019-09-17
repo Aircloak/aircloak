@@ -121,6 +121,33 @@ defmodule Air.Service.UserTest do
       assert {:error, :invalid_login_or_password} = User.login(hd(user.logins).login, "invalid")
     end
 
+    test "revokes sessions on password change" do
+      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
+
+      {:ok, _} =
+        User.update_full_profile(user, %{
+          "old_password" => "password1234",
+          "password" => "passwordwxyz",
+          "password_confirmation" => "passwordwxyz"
+        })
+
+      assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
+    end
+
+    test "does not reset sessions on failed password change" do
+      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
+
+      User.update_full_profile(user, %{
+        "old_password" => "wrong password",
+        "password" => "passwordwxyz",
+        "password_confirmation" => "passwordwxyz"
+      })
+
+      assert {:ok, :data} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
+    end
+
     test "[Issue #3407] change password for user with an app login" do
       user = TestRepoHelper.create_user!(%{password: "password1234"})
       {:ok, login, password} = User.create_app_login(user, %{})
