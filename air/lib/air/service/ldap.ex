@@ -52,7 +52,7 @@ defmodule Air.Service.LDAP do
     else
       {:error, :ldap_not_configured} ->
         Logger.info("LDAP not configured. Disabling LDAP users and removing LDAP groups if any exist.")
-        LDAP.Sync.sync(_users = [], _groups = [])
+        __MODULE__.Sync.sync(_users = [], _groups = [])
         :ok
 
       error ->
