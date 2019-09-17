@@ -323,6 +323,7 @@ defmodule Cloak.DataSource do
     |> Map.put(:status, nil)
     |> Map.put_new(:concurrency, nil)
     |> Map.put_new(:lcf_buckets_aggregation_limit, nil)
+    |> Map.put_new(:bound_computation_enabled, true)
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
     |> warn_on_obsolete_fields()
