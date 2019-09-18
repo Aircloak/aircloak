@@ -223,8 +223,12 @@ defmodule Air.Service.User do
     end)
   end
 
-  @doc "Updates the profile of the given user, validating user's password."
-  @spec update_full_profile(User.t(), map, change_options) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  @doc """
+  Updates the profile of the given user, validating user's password.
+
+  Returns `{:ok, user, sessions_revoked?}` on success.
+  """
+  @spec update_full_profile(User.t(), map, change_options) :: {:ok, User.t(), boolean} | {:error, Ecto.Changeset.t()}
   def update_full_profile(user, params, options \\ []) do
     check_ldap!(user, options)
 
@@ -237,7 +241,11 @@ defmodule Air.Service.User do
         |> merge(main_login_changeset(login, params))
       end)
     )
-    |> update()
+    |> update_revoking_sesions()
+    |> case do
+      {:ok, {user, sessions_revoked?}} -> {:ok, user, sessions_revoked?}
+      error -> error
+    end
   end
 
   @doc "Updates the profile of the given user, only allowing changes to non-login-related settings, like number format."
@@ -631,27 +639,28 @@ defmodule Air.Service.User do
 
   defp insert(changeset), do: in_transaction(fn -> changeset |> Repo.insert() |> merge_login_errors() end)
 
-  defp update(changeset) do
+  defp update_revoking_sesions(changeset) do
     in_transaction(fn ->
-      with {:ok, user} <- changeset |> Repo.update() |> merge_login_errors() do
-        maybe_revoke_sessions(user, changeset)
-        {:ok, user}
+      with {:ok, user} <- update(changeset) do
+        case changeset do
+          %{changes: %{logins: [%{changes: %{hashed_password: _}}]}} ->
+            RevokableToken.revoke_all(user, :session)
+            {:ok, {user, true}}
+
+          _ ->
+            {:ok, {user, false}}
+        end
       end
     end)
   end
 
-  defp maybe_revoke_sessions(user, changeset) do
-    case changeset do
-      %{changes: %{logins: [%{changes: %{hashed_password: _}}]}} -> RevokableToken.revoke_all(user, :session)
-      _ -> :ignore
-    end
-  end
+  defp update(changeset), do: in_transaction(fn -> changeset |> Repo.update() |> merge_login_errors() end)
 
   defp in_transaction(action) do
     Repo.transaction(fn ->
       case action.() do
-        {:ok, result} -> result
         {:error, changeset} -> Repo.rollback(changeset)
+        {:ok, result} -> result
       end
     end)
   end

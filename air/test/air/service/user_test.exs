@@ -91,10 +91,10 @@ defmodule Air.Service.UserTest do
     test "only update hashed password on password change" do
       user = TestRepoHelper.create_user!(%{password: "password1234"})
 
-      {:ok, updated_user} = User.update_full_profile(user, %{"name" => "foobar"})
+      {:ok, updated_user, _} = User.update_full_profile(user, %{"name" => "foobar"})
       assert hd(updated_user.logins).hashed_password == hd(user.logins).hashed_password
 
-      {:ok, updated_user} =
+      {:ok, updated_user, _} =
         User.update_full_profile(user, %{
           "old_password" => "password1234",
           "password" => "passwordwxyz",
@@ -125,7 +125,7 @@ defmodule Air.Service.UserTest do
       user = TestRepoHelper.create_user!(%{password: "password1234"})
       session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
-      {:ok, _} =
+      {:ok, _, _} =
         User.update_full_profile(user, %{
           "old_password" => "password1234",
           "password" => "passwordwxyz",
@@ -152,7 +152,7 @@ defmodule Air.Service.UserTest do
       user = TestRepoHelper.create_user!(%{password: "password1234"})
       {:ok, login, password} = User.create_app_login(user, %{})
 
-      assert {:ok, _} =
+      assert {:ok, _, _} =
                User.update_full_profile(user, %{
                  "old_password" => "password1234",
                  "password" => "passwordwxyz",
