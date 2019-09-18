@@ -512,7 +512,7 @@ defmodule Compliance.AnalystTableTest do
                        data_source
                      )
 
-            assert error == "Function #{unquote(pseudoconstant)} is not allowed when creating a table"
+            assert error == "Function `#{unquote(pseudoconstant)}` is not allowed when creating a table"
           end
         end
       end

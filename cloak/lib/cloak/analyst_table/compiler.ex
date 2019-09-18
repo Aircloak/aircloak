@@ -128,7 +128,7 @@ defmodule Cloak.AnalystTable.Compiler do
       [expression | _] ->
         raise Cloak.Sql.CompilationError,
           source_location: expression.source_location,
-          message: "Function #{expression.function} is not allowed when creating a table"
+          message: "Function `#{expression.name}` is not allowed when creating a table"
     end
   end
 
