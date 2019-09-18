@@ -642,13 +642,19 @@ defmodule Air.Service.User do
   defp update_revoking_sesions(changeset) do
     in_transaction(fn ->
       with {:ok, user} <- update(changeset) do
-        case changeset do
-          %{changes: %{logins: [%{changes: %{hashed_password: _}}]}} ->
-            RevokableToken.revoke_all(user, :session)
-            {:ok, {user, true}}
-
-          _ ->
-            {:ok, {user, false}}
+        if changeset
+           |> get_in([
+             Lens.key?(:changes)
+             |> Lens.key?(:logins)
+             |> Lens.all()
+             |> Lens.key?(:changes)
+             |> Lens.key?(:hashed_password)
+           ])
+           |> Enum.any?() do
+          RevokableToken.revoke_all(user, :session)
+          {:ok, {user, true}}
+        else
+          {:ok, {user, false}}
         end
       end
     end)
