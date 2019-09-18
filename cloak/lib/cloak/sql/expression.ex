@@ -295,7 +295,7 @@ defmodule Cloak.Sql.Expression do
   Removes data from the given expression that does not contribute to its semantics for the query. Currently that's only
   source_location.
   """
-  @spec semantic(t) :: t
+  @spec semantic(t | tuple) :: t | tuple
   def semantic(expression), do: put_in(expression, [Query.Lenses.all_expressions() |> location_lens()], nil)
 
   @doc "Wraps a string expression in the lower case function"
