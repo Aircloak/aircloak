@@ -82,7 +82,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
       :timer.minutes(
         Aircloak.DeployConfig.get(
           "liveness_check_interval",
-          Aircloak.in_env(dev: 60, else: 1)
+          Aircloak.in_env(dev: 60, else: 5)
         )
       )
 end
