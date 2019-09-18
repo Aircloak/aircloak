@@ -10,7 +10,7 @@ defmodule Cloak.Sql.Expression do
 
   @type column_type :: DataSource.Table.data_type() | :like_pattern | :interval | nil
 
-  @type function_name ::
+  @type name ::
           String.t()
           | {:cast, DataSource.Table.data_type() | :varbinary | {:native_type, String.t()}}
           | {:bucket, :lower | :upper | :middle}
@@ -20,13 +20,12 @@ defmodule Cloak.Sql.Expression do
   @type t :: %__MODULE__{
           kind: :column | :function | :constant,
           table: :unknown | DataSource.Table.t(),
-          name: String.t() | nil,
+          name: name | nil,
           alias: String.t() | nil,
           type: column_type,
           user_id?: boolean,
           row_index: nil | Query.row_index(),
           value: any,
-          function: function_name | nil,
           args: [t],
           parameter_index: pos_integer | nil,
           synthetic?: boolean,
@@ -43,7 +42,6 @@ defmodule Cloak.Sql.Expression do
             user_id?: false,
             row_index: nil,
             value: nil,
-            function: nil,
             args: [],
             parameter_index: nil,
             synthetic?: false,
@@ -95,11 +93,11 @@ defmodule Cloak.Sql.Expression do
     do: constant(:like_pattern, Cloak.Sql.LikePattern.new(pattern, escape_character))
 
   @doc "Creates a column representing a function call."
-  @spec function(function_name, [t | :* | {:distinct, t}], column_type) :: t
-  def function(function_name, args, type),
+  @spec function(name, [t | :* | {:distinct, t}], column_type) :: t
+  def function(name, args, type),
     do: %__MODULE__{
       kind: :function,
-      function: function_name,
+      name: name,
       args: args,
       type: type
     }
@@ -159,9 +157,9 @@ defmodule Cloak.Sql.Expression do
     do: "`#{name}` from table `#{table.name}`"
 
   def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
-  def display_name(%__MODULE__{kind: :function, function: {:cast, _type}}), do: "`cast`"
-  def display_name(%__MODULE__{kind: :function, function: {:bucket, _align}}), do: "`bucket`"
-  def display_name(%__MODULE__{kind: :function, function: function}), do: "`#{function}`"
+  def display_name(%__MODULE__{kind: :function, name: {:cast, _type}}), do: "`cast`"
+  def display_name(%__MODULE__{kind: :function, name: {:bucket, _align}}), do: "`bucket`"
+  def display_name(%__MODULE__{kind: :function, name: function}), do: "`#{function}`"
 
   def display_name(%__MODULE__{kind: :constant, type: :interval, value: value}),
     do: "`#{Timex.Duration.to_string(value)}`"
@@ -180,16 +178,16 @@ defmodule Cloak.Sql.Expression do
 
   def display(%__MODULE__{kind: :column, name: name}), do: name
 
-  def display(%__MODULE__{kind: :function, function: {:cast, type}, args: [arg]}),
+  def display(%__MODULE__{kind: :function, name: {:cast, type}, args: [arg]}),
     do: "cast(#{display(arg)} as #{type})"
 
-  def display(%__MODULE__{kind: :function, function: {:bucket, align}, args: [value, by]}),
+  def display(%__MODULE__{kind: :function, name: {:bucket, align}, args: [value, by]}),
     do: "bucket(#{display(value)} by #{display(by)} align #{align})"
 
-  def display(%__MODULE__{kind: :function, function: function, args: [arg1, arg2]}) when function in ~w(+ - / * ^ %),
+  def display(%__MODULE__{kind: :function, name: function, args: [arg1, arg2]}) when function in ~w(+ - / * ^ %),
     do: "#{display(arg1)} #{function} #{display(arg2)}"
 
-  def display(%__MODULE__{kind: :function, function: function, args: args}),
+  def display(%__MODULE__{kind: :function, name: function, args: args}),
     do: "#{function}(#{args |> Enum.map(&display/1) |> Enum.join(", ")})"
 
   def display(%__MODULE__{kind: :constant, type: :text, value: value}), do: "'#{value}'"
@@ -262,8 +260,8 @@ defmodule Cloak.Sql.Expression do
       do: true
 
   def equals?(
-        %__MODULE__{kind: :function, function: name, args: args1},
-        %__MODULE__{kind: :function, function: name, args: args2}
+        %__MODULE__{kind: :function, name: name, args: args1},
+        %__MODULE__{kind: :function, name: name, args: args2}
       ),
       do: Enum.zip(args1, args2) |> Enum.all?(fn {arg1, arg2} -> equals?(arg1, arg2) end)
 
@@ -328,7 +326,9 @@ defmodule Cloak.Sql.Expression do
 
   @doc "Returns the title for the specified column."
   @spec title(t) :: nil | String.t()
-  def title(%__MODULE__{name: name, alias: alias}), do: alias || name
+  def title(%__MODULE__{alias: alias}) when is_binary(alias), do: alias
+  def title(%__MODULE__{kind: :column, name: name}), do: name
+  def title(%__MODULE__{}), do: nil
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -342,7 +342,7 @@ defmodule Cloak.Sql.Expression do
   end
 
   defp apply_function(expression = %__MODULE__{kind: :function}, args) do
-    if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)
+    if Enum.member?(args, :*), do: :*, else: do_apply(expression.name, args)
   rescue
     _ -> nil
   end

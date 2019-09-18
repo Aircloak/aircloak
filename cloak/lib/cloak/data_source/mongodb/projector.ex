@@ -89,14 +89,14 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   defp parse_expression(%Expression{kind: :constant, value: value}), do: %{"$literal": value}
 
-  defp parse_expression(%Expression{kind: :function, function: {:cast, type}, args: [value]}),
+  defp parse_expression(%Expression{kind: :function, name: {:cast, type}, args: [value]}),
     do: parse_function("cast", [parse_expression(value), value.type, type])
 
-  defp parse_expression(%Expression{kind: :function, function: fun, args: [arg]}),
-    do: parse_function(fun, parse_expression(arg))
+  defp parse_expression(%Expression{kind: :function, name: name, args: [arg]}),
+    do: parse_function(name, parse_expression(arg))
 
-  defp parse_expression(%Expression{kind: :function, function: fun, args: args}),
-    do: parse_function(fun, Enum.map(args, &parse_expression/1))
+  defp parse_expression(%Expression{kind: :function, name: name, args: args}),
+    do: parse_function(name, Enum.map(args, &parse_expression/1))
 
   defp parse_expression(%Expression{kind: :column, table: :unknown, name: name}), do: "$" <> name
   defp parse_expression(%Expression{kind: :column, table: %{name: table}, name: name}), do: "$#{table}.#{name}"

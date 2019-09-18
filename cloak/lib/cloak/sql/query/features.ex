@@ -121,7 +121,7 @@ defmodule Cloak.Sql.Query.Features do
       |> Lens.filter(&Expression.function?/1)
       |> Lens.reject(& &1.synthetic?)
     ])
-    |> Enum.map(&Function.readable_name(&1.function))
+    |> Enum.map(&Function.readable_name(&1.name))
     |> Enum.uniq()
   end
 
@@ -143,10 +143,10 @@ defmodule Cloak.Sql.Query.Features do
   defp expression_tree_to_lisp(other), do: to_string(other)
 
   defp build_expression_tree(
-         %Expression{kind: :function, function: function, args: args},
+         %Expression{kind: :function, name: name, args: args},
          query
        ),
-       do: [Function.readable_name(function) | Enum.map(args, &build_expression_tree(&1, query))]
+       do: [Function.readable_name(name) | Enum.map(args, &build_expression_tree(&1, query))]
 
   defp build_expression_tree(%Expression{kind: :constant}, _query), do: :const
 

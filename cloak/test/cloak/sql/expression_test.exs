@@ -373,7 +373,8 @@ defmodule Cloak.Sql.Expression.Test do
 
   describe "lowercase" do
     test "wraps expressions in lower case functions" do
-      assert %Expression{function: "lower"} = Expression.lowercase(%Expression{kind: :column, type: :text, name: "col"})
+      assert %Expression{kind: :function, name: "lower"} =
+               Expression.lowercase(%Expression{kind: :column, type: :text, name: "col"})
     end
 
     test "makes constant text lowercase",

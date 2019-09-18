@@ -596,7 +596,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert %{
              columns: [
                %Expression{
-                 function: "median",
+                 name: "median",
                  args: [column("table", "numeric")]
                }
              ]
@@ -618,7 +618,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert [
              column("table", "column"),
-             %Expression{function: "median", args: [column("table", "column")]}
+             %Expression{name: "median", args: [column("table", "column")]}
            ] = result.columns
 
     conditions = conditions_list(result.where)
@@ -628,8 +628,8 @@ defmodule Cloak.Sql.Compiler.Test do
     assert Enum.any?(conditions, &match?({:comparison, column("table", "column"), :<>, _}, &1))
     assert [column("table", "column")] = result.group_by
     assert [{expr_1, :desc, _}, {expr_2, :desc, _}] = result.order_by
-    assert %Expression{function: "median"} = expr_1
-    assert %Expression{function: "median"} = expr_2
+    assert %Expression{name: "median"} = expr_1
+    assert %Expression{name: "median"} = expr_2
   end
 
   test "complains when tables don't exist" do

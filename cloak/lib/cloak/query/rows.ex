@@ -94,9 +94,9 @@ defmodule Cloak.Query.Rows do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp update_row_index(query, %Expression{function: "grouping_id", args: args} = column, _selected_columns) do
+  defp update_row_index(query, %Expression{kind: :function, name: "grouping_id"} = column, _selected_columns) do
     bits_indices =
-      Enum.map(args, fn column ->
+      Enum.map(column.args, fn column ->
         Enum.find_index(query.group_by, &Expression.equals?(&1, column))
       end)
 

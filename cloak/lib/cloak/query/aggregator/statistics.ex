@@ -160,17 +160,17 @@ defmodule Cloak.Query.Aggregator.Statistics do
     aggregation_results =
       Enum.zip(aggregators, aggregation_statistics)
       |> Enum.map(fn
-        {%Expression{function: "count", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
+        {%Expression{name: "count", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
           users_count
 
-        {%Expression{function: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
+        {%Expression{name: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
           Anonymizer.noise_amount(1, anonymizer)
 
-        {%Expression{function: "count", args: [{:distinct, _}]}, [real_count, noise_factor]} ->
+        {%Expression{name: "count", args: [{:distinct, _}]}, [real_count, noise_factor]} ->
           {noisy_count, _noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, {real_count, noise_factor})
           noisy_count
 
-        {%Expression{function: "count_noise", args: [{:distinct, _}]}, [real_count, noise_factor]} ->
+        {%Expression{name: "count_noise", args: [{:distinct, _}]}, [real_count, noise_factor]} ->
           {_noisy_count, noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, {real_count, noise_factor})
           noise_amount
 

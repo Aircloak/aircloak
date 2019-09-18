@@ -62,7 +62,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp remove_redundant_casts(query),
     do:
       update_in(query, [Query.Lenses.terminals()], fn
-        %Expression{function: {:cast, type}, args: [expr = %Expression{type: type}]} ->
+        %Expression{kind: :function, name: {:cast, type}, args: [expr = %Expression{type: type}]} ->
           expr
 
         other ->
@@ -77,8 +77,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp remove_redundant_rounds(query),
     do:
       update_in(query, [Query.Lenses.terminals()], fn
-        %Expression{function: fun, args: [expr = %Expression{type: :integer}]}
-        when fun in @round_funcs ->
+        %Expression{kind: :function, name: name, args: [expr = %Expression{type: :integer}]}
+        when name in @round_funcs ->
           expr
 
         other ->
@@ -177,7 +177,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # -------------------------------------------------------------------
 
   defp normalize_bucket(query),
-    do: Lens.map(Query.Lenses.buckets(), query, &expand_bucket(&1.function, &1.args))
+    do: Lens.map(Query.Lenses.buckets(), query, &expand_bucket(&1.name, &1.args))
 
   defp expand_bucket({:bucket, :lower}, [arg1, arg2]),
     # floor(arg1 / arg2) * arg2
@@ -230,25 +230,26 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp normalize_anonymizing_aggregators(%Query{type: :anonymized} = query) do
     Query.Lenses.query_expressions()
-    |> Lens.filter(&(&1.function in ["stddev", "stddev_noise", "avg", "avg_noise"]))
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name in ["stddev", "stddev_noise", "avg", "avg_noise"]))
     |> Lens.map(query, &normalize_anonymizing_aggregator/1)
   end
 
   defp normalize_anonymizing_aggregators(query), do: query
 
-  defp normalize_anonymizing_aggregator(%Expression{function: "stddev"} = stddev_expression) do
+  defp normalize_anonymizing_aggregator(%Expression{name: "stddev"} = stddev_expression) do
     # `sd(v) = sqrt(variance(v))`
-    Expression.function("sqrt", [%Expression{stddev_expression | function: "variance"}], :real)
+    Expression.function("sqrt", [%Expression{stddev_expression | name: "variance"}], :real)
   end
 
-  defp normalize_anonymizing_aggregator(%Expression{function: "stddev_noise"} = stddev_expression) do
+  defp normalize_anonymizing_aggregator(%Expression{name: "stddev_noise"} = stddev_expression) do
     # `sd_noise(v) = sqrt(variance_noise(v))`
-    Expression.function("sqrt", [%Expression{stddev_expression | function: "variance_noise"}], :real)
+    Expression.function("sqrt", [%Expression{stddev_expression | name: "variance_noise"}], :real)
   end
 
   defp normalize_anonymizing_aggregator(%Expression{args: [{:distinct, _arg}]} = expression), do: expression
 
-  defp normalize_anonymizing_aggregator(%Expression{function: "avg", args: [arg]}),
+  defp normalize_anonymizing_aggregator(%Expression{name: "avg", args: [arg]}),
     do:
       Expression.function(
         "/",
@@ -259,7 +260,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
         :real
       )
 
-  defp normalize_anonymizing_aggregator(%Expression{function: "avg_noise", args: [arg]}),
+  defp normalize_anonymizing_aggregator(%Expression{name: "avg_noise", args: [arg]}),
     do:
       Expression.function(
         "/",
@@ -277,7 +278,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @noise_functions ~w(count_noise sum_noise avg_noise stddev_noise variance_noise)
   defp normalize_non_anonymizing_noise(%Query{type: type} = query) when type in [:standard, :restricted] do
     Query.Lenses.query_expressions()
-    |> Lens.filter(&(&1.function in @noise_functions))
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name in @noise_functions))
     |> Lens.to_list(query)
     |> Enum.count()
     |> case do
@@ -286,7 +288,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
       _ ->
         Query.Lenses.query_expressions()
-        |> Lens.filter(&(&1.function in @noise_functions))
+        |> Lens.filter(&Expression.function?/1)
+        |> Lens.filter(&(&1.name in @noise_functions))
         |> Lens.map(query, fn _ -> Expression.constant(:real, 0.0) end)
         |> group_global_aggregators()
     end
@@ -413,7 +416,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp remove_conditionless_cases(query),
     do:
       update_in(query, [Query.Lenses.terminals()], fn
-        %Expression{function: "case", args: [expr]} ->
+        %Expression{kind: :function, name: "case", args: [expr]} ->
           expr
 
         other ->

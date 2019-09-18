@@ -305,7 +305,7 @@ defmodule Cloak.Sql.TransformerTest do
 
   describe "distinct statistics" do
     defp distinct_count_target(query) do
-      [%{function: "count", args: [{:distinct, target}]} | _] = query.aggregators
+      [%{name: "count", args: [{:distinct, target}]} | _] = query.aggregators
       target
     end
 

@@ -66,7 +66,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   @uid_offloaded_aggregators ~w(count sum min max count_noise sum_noise)
   defp can_be_uid_grouped?(aggregator),
-    do: aggregator.function in @uid_offloaded_aggregators and not distinct_input?(aggregator.args)
+    do: aggregator.name in @uid_offloaded_aggregators and not distinct_input?(aggregator.args)
 
   defp distinct_input?([{:distinct, %Expression{user_id?: false}}]), do: true
   defp distinct_input?([_]), do: false
@@ -88,18 +88,19 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     |> Enum.empty?()
   end
 
-  defp aggregator_supports_statistics?(%Expression{function: function, type: type})
-       when function in ["min", "max"] and type in [:date, :time, :datetime],
+  defp aggregator_supports_statistics?(%Expression{kind: :function, name: name, type: type})
+       when name in ["min", "max"] and type in [:date, :time, :datetime],
        do: false
 
   defp aggregator_supports_statistics?(aggregator),
     do: distinct_column_count?(aggregator) or can_be_uid_grouped?(aggregator)
 
   defp distinct_column_count?(%Expression{
-         function: function,
+         kind: :function,
+         name: name,
          args: [{:distinct, %Expression{user_id?: false}}]
        })
-       when function in ["count", "count_noise"],
+       when name in ["count", "count_noise"],
        do: true
 
   defp distinct_column_count?(_), do: false

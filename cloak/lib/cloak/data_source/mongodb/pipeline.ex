@@ -160,9 +160,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp complex_filter([array | _]), do: &complex_condition?(&1, [array <> "."])
 
   defp complex_condition?(column, complex_name_prefixes) do
-    column_name = Condition.subject(column).name
+    subject = Condition.subject(column)
 
-    column_name == nil or Schema.is_array_size?(column_name) or String.starts_with?(column_name, complex_name_prefixes)
+    subject.kind != :column or Schema.is_array_size?(subject.name) or
+      String.starts_with?(subject.name, complex_name_prefixes)
   end
 
   defp extract_columns_from_conditions(conditions) do
@@ -289,7 +290,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp extract_column_top(%Expression{kind: :constant} = column, _aggregators, _groups), do: column
 
   defp extract_column_top(
-         %Expression{function: "count", args: [{:distinct, _}]} = column,
+         %Expression{kind: :function, name: "count", args: [{:distinct, _}]} = column,
          aggregators,
          _groups
        ) do
@@ -299,7 +300,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     %Expression{
       column
       | kind: :function,
-        function: "size",
+        name: "size",
         args: [%Expression{kind: :column, name: "aggregated_#{index}", table: :unknown, type: :integer}]
     }
   end

@@ -373,11 +373,11 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
   # UID grouping
   # -------------------------------------------------------------------
 
-  defp uid_aggregator(%Expression{function: "count_noise"} = expression),
-    do: uid_aggregator(%Expression{expression | function: "count", type: :integer})
+  defp uid_aggregator(%Expression{kind: :function, name: "count_noise"} = expression),
+    do: uid_aggregator(%Expression{expression | name: "count", type: :integer})
 
-  defp uid_aggregator(%Expression{function: "sum_noise", args: [arg]} = expression),
-    do: uid_aggregator(%Expression{expression | function: "sum", type: Function.type(arg)})
+  defp uid_aggregator(%Expression{kind: :function, name: "sum_noise", args: [arg]} = expression),
+    do: uid_aggregator(%Expression{expression | name: "sum", type: Function.type(arg)})
 
   defp uid_aggregator(aggregator), do: aggregator
 
@@ -393,11 +393,11 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
       index ->
         column_name = "__ac_agg_#{index}"
         inner_column = Helpers.column_from_table(inner_table, column_name)
-        function_name = global_aggregator(old_aggregator.function)
+        function_name = global_aggregator(old_aggregator.name)
 
         function_name
         |> Expression.function([inner_column], old_aggregator.type)
-        |> set_fields(alias: old_aggregator.function)
+        |> set_fields(alias: old_aggregator.name)
     end
   end
 
@@ -407,7 +407,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
 
   defp uses_multiple_columns?(expression) do
     Lenses.leaf_expressions()
-    |> Lens.filter(&(&1.name != nil))
+    |> Lens.filter(&Expression.column?/1)
     |> Lens.to_list(expression)
     |> Enum.count() > 1
   end

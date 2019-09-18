@@ -161,28 +161,28 @@ defmodule Cloak.DataSource.SqlBuilder do
     )
   end
 
-  defp column_sql(%Expression{kind: :function, function: fun_name, type: type, args: args}, query)
+  defp column_sql(%Expression{kind: :function, name: fun_name, type: type, args: args}, query)
        when fun_name in ["+", "-"] and type in [:time, :date, :datetime],
        do: sql_dialect_module(query).time_arithmetic_expression(fun_name, Enum.map(args, &to_fragment(&1, query)))
 
-  defp column_sql(%Expression{kind: :function, function: "/", type: :interval, args: args}, query),
+  defp column_sql(%Expression{kind: :function, name: "/", type: :interval, args: args}, query),
     do: sql_dialect_module(query).interval_division(Enum.map(args, &to_fragment(&1, query)))
 
-  defp column_sql(%Expression{kind: :function, function: "-", type: :interval, args: args}, query),
+  defp column_sql(%Expression{kind: :function, name: "-", type: :interval, args: args}, query),
     do: sql_dialect_module(query).date_subtraction_expression(Enum.map(args, &to_fragment(&1, query)))
 
-  defp column_sql(%Expression{kind: :function, function: {:cast, to_type}, args: [arg]}, query),
+  defp column_sql(%Expression{kind: :function, name: {:cast, to_type}, args: [arg]}, query),
     do: arg |> to_fragment(query) |> sql_dialect_module(query).cast_sql(arg.type, to_type)
 
-  defp column_sql(expression = %Expression{kind: :function, function: "date_trunc", type: :date}, query),
+  defp column_sql(expression = %Expression{kind: :function, name: "date_trunc", type: :date}, query),
     do: column_sql(cast(%{expression | type: :datetime}, :date), query)
 
-  defp column_sql(%Expression{kind: :function, function: "sum", args: [arg], type: :real}, query) do
+  defp column_sql(%Expression{kind: :function, name: "sum", args: [arg], type: :real}, query) do
     # Force `SUM` of reals to use double precision.
     Support.function_sql("sum", [arg |> cast(:real) |> to_fragment(query)], sql_dialect_module(query))
   end
 
-  defp column_sql(%Expression{kind: :function, function: fun_name, args: args}, query) do
+  defp column_sql(%Expression{kind: :function, name: fun_name, args: args}, query) do
     args =
       if Cloak.Sql.Function.math_function?(fun_name) do
         Enum.map(args, &force_max_precision/1)
@@ -459,7 +459,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     parse_user_id_join_chain(tables, link_table_name, chain, [acc | link_fragment])
   end
 
-  defp cast(%Expression{function: {:cast, to}} = expression, to), do: expression
+  defp cast(%Expression{kind: :function, name: {:cast, to}} = expression, to), do: expression
   defp cast({:distinct, expression}, to), do: {:distinct, cast(expression, to)}
   defp cast(expression, to), do: Expression.function({:cast, to}, [expression], to)
 

@@ -215,8 +215,8 @@ defmodule Cloak.Query.Aggregator do
       # All results will be `nil`-ed except for `count` which will have the value of 0.
       aggregated_values =
         Enum.map(query.aggregators, fn
-          %Expression{function: "count"} -> 0
-          %Expression{alias: "count", function: "sum"} -> 0
+          %Expression{name: "count"} -> 0
+          %Expression{alias: "count", name: "sum"} -> 0
           %Expression{} -> nil
         end)
 

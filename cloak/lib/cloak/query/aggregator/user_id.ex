@@ -101,17 +101,17 @@ defmodule Cloak.Query.Aggregator.UserId do
   end
 
   defp per_user_aggregator(%Expression{args: [{:distinct, _column}]}), do: :set
-  defp per_user_aggregator(%Expression{function: "count"}), do: :count
-  defp per_user_aggregator(%Expression{function: "count_noise"}), do: :count
-  defp per_user_aggregator(%Expression{function: "sum"}), do: :sum
-  defp per_user_aggregator(%Expression{function: "sum_noise"}), do: :sum
-  defp per_user_aggregator(%Expression{function: "avg"}), do: :avg
-  defp per_user_aggregator(%Expression{function: "avg_noise"}), do: :avg
-  defp per_user_aggregator(%Expression{function: "variance"}), do: :variance
-  defp per_user_aggregator(%Expression{function: "variance_noise"}), do: :variance
-  defp per_user_aggregator(%Expression{function: "min"}), do: :min
-  defp per_user_aggregator(%Expression{function: "max"}), do: :max
-  defp per_user_aggregator(%Expression{function: "median"}), do: :list
+  defp per_user_aggregator(%Expression{kind: :function, name: "count"}), do: :count
+  defp per_user_aggregator(%Expression{kind: :function, name: "count_noise"}), do: :count
+  defp per_user_aggregator(%Expression{kind: :function, name: "sum"}), do: :sum
+  defp per_user_aggregator(%Expression{kind: :function, name: "sum_noise"}), do: :sum
+  defp per_user_aggregator(%Expression{kind: :function, name: "avg"}), do: :avg
+  defp per_user_aggregator(%Expression{kind: :function, name: "avg_noise"}), do: :avg
+  defp per_user_aggregator(%Expression{kind: :function, name: "variance"}), do: :variance
+  defp per_user_aggregator(%Expression{kind: :function, name: "variance_noise"}), do: :variance
+  defp per_user_aggregator(%Expression{kind: :function, name: "min"}), do: :min
+  defp per_user_aggregator(%Expression{kind: :function, name: "max"}), do: :max
+  defp per_user_aggregator(%Expression{kind: :function, name: "median"}), do: :list
 
   defp aggregate_value(_aggregator, _value, :NaN), do: :NaN
 
@@ -198,10 +198,10 @@ defmodule Cloak.Query.Aggregator.UserId do
 
     aggregation_results =
       Enum.map(indexed_aggregators, fn
-        {_values_index, %Expression{function: "count", args: [{:distinct, %Expression{user_id?: true}}]}} ->
+        {_values_index, %Expression{name: "count", args: [{:distinct, %Expression{user_id?: true}}]}} ->
           users_count
 
-        {_values_index, %Expression{function: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]}} ->
+        {_values_index, %Expression{name: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]}} ->
           Anonymizer.noise_amount(1, anonymizer)
 
         {values_index, aggregator} ->
@@ -209,7 +209,7 @@ defmodule Cloak.Query.Aggregator.UserId do
           |> Stream.map(fn {_user, row_values} -> Enum.at(row_values, values_index) end)
           |> Enum.reject(&(&1 in [nil, :NaN]))
           |> preprocess_for_aggregation(aggregator)
-          |> aggregate_by(aggregator.alias || aggregator.function, aggregator.type, anonymizer)
+          |> aggregate_by(aggregator.alias || aggregator.name, aggregator.type, anonymizer)
       end)
 
     {users_count, property ++ aggregation_results}

@@ -24,7 +24,7 @@ defmodule Cloak.Sql.Function do
   def has_attribute?({:function, name, _, _}, attribute),
     do: has_attribute?(canonical_name(name), attribute)
 
-  def has_attribute?(%Expression{kind: :function, function: name}, attribute),
+  def has_attribute?(%Expression{kind: :function, name: name}, attribute),
     do: has_attribute?(name, attribute)
 
   def has_attribute?(%Expression{}, _attribute), do: false
@@ -59,7 +59,7 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns the return type of the given function call or nil if it is badly typed."
   @spec return_type(t) :: data_type | nil
-  def return_type(%Expression{kind: :function, function: name, args: args}),
+  def return_type(%Expression{kind: :function, name: name, args: args}),
     do: return_type({:function, name, args, nil})
 
   def return_type(function = {:function, name, _, _}) do
@@ -91,13 +91,13 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns true if the argument is a call to a 'bucket' function call, false otherwise."
   @spec bucket?(t) :: boolean
-  def bucket?(%Expression{function: {:bucket, _}}), do: true
+  def bucket?(%Expression{kind: :function, name: {:bucket, _}}), do: true
   def bucket?(_), do: false
 
   @doc "Updates the bucket size argument of the given 'bucket' function with the given function call."
   @spec update_bucket_size(t, (number -> number)) :: t
   def update_bucket_size(
-        %Expression{function: {:bucket, _}, args: [arg1, size]} = expression,
+        %Expression{kind: :function, name: {:bucket, _}, args: [arg1, size]} = expression,
         fun
       ),
       do: %Expression{
@@ -107,7 +107,7 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns the value of the bucket size argument of the given 'bucket' function call."
   @spec bucket_size(t) :: number
-  def bucket_size(%Expression{function: {:bucket, _}, args: [_arg1, size]}),
+  def bucket_size(%Expression{kind: :function, name: {:bucket, _}, args: [_arg1, size]}),
     do: size.value
 
   @doc "Returns true if the function is a valid cloak function"

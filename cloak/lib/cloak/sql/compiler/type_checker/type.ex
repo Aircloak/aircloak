@@ -58,7 +58,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   def establish_type(:*, _query), do: column(:*)
   def establish_type(%Expression{kind: :constant}, _query), do: constant()
 
-  def establish_type(%Expression{kind: :function, function: "grouping_id"}, _query), do: constant()
+  def establish_type(%Expression{kind: :function, name: "grouping_id"}, _query), do: constant()
 
   def establish_type(%Expression{kind: :column} = column, query), do: expand_from_subquery(column, query)
 
@@ -129,7 +129,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
       history_of_columns_involved: [expression]
     }
 
-  defp type_for_function(%Expression{kind: :function, function: name, args: args}, query) do
+  defp type_for_function(%Expression{kind: :function, name: name, args: args}, query) do
     child_types = args |> Enum.map(&establish_type(&1, query))
     # Prune constants, they don't interest us further
     if Enum.all?(child_types, & &1.constant?) do
