@@ -24,6 +24,8 @@ For example tables created in the UX are useful for later tests.
 - [ ] Deploy the latest release of `air` and `cloak`
 - [ ] Perform the onboarding procedure, as explained in [Deploying a clean system](#deploying-a-clean-system)
 - [ ] Perform the [Insights Air Interface](#insights-air-interface) tests.
+- [ ] Validate that the version number is right
+- [ ] Validate that the changelog has been updated
 
 ### Insights Air Interface
 
