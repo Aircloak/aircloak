@@ -9,33 +9,7 @@ For example tables created in the UX are useful for later tests.
 
 - [ ] Reset your air system (see [Deploying a clean system](#deploying-a-clean-system) for details)
 - [ ] Deploy the previous release of `air` and `cloak`
-- [ ] Create analyst views and an analyst table described in [Useful analyst tables and views](#useful-analyst-tables-and-views)
-- [ ] Issue the following queries. They should all return non-empty results:
-  - ```sql
-    SELECT count(*) FROM num_games_view
-    ```
-  - ```sql
-    SELECT * FROM anonymizing_view
-    ```
-  - ```sql
-    SELECT numGames, count(*)
-    FROM num_games_table
-    GROUP BY 1
-    ORDER BY numGames ASC
-    ```
-  - ```sql
-    SELECT age, avg(length(firstname)), stddev(length(firstname))
-    FROM players
-    GROUP BY age
-    ORDER BY age ASC
-    ```
-  - ```sql
-    SELECT gender, level, age
-    FROM players
-    ```
 - [ ] Perform the [Insights Air Interface](#insights-air-interface) tests to validate the system is in a working state
-- [ ] Add a user account and give the user access to the data source
-- Sign out
 - [ ] Deploy the latest release of both `air` and `cloak`
 - [ ] Log in
 - [ ] Verify that the query history is preserved
@@ -56,16 +30,31 @@ For example tables created in the UX are useful for later tests.
 - [ ] Sign in with your administrator username and credential
 - Go to `Data Sources -> GamesAndPlayers`
 - [ ] Create analyst views and an analyst table described in [Useful analyst tables and views](#useful-analyst-tables-and-views)
-- [ ] Issue a couple of queries using plain tables, the views, and the analyst table
-- [ ] Issue this query:
-  ```sql
-  SELECT numGames, count(*)
-  FROM num_games_view
-  GROUP BY 1
-  ORDER BY numGames ASC
-  ```
+- [ ] Issue the following queries. They should all return non-empty results:
+  - ```sql
+    SELECT count(*) FROM num_games_view
+    ```
+  - ```sql
+    SELECT * FROM anonymizing_view
+    ```
+  - ```sql
+    SELECT numGames, count(*)
+    FROM num_games_table
+    GROUP BY 1
+    ORDER BY numGames ASC
+    ```
+  - [ ] Click on `Show chart`, select `numGames` as `X` and `count` as `Y`, make sure the chart displays
+  - ```sql
+    SELECT age, avg(length(firstname)), stddev(length(firstname))
+    FROM players
+    GROUP BY age
+    ORDER BY age ASC
+    ```
+  - ```sql
+    SELECT gender, level, age
+    FROM players
+    ```
   - [ ] Ensure syntax is highlighted in the editor and in result boxes
-- [ ] Click on `Show chart`, select `numGames` as `X` and `count` as `Y`, make sure the chart displays
 - Go to `Cog icon -> API tokens`
 - [ ] Create an API token, note it down
 - [ ] Issue this curl, setting `$token` to your own API token, and `$url` to the URL of your Aircloak instance
@@ -101,6 +90,13 @@ For example tables created in the UX are useful for later tests.
   ```sql
   SELECT COUNT(*) FROM anonymizing_view;
   ```
+- [ ] Add a non-admin user account with username `user@aircloak.com` and password `password1234` and give the user access to the data source
+- Sign out
+- [ ] Sign in as the non-admin user and repeat the steps above, namely:
+  - [ ] Creating views and analyst tables
+  - [ ] Running queries in the web interface
+  - [ ] Creating API token and issuing a query
+  - [ ] Creating App login and querying using `psql`
 
 ### Tableau tests
 
