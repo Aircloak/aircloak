@@ -71,7 +71,7 @@ For example tables created in the UX are useful for later tests.
     query_id=your_own_id
 
     curl -X GET -H "content-type: application/json" -H "auth-token: $token" \
-      $url/api/queries/$query_id \
+      $url/api/queries/$query_id | \
       python -m json.tool
     ```
 - Go to `Cog icon -> App logins`
