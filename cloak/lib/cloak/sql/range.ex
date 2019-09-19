@@ -98,9 +98,9 @@ defmodule Cloak.Sql.Range do
 
   defp implicit_range?(:*, _query), do: false
   defp implicit_range?({:distinct, expression}, query), do: implicit_range?(expression, query)
-  defp implicit_range?(%Expression{constant?: true}, _query), do: false
+  defp implicit_range?(%Expression{kind: :constant}, _query), do: false
 
-  defp implicit_range?(function = %Expression{function?: true, function_args: args}, query) do
+  defp implicit_range?(function = %Expression{kind: :function, args: args}, query) do
     if Function.has_attribute?(function, :implicit_range) do
       true
     else
@@ -115,11 +115,8 @@ defmodule Cloak.Sql.Range do
     end
   end
 
-  defp aggregate?(%Expression{aggregate?: true}), do: true
-
-  defp aggregate?(%Expression{function?: true, function_args: args}), do: Enum.any?(args, &aggregate?/1)
-
-  defp aggregate?(_), do: false
+  defp aggregate?(expression),
+    do: Function.aggregator?(expression) or Enum.any?(expression.args, &aggregate?/1)
 
   defp function_range(column), do: %__MODULE__{column: column, interval: :implicit}
 end

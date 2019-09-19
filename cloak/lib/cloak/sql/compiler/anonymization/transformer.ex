@@ -24,7 +24,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
 
     aggregated_columns =
       query.aggregators
-      |> Enum.reject(&match?(%Expression{function_args: [{:distinct, _}]}, &1))
+      |> Enum.reject(&match?(%Expression{args: [{:distinct, _}]}, &1))
       |> Enum.map(&uid_aggregator/1)
       |> Enum.uniq_by(&Expression.semantic/1)
       |> Enum.with_index()
@@ -112,8 +112,8 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     target_column = set_fields(target_column, alias: "__ac_target", synthetic?: true)
 
     user_id = Helpers.id_column(query)
-    min_user_id = Expression.function("min", [user_id], user_id.type, true)
-    count_distinct_user_id = Expression.function("count", [{:distinct, user_id}], :integer, true)
+    min_user_id = Expression.function("min", [user_id], user_id.type)
+    count_distinct_user_id = Expression.function("count", [{:distinct, user_id}], :integer)
 
     constant_lower = Expression.constant(:text, "<")
     constant_3 = Expression.constant(:integer, 3)
@@ -161,7 +161,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     target_column = column_from_synthetic_table(distinct_values_table, "__ac_target")
 
     count_distinct_values =
-      Expression.function("count", [target_column], :integer, true)
+      Expression.function("count", [target_column], :integer)
       |> set_fields(alias: "__ac_count_distinct", synthetic?: true)
 
     grouped_columns = [grouping_id, user_id | base_columns]
@@ -194,11 +194,11 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     noise_factor = Expression.function("unsafe_mul", [low_count_user_id_as_integer, count_distinct], :integer)
 
     max_noise_factor =
-      Expression.function("max", [noise_factor], :integer, true)
+      Expression.function("max", [noise_factor], :integer)
       |> set_fields(alias: "__ac_noise_factor", synthetic?: true)
 
     global_count_distinct =
-      Expression.function("sum", [count_distinct], :integer, true)
+      Expression.function("sum", [count_distinct], :integer)
       |> set_fields(alias: "__ac_count_distinct", synthetic?: true)
 
     grouped_columns = [grouping_id | base_columns]
@@ -236,7 +236,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
 
   @doc "Returns a lens for focusing on the aggregators in a query."
   @spec aggregators_lens() :: Lens.t()
-  def aggregators_lens(), do: Lenses.query_expressions() |> Lens.filter(& &1.aggregate?)
+  def aggregators_lens(), do: Lenses.query_expressions() |> Lens.filter(&Function.aggregator?/1)
 
   @doc "Returns a column expression from a synthetic table."
   @spec column_from_synthetic_table(Table.t(), String.t()) :: Expression.t()
@@ -295,12 +295,19 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
   defp required_groups(query),
     do: query |> grouped_columns() |> Enum.reject(& &1.user_id?) |> Enum.uniq_by(&Expression.semantic/1)
 
-  defp extract_groups(%Expression{name: name} = column) when is_binary(name), do: [column]
+  defp extract_groups(%Expression{kind: :column} = column), do: [column]
 
-  defp extract_groups(%Expression{function?: true, aggregate?: false} = expression) do
-    if Helpers.aggregated_column?(expression) or uses_multiple_columns?(expression),
-      do: Enum.flat_map(expression.function_args, &extract_groups/1),
-      else: [expression]
+  defp extract_groups(%Expression{kind: :function} = expression) do
+    cond do
+      Function.aggregator?(expression) ->
+        []
+
+      Helpers.aggregated_column?(expression) or uses_multiple_columns?(expression) ->
+        Enum.flat_map(expression.args, &extract_groups/1)
+
+      true ->
+        [expression]
+    end
   end
 
   defp extract_groups(_), do: []
@@ -317,15 +324,15 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     true = uid_column != nil
 
     count_duid =
-      Expression.function("count", [Expression.column(uid_column, uid_grouping_table)], :integer, true)
+      Expression.function("count", [Expression.column(uid_column, uid_grouping_table)], :integer)
       |> set_fields(alias: "__ac_count_duid", user_id?: true, synthetic?: true)
 
     min_uid =
-      Expression.function("min", [Expression.column(uid_column, uid_grouping_table)], uid_column.type, true)
+      Expression.function("min", [Expression.column(uid_column, uid_grouping_table)], uid_column.type)
       |> set_fields(alias: "__ac_min_uid", synthetic?: true)
 
     max_uid =
-      Expression.function("max", [Expression.column(uid_column, uid_grouping_table)], uid_column.type, true)
+      Expression.function("max", [Expression.column(uid_column, uid_grouping_table)], uid_column.type)
       |> set_fields(alias: "__ac_max_uid", synthetic?: true)
 
     {count_duid, min_uid, max_uid}
@@ -333,7 +340,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
 
   defp aggregation_statistics(aggregators) do
     aggregators
-    |> Enum.map(fn %Expression{aggregate?: true, function_args: [arg]} -> arg end)
+    |> Enum.map(fn %Expression{args: [arg]} -> arg end)
     |> Enum.flat_map(fn
       {:distinct, _} ->
         []
@@ -347,7 +354,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
               {"stddev", :real}
             ] do
           function
-          |> Expression.function([column], type, true)
+          |> Expression.function([column], type)
           |> set_fields(alias: "#{column.name}_#{function}", synthetic?: true)
         end
     end)
@@ -366,11 +373,11 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
   # UID grouping
   # -------------------------------------------------------------------
 
-  defp uid_aggregator(%Expression{function: "count_noise"} = expression),
-    do: uid_aggregator(%Expression{expression | function: "count", type: :integer})
+  defp uid_aggregator(%Expression{kind: :function, name: "count_noise"} = expression),
+    do: uid_aggregator(%Expression{expression | name: "count", type: :integer})
 
-  defp uid_aggregator(%Expression{function: "sum_noise", function_args: [arg]} = expression),
-    do: uid_aggregator(%Expression{expression | function: "sum", type: Function.type(arg)})
+  defp uid_aggregator(%Expression{kind: :function, name: "sum_noise", args: [arg]} = expression),
+    do: uid_aggregator(%Expression{expression | name: "sum", type: Function.type(arg)})
 
   defp uid_aggregator(aggregator), do: aggregator
 
@@ -386,11 +393,11 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
       index ->
         column_name = "__ac_agg_#{index}"
         inner_column = Helpers.column_from_table(inner_table, column_name)
-        function_name = global_aggregator(old_aggregator.function)
+        function_name = global_aggregator(old_aggregator.name)
 
         function_name
-        |> Expression.function([inner_column], old_aggregator.type, true)
-        |> set_fields(alias: old_aggregator.function)
+        |> Expression.function([inner_column], old_aggregator.type)
+        |> set_fields(alias: old_aggregator.name)
     end
   end
 
@@ -400,7 +407,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
 
   defp uses_multiple_columns?(expression) do
     Lenses.leaf_expressions()
-    |> Lens.filter(&(&1.name != nil))
+    |> Lens.filter(&Expression.column?/1)
     |> Lens.to_list(expression)
     |> Enum.count() > 1
   end

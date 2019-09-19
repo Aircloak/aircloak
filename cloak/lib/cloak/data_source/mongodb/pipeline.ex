@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.MongoDB.Pipeline do
   @moduledoc "MongoDB helper functions for mapping a query to an aggregation pipeline."
 
-  alias Cloak.Sql.{Query, Expression, Condition, LikePattern}
+  alias Cloak.Sql.{Query, Expression, Condition, LikePattern, Function}
   alias Cloak.Query.ExecutionError
   alias Cloak.DataSource.MongoDB.{Schema, Projector}
   alias Cloak.DataSource.Table
@@ -64,7 +64,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp project_top_columns(_columns, _top_level? = false), do: []
 
-  defp project_top_column(%Expression{constant?: true} = constant), do: Projector.project_expression(constant)
+  defp project_top_column(%Expression{kind: :constant} = constant), do: Projector.project_expression(constant)
 
   defp project_top_column(column), do: "$#{Expression.title(column)}"
 
@@ -89,8 +89,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_operator(:<=), do: :"$lte"
   defp parse_operator(:<>), do: :"$ne"
 
-  defp map_column(%Expression{table: :unknown, name: name}) when is_binary(name), do: name
-  defp map_column(%Expression{table: %{name: table}, name: name}) when is_binary(name), do: table <> "." <> name
+  defp map_column(%Expression{kind: :column, table: :unknown, name: name}), do: name
+  defp map_column(%Expression{kind: :column, table: %{name: table}, name: name}), do: table <> "." <> name
 
   defp map_column(_),
     do: raise(ExecutionError, message: "Condition on MongoDB data source expects a column as subject.")
@@ -138,7 +138,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:not, {:ilike, subject, pattern}}),
     do: %{map_column(subject) => %{"$not": regex(pattern, "msi")}}
 
-  defp regex(%Expression{constant?: true, value: pattern}, options),
+  defp regex(%Expression{kind: :constant, value: pattern}, options),
     do: %BSON.Regex{
       pattern: LikePattern.to_regex_pattern(pattern),
       options: options
@@ -160,9 +160,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp complex_filter([array | _]), do: &complex_condition?(&1, [array <> "."])
 
   defp complex_condition?(column, complex_name_prefixes) do
-    column_name = Condition.subject(column).name
+    subject = Condition.subject(column)
 
-    column_name == nil or Schema.is_array_size?(column_name) or String.starts_with?(column_name, complex_name_prefixes)
+    subject.kind != :column or Schema.is_array_size?(subject.name) or
+      String.starts_with?(subject.name, complex_name_prefixes)
   end
 
   defp extract_columns_from_conditions(conditions) do
@@ -170,16 +171,16 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       Query.Lenses.conditions()
       |> Lens.to_list(conditions)
       |> Enum.flat_map(&Condition.targets/1)
-      |> Enum.filter(& &1.function?)
+      |> Enum.filter(&Expression.function?/1)
       |> Enum.uniq()
 
     conditions =
       Query.Lenses.conditions()
       |> Query.Lenses.operands()
-      |> Lens.filter(&match?(%Expression{function?: true}, &1))
+      |> Lens.filter(&Expression.function?/1)
       |> Lens.map(conditions, fn column ->
         index = Enum.find_index(extra_columns, &(&1 == column))
-        %Expression{name: "__condition_#{index}", type: column.type}
+        %Expression{kind: :column, name: "__condition_#{index}", table: :unknown, type: column.type}
       end)
 
     extra_columns =
@@ -259,12 +260,11 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     %Query{query | db_columns: needed_columns, order_by: order_by}
   end
 
-  defp extract_aggregator(%Expression{aggregate?: true} = column), do: [column]
-
-  defp extract_aggregator(%Expression{function: fun} = column) when fun != nil,
-    do: Enum.flat_map(column.function_args, &extract_aggregator/1)
-
-  defp extract_aggregator(_column), do: []
+  defp extract_aggregator(expression) do
+    if Function.aggregator?(expression),
+      do: [expression],
+      else: Enum.flat_map(expression.args, &extract_aggregator/1)
+  end
 
   defp project_properties([]), do: nil
 
@@ -287,10 +287,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
 
   # This extracts the upper part of a column that need to be projected after grouping is done.
-  defp extract_column_top(%Expression{constant?: true} = column, _aggregators, _groups), do: column
+  defp extract_column_top(%Expression{kind: :constant} = column, _aggregators, _groups), do: column
 
   defp extract_column_top(
-         %Expression{function: "count", function_args: [{:distinct, _}]} = column,
+         %Expression{kind: :function, name: "count", args: [{:distinct, _}]} = column,
          aggregators,
          _groups
        ) do
@@ -299,14 +299,14 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
     %Expression{
       column
-      | function?: true,
-        function: "size",
-        function_args: [%Expression{name: "aggregated_#{index}", table: :unknown, type: :integer}]
+      | kind: :function,
+        name: "size",
+        args: [%Expression{kind: :column, name: "aggregated_#{index}", table: :unknown, type: :integer}]
     }
   end
 
   defp extract_column_top(
-         %Expression{function_args: [{:distinct, _}]} = column,
+         %Expression{args: [{:distinct, _}]} = column,
          aggregators,
          _groups
        ) do
@@ -315,7 +315,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
     %Expression{
       column
-      | function_args: [%Expression{name: "aggregated_#{index}", table: :unknown}]
+      | args: [%Expression{kind: :column, name: "aggregated_#{index}", table: :unknown, type: column.type}]
     }
   end
 
@@ -325,20 +325,29 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
         case Enum.find_index(groups, &Expression.equals?(column, &1)) do
           nil ->
             # Has to be a function call since the lookups failed.
-            args = Enum.map(column.function_args, &extract_column_top(&1, aggregators, groups))
-            %Expression{column | function_args: args}
+            args = Enum.map(column.args, &extract_column_top(&1, aggregators, groups))
+            %Expression{column | args: args}
 
           index ->
             %Expression{
+              kind: :column,
               name: "_id.property_#{index}",
               table: :unknown,
+              type: column.type,
               alias: Expression.title(column)
             }
         end
 
       index ->
         aggregator = Enum.at(aggregators, index)
-        %Expression{name: "aggregated_#{index}", table: :unknown, alias: column.alias, type: aggregator.type}
+
+        %Expression{
+          kind: :column,
+          name: "aggregated_#{index}",
+          table: :unknown,
+          alias: column.alias,
+          type: aggregator.type
+        }
     end
   end
 

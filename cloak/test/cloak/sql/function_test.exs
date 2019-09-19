@@ -317,7 +317,7 @@ defmodule Cloak.Sql.Function.Test do
       assert Function.well_typed?(
                {:function, "round",
                 [
-                  %Expression{type: :real},
+                  Expression.constant(:real, 0),
                   Expression.function(
                     "+",
                     [Expression.constant(:integer, 1), Expression.constant(:integer, 2)],
@@ -343,7 +343,7 @@ defmodule Cloak.Sql.Function.Test do
   defp simulate_types(types) do
     Enum.map(types, fn
       {:constant, type} -> Expression.constant(type, nil)
-      type -> %Expression{constant?: false, type: type}
+      type -> %Expression{kind: :column, type: type, name: "dummy"}
     end)
   end
 end

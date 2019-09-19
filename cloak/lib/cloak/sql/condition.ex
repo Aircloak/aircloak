@@ -126,7 +126,7 @@ defmodule Cloak.Sql.Condition do
   end
 
   def to_function({:in, column, values}, truth) do
-    values = for %Expression{constant?: true, value: value} <- values, do: value
+    values = for %Expression{kind: :constant, value: value} <- values, do: value
     fn row -> compare(:in, Expression.value(column, row), values) == truth end
   end
 

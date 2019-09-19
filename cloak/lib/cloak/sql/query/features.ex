@@ -52,9 +52,8 @@ defmodule Cloak.Sql.Query.Features do
     query.columns |> Enum.filter(&aggregate?/1) |> Enum.count()
   end
 
-  defp aggregate?(%{aggregate?: true}), do: true
-  defp aggregate?(%{function?: true, function_args: args}), do: Enum.any?(args, &aggregate?/1)
-  defp aggregate?(_), do: false
+  defp aggregate?(expression),
+    do: Function.aggregator?(expression) or Enum.any?(expression.args, &aggregate?/1)
 
   defp selected_types(columns), do: columns |> Enum.map(&Function.type/1) |> Enum.map(&stringify/1)
 
@@ -69,7 +68,7 @@ defmodule Cloak.Sql.Query.Features do
     Query.Lenses.all_queries()
     |> Lens.context(possible_db_columns())
     |> Lens.to_list(Query.resolve_db_columns(query))
-    |> Enum.reject(fn {_subquery, column} -> column.constant? end)
+    |> Enum.reject(fn {_subquery, column} -> Expression.constant?(column) end)
     |> Enum.flat_map(fn {subquery, column} ->
       case Query.resolve_subquery_column(column, subquery) do
         :database_column -> [column]
@@ -119,10 +118,10 @@ defmodule Cloak.Sql.Query.Features do
     |> get_in([
       initial_lens
       |> Query.Lenses.all_expressions()
-      |> Lens.filter(& &1.function?)
+      |> Lens.filter(&Expression.function?/1)
       |> Lens.reject(& &1.synthetic?)
     ])
-    |> Enum.map(&Function.readable_name(&1.function))
+    |> Enum.map(&Function.readable_name(&1.name))
     |> Enum.uniq()
   end
 
@@ -144,12 +143,12 @@ defmodule Cloak.Sql.Query.Features do
   defp expression_tree_to_lisp(other), do: to_string(other)
 
   defp build_expression_tree(
-         %Expression{function?: true, function: function, function_args: args},
+         %Expression{kind: :function, name: name, args: args},
          query
        ),
-       do: [Function.readable_name(function) | Enum.map(args, &build_expression_tree(&1, query))]
+       do: [Function.readable_name(name) | Enum.map(args, &build_expression_tree(&1, query))]
 
-  defp build_expression_tree(%Expression{constant?: true}, _query), do: :const
+  defp build_expression_tree(%Expression{kind: :constant}, _query), do: :const
 
   defp build_expression_tree({:distinct, exprs}, query) when is_list(exprs),
     do: [:distinct, Enum.map(exprs, &build_expression_tree(&1, query))]
