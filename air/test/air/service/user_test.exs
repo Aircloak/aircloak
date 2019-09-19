@@ -163,6 +163,15 @@ defmodule Air.Service.UserTest do
       assert {:ok, :data} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
     end
 
+    test "does not revoke sessons on profile update that does not change the password" do
+      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
+
+      User.update_full_profile(user, %{"name" => "foobar"})
+
+      assert {:ok, :data} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
+    end
+
     test "[Issue #3407] change password for user with an app login" do
       user = TestRepoHelper.create_user!(%{password: "password1234"})
       {:ok, login, password} = User.create_app_login(user, %{})
