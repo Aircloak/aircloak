@@ -74,6 +74,16 @@ For example tables created in the UX are useful for later tests.
       $url/api/queries/$query_id | \
       python -m json.tool
     ```
+- [ ] Issue the query command with a broken token to validate it fails:
+  ```
+  token=broken
+  # url is already set
+
+  curl -X POST -H "content-type: application/json" -H "auth-token: $token" \
+    -d '{"query": {"statement": "SELECT COUNT(*) FROM games", "data_source_name": "GamesAndPlayers"}}' \
+    $url/api/queries
+
+  ```
 - Go to `Cog icon -> App logins`
 - [ ] Create a new login
 - [ ] Connect to psql, substituting the created login for `$login`, and `$hostname` with the URL of your Aircloak
@@ -84,6 +94,7 @@ For example tables created in the UX are useful for later tests.
   login=login_you_created
   psql -h $hostname -p $port -U $login -d GamesAndPlayers
   ```
+- [ ] Supply an incorrect password and validate that authentication fails
 - Supply the created password
 - [ ] Check that `\dt` shows a list of tables, including analyst tables and views
 - [ ] Run this query:
