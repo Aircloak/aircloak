@@ -9,10 +9,36 @@ For example tables created in the UX are useful for later tests.
 
 - [ ] Reset your air system (see [Deploying a clean system](#deploying-a-clean-system) for details)
 - [ ] Deploy the previous release of `air` and `cloak`
+- [ ] Perform the [Insights Air Interface](#insights-air-interface) tests to validate the system is in a working state
+- [ ] Deploy the latest release of both `air` and `cloak`
+- [ ] Log in
+- [ ] Verify that the query history is preserved
+- [ ] Verify that the audit log is preserved
+- [ ] Verify that the views and the analyst table can be queried
+- [ ] Verify that the API token and app login can still be used by repeating the `curl` and `psql` commands from the
+  [Insights Air Interface](#insights-air-interface) tests.
+
+### Clean deploy
+
+- [ ] Reset your air system (see [Deploying a clean system](#deploying-a-clean-system) for details)
+- [ ] Deploy the latest release of `air` and `cloak`
+- [ ] Perform the onboarding procedure, as explained in [Deploying a clean system](#deploying-a-clean-system)
+- [ ] Perform the [Insights Air Interface](#insights-air-interface) tests.
+- [ ] Validate that the version number is right
+- [ ] Validate that the changelog has been updated
+
+### Insights Air Interface
+
+- [ ] Sign out
+- [ ] Sign in with your administrator username and credential
+- Go to `Data Sources -> GamesAndPlayers`
 - [ ] Create analyst views and an analyst table described in [Useful analyst tables and views](#useful-analyst-tables-and-views)
 - [ ] Issue the following queries. They should all return non-empty results:
   - ```sql
     SELECT count(*) FROM num_games_view
+    ```
+  - ```sql
+    SELECT count(*) FROM num_games_table
     ```
   - ```sql
     SELECT * FROM anonymizing_view
@@ -23,6 +49,7 @@ For example tables created in the UX are useful for later tests.
     GROUP BY 1
     ORDER BY numGames ASC
     ```
+  - [ ] Click on `Show chart`, select `numGames` as `X` and `count` as `Y`, make sure the chart displays
   - ```sql
     SELECT age, avg(length(firstname)), stddev(length(firstname))
     FROM players
@@ -33,34 +60,7 @@ For example tables created in the UX are useful for later tests.
     SELECT gender, level, age
     FROM players
     ```
-- Sign out
-- Deploy the latest release of both `air` and `cloak`
-- [ ] Log in
-- [ ] Verify that the query history is preserved
-- [ ] Verify that the views and the analyst table can be queried
-
-### Clean deploy
-
-- [ ] Reset your air system (see [Deploying a clean system](#deploying-a-clean-system) for details)
-- [ ] Deploy the latest release of `air` and `cloak`
-- [ ] Perform the onboarding procedure, as explained in [Deploying a clean system](#deploying-a-clean-system)
-
-### Insights Air Interface
-
-- [ ] Sign out
-- [ ] Sign in with your administrator username and credential
-- Go to `Data Sources -> GamesAndPlayers`
-- [ ] Create analyst views and an analyst table described in [Useful analyst tables and views](#useful-analyst-tables-and-views)
-- [ ] Issue a couple of queries using plain tables, the views, and the analyst table
-- [ ] Issue this query:
-  ```sql
-  SELECT numGames, count(*)
-  FROM num_games_view
-  GROUP BY 1
-  ORDER BY numGames ASC
-  ```
   - [ ] Ensure syntax is highlighted in the editor and in result boxes
-- [ ] Click on `Show chart`, select `numGames` as `X` and `count` as `Y`, make sure the chart displays
 - Go to `Cog icon -> API tokens`
 - [ ] Create an API token, note it down
 - [ ] Issue this curl, setting `$token` to your own API token, and `$url` to the URL of your Aircloak instance
@@ -77,9 +77,19 @@ For example tables created in the UX are useful for later tests.
     query_id=your_own_id
 
     curl -X GET -H "content-type: application/json" -H "auth-token: $token" \
-      $url/api/queries/$query_id \
+      $url/api/queries/$query_id | \
       python -m json.tool
     ```
+- [ ] Issue the query command with a broken token to validate it fails:
+  ```
+  token=broken
+  # url is already set
+
+  curl -X POST -H "content-type: application/json" -H "auth-token: $token" \
+    -d '{"query": {"statement": "SELECT COUNT(*) FROM games", "data_source_name": "GamesAndPlayers"}}' \
+    $url/api/queries
+
+  ```
 - Go to `Cog icon -> App logins`
 - [ ] Create a new login
 - [ ] Connect to psql, substituting the created login for `$login`, and `$hostname` with the URL of your Aircloak
@@ -90,12 +100,20 @@ For example tables created in the UX are useful for later tests.
   login=login_you_created
   psql -h $hostname -p $port -U $login -d GamesAndPlayers
   ```
+- [ ] Supply an incorrect password and validate that authentication fails
 - Supply the created password
 - [ ] Check that `\dt` shows a list of tables, including analyst tables and views
 - [ ] Run this query:
   ```sql
   SELECT COUNT(*) FROM anonymizing_view;
   ```
+- [ ] Add a non-admin user account with username `user@aircloak.com` and password `password1234` and give the user access to the data source
+- Sign out
+- [ ] Sign in as the non-admin user and repeat the steps above, namely:
+  - [ ] Creating views and analyst tables
+  - [ ] Running queries in the web interface
+  - [ ] Creating API token and issuing a query
+  - [ ] Creating App login and querying using `psql`
 
 ### Tableau tests
 
@@ -124,8 +142,9 @@ For example tables created in the UX are useful for later tests.
 - [ ] Drag "Number of records" to the rows area
 - You should now see a bar graph
 - [ ] Drag "players.Gender" onto the rows area
-- [ ] Right click on the "numGames" item in the columns area and select "Continuous"
 - You should now see a bar graph of num games per gender
+- [ ] Right click on the "numGames" item in the columns area and select "Continuous"
+- You should now see a line graph of num games per gender
 - [ ] Drag "games.Date" to the filters section, then select quarter, and subsequently Q1
 - The graph should still display sensible values
 - [ ] Drag "games.Date" to the columns area
@@ -167,8 +186,9 @@ The data source definition is:
 ```json
 {
   "driver": "postgresql",
-  "name": "games_and_players",
+  "name": "GamesAndPlayers",
   "lcf_buckets_aggregation_limit": 0,
+  "analyst_tables_enabled": true,
   "parameters": {
     "hostname": "airdb.mpi-sws.org",
     "username": "newcloak",
@@ -201,15 +221,6 @@ FROM games
 GROUP BY player
 ```
 
-Validate that you can query them using the queries such as:
-
-```SQL
-SELECT numGames, count(*)
-FROM num_games_view
-GROUP BY 1
-ORDER BY numGames ASC
-```
-
 Now create an anonymized analyst view named `anonymizing_view` with the following SQL:
 
 ```SQL
@@ -217,10 +228,4 @@ SELECT age, count(*)
 FROM players
 GROUP BY age
 ORDER BY age ASC
-```
-
-and validate it by running the following query:
-
-```SQL
-SELECT * FROM anonymizing_view
 ```
