@@ -169,6 +169,7 @@ The data source definition is:
   "driver": "postgresql",
   "name": "games_and_players",
   "lcf_buckets_aggregation_limit": 0,
+  "analyst_tables_enabled": true,
   "parameters": {
     "hostname": "airdb.mpi-sws.org",
     "username": "newcloak",
