@@ -1,3 +1,9 @@
+## Unreleased changes
+
+### Enhancements
+
+- When a user changes their password all their other sessions are automatically revoked
+
 ## Version 19.3.0
 
 ### __Breaking changes__
