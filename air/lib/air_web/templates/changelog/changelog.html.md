@@ -1,6 +1,9 @@
 ## Version 19.4.0
 
 ### Enhancements
+
+- When a user changes their password all their other sessions are automatically revoked
+
 ### Bugfixes
 ### Changes
 

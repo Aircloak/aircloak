@@ -48,10 +48,11 @@ defmodule AirWeb.ProfileController do
 
   defp update(conn, params, flash, log_tag) do
     case update_profile(conn.assigns.current_user, params["user"]) do
-      {:ok, _} ->
+      {:ok, _, sessions_revoked?} ->
         audit_log(conn, log_tag)
 
         conn
+        |> maybe_login(sessions_revoked?)
         |> put_flash(:info, flash)
         |> redirect(to: profile_path(conn, :edit))
 
@@ -61,6 +62,14 @@ defmodule AirWeb.ProfileController do
     end
   end
 
+  defp maybe_login(conn, false), do: conn
+  defp maybe_login(conn, true), do: AirWeb.Plug.Session.sign_in(conn, conn.assigns.current_user)
+
   defp update_profile(user = %{source: :native}, params), do: User.update_full_profile(user, params)
-  defp update_profile(user = %{source: :ldap}, params), do: User.update_profile_settings(user, params)
+
+  defp update_profile(user = %{source: :ldap}, params) do
+    with {:ok, user} <- User.update_profile_settings(user, params) do
+      {:ok, user, false}
+    end
+  end
 end

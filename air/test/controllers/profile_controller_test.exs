@@ -41,36 +41,49 @@ defmodule Air.ProfileController.Test do
     assert user.groups == []
   end
 
-  test "cannot change password without the old password", %{user: user} do
-    old_password_hash = hd(user.logins).hashed_password
+  describe "password change" do
+    test "cannot change password without the old password", %{user: user} do
+      old_password_hash = hd(user.logins).hashed_password
 
-    login(user)
-    |> put(
-      "/profile",
-      user: %{
-        old_password: "incorrect",
-        password: "new password",
-        password_confirmation: "new password"
-      }
-    )
+      login(user)
+      |> put(
+        "/profile",
+        user: %{
+          old_password: "incorrect",
+          password: "new password",
+          password_confirmation: "new password"
+        }
+      )
 
-    assert hd(Service.User.load!(user.id).logins).hashed_password == old_password_hash
-  end
+      assert hd(Service.User.load!(user.id).logins).hashed_password == old_password_hash
+    end
 
-  test "can change password with the old password", %{user: user} do
-    old_password_hash = hd(user.logins).hashed_password
+    test "can change password with the old password", %{user: user} do
+      old_password_hash = hd(user.logins).hashed_password
 
-    login(user)
-    |> put(
-      "/profile",
-      user: %{
-        old_password: "password1234",
-        password: "new password",
-        password_confirmation: "new password"
-      }
-    )
+      login(user)
+      |> put(
+        "/profile",
+        user: %{
+          old_password: "password1234",
+          password: "new password",
+          password_confirmation: "new password"
+        }
+      )
 
-    refute hd(Service.User.load!(user.id).logins).hashed_password == old_password_hash
+      refute hd(Service.User.load!(user.id).logins).hashed_password == old_password_hash
+    end
+
+    test "the user is still logged in after changing the password", %{user: user} do
+      assert login(user)
+             |> put(
+               "/profile",
+               user: %{old_password: "password1234", password: "new password", password_confirmation: "new password"}
+             )
+             |> recycle()
+             |> get("/profile/edit")
+             |> response(200)
+    end
   end
 
   describe ".delete_sessions" do
