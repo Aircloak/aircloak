@@ -33,17 +33,22 @@ For example tables created in the UX are useful for later tests.
     SELECT gender, level, age
     FROM players
     ```
+- [ ] Perform the [Insights Air Interface](#insights-air-interface) tests to validate the system is in a working state
+- [ ] Add a user account and give the user access to the data source
 - Sign out
-- Deploy the latest release of both `air` and `cloak`
+- [ ] Deploy the latest release of both `air` and `cloak`
 - [ ] Log in
 - [ ] Verify that the query history is preserved
 - [ ] Verify that the views and the analyst table can be queried
+- [ ] Verify that the API token and app login can still be used by repeating the `curl` and `psql` commands from the
+  [Insights Air Interface](#insights-air-interface) tests.
 
 ### Clean deploy
 
 - [ ] Reset your air system (see [Deploying a clean system](#deploying-a-clean-system) for details)
 - [ ] Deploy the latest release of `air` and `cloak`
 - [ ] Perform the onboarding procedure, as explained in [Deploying a clean system](#deploying-a-clean-system)
+- [ ] Perform the [Insights Air Interface](#insights-air-interface) tests.
 
 ### Insights Air Interface
 
