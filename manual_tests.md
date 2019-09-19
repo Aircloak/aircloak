@@ -168,7 +168,7 @@ The data source definition is:
 ```json
 {
   "driver": "postgresql",
-  "name": "games_and_players",
+  "name": "GamesAndPlayers",
   "lcf_buckets_aggregation_limit": 0,
   "analyst_tables_enabled": true,
   "parameters": {
