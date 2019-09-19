@@ -140,8 +140,9 @@ For example tables created in the UX are useful for later tests.
 - [ ] Drag "Number of records" to the rows area
 - You should now see a bar graph
 - [ ] Drag "players.Gender" onto the rows area
-- [ ] Right click on the "numGames" item in the columns area and select "Continuous"
 - You should now see a bar graph of num games per gender
+- [ ] Right click on the "numGames" item in the columns area and select "Continuous"
+- You should now see a line graph of num games per gender
 - [ ] Drag "games.Date" to the filters section, then select quarter, and subsequently Q1
 - The graph should still display sensible values
 - [ ] Drag "games.Date" to the columns area
