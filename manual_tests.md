@@ -36,6 +36,9 @@ For example tables created in the UX are useful for later tests.
     SELECT count(*) FROM num_games_view
     ```
   - ```sql
+    SELECT count(*) FROM num_games_table
+    ```
+  - ```sql
     SELECT * FROM anonymizing_view
     ```
   - ```sql
@@ -215,15 +218,6 @@ FROM games
 GROUP BY player
 ```
 
-Validate that you can query them using the queries such as:
-
-```SQL
-SELECT numGames, count(*)
-FROM num_games_view
-GROUP BY 1
-ORDER BY numGames ASC
-```
-
 Now create an anonymized analyst view named `anonymizing_view` with the following SQL:
 
 ```SQL
@@ -231,10 +225,4 @@ SELECT age, count(*)
 FROM players
 GROUP BY age
 ORDER BY age ASC
-```
-
-and validate it by running the following query:
-
-```SQL
-SELECT * FROM anonymizing_view
 ```
