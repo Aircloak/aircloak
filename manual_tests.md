@@ -13,6 +13,7 @@ For example tables created in the UX are useful for later tests.
 - [ ] Deploy the latest release of both `air` and `cloak`
 - [ ] Log in
 - [ ] Verify that the query history is preserved
+- [ ] Verify that the audit log is preserved
 - [ ] Verify that the views and the analyst table can be queried
 - [ ] Verify that the API token and app login can still be used by repeating the `curl` and `psql` commands from the
   [Insights Air Interface](#insights-air-interface) tests.
