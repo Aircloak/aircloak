@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
   @moduledoc "Contains functions related to compilation of noise layers."
 
-  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, Range}
+  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, Range, Function}
   alias Cloak.Sql.Compiler.Helpers
 
   use Lens.Macros
@@ -155,7 +155,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       query
       | columns: query.columns ++ noise_columns,
         column_titles: query.column_titles ++ Enum.map(noise_columns, &Expression.title/1),
-        aggregators: query.aggregators ++ Enum.filter(noise_columns, & &1.aggregate?)
+        aggregators: query.aggregators ++ Enum.filter(noise_columns, &Function.aggregator?/1)
     }
   end
 
@@ -207,16 +207,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp cast(expression, type), do: Expression.function({:cast, type}, [expression], type)
 
-  defp min_of_min(%Expression{constant?: true} = constant), do: constant
+  defp min_of_min(%Expression{kind: :constant} = constant), do: constant
   defp min_of_min(%Expression{type: :boolean} = min), do: min |> cast(:integer) |> min_of_min() |> cast(:boolean)
-  defp min_of_min(min), do: Expression.function("min", [Expression.unalias(min)], min.type, _aggregate = true)
+  defp min_of_min(min), do: Expression.function("min", [Expression.unalias(min)], min.type)
 
-  defp max_of_max(%Expression{constant?: true} = constant), do: constant
+  defp max_of_max(%Expression{kind: :constant} = constant), do: constant
   defp max_of_max(%Expression{type: :boolean} = max), do: max |> cast(:integer) |> max_of_max() |> cast(:boolean)
-  defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type, _aggregate = true)
+  defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type)
 
-  defp sum_of_count(%Expression{value: 1}), do: Expression.function("count", [:*], :integer, _aggregate = true)
-  defp sum_of_count(count), do: Expression.function("sum", [Expression.unalias(count)], :integer, _aggregate = true)
+  defp sum_of_count(%Expression{value: 1}), do: Expression.function("count", [:*], :integer)
+  defp sum_of_count(count), do: Expression.function("sum", [Expression.unalias(count)], :integer)
 
   # -------------------------------------------------------------------
   # Computing base noise layers
@@ -261,7 +261,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     all_expressions =
       noise_layers
       |> Enum.flat_map(& &1.expressions)
-      |> Enum.reject(& &1.constant?)
+      |> Enum.reject(&Expression.constant?/1)
       |> Enum.map(&Expression.unalias/1)
       |> Enum.uniq()
 
@@ -306,7 +306,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp select_noise_layers(_query, _top_level_uid), do: []
 
-  defp needs_aggregation?(_query, %Expression{constant?: true}), do: true
+  defp needs_aggregation?(_query, %Expression{kind: :constant}), do: true
 
   defp needs_aggregation?(query, expression),
     do: Helpers.aggregated_column?(expression) or grouped_by?(query, expression)
@@ -395,7 +395,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.flat_map(&do_not_equals_noise_layers(&1, top_level_uid))
 
   defp do_not_equals_noise_layers(
-         {:comparison, column, :<>, constant = %Expression{constant?: true, type: :text}},
+         {:comparison, column, :<>, constant = %Expression{kind: :constant, type: :text}},
          top_level_uid
        ),
        do:
@@ -410,7 +410,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
          )
 
   defp do_not_equals_noise_layers(
-         {:comparison, column, :<>, constant = %Expression{constant?: true}},
+         {:comparison, column, :<>, constant = %Expression{kind: :constant}},
          top_level_uid
        ),
        do:
@@ -425,7 +425,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp do_not_equals_noise_layers({:comparison, _column, :<>, _other_column}, _top_level_uid), do: []
 
-  defp lower(%Expression{constant?: true, type: :text, value: value}),
+  defp lower(%Expression{kind: :constant, type: :text, value: value}),
     do: Expression.constant(:text, String.downcase(value))
 
   # -------------------------------------------------------------------
@@ -519,7 +519,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     do:
       lens
       |> Query.Lenses.leaf_expressions()
-      |> Lens.filter(&match?(%Expression{constant?: false, function?: false}, &1))
+      |> Lens.filter(&Expression.column?/1)
       |> Lens.to_list(data)
       |> Enum.map(&%Expression{&1 | user_id?: false})
 
@@ -583,13 +583,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Lens.all()
     |> Lens.key(:expressions)
     |> Lens.all()
-    |> Lens.reject(& &1.constant?)
+    |> Lens.reject(&Expression.constant?/1)
   end
 
-  defp clear_condition?(
-         {:comparison, %Expression{function?: false, constant?: false}, :=, %Expression{constant?: true}}
-       ),
-       do: true
+  defp clear_condition?({:comparison, %Expression{kind: :column}, :=, %Expression{kind: :constant}}),
+    do: true
 
   defp clear_condition?(_), do: false
 
@@ -606,6 +604,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp reference_aliased(column, subquery, table),
     do: %Expression{
+      kind: :column,
       name: find_alias(column, subquery) || Expression.title(column),
       table: table,
       type: column.type

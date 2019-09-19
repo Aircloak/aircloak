@@ -83,7 +83,6 @@ defmodule Cloak.Sql.Parser do
           limit: integer,
           offset: integer,
           distinct?: boolean,
-          subquery?: boolean,
           sample_rate: number
         }
 

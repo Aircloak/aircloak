@@ -645,8 +645,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         Expression.function(
           Function.canonical_name(name),
           args,
-          type,
-          Function.has_attribute?(name, :aggregator)
+          type
         )
     end
     |> Expression.set_location(location)
@@ -782,7 +781,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     }
 
   defp compile_reference(
-         %Expression{constant?: true, type: :integer} = reference,
+         %Expression{kind: :constant, type: :integer} = reference,
          query,
          clause_name
        ) do
@@ -797,7 +796,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     Enum.at(query.columns, reference.value - 1)
   end
 
-  defp compile_reference(%Expression{constant?: true, type: _} = constant, _query, clause_name),
+  defp compile_reference(%Expression{kind: :constant, type: _} = constant, _query, clause_name),
     do:
       raise(
         CompilationError,

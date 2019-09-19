@@ -43,7 +43,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
     Enum.flat_map(tables, fn
       %{user_id: user_id} = table when user_id != nil ->
         column = Enum.find(table.columns, &insensitive_equal?(user_id, &1.name))
-        [%Expression{table: table, name: user_id, type: column.type, user_id?: true}]
+        [Expression.column(column, table)]
 
       _ ->
         []
@@ -64,7 +64,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def aggregated_column?({:distinct, _column}), do: true
 
   def aggregated_column?(column),
-    do: column.function? and (column.aggregate? or Enum.any?(column.function_args, &aggregated_column?/1))
+    do: Expression.function?(column) and (Function.aggregator?(column) or Enum.any?(column.args, &aggregated_column?/1))
 
   @doc "Returns true if the query GROUPS BY columns"
   @spec group_by?(partial_query) :: boolean

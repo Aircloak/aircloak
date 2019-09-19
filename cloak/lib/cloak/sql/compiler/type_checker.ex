@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   as checks to validate that columns used in certain filter conditions haven't been altered.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range, Function}
   alias Cloak.Sql.Compiler.TypeChecker.{Access, Type}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.DataSource.{Isolators, Shadows}
@@ -172,14 +172,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       end)
 
-  defp clear_range_lhs?(%Expression{aggregate?: true, function_args: [lhs]}, query, interval),
-    do: clear_range_lhs?(lhs, query, interval)
+  defp clear_range_lhs?(lhs, query, interval) do
+    cond do
+      Function.aggregator?(lhs) ->
+        lhs.args |> Enum.at(0) |> clear_range_lhs?(query, interval)
 
-  defp clear_range_lhs?(lhs, query, :implicit),
-    do: not (Type.establish_type(lhs, query) |> Type.unclear_implicit_range?())
+      interval == :implicit ->
+        not (lhs |> Type.establish_type(query) |> Type.unclear_implicit_range?())
 
-  defp clear_range_lhs?(lhs, query, _),
-    do: Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_range_functions))
+      true ->
+        lhs |> Type.establish_type(query) |> Type.clear_column?(&(&1 in @allowed_range_functions))
+    end
+  end
 
   defp function_list(function_names), do: function_names |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
 
@@ -222,7 +226,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Enum.map(&elem(&1, 0))
   end
 
-  defp columns_with_queries(%{constant?: true}, _query), do: []
+  defp columns_with_queries(%{kind: :constant}, _query), do: []
 
   defp columns_with_queries(column, query) do
     case Query.resolve_subquery_column(column, query) do

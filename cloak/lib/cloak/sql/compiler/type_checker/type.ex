@@ -56,13 +56,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   def establish_type(:null, _query), do: constant()
   def establish_type({:distinct, column}, query), do: establish_type(column, query)
   def establish_type(:*, _query), do: column(:*)
-  def establish_type(%Expression{constant?: true}, _query), do: constant()
+  def establish_type(%Expression{kind: :constant}, _query), do: constant()
 
-  def establish_type(%Expression{function: "grouping_id"}, _query), do: constant()
+  def establish_type(%Expression{kind: :function, name: "grouping_id"}, _query), do: constant()
 
-  def establish_type(%Expression{function: nil} = column, query), do: expand_from_subquery(column, query)
+  def establish_type(%Expression{kind: :column} = column, query), do: expand_from_subquery(column, query)
 
-  def establish_type(function = %Expression{function?: true}, query), do: type_for_function(function, query)
+  def establish_type(function = %Expression{kind: :function}, query), do: type_for_function(function, query)
 
   @doc "Returns true if an implicit range function is used in combination with other functions"
   @spec unclear_implicit_range?(t) :: boolean
@@ -129,7 +129,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
       history_of_columns_involved: [expression]
     }
 
-  defp type_for_function(%Expression{function: name, function_args: args}, query) do
+  defp type_for_function(%Expression{kind: :function, name: name, args: args}, query) do
     child_types = args |> Enum.map(&establish_type(&1, query))
     # Prune constants, they don't interest us further
     if Enum.all?(child_types, & &1.constant?) do

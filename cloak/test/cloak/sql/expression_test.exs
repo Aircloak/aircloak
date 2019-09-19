@@ -371,29 +371,11 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function({:bucket, :upper}, [3, 10]) == 10
   end
 
-  describe "first_column" do
-    test "nil if given constant column", do: assert(nil == Expression.first_column(%Expression{constant?: true}))
-
-    test "first db column if one present" do
-      return_column = %Expression{row_index: 1}
-
-      assert return_column ==
-               Expression.first_column(
-                 Expression.function(
-                   "f",
-                   [
-                     Expression.function("f", [%Expression{constant?: true}], nil),
-                     Expression.function("f", [%Expression{constant?: true}, return_column], nil)
-                   ],
-                   nil
-                 )
-               )
-    end
-  end
-
   describe "lowercase" do
-    test "wraps expressions in lower case functions",
-      do: assert(%Expression{function: "lower"} = Expression.lowercase(%Expression{type: :text}))
+    test "wraps expressions in lower case functions" do
+      assert %Expression{kind: :function, name: "lower"} =
+               Expression.lowercase(%Expression{kind: :column, type: :text, name: "col"})
+    end
 
     test "makes constant text lowercase",
       do: assert(%Expression{value: "case"} = Expression.lowercase(Expression.constant(:text, "CaSe")))
@@ -491,17 +473,17 @@ defmodule Cloak.Sql.Expression.Test do
 
   describe "member?" do
     test "false for different expressions" do
-      refute Expression.member?([%Expression{name: "col2"}], %Expression{name: "col1"})
+      refute Expression.member?([Expression.constant(:integer, 1)], Expression.constant(:integer, 2))
     end
 
     test "true if in collection" do
-      exp = %Expression{name: "col1"}
-      other_exp = %Expression{name: "col2"}
+      exp = Expression.constant(:integer, 1)
+      other_exp = Expression.constant(:integer, 2)
       assert Expression.member?([other_exp, exp, other_exp], exp)
     end
 
     test "disregards source location and alias" do
-      exp = %Expression{name: "col1", alias: "alias1", source_location: {1, 1}}
+      exp = %Expression{kind: :column, type: :text, name: "col1", alias: "alias1", source_location: {1, 1}}
       other_exp = %Expression{exp | alias: "alias2", source_location: {2, 2}}
       assert Expression.member?([other_exp], exp)
     end
