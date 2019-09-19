@@ -1,3 +1,14 @@
+## Version 19.4.0
+
+### Enhancements
+### Bugfixes
+### Changes
+
+### Known issues
+
+- Views and analyst tables are not tracked in the shadow DB, so they won't appear in \d commands issued from psql or
+  in some tools that use pg-specific means of detecting the schema.
+
 ## Version 19.3.0
 
 ### __Breaking changes__
