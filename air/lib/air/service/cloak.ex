@@ -167,14 +167,15 @@ defmodule Air.Service.Cloak do
       |> Lens.to_list(datasource_tables)
       |> Enum.empty?()
 
-  defp pending?(column), do: column[:shadow_table] == :pending or column[:isolated] == :pending
+  defp pending?(column),
+    do: column[:shadow_table] == :pending or column[:isolated] == :pending or column[:bounds] == :pending
 
   defp strip_tables_of_temporary_state(tables),
     do:
       Lens.all()
       |> Lens.key(:columns)
       |> Lens.all()
-      |> Lens.map(tables, &Map.drop(&1, [:isolated, :shadow_table, :shadow_table_size]))
+      |> Lens.map(tables, &Map.drop(&1, [:isolated, :shadow_table, :shadow_table_size, :bounds]))
 
   defp add_error_on_different_salts(data_sources, cloak_info) do
     for data_source <- data_sources do

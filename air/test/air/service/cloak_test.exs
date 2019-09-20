@@ -90,6 +90,38 @@ defmodule Air.Service.Cloak.Test do
     assert error =~ ~r/differs between .+ cloaks/
   end
 
+  test "should not record differences in bounds stats when not all data sources done" do
+    data_sources_done = [data_source_with_columns()]
+
+    data_sources_pending = [
+      data_source_with_columns([
+        table_column(%{bounds: :pending})
+      ])
+    ]
+
+    Cloak.register(TestRepoHelper.cloak_info(), data_sources_pending)
+    Cloak.register(TestRepoHelper.cloak_info("other_cloak"), data_sources_done)
+    assert [] == Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+  end
+
+  test "should record differences in bounds stats when all data sources done" do
+    data_sources_done1 = [
+      data_source_with_columns([
+        table_column(%{bounds: :ok})
+      ])
+    ]
+
+    data_sources_done2 = [
+      data_source_with_columns([
+        table_column(%{bounds: :failed})
+      ])
+    ]
+
+    Cloak.register(TestRepoHelper.cloak_info(), data_sources_done1)
+    Cloak.register(TestRepoHelper.cloak_info("other_cloak"), data_sources_done2)
+    refute [] == Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+  end
+
   test "should not record differences in isolating stats when not all data sources done" do
     data_sources_done = [data_source_with_columns()]
 
@@ -198,6 +230,7 @@ defmodule Air.Service.Cloak.Test do
   defp table_column(params \\ %{}) do
     Map.merge(
       %{
+        bounds: :ok,
         isolated: true,
         name: "column_name",
         shadow_table: :ok,

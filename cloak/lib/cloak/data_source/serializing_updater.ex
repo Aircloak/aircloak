@@ -9,6 +9,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
   alias Cloak.DataSource
   require Logger
   require Aircloak
+  require Aircloak.DeployConfig
 
   # -------------------------------------------------------------------
   # API
@@ -73,6 +74,15 @@ defmodule Cloak.DataSource.SerializingUpdater do
     {Periodic,
      id: :liveness_check,
      run: fn -> GenServer.cast(__MODULE__, :run_liveness_check) end,
-     every: Aircloak.in_env(dev: :timer.hours(1), else: :timer.minutes(1))}
+     every: liveness_check_interval()}
   end
+
+  defp liveness_check_interval(),
+    do:
+      :timer.minutes(
+        Aircloak.DeployConfig.get(
+          "liveness_check_interval",
+          Aircloak.in_env(dev: 60, else: 5)
+        )
+      )
 end
