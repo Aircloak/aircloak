@@ -13,7 +13,7 @@ defmodule Central.Repo.Migrations.CascadeDeleteLicenses do
     execute("ALTER TABLE licenses DROP CONSTRAINT licenses_customer_id_fkey")
 
     alter table(:licenses) do
-      modify(:customer_id, references(:customers, on_delete: :null))
+      modify(:customer_id, references(:customers, on_delete: :nothing))
     end
   end
 end
