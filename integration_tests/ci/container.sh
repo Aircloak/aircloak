@@ -52,7 +52,7 @@ function prepare_for_test {
   start_postgres_container $1 "9.5"
   start_postgres_container $1 "9.6"
   start_mongo_container $1 "3.6.4"
-  start_chrome_container $1 "3.141.59"
+  start_chrome_container $1 "3.141.59-mercury"
   docker exec $1 su postgres -c \
     "/usr/lib/postgresql/9.6/bin/pg_ctl -D /etc/postgresql/9.6/main -l /var/log/postgresql/postgresql.log start"
 }
