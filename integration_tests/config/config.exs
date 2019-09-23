@@ -23,7 +23,9 @@ config :hound,
   driver: "chrome_driver",
   browser: "chrome_headless",
   port: 4444,
-  path_prefix: "wd/hub/"
+  path_prefix: "wd/hub/",
+  retry_time: 500,
+  retries: 5
 
 import_config "air.exs"
 import_config "cloak.exs"
