@@ -31,7 +31,6 @@ defmodule CentralWeb.LicenseView do
       "MySQL and MariaDB" => "ds_mysql",
       "SQL Server" => "ds_sqlserver",
       "MongoDB" => "ds_mongodb",
-      "Apache Drill" => "ds_apachedrill",
       "Oracle DB" => "ds_oracle"
     }
   end
