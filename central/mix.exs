@@ -33,7 +33,7 @@ defmodule Central.Mixfile do
         dialyze: :dev,
         docs: :dev,
         release: :prod,
-        "phoenix.digest": :prod,
+        "phx.digest": :prod,
         site_release: :prod,
         "test.standard": :test,
         dialyze_retry: :dev
