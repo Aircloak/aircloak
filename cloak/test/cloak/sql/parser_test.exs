@@ -1596,9 +1596,9 @@ defmodule Cloak.Sql.Parser.Test do
       "select count(*) from x having (a > 0 or a <> 2) and b = 3",
       select(
         having:
-          {:and,
-           {:or, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("a"), :<>, constant(2)}},
-           {:comparison, identifier("b"), :=, constant(3)}}
+          {:or,
+           {:and, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("b"), :=, constant(3)}},
+           {:and, {:comparison, identifier("a"), :<>, constant(2)}, {:comparison, identifier("b"), :=, constant(3)}}}
       )
     )
   end
@@ -1608,9 +1608,9 @@ defmodule Cloak.Sql.Parser.Test do
       "select count(*) from x having ((a > 0) or (a <> 2)) and (b = 3)",
       select(
         having:
-          {:and,
-           {:or, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("a"), :<>, constant(2)}},
-           {:comparison, identifier("b"), :=, constant(3)}}
+          {:or,
+           {:and, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("b"), :=, constant(3)}},
+           {:and, {:comparison, identifier("a"), :<>, constant(2)}, {:comparison, identifier("b"), :=, constant(3)}}}
       )
     )
   end
@@ -1620,9 +1620,9 @@ defmodule Cloak.Sql.Parser.Test do
       "select count(*) from x having (a > 0 or (a <> 2)) and b = 3",
       select(
         having:
-          {:and,
-           {:or, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("a"), :<>, constant(2)}},
-           {:comparison, identifier("b"), :=, constant(3)}}
+          {:or,
+           {:and, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("b"), :=, constant(3)}},
+           {:and, {:comparison, identifier("a"), :<>, constant(2)}, {:comparison, identifier("b"), :=, constant(3)}}}
       )
     )
   end
