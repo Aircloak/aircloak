@@ -481,7 +481,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # -------------------------------------------------------------------
 
   defp remove_meaningless_negative_noise_layers(query = %{noise_layers: noise_layers}),
-    do: %{query | noise_layers: Enum.map(noise_layers, &override_meaningless(&1, noise_layers))}
+    do: %{query | noise_layers: noise_layers |> Enum.map(&override_meaningless(&1, noise_layers)) |> Enum.uniq()}
 
   defp override_meaningless(noise_layer, all_layers),
     do:
