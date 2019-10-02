@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
   defmacrop static_layer(base) do
     quote do
-      %NoiseLayer{expressions: [_, _, _], base: unquote(base)}
+      %NoiseLayer{expressions: [_, _ | _], base: unquote(base)}
     end
   end
 
@@ -144,8 +144,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  base: {"table", "numeric", nil},
                  expressions: [
                    %Expression{name: "__ac_group_0"},
-                   %Expression{name: "__ac_group_0"},
-                   %Expression{name: "__ac_nlc__1"}
+                   %Expression{name: "__ac_group_0"}
                  ]
                },
                %{
@@ -373,7 +372,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 10")
 
       assert [
-               %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}, _, _]},
+               %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}, _]},
                %{
                  base: {"table", "numeric", :<>},
                  expressions: [%Expression{value: 10}, _, _, %Expression{user_id?: true}]
@@ -390,7 +389,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 1")
 
       assert [
-               %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 1}, _, _]},
+               %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 1}, _]},
                %{
                  base: {"table", "numeric", :<>},
                  expressions: [%Expression{value: 1}, _, _, %Expression{user_id?: true}]
@@ -402,7 +401,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE uid <> 1")
 
       assert [
-               %{base: {"table", "uid", :<>}, expressions: [%Expression{value: 1}, _, _]},
+               %{base: {"table", "uid", :<>}, expressions: [%Expression{value: 1}, _]},
                %{
                  base: {"table", "uid", :<>},
                  expressions: [%Expression{value: 1}, _, _, %Expression{user_id?: true}]
@@ -414,14 +413,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE name <> 'Foo'")
 
       assert [
-               %{base: {"table", "name", :<>}, expressions: [%Expression{value: "Foo"}, _, _]},
+               %{base: {"table", "name", :<>}, expressions: [%Expression{value: "Foo"}, _]},
                %{
                  base: {"table", "name", :<>},
                  expressions: [%Expression{value: "Foo"}, _, _, %Expression{user_id?: true}]
                },
                %{
                  base: {"table", "name", {:<>, :lower}},
-                 expressions: [%Expression{value: "foo"}, _, _]
+                 expressions: [%Expression{value: "foo"}, _]
                }
              ] = result.noise_layers
     end
@@ -430,14 +429,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE upper(name) <> 'FOO'")
 
       assert [
-               %{base: {"table", "name", :<>}, expressions: [%Expression{value: "FOO"}, _, _]},
+               %{base: {"table", "name", :<>}, expressions: [%Expression{value: "FOO"}, _]},
                %{
                  base: {"table", "name", :<>},
                  expressions: [%Expression{value: "FOO"}, _, _, %Expression{user_id?: true}]
                },
                %{
                  base: {"table", "name", {:<>, :lower}},
-                 expressions: [%Expression{value: "foo"}, _, _]
+                 expressions: [%Expression{value: "foo"}, _]
                }
              ] = result.noise_layers
     end
@@ -446,14 +445,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM table WHERE lower(name) <> 'foo'")
 
       assert [
-               %{base: {"table", "name", :<>}, expressions: [%Expression{value: "foo"}, _, _]},
+               %{base: {"table", "name", :<>}, expressions: [%Expression{value: "foo"}, _]},
                %{
                  base: {"table", "name", :<>},
                  expressions: [%Expression{value: "foo"}, _, _, %Expression{user_id?: true}]
                },
                %{
                  base: {"table", "name", {:<>, :lower}},
-                 expressions: [%Expression{value: "foo"}, _, _]
+                 expressions: [%Expression{value: "foo"}, _]
                }
              ] = result.noise_layers
     end
@@ -471,7 +470,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         """)
 
       assert [
-               %{base: {"table", "numeric", :<>}, expressions: [%Expression{}, _, _]},
+               %{base: {"table", "numeric", :<>}, expressions: [%Expression{}, _]},
                %{
                  base: {"table", "numeric", :<>},
                  expressions: [%Expression{}, _, _, %Expression{user_id?: true}]
@@ -696,7 +695,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric + 1 = 3) foo")
 
       assert [
-               %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}, _, _]},
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}, _]},
                %{
                  base: {"table", "numeric", nil},
                  expressions: [%Expression{name: name}, _, _, %Expression{user_id?: true}]
@@ -760,8 +759,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  base: {"table", "numeric", nil},
                  expressions: [
                    %Expression{name: "__ac_group_0"},
-                   %Expression{name: "__ac_group_0"},
-                   %Expression{name: "__ac_nlc__1"}
+                   %Expression{name: "__ac_group_0"}
                  ],
                  grouping_set_index: 0
                },
@@ -779,8 +777,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  base: {"table", "numeric2", nil},
                  expressions: [
                    %Expression{name: "__ac_group_1"},
-                   %Expression{name: "__ac_group_1"},
-                   %Expression{name: "__ac_nlc__1"}
+                   %Expression{name: "__ac_group_1"}
                  ],
                  grouping_set_index: 1
                },
