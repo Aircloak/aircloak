@@ -172,9 +172,9 @@ defmodule Cloak.Sql.Compiler.Anonymization do
       | from: from,
         selected_tables: selected_tables,
         aggregators: [grouping_id_top_ref, min_uid_top_ref, max_uid_top_ref | uid_grouped_query.aggregators],
-        anonymization_type: :statistics,
         where: nil
     }
+    |> Helpers.apply_top_down(&%Query{&1 | anonymization_type: :statistics})
     |> update_in([Transformer.aggregators_lens()], &update_stats_aggregator(&1, selected_tables, distinct_columns))
     |> update_in(
       [Lenses.query_expressions() |> Lens.filter(&is_binary(&1.name)) |> Lens.reject(&(&1.table in selected_tables))],
