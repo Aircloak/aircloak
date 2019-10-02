@@ -23,7 +23,7 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   @spec normalize(Parser.parsed_query()) :: Parser.parsed_query()
   def normalize(ast) do
     ast
-    |> update_in([Lens.key(:where)], &DNFNormalization.dnf/1)
+    |> update_in([Lens.keys([:where, :having])], &DNFNormalization.dnf/1)
     |> Helpers.apply_bottom_up(&rewrite_not_in/1)
     |> Helpers.apply_bottom_up(&rewrite_not/1)
     |> Helpers.apply_bottom_up(&rewrite_in/1)
