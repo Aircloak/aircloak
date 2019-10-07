@@ -4,6 +4,7 @@ open MongoCleanup
 open MongoDB.Bson
 open MongoDB.Driver
 open System
+open System.Text
 open System.Collections.Generic
 open System.IO
 open System.Security.Cryptography
@@ -135,7 +136,11 @@ let decodeAES (key : string option) (value : BsonValue) : BsonValue =
             use cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read)
             use reader = new StreamReader(cryptoStream)
             let plaintext = reader.ReadToEnd()
-            upcast BsonString(plaintext)
+            // We have seen problems where invalid unicode characters cause MongoDB to be unable to subsequently store the decrypted data.
+            // To avoid these problem we discard all characters that are not valid UTF-8
+            let utf8Decoder = Encoding.GetEncoding("UTF-8", EncoderReplacementFallback(String.Empty), DecoderReplacementFallback(String.Empty))
+            let utf8Plaintext = utf8Decoder.GetString(utf8Decoder.GetBytes(plaintext))
+            upcast BsonString(utf8Plaintext)
         with _ -> bsonNull
 
 let substringDecoder (decoder : Decoder) =
