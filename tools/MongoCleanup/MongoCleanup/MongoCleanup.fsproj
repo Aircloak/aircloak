@@ -14,7 +14,7 @@
   <ItemGroup>
     <PackageReference Include="Argu" Version="5.2.0" />
     <PackageReference Include="FSharp.Json" Version="0.3.4" />
-    <PackageReference Include="mongocsharpdriver" Version="2.7.3" />
+    <PackageReference Include="MongoDB.Driver" Version="2.9.2" />
   </ItemGroup>
 
 </Project>
