@@ -2,7 +2,6 @@
   "type": "object",
   "properties": {
     "name": {"type": "string", "minLength": 1},
-    "marker": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
     "driver": {"type": "string", "minLength": 1},
     "parameters": {"$ref": "#/definitions/parameters"},
     "tables": {"type": "object", "patternProperties": {"^.*$": {"$ref": "#/definitions/table"}}},
@@ -21,20 +20,9 @@
       "type": "object",
       "properties": {
         "db_name": {"type": "string", "minLength": 1},
-        "user_id": {
-          "oneOf": [
-            {"type": "string", "minLength": 1},
-            { "type": "null" }
-          ]
-        },
         "content_type": {"type": "string", "enum": ["personal", "non-personal"]},
         "keys": {"type": "array", "items": {"type": "object"}},
-        "ignore_unsupported_types": {"type": "boolean", "$comment": "allowed for backward compatibility"},
         "sample_rate": {"type": "integer", "minimum": 1, "maximum": 100},
-        "name": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
-        "row_id": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
-        "projection": {"$ref": "#/definitions/projection"},
-        "decoders": {"type": "array", "items": {"$ref": "#/definitions/decoder"}},
         "query": {"type": "string", "minLength": 1},
         "auto_isolating_column_classification": {"type": "boolean"},
         "maintain_shadow_db": {"type": "boolean"},
@@ -42,8 +30,6 @@
       },
       "additionalProperties": false,
       "anyOf": [
-        {"required": ["user_id"]},
-        {"required": ["projection"]},
         {"required": ["keys"]},
         {"required": ["content_type"]}
       ]
@@ -59,28 +45,6 @@
       },
       "additionalProperties": true,
       "required": ["hostname"]
-    },
-    "projection": {
-      "type": "object",
-      "properties": {
-        "table": {"type": "string", "minLength": 1},
-        "foreign_key": {"type": "string", "minLength": 1},
-        "primary_key": {"type": "string", "minLength": 1},
-        "user_id_alias": {"type": "string", "minLength": 1}
-      },
-      "additionalProperties": false,
-      "required": ["table", "foreign_key", "primary_key"]
-    },
-    "decoder": {
-      "type": "object",
-      "properties": {
-        "method": {"type": "string", "minLength": 1},
-        "columns": {"type": "array", "items": {"$ref": "#/definitions/column"}},
-        "key": {"type": "string", "minLength": 1}
-      },
-      "additionalProperties": true,
-      "required": ["method", "columns"]
-    },
-    "column": {"type": "string", "minLength": 1}
+    }
   }
 }

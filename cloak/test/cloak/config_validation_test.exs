@@ -28,20 +28,10 @@ defmodule Cloak.ConfigValidationTest do
     test "error on missing mandatory fields" do
       Enum.each(~w(name driver parameters tables), &assert_missing_field_reported(&1, datasource_validator()))
       assert_missing_field_reported("parameters/hostname", datasource_validator())
-
-      Enum.each(
-        ~w(table foreign_key primary_key),
-        &assert_missing_field_reported("tables/foo/projection/#{&1}", datasource_validator())
-      )
-
-      Enum.each(
-        ~w(method columns),
-        &assert_missing_field_reported("tables/foo/decoders/[]/#{&1}", datasource_validator())
-      )
     end
 
     test "optional fields are not required" do
-      Enum.each(~w(marker concurrency), &refute_missing_field_reported(&1, datasource_validator()))
+      refute_missing_field_reported("concurrency", datasource_validator())
 
       Enum.each(
         ~w(port username database password),
@@ -49,21 +39,17 @@ defmodule Cloak.ConfigValidationTest do
       )
 
       Enum.each(
-        ~w(db_name user_id sample_rate projection decoders query),
+        ~w(db_name sample_rate query),
         &refute_missing_field_reported("tables/foo/#{&1}", datasource_validator())
       )
-
-      refute_missing_field_reported("tables/foo/projection/user_id_alias", datasource_validator())
-      refute_missing_field_reported("tables/foo/decoders/[]/key", datasource_validator())
     end
 
     test "invalid fields" do
       assert_invalid_field_reported(nil, datasource_validator())
       assert_invalid_field_reported("tables/foo", datasource_validator())
-      assert_invalid_field_reported("tables/foo/projection", datasource_validator())
 
       refute_invalid_field_reported("parameters", datasource_validator())
-      refute_invalid_field_reported("tables/foo/decoders/[]", datasource_validator())
+      refute_invalid_field_reported("tables/foo/keys/[]", datasource_validator())
     end
   end
 

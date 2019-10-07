@@ -6,7 +6,6 @@
     "username": "root",
     "database": "cloak_compliance"
   },
-  "encoded": false,
   "tables": {
   }
 }

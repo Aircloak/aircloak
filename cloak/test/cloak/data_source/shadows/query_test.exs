@@ -6,9 +6,10 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
   alias Cloak.DataSource.Shadows.Query
 
   setup_all do
+    :ok = Cloak.Test.DB.create_table("shadows", "value INTEGER, encoded_value TEXT")
     :ok =
-      Cloak.Test.DB.create_table("shadows", "value INTEGER, encoded_value TEXT",
-        decoders: [%{method: "base64", columns: ["encoded_value"]}]
+      Cloak.Test.DB.create_table("shadows_encoded", nil, skip_db_create: true,
+        query: "select user_id, value, dec_b64(encoded_value) as encoded_value from shadows"
       )
 
     :ok = Cloak.Test.DB.create_table("shadows_userless", "value INTEGER", user_id: nil, content_type: :public)
@@ -63,7 +64,7 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
       :ok = insert_rows(_user_ids = 0..20, "shadows", ["encoded_value"], ["123" |> Base.encode64()])
 
       for data_source <- DataSource.all() do
-        assert ["123"] = Query.build_shadow(data_source, "shadows", "encoded_value")
+        assert ["123"] = Query.build_shadow(data_source, "shadows_encoded", "encoded_value")
       end
     end
 
