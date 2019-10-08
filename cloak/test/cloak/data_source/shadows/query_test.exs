@@ -7,8 +7,10 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("shadows", "value INTEGER, encoded_value TEXT")
+
     :ok =
-      Cloak.Test.DB.create_table("shadows_encoded", nil, skip_db_create: true,
+      Cloak.Test.DB.create_table("shadows_encoded", nil,
+        skip_db_create: true,
         query: "select user_id, value, dec_b64(encoded_value) as encoded_value from shadows"
       )
 

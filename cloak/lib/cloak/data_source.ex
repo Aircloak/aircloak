@@ -354,8 +354,9 @@ defmodule Cloak.DataSource do
 
   defp standardize_key_lists(data_source) do
     tables =
-      for {name, table} <- data_source.tables, into: %{}, do:
-        {name, Map.put_new(table, :keys, Map.get(table, :keys, []))}
+      for {name, table} <- data_source.tables,
+          into: %{},
+          do: {name, Map.put_new(table, :keys, Map.get(table, :keys, []))}
 
     %{data_source | tables: tables}
     |> Map.put(:analyst_tables_enabled, Map.get(data_source, :analyst_tables_enabled, false))
