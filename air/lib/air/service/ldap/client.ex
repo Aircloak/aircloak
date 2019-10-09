@@ -26,7 +26,6 @@ defmodule Air.Service.LDAP.Client do
     with_connection(config, fn conn, _config ->
       case :eldap.simple_bind(conn, user_dn, password) do
         :ok -> :ok
-        {:error, {:gen_tcp_error, _}} -> {:error, :connect_failed}
         _ -> {:error, :invalid_credentials}
       end
     end)

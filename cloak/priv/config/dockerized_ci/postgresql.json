@@ -7,5 +7,6 @@
     "database": "cloak_compliance"
   },
   "tables": {},
+  "encoded": true,
   "analyst_tables_enabled": true
 }

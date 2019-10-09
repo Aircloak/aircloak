@@ -76,23 +76,44 @@ defmodule Compliance.DataSources do
   @spec complete_data_source_definitions([DataSource.t()], disable_analysis_operations: boolean) :: [DataSource.t()]
   def complete_data_source_definitions(data_source_definition_templates, opts \\ []) do
     Enum.flat_map(data_source_definition_templates, fn data_source_definition_template ->
+      data_source_handler = handler_for_data_source(data_source_definition_template)
+
       plain_tables =
         TableDefinitions.plain()
-        |> create_table_structure(@plain_name_postfix, data_source_definition_template)
+        |> Enum.map(fn {name, definition} ->
+          db_name = data_source_handler.db_table_name("#{Map.get(definition, :db_name, name)}#{@plain_name_postfix}")
+
+          data_source_definition_template = %{
+            db_name: db_name,
+            content_type: Map.get(definition, :content_type, :private),
+            keys: Map.get(definition, :keys, %{}),
+            user_id: Map.get(definition, :user_id, nil)
+          }
+
+          {name, data_source_definition_template}
+        end)
+        |> Enum.into(%{})
 
       plain_data_source =
         data_source_definition_template
         |> Map.put(:tables, plain_tables)
         |> Map.put(:initial_tables, plain_tables)
         |> Map.put(:name, "#{data_source_definition_template.name}#{@plain_name_postfix}")
-        |> Map.put(:marker, "normal")
 
-      if data_source_definition_template[:encoded] == false do
-        [plain_data_source]
-      else
+      if data_source_definition_template[:encoded] do
         encoded_tables =
-          TableDefinitions.encoded()
-          |> create_table_structure(@encoded_name_postfix, data_source_definition_template)
+          TableDefinitions.encoded(@encoded_name_postfix)
+          |> Enum.map(fn {name, definition} ->
+            data_source_definition_template = %{
+              query: definition.query,
+              content_type: Map.get(definition, :content_type, :private),
+              keys: Map.get(definition, :keys, %{}),
+              user_id: Map.get(definition, :user_id, nil)
+            }
+
+            {name, data_source_definition_template}
+          end)
+          |> Enum.into(%{})
           |> conditionally_disable_analysis_operations(Keyword.get(opts, :disable_analysis_operations, false))
 
         encoded_data_source =
@@ -100,9 +121,10 @@ defmodule Compliance.DataSources do
           |> Map.put(:tables, encoded_tables)
           |> Map.put(:initial_tables, encoded_tables)
           |> Map.put(:name, "#{data_source_definition_template.name}#{@encoded_name_postfix}")
-          |> Map.put(:marker, "encoded")
 
         [plain_data_source, encoded_data_source]
+      else
+        [plain_data_source]
       end
     end)
   end
@@ -128,7 +150,9 @@ defmodule Compliance.DataSources do
     conn = handler.connect(data_source)
 
     create_tables(handler, conn, TableDefinitions.plain(), @plain_name_postfix)
-    create_tables(handler, conn, TableDefinitions.encoded(), @encoded_name_postfix)
+
+    if data_source[:encoded],
+      do: create_tables(handler, conn, TableDefinitions.encoded(@encoded_name_postfix), @encoded_name_postfix)
 
     conn
     |> handler.after_tables_created()
@@ -161,7 +185,7 @@ defmodule Compliance.DataSources do
         handler: handler,
         conn: conn,
         plain_definitions: TableDefinitions.plain(),
-        encoded_definitions: TableDefinitions.encoded()
+        encoded_definitions: TableDefinitions.encoded(@encoded_name_postfix)
       }
     end)
 
@@ -188,7 +212,10 @@ defmodule Compliance.DataSources do
 
     Agent.cast(insert_server, fn state ->
       insert_data(state, state.plain_definitions, plain_data, @plain_name_postfix)
-      insert_data(state, state.encoded_definitions, encoded_data, @encoded_name_postfix)
+
+      if state.data_source[:encoded],
+        do: insert_data(state, state.encoded_definitions, encoded_data, @encoded_name_postfix)
+
       state
     end)
   end
@@ -216,26 +243,6 @@ defmodule Compliance.DataSources do
   defp config_name(other), do: other
 
   defp config_file_path(name), do: Path.join([Application.app_dir(:cloak, "priv"), "config", "#{name}.json"])
-
-  defp create_table_structure(definitions, table_postfix, data_source_scaffold) do
-    definitions
-    |> Enum.map(fn {name, definition} ->
-      db_name = Map.get(definition, :db_name, name)
-
-      data_source_definition_template =
-        %{
-          decoders: Map.get(definition, :decoders, []),
-          query: nil,
-          content_type: Map.get(definition, :content_type, :private),
-          keys: Map.get(definition, :keys, %{}),
-          user_id: Map.get(definition, :user_id, nil)
-        }
-        |> Map.put(:db_name, handler_for_data_source(data_source_scaffold).db_table_name("#{db_name}#{table_postfix}"))
-
-      {name, data_source_definition_template}
-    end)
-    |> Enum.into(%{})
-  end
 
   defp conditionally_disable_analysis_operations(tables, false), do: tables
 

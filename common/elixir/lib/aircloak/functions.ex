@@ -201,10 +201,6 @@ defmodule Aircloak.Functions do
                  attributes: [:restricted, :cast]
                },
                ~w(dec_b64) => %{type_specs: %{[:text] => :text}, attributes: [:unsafe]},
-               ~w(dec_aes_cbc128) => %{
-                 type_specs: %{[:text] => :text, [:text, :text] => :text},
-                 attributes: [:unsafe]
-               },
                ~w(bool_op) => %{
                  type_specs: %{[:text, :any, :any] => :boolean},
                  attributes: [:unsafe]

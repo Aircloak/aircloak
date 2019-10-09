@@ -62,7 +62,7 @@ defmodule Compliance do
 
   defp table_data(table) do
     table
-    |> Map.take([:db_name, :user_id, :projection, :decoders])
+    |> Map.take([:db_name, :keys, :query])
     |> Map.put(:content_type, content_type(table))
     |> Enum.reject(fn {_key, val} -> is_nil(val) end)
     |> Enum.into(%{})

@@ -24,8 +24,6 @@ defmodule Compliance.Data do
   @max_notes 2
   @min_note_changes 0
   @max_note_changes 2
-  @encryption_key "1234567890ABCDEF"
-  @zero_iv String.duplicate(<<0>>, 16)
 
   # -------------------------------------------------------------------
   # API
@@ -65,10 +63,6 @@ defmodule Compliance.Data do
       notes_changes: notes_changes_to_collection(users)
     }
   end
-
-  @doc "Returns the encryption key used when encrypting the data"
-  @spec encryption_key() :: String.t()
-  def encryption_key(), do: @encryption_key
 
   # -------------------------------------------------------------------
   # Internal functions - data generation
@@ -287,12 +281,12 @@ defmodule Compliance.Data do
   # Internal functions - data encoding
   # -------------------------------------------------------------------
 
-  defp encrypt_keys(map, keys),
+  defp encode_keys(map, keys),
     do:
       Enum.reduce(
         fixup_keys(keys),
         map,
-        &update_in(&2, &1, fn v -> v |> encrypt() |> base64() end)
+        &update_in(&2, &1, fn v -> base64(v) end)
       )
 
   defp stringify_keys(map, keys),
@@ -309,19 +303,11 @@ defmodule Compliance.Data do
   defp fixup_keys([[_ | _] | _] = keys), do: keys
   defp fixup_keys(keys), do: Enum.map(keys, &[&1])
 
-  defp encrypt(value), do: :crypto.block_encrypt(:aes_cbc128, @encryption_key, @zero_iv, pad(value))
-
-  @block_size 16
-  def pad(value) do
-    pad_value = @block_size - rem(byte_size(value), @block_size)
-    value <> String.duplicate(<<pad_value::8>>, pad_value)
-  end
-
   defp base64(value), do: Base.encode64(value)
 
   defp encode_user(user) do
     user
-    |> encrypt_keys([:name])
+    |> encode_keys([:name])
     |> stringify_keys([:age, :height, :active, :nullable, :column_with_a_very_long_name])
     |> Map.put(:addresses, encode_addresses(user[:addresses]))
     |> Map.put(:notes, encode_notes(user[:notes]))
@@ -330,7 +316,7 @@ defmodule Compliance.Data do
   defp encode_addresses(addresses) do
     for address <- addresses do
       address
-      |> encrypt_keys([[:home, :city], [:work, :city]])
+      |> encode_keys([[:home, :city], [:work, :city]])
       |> stringify_keys([[:home, :postal_code], [:work, :postal_code]])
     end
   end
@@ -338,7 +324,7 @@ defmodule Compliance.Data do
   defp encode_notes(notes) do
     for note <- notes do
       note
-      |> encrypt_keys([:title, :content])
+      |> encode_keys([:title, :content])
       |> Map.put(:changes, encode_notes_changes(note[:changes]))
     end
   end
@@ -346,7 +332,7 @@ defmodule Compliance.Data do
   defp encode_notes_changes(changes) do
     for change <- changes do
       change
-      |> encrypt_keys([:change])
+      |> encode_keys([:change])
       |> stringify_keys([:date])
     end
   end

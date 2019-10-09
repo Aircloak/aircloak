@@ -35,7 +35,7 @@ defmodule Mix.Tasks.Eunit do
     Mix.Task.run("loadpaths", args)
     Mix.Task.run("app.start", args)
 
-    {options, _, _} = OptionParser.parse(args)
+    {options, _, _} = OptionParser.parse(args, strict: [module: :string])
 
     test_target =
       case options[:module] do

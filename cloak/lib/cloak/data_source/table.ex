@@ -31,15 +31,11 @@ defmodule Cloak.DataSource.Table do
           optional(any) => any
         }
 
-  @type projection :: %{table: String.t(), primary_key: String.t(), foreign_key: String.t()}
-
   @type type :: :regular | :virtual | :analyst | :subquery | nil
 
   @type option ::
           {:db_name, String.t()}
           | {:columns, [column]}
-          | {:decoders, [Map.t()]}
-          | {:projection, projection}
           | {:keys, Map.t()}
           | {:query, Query.t()}
           | {:content_type, :private | :public}
@@ -59,8 +55,6 @@ defmodule Cloak.DataSource.Table do
         user_id: user_id_column_name,
         db_name: nil,
         columns: [],
-        decoders: [],
-        projection: nil,
         keys: %{},
         content_type: if(user_id_column_name == nil, do: :public, else: :private),
         query: nil,
@@ -88,8 +82,6 @@ defmodule Cloak.DataSource.Table do
     do:
       data_source
       |> scan_tables(connection)
-      |> resolve_projected_tables()
-      |> translate_projections_and_decoders()
       |> scan_virtual_tables(connection)
       |> resolve_tables_keys()
       |> resolve_user_id_join_chains()
@@ -291,23 +283,6 @@ defmodule Cloak.DataSource.Table do
 
   defp verify_user_id(_data_source, %{user_id: nil}), do: :ok
 
-  defp verify_user_id(data_source, %{projection: projection} = table)
-       when not is_nil(projection) do
-    projected_uid_name = get_uid_name(data_source, projection.table, projection)
-
-    case Enum.find(table.columns, &(&1.name == projected_uid_name)) do
-      %{} ->
-        raise ExecutionError,
-          message:
-            "the projected uid-column named `#{projected_uid_name}` conflicts with an " <>
-              "identically named column in the table. Rename the projected uid-column using the `user_id_alias` " <>
-              "option in the projection section of your cloak configuration"
-
-      nil ->
-        :ok
-    end
-  end
-
   defp verify_user_id(_data_source, table) do
     case Enum.find(table.columns, &(&1.name == table.user_id)) do
       %{} = column ->
@@ -327,20 +302,6 @@ defmodule Cloak.DataSource.Table do
     end
   end
 
-  defp get_uid_name(data_source, table_name, nil) do
-    table = table_from_datasource(data_source, table_name)
-    table.user_id
-  end
-
-  defp get_uid_name(_data_source, _table, %{user_id_alias: alias}), do: alias
-
-  defp get_uid_name(data_source, _table, %{table: table_name}) do
-    table = table_from_datasource(data_source, table_name)
-    get_uid_name(data_source, table_name, table[:projection])
-  end
-
-  defp table_from_datasource(data_source, table_name), do: DataSource.table(data_source, String.to_atom(table_name))
-
   defp supported?(%{type: {:unsupported, _db_type}}), do: false
   defp supported?(_column), do: true
 
@@ -358,227 +319,6 @@ defmodule Cloak.DataSource.Table do
     )
 
     :ok
-  end
-
-  defp resolve_projected_tables(data_source) do
-    # remove the set user_id for projected tables
-    tables =
-      data_source.tables
-      |> Enum.map(fn
-        {id, %{projection: %{}} = table} -> {id, %{table | user_id: nil}}
-        {id, table} -> {id, table}
-      end)
-      |> Enum.into(%{})
-
-    data_source = %{data_source | tables: tables}
-
-    tables
-    |> Map.keys()
-    |> Enum.reduce(data_source, &resolve_projected_table(Map.fetch!(&2.tables, &1), &2))
-  end
-
-  defp resolve_projected_table(%{query: query}, data_source) when query != nil, do: data_source
-  defp resolve_projected_table(%{projection: nil}, data_source), do: data_source
-
-  defp resolve_projected_table(%{user_id: uid, columns: [%{name: uid} | _]}, data_source),
-    # uid column is resolved
-    do: data_source
-
-  defp resolve_projected_table(table, data_source) do
-    case validate_projection(data_source.tables, table) do
-      {:ok, referenced_table} ->
-        # recursively resolve dependent table (this allows the dependent table to be projected as well)
-        data_source = resolve_projected_table(referenced_table, data_source)
-        # refetch the table, since it's maybe updated
-        referenced_table = Map.fetch!(data_source.tables, String.to_atom(referenced_table.name))
-
-        uid_column_name = referenced_table.user_id
-
-        uid_column =
-          referenced_table.columns
-          |> Enum.find(&(&1.name == uid_column_name))
-          |> set_display_name(table)
-
-        table =
-          table
-          |> Map.put(:user_id, uid_column.name)
-          |> Map.put(:columns, [uid_column | table.columns])
-
-        tables = Map.put(data_source.tables, String.to_atom(table.name), table)
-        %{data_source | tables: tables}
-
-      {:error, reason} ->
-        message = "Projection error in table `#{table.name}`: #{reason}."
-        Logger.error("Data source `#{data_source.name}`: #{message}")
-        tables = Map.delete(data_source.tables, String.to_atom(table.name))
-        %{data_source | tables: tables, errors: data_source.errors ++ [message]}
-    end
-  end
-
-  defp set_display_name(column, %{projection: %{user_id_alias: alias}}), do: %{column | name: alias}
-
-  defp set_display_name(column, _), do: column
-
-  defp validate_projection(tables_map, table) do
-    with :ok <- validate_foreign_key(table),
-         {:ok, referenced_table} <- validate_referenced_table(tables_map, table),
-         :ok <- validate_primary_key(table, referenced_table),
-         do: {:ok, referenced_table}
-  end
-
-  defp validate_referenced_table(tables_map, table) do
-    case Map.fetch(tables_map, String.to_atom(table.projection.table)) do
-      :error -> {:error, "referenced table `#{table.projection.table}` not found."}
-      {:ok, referenced_table} -> {:ok, referenced_table}
-    end
-  end
-
-  defp validate_foreign_key(table) do
-    case Enum.find(table.columns, &(&1.name == table.projection.foreign_key)) do
-      nil -> {:error, "foreign key column `#{table.projection.foreign_key}` doesn't exist"}
-      _ -> :ok
-    end
-  end
-
-  defp validate_primary_key(table, referenced_table) do
-    projection = table.projection
-    foreign_key_type = find_key_type(table, projection.foreign_key)
-
-    case find_key_type(referenced_table, projection.primary_key) do
-      nil ->
-        {:error, "primary key column `#{projection.primary_key}` not found in table `#{referenced_table.db_name}`"}
-
-      ^foreign_key_type ->
-        :ok
-
-      primary_key_type ->
-        {:error, "foreign key type is `#{foreign_key_type}` while primary key type is `#{primary_key_type}`"}
-    end
-  end
-
-  defp find_key_type(table, key_name) do
-    column = Enum.find(table.columns, &(&1.name == key_name))
-
-    Enum.reduce(table.decoders, column.type, fn %{columns: columns, method: method}, type ->
-      if key_name in columns, do: decoder_type(method), else: type
-    end)
-  end
-
-  defp translate_projections_and_decoders(%{tables: tables} = data_source),
-    do: %{data_source | tables: Enum.map(tables, &translate_projection_and_decoders(&1, tables))}
-
-  defp translate_projection_and_decoders({id, %{projection: projection, decoders: decoders} = table}, tables)
-       when is_map(projection) or (is_list(decoders) and length(decoders) > 0) do
-    columns =
-      decoders
-      |> translate_decoders(id)
-      |> Enum.reduce("\"#{id}\".*\n", fn {name, expression}, acc ->
-        "#{expression} AS \"#{name}\",\n #{acc}"
-      end)
-
-    query =
-      case translate_projection({id, table}, tables) do
-        {nil, nil, source} -> "SELECT #{columns} FROM #{source}"
-        {user_id, alias, source} -> "SELECT #{user_id} AS #{alias},\n #{columns} FROM #{source}"
-      end
-
-    {id, table |> Map.drop([:projection, :decoders]) |> Map.put(:query, query)}
-  end
-
-  defp translate_projection_and_decoders(table, _tables), do: table
-
-  defp translate_decoders(decoders, table_name) do
-    Enum.reduce(decoders, %{}, fn decoder, acc ->
-      Enum.reduce(decoder.columns, acc, fn column, acc ->
-        current_expression = Map.get(acc, column, "\"#{table_name}\".\"#{column}\"")
-        Map.put(acc, column, translate_decoder(decoder, current_expression))
-      end)
-    end)
-  end
-
-  defp translate_decoder(%{method: "aes_cbc_128", key: key}, column) when key != nil,
-    do: "dec_aes_cbc128(#{column}, '#{String.replace(key, "'", "''")}')"
-
-  defp translate_decoder(%{method: "aes_cbc_128"}, column) do
-    key = Application.get_env(:cloak, :aes_key)
-
-    if key == nil,
-      do: raise(ExecutionError, message: "No global `aes_key` value specified for key-less `aes_cbc_128` decoder")
-
-    "dec_aes_cbc128(#{column}, '#{String.replace(key, "'", "''")}')"
-  end
-
-  defp translate_decoder(%{method: "to_text"}, column), do: "CAST(#{column} AS text)"
-  defp translate_decoder(%{method: "text_to_integer"}, column), do: "CAST(#{column} AS integer)"
-  defp translate_decoder(%{method: "real_to_integer"}, column), do: "CAST(#{column} AS integer)"
-  defp translate_decoder(%{method: "text_to_real"}, column), do: "CAST(#{column} AS real)"
-  defp translate_decoder(%{method: "text_to_datetime"}, column), do: "CAST(#{column} AS datetime)"
-  defp translate_decoder(%{method: "text_to_date"}, column), do: "CAST(#{column} AS date)"
-  defp translate_decoder(%{method: "text_to_boolean"}, column), do: "CAST(#{column} AS boolean)"
-  defp translate_decoder(%{method: "real_to_boolean"}, column), do: "CAST(#{column} AS boolean)"
-  defp translate_decoder(%{method: "base64"}, column), do: "dec_b64(#{column})"
-
-  defp translate_decoder(%{method: "substring", from: from, for: for}, column)
-       when is_integer(from) and is_integer(for),
-       do: "substring(#{column} FROM #{from} FOR #{for})"
-
-  defp translate_decoder(%{method: method}, _column),
-    do: raise(ExecutionError, message: "Invalid decoding method specified: `#{method}`")
-
-  defp decoder_type("text_to_integer"), do: :integer
-  defp decoder_type("real_to_integer"), do: :integer
-  defp decoder_type("text_to_real"), do: :real
-  defp decoder_type("text_to_datetime"), do: :datetime
-  defp decoder_type("text_to_date"), do: :date
-  defp decoder_type("text_to_boolean"), do: :boolean
-  defp decoder_type("real_to_boolean"), do: :boolean
-  defp decoder_type("base64"), do: :text
-  defp decoder_type("to_text"), do: :text
-  defp decoder_type("substring"), do: :text
-  defp decoder_type("dec_aes_cbc128"), do: :text
-  defp decoder_type(method), do: raise(ExecutionError, message: "Invalid decoding method specified: `#{method}`")
-
-  defp quote_db_name(name), do: ~s/"#{String.replace(name, ~s/"/, ~s/""/)}"/
-
-  defp translate_projection({id, %{projection: nil, user_id: nil, db_name: db_name}}, _tables),
-    do: {nil, nil, ~s/#{quote_db_name(db_name)} AS "#{id}"/}
-
-  defp translate_projection({id, %{projection: nil, user_id: user_id, db_name: db_name}}, _tables),
-    do: {~s/"#{id}"."#{user_id}"/, ~s/"#{user_id}"/, ~s/#{quote_db_name(db_name)} AS "#{id}"/}
-
-  defp translate_projection({id, %{projection: projection, db_name: db_name}}, tables) do
-    projection_id = String.to_atom(projection.table)
-    {user_id, alias, from} = translate_projection({projection_id, tables[projection_id]}, tables)
-    referenced_table = tables[projection_id]
-
-    {user_id, alias, from} =
-      if referenced_table.projection != nil do
-        # for mongodb data sources, it is faster to use a subquery here as the driver doesn't support complex joins
-        from =
-          ~s/(SELECT #{user_id} AS #{alias}, "#{projection_id}"."#{projection.primary_key}" / <>
-            ~s/FROM #{from}) AS "#{projection_id}"/
-
-        {~s/"#{projection_id}".#{alias}/, alias, from}
-      else
-        {user_id, alias, from}
-      end
-
-    primary_key =
-      referenced_table.decoders
-      |> translate_decoders(projection_id)
-      |> Enum.find_value(fn {name, expression} ->
-        if name == projection.primary_key, do: expression, else: nil
-      end)
-      |> case do
-        nil -> ~s/"#{projection_id}"."#{projection.primary_key}"/
-        expression -> expression
-      end
-
-    from = ~s/#{from} JOIN #{quote_db_name(db_name)} AS "#{id}" ON "#{id}"."#{projection.foreign_key}" = #{primary_key}/
-
-    alias = if projection[:user_id_alias] != nil, do: ~s/"#{projection.user_id_alias}"/, else: alias
-
-    {user_id, alias, from}
   end
 
   defp resolve_tables_keys(data_source) do
