@@ -58,25 +58,6 @@ For example, to start your system with the version `17.3.0`, you can run the fol
 
 These commands will pull the desired images from `quay.io` and restart the container. Notice that there's no building involved with this command.
 
-### A public release
-
-We have a set of Aircloak installations that don't have their own individual releases, but run
-our official production release. These systems are demo systems and customer facing Aircloak
-hosted systems.
-
-To upgrade these Aircloaks to the latest released production version
-(the version specified in the [VERSION](./VERSION) file), run the
-`./publish_public_systems.sh` command. It will update both the `air` and `cloak` container.
-
-Just like the `./publish.sh` command, the `./publish_public_systems.sh` command uses the deployment
-information from the [deploy_targets](./deploy_targets) folder. All [deploy_targets](./deploy_targets)
-containing `PUBLIC_SYSTEM=true` will be deployed. No specific deploy target should be specified when
-running the command.
-
-This process of updating the system is separate from the process of creating the production
-release itself. A [production release](https://github.com/Aircloak/aircloak/wiki/Releases) should
-be made prior to the script being run.
-
 ### Setting up the build server
 
 1. The machine needs to be able to access github.com at ports 22 (ssh) and 9418 (git protocol).
