@@ -137,8 +137,8 @@ let decodeAES (key : string option) (value : BsonValue) : BsonValue =
             use reader = new StreamReader(cryptoStream)
             let plaintext = reader.ReadToEnd()
             // We have seen problems where invalid unicode characters cause MongoDB to be unable to subsequently store the decrypted data.
-            // To avoid these problem we discard all characters that are not valid UTF-8
-            let utf8Decoder = Encoding.GetEncoding("UTF-8", EncoderReplacementFallback(String.Empty), DecoderReplacementFallback(String.Empty))
+            // To avoid these problem we replace all characters that are not valid UTF-8 with the suggested replacement character "�"
+            let utf8Decoder = Encoding.GetEncoding("UTF-8", EncoderReplacementFallback("\uFFFD"), DecoderReplacementFallback("\uFFFD"))
             let utf8Plaintext = utf8Decoder.GetString(utf8Decoder.GetBytes(plaintext))
             upcast BsonString(utf8Plaintext)
         with _ -> bsonNull
