@@ -101,7 +101,7 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
         |> Map.put(:driver, name)
         |> sanitize_tables()
       end)
-      |> Enum.map(&Map.take(&1, [:marker, :name, :parameters, :tables, :driver]))
+      |> Enum.map(&Map.take(&1, [:name, :parameters, :tables, :driver]))
     end
 
     defp sanitize_tables(data_source) do

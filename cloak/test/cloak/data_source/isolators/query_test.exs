@@ -7,17 +7,13 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
   setup_all do
     :ok = Cloak.Test.DB.create_table("isolators", "value INTEGER, pk INTEGER")
 
+    :ok = Cloak.Test.DB.create_table("isolators_projected_real", "value INTEGER, fk INTEGER")
+
     :ok =
-      Cloak.Test.DB.create_table(
-        "isolators_projected",
-        "value INTEGER, fk INTEGER",
-        add_user_id: false,
-        projection: %{
-          table: "isolators",
-          primary_key: "pk",
-          foreign_key: "fk",
-          user_id_alias: "uid"
-        }
+      Cloak.Test.DB.create_table("isolators_projected", nil,
+        skip_db_create: true,
+        user_id: "uid",
+        query: "select i.user_id as uid, ip.* from isolators_projected_real as ip join isolators as i on i.pk=ip.fk"
       )
 
     :ok =
@@ -113,7 +109,7 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
       ])
 
     :ok =
-      Cloak.Test.DB.insert_data("isolators_projected", ["fk", "value"], [
+      Cloak.Test.DB.insert_data("isolators_projected_real", ["fk", "value"], [
         [1, 10],
         [2, 20],
         [3, 30],

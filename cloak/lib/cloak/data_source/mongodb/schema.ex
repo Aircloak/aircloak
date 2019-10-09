@@ -70,12 +70,9 @@ defmodule Cloak.DataSource.MongoDB.Schema do
 
     array_tables =
       for array <- arrays do
-        decoders = reject_array_decoders(table.decoders, table.array_path, arrays -- [array])
-
         array_table = %{
           table
           | array_path: table.array_path ++ [array],
-            decoders: decoders,
             name: build_table_name(table.name, array),
             db_name: build_table_name(table.db_name, array)
         }
@@ -83,8 +80,7 @@ defmodule Cloak.DataSource.MongoDB.Schema do
         build_tables(schema[array], array_table, columns)
       end
 
-    decoders = reject_array_decoders(table.decoders, table.array_path, arrays)
-    [%{table | columns: columns, decoders: decoders} | List.flatten(array_tables)]
+    [%{table | columns: columns} | List.flatten(array_tables)]
   end
 
   defp build_tables(type, table, parent_columns) do
@@ -95,22 +91,4 @@ defmodule Cloak.DataSource.MongoDB.Schema do
 
   defp build_table_name(parent, "." <> array), do: build_table_name(parent, array)
   defp build_table_name(parent, array), do: "#{parent}_#{array}"
-
-  defp reject_array_decoders(decoders, path, arrays) do
-    arrays = for array <- arrays, do: to_string(path ++ [array])
-    prefixes = for array <- arrays, do: array <> "."
-
-    decoders
-    |> Enum.map(fn decoder ->
-      %{
-        decoder
-        | columns:
-            Enum.reject(
-              decoder.columns,
-              &(String.starts_with?(&1, prefixes) || Enum.member?(arrays, &1))
-            )
-      }
-    end)
-    |> Enum.reject(&Enum.empty?(&1.columns))
-  end
 end

@@ -9,7 +9,6 @@
     "database": "XE",
     "sid": "XE"
   },
-  "encoded": false,
   "tables": {
   },
   "analyst_tables_enabled": true

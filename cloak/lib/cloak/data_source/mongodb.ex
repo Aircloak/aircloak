@@ -6,7 +6,6 @@ defmodule Cloak.DataSource.MongoDB do
   Sample configuration for a MongoDB data source:
   {
     "driver": "mongodb",
-    "marker": "mongodb",      - optional
     "parameters": {
       "hostname": "...",
       "username": "...",
@@ -16,7 +15,7 @@ defmodule Cloak.DataSource.MongoDB do
     "tables": {
       "test": {
         "db_name": "...",     - optional
-        "user_id": "...",
+        "query": "...",       - optional
         "sample_rate": ...    - optional
       }
     }
@@ -76,8 +75,8 @@ defmodule Cloak.DataSource.MongoDB do
     table =
       table
       |> Map.put(:sharded?, is_sharded?(connection, table.db_name))
-      # db_name is used for translating projections and decoders, so it needs to be adjusted in order to support
-      # fake tables representing arrays, this means we need to save the original value under a different field
+      # db_name needs to be adjusted in order to support fake tables representing arrays,
+      # this means we need to save the original value under a different field
       |> Map.put(:collection, table.db_name)
 
     sample_rate = table[:sample_rate] || 100
