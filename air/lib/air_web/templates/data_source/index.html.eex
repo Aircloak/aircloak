@@ -76,3 +76,8 @@
   </div>
 
 <% end %>
+
+<br/><br/>
+<div id="main-message">
+  <center><%= raw(@main_message) %></center>
+</div>

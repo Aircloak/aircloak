@@ -6,7 +6,9 @@ defmodule Air.Settings do
           audit_log_enabled: boolean,
           decimal_sep: String.t(),
           thousand_sep: String.t(),
-          decimal_digits: integer
+          decimal_digits: integer,
+          login_message: String.t(),
+          main_message: String.t()
         }
 
   defstruct [
@@ -14,6 +16,8 @@ defmodule Air.Settings do
     :audit_log_enabled,
     :decimal_sep,
     :thousand_sep,
-    :decimal_digits
+    :decimal_digits,
+    :login_message,
+    :main_message
   ]
 end

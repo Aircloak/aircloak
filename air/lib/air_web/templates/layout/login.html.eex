@@ -16,6 +16,11 @@
   <body id="login" class="<%= background_img_class() %>">
     <main role="main" id="login-container">
       <%= render @view_module, @view_template, assigns %>
+
+      <br/>
+      <div id="login-message">
+        <center><%= raw(@login_message) %></center>
+      </div>
     </main>
 
     <footer>

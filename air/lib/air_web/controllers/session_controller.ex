@@ -23,7 +23,7 @@ defmodule AirWeb.SessionController do
     if User.active_admin_user_exists?() do
       conn
       |> put_layout("login.html")
-      |> render("new.html")
+      |> render("new.html", login_message: Air.Service.Settings.read().login_message)
     else
       conn
       |> clear_flash()
