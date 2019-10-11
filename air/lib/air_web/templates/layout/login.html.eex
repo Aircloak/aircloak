@@ -15,7 +15,7 @@
 
   <body id="login" class="<%= background_img_class() %>">
     <main role="main" id="login-container">
-      <div id="login-message">
+      <div id="login-message" class="panel panel-heading">
         <center><%= raw(@login_message) %></center>
       </div>
       <br/>

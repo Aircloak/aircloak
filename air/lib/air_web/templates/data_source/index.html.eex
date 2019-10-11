@@ -1,4 +1,4 @@
-<div id="main-message">
+<div id="main-message" class="panel panel-heading">
   <center><%= raw(@main_message) %></center>
 </div>
 <br/>
