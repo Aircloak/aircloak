@@ -1,3 +1,8 @@
+<div id="main-message">
+  <center><%= raw(@main_message) %></center>
+</div>
+<br/>
+
 <h2>Data sources</h2>
 
 <%= if length(@user_data_sources) == 0 do %>
@@ -76,8 +81,3 @@
   </div>
 
 <% end %>
-
-<br/><br/>
-<div id="main-message">
-  <center><%= raw(@main_message) %></center>
-</div>
