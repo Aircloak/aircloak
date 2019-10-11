@@ -75,13 +75,13 @@
   </div>
 
   <div class="form-group">
-    <label class="col-sm-3 control-label">Login screen message</label>
+    <label class="col-sm-3 control-label">Login screen message<br/>(Markdown)</label>
     <div class="col-sm-9">
       <%= textarea f, :login_message, class: "form-control input-sm" %>
     </div>
   </div>
   <div class="form-group">
-    <label class="col-sm-3 control-label">Main screen message</label>
+    <label class="col-sm-3 control-label">Main screen message<br/>(Markdown)</label>
     <div class="col-sm-9">
       <%= textarea f, :main_message, class: "form-control input-sm" %>
     </div>
