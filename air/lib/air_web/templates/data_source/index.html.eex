@@ -1,7 +1,9 @@
-<div id="main-message" class="panel panel-heading">
-  <center><%= raw(@main_message) %></center>
-</div>
-<br/>
+<%= if @main_message not in ["", nil] do %>
+  <div id="main-message" class="panel panel-heading">
+    <center><%= raw(@main_message) %></center>
+  </div>
+  <br/>
+<% end %>
 
 <h2>Data sources</h2>
 

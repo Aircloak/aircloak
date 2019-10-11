@@ -15,10 +15,12 @@
 
   <body id="login" class="<%= background_img_class() %>">
     <main role="main" id="login-container">
-      <div id="login-message" class="panel panel-heading">
-        <center><%= raw(@login_message) %></center>
-      </div>
-      <br/>
+      <%= if @login_message not in ["", nil] do %>
+        <div id="login-message" class="panel panel-heading">
+          <center><%= raw(@login_message) %></center>
+        </div>
+        <br/>
+      <% end %>
 
       <%= render @view_module, @view_template, assigns %>
     </main>
