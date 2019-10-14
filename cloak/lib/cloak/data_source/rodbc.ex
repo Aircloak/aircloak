@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.RODBC do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{RODBC.Port, SqlBuilder, Table, Driver, Parameters}
+  alias Cloak.DataSource.{RODBC.Port, Table, Driver, Parameters}
   alias Cloak.DataSource
   alias Cloak.Query.ExecutionError
 
@@ -49,11 +49,16 @@ defmodule Cloak.DataSource.RODBC do
   end
 
   @doc "Selects the data from the database."
-  @spec select(pid, Cloak.Sql.Query.t(), %{Table.data_type() => (term -> term)}, DataSource.result_processor()) ::
+  @spec select(
+          pid,
+          String.t(),
+          [Cloak.Sql.Expression.t()],
+          %{Table.data_type() => (term -> term)},
+          DataSource.result_processor()
+        ) ::
           {:ok, DataSource.processed_result()} | {:error, any}
-  def select(connection, sql_query, driver_mappers \\ %{}, result_processor) do
-    statement = SqlBuilder.build(sql_query)
-    field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(driver_mappers, &1.type))
+  def select(connection, statement, columns, driver_mappers \\ %{}, result_processor) do
+    field_mappers = Enum.map(columns, &type_to_field_mapper(driver_mappers, &1.type))
     row_mapper = &map_fields(&1, field_mappers)
 
     with :ok <- Port.execute(connection, statement, Driver.timeout()),

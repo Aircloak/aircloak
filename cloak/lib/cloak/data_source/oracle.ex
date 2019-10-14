@@ -7,7 +7,7 @@ defmodule Cloak.DataSource.Oracle do
   use Cloak.DataSource.Driver.RodbcSql
   use Cloak.DataSource.Driver.SQL.AnalystTables
   require Logger
-  alias Cloak.DataSource.{RODBC, Table}
+  alias Cloak.DataSource.{RODBC, Table, SqlBuilder}
   alias Cloak.Sql.{Expression, Query, Compiler.Helpers, Function}
 
   @mathematical_operators ~w(+ - * / ^)
@@ -32,7 +32,8 @@ defmodule Cloak.DataSource.Oracle do
   @impl Driver
   def select(connection, query, result_processor) do
     query = query |> map_selected_expressions() |> Helpers.apply_bottom_up(&wrap_limit/1)
-    RODBC.select(connection, query, custom_mappers(), result_processor)
+    statement = query |> SqlBuilder.build() |> insert_select_hints(query.data_source.parameters[:select_hints])
+    RODBC.select(connection, statement, query.db_columns, custom_mappers(), result_processor)
   end
 
   @impl Driver
@@ -218,4 +219,7 @@ defmodule Cloak.DataSource.Oracle do
   end
 
   defp wrap_limit(query), do: query
+
+  defp insert_select_hints(statement, select_hints) when select_hints in [nil, ""], do: statement
+  defp insert_select_hints("SELECT " <> statement_body, select_hints), do: "SELECT #{select_hints} #{statement_body}"
 end
