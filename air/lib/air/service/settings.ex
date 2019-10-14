@@ -6,7 +6,7 @@ defmodule Air.Service.Settings do
   import Ecto.Changeset
 
   @required_fields ~w(audit_log_enabled decimal_sep decimal_digits)a
-  @optional_fields ~w(query_retention_days thousand_sep)a
+  @optional_fields ~w(query_retention_days thousand_sep login_message main_message)a
 
   # -------------------------------------------------------------------
   # API functions
@@ -64,7 +64,9 @@ defmodule Air.Service.Settings do
       audit_log_enabled: schema.audit_log_enabled,
       decimal_sep: schema.decimal_sep,
       thousand_sep: schema.thousand_sep || "",
-      decimal_digits: schema.decimal_digits
+      decimal_digits: schema.decimal_digits,
+      login_message: schema.login_message,
+      main_message: schema.main_message
     }
   end
 
@@ -92,6 +94,8 @@ defmodule Air.Service.Settings do
       audit_log_enabled: true,
       decimal_sep: ".",
       thousand_sep: " ",
-      decimal_digits: 3
+      decimal_digits: 3,
+      login_message: nil,
+      main_message: nil
     }
 end

@@ -2,10 +2,13 @@
 
 ### Enhancements
 
-- When a user changes their password all their other sessions are automatically revoked
+- When a user changes their password all their other sessions are automatically revoked.
+- Admins can add custom messages to the login and main screens.
 
 ### Bugfixes
 ### Changes
+
+- Support for some obsolete cloak features and config fields (decoders, projections, user_id) was removed.
 
 ### Known issues
 
