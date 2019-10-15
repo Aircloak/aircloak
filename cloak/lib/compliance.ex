@@ -66,8 +66,11 @@ defmodule Compliance do
     |> Map.put(:content_type, content_type(table))
     |> Enum.reject(fn {_key, val} -> is_nil(val) end)
     |> Enum.into(%{})
+    |> fix_keys()
   end
 
   defp content_type(%{content_type: :public}), do: "non-personal"
   defp content_type(_), do: nil
+
+  defp fix_keys(table), do: %{table | keys: Enum.map(table.keys, fn {column, type} -> %{type => column} end)}
 end
