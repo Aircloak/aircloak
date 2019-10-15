@@ -86,7 +86,7 @@ defmodule Compliance.DataSources do
           data_source_definition_template = %{
             db_name: db_name,
             content_type: Map.get(definition, :content_type, :private),
-            keys: Map.get(definition, :keys, []),
+            keys: Map.get(definition, :keys, %{}),
             user_id: Map.get(definition, :user_id, nil)
           }
 
@@ -107,7 +107,7 @@ defmodule Compliance.DataSources do
             data_source_definition_template = %{
               query: definition.query,
               content_type: Map.get(definition, :content_type, :private),
-              keys: Map.get(definition, :keys, []),
+              keys: Map.get(definition, :keys, %{}),
               user_id: Map.get(definition, :user_id, nil)
             }
 
