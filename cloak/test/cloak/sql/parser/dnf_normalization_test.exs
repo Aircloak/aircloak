@@ -7,23 +7,29 @@ defmodule Cloak.Sql.Parser.DNFNormalization.Test do
 
   describe ".dnf" do
     property "evaluates the same" do
-      check all terms <- uniq_list_of(atom(:alphanumeric), length: 10),
-                assignment <- assignment(terms),
-                formula <- formula(terms) do
+      check all(
+              terms <- uniq_list_of(atom(:alphanumeric), length: 10),
+              assignment <- assignment(terms),
+              formula <- formula(terms)
+            ) do
         assert eval(DNFNormalization.dnf(formula), assignment) == eval(formula, assignment)
       end
     end
 
     property "is in disjunctive normal form" do
-      check all terms <- uniq_list_of(atom(:alphanumeric), length: 10),
-                formula <- formula(terms) do
+      check all(
+              terms <- uniq_list_of(atom(:alphanumeric), length: 10),
+              formula <- formula(terms)
+            ) do
         assert dnf?(DNFNormalization.dnf(formula))
       end
     end
 
     property "does nothing when acting on a conjunction" do
-      check all terms <- uniq_list_of(atom(:alphanumeric), length: 10),
-                formula <- conjunction(terms) do
+      check all(
+              terms <- uniq_list_of(atom(:alphanumeric), length: 10),
+              formula <- conjunction(terms)
+            ) do
         assert DNFNormalization.dnf(formula) == formula
       end
     end

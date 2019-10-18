@@ -5,13 +5,13 @@ defmodule Cloak.Compliance.QueryGenerator.Test do
   alias Cloak.Compliance.QueryGenerator
 
   property "converts to SQL without crashing" do
-    check all complexity <- integer(0..100) do
+    check all(complexity <- integer(0..100)) do
       assert QueryGenerator.ast_to_sql(QueryGenerator.generate_ast(tables(), complexity))
     end
   end
 
   property "converts to SQL + analyst table list without crashing" do
-    check all complexity <- integer(0..100) do
+    check all(complexity <- integer(0..100)) do
       {query, analyst_tables} = QueryGenerator.extract_analyst_tables(QueryGenerator.generate_ast(tables(), complexity))
 
       assert QueryGenerator.ast_to_sql(query)
@@ -23,7 +23,7 @@ defmodule Cloak.Compliance.QueryGenerator.Test do
   end
 
   property "remove_analyst_tables creates valid queries with no analyst_tables" do
-    check all complexity <- integer(0..100) do
+    check all(complexity <- integer(0..100)) do
       assert {query, []} =
                tables()
                |> QueryGenerator.generate_ast(complexity)

@@ -5,14 +5,16 @@ defmodule Cloak.AnalystTable.JobsTest do
   alias Cloak.AnalystTable.Jobs
 
   property "jobs are processed in the proper order" do
-    check all operations <- list_of(operation()),
-              processed_jobs = process_all_jobs(operations) do
+    check all(
+            operations <- list_of(operation()),
+            processed_jobs = process_all_jobs(operations)
+          ) do
       assert processed_jobs == input_jobs(operations)
     end
   end
 
   property "no more than five jobs are running at the same time" do
-    check all operations <- list_of(operation()) do
+    check all(operations <- list_of(operation())) do
       operations
       |> all_states()
       |> Enum.each(&assert(length(&1.jobs.running) <= 5))
