@@ -31,7 +31,7 @@ defmodule Air.Service.LDAP.Test do
     end
 
     test "with regular SSL" do
-      assert {:error, :invalid_credentials} =
+      assert {:error, :connect_failed} =
                Client.simple_bind(
                  {:ok,
                   Map.merge(ldap(), %{
@@ -46,8 +46,18 @@ defmodule Air.Service.LDAP.Test do
     end
 
     test "with StartTLS" do
-      assert {:error, :invalid_credentials} =
-               Client.simple_bind({:ok, Map.put(ldap(), "encryption", "start_tls")}, "user", "pass")
+      assert {:error, :connect_failed} =
+               Client.simple_bind(
+                 {:ok,
+                  Map.merge(ldap(), %{
+                    "encryption" => "start_tls",
+                    "port" => @ssl_port,
+                    "verify_server_certificate" => true,
+                    "ca_certfile" => "ca.crt"
+                  })},
+                 "user",
+                 "pass"
+               )
     end
   end
 
