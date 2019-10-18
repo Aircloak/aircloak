@@ -47,7 +47,7 @@ defmodule Cloak.Mixfile do
       {:jobs, "~> 0.7.0"},
 
       # Rustler is needed for compiling Rust port driver on MacOS
-      {:rustler, github: "hansihe/rustler", sparse: "rustler_mix", runtime: false},
+      {:rustler, github: "cristianberneanu/rustler", sparse: "rustler_mix", runtime: false},
 
       # Hackney is not a direct dependency of ours, but we need it to be at version 1.8.6 or more recent
       # in order to build under Erlang 20.0. Earlier versions indirectly included too old versions of a

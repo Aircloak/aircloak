@@ -58,7 +58,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:phoenix_gen_socket_client, "~> 2.0", optional: true},
       {:ex_crypto, "~> 0.9.0"},
       {:timex, "~> 3.5"},
-      {:ex_json_schema, "~> 0.5.6"},
+      {:ex_json_schema, "~> 0.6"},
       {:html_sanitize_ex, "~> 1.3"},
       {:comeonin, "~> 2.5"}
     ]

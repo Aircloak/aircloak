@@ -59,12 +59,12 @@ defmodule Cloak.ConfigValidationTest do
 
   defp assert_missing_field_reported(path, validator) do
     {error, missing} = validate_with_missing_child(path, validator)
-    assert error.message =~ ~r/Required property #{missing} was not present/
+    assert error.message =~ ~r/Required .*#{missing}.* not present/
   end
 
   defp refute_missing_field_reported(path, validator) do
     {error, missing} = validate_with_missing_child(path, validator)
-    refute error.message =~ ~r/Required property #{missing} was not present/
+    refute error.message =~ ~r/Required .*#{missing}.* not present/
   end
 
   defp assert_invalid_field_reported(path, validator) do

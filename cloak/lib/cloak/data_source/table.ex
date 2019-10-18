@@ -415,7 +415,7 @@ defmodule Cloak.DataSource.Table do
   defp map_keys({name, table}), do: {name, table}
 
   defp map_key(%{} = key, table_name) do
-    if Map.size(key) != 1 do
+    if map_size(key) != 1 do
       raise ExecutionError,
         message: ~s(Invalid key entry for table `#{table_name}`. A key has the format `{"key_type": "column_name"}`.)
     end
