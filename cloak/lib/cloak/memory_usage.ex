@@ -3,6 +3,8 @@ defmodule Cloak.MemoryUsage do
 
   require Logger
 
+  alias Cloak.MemoryReader.ProcMemInfo
+
   @interval :timer.minutes(1)
   @large_mem_usage_in_mb 100
 
@@ -23,10 +25,12 @@ defmodule Cloak.MemoryUsage do
 
     stats =
       [:total, :processes, :ets, :binary]
-      |> Stream.map(&"#{&1}=#{memory_usage |> Keyword.fetch!(&1) |> bytes_to_mb()} MB")
+      |> Enum.map(&"#{&1}=#{memory_usage |> Keyword.fetch!(&1) |> bytes_to_mb()} MB")
       |> Enum.join(", ")
 
-    Logger.info("memory usage: #{stats}")
+    available_memory = ProcMemInfo.read().available_memory |> div(1024)
+
+    Logger.info("memory usage: #{stats}, available memory=#{available_memory} MB")
 
     Keyword.fetch!(memory_usage, :total)
   end
