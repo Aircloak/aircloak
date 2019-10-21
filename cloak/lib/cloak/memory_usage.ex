@@ -8,9 +8,10 @@ defmodule Cloak.MemoryUsage do
 
   @doc false
   def stats() do
-    total()
-    processes()
-    ets()
+    if total() > 5 * @large_mem_usage_in_mb do
+      processes()
+      ets()
+    end
   end
 
   # -------------------------------------------------------------------
@@ -26,6 +27,8 @@ defmodule Cloak.MemoryUsage do
       |> Enum.join(", ")
 
     Logger.info("memory usage: #{stats}")
+
+    Keyword.fetch!(memory_usage, :total)
   end
 
   # -------------------------------------------------------------------
