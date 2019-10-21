@@ -6,12 +6,18 @@ defmodule Cloak.MemoryUsage do
   @interval :timer.minutes(1)
   @large_mem_usage_in_mb 100
 
+  @doc false
+  def stats() do
+    total()
+    processes()
+    ets()
+  end
+
   # -------------------------------------------------------------------
   # Total memory
   # -------------------------------------------------------------------
 
-  @doc false
-  def total() do
+  defp total() do
     memory_usage = :erlang.memory()
 
     stats =
@@ -26,8 +32,7 @@ defmodule Cloak.MemoryUsage do
   # Large processes
   # -------------------------------------------------------------------
 
-  @doc false
-  def processes() do
+  defp processes() do
     Process.list()
     |> Stream.map(&{&1, Process.info(&1, [:memory, :registered_name, :initial_call])})
     |> Stream.reject(fn {_pid, info} -> is_nil(info) end)
@@ -57,8 +62,7 @@ defmodule Cloak.MemoryUsage do
   # Large ETS tables
   # -------------------------------------------------------------------
 
-  @doc false
-  def ets() do
+  defp ets() do
     :ets.all()
     |> Stream.map(&:ets.info/1)
     |> Stream.reject(&(&1 == :undefined))
@@ -81,13 +85,7 @@ defmodule Cloak.MemoryUsage do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_) do
-    Aircloak.ChildSpec.supervisor(
-      [reader(:total), reader(:processes), reader(:ets)],
-      strategy: :one_for_one,
-      name: __MODULE__
-    )
-  end
+  def child_spec(_), do: Aircloak.ChildSpec.supervisor([reader(:stats)], strategy: :one_for_one, name: __MODULE__)
 
   defp reader(fun),
     do: {Periodic, id: fun, run: {__MODULE__, fun, []}, every: @interval, overlap?: false, timeout: 2 * @interval}
