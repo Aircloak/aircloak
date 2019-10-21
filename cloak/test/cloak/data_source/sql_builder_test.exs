@@ -18,10 +18,12 @@ defmodule Cloak.DataSource.SqlBuilderTest do
 
   describe "quote_table_name" do
     property "quotes each part" do
-      check all quote_char <- one_of([constant(?"), constant(?`)]),
-                parts_data <- parts_data(),
-                {parts, unquoted_parts} = Enum.unzip(parts_data),
-                table_name = Enum.join(parts, ".") do
+      check all(
+              quote_char <- one_of([constant(?"), constant(?`)]),
+              parts_data <- parts_data(),
+              {parts, unquoted_parts} = Enum.unzip(parts_data),
+              table_name = Enum.join(parts, ".")
+            ) do
         expected = unquoted_parts |> Stream.map(&to_string([quote_char, &1, quote_char])) |> Enum.join(".")
         assert SqlBuilder.quote_table_name(table_name, quote_char) == expected
       end
@@ -30,18 +32,22 @@ defmodule Cloak.DataSource.SqlBuilderTest do
 
   describe "table_name_parts" do
     property "returns the list of unquoted parts" do
-      check all parts_data <- parts_data(),
-                {parts, unquoted_parts} = Enum.unzip(parts_data),
-                table_name = Enum.join(parts, ".") do
+      check all(
+              parts_data <- parts_data(),
+              {parts, unquoted_parts} = Enum.unzip(parts_data),
+              table_name = Enum.join(parts, ".")
+            ) do
         assert SqlBuilder.table_name_parts(table_name) == unquoted_parts
       end
     end
 
     property "raises on invalid inputs" do
-      check all valid_parts <- valid_parts(),
-                invalid_pos <- integer(0..length(valid_parts)),
-                invalid_part <- invalid_part(),
-                table_name = valid_parts |> List.insert_at(invalid_pos, invalid_part) |> Enum.join(".") do
+      check all(
+              valid_parts <- valid_parts(),
+              invalid_pos <- integer(0..length(valid_parts)),
+              invalid_part <- invalid_part(),
+              table_name = valid_parts |> List.insert_at(invalid_pos, invalid_part) |> Enum.join(".")
+            ) do
         assert_raise ArgumentError, fn -> SqlBuilder.table_name_parts(table_name) end
       end
     end

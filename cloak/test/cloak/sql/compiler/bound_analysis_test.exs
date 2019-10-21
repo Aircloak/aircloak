@@ -128,7 +128,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     end
 
     property "bounds can be computed for simplest arguments to function" do
-      check all {name, function} <- function() do
+      check all({name, function} <- function()) do
         arity = Function.info(function) |> Keyword.fetch!(:arity)
         args = 1..arity |> Enum.map(fn _ -> column_in_bounds({2, 2}) end)
         expression = function(name, args, :real)
@@ -137,10 +137,12 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     end
 
     property "expression result is within computed bounds" do
-      check all {name, function} <- function(),
-                bounds <- list_of(bounds(), length: Function.info(function) |> Keyword.fetch!(:arity)),
-                values <- values(bounds),
-                max_runs: 500 do
+      check all(
+              {name, function} <- function(),
+              bounds <- list_of(bounds(), length: Function.info(function) |> Keyword.fetch!(:arity)),
+              values <- values(bounds),
+              max_runs: 500
+            ) do
         expression = function(name, Enum.map(bounds, &column_in_bounds/1), :real)
         assert_unknown_or_within_bounds(expression, values, function)
       end
@@ -326,7 +328,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
   defp round_rem(a, b), do: if(round(b) == 0, do: 0, else: rem(round(a), round(b)))
 
   defp bounds() do
-    gen all a <- integer(), b <- integer() do
+    gen all(a <- integer(), b <- integer()) do
       {min(a, b), max(a, b)}
     end
   end

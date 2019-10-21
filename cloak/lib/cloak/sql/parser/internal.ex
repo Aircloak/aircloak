@@ -133,11 +133,12 @@ defmodule Cloak.Sql.Parser.Internal do
       sequence([parenthesised_expression(), option(cast_suffix())])
       |> map(fn [expr, cast_suffix] -> build_cast(expr, cast_suffix) end)
 
-  defp cast_suffix(), do: sequence([next_position(), keyword(:::), data_type(), lazy(fn -> option(cast_suffix()) end)])
+  defp cast_suffix(),
+    do: sequence([next_position(), keyword(:"::"), data_type(), lazy(fn -> option(cast_suffix()) end)])
 
   defp build_cast(expr, nil), do: expr
 
-  defp build_cast(expr, [location, :::, type, next_cast]),
+  defp build_cast(expr, [location, :"::", type, next_cast]),
     do: build_cast({:function, {:cast, type}, [expr], location}, next_cast)
 
   defp parenthesised_expression(), do: paren_parser(column(), simple_expression())

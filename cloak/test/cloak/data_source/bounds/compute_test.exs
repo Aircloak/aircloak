@@ -7,7 +7,7 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
 
   describe ".max" do
     property "it's money-aligned" do
-      check all data <- input_data(), cutoff <- integer(1..20) do
+      check all(data <- input_data(), cutoff <- integer(1..20)) do
         case Compute.max(data, cutoff) do
           :error -> :ok
           {:ok, result} -> assert money_aligned?(result)
@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
 
   describe ".min" do
     property "it's money-aligned" do
-      check all data <- input_data(), cutoff <- integer(1..20) do
+      check all(data <- input_data(), cutoff <- integer(1..20)) do
         case Compute.min(data, cutoff) do
           :error -> :ok
           {:ok, result} -> assert money_aligned?(result)
@@ -49,14 +49,14 @@ defmodule Cloak.DataSource.Bounds.Compute.Test do
     end
 
     property "if computed max > min, then extends the other way" do
-      check all number1 <- integer(), number2 <- integer() do
+      check all(number1 <- integer(), number2 <- integer()) do
         {input_min, input_max} = [number1, number2] |> Enum.min_max()
         assert Compute.extend({input_max, input_min}) == Compute.extend({input_min, input_max})
       end
     end
 
     property "produces a larger bound containing the original" do
-      check all number1 <- integer(), number2 <- integer() do
+      check all(number1 <- integer(), number2 <- integer()) do
         {input_min, input_max} = [number1, number2] |> Enum.min_max()
         {output_min, output_max} = Compute.extend({input_min, input_max})
 

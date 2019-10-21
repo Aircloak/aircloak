@@ -7,8 +7,6 @@ defmodule Cloak.Stats do
     external calls are (and should be) avoided as much as possible.
   """
 
-  @compile [:native, {:hipe, [:o3]}]
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------

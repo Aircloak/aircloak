@@ -57,7 +57,7 @@ defmodule Cloak.DataSource.PerColumn.Queue do
 
     %{
       queue
-      | processed_columns: Map.take(queue.processed_columns, known_columns),
+      | processed_columns: Map.take(queue.processed_columns, Enum.to_list(known_columns)),
         regular_queue:
           queue.regular_queue |> delete_unknown_columns(known_columns) |> :queue.join(new_unprocessed_columns),
         priority_queue: delete_unknown_columns(queue.priority_queue, known_columns)
