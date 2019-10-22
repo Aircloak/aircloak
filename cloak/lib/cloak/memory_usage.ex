@@ -32,7 +32,7 @@ defmodule Cloak.MemoryUsage do
 
     Logger.info("memory usage: #{stats}, available memory=#{available_memory} MB")
 
-    Keyword.fetch!(memory_usage, :total)
+    memory_usage |> Keyword.fetch!(:total) |> bytes_to_mb()
   end
 
   # -------------------------------------------------------------------
