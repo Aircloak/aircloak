@@ -28,9 +28,9 @@ defmodule Cloak.MemoryUsage do
       |> Enum.map(&"#{&1}=#{memory_usage |> Keyword.fetch!(&1) |> bytes_to_mb()} MB")
       |> Enum.join(", ")
 
-    available_memory = ProcMemInfo.read().available_memory |> div(1024)
+    available_memory_in_mb = ProcMemInfo.read().available_memory |> div(1024)
 
-    Logger.info("memory usage: #{stats}, available memory=#{available_memory} MB")
+    Logger.info("memory usage: #{stats}, available memory=#{available_memory_in_mb} MB")
 
     memory_usage |> Keyword.fetch!(:total) |> bytes_to_mb()
   end
