@@ -6,7 +6,7 @@ defmodule Cloak.MemoryReader do
   Once the free memory drops below a certain threshold, it will
   start looking at projections of future memory developments.
   If the memory is deemed to shortly reach critical levels,
-  running queries will be cancelled.
+  running processes consuming high amounts of memory will be killed.
   """
 
   use GenServer, start: {__MODULE__, :start_link, []}
@@ -15,7 +15,7 @@ defmodule Cloak.MemoryReader do
 
   require Logger
 
-  @type query_killer_callbacks :: {(() -> :ok), (() -> :ok)}
+  @large_mem_usage_threshold 500 * 1024 * 1024
 
   # -------------------------------------------------------------------
   # API functions
@@ -25,17 +25,6 @@ defmodule Cloak.MemoryReader do
   @spec start_link() :: GenServer.on_start()
   def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
-  @doc "Registers a query such that it can later be killed in case of a low memory event"
-  @spec query_registering_callbacks() :: query_killer_callbacks
-  def query_registering_callbacks() do
-    query_pid = self()
-
-    {
-      fn -> GenServer.cast(__MODULE__, {:register_query, query_pid}) end,
-      fn -> GenServer.cast(__MODULE__, {:unregister_query, query_pid}) end
-    }
-  end
-
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -44,13 +33,12 @@ defmodule Cloak.MemoryReader do
   def init(_) do
     # We need the memory reader to remain active, even when the system is under high load.
     # Under these circumstances in particular it is important that we are able to kill
-    # queries that run rampant to retain a stable `cloak`.
+    # processes that run rampant to retain a stable `cloak`.
     :erlang.process_flag(:priority, :high)
     params = read_params()
 
     state = %{
       memory_projector: MemoryProjector.new(),
-      queries: [],
       params: params,
       last_reading: nil,
       readings:
@@ -70,17 +58,6 @@ defmodule Cloak.MemoryReader do
   end
 
   @impl GenServer
-  def handle_cast({:unregister_query, pid}, %{queries: queries} = state),
-    do: {:noreply, %{state | queries: Enum.reject(queries, &(&1 == pid))}}
-
-  def handle_cast({:register_query, pid}, %{queries: queries} = state) do
-    Process.monitor(pid)
-    {:noreply, %{state | queries: [pid | queries]}}
-  end
-
-  @impl GenServer
-  def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, %{queries: queries} = state),
-    do: {:noreply, %{state | queries: Enum.reject(queries, &(&1 == pid))}}
 
   def handle_info(:read_memory, %{memory_projector: projector} = state) do
     reading = ProcMemInfo.read()
@@ -124,7 +101,7 @@ defmodule Cloak.MemoryReader do
          available_memory
        )
        when available_memory < memory_limit,
-       do: kill_query(state)
+       do: free_memory(state)
 
   defp perform_memory_check(
          %{
@@ -137,10 +114,10 @@ defmodule Cloak.MemoryReader do
       {:ok, time} when time <= time_limit ->
         Logger.warn(
           "Dangerous memory situation. Anticipating reaching the low memory threshold " <>
-            "(#{to_mb(memory_limit)} MB) in #{to_sec(time)} seconds. Available memory: #{to_mb(available_memory)} MB"
+            "(#{to_mb(memory_limit)} MB) in #{to_sec(time)} seconds. Available memory: #{to_mb(available_memory)} MB."
         )
 
-        kill_query(state)
+        free_memory(state)
 
       _ ->
         {:noreply, state}
@@ -151,17 +128,14 @@ defmodule Cloak.MemoryReader do
 
   defp to_sec(ms), do: max(trunc(ms / 1_000), 0)
 
-  defp kill_query(%{queries: []} = state), do: {:noreply, state}
-
-  defp kill_query(%{queries: [query | queries]} = state) do
-    Cloak.Query.Runner.stop(query, :oom)
+  defp free_memory(state) do
+    oom_killer()
 
     state = %{
       state
       | # This adds an artificial cool down period between consecutive killings, proportional
         # to the length of the memory projection buffer.
-        memory_projector: MemoryProjector.drop(state.memory_projector, num_measurements_to_drop(state)),
-        queries: queries
+        memory_projector: MemoryProjector.drop(state.memory_projector, num_measurements_to_drop(state))
     }
 
     {:noreply, state}
@@ -218,4 +192,19 @@ defmodule Cloak.MemoryReader do
          params: %{check_interval: interval, time_between_abortions: pause}
        }),
        do: div(pause, interval)
+
+  defp oom_killer() do
+    Process.list()
+    |> Stream.map(&{&1, Process.info(&1, :memory)})
+    |> Enum.max_by(fn {_pid, {:memory, memory}} -> memory end)
+    |> case do
+      {pid, {:memory, memory}} when memory > @large_mem_usage_threshold ->
+        memory_in_mb = div(memory, 1024 * 1024)
+        Logger.warn("Killing process #{inspect(pid)}, consuming #{memory_in_mb} MB, because of low memory.")
+        Process.exit(pid, :kill)
+
+      _ ->
+        Logger.warn("Low memory but no processes found consuming large amounts of memory.")
+    end
+  end
 end
