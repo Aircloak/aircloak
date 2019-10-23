@@ -10,8 +10,6 @@ defmodule Cloak.Query.Runner.Engine do
   @doc "Executes the SQL query and returns the query result with info messages or the corresponding error."
   @spec run(Cloak.Query.Runner.args()) :: Cloak.Query.Runner.result()
   def run(runner_args) do
-    {query_killer_reg, query_killer_unreg} = runner_args.memory_callbacks
-
     start_time = :erlang.monotonic_time(:milli_seconds)
 
     query =
@@ -23,9 +21,7 @@ defmodule Cloak.Query.Runner.Engine do
     features = Sql.Query.features(query)
 
     runner_args.feature_updater.(features)
-    query_killer_reg.()
     result = query |> run_statement(runner_args.state_updater) |> Query.Result.new(query.column_titles, features)
-    query_killer_unreg.()
 
     runtime = :erlang.monotonic_time(:milli_seconds) - start_time
 
