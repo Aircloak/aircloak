@@ -26,37 +26,37 @@ defmodule Aircloak.Release.Adjust do
   ```
   """
 
-  use Mix.Releases.Plugin
+  use Distillery.Releases.Plugin
 
-  # Mix.Releases.Plugin behaviour is not in PLT since dialyzer is not a runtime dep, so we disable the warning
+  # Distillery.Releases.Plugin behaviour is not in PLT since dialyzer is not a runtime dep, so we disable the warning
   @dialyzer :no_undefined_callbacks
 
   # -------------------------------------------------------------------
-  # Mix.Releases.Plugin callbacks
+  # Distillery.Releases.Plugin callbacks
   # -------------------------------------------------------------------
 
-  @impl Mix.Releases.Plugin
+  @impl Distillery.Releases.Plugin
   def before_assembly(%Release{} = release, _opts) do
     release
   end
 
-  @impl Mix.Releases.Plugin
+  @impl Distillery.Releases.Plugin
   def after_assembly(%Release{} = release, instructions) do
     Enum.each(instructions, &interpret_instruction(release, &1))
     release
   end
 
-  @impl Mix.Releases.Plugin
+  @impl Distillery.Releases.Plugin
   def before_package(%Release{} = release, _opts) do
     release
   end
 
-  @impl Mix.Releases.Plugin
+  @impl Distillery.Releases.Plugin
   def after_package(%Release{} = release, _opts) do
     release
   end
 
-  @impl Mix.Releases.Plugin
+  @impl Distillery.Releases.Plugin
   def after_cleanup(_args, _opts) do
     :ok
   end
@@ -93,7 +93,7 @@ defmodule Aircloak.Release.Adjust do
   end
 
   defp app_dir(release, app, folder) do
-    [Mix.Releases.Release.lib_path(release), "#{app}-#{app_vsn(release, app)}", folder]
+    [Distillery.Releases.Release.lib_path(release), "#{app}-#{app_vsn(release, app)}", folder]
     |> Path.join()
     |> Path.expand()
   end
