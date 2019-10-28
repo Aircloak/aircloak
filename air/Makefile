@@ -46,11 +46,11 @@ docs:
 
 release:
 	MIX_ENV=prod mix compile.app --force
-	NODE_ENV=production MIX_ENV=prod mix release
+	NODE_ENV=production MIX_ENV=prod mix distillery.release
 
 release-local:
 	MIX_ENV=prod mix compile.app --force
-	NODE_ENV=production MIX_ENV=prod mix do compile, release --env=local --no-tar
+	NODE_ENV=production MIX_ENV=prod mix do compile, distillery.release --env=local --no-tar
 
 lint: eslint flow
 	MIX_ENV=dev mix lint

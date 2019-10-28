@@ -6,10 +6,10 @@ Path.join(["rel", "plugins", "*.exs"])
 |> Path.wildcard()
 |> Enum.map(&Code.eval_file(&1))
 
-use Mix.Releases.Config,
-  # This sets the default release built by `mix release`
+use Distillery.Releases.Config,
+  # This sets the default release built by `mix distillery.release`
   default_release: :cloak,
-  # This sets the default environment used by `mix release`
+  # This sets the default environment used by `mix distillery.release`
   default_environment: :prod
 
 environment :prod do
@@ -20,7 +20,7 @@ environment :prod do
   plugin(
     Aircloak.Release.Adjust,
     keep_only: [cloak: [{"priv", ~w(config_schema.json datasource_schema.json native odbc)}]],
-    remove: [cloak: [{"priv/odbc/drivers", ~w(saphana)}]]
+    remove: [cloak: [{"priv/odbc", ~w(drivers)}]]
   )
 end
 
