@@ -26,7 +26,7 @@ dialyze:
 	mix dialyze_retry
 
 release: deps
-	mix release
+	mix distillery.release
 
 lint:
 	MIX_ENV=dev mix lint
