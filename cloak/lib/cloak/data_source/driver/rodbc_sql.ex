@@ -1,6 +1,6 @@
 defmodule Cloak.DataSource.Driver.RodbcSql do
   @moduledoc "Common boilerplate for SQL drivers powered by RODBC."
-  alias Cloak.DataSource.{Driver, RODBC}
+  alias Cloak.DataSource.{Driver, RODBC, SqlBuilder}
 
   defmacro __using__(_opts) do
     quote do
@@ -13,7 +13,8 @@ defmodule Cloak.DataSource.Driver.RodbcSql do
       defdelegate load_tables(connection, table), to: RODBC
 
       @impl Driver
-      defdelegate select(connection, sql_query, result_processor), to: RODBC
+      def select(connection, query, result_processor),
+        do: RODBC.select(connection, SqlBuilder.build(query), query.db_columns, result_processor)
 
       @impl Driver
       defdelegate driver_info(connection), to: RODBC

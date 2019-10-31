@@ -32,7 +32,8 @@ defmodule AirWeb.DataSourceController do
       "index.html",
       user_data_sources: user_data_sources,
       data_source_count: DataSource.count(),
-      conn: conn
+      conn: conn,
+      main_message: Air.Service.Settings.read().main_message
     )
   end
 

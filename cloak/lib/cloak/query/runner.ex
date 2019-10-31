@@ -28,8 +28,7 @@ defmodule Cloak.Query.Runner do
           parameters: [Cloak.DataSource.field()],
           views: [Cloak.Sql.Query.view_map()],
           state_updater: (Cloak.ResultSender.query_state() -> any),
-          feature_updater: (Cloak.Query.features() -> any),
-          memory_callbacks: Cloak.MemoryReader.query_killer_callbacks()
+          feature_updater: (Cloak.Query.features() -> any)
         }
 
   @type result :: {:ok, Sql.Query.Result.t(), [String.t()]} | {:error, String.t()}
@@ -185,7 +184,6 @@ defmodule Cloak.Query.Runner do
 
     runner_args =
       Map.merge(runner_args, %{
-        memory_callbacks: Cloak.MemoryReader.query_registering_callbacks(),
         state_updater: with(me <- self(), do: &send(me, {:send_state, runner_args.query_id, &1})),
         feature_updater: with(me <- self(), do: &send(me, {:features, &1}))
       })

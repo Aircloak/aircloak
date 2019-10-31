@@ -7,7 +7,7 @@ defmodule Cloak.Sql.FixAlign.Test do
 
   for interval_type <- [:int, :float] do
     property "aligned #{interval_type} interval contains both ends of input" do
-      check all {x, y} <- interval(unquote(interval_type)) do
+      check all({x, y} <- interval(unquote(interval_type))) do
         {left, right} = FixAlign.align_interval({x, y})
         assert weak_lt_eq(left, x)
         assert weak_lt_eq(y, right)
@@ -15,7 +15,7 @@ defmodule Cloak.Sql.FixAlign.Test do
     end
 
     property "the endpoints of an #{interval_type} interval are multiples of half the size" do
-      check all interval <- interval(unquote(interval_type)) do
+      check all(interval <- interval(unquote(interval_type))) do
         {left, right} = FixAlign.align_interval(interval)
         half_size = (right - left) / 2
         assert even_multiple?(left, half_size)
@@ -24,7 +24,7 @@ defmodule Cloak.Sql.FixAlign.Test do
     end
 
     property "the size of an aligned #{interval_type} interval is money-aligned" do
-      check all interval <- interval(unquote(interval_type)) do
+      check all(interval <- interval(unquote(interval_type))) do
         {left, right} = FixAlign.align_interval(interval)
         size = right - left
         assert even_power_of_10?(size) || even_power_of_10?(size / 2) || even_power_of_10?(size / 5)
@@ -32,9 +32,11 @@ defmodule Cloak.Sql.FixAlign.Test do
     end
 
     property "small change in input results in either no change or a big change in output for #{interval_type}" do
-      check all {left, right} <- interval(unquote(interval_type)),
-                delta_left <- float(min: -0.01, max: 0.01),
-                delta_right <- float(min: -0.01, max: 0.01) do
+      check all(
+              {left, right} <- interval(unquote(interval_type)),
+              delta_left <- float(min: -0.01, max: 0.01),
+              delta_right <- float(min: -0.01, max: 0.01)
+            ) do
         {output1_left, output1_right} = FixAlign.align_interval({left, right})
         perturbed = [left * (1 + delta_left), right * (1 + delta_right)] |> Enum.sort() |> List.to_tuple()
         {output2_left, output2_right} = FixAlign.align_interval(perturbed)
@@ -48,7 +50,7 @@ defmodule Cloak.Sql.FixAlign.Test do
 
   for interval_type <- [:int, :datetime, :date, :time] do
     property "align_interval is idempotent on #{interval_type} intervals" do
-      check all interval <- interval(unquote(interval_type)) do
+      check all(interval <- interval(unquote(interval_type))) do
         assert interval |> FixAlign.align_interval() ==
                  interval |> FixAlign.align_interval() |> FixAlign.align_interval()
       end
@@ -56,7 +58,7 @@ defmodule Cloak.Sql.FixAlign.Test do
   end
 
   property "an aligned interval is not much larger than the input" do
-    check all {x, y} <- float_interval() do
+    check all({x, y} <- float_interval()) do
       interval = {x / 10, y / 10}
       assert 10 * width(interval) >= interval |> FixAlign.align_interval() |> width()
     end
@@ -64,14 +66,14 @@ defmodule Cloak.Sql.FixAlign.Test do
 
   for interval_type <- [:datetime, :date] do
     property "aligned #{interval_type} interval contains both ends of the input" do
-      check all {x, y} <- interval(unquote(interval_type)) do
+      check all({x, y} <- interval(unquote(interval_type))) do
         {left, right} = FixAlign.align_interval({x, y})
         assert Timex.diff(x, left) >= 0 && Timex.diff(right, y) >= 0
       end
     end
 
     property "an aligned #{interval_type} interval is not much larger than the input" do
-      check all {x, y} <- interval(unquote(interval_type)) do
+      check all({x, y} <- interval(unquote(interval_type))) do
         {left, right} = FixAlign.align_interval({x, y})
 
         if Timex.diff(y, x, :minutes) < 1 do
@@ -84,7 +86,7 @@ defmodule Cloak.Sql.FixAlign.Test do
   end
 
   property "an aligned time interval contains both ends of the input" do
-    check all {x, y} <- time_interval() do
+    check all({x, y} <- time_interval()) do
       {left, right} = FixAlign.align_interval({x, y})
       assert lt_eq(left, x) && lt_eq(y, right)
     end
@@ -168,14 +170,14 @@ defmodule Cloak.Sql.FixAlign.Test do
   end
 
   property "numbers are money-aligned" do
-    check all x <- float(), x != 0 do
+    check all(x <- float(), x != 0) do
       result = x |> FixAlign.align() |> abs()
       assert even_power_of_10?(result) || even_power_of_10?(result / 2) || even_power_of_10?(result / 5)
     end
   end
 
   property "money-aligned numbers are close to the input" do
-    check all x <- float(), x != 0 do
+    check all(x <- float(), x != 0) do
       result = x |> FixAlign.align()
       assert abs(result - x) <= 0.45 * abs(x)
     end
@@ -183,7 +185,7 @@ defmodule Cloak.Sql.FixAlign.Test do
 
   property "align is idempotent" do
     # The boundaries are introduced because the invariant breaks for very large numbers.
-    check all x <- float(min: -1_000_000, max: 1_000_000) do
+    check all(x <- float(min: -1_000_000, max: 1_000_000)) do
       assert x |> FixAlign.align() == x |> FixAlign.align() |> FixAlign.align()
     end
   end
@@ -230,19 +232,23 @@ defmodule Cloak.Sql.FixAlign.Test do
   end
 
   defp date_interval do
-    gen all {datetime1, datetime2} <- datetime_interval(),
-            date1 = NaiveDateTime.to_date(datetime1),
-            date2 = NaiveDateTime.to_date(datetime2),
-            date1 != date2 do
+    gen all(
+          {datetime1, datetime2} <- datetime_interval(),
+          date1 = NaiveDateTime.to_date(datetime1),
+          date2 = NaiveDateTime.to_date(datetime2),
+          date1 != date2
+        ) do
       {date1, date2}
     end
   end
 
   defp time_interval do
-    gen all {datetime1, datetime2} <- datetime_interval(),
-            time1 = NaiveDateTime.to_time(datetime1),
-            time2 = NaiveDateTime.to_time(datetime2),
-            time1 != time2 do
+    gen all(
+          {datetime1, datetime2} <- datetime_interval(),
+          time1 = NaiveDateTime.to_time(datetime1),
+          time2 = NaiveDateTime.to_time(datetime2),
+          time1 != time2
+        ) do
       [time1, time2]
       |> Enum.sort(&(Time.compare(&1, &2) != :gt))
       |> List.to_tuple()
@@ -250,7 +256,7 @@ defmodule Cloak.Sql.FixAlign.Test do
   end
 
   defp datetime_interval do
-    gen all datetime <- naive_datetime(), shift1 <- datetime_shift(), {unit, magnitude} <- datetime_shift() do
+    gen all(datetime <- naive_datetime(), shift1 <- datetime_shift(), {unit, magnitude} <- datetime_shift()) do
       {Timex.shift(datetime, [{unit, -magnitude}]), Timex.shift(datetime, [shift1])}
     end
   end
@@ -260,24 +266,26 @@ defmodule Cloak.Sql.FixAlign.Test do
   end
 
   def naive_datetime do
-    gen all date <- date(), time <- time() do
+    gen all(date <- date(), time <- time()) do
       {:ok, naive_datetime} = NaiveDateTime.new(date, time)
       naive_datetime
     end
   end
 
   def date do
-    gen all year <- integer(1900..2100),
-            month <- integer(1..12),
-            day <- integer(1..31),
-            result = Date.new(year, month, day),
-            match?({:ok, _date}, result) do
+    gen all(
+          year <- integer(1900..2100),
+          month <- integer(1..12),
+          day <- integer(1..31),
+          result = Date.new(year, month, day),
+          match?({:ok, _date}, result)
+        ) do
       elem(result, 1)
     end
   end
 
   def time do
-    gen all hour <- integer(0..23), minute <- integer(0..59), second <- integer(0..59) do
+    gen all(hour <- integer(0..23), minute <- integer(0..59), second <- integer(0..59)) do
       Time.from_erl!({hour, minute, second})
     end
   end

@@ -139,7 +139,7 @@ defmodule Compliance.Data do
       |> Enum.join(" ")
 
   defp sample_one(options) do
-    Map.fetch!(options, :rand.uniform(Map.size(options) - 1))
+    Map.fetch!(options, :rand.uniform(map_size(options) - 1))
   end
 
   # -------------------------------------------------------------------

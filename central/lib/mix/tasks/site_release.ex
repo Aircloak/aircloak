@@ -20,6 +20,6 @@ defmodule Mix.Tasks.SiteRelease do
     brunch_bin = Path.join([cwd, "assets/node_modules/brunch/bin/brunch"])
     {_, 0} = System.cmd(brunch_bin, ["build", "--production"], cd: "assets")
     :ok = Mix.Task.run("phx.digest")
-    :ok = Mix.Task.run("release", args)
+    :ok = Mix.Task.run("distillery.release", args)
   end
 end

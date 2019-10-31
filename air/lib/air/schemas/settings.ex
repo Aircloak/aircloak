@@ -12,6 +12,9 @@ defmodule Air.Schemas.Settings do
     field(:thousand_sep, :string)
     field(:decimal_digits, :integer)
 
+    field(:login_message, :string)
+    field(:main_message, :string)
+
     timestamps(type: :naive_datetime_usec)
   end
 end

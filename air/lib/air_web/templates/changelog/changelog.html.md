@@ -2,10 +2,15 @@
 
 ### Enhancements
 
-- When a user changes their password all their other sessions are automatically revoked
+- When a user changes their password all their other sessions are automatically revoked.
+- Admins can add custom messages to the login and main screens.
+- Admins can add performance hints to Oracle queries from the cloak's data source config file, by setting the
+  `select_hints` field in the `parameters` section.
 
 ### Bugfixes
 ### Changes
+
+- Support for some obsolete cloak features and config fields (decoders, projections, user_id) was removed.
 
 ### Known issues
 

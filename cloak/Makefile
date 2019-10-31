@@ -69,12 +69,12 @@ lint:
 release: odbc_drivers_folder
 	MIX_ENV=prod mix compile
 	MIX_ENV=prod mix compile.app --force
-	mix release
+	MIX_ENV=prod mix distillery.release
 
 release-local:
 	MIX_ENV=prod mix compile
 	MIX_ENV=prod mix compile.app --force
-	mix release --env=local --no-tar
+	MIX_ENV=prod mix distillery.release --env=local --no-tar
 
 perftest: deps
 	MIX_ENV=prod mix compile
