@@ -185,7 +185,7 @@ defmodule Cloak.Query.AnonymizationTest do
     assert_query(
       """
         select count_noise(*), count_noise(distinct user_id), count_noise(distinct number)
-        from anonymizations where number between 1 and 100
+        from anonymizations where number <> 0
       """,
       %{rows: [%{row: [c1, c2, c3]}]}
     )

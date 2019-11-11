@@ -224,7 +224,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         basic_noise_layers(query, top_level_uid) ++
         group_by_noise_layers(query, top_level_uid) ++
         in_noise_layers(query, top_level_uid) ++
-        range_noise_layers(query, top_level_uid) ++
+        range_noise_layers(query) ++
         not_equals_noise_layers(query, top_level_uid) ++ not_like_noise_layers(query, top_level_uid)
 
     %Query{query | noise_layers: finalize(noise_layers, query)}
@@ -367,7 +367,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         end)
       end)
 
-  defp range_noise_layers(query, top_level_uid),
+  defp range_noise_layers(query),
     do:
       query
       |> Range.find_ranges()
@@ -376,8 +376,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         |> raw_columns(column)
         |> Enum.flat_map(
           &[
-            static_noise_layer(query.anonymization_type, &1, &1, range),
-            uid_noise_layer(&1, &1, top_level_uid, range)
+            static_noise_layer(query.anonymization_type, &1, &1, range)
           ]
         )
       end)
