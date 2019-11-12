@@ -36,7 +36,7 @@ Each deployable component is a Docker image. The base for all the images, both i
 
 ### From branch
 
-To deploy both `air` and `cloak` from a branch (for example `master`), you can run `./publish.sh deploy_target`, where `deploy_target` is the name of the file from the `deploy_targets` folder (without the path). For example, `./publish.sh sasa` will deploy new versions of `air` and `cloak` to the `sasa` deploy target (which is described in `./deploy_targets/sasa`).
+To deploy both `air` and `cloak` from a branch (for example `master`), you can run `./publish.sh deploy_target`, where `deploy_target` is the name of the file from the `deploy_targets` folder (without the path). For example, `./publish.sh sebastian` will deploy new versions of `air` and `cloak` to the `sebastian` deploy target (which is described in `./deploy_targets/sebastian`).
 
 Deploying will always publish all __pushed__ changes from your current local branch.
 
@@ -84,7 +84,7 @@ First you need to list all published versions for the given component:
 
 ```bash
 # list versions
-$ ./cloak/production.sh sasa versions
+$ ./cloak/production.sh sebastian versions
 
 0.1.9 (2016-08-18T12:23:14.451047582Z)  # latest version
 0.1.8 (2016-08-18T06:46:11.273391659Z)
@@ -94,7 +94,7 @@ $ ./cloak/production.sh sasa versions
 Now, you can rollback to the previous version:
 
 ```bash
-$ ./cloak/production.sh sasa rollback 0.1.8
+$ ./cloak/production.sh sebastian rollback 0.1.8
 ```
 
 ### Interacting with production components
