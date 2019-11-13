@@ -56,12 +56,22 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows column <> column",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric"))
 
-    test "allow column <> unclear_column" do
-      assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
-    end
+    test "allows column - constant <> column + constant",
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric - 1 <> numeric2 * 2 + 10"))
 
-    test "allow unclear_column <> column" do
-      assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE upper(string) <> string")
+    test "allows column <> function(column)",
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)"))
+
+    test "allow function(column) <> column",
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE upper(string) <> string"))
+
+    test "allow function(column) <> function(column)",
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE lower(string) <> lower(string)"))
+
+    test "forbids column <> impure expression" do
+      assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE string <> string || string")
+
+      assert narrative =~ ~r/Inequalities between columns can only reference a column once on each side./
     end
 
     test "allows clear <> lhs in subquery HAVING",
@@ -201,12 +211,31 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     end
 
     for operator <- ~w(> < >= <=) do
-      test "allows arbitrary col1 #{operator} col2" do
+      test "allows col1 #{operator} col2" do
         assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} numeric2")
       end
 
-      test "allow function(col1) #{operator} col2" do
+      test "allows col1 + constant #{operator} col2 * constant" do
+        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 #{unquote(operator)} 2 * numeric2")
+      end
+
+      test "allows col1 #{operator} function(col2)" do
         assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} sqrt(numeric2)")
+      end
+
+      test "allows function(col1) #{operator} col2" do
+        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) #{unquote(operator)} numeric2")
+      end
+
+      test "allows function(col1) #{operator} function(col2)" do
+        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) #{unquote(operator)} sqrt(numeric2)")
+      end
+
+      test "forbids impure expression #{operator} column" do
+        assert {:error, narrative} =
+                 compile("SELECT COUNT(*) FROM table WHERE numeric - numeric #{unquote(operator)} numeric2")
+
+        assert narrative =~ ~r/Inequalities between columns can only reference a column once on each side./
       end
     end
 

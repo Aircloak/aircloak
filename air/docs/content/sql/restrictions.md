@@ -129,9 +129,9 @@ SELECT age / (age + 1) FROM table
 
 ## Ranges
 
-Whenever an inequality (`>`, `>=`, `<`, or `<=`) is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that clause actually needs to contain two
-inequalities. These should form a range on a single column or expression. That is, one `>` or `>=` inequality and one `<` or `<=`
-inequality, limiting the column/expression from bottom and top.
+Whenever a comparison (`>`, `>=`, `<`, or `<=`) is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that clause actually
+needs to contain two comparisons. These should form a range on a single column or expression. That is, one `>` or `>=`
+comparison and one `<` or `<=` comparison, limiting the column/expression from bottom and top.
 
 ```sql
 -- Correct - a range is used
@@ -143,7 +143,7 @@ SELECT COUNT(*) FROM table WHERE column > 10
 -- Incorrect - the lower end of the range is bigger than the upper end
 SELECT COUNT(*) FROM table WHERE column > 10 AND column < 0
 
--- Incorrect - the inequalities are over different expressions
+-- Incorrect - the comparisons are over different expressions
 SELECT COUNT(*) FROM table WHERE column + 1 > 10 AND column - 1 < 20
 ```
 
@@ -155,16 +155,18 @@ SELECT COUNT(*) FROM table WHERE column BETWEEN 10 AND 20
 SELECT COUNT(*) FROM table WHERE column >= 10 AND column < 20
 ```
 
-Expressions only including unmodified database columns are excluded from this restriction:
+Comparisons referencing a single database column on each side are excluded from this restriction:
 
 ```sql
--- Correct - only unmodified columns used:
+-- Correct - only one database column is referenced on each side:
 SELECT COUNT(*) FROM table WHERE column1 > column2
 SELECT COUNT(*) FROM table WHERE column1 BETWEEN column2 AND column3
+SELECT COUNT(*) FROM table WHERE column1 < sqrt(column2)
+SELECT COUNT(*) FROM table WHERE column1 + 1 >= 2 * column2
 
--- Incorrect - a function or operator is used:
-SELECT COUNT(*) FROM table WHERE column1 > sqrt(column2)
-SELECT COUNT(*) FROM table WHERE column1 BETWWEEN column2 + column3 AND column4
+-- Incorrect - multiple columns are referenced:
+SELECT COUNT(*) FROM table WHERE column1 - column1 < column2
+SELECT COUNT(*) FROM table WHERE column1 BETWEEN column2 + column3 AND column4
 ```
 
 
@@ -342,6 +344,18 @@ SELECT COUNT(*) FROM table GROUP BY name HAVING left(name) <> 'a'
 
 -- Correct - comparing two database columns
 SELECT COUNT(*) FROM table WHERE name <> surname
+```
+
+`<>` conditions referencing a single database column on each side are excluded from this restriction:
+
+```sql
+-- Correct - only one database column is referenced on each side:
+SELECT COUNT(*) FROM table WHERE column1 <> column2
+SELECT COUNT(*) FROM table WHERE sqrt(column1) <> sqrt(column2)
+SELECT COUNT(*) FROM table WHERE column1 + 1 <> 2 * column2
+
+-- Incorrect - multiple columns are referenced:
+SELECT COUNT(*) FROM table WHERE column1 - column1 <> column2
 ```
 
 ### Number of conditions

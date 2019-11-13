@@ -25,12 +25,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       unless subquery.type == :standard do
         verify_allowed_usage_of_math(subquery)
         verify_lhs_of_in_is_clear(subquery)
-        verify_not_equals_is_clear(subquery)
+        verify_not_equals_is_clear_or_pure(subquery)
         verify_lhs_of_not_like_is_clear(subquery)
         verify_string_based_conditions_are_clear(subquery)
         verify_string_based_expressions_are_clear(subquery)
         verify_ranges_are_clear(subquery)
         verify_isolator_conditions_are_clear(subquery)
+        verify_inequalities_are_pure(subquery)
       end
     end)
 
@@ -78,14 +79,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   @allowed_not_equals_functions ~w(
     lower upper substring trim ltrim rtrim btrim hour minute second year quarter month day weekday
   )
-  defp verify_not_equals_is_clear(query),
+  defp verify_not_equals_is_clear_or_pure(query),
     do:
       verify_conditions(query, &Condition.not_equals?/1, fn {:comparison, lhs, :<>, rhs} ->
-        rhs_type = Type.establish_type(rhs, query)
-        lhs_type = Type.establish_type(lhs, query)
-
-        if rhs_type.constant? do
-          unless Type.clear_column?(lhs_type, &(&1 in @allowed_not_equals_functions)) do
+        if Type.establish_type(rhs, query).constant? do
+          unless Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_not_equals_functions)) do
             raise(
               CompilationError,
               source_location: lhs.source_location,
@@ -95,6 +93,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
               """
             )
           end
+        else
+          check_columns_inequality_is_pure(lhs, rhs)
         end
       end)
 
@@ -300,6 +300,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   end
 
   # -------------------------------------------------------------------
+  # Inequalities
+  # -------------------------------------------------------------------
+
+  defp verify_inequalities_are_pure(query) do
+    verify_conditions(query, &Condition.inequality?/1, fn condition ->
+      [lhs, rhs] = Condition.targets(condition)
+
+      if not Type.establish_type(rhs, query).constant?, do: check_columns_inequality_is_pure(lhs, rhs)
+    end)
+  end
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
@@ -316,4 +328,29 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     do: query |> Access.conditions(predicate) |> Enum.each(action)
 
   defp each_anonymized_subquery(query, function), do: Lens.each(Access.anonymized_queries(), query, function)
+
+  defp check_columns_inequality_is_pure(lhs, rhs) do
+    cond do
+      lhs |> columns_in_expression() |> Enum.count() > 1 -> {true, lhs.source_location}
+      rhs |> columns_in_expression() |> Enum.count() > 1 -> {true, rhs.source_location}
+      true -> {false, nil}
+    end
+    |> case do
+      {true, source_location} ->
+        raise(
+          CompilationError,
+          source_location: source_location,
+          message: """
+          Inequalities between columns can only reference a column once on each side.
+          For further information see the "Restrictions" section in the user guides.
+          """
+        )
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp columns_in_expression(expression),
+    do: Query.Lenses.all_expressions() |> Lens.filter(&(&1.kind == :column)) |> Lens.to_list(expression)
 end
