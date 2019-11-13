@@ -1899,6 +1899,25 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
+  test "grouping sets with expressions over same column" do
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["name", "height"], ["Alice", 170])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["name", "height"], ["Charlie", 180])
+    :ok = insert_rows(_user_ids = 20..29, "heights", ["name", "height"], ["John", 170])
+    :ok = insert_rows(_user_ids = 30..39, "heights", ["name", "height"], ["Bob", 180])
+
+    assert_query(
+      "select bucket(height by 10), height from heights group by grouping sets ((), (1, 2))",
+      %{
+        rows: [
+          %{row: [nil, nil]},
+          %{row: [170.0, 170]},
+          %{row: [180.0, 180]}
+        ]
+      }
+    )
+  end
+
+
   test "distinct in subquery with group by" do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
     :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
