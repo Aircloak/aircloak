@@ -176,7 +176,7 @@ defmodule Cloak.Sql.Function do
   end
 
   defp do_well_typed?(function, argument_types) do
-    length(arguments(function)) <= length(argument_types) &&
+    length(arguments(function)) <= length(argument_types) and
       argument_types
       |> Enum.with_index()
       |> Enum.all?(fn {type, index} ->

@@ -12,15 +12,7 @@ defmodule Cloak.Sql.Query.Lenses do
   # -------------------------------------------------------------------
 
   @doc "Lens focusing on all terminal elements in a query, including intermediate function invocations."
-  deflens terminals() do
-    Lens.multiple([
-      Lens.keys?([:columns, :group_by, :db_columns, :property, :aggregators]),
-      Lens.key?(:noise_layers) |> Lens.all() |> Lens.key(:expressions),
-      Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
-      filters_operands()
-    ])
-    |> terminal_elements()
-  end
+  deflens terminals(), do: query_fields() |> bottom_up_elements()
 
   @doc "Lens focusing on all outermost analyst provided elements in the top-level query."
   deflens analyst_provided_expressions() do
@@ -32,19 +24,19 @@ defmodule Cloak.Sql.Query.Lenses do
   end
 
   @doc "Lens focusing on all terminal elements in a list of conditions."
-  deflens conditions_terminals(), do: conditions() |> operands() |> terminal_elements()
+  deflens conditions_terminals(), do: conditions() |> operands() |> bottom_up_elements()
 
   @doc "Lens focusing on all column elements in the query (subqueries are not included)."
   deflens query_expressions(), do: terminals() |> expressions()
+
+  @doc "Lens focusing top-down on all column elements in the query (subqueries are not included)."
+  deflens top_down_query_expressions(), do: query_fields() |> top_down_elements() |> expressions()
 
   @doc "Lens focusing on leaf (non-functions) expressions in a list of expressions."
   deflens leaf_expressions(), do: all_expressions() |> do_leaf_expressions()
 
   @doc "Lens focusing on all expressions in a list of expressions."
-  deflens all_expressions() do
-    Lens.both(terminal_elements(), conditions_terminals())
-    |> expressions()
-  end
+  deflens all_expressions(), do: Lens.both(bottom_up_elements(), conditions_terminals()) |> expressions()
 
   @doc "Lens focusing on function expressions in the query that are sent to the database (subqueries are not included)."
   deflens db_needed_functions() do
@@ -283,7 +275,7 @@ defmodule Cloak.Sql.Query.Lenses do
 
   defp filters_operands(), do: filter_clauses() |> conditions() |> operands()
 
-  deflensp terminal_elements() do
+  deflensp bottom_up_elements() do
     Lens.match(fn
       {:function, "count", :*, _} ->
         Lens.empty()
@@ -292,23 +284,60 @@ defmodule Cloak.Sql.Query.Lenses do
         Lens.empty()
 
       {:function, _, _, _} ->
-        Lens.both(Lens.at(2) |> terminal_elements(), Lens.root())
+        Lens.both(Lens.at(2) |> bottom_up_elements(), Lens.root())
 
       {:distinct, _} ->
-        Lens.both(Lens.at(1) |> terminal_elements(), Lens.root())
+        Lens.both(Lens.at(1) |> bottom_up_elements(), Lens.root())
 
       {_, :as, _} ->
-        Lens.at(0) |> terminal_elements()
+        Lens.at(0) |> bottom_up_elements()
 
       elements when is_list(elements) ->
-        Lens.all() |> terminal_elements()
+        Lens.all() |> bottom_up_elements()
 
       %Expression{kind: :function} ->
-        Lens.both(Lens.key(:args) |> terminal_elements, Lens.root())
+        Lens.both(Lens.key(:args) |> bottom_up_elements, Lens.root())
 
       _ ->
         Lens.root()
     end)
+  end
+
+  deflensp top_down_elements() do
+    Lens.match(fn
+      {:function, "count", :*, _} ->
+        Lens.empty()
+
+      {:function, "count_noise", :*, _} ->
+        Lens.empty()
+
+      {:function, _, _, _} ->
+        Lens.both(Lens.root(), Lens.at(2) |> top_down_elements())
+
+      {:distinct, _} ->
+        Lens.both(Lens.root(), Lens.at(1) |> top_down_elements())
+
+      {_, :as, _} ->
+        Lens.at(0) |> top_down_elements()
+
+      elements when is_list(elements) ->
+        Lens.all() |> top_down_elements()
+
+      %Expression{kind: :function} ->
+        Lens.both(Lens.root(), Lens.key(:args) |> top_down_elements)
+
+      _ ->
+        Lens.root()
+    end)
+  end
+
+  deflensp query_fields() do
+    Lens.multiple([
+      Lens.keys?([:columns, :group_by, :db_columns, :property, :aggregators]),
+      Lens.key?(:noise_layers) |> Lens.all() |> Lens.key(:expressions),
+      Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
+      filters_operands()
+    ])
   end
 
   deflensp expressions() do

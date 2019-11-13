@@ -279,7 +279,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     query
     |> update_in(
       [
-        Lenses.query_expressions()
+        Lenses.top_down_query_expressions()
         |> Lens.filter(&Expression.member?(base_columns, &1))
         |> Lens.reject(&(&1.table == inner_table))
       ],
