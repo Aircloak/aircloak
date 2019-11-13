@@ -1917,7 +1917,6 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
-
   test "distinct in subquery with group by" do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
     :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
