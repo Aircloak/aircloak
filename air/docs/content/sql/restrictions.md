@@ -157,7 +157,7 @@ SELECT COUNT(*) FROM table WHERE column + 1 > 10 AND column - 1 < 20
 SELECT COUNT(*) FROM table WHERE column1 - column1 < column2
 ```
 
-Note that a condition using the `BETWEEN` operator automatically forms a fixed range:
+Note that a condition using the `BETWEEN` operator automatically forms a constant range:
 
 ```sql
 -- These two queries are equivalent:
@@ -173,8 +173,8 @@ grid. It will always make sure that the specified range is included in the adjus
 modified to be closed on the left (`>=`) and open on the right (`<`).
 
 If any such modifications take place an appropriate notice will be displayed in the web interface. When using the API
-the notice will be included under the `info` key of the result. The notice will _not_ appear when using the PostgreSQL
-interface.
+the notice will be included under the `info` key of the result. When using the PostgreSQL interface, it will be sent
+across the wire as a `notice` message.
 
 The grid sizes available depend on the type of the column that is being limited by the range:
 
