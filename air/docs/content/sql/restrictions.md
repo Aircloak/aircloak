@@ -127,27 +127,37 @@ SELECT age / (age + 1) FROM table
 ```
 
 
-## Ranges
+## Constant ranges
 
-Whenever a comparison (`>`, `>=`, `<`, or `<=`) is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that clause actually
-needs to contain two comparisons. These should form a range on a single column or expression. That is, one `>` or `>=`
-comparison and one `<` or `<=` comparison, limiting the column/expression from bottom and top.
+Whenever a comparison (`>`, `>=`, `<`, or `<=`) with a constant is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that
+clause actually needs to contain two comparisons. These should form a constant range on a single column or expression.
+That is, one `>` or `>=` comparison and one `<` or `<=` comparison, limiting the column/expression from bottom and top.
+
+Comparisons referencing one database column on each side are excluded from this restriction.
 
 ```sql
--- Correct - a range is used
+-- Correct - a constant range is used
 SELECT COUNT(*) FROM table WHERE column > 10 AND column < 20
 
--- Incorrect - only one side of the range provided
+-- Correct - one database column is referenced on each side of the comparison:
+SELECT COUNT(*) FROM table WHERE column1 > column2
+SELECT COUNT(*) FROM table WHERE column1 < sqrt(column2)
+SELECT COUNT(*) FROM table WHERE column1 + 1 >= 2 * column2
+
+-- Incorrect - only one side of the constant range provided
 SELECT COUNT(*) FROM table WHERE column > 10
 
--- Incorrect - the lower end of the range is bigger than the upper end
+-- Incorrect - the lower end of the constant range is bigger than the upper end
 SELECT COUNT(*) FROM table WHERE column > 10 AND column < 0
 
 -- Incorrect - the comparisons are over different expressions
 SELECT COUNT(*) FROM table WHERE column + 1 > 10 AND column - 1 < 20
+
+-- Incorrect - multiple columns are referenced on one side of the comparison:
+SELECT COUNT(*) FROM table WHERE column1 - column1 < column2
 ```
 
-Note that a condition using the `BETWEEN` operator automatically forms a range:
+Note that a condition using the `BETWEEN` operator automatically forms a fixed range:
 
 ```sql
 -- These two queries are equivalent:
@@ -155,29 +165,16 @@ SELECT COUNT(*) FROM table WHERE column BETWEEN 10 AND 20
 SELECT COUNT(*) FROM table WHERE column >= 10 AND column < 20
 ```
 
-Comparisons referencing a single database column on each side are excluded from this restriction:
 
-```sql
--- Correct - only one database column is referenced on each side:
-SELECT COUNT(*) FROM table WHERE column1 > column2
-SELECT COUNT(*) FROM table WHERE column1 BETWEEN column2 AND column3
-SELECT COUNT(*) FROM table WHERE column1 < sqrt(column2)
-SELECT COUNT(*) FROM table WHERE column1 + 1 >= 2 * column2
+## Constant range alignment
 
--- Incorrect - multiple columns are referenced:
-SELECT COUNT(*) FROM table WHERE column1 - column1 < column2
-SELECT COUNT(*) FROM table WHERE column1 BETWEEN column2 + column3 AND column4
-```
+The system will adjust constant ranges provided in queries. The adjustment will "snap" the range to a fixed, predefined
+grid. It will always make sure that the specified range is included in the adjusted range. The range will also be
+modified to be closed on the left (`>=`) and open on the right (`<`).
 
-
-## Range alignment
-
-The system will adjust ranges provided in queries. The adjustment will "snap" the range to a fixed, predefined grid. It will always
-make sure that the specified range is included in the adjusted range. The range will also be modified to be closed on the left (`>=`)
-and open on the right (`<`).
-
-If any such modifications take place an appropriate notice will be displayed in the web interface. When using the API the notice will
-be included under the `info` key of the result. The notice will _not_ appear when using the PostgreSQL interface.
+If any such modifications take place an appropriate notice will be displayed in the web interface. When using the API
+the notice will be included under the `info` key of the result. The notice will _not_ appear when using the PostgreSQL
+interface.
 
 The grid sizes available depend on the type of the column that is being limited by the range:
 
@@ -324,10 +321,12 @@ SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
 
 Conditions using `IN` or `<>` cannot include any functions nor mathematical operations except the following: `lower`,
 `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `year`, `month`, `quarter`, `day`, `weekday`,
-`hour`, `minute`, `second`, and all aggregators (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`). Conditions using
-`NOT LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators. A single `CAST` is allowed.
-All items on the right-hand side of the `IN` operator must be constants.
+`hour`, `minute`, `second`, and all aggregators (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`). 
+Conditions using `NOT LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators.
+A single `CAST` is allowed. All items on the right-hand side of the `IN` operator must be constants.
 The top-level `HAVING` clause is exempt from  all these restrictions - see [Top-level HAVING clause](#top-level-having-clause).
+
+Inequality conditions referencing one database column on each side are excluded from these restrictions.
 
 ```sql
 -- Correct
@@ -344,19 +343,13 @@ SELECT COUNT(*) FROM table GROUP BY name HAVING left(name) <> 'a'
 
 -- Correct - comparing two database columns
 SELECT COUNT(*) FROM table WHERE name <> surname
-```
-
-`<>` conditions referencing a single database column on each side are excluded from this restriction:
-
-```sql
--- Correct - only one database column is referenced on each side:
-SELECT COUNT(*) FROM table WHERE column1 <> column2
 SELECT COUNT(*) FROM table WHERE sqrt(column1) <> sqrt(column2)
 SELECT COUNT(*) FROM table WHERE column1 + 1 <> 2 * column2
 
--- Incorrect - multiple columns are referenced:
+-- Incorrect - multiple columns are referenced on one side of the inequality:
 SELECT COUNT(*) FROM table WHERE column1 - column1 <> column2
 ```
+
 
 ### Number of conditions
 
