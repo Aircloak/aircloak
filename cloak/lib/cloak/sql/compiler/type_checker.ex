@@ -94,7 +94,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
             )
           end
         else
-          check_columns_inequality_is_pure(lhs, rhs)
+          check_columns_comparison(lhs, rhs)
         end
       end)
 
@@ -307,7 +307,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     verify_conditions(query, &Condition.inequality?/1, fn condition ->
       [lhs, rhs] = Condition.targets(condition)
 
-      if not Type.establish_type(rhs, query).constant?, do: check_columns_inequality_is_pure(lhs, rhs)
+      if not Type.establish_type(rhs, query).constant?, do: check_columns_comparison(lhs, rhs)
     end)
   end
 
@@ -329,7 +329,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp each_anonymized_subquery(query, function), do: Lens.each(Access.anonymized_queries(), query, function)
 
-  defp check_columns_inequality_is_pure(lhs, rhs) do
+  defp check_columns_comparison(lhs, rhs) do
     cond do
       lhs |> columns_in_expression() |> Enum.count() > 1 -> {true, lhs.source_location}
       rhs |> columns_in_expression() |> Enum.count() > 1 -> {true, rhs.source_location}
