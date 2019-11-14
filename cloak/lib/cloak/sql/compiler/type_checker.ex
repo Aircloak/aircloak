@@ -331,8 +331,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp check_columns_comparison(lhs, rhs) do
     cond do
-      lhs |> columns_in_expression() |> Enum.count() > 1 -> {true, lhs.source_location}
-      rhs |> columns_in_expression() |> Enum.count() > 1 -> {true, rhs.source_location}
+      impure_expression?(lhs) -> {true, lhs.source_location}
+      impure_expression?(rhs) -> {true, rhs.source_location}
       true -> {false, nil}
     end
     |> case do
@@ -351,6 +351,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     end
   end
 
-  defp columns_in_expression(expression),
-    do: Query.Lenses.all_expressions() |> Lens.filter(&(&1.kind == :column)) |> Lens.to_list(expression)
+  defp impure_expression?(expression) do
+    Query.Lenses.all_expressions()
+    |> Lens.filter(&(&1.kind == :column))
+    |> Lens.to_list(expression)
+    |> Enum.count() != 1
+  end
 end
