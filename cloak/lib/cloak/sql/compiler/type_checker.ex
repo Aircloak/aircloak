@@ -341,7 +341,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           CompilationError,
           source_location: source_location,
           message: """
-          Inequalities between columns can only reference a column once on each side.
+          Comparisons between columns can only reference one column on each side.
           For further information see the "Restrictions" section in the user guides.
           """
         )
