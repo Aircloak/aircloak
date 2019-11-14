@@ -71,7 +71,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids column <> impure expression" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE string <> string || string")
 
-      assert narrative =~ ~r/Inequalities between columns can only reference a column once on each side./
+      assert narrative =~ ~r/Comparisons between columns can only reference one column on each side./
     end
 
     test "allows clear <> lhs in subquery HAVING",
@@ -235,7 +235,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         assert {:error, narrative} =
                  compile("SELECT COUNT(*) FROM table WHERE numeric - numeric #{unquote(operator)} numeric2")
 
-        assert narrative =~ ~r/Inequalities between columns can only reference a column once on each side./
+        assert narrative =~ ~r/Comparisons between columns can only reference one column on each side./
       end
     end
 
