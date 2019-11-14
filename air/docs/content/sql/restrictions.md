@@ -335,9 +335,6 @@ SELECT COUNT(*) FROM table WHERE lower(name) <> 'alice'
 -- Incorrect - a disallowed operation was used
 SELECT COUNT(*) FROM table WHERE left(name, 1) <> 'a'
 
--- Incorrect - a comparison between two complex expressions
-SELECT COUNT(*) FROM table WHERE lower(name) <> lower('A' || surname)
-
 -- Correct - top-level HAVING is exempt from restrictions
 SELECT COUNT(*) FROM table GROUP BY name HAVING left(name) <> 'a'
 
