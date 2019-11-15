@@ -867,29 +867,6 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
-  test "aggregate(distinct column)" do
-    assert_parse(
-      "select sum(distinct foo) from bar",
-      select(columns: [function("sum", [{:distinct, identifier("foo")}])])
-    )
-    assert_parse(
-      "select avg(distinct foo) from bar",
-      select(columns: [function("avg", [{:distinct, identifier("foo")}])])
-    )
-    assert_parse(
-      "select stddev(distinct foo) from bar",
-      select(columns: [function("stddev", [{:distinct, identifier("foo")}])])
-    )
-    assert_parse(
-      "select variance(distinct foo) from bar",
-      select(columns: [function("variance", [{:distinct, identifier("foo")}])])
-    )
-    assert_parse(
-      "select median(distinct foo) from bar",
-      select(columns: [function("median", [{:distinct, identifier("foo")}])])
-    )
-  end
-
   test "count(all column)" do
     assert_parse(
       "select count(all foo) from bar",
