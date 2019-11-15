@@ -43,7 +43,7 @@ defmodule Cloak.DataSource.RODBC.Port do
   @doc "Returns a new batch, with the specified size, from the rows selected by the previous statement."
   @spec fetch_batch(pid(), (row -> row), pos_integer) :: {:ok, Enumerable.t()} | {:error, String.t()}
   def fetch_batch(pid, row_mapper, size) when size > 0 do
-    case call_server(pid, @command_fetch_rows, size, :timer.minutes(30)) do
+    case call_server(pid, @command_fetch_rows, size, :timer.hours(4)) do
       {:ok, []} ->
         {:ok, []}
 
