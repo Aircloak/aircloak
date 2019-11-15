@@ -49,7 +49,7 @@ defmodule AirWeb.Admin.UserView do
   defp can_disable?(conn, user) do
     cond do
       is_self?(conn, user) -> false
-      true -> can_delete?(user)
+      true -> can_disable?(user)
     end
   end
 
