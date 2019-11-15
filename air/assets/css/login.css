@@ -47,27 +47,6 @@ div#aircloak {
   text-align: center;
 }
 
-#login-message h1 {
-  font-size: 2em;
-  border: unset;
-  padding: 0;
-  margin: 1em 0 0.2em 0;
-}
-
-#login-message h2 {
-  font-size: 1.6em;
-  border: unset;
-  padding: 0;
-  margin: 1em 0 0.2em 0;
-}
-
-#login-message h3 {
-  font-size: 1.3em;
-  border: unset;
-  padding: 0;
-  margin: 1em 0 0.2em 0;
-}
-
 @supports(display: grid) {
   body#login {
     display: grid;
