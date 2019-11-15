@@ -85,43 +85,28 @@ defmodule AirWeb.Admin.UserController do
   def delete(conn, _params) do
     user = conn.assigns.user
 
-    start_callback = fn ->
-      audit_log(conn, "Disabled a user account prior to deletion")
-      audit_log_for_user(conn, user, "User account disabled prior to deletion")
-
-      audit_log(conn, "User removal scheduled")
-      audit_log_for_user(conn, user, "User scheduled for removal")
-    end
-
-    success_callback = fn -> audit_log(conn, "User removal succeeded") end
-    failure_callback = fn reason -> audit_log(conn, "User removal failed", %{reason: reason}) end
-
-    case User.delete_async(user, start_callback, success_callback, failure_callback) do
-      :ok ->
+    cond do
+      is_self?(conn, user) ->
         conn
-        |> put_flash(:info, "The user has been disabled. The deletion will be performed in the background")
+        |> put_flash(:error, "The currently logged in user cannot be deleted.")
         |> redirect(to: admin_user_path(conn, :index))
 
-      {:error, error} ->
-        conn
-        |> put_flash(:error, delete_error_message(error))
-        |> redirect(to: admin_user_path(conn, :index))
+      true ->
+        perform_delete(conn, user)
     end
   end
 
   def disable(conn, _params) do
-    case User.disable(conn.assigns.user) do
-      {:error, :forbidden_no_active_admin} ->
+    user = conn.assigns.user
+
+    cond do
+      is_self?(conn, user) ->
         conn
-        |> put_flash(:error, "Cannot disable the user as it would leave the system without an administrator.")
+        |> put_flash(:error, "The currently logged in user cannot be disabled.")
         |> redirect(to: admin_user_path(conn, :index))
 
-      {:ok, user} ->
-        audit_log(conn, "Disabled a user account")
-        audit_log_for_user(conn, user, "User account disabled")
-
-        conn
-        |> redirect(to: admin_user_path(conn, :index))
+      true ->
+        perform_disable(conn, user)
     end
   end
 
@@ -168,6 +153,49 @@ defmodule AirWeb.Admin.UserController do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp is_self?(conn, user), do: conn.assigns.current_user.id == user.id
+
+  defp perform_delete(conn, user) do
+    start_callback = fn ->
+      audit_log(conn, "Disabled a user account prior to deletion")
+      audit_log_for_user(conn, user, "User account disabled prior to deletion")
+
+      audit_log(conn, "User removal scheduled")
+      audit_log_for_user(conn, user, "User scheduled for removal")
+    end
+
+    success_callback = fn -> audit_log(conn, "User removal succeeded") end
+    failure_callback = fn reason -> audit_log(conn, "User removal failed", %{reason: reason}) end
+
+    case User.delete_async(user, start_callback, success_callback, failure_callback) do
+      :ok ->
+        conn
+        |> put_flash(:info, "The user has been disabled. The deletion will be performed in the background")
+        |> redirect(to: admin_user_path(conn, :index))
+
+      {:error, error} ->
+        conn
+        |> put_flash(:error, delete_error_message(error))
+        |> redirect(to: admin_user_path(conn, :index))
+    end
+  end
+
+  defp perform_disable(conn, user) do
+    case User.disable(user) do
+      {:error, :forbidden_no_active_admin} ->
+        conn
+        |> put_flash(:error, "Cannot disable the user as it would leave the system without an administrator.")
+        |> redirect(to: admin_user_path(conn, :index))
+
+      {:ok, user} ->
+        audit_log(conn, "Disabled a user account")
+        audit_log_for_user(conn, user, "User account disabled")
+
+        conn
+        |> redirect(to: admin_user_path(conn, :index))
+    end
+  end
 
   defp load_user(conn, _) do
     case User.load(conn.params["id"] || conn.params["user_id"]) do

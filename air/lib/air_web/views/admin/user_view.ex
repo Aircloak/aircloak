@@ -48,6 +48,7 @@ defmodule AirWeb.Admin.UserView do
 
   defp can_disable?(conn, user) do
     current_user = conn.assigns.current_user
+
     cond do
       current_user && current_user.id == user.id -> false
       true -> can_disable?(user)
@@ -62,6 +63,7 @@ defmodule AirWeb.Admin.UserView do
 
   defp can_delete?(conn, user) do
     current_user = conn.assigns.current_user
+
     cond do
       current_user && current_user.id == user.id -> false
       true -> can_delete?(user)
