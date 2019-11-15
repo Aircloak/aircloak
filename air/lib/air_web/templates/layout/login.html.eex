@@ -18,7 +18,7 @@
       <%= if @login_message not in ["", nil] do %>
         <div class="col-sm-12">
           <div id="login-message" class="panel panel-heading">
-            <center><%= raw(Earmark.as_html!(@login_message)) %></center>
+            <%= raw(Earmark.as_html!(@login_message)) %>
           </div>
         </div>
         <br/>
