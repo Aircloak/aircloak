@@ -126,23 +126,34 @@ Below is an example of the restrictions in action:
 SELECT age / (age + 1) FROM table
 ```
 
+## Clear expressions
+
+A clear expression is a simple expression that:
+  - references exactly one database column,
+  - uses at most one `CAST`,
+  - only uses the following allowed functions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `hex`,
+  `left`, `right`, `hour`, `minute`, `second`, `year`, `quarter`, `month`, `day`, `weekday`, `date_trunc`, `trunc`,
+  `floor`, `ceil`, `round`, `+`, `-`, `bucket` or any aggregator (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`,
+  `VARIANCE`).
+
+Such expressions are considered to be safe in general and are excepted from many of the following restrictions.
 
 ## Constant ranges
 
 Whenever a comparison (`>`, `>=`, `<`, or `<=`) with a constant is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that
-clause actually needs to contain two comparisons. These should form a constant range on a single column or expression.
-That is, one `>` or `>=` comparison and one `<` or `<=` comparison, limiting the column/expression from bottom and top.
+clause actually needs to contain two comparisons. These should form a constant range on a single clear expression.
+That is, one `>` or `>=` comparison and one `<` or `<=` comparison, limiting the expression from bottom and top.
 
-Comparisons referencing one database column on each side are excluded from this restriction.
+Comparisons with clear expressions on both sides are excluded from this restriction.
 
 ```sql
 -- Correct - a constant range is used
 SELECT COUNT(*) FROM table WHERE column > 10 AND column < 20
 
--- Correct - one database column is referenced on each side of the comparison:
+-- Correct - comparison between clear expressions:
 SELECT COUNT(*) FROM table WHERE column1 > column2
-SELECT COUNT(*) FROM table WHERE column1 < sqrt(column2)
-SELECT COUNT(*) FROM table WHERE column1 + 1 >= 2 * column2
+SELECT COUNT(*) FROM table WHERE column1 < round(column2)
+SELECT COUNT(*) FROM table WHERE column1 + 1 >= column2 - 1
 
 -- Incorrect - only one side of the constant range provided
 SELECT COUNT(*) FROM table WHERE column > 10
@@ -243,11 +254,11 @@ SELECT COUNT(*) FROM table WHERE number >= 9.5 AND number < 10.5
 
 Because of this, usage of such functions must be restricted in a similar way to inequalities and the `BETWEEN` operator.
 The restrictions disallow the usage of most functions or mathematical operations before or after applying an implicit
-range function. The operations that can be applied are a single `CAST`, any number of aggregators (`MIN`, `MAX`,
-`COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`), and date extraction functions (`extract`, `year`, `month`, `quarter`, `day`,
-`weekday`, `hour`, `minute`, `second`). The restrictions apply when an implict range function is used in a `WHERE` or
-`JOIN` clause, selected in the top-level `SELECT` clause or used in a non-top-level `HAVING` clause - see [Top-level
-HAVING clause](#top-level-having-clause).
+range function, if the expression is not clear. The operations that can be applied are a single `CAST`, any aggregator
+(`MIN`, `MAX`, `COUNT`, `SUM`,  `AVG`, `STDDEV`, `VARIANCE`), and date extraction functions (`extract`, `year`, `month`,
+`quarter`, `day`, `weekday`, `hour`, `minute`, `second`). The restrictions apply when an implicit range function is used
+in a `WHERE` or `JOIN` clause, selected in the top-level `SELECT` clause or used in a non-top-level `HAVING` clause - see
+[Top-level HAVING clause](#top-level-having-clause).
 
 The following functions are treated as implicit range functions: `round`, `trunc`, `date_trunc`, and all date extraction
 functions (`year`, `month`, `quarter`, `day`, `weekday`, `hour`, `minute`, `second`).
@@ -259,14 +270,14 @@ SELECT COUNT(*) FROM table WHERE round(number) = 10
 -- Correct - an aggregate is used
 SELECT COUNT(*) FROM table GROUP BY category WHERE round(max(number)) = 10
 
--- Incorrect - another operation (+) is applied in the same expression as round
-SELECT COUNT(*) FROM table WHERE round(number + 1) = 10
+-- Incorrect - another operation (/) is applied in the same expression as round
+SELECT COUNT(*) FROM table WHERE round(number / 2) = 10
 
 -- Correct - used in the top-level HAVING, so restrictions don't apply
-SELECT COUNT(*) FROM table GROUP BY category HAVING round(max(number) + 1) = 10
+SELECT COUNT(*) FROM table GROUP BY category HAVING round(max(number) / 2) = 10
 
 -- Incorrect - used in a non-top-level HAVING
-SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY category HAVING round(max(number) + 1) = 10) x
+SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY category HAVING round(max(number) / 2) = 10) x
 
 -- Incorrect - another operation is used in top-level SELECT
 SELECT round(abs(number)) FROM table
@@ -287,8 +298,8 @@ SELECT COUNT(*) FROM table WHERE
 
 Because of this, the usage of operations on textual data has to be restricted to prevent circumvention of measures that
 would normally limit what can be done with range conditions. The restrictions on expressions containing text
-manipulation functions are the same as ones described for [implicit ranges](#implicit-ranges). In addition a result of
-text manipulation can not be compared to expressions mixing constants and columns.
+manipulation functions are the same as ones described for [implicit ranges](#implicit-ranges). In addition, the result of
+text manipulation can only be compared to a clear expression.
 
 The following functions are treated as text manipulation functions: `left`, `right`, `rtrim`, `ltrim`, `trim`, and
 `substring`.
@@ -298,7 +309,7 @@ The following functions are treated as text manipulation functions: `left`, `rig
 SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = 'A'
 
 -- Incorrect - the results of a text operation are compared to a complex expression
-SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = UPPER(RIGHT(name, 1))
+SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = RIGHT(name || 'a', 1)
 ```
 
 Furthermore, the aggregators `min`, `max`, and `median` cannot be used on data of type `text` in anonymizing queries and
@@ -317,31 +328,31 @@ SELECT COUNT(*) FROM table WHERE number NOT IN (1, 2, 3)
 SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
 ```
 
-### Allowed functions
+### Allowed expressions
 
-Conditions using `IN` or `<>` cannot include any functions nor mathematical operations except the following: `lower`,
-`upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `year`, `month`, `quarter`, `day`, `weekday`,
-`hour`, `minute`, `second`, and all aggregators (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`). 
+Conditions using `IN` or `<>` have to have a clear expression on the left-hand side.
+All items on the right-hand side of the `IN` operator must be constants.
+The right-hand side of a `<>` condition has to be a clear expression or a constant.
+
 Conditions using `NOT LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators.
-A single `CAST` is allowed. All items on the right-hand side of the `IN` operator must be constants.
-The top-level `HAVING` clause is exempt from  all these restrictions - see [Top-level HAVING clause](#top-level-having-clause).
+A single `CAST` is allowed.
 
-Inequality conditions referencing one database column on each side are excluded from these restrictions.
+The top-level `HAVING` clause is exempt from  all these restrictions - see [Top-level HAVING clause](#top-level-having-clause).
 
 ```sql
 -- Correct
 SELECT COUNT(*) FROM table WHERE lower(name) <> 'alice'
 
 -- Incorrect - a disallowed operation was used
-SELECT COUNT(*) FROM table WHERE left(name, 1) <> 'a'
+SELECT COUNT(*) FROM table WHERE length(name) <> 2
 
 -- Correct - top-level HAVING is exempt from restrictions
-SELECT COUNT(*) FROM table GROUP BY name HAVING left(name) <> 'a'
+SELECT COUNT(*) FROM table GROUP BY name HAVING length(name) <> 2
 
--- Correct - comparing two database columns
+-- Correct - comparing two clear expressions
 SELECT COUNT(*) FROM table WHERE name <> surname
 SELECT COUNT(*) FROM table WHERE sqrt(column1) <> sqrt(column2)
-SELECT COUNT(*) FROM table WHERE column1 + 1 <> 2 * column2
+SELECT COUNT(*) FROM table WHERE column1 + 1 <> column2 - 1
 
 -- Incorrect - multiple columns are referenced on one side of the inequality:
 SELECT COUNT(*) FROM table WHERE column1 - column1 <> column2
@@ -387,10 +398,8 @@ can identify a user just as well as the `user_id` column. We call these columns 
 restrictions to expressions including them. Note that the `user_id` column is always isolating.
 
 Conditions using isolating columns cannot use the `IN` operator. Conditions using the `LIKE` operator are limited to
-simple patterns of the form `%foo`, `foo%`, or `%foo%`. Furthermore, only a limited number of functions are allowed for
-these conditions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `year`, `quarter`,
-`month`, `day`, `hour`, `minute`, `second`, `weekday`, `date_trunc`, and `bucket`. All other functions and mathematical
-operations are forbidden.
+simple patterns of the form `%foo`, `foo%`, or `%foo%`. Furthermore, clear expressions are allowed for these columns.
+All other functions and mathematical operations are forbidden.
 
 ```sql
 -- These examples assume that the 'email' and 'social_security' columns are isolating
@@ -404,7 +413,7 @@ SELECT COUNT(*) FROM table WHERE email <> 'alice@example.com'
 -- Incorrect - IN used
 SELECT COUNT(*) FROM table WHERE email IN ('alice@example.com', 'bob@example.com')
 
--- Incorrect - a function from outside the list is used
+-- Incorrect - a function from outside the allowed list is used
 SELECT COUNT(*) FROM table WHERE length(email) = 20
 
 -- Incorrect - a mathematical operation is used

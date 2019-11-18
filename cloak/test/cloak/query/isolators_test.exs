@@ -20,11 +20,15 @@ defmodule Cloak.Query.Isolators.Test do
   end
 
   test "clear conditions are allowed for isolators" do
-    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col = 10")
+    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE round($col) = 10")
   end
 
   test "comparisons of two isolating columns are allowed" do
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col = $col")
+  end
+
+  test "comparisons of two clear expressions on isolating columns are allowed" do
+    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE floor($col) = floor($col)")
   end
 
   test "conditions with math are forbidden for isolators" do
@@ -55,6 +59,10 @@ defmodule Cloak.Query.Isolators.Test do
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col IS NULL")
   end
 
+  test "length is forbidden for isolators" do
+    assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE length($col_string) = 10")
+  end
+
   for fragment <- [
         "lower($col_string) = 'something'",
         "upper($col_string) = 'SOMETHING'",
@@ -63,10 +71,10 @@ defmodule Cloak.Query.Isolators.Test do
         "ltrim($col_string) = 'something'",
         "rtrim($col_string) = 'something'",
         "btrim($col_string) = 'something'",
-        "length($col_string) = 10",
         "hex($col_string) = 'aabbcc'",
         "left($col_string, 2) = 'so'",
-        "right($col_string, 2) = 'ng'"
+        "right($col_string, 2) = 'ng'",
+        "lower(btrim($col_string)) = 'something'"
       ] do
     test "#{fragment} allowed on isolators" do
       assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE #{unquote(fragment)}")

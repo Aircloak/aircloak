@@ -7,25 +7,27 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   alias Cloak.Sql.{Compiler, Parser}
 
   describe "IN" do
-    test "allows clear IN lhs", do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)"))
+    test "allows clear IN lhs",
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE round(numeric) IN (1, 2, 3)"))
 
     test "forbids unclear IN lhs" do
-      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric * 2 IN (1, 2, 3)")
 
-      assert message =~ ~r[Only `lower`, `upper`, .*, and `.*` can be used in the left-hand side of an IN operator]
+      assert message =~ ~r[Only clear expressions can be used on the left-hand side of an IN operator.]
     end
 
     test "allows clear IN lhs from subqueries",
       do:
         assert(
-          {:ok, _} = compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
+          {:ok, _} =
+            compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE round(number) IN (1, 2, 3)")
         )
 
     test "forbids unclear IN lhs from subqueries" do
       assert {:error, message} =
-               compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
+               compile("SELECT COUNT(*) FROM (SELECT numeric * 2 AS number FROM table) x WHERE number IN (1, 2, 3)")
 
-      assert message =~ ~r[Only .* can be used in the left-hand side of an IN operator]
+      assert message =~ ~r[Only clear expressions can be used on the left-hand side of an IN operator.]
     end
 
     for function <- ~w(lower upper trim ltrim btrim) do
@@ -46,32 +48,32 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   end
 
   describe "negative conditions" do
-    test "allows clear <> lhs", do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10"))
+    test "allows column <> lhs", do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10"))
 
     test "forbids unclear <> lhs" do
-      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
-      assert message =~ ~r[Only .* can be used in the arguments of an <> operator]
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric * 0 <> 10")
+      assert message =~ ~r[Comparisons need to have clear expressions on both sides of the operator]
     end
 
     test "allows column <> column",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric"))
 
     test "allows column - constant <> column + constant",
-      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric - 1 <> numeric2 * 2 + 10"))
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric - 1 <> numeric2 + 10"))
 
-    test "allows column <> function(column)",
+    test "allows column <> clear expression",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)"))
 
-    test "allow function(column) <> column",
+    test "allow clear expression <> column",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE upper(string) <> string"))
 
-    test "allow function(column) <> function(column)",
+    test "allow clear expression <> clear expression",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE lower(string) <> lower(string)"))
 
-    test "forbids column <> impure expression" do
+    test "forbids column <> unclear expression" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE string <> string || string")
 
-      assert narrative =~ ~r/Comparisons between columns can only reference one column on each side./
+      assert narrative =~ ~r/Comparisons need to have clear expressions on both sides of the operator/
     end
 
     test "allows clear <> lhs in subquery HAVING",
@@ -85,24 +87,24 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "forbids unclear <> lhs in subquery HAVING" do
       assert {:error, message} =
-               compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric + 1) <> 10) x")
+               compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric * 0) <> 10) x")
 
-      assert message =~ ~r[Only .* can be used in the arguments of an <> operator]
+      assert message =~ ~r[Comparisons need to have clear expressions on both sides of the operator]
     end
 
-    test "allows clear NOT LIKE lhs",
+    test "allows column NOT LIKE lhs",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT LIKE '%some pattern_'"))
 
-    test "allows clear NOT ILIKE lhs",
+    test "allows column NOT ILIKE lhs",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT ILIKE '%some pattern_'"))
 
-    test "forbids unclear NOT LIKE lhs" do
+    test "forbids function(column) NOT LIKE lhs" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT LIKE '%some pattern_'")
 
       assert message =~ ~r/Expressions with NOT LIKE cannot include any functions/
     end
 
-    test "forbids unclear NOT ILIKE lhs" do
+    test "forbids function(column) NOT ILIKE lhs" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT ILIKE '%some pattern_'")
 
       assert message =~ ~r/Expressions with NOT ILIKE cannot include any functions/
@@ -150,15 +152,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
             compile("SELECT COUNT(*) FROM table WHERE rtrim(string) || string = 'foo'")
         )
 
-    test "forbids complex expressions on the RHS of conditions with string manipulation functions",
+    test "forbids unclear expressions on the RHS of conditions with string manipulation functions",
       do:
         assert(
-          {:error,
-           "Results of string manipulation functions can only be compared to constants or columns-only expressions." <>
-             _} = compile("SELECT COUNT(*) FROM table WHERE substring(string from 1) = lower(string)")
+          {:error, "Results of string manipulation functions can only be compared to clear expressions." <> _} =
+            compile("SELECT COUNT(*) FROM table WHERE substring(string from 1) = string || 'a'")
         )
 
-    test "allow complex columns-only conditions with string manipulation functions",
+    test "allow clear expressions conditions with string manipulation functions",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string) = rtrim(string)"))
 
     test "allows raw cast columns on the RHS of conditions with string manipulation functions",
@@ -197,7 +198,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "allows string manipulation functions in top-level having",
       do:
-        assert({:ok, _} = compile("SELECT string, COUNT(*) FROM table GROUP BY 1 HAVING upper(left(string, 1)) = 'f'"))
+        assert({:ok, _} = compile("SELECT string, COUNT(*) FROM table GROUP BY 1 HAVING btrim(left(string, 1)) = 'f'"))
   end
 
   describe "ranges" do
@@ -207,7 +208,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids unclear >=/< arguments" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
 
-      assert narrative =~ ~r/Only .* can be used in range expressions/
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
     end
 
     for operator <- ~w(> < >= <=) do
@@ -215,27 +216,28 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} numeric2")
       end
 
-      test "allows col1 + constant #{operator} col2 * constant" do
-        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 #{unquote(operator)} 2 * numeric2")
+      test "allows col1 + constant #{operator} col2 - constant" do
+        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 #{unquote(operator)} numeric2 - 2")
       end
 
-      test "allows col1 #{operator} function(col2)" do
-        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} sqrt(numeric2)")
+      test "allows col1 #{operator} round(col2)" do
+        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} round(numeric2)")
       end
 
-      test "allows function(col1) #{operator} col2" do
-        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) #{unquote(operator)} numeric2")
+      test "allows round(col1) #{operator} col2" do
+        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE round(numeric) #{unquote(operator)} numeric2")
       end
 
-      test "allows function(col1) #{operator} function(col2)" do
-        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) #{unquote(operator)} sqrt(numeric2)")
+      test "allows round(col1) #{operator} round(col2)" do
+        assert {:ok, _} =
+                 compile("SELECT COUNT(*) FROM table WHERE round(numeric) #{unquote(operator)} round(numeric2)")
       end
 
-      test "forbids impure expression #{operator} column" do
+      test "forbids unclear expression #{operator} column" do
         assert {:error, narrative} =
                  compile("SELECT COUNT(*) FROM table WHERE numeric - numeric #{unquote(operator)} numeric2")
 
-        assert narrative =~ ~r/Comparisons between columns can only reference one column on each side./
+        assert narrative =~ ~r/Comparisons need to have clear expressions on both sides of the operator/
       end
     end
 
@@ -244,7 +246,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     end
 
     test "allow functions in col1 BETWEEN col2 AND col3" do
-      assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN sqrt(numeric2) AND numeric3")
+      assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN round(numeric2) AND numeric3")
     end
 
     test "allows clear between arguments",
@@ -253,7 +255,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids unclear between arguments" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
 
-      assert narrative =~ ~r/Only .* can be used in range expressions/
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
     end
 
     test "allows any ranges in top-level HAVING",
@@ -280,22 +282,22 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
                  SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
                """)
 
-      assert narrative =~ ~r/Only .* can be used in range expressions/
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
     end
 
     test "forbids implicit ranges within another function" do
       assert {:error, narrative} = compile("SELECT abs(trunc(float)) FROM table")
-      assert narrative =~ ~r/Only .* can be used in range expressions/
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
     end
 
     test "forbids nested implicit ranges" do
       assert {:error, narrative} = compile("SELECT trunc(trunc(float), -11) FROM table")
-      assert narrative =~ ~r/Only .* can be used in range expressions/
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
     end
 
     test "forbids implicit ranges on function expressions" do
       assert {:error, narrative} = compile("SELECT trunc(float + 1) FROM table")
-      assert narrative =~ ~r/Only .* can be used in range expressions/
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
     end
 
     test "does not consider cast to integer as an implicit range",

@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   as checks to validate that columns used in certain filter conditions haven't been altered.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range, Function}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
   alias Cloak.Sql.Compiler.TypeChecker.{Access, Type}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.DataSource.{Isolators, Shadows}
@@ -25,13 +25,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       unless subquery.type == :standard do
         verify_allowed_usage_of_math(subquery)
         verify_lhs_of_in_is_clear(subquery)
-        verify_not_equals_is_clear_or_pure(subquery)
+        verify_not_equals_is_clear(subquery)
         verify_lhs_of_not_like_is_clear(subquery)
         verify_string_based_conditions_are_clear(subquery)
         verify_string_based_expressions_are_clear(subquery)
         verify_ranges_are_clear(subquery)
         verify_isolator_conditions_are_clear(subquery)
-        verify_inequalities_are_pure(subquery)
+        verify_inequalities_are_clear(subquery)
       end
     end)
 
@@ -60,42 +60,23 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       end)
 
-  @allowed_in_functions ~w(
-    lower upper substring trim ltrim rtrim btrim hour minute second year quarter month day weekday
-  )
   defp verify_lhs_of_in_is_clear(query),
     do:
       verify_conditions(query, &Condition.in?/1, fn {:in, lhs, _} ->
-        unless Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_in_functions)) do
+        unless lhs |> Type.establish_type(query) |> Type.clear_expression?() do
           raise CompilationError,
             source_location: lhs.source_location,
             message: """
-            Only #{function_list(@allowed_in_functions)} can be used in the left-hand side of an IN operator.
+            Only clear expressions can be used on the left-hand side of an IN operator.
             For more information see the "Restrictions" section of the user guides.
             """
         end
       end)
 
-  @allowed_not_equals_functions ~w(
-    lower upper substring trim ltrim rtrim btrim hour minute second year quarter month day weekday
-  )
-  defp verify_not_equals_is_clear_or_pure(query),
+  defp verify_not_equals_is_clear(query),
     do:
       verify_conditions(query, &Condition.not_equals?/1, fn {:comparison, lhs, :<>, rhs} ->
-        if Type.establish_type(rhs, query).constant? do
-          unless Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_not_equals_functions)) do
-            raise(
-              CompilationError,
-              source_location: lhs.source_location,
-              message: """
-              Only #{function_list(@allowed_not_equals_functions)} can be used in the arguments of an <> operator.
-              For more information see the "Restrictions" section of the user guides.
-              """
-            )
-          end
-        else
-          check_columns_comparison(lhs, rhs)
-        end
+        check_columns_comparison_is_clear(lhs, rhs, query)
       end)
 
   defp verify_string_based_conditions_are_clear(query),
@@ -104,20 +85,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         lhs_type = Type.establish_type(lhs, query)
         rhs_type = Type.establish_type(rhs, query)
 
-        if Type.string_manipulation?(lhs_type) and
-             (lhs_type.constant_involved? or rhs_type.constant_involved?) and
-             not Type.clear_column?(rhs_type) and
-             not rhs_type.constant?,
-           do:
-             raise(
-               CompilationError,
-               source_location: lhs.source_location,
-               message: """
-               Results of string manipulation functions can only be compared to constants or columns-only expressions.
-               For more information see the "Text operations" subsection of the "Restrictions" section
-               in the user guides.
-               """
-             )
+        if Type.string_manipulation?(lhs_type) and lhs_type.constant_involved? and not Type.clear_expression?(rhs_type),
+          do:
+            raise(
+              CompilationError,
+              source_location: lhs.source_location,
+              message: """
+              Results of string manipulation functions can only be compared to clear expressions.
+              For more information see the "Text operations" subsection of the "Restrictions" section
+              in the user guides.
+              """
+            )
       end)
 
   defp verify_string_based_expressions_are_clear(query),
@@ -142,7 +120,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp verify_lhs_of_not_like_is_clear(query),
     do:
       verify_conditions(query, &Condition.not_like?/1, fn {:not, {kind, lhs, _}} ->
-        unless Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_like_functions)) do
+        unless lhs |> Type.establish_type(query) |> Type.clear_expression?(@allowed_like_functions) do
           raise CompilationError,
             source_location: lhs.source_location,
             message: """
@@ -155,7 +133,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp like_kind_name(:like), do: "LIKE"
   defp like_kind_name(:ilike), do: "ILIKE"
 
-  @allowed_range_functions ~w(hour minute second year quarter month day weekday)
   defp verify_ranges_are_clear(query),
     do:
       query
@@ -165,7 +142,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           raise CompilationError,
             source_location: column.source_location,
             message: """
-            Only #{function_list(@allowed_range_functions)} can be used in range expressions.
+            Only clear expressions can be used in range conditions.
             For more information see the "Ranges" and "Implicit ranges" subsections of the "Restrictions"
             section in the user guides.
             """
@@ -174,18 +151,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp clear_range_lhs?(lhs, query, interval) do
     cond do
-      Function.aggregator?(lhs) ->
-        lhs.args |> Enum.at(0) |> clear_range_lhs?(query, interval)
-
       interval == :implicit ->
         not (lhs |> Type.establish_type(query) |> Type.unclear_implicit_range?())
 
       true ->
-        lhs |> Type.establish_type(query) |> Type.clear_column?(&(&1 in @allowed_range_functions))
+        lhs |> Type.establish_type(query) |> Type.clear_expression?()
     end
   end
-
-  defp function_list(function_names), do: function_names |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
 
   # -------------------------------------------------------------------
   # Isolators
@@ -303,11 +275,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Inequalities
   # -------------------------------------------------------------------
 
-  defp verify_inequalities_are_pure(query) do
+  defp verify_inequalities_are_clear(query) do
     verify_conditions(query, &Condition.inequality?/1, fn condition ->
       [lhs, rhs] = Condition.targets(condition)
-
-      if not Type.establish_type(rhs, query).constant?, do: check_columns_comparison(lhs, rhs)
+      check_columns_comparison_is_clear(lhs, rhs, query)
     end)
   end
 
@@ -329,10 +300,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp each_anonymized_subquery(query, function), do: Lens.each(Access.anonymized_queries(), query, function)
 
-  defp check_columns_comparison(lhs, rhs) do
+  defp check_columns_comparison_is_clear(lhs, rhs, query) do
     cond do
-      impure_expression?(lhs) -> {true, lhs.source_location}
-      impure_expression?(rhs) -> {true, rhs.source_location}
+      not (lhs |> Type.establish_type(query) |> Type.clear_expression?()) -> {true, lhs.source_location}
+      not (rhs |> Type.establish_type(query) |> Type.clear_expression?()) -> {true, rhs.source_location}
       true -> {false, nil}
     end
     |> case do
@@ -341,7 +312,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           CompilationError,
           source_location: source_location,
           message: """
-          Comparisons between columns can only reference one column on each side.
+          Comparisons need to have clear expressions on both sides of the operator.
           For further information see the "Restrictions" section in the user guides.
           """
         )
@@ -349,12 +320,5 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       _ ->
         :ok
     end
-  end
-
-  defp impure_expression?(expression) do
-    Query.Lenses.all_expressions()
-    |> Lens.filter(&(&1.kind == :column))
-    |> Lens.to_list(expression)
-    |> Enum.count() != 1
   end
 end

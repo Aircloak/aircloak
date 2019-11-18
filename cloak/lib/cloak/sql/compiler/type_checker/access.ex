@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   """
 
   use Lens.Macros
-  alias Cloak.Sql.{Condition, Query, Expression, LikePattern, Function}
+  alias Cloak.Sql.{Condition, Query, Expression, LikePattern}
   alias Cloak.Sql.Compiler.TypeChecker.Type
 
   # -------------------------------------------------------------------
@@ -97,11 +97,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
     do: condition |> Condition.targets() |> Enum.any?(&unclear_isolator_expression?(&1, query))
 
   defp unclear_isolator_expression?(expression, query) do
-    not Type.clear_column?(Type.establish_type(expression, query), &allowed_isolator_function?/1)
-  end
-
-  @allowed_isolator_functions ~w(lower upper substring trim ltrim rtrim btrim hex left right length)
-  defp allowed_isolator_function?(function) do
-    function in @allowed_isolator_functions or Function.implicit_range?(function)
+    not (expression |> Type.establish_type(query) |> Type.clear_expression?())
   end
 end
