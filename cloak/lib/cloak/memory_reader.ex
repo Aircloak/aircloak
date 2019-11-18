@@ -196,6 +196,7 @@ defmodule Cloak.MemoryReader do
   defp oom_killer() do
     Process.list()
     |> Stream.map(&{&1, Process.info(&1, :memory)})
+    |> Stream.reject(fn {_pid, state} -> is_nil(state) end)
     |> Enum.max_by(fn {_pid, {:memory, memory}} -> memory end)
     |> case do
       {pid, {:memory, memory}} when memory > @large_mem_usage_threshold ->
