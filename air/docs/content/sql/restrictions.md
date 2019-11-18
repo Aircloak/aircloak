@@ -131,17 +131,18 @@ SELECT age / (age + 1) FROM table
 A clear expression is a simple expression that:
   - references exactly one database column,
   - uses at most one `CAST`,
-  - only uses the following allowed functions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `hex`,
-  `left`, `right`, `hour`, `minute`, `second`, `year`, `quarter`, `month`, `day`, `weekday`, `date_trunc`, `trunc`,
-  `floor`, `ceil`, `round`, `+`, `-`, `bucket` or any aggregator (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`,
-  `VARIANCE`).
+  - only uses the following allowed functions:
+    - string functions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `hex`, `left`, `right`;
+    - date/time functions: `year`, `quarter`, `month`, `weekday`, `day`, `hour`, `minute`, `second`, `date_trunc`;
+    - numerical functions: `trunc`, `floor`, `ceil`, `round`, `+`, `-`, `bucket`;
+    - any aggregator (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`).
 
-Such expressions are considered to be safe in general and are excepted from many of the following restrictions.
+Such expressions are considered to be safe in general and are exempt from many of the following restrictions.
 
 ## Constant ranges
 
-Whenever a comparison (`>`, `>=`, `<`, or `<=`) with a constant is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that
-clause actually needs to contain two comparisons. These should form a constant range on a single clear expression.
+Whenever a comparison (`>`, `>=`, `<`, or `<=`) with a constant is used in a `WHERE`-, `JOIN`- or `HAVING`-clause,
+that clause needs to contain two comparisons. These should form a constant range on a single clear expression.
 That is, one `>` or `>=` comparison and one `<` or `<=` comparison, limiting the expression from bottom and top.
 
 Comparisons with clear expressions on both sides are excluded from this restriction.
@@ -255,13 +256,13 @@ SELECT COUNT(*) FROM table WHERE number >= 9.5 AND number < 10.5
 Because of this, usage of such functions must be restricted in a similar way to inequalities and the `BETWEEN` operator.
 The restrictions disallow the usage of most functions or mathematical operations before or after applying an implicit
 range function, if the expression is not clear. The operations that can be applied are a single `CAST`, any aggregator
-(`MIN`, `MAX`, `COUNT`, `SUM`,  `AVG`, `STDDEV`, `VARIANCE`), and date extraction functions (`extract`, `year`, `month`,
-`quarter`, `day`, `weekday`, `hour`, `minute`, `second`). The restrictions apply when an implicit range function is used
+(`MIN`, `MAX`, `COUNT`, `SUM`,  `AVG`, `STDDEV`, `VARIANCE`), and date extraction functions (`year`, `quarter`, `month`,
+`day`, `weekday`, `hour`, `minute`, `second`, `extract`). The restrictions apply when an implicit range function is used
 in a `WHERE` or `JOIN` clause, selected in the top-level `SELECT` clause or used in a non-top-level `HAVING` clause - see
 [Top-level HAVING clause](#top-level-having-clause).
 
 The following functions are treated as implicit range functions: `round`, `trunc`, `date_trunc`, and all date extraction
-functions (`year`, `month`, `quarter`, `day`, `weekday`, `hour`, `minute`, `second`).
+functions (`year`, `quarter`, `month`, `day`, `weekday`, `hour`, `minute`, `second`, `extract`).
 
 ```sql
 -- Correct - no other function used
@@ -337,7 +338,7 @@ The right-hand side of a `<>` condition has to be a clear expression or a consta
 Conditions using `NOT LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators.
 A single `CAST` is allowed.
 
-The top-level `HAVING` clause is exempt from  all these restrictions - see [Top-level HAVING clause](#top-level-having-clause).
+The top-level `HAVING` clause is exempt from all these restrictions - see [Top-level HAVING clause](#top-level-having-clause).
 
 ```sql
 -- Correct
