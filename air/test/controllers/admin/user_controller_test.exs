@@ -97,6 +97,18 @@ defmodule AirWeb.Admin.UserController.Test do
     refute users_html =~ User.main_login(user)
   end
 
+  test "admins cannot delete themselves" do
+    admin = create_admin_user!()
+
+    conn = login(admin) |> delete("/admin/users/#{admin.id}")
+    assert "/admin/users" == redirected_to(conn)
+
+    assert get_flash(conn, :error) == "Cannot perform this action on current user."
+
+    users_html = login(admin) |> get("/admin/users") |> response(200)
+    assert users_html =~ User.main_login(admin)
+  end
+
   test "disabling a user" do
     admin = create_admin_user!()
     user = create_user!()
@@ -104,6 +116,19 @@ defmodule AirWeb.Admin.UserController.Test do
     assert "/admin/users" == login(admin) |> put("/admin/users/#{user.id}/disable") |> redirected_to()
 
     refute User.load!(user.id).enabled
+  end
+
+  test "admins cannot disable themselves" do
+    admin = create_admin_user!()
+
+    conn = login(admin) |> put("/admin/users/#{admin.id}/disable")
+    assert "/admin/users" == redirected_to(conn)
+
+    assert get_flash(conn, :error) == "Cannot perform this action on current user."
+
+    users_html = login(admin) |> get("/admin/users") |> response(200)
+    assert users_html =~ User.main_login(admin)
+    assert User.load!(admin.id).enabled
   end
 
   test "enabling a user" do
