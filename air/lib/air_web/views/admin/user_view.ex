@@ -47,9 +47,10 @@ defmodule AirWeb.Admin.UserView do
   end
 
   defp can_disable?(conn, user) do
-    cond do
-      is_self?(conn, user) -> false
-      true -> can_disable?(user)
+    if is_self?(conn, user) do
+      false
+    else
+      can_disable?(user)
     end
   end
 
@@ -60,9 +61,10 @@ defmodule AirWeb.Admin.UserView do
   defp can_enable?(%{source: :native, enabled: enabled}), do: not enabled
 
   defp can_delete?(conn, user) do
-    cond do
-      is_self?(conn, user) -> false
-      true -> can_delete?(user)
+    if is_self?(conn, user) do
+      false
+    else
+      can_delete?(user)
     end
   end
 
