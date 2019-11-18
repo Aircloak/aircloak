@@ -150,13 +150,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       end)
 
   defp clear_range_lhs?(lhs, query, interval) do
-    cond do
-      interval == :implicit ->
-        not (lhs |> Type.establish_type(query) |> Type.unclear_implicit_range?())
-
-      true ->
-        lhs |> Type.establish_type(query) |> Type.clear_expression?()
-    end
+    if interval == :implicit,
+      do: not (lhs |> Type.establish_type(query) |> Type.unclear_implicit_range?()),
+      else: lhs |> Type.establish_type(query) |> Type.clear_expression?()
   end
 
   # -------------------------------------------------------------------
