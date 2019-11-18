@@ -5,6 +5,7 @@ defmodule AirWeb.Admin.UserController do
   alias Air.Service.{User, LDAP}
 
   plug(:load_user when action in [:edit, :update, :delete, :disable, :enable, :reset_password, :delete_sessions])
+  plug(:prevent_action_on_self when action in [:delete, :disable])
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -85,28 +86,43 @@ defmodule AirWeb.Admin.UserController do
   def delete(conn, _params) do
     user = conn.assigns.user
 
-    cond do
-      is_self?(conn, user) ->
+    start_callback = fn ->
+      audit_log(conn, "Disabled a user account prior to deletion")
+      audit_log_for_user(conn, user, "User account disabled prior to deletion")
+
+      audit_log(conn, "User removal scheduled")
+      audit_log_for_user(conn, user, "User scheduled for removal")
+    end
+
+    success_callback = fn -> audit_log(conn, "User removal succeeded") end
+    failure_callback = fn reason -> audit_log(conn, "User removal failed", %{reason: reason}) end
+
+    case User.delete_async(user, start_callback, success_callback, failure_callback) do
+      :ok ->
         conn
-        |> put_flash(:error, "The currently logged in user cannot be deleted.")
+        |> put_flash(:info, "The user has been disabled. The deletion will be performed in the background")
         |> redirect(to: admin_user_path(conn, :index))
 
-      true ->
-        perform_delete(conn, user)
+      {:error, error} ->
+        conn
+        |> put_flash(:error, delete_error_message(error))
+        |> redirect(to: admin_user_path(conn, :index))
     end
   end
 
   def disable(conn, _params) do
-    user = conn.assigns.user
-
-    cond do
-      is_self?(conn, user) ->
+    case User.disable(conn.assigns.user) do
+      {:error, :forbidden_no_active_admin} ->
         conn
-        |> put_flash(:error, "The currently logged in user cannot be disabled.")
+        |> put_flash(:error, "Cannot disable the user as it would leave the system without an administrator.")
         |> redirect(to: admin_user_path(conn, :index))
 
-      true ->
-        perform_disable(conn, user)
+      {:ok, user} ->
+        audit_log(conn, "Disabled a user account")
+        audit_log_for_user(conn, user, "User account disabled")
+
+        conn
+        |> redirect(to: admin_user_path(conn, :index))
     end
   end
 
@@ -154,53 +170,23 @@ defmodule AirWeb.Admin.UserController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp is_self?(conn, user), do: conn.assigns.current_user.id == user.id
-
-  defp perform_delete(conn, user) do
-    start_callback = fn ->
-      audit_log(conn, "Disabled a user account prior to deletion")
-      audit_log_for_user(conn, user, "User account disabled prior to deletion")
-
-      audit_log(conn, "User removal scheduled")
-      audit_log_for_user(conn, user, "User scheduled for removal")
-    end
-
-    success_callback = fn -> audit_log(conn, "User removal succeeded") end
-    failure_callback = fn reason -> audit_log(conn, "User removal failed", %{reason: reason}) end
-
-    case User.delete_async(user, start_callback, success_callback, failure_callback) do
-      :ok ->
-        conn
-        |> put_flash(:info, "The user has been disabled. The deletion will be performed in the background")
-        |> redirect(to: admin_user_path(conn, :index))
-
-      {:error, error} ->
-        conn
-        |> put_flash(:error, delete_error_message(error))
-        |> redirect(to: admin_user_path(conn, :index))
-    end
-  end
-
-  defp perform_disable(conn, user) do
-    case User.disable(user) do
-      {:error, :forbidden_no_active_admin} ->
-        conn
-        |> put_flash(:error, "Cannot disable the user as it would leave the system without an administrator.")
-        |> redirect(to: admin_user_path(conn, :index))
-
-      {:ok, user} ->
-        audit_log(conn, "Disabled a user account")
-        audit_log_for_user(conn, user, "User account disabled")
-
-        conn
-        |> redirect(to: admin_user_path(conn, :index))
-    end
-  end
-
   defp load_user(conn, _) do
     case User.load(conn.params["id"] || conn.params["user_id"]) do
       {:ok, user} -> assign(conn, :user, user)
       {:error, :not_found} -> not_found(conn)
+    end
+  end
+
+  defp prevent_action_on_self(conn, _params) do
+    %{user: user, current_user: current_user} = conn.assigns
+
+    if user.id == current_user.id do
+      conn
+      |> put_flash(:error, "Cannot perform this action on current user.")
+      |> redirect(to: admin_user_path(conn, :index))
+      |> halt()
+    else
+      conn
     end
   end
 
