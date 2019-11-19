@@ -7,6 +7,8 @@ cd $(dirname $0)
 
 cd ../..
 
+DOCKER_DATA=${DOCKER_DATA:-$(pwd)}
+
 if [ "$DB_ENV" == "dev" ] || [ "$DB_ENV" == "test" ]; then
   db_port=$(cat central/priv/config/$DB_ENV.json | jq --raw-output ".database.port")
   mkdir -p $(pwd)/central/db/configs/$DB_ENV
