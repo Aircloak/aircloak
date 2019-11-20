@@ -183,13 +183,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
        }),
        do: []
 
-  defp aggregator_to_default(%Expression{
-         kind: :function,
-         name: "median",
-         args: [_column]
-       }),
-       do: []
-
   defmacrop null_ignore_accumulator(do: expression) do
     quote do
       fn row, var!(accumulator) ->
@@ -272,13 +265,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
        }),
        do: null_ignore_accumulator(do: [value | accumulator])
 
-  defp aggregator_to_accumulator(%Expression{
-         kind: :function,
-         name: "median",
-         args: [column]
-       }),
-       do: null_ignore_accumulator(do: [value | accumulator])
-
   defp aggregator_to_finalizer(%Expression{
          kind: :function,
          name: "count",
@@ -327,25 +313,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
          args: [{:distinct, _column}]
        }),
        do: &(&1 |> MapSet.to_list() |> Stats.variance())
-
-  defp aggregator_to_finalizer(%Expression{
-         kind: :function,
-         name: "median",
-         args: [{:distinct, %Expression{type: :number}}]
-       }),
-       do: &(&1 |> MapSet.to_list() |> Stats.median())
-
-  defp aggregator_to_finalizer(%Expression{
-         kind: :function,
-         name: "median",
-         args: [{:distinct, _column}]
-       }),
-       do:
-         &if(
-           MapSet.size(&1) == 0,
-           do: nil,
-           else: &1 |> sort() |> Enum.at(&1 |> MapSet.size() |> div(2))
-         )
 
   defp aggregator_to_finalizer(%Expression{
          kind: :function,
@@ -399,25 +366,9 @@ defmodule Cloak.Query.DbEmulator.Selector do
        }),
        do: &Stats.variance/1
 
-  defp aggregator_to_finalizer(%Expression{
-         kind: :function,
-         name: "median",
-         args: [%Expression{type: :number}]
-       }),
-       do: &Stats.median/1
-
-  defp aggregator_to_finalizer(%Expression{
-         kind: :function,
-         name: "median",
-         args: [_column]
-       }),
-       do: &if(&1 == [], do: nil, else: &1 |> sort() |> Enum.at(&1 |> Enum.count() |> div(2)))
-
   defp set_min(set), do: Enum.reduce(set, &Data.min/2)
 
   defp set_max(set), do: Enum.reduce(set, &Data.max/2)
-
-  defp sort(values), do: Enum.sort(values, &Data.lt_eq/2)
 
   defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.columns)
   defp joined_row_size({:join, join}), do: joined_row_size(join.lhs) + joined_row_size(join.rhs)

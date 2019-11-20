@@ -19,8 +19,6 @@ Enum.each(
     {"variance_noise(<col>)", false},
     {"round(variance(distinct <col>), 6)", true},
     {"variance_noise(distinct <col>)", false},
-    {"median(<col>)", true},
-    {"median(distinct <col>)", true},
     {"max(<col>)", true},
     {"max(distinct <col>)", true},
     {"min(<col>)", true},
@@ -60,7 +58,7 @@ Enum.each(
           context
           |> disable_for(
             Cloak.DataSource.MongoDB,
-            function in ~w(min max median) and unquote(column) in @integer_columns
+            function in ~w(min max) and unquote(column) in @integer_columns
           )
           |> assert_consistent_and_not_failing("""
             SELECT #{on_column(unquote(aggregate), unquote(column))}

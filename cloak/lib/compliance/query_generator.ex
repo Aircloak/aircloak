@@ -387,7 +387,7 @@ defmodule Cloak.Compliance.QueryGenerator do
         cond do
           :aggregator not in attributes -> false
           {:not_in, :restricted} in attributes -> false
-          name in ~w(min max median) and return_type == :text -> false
+          name in ~w(min max) and return_type == :text -> false
           true -> true
         end
       end,
@@ -416,7 +416,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp allowed_in_analyst_table?(_function, %{analyst_table?: false}), do: true
-  defp allowed_in_analyst_table?({name, _, _}, %{analyst_table?: true}), do: not (name in ~w(median variance stddev))
+  defp allowed_in_analyst_table?({name, _, _}, %{analyst_table?: true}), do: not (name in ~w(variance stddev))
 
   defp allowed_in_function?(_function, %{function?: false}), do: true
 

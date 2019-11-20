@@ -26,7 +26,7 @@ defmodule Compliance.GroupByTest do
       context
       |> disable_unicode(unquote(table), unquote(column))
       |> assert_consistent_and_not_failing("""
-        SELECT COUNT(*), COUNT(DISTINCT uid), MEDIAN(c) FROM (
+        SELECT COUNT(*), COUNT(DISTINCT uid), STDDEV(c) FROM (
           SELECT user_id AS uid, #{unquote(column)}, COUNT(*) AS c
           FROM #{unquote(table)} GROUP BY GROUPING SETS (1, (1, 2)) ORDER BY 1, 2
         ) t
@@ -55,7 +55,7 @@ defmodule Compliance.GroupByTest do
         unquote(table) == "users_public" and unquote(column) == "column_with_a_very_long_name"
       )
       |> assert_consistent_and_not_failing("""
-        SELECT #{unquote(column)}, COUNT(*), COUNT(DISTINCT user_id), MEDIAN(0) FROM
+        SELECT #{unquote(column)}, COUNT(*), COUNT(DISTINCT user_id), STDDEV(0) FROM
         #{unquote(table)} GROUP BY GROUPING SETS ((), 1) ORDER BY 1 ASC NULLS FIRST, 2, 3
       """)
     end

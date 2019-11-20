@@ -44,7 +44,7 @@ Enum.each(
             SELECT
               output,
               COUNT(*),
-              MEDIAN(1)
+              STDDEV(1)
             FROM (
               SELECT
                 user_id,

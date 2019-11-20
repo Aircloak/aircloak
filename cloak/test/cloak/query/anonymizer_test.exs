@@ -141,38 +141,6 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert 3 = Anonymizer.new([MapSet.new()]) |> Anonymizer.max(rows) |> round()
   end
 
-  test "median" do
-    # per-user row format = collection of all values
-    rows = [
-      [1, 2],
-      [3],
-      [4, 2, -3],
-      [2, 4],
-      [0],
-      [-3, -2],
-      [3],
-      [4, -2, 1],
-      [5],
-      [-4],
-      [-5, 4],
-      [3],
-      [-1, 2],
-      [4],
-      [5, -2, 3],
-      [-2, -1],
-      [2],
-      [-1, -3],
-      [-3],
-      [2, 6, 3],
-      [-6],
-      [4],
-      [5, -4],
-      [-3]
-    ]
-
-    assert 1 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
-  end
-
   test "same noise layers are collapsed" do
     noise_layer = MapSet.new([3, 4])
     anonymizer1 = Anonymizer.new([noise_layer])
@@ -181,22 +149,19 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert anonymizer1.rngs == anonymizer2.rngs
   end
 
-  test "min/max/median/avg sanity check" do
+  test "min/max sanity check" do
     data = [1, -1, -10, 40, 2, 5, 6, 6, 7, 10, 10, -2, 12, -6, 7, 6, 1, 9]
     anonymizer = Anonymizer.new([MapSet.new()])
     min = Anonymizer.min(anonymizer, Enum.map(data, &{:min, &1}))
     max = Anonymizer.max(anonymizer, Enum.map(data, &{:max, &1}))
-    median = Anonymizer.median(anonymizer, Enum.flat_map(data, &[[&1], [&1]]))
-    assert min < median
-    assert median < max
+    assert min < max
   end
 
-  test "min/max/median return nil on insuficient data" do
+  test "min/max return nil on insuficient data" do
     data = [1, 1, 2, 5, 6, 6, 7, 10, 10, 12]
     anonymizer = Anonymizer.new([MapSet.new()])
     assert anonymizer |> Anonymizer.min(Enum.map(data, &{:min, &1})) |> is_nil()
     assert anonymizer |> Anonymizer.max(Enum.map(data, &{:max, &1})) |> is_nil()
-    assert anonymizer |> Anonymizer.median(Enum.map(data, &[&1])) |> is_nil()
   end
 
   test "noisy statistics" do

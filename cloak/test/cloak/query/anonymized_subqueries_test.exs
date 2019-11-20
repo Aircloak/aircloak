@@ -82,13 +82,13 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
     assert_query(
       """
         select m + 1 from (
-          select median(i) as m from anon_sq group by i % 1 order by m
+          select round(variance(i)) as m from anon_sq group by i % 1 order by m
         ) as t order by 1 desc limit 2
       """,
       %{
         rows: [
           %{row: [nil], unreliable: true},
-          %{row: [6], unreliable: false}
+          %{row: [9], unreliable: false}
         ]
       }
     )
@@ -96,8 +96,8 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
 
   test "propagate unreliability flag through aggregation" do
     assert_query(
-      "select sum(m) from (select median(i) as m from anon_sq group by i % 1) as t",
-      %{rows: [%{row: [5], unreliable: true}]}
+      "select round(sum(m)) from (select variance(i) as m from anon_sq group by i % 1) as t",
+      %{rows: [%{row: [8], unreliable: true}]}
     )
   end
 
@@ -105,17 +105,17 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
     assert_query(
       """
         select * from (
-          select median(i) as m1 from anon_sq group by i % 1
+          select round(variance(i)) as m1 from anon_sq group by i % 1
         ) as t1 cross join (
-          select median(i) as m2 from anon_sq group by i2 % 1
+          select round(variance(i)) as m2 from anon_sq group by i2 % 1
         ) as t2
         order by 1, 2
       """,
       %{
         rows: [
-          %{row: [5, 6], unreliable: false},
-          %{row: [5, nil], unreliable: true},
-          %{row: [nil, 6], unreliable: true},
+          %{row: [8, 8], unreliable: false},
+          %{row: [8, nil], unreliable: true},
+          %{row: [nil, 8], unreliable: true},
           %{row: [nil, nil], unreliable: true}
         ]
       }

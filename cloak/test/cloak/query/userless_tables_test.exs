@@ -42,12 +42,6 @@ defmodule Cloak.Query.UserlessTableTest do
     })
   end
 
-  test "emulated function in over userless table" do
-    assert_query("select median(i) from userless", %{
-      rows: [%{row: [2]}]
-    })
-  end
-
   test "join between userless tables" do
     assert_query(
       "select t1.name from userless as t1 join userless as t2 on t1.i = t2.i and t1.name <> t2.name order by 1",

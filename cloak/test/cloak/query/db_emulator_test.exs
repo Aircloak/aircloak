@@ -321,37 +321,37 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    test "min/max/median with numbers" do
+    test "min/max with numbers" do
       assert_query(
         "select * from #{@vt}",
         """
-          select user_id, min(length(dec_b64(value))), max(length(dec_b64(value))), median(length(dec_b64(value)))
+          select user_id, min(length(dec_b64(value))), max(length(dec_b64(value)))
           from #{@emulated} group by user_id
         """,
-        %{rows: [%{occurrences: 20, row: [:*, 1, 5, 3]}]}
+        %{rows: [%{occurrences: 20, row: [:*, 1, 5]}]}
       )
     end
 
-    test "min/max/median with text" do
+    test "min/max with text" do
       assert_query(
         "select * from #{@vt}",
         """
-          select user_id, min(dec_b64(value)), max(dec_b64(value)), median(dec_b64(value))
+          select user_id, min(dec_b64(value)), max(dec_b64(value))
             from #{@emulated} group by user_id
         """,
-        %{rows: [%{occurrences: 20, row: [:*, "1234", "xyz", "abcde"]}]}
+        %{rows: [%{occurrences: 20, row: [:*, "1234", "xyz"]}]}
       )
     end
 
-    test "min/max/median with date" do
+    test "min/max with date" do
       assert_query(
         "select * from #{@vt}",
         """
           select user_id, min(cast(date as date)),
-            max(cast(date as date)), median(cast(date as date)), count(dec_b64(value)) as c
+            max(cast(date as date)), count(dec_b64(value)) as c
           from #{@emulated} group by user_id
         """,
-        %{rows: [%{occurrences: 20, row: [:*, "2013-02-08", "2016-11-02", "2014-02-04", 5]}]}
+        %{rows: [%{occurrences: 20, row: [:*, "2013-02-08", "2016-11-02", 5]}]}
       )
     end
 
@@ -449,27 +449,27 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{rows: [%{occurrences: 1, row: [3.25]}]}
         )
 
-    test "distinct min/max/median with text" do
+    test "distinct min/max with text" do
       assert_query(
         "select * from #{@vt}",
         """
           select user_id,
-            min(distinct dec_b64(value)), max(distinct dec_b64(value)), median(distinct dec_b64(value))
+            min(distinct dec_b64(value)), max(distinct dec_b64(value))
             from #{@emulated} group by user_id
         """,
-        %{rows: [%{occurrences: 20, row: [:*, "1234", "xyz", "abcde"]}]}
+        %{rows: [%{occurrences: 20, row: [:*, "1234", "xyz"]}]}
       )
     end
 
-    test "distinct min/max/median with date" do
+    test "distinct min/max with date" do
       assert_query(
         "select * from #{@vt}",
         """
           select user_id, min(distinct cast(date as date)),
-            max(distinct cast(date as date)), median(distinct cast(date as date)), count(dec_b64(value)) as c
+            max(distinct cast(date as date)), count(dec_b64(value)) as c
             from #{@emulated} group by user_id
         """,
-        %{rows: [%{occurrences: 20, row: [:*, "2013-02-08", "2016-11-02", "2014-02-04", 5]}]}
+        %{rows: [%{occurrences: 20, row: [:*, "2013-02-08", "2016-11-02", 5]}]}
       )
     end
   end

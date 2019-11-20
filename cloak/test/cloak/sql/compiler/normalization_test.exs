@@ -222,7 +222,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     test "normalizing unordered queries" do
       assert %{from: {:subquery, %{ast: %{order_by: []}}}} =
                compile!(
-                 "SELECT MEDIAN(uid) FROM (SELECT 'constant' FROM table) x",
+                 "SELECT STDDEV(uid) FROM (SELECT 'constant' FROM table) x",
                  sql_server_data_source()
                )
     end
@@ -230,7 +230,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     test "removing constant ORDER BY clauses" do
       assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} =
                compile!(
-                 "SELECT MEDIAN(uid) FROM (SELECT 'constant' FROM table ORDER BY 1, uid) x",
+                 "SELECT STDDEV(uid) FROM (SELECT 'constant' FROM table ORDER BY 1, uid) x",
                  sql_server_data_source()
                )
     end
@@ -238,7 +238,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     test "ordering by uid if all clauses are removed" do
       assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} =
                compile!(
-                 "SELECT MEDIAN(uid) FROM (SELECT 'constant' FROM table ORDER BY 1) x",
+                 "SELECT STDDEV(uid) FROM (SELECT 'constant' FROM table ORDER BY 1) x",
                  sql_server_data_source()
                )
     end
@@ -247,7 +247,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
       assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} =
                compile!(
                  """
-                   SELECT MEDIAN(uid) FROM (
+                   SELECT STDDEV(uid) FROM (
                      SELECT 'constant' FROM table AS t1 JOIN table AS t2 ON t1.uid = t2.uid ORDER BY 1
                    ) x
                  """,
@@ -259,7 +259,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
       assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} =
                compile!(
                  """
-                   SELECT MEDIAN(uid) FROM (
+                   SELECT STDDEV(uid) FROM (
                      SELECT 'constant' FROM (SELECT uid FROM table) x ORDER BY 1
                    ) x
                  """,
