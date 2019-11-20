@@ -143,7 +143,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_anonymization_function_usage(%Expression{kind: :function, name: name} = expression, query) do
-    if query.type == :anonymized and name in ~w(min max median) and
+    if query.type == :anonymized and name in ~w(min max) and
          expression.args |> Enum.at(0) |> Function.type() == :text do
       raise(
         CompilationError,

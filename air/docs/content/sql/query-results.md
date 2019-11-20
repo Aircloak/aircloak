@@ -30,19 +30,19 @@ The reason for this is to hide the effect of the highest contributing users and 
 
 Aircloak increases the noise with an increase in the number of certain query *conditions* (for instance those found in the `WHERE` and `HAVING` clauses). Specifically, most conditions contribute a *baseline* of two noise samples, and some conditions contribute additional samples. These noise samples are summed together.  We refer to the noise samples as *noise layers*. The following table gives the noise layers produced by each condition:
 
-| Condition | Noise Layers |
-| ----- | ----- |
-| equality (`=` or `<>`) | Baseline (two noise layers) |
-| Any `SELECT`'ed column | Baseline |
-| `concat()` in equality | Baseline |
-| range (`>=` and `<`, or `BETWEEN`) | Baseline |
-| `IN` | One layer plus one layer per `IN` element |
-| `NOT IN` | Two layers per `NOT IN` element |
-| `[I]LIKE` and `NOT [I]LIKE` | One layer plus one layer per wildcard |
-| `right`, `left`, `ltrim`, `rtrim`, `btrim`, `trim`, or `substring` | Baseline plus one layer |
-| `upper`, `lower` with `<>` | Baseline plus one layer |
-| `col1 <> col2` (special case of `<>`) | No noise layer |
-| None | One noise layer |
+| Condition                                                          | Noise Layers                              |
+| ------------------------------------------------------------------ | ----------------------------------------- |
+| equality (`=` or `<>`)                                             | Baseline (two noise layers)               |
+| Any `SELECT`'ed column                                             | Baseline                                  |
+| `concat()` in equality                                             | Baseline                                  |
+| range (`>=` and `<`, or `BETWEEN`)                                 | Baseline                                  |
+| `IN`                                                               | One layer plus one layer per `IN` element |
+| `NOT IN`                                                           | Two layers per `NOT IN` element           |
+| `[I]LIKE` and `NOT [I]LIKE`                                        | One layer plus one layer per wildcard     |
+| `right`, `left`, `ltrim`, `rtrim`, `btrim`, `trim`, or `substring` | Baseline plus one layer                   |
+| `upper`, `lower` with `<>`                                         | Baseline plus one layer                   |
+| `col1 <> col2` (special case of `<>`)                              | No noise layer                            |
+| None                                                               | One noise layer                           |
 
 
 Aircloak provides functions that report the sigma of the zero-mean noise for `count()`, `sum()`, `avg()`, `stddev()`, and `variance()`. They are `count_noise()`, `sum_noise()`, `avg_noise()`, `stddev_noise()`, and `variance_noise()` respectively. Note that the reported sigma are themselves rounded, but are generally within 5% of the true value.
@@ -58,9 +58,9 @@ SELECT count(*), count_noise(*)
 FROM accounts
 ```
 
-count  | count_noise
------- | ------------------------
-5368   | 2
+| count | count_noise |
+| ----- | ----------- |
+| 5368  | 2           |
 
 This is because the `accounts` table has only one row per user, and therefore the amount contributed by the most influential user is just 1.
 
@@ -73,9 +73,9 @@ SELECT count(*), count_noise(*)
 FROM transactions
 ```
 
-count   | count_noise
-------  | ------------------------
-1262167 | 320
+| count   | count_noise |
+| ------- | ----------- |
+| 1262167 | 320         |
 
 The reason is that the number of transactions per user varies substantially in this table (the reported max is nearly 14000, the reported min is 5).
 
@@ -90,9 +90,9 @@ WHERE frequency = 'POPLATEK MESICNE' AND
       disp_type = 'OWNER'
 ```
 
-count  | count_noise
------- | ------------------------
-4167   | 4
+| count | count_noise |
+| ----- | ----------- |
+| 4167  | 4           |
 
 This query has more noise than the query of example 1 above because each of the two conditions adds two noise layers. Each layer has `sigma = 2`, so the resulting cumulative sigma is `sqrt(4) * 2 = 4`.
 
@@ -117,21 +117,21 @@ The threshold for the low-count filter is itself a noisy value with an average o
 
 For instance, suppose that a query counts the users with each given first name, and that the names in the `users` table (before anonymisation) are distributed as follows:
 
-Name   | Number of distinct users
------- | ------------------------
-Alice  | 100
-Bob    | 2
-John   | 150
-Mary   | 1
-Tom    | 2
+| Name  | Number of distinct users |
+| ----- | ------------------------ |
+| Alice | 100                      |
+| Bob   | 2                        |
+| John  | 150                      |
+| Mary  | 1                        |
+| Tom   | 2                        |
 
 Since there is only one Mary, she definitely won't appear in the output. Since there are only two Bobs and Toms, their names probably won't appear in the output. Therefore, the anonymised result returned by Aircloak may be something like:
 
-Name  |	Number of distinct users
-----  | ------------------------
-Alice |	102
-John  |	147
-`*`   |	7
+| Name  | Number of distinct users |
+| ----- | ------------------------ |
+| Alice | 102                      |
+| John  | 147                      |
+| `*`   | 7                        |
 
 The `*` row provides the analyst with an indication that some names have been suppressed because of low-count filtering. This indication is particularly important in cases where a large number of values are low-count filtered: the analyst can learn that a substantial amount of data is being hidden. Note that the `*` row is itself anonymised: the anonymised aggregate associated with it has noise, and it itself is low-count filtered. In other words, lack of a `*` row does not mean that no data was suppressed, only that very little data was suppressed.
 
@@ -151,12 +151,12 @@ GROUP BY name, age
 
 and the non-anonymised results are:
 
-| name | age | count | sufficient users |
-|------|-----|--------|-----------------|
-| Alice | 10 | 2 | false |
-| Alice | 20 | 2 | false |
-| Bob | 30 | 1 | false |
-| Cynthia | 40 | 2 | false |
+| name    | age | count | sufficient users |
+| ------- | --- | ----- | ---------------- |
+| Alice   | 10  | 2     | false            |
+| Alice   | 20  | 2     | false            |
+| Bob     | 30  | 1     | false            |
+| Cynthia | 40  | 2     | false            |
 
 and the system only allows through values where there 3 or more distinct users in the answer set, then the Insights
 Cloak will attempt to group the low-count values together by the `age` column, and, where necessary, also by the
@@ -164,18 +164,18 @@ Cloak will attempt to group the low-count values together by the `age` column, a
 
 Step 1: Suppress `age` where necessary
 
-| name | age | count | sufficient users |
-|------|-----|--------|-----------------|
-| Alice | * | 4 | true |
-| Bob | * | 1 | false |
-| Cynthia | * | 2 | false |
+| name    | age | count | sufficient users |
+| ------- | --- | ----- | ---------------- |
+| Alice   | *   | 4     | true             |
+| Bob     | *   | 1     | false            |
+| Cynthia | *   | 2     | false            |
 
 Step 2: Suppress `name` where necessary
 
-| name | age | count | sufficient users |
-|------|-----|--------|-----------------|
-| Alice | * | 4 | true |
-| * | * | 3 | true |
+| name  | age | count | sufficient users |
+| ----- | --- | ----- | ---------------- |
+| Alice | *   | 4     | true             |
+| *     | *   | 3     | true             |
 
 This process is time-consuming, so it is limited by default to a maximum of 3 columns. For details on how to change this
 limit, refer to the [Configuring the Insights Cloak](../ops/configuration.md#insights-cloak-configuration) section. A value
@@ -195,19 +195,19 @@ The `sum()` function selects a small number of the highest values, and *flattens
 
 By way of example, suppose that values in a given summed column contain the following numbers of distinct users:
 
-Value   | Number of distinct users
------- | ------------------------
-1  | 1000
-500    | 20
-500K | 1
-1M | 1
+| Value | Number of distinct users |
+| ----- | ------------------------ |
+| 1     | 1000                     |
+| 500   | 20                       |
+| 500K  | 1                        |
+| 1M    | 1                        |
 
 Aircloak will flatten the high values by modifying them to fall within a group of high value users. In this example, the high value group has the value 500, and so the users with values 500K and 1M are replaced with 500.  The resulting values are these:
 
-Value   | Number of distinct users
------- | ------------------------
-1  | 1000
-500    | 22
+| Value | Number of distinct users |
+| ----- | ------------------------ |
+| 1     | 1000                     |
+| 500   | 22                       |
 
 The users with 500K and 1M have, essentially, disappeared from the system. The affect is similar to outlier removal in statistics, and the analyst needs to be aware that this is happening, and that there is no indication from Aircloak that it has happened.
 
@@ -234,7 +234,3 @@ The functions `stddev()` and `variance()` use the `avg()` function, and so flatt
 The `max()` function drops the rows for a small number of users with the highest values (using a noisy number of users as with `sum()`). It then takes the average value of the next small number of distinct users with the highest values, and uses this average as the max (with potentially some additional noise, if the spread among this set of values is high). As such, the anonymised max may be very far from the true max.
 
 The `min()` function operates the same as `max()`, except using low numbers. Unless the data includes negative numbers, `min()` tends to have less distortion than `max()`.
-
-### median()
-
-The `median()` function uses the average value of those of a small number of distinct users with values above and below the true median (with potentially some additional noise, if the spread among this set of values is high). In practice, the `median()` function only introduces significant distortion when values vary substantially around the true median.

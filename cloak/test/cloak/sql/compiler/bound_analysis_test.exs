@@ -120,7 +120,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       assert :unknown = expression.bounds
     end
 
-    for function <- ~w(avg min max median) do
+    for function <- ~w(avg min max) do
       test function do
         assert {123, 245} =
                  BoundAnalysis.set_bounds(function(unquote(function), [column_in_bounds({123, 245})], :real)).bounds

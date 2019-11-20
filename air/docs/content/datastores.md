@@ -122,7 +122,6 @@ This section lists the functions which will cause a query to be emulated.
 
   - `btrim`
   - `date_trunc`
-  - `median`
   - `trim`
 
 #### MongoDB
@@ -132,7 +131,6 @@ This section lists the functions which will cause a query to be emulated.
 - `date_trunc`
 - `hex`
 - `ltrim`
-- `median`
 - `rtrim`
 - `trim`
 
@@ -148,16 +146,7 @@ The following constructs are not natively supported on this data source and will
 
   - `btrim`
   - `date_trunc`
-  - `median`
   - `trim`
-
-#### PostgreSQL
-
-- `median`
-
-#### Oracle
-
-- `median`
 
 
 ## Database-specific notes

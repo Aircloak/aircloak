@@ -471,7 +471,7 @@ defmodule Cloak.Query.BasicTest do
     end
 
     test "avg uid" do
-      assert_query("select avg(height), median(height) from heights", %{
+      assert_query("select avg(height), stddev(height) from heights", %{
         columns: ["avg", _],
         rows: [%{row: [avg, _], occurrences: 1}]
       })
@@ -480,7 +480,7 @@ defmodule Cloak.Query.BasicTest do
     end
 
     test "stddev uid" do
-      assert_query("select stddev(height), median(height) from heights", %{
+      assert_query("select stddev(height), stddev(height) from heights", %{
         columns: ["stddev", _],
         rows: [%{row: [stddev, _], occurrences: 1}]
       })
@@ -498,7 +498,7 @@ defmodule Cloak.Query.BasicTest do
     end
 
     test "variance uid" do
-      assert_query("select variance(height), median(height) from heights", %{
+      assert_query("select variance(height), stddev(height) from heights", %{
         columns: ["variance", _],
         rows: [%{row: [variance, _], occurrences: 1}]
       })
@@ -515,13 +515,6 @@ defmodule Cloak.Query.BasicTest do
 
       # comparing stddev (sqrt(variance)) to match the stddev test above
       assert_in_delta(:math.sqrt(variance), 8.1, 0.2)
-    end
-
-    test "median" do
-      assert_query("select median(height) from heights", %{
-        columns: ["median"],
-        rows: [%{row: [179], occurrences: 1}]
-      })
     end
 
     test "sum(qualified_column)" do
@@ -571,13 +564,6 @@ defmodule Cloak.Query.BasicTest do
 
       # comparing stddev (sqrt(variance)) to match the stddev test above
       assert_in_delta(:math.sqrt(variance), 8.1, 0.2)
-    end
-
-    test "median(qualified_column)" do
-      assert_query("select median(heights.height) from heights", %{
-        columns: ["median"],
-        rows: [%{row: [179], occurrences: 1}]
-      })
     end
   end
 
@@ -637,13 +623,6 @@ defmodule Cloak.Query.BasicTest do
       # comparing stddev (sqrt(variance)) to match the stddev test above
       assert_in_delta(:math.sqrt(variance), 8.29, 0.1)
     end
-
-    test "median" do
-      assert_query("select median(height) from heights", %{
-        columns: ["median"],
-        rows: [%{row: [-184], occurrences: 1}]
-      })
-    end
   end
 
   describe "aggregating negative and positive values" do
@@ -702,20 +681,13 @@ defmodule Cloak.Query.BasicTest do
       # comparing stddev (sqrt(variance)) to match the stddev test above
       assert_in_delta(:math.sqrt(variance), 171, 1)
     end
-
-    test "median" do
-      assert_query("select median(height) from heights", %{
-        columns: ["median"],
-        rows: [%{row: [-176], occurrences: 1}]
-      })
-    end
   end
 
   test "should return nil when not enough values present for anonymization" do
-    :ok = insert_rows(_user_ids = 0..8, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 0..3, "heights", ["height"], [180])
 
-    assert_query("select median(height) from heights", %{
-      columns: ["median"],
+    assert_query("select stddev(height) from heights", %{
+      columns: ["stddev"],
       rows: [%{row: [nil], occurrences: 1}]
     })
   end
@@ -1342,7 +1314,7 @@ defmodule Cloak.Query.BasicTest do
     end
 
     test "not null filter" do
-      assert_query("select name from heights group by name having median(height) is not null order by 1", %{
+      assert_query("select name from heights group by name having stddev(height) is not null order by 1", %{
         columns: ["name"],
         rows: [%{row: ["dan"], occurrences: 1}, %{row: ["jon"], occurrences: 1}]
       })
@@ -1393,7 +1365,7 @@ defmodule Cloak.Query.BasicTest do
     end
 
     test "avg uid" do
-      assert_query("select avg_noise(height), median(height) from heights", %{
+      assert_query("select avg_noise(height), stddev(height) from heights", %{
         rows: [%{row: [0.0, _], occurrences: 1}]
       })
     end
@@ -1405,7 +1377,7 @@ defmodule Cloak.Query.BasicTest do
     end
 
     test "stddev uid" do
-      assert_query("select stddev_noise(height), median(height) from heights", %{
+      assert_query("select stddev_noise(height), stddev(height) from heights", %{
         rows: [%{row: [0.0, _], occurrences: 1}]
       })
     end
@@ -1417,7 +1389,7 @@ defmodule Cloak.Query.BasicTest do
     end
 
     test "variance uid" do
-      assert_query("select variance_noise(height), median(height) from heights", %{
+      assert_query("select variance_noise(height), stddev(height) from heights", %{
         rows: [%{row: [0.0, _], occurrences: 1}]
       })
     end
@@ -1678,10 +1650,10 @@ defmodule Cloak.Query.BasicTest do
     assert_query(
       """
         select
-          height, count(distinct height), min(height), max(height), median(height), round(avg(height))
+          height, count(distinct height), min(height), max(height), round(stddev(height)), round(avg(height))
         from heights group by height
       """,
-      %{rows: [%{row: [:*, 8, 153, 177, 173, 167]}]}
+      %{rows: [%{row: [:*, 8, 153, 177, 13, 167]}]}
     )
   end
 
@@ -1790,7 +1762,7 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 11..15, "heights", ["height", "name", "male"], [190, "Ana", false])
 
     assert_query(
-      "select male, name, height / 10, count(*), median(height) from heights group by cube (1, 2, 3) order by 1, 2, 3",
+      "select male, name, height / 10, count(*), stddev(height) from heights group by cube (1, 2, 3) order by 1, 2, 3",
       %{
         rows: [
           %{row: [false, "Ana", 18.0, 9, _]},
@@ -1832,7 +1804,7 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query(
       """
-      select median(gid) from (
+      select round(variance(gid)) from (
         select user_id, name, height, grouping_id(name, height) as gid
         from heights
         group by grouping sets ((1, 2), (1, 3), (1, 2, 3))
@@ -2067,10 +2039,10 @@ defmodule Cloak.Query.BasicTest do
     assert_query("select user_id from heights group by 1 having user_id <> ''", %{rows: [%{row: [:*], occurrences: 1}]})
   end
 
-  test "median with nulls" do
+  test "stddev with nulls" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
 
-    assert_query("select median(height) from heights", %{rows: [%{row: [nil], occurrences: 1}]})
+    assert_query("select stddev(height) from heights", %{rows: [%{row: [nil], occurrences: 1}]})
   end
 
   test "[Issue #3714] subtracting a later date from an earlier one" do

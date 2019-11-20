@@ -111,7 +111,6 @@ defmodule Cloak.Query.Aggregator.UserId do
   defp per_user_aggregator(%Expression{kind: :function, name: "variance_noise"}), do: :variance
   defp per_user_aggregator(%Expression{kind: :function, name: "min"}), do: :min
   defp per_user_aggregator(%Expression{kind: :function, name: "max"}), do: :max
-  defp per_user_aggregator(%Expression{kind: :function, name: "median"}), do: :list
 
   defp aggregate_value(_aggregator, _value, :NaN), do: :NaN
 
@@ -147,8 +146,6 @@ defmodule Cloak.Query.Aggregator.UserId do
 
   defp aggregate_value(:set, value, nil), do: MapSet.new([value])
   defp aggregate_value(:set, value, prev_values), do: MapSet.put(prev_values, value)
-  defp aggregate_value(:list, value, nil), do: [value]
-  defp aggregate_value(:list, value, prev_values), do: [value | prev_values]
   defp aggregate_value(:min, value, nil), do: {:min, value}
   defp aggregate_value(:min, value, {:min, prev_value}), do: {:min, min(value, prev_value)}
   defp aggregate_value(:max, value, nil), do: {:max, value}
@@ -168,10 +165,6 @@ defmodule Cloak.Query.Aggregator.UserId do
   defp merge_accumulators({value1, value2}) when is_number(value1) and is_number(value2),
     # sum and count accoumulators
     do: value1 + value2
-
-  defp merge_accumulators({value1, value2}) when is_list(value1) and is_list(value2),
-    # median accumulators
-    do: value1 ++ value2
 
   defp merge_accumulators({%{__struct__: MapSet} = value1, %{__struct__: MapSet} = value2}),
     # distinct accumulators
@@ -280,7 +273,7 @@ defmodule Cloak.Query.Aggregator.UserId do
   end
 
   defp aggregate_by(aggregation_data, aggregator, type, anonymizer)
-       when type in [:datetime, :date, :time] and aggregator in ["min", "max", "median"] do
+       when type in [:datetime, :date, :time] and aggregator in ["min", "max"] do
     aggregation_data
     |> Stream.map(fn
       {:min, value} -> {:min, Cloak.Time.to_integer(value)}
@@ -296,9 +289,6 @@ defmodule Cloak.Query.Aggregator.UserId do
 
   defp aggregate_by(aggregation_data, "max", type, anonymizer),
     do: Anonymizer.max(anonymizer, aggregation_data) |> float_to_type(type)
-
-  defp aggregate_by(aggregation_data, "median", type, anonymizer),
-    do: Anonymizer.median(anonymizer, aggregation_data) |> float_to_type(type)
 
   defp aggregate_by(_, unknown_aggregator, _type, _) do
     raise "Aggregator '#{unknown_aggregator}' is not supported!"

@@ -40,7 +40,7 @@ Enum.each(
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table)})
           |> assert_consistent_and_not_failing("""
             SELECT
-              output, MEDIAN(0)
+              output, STDDEV(0)
             FROM (
               SELECT
                 user_id,

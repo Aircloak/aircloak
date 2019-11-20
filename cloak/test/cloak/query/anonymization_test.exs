@@ -34,7 +34,7 @@ defmodule Cloak.Query.AnonymizationTest do
     end
 
     test "uid: counting values represented by many users" do
-      assert_query("select count(distinct number), median(0) from anonymizations", %{
+      assert_query("select count(distinct number), stddev(0) from anonymizations", %{
         columns: ["count", _],
         rows: [%{row: [5, _], occurrences: 1}]
       })
@@ -52,7 +52,7 @@ defmodule Cloak.Query.AnonymizationTest do
     test "uid: ignoring nils" do
       :ok = insert_rows(_user_ids = 41..49, "anonymizations", ["number"], [nil])
 
-      assert_query("select count(distinct number), median(0) from anonymizations", %{
+      assert_query("select count(distinct number), stddev(0) from anonymizations", %{
         columns: ["count", _],
         rows: [%{row: [5, _], occurrences: 1}]
       })
@@ -63,7 +63,7 @@ defmodule Cloak.Query.AnonymizationTest do
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [152])
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [153])
 
-      assert_query("select count(distinct number), median(0) from anonymizations", %{
+      assert_query("select count(distinct number), stddev(0) from anonymizations", %{
         columns: ["count", _],
         rows: [%{row: [5, _], occurrences: 1}]
       })
@@ -153,7 +153,7 @@ defmodule Cloak.Query.AnonymizationTest do
       for i <- 1..50, do: :ok = insert_rows(_user_ids = (i * 2)..100, "anonymizations", ["number"], [i])
 
       assert_query(
-        "select count(number), median(number) from anonymizations where number between 1 and 100 group by number",
+        "select count(number), stddev(number) from anonymizations where number between 1 and 100 group by number",
         %{rows: rows}
       )
 
@@ -202,21 +202,12 @@ defmodule Cloak.Query.AnonymizationTest do
     )
   end
 
-  test "median with large values" do
-    :ok = insert_rows(_user_ids = 1..100, "anonymizations", ["number"], [50])
-
-    assert_query(
-      "select median(1000000^number) from anonymizations",
-      %{rows: [%{row: [nil]}]}
-    )
-  end
-
   test "uid-based sum with large values" do
     :ok = insert_rows(_user_ids = 1..1000, "anonymizations", ["number"], [51])
 
     assert_query(
-      "select sum(1000000^number), median(1) from anonymizations",
-      %{rows: [%{row: [nil, 1]}]}
+      "select sum(1000000^number), stddev(1) from anonymizations",
+      %{rows: [%{row: [nil, 0.0]}]}
     )
   end
 
@@ -240,11 +231,11 @@ defmodule Cloak.Query.AnonymizationTest do
     end
 
     test "uid grouping sets" do
-      # using `median` forces uid-based anonymization
+      # using `stddev` forces uid-based anonymization
       assert_query(
         """
           select
-            left(string, 1), right(string, 1), count(distinct user_id), median(number)
+            left(string, 1), right(string, 1), count(distinct user_id), stddev(number)
           from anonymizations
           group by grouping sets ((1, 2), 1, 2, ())
         """,
@@ -265,11 +256,11 @@ defmodule Cloak.Query.AnonymizationTest do
     end
 
     test "uid cube" do
-      # using `median` forces uid-based anonymization
+      # using `stddev` forces uid-based anonymization
       assert_query(
         """
           select
-            left(string, 1), right(string, 1), count(distinct user_id), median(number)
+            left(string, 1), right(string, 1), count(distinct user_id), stddev(number)
           from anonymizations
           group by cube (1, 2)
         """,
@@ -409,7 +400,7 @@ defmodule Cloak.Query.AnonymizationTest do
     test "simple uid anon" do
       assert_query(
         """
-          select count(*), median(0) from anonymizations
+          select count(*), stddev(0) from anonymizations
         """,
         %{
           rows: [
@@ -420,7 +411,7 @@ defmodule Cloak.Query.AnonymizationTest do
 
       assert_query(
         """
-          select left(string, 1), count(*), median(0)
+          select left(string, 1), count(*), stddev(0)
           from anonymizations
           group by grouping sets (1, ())
           order by 1
@@ -438,7 +429,7 @@ defmodule Cloak.Query.AnonymizationTest do
     test "uid anon with filter" do
       assert_query(
         """
-          select count(*), median(0) from anonymizations where number = 1
+          select count(*), stddev(0) from anonymizations where number = 1
         """,
         %{
           rows: [
@@ -449,7 +440,7 @@ defmodule Cloak.Query.AnonymizationTest do
 
       assert_query(
         """
-          select left(string, 1), count(*), median(0)
+          select left(string, 1), count(*), stddev(0)
           from anonymizations
           where number = 1
           group by grouping sets (1, ())

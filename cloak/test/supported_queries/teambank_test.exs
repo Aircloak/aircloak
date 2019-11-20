@@ -454,8 +454,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     FROM (
       SELECT
         income_by_month.inhaberId,
-        -- Use median to not have outlier months impact values
-        median(monthly_income) as income
+        avg(monthly_income) as income
       FROM (
         SELECT
           inhaberId,
@@ -482,7 +481,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     FROM (
       SELECT
         inhaberId,
-        median(transactions_count) as number_of_transactions
+        avg(transactions_count) as number_of_transactions
       FROM (
         SELECT
           inhaberId,
@@ -527,8 +526,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     FROM (
       SELECT
         income_by_month.inhaberId,
-        -- Use median to not have outlier months impact values
-        median(monthly_income) as income
+        avg(monthly_income) as income
       FROM (
         SELECT
           inhaberId,
@@ -570,7 +568,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
       bucket(income by 200 align middle) as income_class,
       count(*)
     FROM (
-      SELECT inhaberId, median(monthly_income) as income FROM (
+      SELECT inhaberId, avg(monthly_income) as income FROM (
         SELECT
           inhaberId,
           left(cast(buchungsDatum as text), 7) as year_month,
@@ -594,7 +592,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
       bucket(income by 200 align middle) as income_class,
       count(*)
     FROM (
-      SELECT inhaberId, institution, median(monthly_income) as income FROM (
+      SELECT inhaberId, institution, avg(monthly_income) as income FROM (
         SELECT
           umsatz.inhaberId,
           left(cast(buchungsDatum as text), 7) as year_month,
@@ -622,9 +620,8 @@ defmodule Cloak.Regressions.TeamBank.Test do
     FROM (
       SELECT
         expenses_by_month.inhaberId,
-        -- Use median to not have outlier months impact values
-        median(monthly_income) as income,
-        median(monthly_income) + median(monthly_expenses) as monthly_savings
+        avg(monthly_income) as income,
+        avg(monthly_income) + avg(monthly_expenses) as monthly_savings
       FROM (
         SELECT
           inhaberId,
@@ -695,9 +692,9 @@ defmodule Cloak.Regressions.TeamBank.Test do
     query = """
     SELECT
       expenses_by_month.inhaberId,
-      median(monthly_income) as median_income,
-      median(monthly_expenses) as median_expenses,
-      median(monthly_income) + median(monthly_expenses) as median_savings
+      avg(monthly_income) as avg_income,
+      avg(monthly_expenses) as avg_expenses,
+      avg(monthly_income) + avg(monthly_expenses) as avg_savings
     FROM (
       SELECT
         inhaberId,
@@ -732,8 +729,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
       year(buchungsDatum) as year,
       month(buchungsDatum) as month,
       AVG(betrag),
-      STDDEV(betrag),
-      MEDIAN(betrag)
+      STDDEV(betrag)
     FROM umsatz
     WHERE buchungstext ILIKE '%lohn%'
     GROUP BY year, month
