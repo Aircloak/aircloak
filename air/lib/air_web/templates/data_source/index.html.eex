@@ -1,8 +1,7 @@
 <%= if @main_message not in ["", nil] do %>
-  <div id="main-message" class="panel panel-heading">
-    <center><%= raw(Earmark.as_html!(@main_message)) %></center>
+  <div id="info-message" class="panel">
+    <%= raw(Earmark.as_html!(@main_message)) %>
   </div>
-  <br/>
 <% end %>
 
 <h2>Data sources</h2>

@@ -188,3 +188,28 @@ h2 {
   background-color: white;
   color: black;
 }
+
+/* ******************************************************************
+ * Formatting of user provided information screens
+ ***************************************************************** */
+
+#info-message h1 {
+  font-size: 2em;
+  border: unset;
+  padding: 0;
+  margin: 1em 0 0.2em 0;
+}
+
+#info-message h2 {
+  font-size: 1.6em;
+  border: unset;
+  padding: 0;
+  margin: 1em 0 0.2em 0;
+}
+
+#info-message h3 {
+  font-size: 1.3em;
+  border: unset;
+  padding: 0;
+  margin: 1em 0 0.2em 0;
+}
