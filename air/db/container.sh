@@ -8,6 +8,7 @@ cd $(dirname $0)
 cd ../..
 
 DOCKER_DATA=${DOCKER_DATA:-$(pwd)}
+DOCKER_DATA=${DOCKER_DATA%/} # Remove trailing slash
 
 if [ "$DB_ENV" == "dev" ] || [ "$DB_ENV" == "test" ]; then
   db_port=$(cat air/priv/config/$DB_ENV.json | jq --raw-output ".database.port")

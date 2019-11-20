@@ -8,6 +8,7 @@ cd $(dirname ${BASH_SOURCE[0]})
 ./db/build-image.sh
 
 DOCKER_DATA=${DOCKER_DATA:-$(dirname $(pwd))}
+DOCKER_DATA=${DOCKER_DATA%/} # Remove trailing slash
 
 echo "Starting databases for central"
 DB_ENV="dev" ./db/container.sh ensure_started
