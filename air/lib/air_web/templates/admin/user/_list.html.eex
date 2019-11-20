@@ -41,7 +41,7 @@
               "data-confirm": "Sign out the user #{user.name} from all devices?" %>
           <% end %>
 
-          <%= if can_disable?(user) do %>
+          <%= if can_disable?(@conn, user) do %>
             <%= link "Disable", to: admin_user_user_path(@conn, :disable, user),
                   method: :put, class: "btn btn-default btn-xs" %>
           <% end %>
@@ -51,7 +51,7 @@
                   method: :put, class: "btn btn-default btn-xs" %>
           <% end %>
 
-          <%= if can_delete?(user) do %>
+          <%= if can_delete?(@conn, user) do %>
             <%= link "Permanently delete", to: admin_user_path(@conn, :delete, user), method: :delete,
                   class: "btn btn-danger btn-xs",
                   "data-confirm": ~s(Delete the user "#{user.name}"?) <>

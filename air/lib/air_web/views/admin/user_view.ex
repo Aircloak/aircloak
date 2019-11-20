@@ -46,15 +46,33 @@ defmodule AirWeb.Admin.UserView do
     Air.Service.User.main_login(user)
   end
 
+  defp can_disable?(conn, user) do
+    if is_self?(conn, user) do
+      false
+    else
+      can_disable?(user)
+    end
+  end
+
   defp can_disable?(%{source: :ldap}), do: false
   defp can_disable?(%{source: :native, enabled: enabled}), do: enabled
 
   defp can_enable?(%{source: :ldap}), do: false
   defp can_enable?(%{source: :native, enabled: enabled}), do: not enabled
 
+  defp can_delete?(conn, user) do
+    if is_self?(conn, user) do
+      false
+    else
+      can_delete?(user)
+    end
+  end
+
   defp can_delete?(%{source: :ldap, enabled: enabled}), do: not enabled
   defp can_delete?(%{source: :native}), do: true
 
   defp can_edit?(%{source: :ldap}), do: false
   defp can_edit?(%{source: :native}), do: true
+
+  defp is_self?(conn, user), do: conn.assigns.current_user.id == user.id
 end
