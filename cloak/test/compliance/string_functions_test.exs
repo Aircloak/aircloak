@@ -38,6 +38,7 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
+          |> disable_for(:all, unquote(table) == "users_public")
           |> disable_for(Cloak.DataSource.SQLServer, match?("hex" <> _, unquote(function)))
           |> disable_unicode(unquote(function), unquote(column))
           |> assert_consistent_and_not_failing("""

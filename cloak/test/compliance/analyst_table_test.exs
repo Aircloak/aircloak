@@ -441,7 +441,7 @@ defmodule Compliance.AnalystTableTest do
           assert_query(
             "select bar.foo from (select table46.uid, stddev(1) as foo from table46 group by 1) as bar",
             [analyst_id: 1, data_sources: [data_source]],
-            %{columns: ["foo"], rows: [%{row: [0]}]}
+            %{columns: ["foo"], rows: [%{row: [0.0]}, %{row: [nil]}]}
           )
         end
       end
