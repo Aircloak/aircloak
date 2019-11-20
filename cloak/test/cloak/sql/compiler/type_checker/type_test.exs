@@ -78,11 +78,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       assert expression_name(type.history_of_columns_involved) == ["string", "numeric"]
     end
 
-    test "deduplicates columns" do
-      type = type_first_column("SELECT concat(string, string) FROM table")
-      assert expression_name(type.history_of_columns_involved) == ["string"]
-    end
-
     def expression_name(columns), do: Enum.map(columns, & &1.name)
   end
 
@@ -186,54 +181,62 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
         )
   end
 
-  describe "clear_column?" do
-    test "true for raw columns", do: assert(type_first_column("SELECT numeric FROM table") |> Type.clear_column?())
+  describe "clear_expression?" do
+    test "true for raw columns", do: assert(type_first_column("SELECT numeric FROM table") |> Type.clear_expression?())
 
     test "true for raw columns from subqueries",
       do:
         assert(
           type_first_column("SELECT n FROM (SELECT numeric AS n FROM table) x")
-          |> Type.clear_column?()
+          |> Type.clear_expression?()
         )
 
     test "true for columns with one cast",
       do:
         assert(
           type_first_column("SELECT CAST(numeric AS text) FROM table")
-          |> Type.clear_column?()
+          |> Type.clear_expression?()
         )
 
     test "false for columns with multiple casts",
       do:
         refute(
           type_first_column("SELECT CAST(CAST(numeric AS text) AS real) FROM table")
-          |> Type.clear_column?()
+          |> Type.clear_expression?()
         )
 
     test "false for expressions with more than one column",
-      do: refute(type_first_column("SELECT numeric + numeric FROM table") |> Type.clear_column?())
+      do: refute(type_first_column("SELECT numeric + numeric FROM table") |> Type.clear_expression?(["+"]))
 
     test "false for processed columns",
-      do: refute(type_first_column("SELECT sqrt(numeric) FROM table") |> Type.clear_column?())
+      do: refute(type_first_column("SELECT sqrt(numeric) FROM table") |> Type.clear_expression?())
+
+    test "ignores nested allowed functions",
+      do:
+        assert(
+          type_first_column("SELECT round(numeric + 1) FROM table")
+          |> Type.clear_expression?()
+        )
 
     test "ignores allowed functions",
       do:
         assert(
           type_first_column("SELECT sqrt(numeric) FROM table")
-          |> Type.clear_column?(&(&1 == "sqrt"))
+          |> Type.clear_expression?(["sqrt"])
         )
 
     test "does not ignore nested, not allowed functions",
       do:
         refute(
           type_first_column("SELECT sqrt(abs(numeric)) FROM table")
-          |> Type.clear_column?(&(&1 == "sqrt"))
+          |> Type.clear_expression?(["sqrt"])
         )
 
-    test "ignores aggregates", do: assert(type_first_column("SELECT max(numeric) FROM table") |> Type.clear_column?())
+    test "ignores aggregates",
+      do: assert(type_first_column("SELECT max(numeric) FROM table") |> Type.clear_expression?())
 
     test "does not ignore functions in aggregates",
-      do: refute(type_first_column("SELECT max(sqrt(numeric)) FROM table") |> Type.clear_column?())
+      do: refute(type_first_column("SELECT max(sqrt(numeric)) FROM table") |> Type.clear_expression?())
   end
 
   defp constant_involved?(query), do: type_first_column(query).constant_involved?

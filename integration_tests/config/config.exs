@@ -19,14 +19,6 @@ config :phoenix, :template_engines, md: Air.Phoenix.MarkdownEngine
 
 config :aircloak_common, :env, Mix.env()
 
-config :hound,
-  driver: "chrome_driver",
-  browser: "chrome_headless",
-  port: 4444,
-  path_prefix: "wd/hub/",
-  retry_time: 500,
-  retries: 5
-
 import_config "air.exs"
 import_config "cloak.exs"
 import_config "central.exs"

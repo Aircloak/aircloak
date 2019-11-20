@@ -8,4 +8,6 @@ publish_logs.txt
 .DS_Store
 .Rproj.user
 
-Aircloak.code-workspace # VSCode related
+# VSCode related
+Aircloak.code-workspace
+.elixir_ls
