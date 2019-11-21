@@ -25,8 +25,8 @@ defmodule Air.Service.AuditLogTest do
 
     [first, _, last] = Repo.all(Air.Schemas.AuditLog |> order_by(:inserted_at))
 
-    from = first.inserted_at |> Timex.shift(milliseconds: 1)
-    to = last.inserted_at |> Timex.shift(milliseconds: -1)
+    from = first.inserted_at |> Timex.shift(microseconds: 10)
+    to = last.inserted_at |> Timex.shift(microseconds: -10)
     assert entries_count(params(%{from: from, to: to}), 1)
   end
 
