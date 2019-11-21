@@ -17,8 +17,4 @@ defmodule Cloak.Stats.Test do
   test "sum" do
     assert 0..1000 |> Enum.shuffle() |> Stats.sum() == 500_500
   end
-
-  test "median" do
-    assert 0..1_000_000 |> Enum.shuffle() |> Stats.median() == 500_000
-  end
 end

@@ -643,47 +643,6 @@ SELECT max(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
    ZUNIGA
 ```
 
-### median
-
-Finds the median value of the given expression.
-
-```sql
-SELECT median(age) FROM people
-
-   median
-  --------
-       29
-
-SELECT lastname, median(age) FROM people GROUP BY 1
-
-   lastname | median
-  ----------+--------
-   ABBOTT   |     29
-   ACEVEDO  |     31
-   ...      |    ...
-```
-
-Note that the computed median value is anonymized - it requires a number of users to share this value, so in many cases
-the true value will be smaller or larger. Furthermore, Insights Cloak's anonymizing `median` function doesn't work on
-textual values:
-
-```sql
-SELECT median(lastname) FROM people
-
-  ERROR:  Aggregator `median` is not allowed over arguments of type `text` in anonymizing contexts.
-  For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
-```
-
-However, you can still use `median` to postprocess textual results of an anonymizing subquery:
-
-```sql
-SELECT median(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
-
-   median
-  --------
-   KIRK
-```
-
 ### min
 
 Finds the minimum value of the given expression.

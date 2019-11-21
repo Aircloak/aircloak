@@ -44,7 +44,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   @allowed_clear_casts 1
   @allowed_clear_funs 0
+  @allowed_clear_columns 1
   @allowed_clear_string_manipulations 1
+
+  @allowed_functions ~w(
+    lower upper substring trim ltrim rtrim btrim hex left right
+    hour minute second year quarter month day weekday date_trunc
+    trunc floor ceil round + - bucket
+  )
 
   # -------------------------------------------------------------------
   # API
@@ -79,18 +86,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   @doc """
   Returns true if the expression with the given type is a column from the database without any processing other than
-  one cast, false otherwise. Functions in allowed_functions are ignored.
+  one cast, false otherwise. Functions specified in `allowed_functions` are ignored.
   """
-  @spec clear_column?(t, (String.t() -> boolean)) :: boolean
-  def clear_column?(type, allowed_function? \\ fn _ -> false end) do
+  @spec clear_expression?(t, [String.t()]) :: boolean
+  def clear_expression?(type, allowed_functions \\ @allowed_functions) do
     transforms =
       transformation_count(type, fn function ->
-        not Function.cast?(function) and not Function.aggregator?(function) and not allowed_function?.(function)
+        not Function.cast?(function) and not Function.aggregator?(function) and
+          Function.readable_name(function) not in allowed_functions
       end)
 
     casts = transformation_count(type, &Function.cast?/1)
 
-    transforms <= @allowed_clear_funs and casts <= @allowed_clear_casts
+    transforms <= @allowed_clear_funs and casts <= @allowed_clear_casts and
+      Enum.count(type.history_of_columns_involved) <= @allowed_clear_columns
   end
 
   @doc "Returns true if the expression with the given type contains a string manipulation function, false otherwise."
@@ -99,12 +108,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   @doc """
   Returns true if the expression with the given type contains a string manipulation function together with other
-  transformations, false otherwise. Aggregators and a single cast are ignored.
+  transformations, false otherwise. Aggregators, a single cast, `lower` and `upper` are ignored.
   """
   def unclear_string_manipulation?(type) do
     casts = transformation_count(type, &Function.cast?/1)
 
-    transforms = transformation_count(type, &(not Function.aggregator?(&1) and not Function.cast?(&1)))
+    transforms =
+      transformation_count(
+        type,
+        &(not Function.aggregator?(&1) and not Function.cast?(&1) and &1 not in ~w(lower upper))
+      )
 
     string_manipulation?(type) and (casts > @allowed_clear_casts or transforms > @allowed_clear_string_manipulations)
   end
@@ -129,13 +142,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
       history_of_columns_involved: [expression]
     }
 
-  defp type_for_function(%Expression{kind: :function, name: name, args: args}, query) do
-    child_types = args |> Enum.map(&establish_type(&1, query))
+  defp type_for_function(%Expression{kind: :function} = function, query) do
+    args = if Function.aggregator?(function), do: [hd(function.args)], else: function.args
+    child_types = Enum.map(args, &establish_type(&1, query))
+
     # Prune constants, they don't interest us further
     if Enum.all?(child_types, & &1.constant?) do
       constant()
     else
-      applied_functions = [name | Enum.flat_map(child_types, & &1.applied_functions)]
+      applied_functions = [function.name | Enum.flat_map(child_types, & &1.applied_functions)]
 
       %Type{
         applied_functions: applied_functions,
@@ -144,7 +159,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
             math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
         history_of_columns_involved: combined_columns_involved(child_types)
       }
-      |> extend_history_of_restricted_transformations(name, child_types)
+      |> extend_history_of_restricted_transformations(function.name, child_types)
     end
   end
 
@@ -161,10 +176,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
       |> Enum.count()
 
   defp combined_columns_involved(child_types),
-    do:
-      child_types
-      |> Enum.flat_map(& &1.history_of_columns_involved)
-      |> Enum.uniq()
+    do: Enum.flat_map(child_types, & &1.history_of_columns_involved)
 
   defp extend_history_of_restricted_transformations(
          %Type{constant_involved?: constant_involved?} = type,

@@ -46,8 +46,8 @@ defmodule Cloak.Query.ParallelStreamingTest do
 
     for concurrency <- 2..5 do
       assert_query(
-        "SELECT COUNT(*), COUNT(DISTINCT value), MIN(value), MEDIAN(value), SUM(value) FROM #{@table}",
-        %{rows: [%{row: [4200, 5, -2, 0, -200]}]},
+        "SELECT COUNT(*), COUNT(DISTINCT value), MIN(value), round(VARIANCE(value)), SUM(value) FROM #{@table}",
+        %{rows: [%{row: [4200, 5, -2, 2, -200]}]},
         concurrency: concurrency
       )
     end

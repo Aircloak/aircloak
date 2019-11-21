@@ -23,7 +23,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "adds a non-nil condition on user_id for top query" do
-    query = compile!("select median(uid) from (select uid, column from table) as t", data_source())
+    query = compile!("select stddev(uid) from (select uid, column from table) as t", data_source())
     assert {:not, {:is, %{name: "uid"}, :null}} = query.where
     {:subquery, %{ast: subquery}} = query.from
     assert nil == subquery.where
@@ -127,7 +127,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casts datetime where conditions" do
     result =
       compile!(
-        "select median(uid) from table where column > '2015-01-01' and column < '2016-01-01'",
+        "select stddev(uid) from table where column > '2015-01-01' and column < '2016-01-01'",
         data_source()
       )
 
@@ -144,7 +144,7 @@ defmodule Cloak.Sql.Compiler.Test do
       )
 
   test "[Issue #2562] doesn't cast expressions that are already datetime" do
-    result = compile!("select median(uid) from table where column = cast('2017-01-01' as datetime)", data_source())
+    result = compile!("select stddev(uid) from table where column = cast('2017-01-01' as datetime)", data_source())
 
     assert [_is_not_null_id, {:comparison, column("table", "column"), :=, value}] = conditions_list(result.where)
     assert value == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
@@ -153,7 +153,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "[Issue #2562] doesn't cast expressions that are already datetime in IN" do
     result =
       compile!(
-        "select median(uid) from table where column IN (cast('2017-01-01' as datetime), '2017-02-02')",
+        "select stddev(uid) from table where column IN (cast('2017-01-01' as datetime), '2017-02-02')",
         data_source()
       )
 
@@ -169,7 +169,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casts time where conditions" do
     assert %{where: {:and, _is_not_null_id, range}} =
              compile!(
-               "select median(uid) from table where column >= '01:00:00' and column < '02:00:00'",
+               "select stddev(uid) from table where column >= '01:00:00' and column < '02:00:00'",
                time_data_source()
              )
 
@@ -180,7 +180,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casts date where conditions" do
     assert %{where: {:and, _is_not_null_id, range}} =
              compile!(
-               "select median(uid) from table where column >= '2015-01-01' and column < '2016-01-01'",
+               "select stddev(uid) from table where column >= '2015-01-01' and column < '2016-01-01'",
                date_data_source()
              )
 
@@ -189,7 +189,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "casts datetime in `in` conditions" do
-    result = compile!("select median(uid) from table where column in ('2015-01-01', '2015-01-02')", data_source())
+    result = compile!("select stddev(uid) from table where column in ('2015-01-01', '2015-01-02')", data_source())
 
     assert {:and, {:not, {:is, column("table", "uid"), :null}}, {:in, column("table", "column"), times}} = result.where
 
@@ -198,7 +198,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "casts datetime in negated conditions" do
-    result = compile!("select median(uid) from table where column <> '2015-01-01'", data_source())
+    result = compile!("select stddev(uid) from table where column <> '2015-01-01'", data_source())
 
     assert {:and, {:not, {:is, column("table", "uid"), :null}}, {:comparison, column("table", "column"), :<>, value}} =
              result.where
@@ -207,7 +207,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "casts integers to reals in IN" do
-    result = compile!("select median(uid) from table where float IN (1, 1.1)", data_source())
+    result = compile!("select stddev(uid) from table where float IN (1, 1.1)", data_source())
 
     assert {:and, {:not, {:is, column("table", "uid"), :null}}, {:in, column("table", "float"), values}} = result.where
     assert [%Expression{type: :real, value: 1}, %Expression{type: :real, value: 1.1}] = values
@@ -231,7 +231,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
-  for function <- ~w(min max median) do
+  for function <- ~w(min max) do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
 
@@ -310,7 +310,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
-  for function <- ~w(count avg min max sum stddev median) do
+  for function <- ~w(count avg min max sum stddev) do
     test "rejecting #{function} in group by" do
       query = "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric)"
 
@@ -535,14 +535,14 @@ defmodule Cloak.Sql.Compiler.Test do
   test "aligning ranges in joins" do
     query1 =
       compile!(
-        "SELECT median(table.uid) FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3" <>
+        "SELECT stddev(table.uid) FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3" <>
           " AND numeric < 9",
         data_source()
       )
 
     query2 =
       compile!(
-        "SELECT median(table.uid) FROM table JOIN other_table ON table.uid = other_table.uid AND numeric >= 0" <>
+        "SELECT stddev(table.uid) FROM table JOIN other_table ON table.uid = other_table.uid AND numeric >= 0" <>
           " AND numeric < 10",
         data_source()
       )
@@ -596,29 +596,29 @@ defmodule Cloak.Sql.Compiler.Test do
     assert %{
              columns: [
                %Expression{
-                 name: "median",
+                 name: "variance",
                  args: [column("table", "numeric")]
                }
              ]
-           } = compile!("select median(table.numeric) from table", data_source())
+           } = compile!("select variance(table.numeric) from table", data_source())
   end
 
   test "qualifies all identifiers" do
     result =
       compile!(
         """
-          SELECT column, median(column)
+          SELECT column, variance(numeric)
           FROM table
           WHERE numeric >= 1 and numeric < 9 and column <> '2015-01-02'
           GROUP BY column
-          ORDER BY median(column) DESC, median(table.column) DESC
+          ORDER BY variance(numeric) DESC, variance(table.numeric) DESC
         """,
         data_source()
       )
 
     assert [
              column("table", "column"),
-             %Expression{name: "median", args: [column("table", "column")]}
+             %Expression{name: "variance", args: [column("table", "numeric")]}
            ] = result.columns
 
     conditions = conditions_list(result.where)
@@ -628,8 +628,8 @@ defmodule Cloak.Sql.Compiler.Test do
     assert Enum.any?(conditions, &match?({:comparison, column("table", "column"), :<>, _}, &1))
     assert [column("table", "column")] = result.group_by
     assert [{expr_1, :desc, _}, {expr_2, :desc, _}] = result.order_by
-    assert %Expression{name: "median"} = expr_1
-    assert %Expression{name: "median"} = expr_2
+    assert %Expression{name: "variance"} = expr_1
+    assert %Expression{name: "variance"} = expr_2
   end
 
   test "complains when tables don't exist" do
@@ -664,7 +664,7 @@ defmodule Cloak.Sql.Compiler.Test do
     result =
       compile!(
         """
-          SELECT t1.c1, MEDIAN(t1.uid)
+          SELECT t1.c1, STDDEV(t1.uid)
           FROM t1, t2
           WHERE c2 > 10 AND c2 < 20
           AND t1.uid = t2.uid
@@ -928,7 +928,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "columns for fetching are not duplicated" do
-    columns = compile!("select median(uid) from table where numeric >= 0.1 and numeric < 1.9", data_source()).db_columns
+    columns = compile!("select stddev(uid) from table where numeric >= 0.1 and numeric < 1.9", data_source()).db_columns
 
     assert Enum.count(columns, &(&1.name == "numeric")) == 1
   end
@@ -1001,8 +1001,8 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "bucket sizes are aligned, adding an info message" do
-    first = compile!("select bucket(numeric by 0.11) as foo, median(uid) from table group by numeric", data_source())
-    second = compile!("select bucket(numeric by 0.1) as foo, median(uid) from table group by numeric", data_source())
+    first = compile!("select bucket(numeric by 0.11) as foo, stddev(uid) from table group by numeric", data_source())
+    second = compile!("select bucket(numeric by 0.1) as foo, stddev(uid) from table group by numeric", data_source())
 
     assert Map.drop(first, [:info]) == Map.drop(second, [:info])
     assert ["Bucket size adjusted from 0.11 to 0.1"] = first.info
@@ -1018,7 +1018,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "limit is aligned with a message in subqueries" do
     result =
       compile!(
-        "select median(uid) from (select * from table order by numeric limit 24) foo",
+        "select stddev(uid) from (select * from table order by numeric limit 24) foo",
         data_source()
       )
 
@@ -1029,7 +1029,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "minimum limit is 10 in subqueries" do
     result =
       compile!(
-        "select median(uid) from (select * from table order by numeric limit 5) foo",
+        "select stddev(uid) from (select * from table order by numeric limit 5) foo",
         data_source()
       )
 
@@ -1038,7 +1038,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "limit is not changed in the root query" do
-    result = compile!("select numeric, median(uid) from table group by 1 order by 1 limit 9", data_source())
+    result = compile!("select numeric, stddev(uid) from table group by 1 order by 1 limit 9", data_source())
     assert result.limit == 9
   end
 
@@ -1055,7 +1055,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "offset must be a multiple of limit post-alignment" do
     result =
       compile!(
-        "select median(uid) from (select * from table order by numeric limit 20 offset 31) foo",
+        "select stddev(uid) from (select * from table order by numeric limit 20 offset 31) foo",
         data_source()
       )
 
@@ -1085,7 +1085,7 @@ defmodule Cloak.Sql.Compiler.Test do
     %{from: {:subquery, %{ast: aligned}}} =
       compile!(
         """
-          select median(uid) from (select uid from table group by uid having avg(numeric) >= 0.0 and avg(numeric) < 5.0) x
+          select stddev(uid) from (select uid from table group by uid having avg(numeric) >= 0.0 and avg(numeric) < 5.0) x
         """,
         data_source()
       )
@@ -1093,7 +1093,7 @@ defmodule Cloak.Sql.Compiler.Test do
     %{from: {:subquery, %{ast: unaligned}}} =
       compile!(
         """
-          select median(uid) from (select uid from table group by uid having avg(numeric) > 0.1 and avg(numeric) <= 4.9) x
+          select stddev(uid) from (select uid from table group by uid having avg(numeric) > 0.1 and avg(numeric) <= 4.9) x
         """,
         data_source()
       )
@@ -1124,10 +1124,10 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "dotted columns can be used unquoted" do
     assert %{columns: [column("table", "column.with.dots"), _]} =
-             compile!("select column.with.dots, median(uid) from table group by 1", dotted_data_source())
+             compile!("select column.with.dots, stddev(uid) from table group by 1", dotted_data_source())
 
     assert %{columns: [column("table", "column.with.dots"), _]} =
-             compile!("select table.column.with.dots, median(uid) from table group by 1", dotted_data_source())
+             compile!("select table.column.with.dots, stddev(uid) from table group by 1", dotted_data_source())
   end
 
   test "view error" do
@@ -1253,7 +1253,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   describe "key columns" do
     test "marking key columns" do
-      result = compile!("SELECT key, median(uid) FROM table group by 1", data_source())
+      result = compile!("SELECT key, stddev(uid) FROM table group by 1", data_source())
 
       assert result.columns |> Enum.at(0) |> Expression.key?()
     end

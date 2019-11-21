@@ -5,6 +5,7 @@ defmodule AirWeb.Admin.UserController do
   alias Air.Service.{User, LDAP}
 
   plug(:load_user when action in [:edit, :update, :delete, :disable, :enable, :reset_password, :delete_sessions])
+  plug(:prevent_action_on_self when action in [:delete, :disable])
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -173,6 +174,19 @@ defmodule AirWeb.Admin.UserController do
     case User.load(conn.params["id"] || conn.params["user_id"]) do
       {:ok, user} -> assign(conn, :user, user)
       {:error, :not_found} -> not_found(conn)
+    end
+  end
+
+  defp prevent_action_on_self(conn, _params) do
+    %{user: user, current_user: current_user} = conn.assigns
+
+    if user.id == current_user.id do
+      conn
+      |> put_flash(:error, "Cannot perform this action on current user.")
+      |> redirect(to: admin_user_path(conn, :index))
+      |> halt()
+    else
+      conn
     end
   end
 

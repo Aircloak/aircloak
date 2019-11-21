@@ -11,6 +11,8 @@
 ### Changes
 
 - Support for some obsolete cloak features and config fields (decoders, projections, user_id) was removed.
+- Support for `median` was removed.
+- The set of query restrictions was simplified and clarified.
 
 ### Known issues
 

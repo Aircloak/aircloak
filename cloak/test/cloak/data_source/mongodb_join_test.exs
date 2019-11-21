@@ -49,9 +49,9 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     assert_query(
       context,
       """
-        SELECT round(MEDIAN(salary)) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE age = 30
+        SELECT round(variance(salary)) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE age = 30
       """,
-      %{rows: [%{occurrences: 1, row: [127]}]}
+      %{rows: [%{occurrences: 1, row: [6208]}]}
     )
   end
 
@@ -103,11 +103,11 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     assert_query(
       context,
       """
-        SELECT round(MEDIAN(salary))
+        SELECT round(variance(salary))
         FROM "left" INNER JOIN "right"
         ON "left".id = "right".id AND age + 1 = 31
       """,
-      %{rows: [%{occurrences: 1, row: [127]}]}
+      %{rows: [%{occurrences: 1, row: [6208]}]}
     )
   end
 
@@ -173,10 +173,10 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     assert_query(
       context,
       """
-        SELECT round(MEDIAN(salary)) FROM "left"
+        SELECT round(variance(salary)) FROM "left"
           INNER JOIN "right" ON "left".id = "right".id AND name LIKE 'user%'
       """,
-      %{rows: [%{occurrences: 1, row: [133]}]}
+      %{rows: [%{occurrences: 1, row: [6208]}]}
     )
   end
 

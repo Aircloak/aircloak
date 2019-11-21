@@ -68,17 +68,6 @@ defmodule Aircloak.Functions do
                  attributes: [:aggregator],
                  type_specs: %{[numeric] => :real}
                },
-               ~w(median) => %{
-                 attributes: [:aggregator],
-                 type_specs: %{
-                   [:integer] => :integer,
-                   [:real] => :real,
-                   [:date] => :date,
-                   [:time] => :time,
-                   [:datetime] => :datetime,
-                   [:text] => :text
-                 }
-               },
                ~w(min max) => %{
                  attributes: [:aggregator],
                  type_specs: %{

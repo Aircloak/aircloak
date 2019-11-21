@@ -157,8 +157,8 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "subqueries" do
-      assert %{functions: ["median", "sqrt"], top_level_functions: ["median"], subquery_functions: ["sqrt"]} =
-               features_from("SELECT median(h) FROM (SELECT sqrt(height) as h FROM feat_users) x")
+      assert %{functions: ["variance", "sqrt"], top_level_functions: ["variance"], subquery_functions: ["sqrt"]} =
+               features_from("SELECT variance(h) FROM (SELECT sqrt(height) as h FROM feat_users) x")
     end
 
     test "deduplicates functions used" do
@@ -204,16 +204,16 @@ defmodule Cloak.Sql.QueryTest do
 
     test "filter in HAVING" do
       assert %{
-               filters: ["(= (median col) const)"],
-               top_level_filters: ["(= (median col) const)"],
+               filters: ["(= (variance col) const)"],
+               top_level_filters: ["(= (variance col) const)"],
                subquery_filters: []
-             } = features_from("SELECT COUNT(*) FROM feat_users GROUP BY name HAVING MEDIAN(height) = 0")
+             } = features_from("SELECT COUNT(*) FROM feat_users GROUP BY name HAVING VARIANCE(height) = 0")
     end
 
     test "subqueries" do
       assert %{
-               filters: ["(= (median col) const)", "(<> col const)"],
-               top_level_filters: ["(= (median col) const)"],
+               filters: ["(= (variance col) const)", "(<> col const)"],
+               top_level_filters: ["(= (variance col) const)"],
                subquery_filters: ["(<> col const)"]
              } =
                features_from("""
@@ -223,7 +223,7 @@ defmodule Cloak.Sql.QueryTest do
                    WHERE height <> 0
                  ) foo
                  GROUP BY foo.height
-                 HAVING MEDIAN(foo.height) = 0
+                 HAVING VARIANCE(foo.height) = 0
                """)
     end
 
@@ -280,17 +280,17 @@ defmodule Cloak.Sql.QueryTest do
   describe "number of group by clauses" do
     test "no group by" do
       assert %{num_top_level_group_by: 0, num_subquery_group_by: 0, num_group_by: 0} =
-               features_from("SELECT median(height) FROM feat_users")
+               features_from("SELECT stddev(height) FROM feat_users")
     end
 
     test "top-level group by" do
       assert %{num_top_level_group_by: 1, num_subquery_group_by: 0, num_group_by: 1} =
-               features_from("SELECT median(height) FROM feat_users GROUP BY height")
+               features_from("SELECT stddev(height) FROM feat_users GROUP BY height")
     end
 
     test "subquery group by" do
       assert %{num_top_level_group_by: 0, num_subquery_group_by: 1, num_group_by: 1} =
-               features_from("SELECT median(m) FROM (SELECT median(height) as m FROM feat_users GROUP BY height) foo")
+               features_from("SELECT stddev(m) FROM (SELECT stddev(height) as m FROM feat_users GROUP BY height) foo")
     end
   end
 
@@ -349,13 +349,13 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "features->expressions" do
     test "includes representations of expressions used" do
-      assert ["(median (+ const (sqrt col)))", "col", "const", "(+ col const)", "const"] =
-               features_from("SELECT median(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
+      assert ["(variance (+ const (sqrt col)))", "col", "const", "(+ col const)", "const"] =
+               features_from("SELECT variance(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
     end
 
     test "resolves references into subqueries" do
-      assert ["(median (+ col const))"] =
-               features_from("SELECT median(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
+      assert ["(variance (+ col const))"] =
+               features_from("SELECT variance(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
     end
 
     @tag pending: "Needs #3265"
@@ -364,8 +364,8 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "*" do
-      assert ["(count *)", "(median col)"] =
-               features_from("SELECT count(*), median(height) FROM feat_users").expressions
+      assert ["(count *)", "(variance col)"] =
+               features_from("SELECT count(*), variance(height) FROM feat_users").expressions
     end
   end
 
@@ -397,11 +397,11 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "features->isolators_used" do
     test "false if conditions don't require isolator checks" do
-      refute features_from("SELECT MEDIAN(height) FROM feat_users WHERE name <> 'Albus'").isolators_used
+      refute features_from("SELECT STDDEV(height) FROM feat_users WHERE name <> 'Albus'").isolators_used
     end
 
     test "true if at least one condition requires an isolator check" do
-      assert features_from("SELECT MEDIAN(price) FROM feat_purchases WHERE price IN (1, 2, 3)").isolators_used
+      assert features_from("SELECT STDDEV(price) FROM feat_purchases WHERE price IN (1, 2, 3)").isolators_used
     end
   end
 
