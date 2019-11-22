@@ -7,9 +7,6 @@ cd $(dirname $0)
 
 cd ../..
 
-DOCKER_DATA=${DOCKER_DATA:-$(pwd)}
-DOCKER_DATA=${DOCKER_DATA%/} # Remove trailing slash
-
 if [ "$DB_ENV" == "dev" ] || [ "$DB_ENV" == "test" ]; then
   db_port=$(cat central/priv/config/$DB_ENV.json | jq --raw-output ".database.port")
   mkdir -p $(pwd)/central/db/configs/$DB_ENV
@@ -18,6 +15,7 @@ fi
 
 DOCKER_IMAGE="aircloak/central_db"
 DOCKER_IMAGE_VERSION="latest"
+DOCKER_DATA=${DOCKER_DATA:-$HOME/.aircloak}
 DOCKER_START_ARGS="
   -p $db_port:5432
   -v $DOCKER_DATA/docker_volumes/central_db_$DB_ENV:/var/lib/postgresql/data

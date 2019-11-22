@@ -7,12 +7,11 @@ cd $(dirname ${BASH_SOURCE[0]})
 
 ./db/build-image.sh
 
-DOCKER_DATA=${DOCKER_DATA:-$(dirname $(pwd))}
-DOCKER_DATA=${DOCKER_DATA%/} # Remove trailing slash
 
 echo "Starting databases for central"
 DB_ENV="dev" ./db/container.sh ensure_started
 DB_ENV="test" ./db/container.sh ensure_started
+DOCKER_DATA=${DOCKER_DATA:-$HOME/.aircloak}
 
 if ! named_container_running central_mongo ; then
   printf "Starting mongodb for central "

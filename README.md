@@ -31,7 +31,7 @@ across our individual development machines.
 ## Docker volumes path
 
 Containers will use the directory `$DOCKER_DATA/docker_volumes` to store persistent data.
-If the variable `DOCKER_DATA` is not set, then `<repository-root>/docker_volumes` will be used as the default path.
+If the variable `DOCKER_DATA` is not set, then `$HOME/.aircloak/docker_volumes` will be used as the default path.
 This is useful for development and testing, where you can easily wipe the data or upgrade databases to newer versions.
 See [this postgres issue](https://github.com/docker-library/postgres/issues/37) that discusses the problem of upgrading.
 
