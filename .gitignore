@@ -1,5 +1,4 @@
 /docker_cache/
-docker_volumes/
 /secrets/
 /tmp/
 publish_logs.txt
