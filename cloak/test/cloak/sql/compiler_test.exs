@@ -231,11 +231,24 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  for function <- ~w(sum avg stddev variance) do
+    test "allowing aggregator #{function}(distinct numeric)" do
+      assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
+    end
+
+    test "disallowing aggregator #{function}(distinct numeric)" do
+      assert {:error, error} = compile("select #{unquote(function)}(distinct numeric) from table", data_source())
+
+      assert error ==
+               "Aggregator `#{unquote(function)}` is not allowed with the DISTINCT modifier in anonymizing contexts."
+    end
+  end
+
   for function <- ~w(min max) do
-    test "allowing #{function} on numeric columns" do
+    test "allowing non-distinct #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
 
-      assert {:ok, _} = compile("select #{unquote(function)}(distinct numeric) from table", data_source())
+      assert {:error, _} = compile("select #{unquote(function)}(distinct numeric) from table", data_source())
     end
 
     test "allowing #{function} on text columns in subqueries" do

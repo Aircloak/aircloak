@@ -155,6 +155,17 @@ defmodule Cloak.Sql.Compiler.Validation do
       )
     end
 
+    if query.type == :anonymized and
+         Function.aggregator?(name) and
+         name not in ~w(count count_noise) and
+         expression.args |> Enum.any?(&match?({:distinct, _col}, &1)) do
+      raise(
+        CompilationError,
+        source_location: expression.source_location,
+        message: "Aggregator `#{name}` is not allowed with the DISTINCT modifier in anonymizing contexts."
+      )
+    end
+
     if query.type != :standard and Function.unsafe?(name) do
       raise(
         CompilationError,

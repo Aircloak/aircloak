@@ -382,49 +382,6 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
-  test "aggregate on distinct column with too few values" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-
-    assert_query("select avg(distinct height) from heights", %{
-      columns: ["avg"],
-      rows: [%{row: [nil], occurrences: 1}]
-    })
-  end
-
-  describe "aggregate on distinct column" do
-    setup do
-      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [170])
-      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [175])
-      :ok = insert_rows(_user_ids = 30..39, "heights", ["height"], [nil])
-      :ok = insert_rows(_user_ids = 40..49, "heights", ["height"], [160])
-      :ok = insert_rows(_user_ids = 50..59, "heights", ["height"], [190])
-      :ok = insert_rows(_user_ids = 60..69, "heights", ["height"], [165])
-      :ok = insert_rows(_user_ids = 70..79, "heights", ["height"], [185])
-    end
-
-    test "avg(distinct column)" do
-      assert_query("select avg(distinct height) from heights", %{
-        columns: ["avg"],
-        rows: [%{row: [162.5], occurrences: 1}]
-      })
-    end
-
-    test "avg(distinct fun(column))" do
-      assert_query("select avg(distinct abs(height)) from heights", %{
-        columns: ["avg"],
-        rows: [%{row: [162.5], occurrences: 1}]
-      })
-    end
-
-    test "avg(distinct column - constant)" do
-      assert_query("select avg(distinct height - 100) from heights", %{
-        columns: ["avg"],
-        rows: [%{row: [62.5], occurrences: 1}]
-      })
-    end
-  end
-
   test "aggregates of an empty table" do
     assert_query("select count(*), count(height), avg(height) from heights", %{
       columns: ["count", "count", "avg"],
@@ -2013,12 +1970,6 @@ defmodule Cloak.Query.BasicTest do
         %{rows: [%{row: [true]}]}
       )
     end
-  end
-
-  test "error on distinct aggregate over invalid type" do
-    assert_query("select stddev(distinct name) from heights", %{
-      error: "Function `stddev` requires arguments of type (`integer` | `real`), but got (`text`)." <> _
-    })
   end
 
   test "group by user id" do
