@@ -7,7 +7,7 @@ defmodule Cloak.DataSource.PostgrexAutoRepair do
   that all attempts to connect to corresponding data source will hang (`Postgrex.start_link` never returns).
 
   Since it's not clear what causes the issue, nor how to reproduce it, we currently use this hacky workaround.
-  This process relies on postgrex internals to detect the corrupt state. If this state perists (a couple of consecutive
+  This process relies on postgrex internals to detect the corrupt state. If this state persists (a couple of consecutive
   checks fail), the type manager process is restarted.
   """
   require Logger
