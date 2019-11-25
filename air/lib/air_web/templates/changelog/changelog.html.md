@@ -6,6 +6,8 @@
 - Admins can add custom messages to the login and main screens.
 - Admins can add performance hints to Oracle queries from the cloak's data source config file, by setting the
   `select_hints` field in the `parameters` section.
+- The Oracle Instant Client version 18.3 is bundled with the container and no longer needs to be
+  provided separately.
 
 ### Bugfixes
 ### Changes
