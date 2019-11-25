@@ -87,14 +87,13 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     if Function.aggregator?(name) and
          match?([{:distinct, _}], args) and
-         name not in ~w(count count_noise) and
-         expression.args |> Enum.any?(&match?({:distinct, _col}, &1)) do
-      raise(
-        CompilationError,
-        source_location: expression.source_location,
-        message: "`DISTINCT` modifier is not allowed in aggregate function `#{Function.readable_name(name)}`."
-      )
-    end
+         name not in ~w(count count_noise),
+       do:
+         raise(
+           CompilationError,
+           source_location: expression.source_location,
+           message: "`DISTINCT` modifier is not allowed in aggregate function `#{Function.readable_name(name)}`."
+         )
 
     if name == "case", do: verify_case_arguments(expression.source_location, args)
 
