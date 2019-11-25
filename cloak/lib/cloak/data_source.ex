@@ -178,8 +178,14 @@ defmodule Cloak.DataSource do
 
   @doc "Expands a data source definition with tables derived from the database"
   @spec add_tables(t) :: t
+  def add_tables(%{initial_tables: initial_tables} = data_source) when initial_tables == %{} do
+    message = "Error initializing tables: no tables configured."
+    Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+    add_error_message(%{data_source | tables: %{}, status: :offline}, message)
+  end
+
   def add_tables(data_source) do
-    Logger.info("Loading tables from #{data_source.name} ...")
+    Logger.info("Initializing tables from #{data_source.name} ...")
     data_source = restore_init_fields(data_source)
     driver = data_source.driver
 
@@ -198,7 +204,7 @@ defmodule Cloak.DataSource do
       )
     rescue
       error in ExecutionError ->
-        message = "Error loading tables: #{Exception.message(error)}."
+        message = "Error initializing tables: #{Exception.message(error)}."
         Logger.error("Data source `#{data_source.name}` is offline: #{Exception.message(error)}")
         add_error_message(%{data_source | tables: %{}, status: :offline}, message)
     end
