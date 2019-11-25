@@ -185,8 +185,8 @@ defmodule Cloak.Query.DBEmulatorTest do
         "select v, sum(c) from #{@vt} group by v order by v",
         """
           select
-            user_id, length(dec_b64(value)) as v, count(*) as c 
-          from #{@emulated} 
+            user_id, length(dec_b64(value)) as v, count(*) as c
+          from #{@emulated}
           group by grouping sets ((user_id, v), user_id)
         """,
         %{
@@ -438,40 +438,6 @@ defmodule Cloak.Query.DBEmulatorTest do
             ]
           }
         )
-
-    test "avg(distinct)",
-      do:
-        assert_query(
-          "select avg(v) from  #{@vt}",
-          """
-            select user_id, avg(distinct length(dec_b64(value))) as v from #{@emulated} group by user_id
-          """,
-          %{rows: [%{occurrences: 1, row: [3.25]}]}
-        )
-
-    test "distinct min/max with text" do
-      assert_query(
-        "select * from #{@vt}",
-        """
-          select user_id,
-            min(distinct dec_b64(value)), max(distinct dec_b64(value))
-            from #{@emulated} group by user_id
-        """,
-        %{rows: [%{occurrences: 20, row: [:*, "1234", "xyz"]}]}
-      )
-    end
-
-    test "distinct min/max with date" do
-      assert_query(
-        "select * from #{@vt}",
-        """
-          select user_id, min(distinct cast(date as date)),
-            max(distinct cast(date as date)), count(dec_b64(value)) as c
-            from #{@emulated} group by user_id
-        """,
-        %{rows: [%{occurrences: 20, row: [:*, "2013-02-08", "2016-11-02", 5]}]}
-      )
-    end
   end
 
   describe "emulated joins" do

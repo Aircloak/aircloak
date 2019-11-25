@@ -232,7 +232,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   for function <- ~w(sum avg stddev variance) do
-    test "allowing aggregator #{function}(distinct numeric)" do
+    test "allowing aggregator #{function}(numeric)" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end
 
@@ -240,7 +240,22 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:error, error} = compile("select #{unquote(function)}(distinct numeric) from table", data_source())
 
       assert error ==
-               "Aggregator `#{unquote(function)}` is not allowed with the DISTINCT modifier in anonymizing contexts."
+               "`DISTINCT` modifier is not allowed in aggregate function `#{unquote(function)}`."
+    end
+  end
+
+  for function <- ~w(COUNT Count CoUnT) do
+    test "allowing case-insensitive aggregator #{function}(distinct numeric)" do
+      assert {:ok, _} = compile("select #{unquote(function)}(distinct numeric) from table", data_source())
+    end
+  end
+
+  for function <- ~w(Sum AVG StdDev VaRiAnCe) do
+    test "disallowing case-insensitive aggregator #{function}(distinct numeric)" do
+      assert {:error, error} = compile("select #{unquote(function)}(distinct numeric) from table", data_source())
+
+      assert error ==
+               "`DISTINCT` modifier is not allowed in aggregate function `#{String.downcase(unquote(function))}`."
     end
   end
 
@@ -260,7 +275,7 @@ defmodule Cloak.Sql.Compiler.Test do
                  data_source()
                )
 
-      assert {:ok, _} =
+      assert {:error, _} =
                compile(
                  """
                    select * from (select uid, #{unquote(function)}(distinct string) from table group by uid) t
@@ -269,7 +284,7 @@ defmodule Cloak.Sql.Compiler.Test do
                )
     end
 
-    test "allowing #{function} on datetime columns in subqueries" do
+    test "allowing non-distinct #{function} on datetime columns in subqueries" do
       assert {:ok, _} =
                compile(
                  """
@@ -278,7 +293,7 @@ defmodule Cloak.Sql.Compiler.Test do
                  data_source()
                )
 
-      assert {:ok, _} =
+      assert {:error, _} =
                compile(
                  """
                    select * from (select uid, #{unquote(function)}(distinct column) from table group by uid) t

@@ -85,6 +85,17 @@ defmodule Cloak.Sql.Compiler.Validation do
           message: "`DISTINCT` specified in non-aggregating function `#{Function.readable_name(name)}`."
         )
 
+    if Function.aggregator?(name) and
+         match?([{:distinct, _}], args) and
+         name not in ~w(count count_noise) and
+         expression.args |> Enum.any?(&match?({:distinct, _col}, &1)) do
+      raise(
+        CompilationError,
+        source_location: expression.source_location,
+        message: "`DISTINCT` modifier is not allowed in aggregate function `#{Function.readable_name(name)}`."
+      )
+    end
+
     if name == "case", do: verify_case_arguments(expression.source_location, args)
 
     :ok
@@ -152,17 +163,6 @@ defmodule Cloak.Sql.Compiler.Validation do
         Aggregator `#{name}` is not allowed over arguments of type `text` in anonymizing contexts.
         For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
         """
-      )
-    end
-
-    if query.type == :anonymized and
-         Function.aggregator?(name) and
-         name not in ~w(count count_noise) and
-         expression.args |> Enum.any?(&match?({:distinct, _col}, &1)) do
-      raise(
-        CompilationError,
-        source_location: expression.source_location,
-        message: "Aggregator `#{name}` is not allowed with the DISTINCT modifier in anonymizing contexts."
       )
     end
 
