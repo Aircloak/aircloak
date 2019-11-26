@@ -218,39 +218,24 @@ defmodule Cloak.Sql.Compiler.Test do
              compile("select * from table where column > 'something stupid'", data_source())
   end
 
-  for function <- ~w(sum) do
-    test "allowing #{function} on numeric columns" do
+  for function <- ~w(min max sum avg stddev variance) do
+    test "allowing aggregator #{function}(numeric)" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end
 
-    test "rejecting #{function} on non-numerical columns" do
-      assert {:error, error} = compile("select #{unquote(function)}(string) from table", data_source())
+    test "disallowing aggregator #{function}(distinct numeric)" do
+      assert {:error, error} = compile("select #{unquote(function)}(distinct numeric) from table", data_source())
 
-      assert error ==
-               "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`text`)."
+      assert error == "Only the `count` and `count_noise` functions support the `DISTINCT` modifier."
     end
   end
 
   for function <- ~w(min max) do
-    test "allowing #{function} on numeric columns" do
-      assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
-
-      assert {:ok, _} = compile("select #{unquote(function)}(distinct numeric) from table", data_source())
-    end
-
     test "allowing #{function} on text columns in subqueries" do
       assert {:ok, _} =
                compile(
                  """
                    select * from (select uid, #{unquote(function)}(string) from table group by uid) t
-                 """,
-                 data_source()
-               )
-
-      assert {:ok, _} =
-               compile(
-                 """
-                   select * from (select uid, #{unquote(function)}(distinct string) from table group by uid) t
                  """,
                  data_source()
                )
@@ -264,14 +249,6 @@ defmodule Cloak.Sql.Compiler.Test do
                  """,
                  data_source()
                )
-
-      assert {:ok, _} =
-               compile(
-                 """
-                   select * from (select uid, #{unquote(function)}(distinct column) from table group by uid) t
-                 """,
-                 data_source()
-               )
     end
 
     test "rejecting #{function} on text columns in top query" do
@@ -281,21 +258,22 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
-  for function <- ~w(avg stddev sqrt variance) do
+  for function <- ~w(abs sqrt) do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end
-
-    test "rejecting #{function} on non-numerical columns" do
-      assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
-
-      assert error ==
-               "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)."
-    end
   end
 
-  test "allowing abs on numeric columns" do
-    assert {:ok, _} = compile("select abs(numeric) from table", data_source())
+  test "rejecting sum on non-numerical columns" do
+    assert {:error, error} = compile("select sum(string) from table", data_source())
+
+    assert error == "Function `sum` requires arguments of type (`integer`) or (`real`), but got (`text`)."
+  end
+
+  test "rejecting sqrt on non-numerical columns" do
+    assert {:error, error} = compile("select sqrt(column) from table", data_source())
+
+    assert error == "Function `sqrt` requires arguments of type (`integer` | `real`), but got (`datetime`)."
   end
 
   test "rejecting abs on non-numerical columns" do
@@ -1321,7 +1299,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "rejects usage of distinct in non-aggregates" do
     {:error, error} = compile("select length(distinct string) from table", data_source())
-    assert error =~ "`DISTINCT` specified in non-aggregating function `length`."
+    assert error =~ "Only the `count` and `count_noise` functions support the `DISTINCT` modifier."
   end
 
   test "rejects *-selecting duplicated columns" do

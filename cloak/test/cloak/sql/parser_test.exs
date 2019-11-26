@@ -844,6 +844,15 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  for function <- ~w(sum avg stddev variance median) do
+    test "aggregate #{function}(distinct column)" do
+      assert_parse(
+        "select #{unquote(function)}(distinct foo) from bar",
+        select(columns: [function(unquote(function), [{:distinct, identifier("foo")}])])
+      )
+    end
+  end
+
   test "count(all column)" do
     assert_parse(
       "select count(all foo) from bar",

@@ -274,48 +274,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp aggregator_to_finalizer(%Expression{
          kind: :function,
-         name: "sum",
-         args: [{:distinct, _column}]
-       }),
-       do: &(&1 |> MapSet.to_list() |> Stats.sum())
-
-  defp aggregator_to_finalizer(%Expression{
-         kind: :function,
-         name: "min",
-         args: [{:distinct, _column}]
-       }),
-       do: &if(MapSet.size(&1) == 0, do: nil, else: set_min(&1))
-
-  defp aggregator_to_finalizer(%Expression{
-         kind: :function,
-         name: "max",
-         args: [{:distinct, _column}]
-       }),
-       do: &if(MapSet.size(&1) == 0, do: nil, else: set_max(&1))
-
-  defp aggregator_to_finalizer(%Expression{
-         kind: :function,
-         name: "avg",
-         args: [{:distinct, _column}]
-       }),
-       do: &(&1 |> MapSet.to_list() |> Stats.mean())
-
-  defp aggregator_to_finalizer(%Expression{
-         kind: :function,
-         name: "stddev",
-         args: [{:distinct, _column}]
-       }),
-       do: &(&1 |> MapSet.to_list() |> Stats.stddev())
-
-  defp aggregator_to_finalizer(%Expression{
-         kind: :function,
-         name: "variance",
-         args: [{:distinct, _column}]
-       }),
-       do: &(&1 |> MapSet.to_list() |> Stats.variance())
-
-  defp aggregator_to_finalizer(%Expression{
-         kind: :function,
          name: "count",
          args: [_column]
        }),
@@ -365,10 +323,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
          args: [_column]
        }),
        do: &Stats.variance/1
-
-  defp set_min(set), do: Enum.reduce(set, &Data.min/2)
-
-  defp set_max(set), do: Enum.reduce(set, &Data.max/2)
 
   defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.columns)
   defp joined_row_size({:join, join}), do: joined_row_size(join.lhs) + joined_row_size(join.rhs)

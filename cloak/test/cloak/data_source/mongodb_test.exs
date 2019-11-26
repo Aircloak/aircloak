@@ -331,15 +331,6 @@ defmodule Cloak.DataSource.MongoDBTest do
       """,
       %{rows: [%{occurrences: 1, row: [10, 10]}]}
     )
-
-    assert_query(
-      context,
-      """
-        SELECT COUNT(*), SUM(value) FROM
-        (SELECT _id, SUM(DISTINCT bills.ids) AS value FROM #{@user_table}_bills_ids GROUP BY _id) AS t
-      """,
-      %{rows: [%{occurrences: 1, row: [10, 30.0]}]}
-    )
   end
 
   test "distinct in sub-queries", context do

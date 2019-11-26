@@ -305,20 +305,6 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     }
   end
 
-  defp extract_column_top(
-         %Expression{args: [{:distinct, _}]} = column,
-         aggregators,
-         _groups
-       ) do
-    # For distinct aggregators, we gather values into a set and then project the aggregator over the set.
-    index = Enum.find_index(aggregators, &Expression.equals?(column, &1))
-
-    %Expression{
-      column
-      | args: [%Expression{kind: :column, name: "aggregated_#{index}", table: :unknown, type: column.type}]
-    }
-  end
-
   defp extract_column_top(column, aggregators, groups) do
     case Enum.find_index(aggregators, &Expression.equals?(column, &1)) do
       nil ->

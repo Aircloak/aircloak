@@ -9,20 +9,12 @@ Enum.each(
     {"count_noise(distinct <col>)", false},
     {"avg(<col>)", true},
     {"avg_noise(<col>)", false},
-    {"avg(distinct <col>)", true},
-    {"avg_noise(distinct <col>)", false},
     {"round(stddev(<col>), 6)", true},
     {"stddev_noise(<col>)", false},
-    {"round(stddev(distinct <col>), 6)", true},
-    {"stddev_noise(distinct <col>)", false},
     {"round(variance(<col>), 6)", true},
     {"variance_noise(<col>)", false},
-    {"round(variance(distinct <col>), 6)", true},
-    {"variance_noise(distinct <col>)", false},
     {"max(<col>)", true},
-    {"max(distinct <col>)", true},
-    {"min(<col>)", true},
-    {"min(distinct <col>)", true}
+    {"min(<col>)", true}
   ],
   fn {aggregate, allowed_in_subquery} ->
     defmodule Module.concat([Compliance.AggregateFunctions, String.to_atom(aggregate), Test]) do
