@@ -226,8 +226,7 @@ defmodule Cloak.Sql.Compiler.Test do
     test "disallowing aggregator #{function}(distinct numeric)" do
       assert {:error, error} = compile("select #{unquote(function)}(distinct numeric) from table", data_source())
 
-      assert error ==
-               "Only the `count` and `count_noise` functions support the `DISTINCT` modifier."
+      assert error == "Only the `count` and `count_noise` functions support the `DISTINCT` modifier."
     end
   end
 
