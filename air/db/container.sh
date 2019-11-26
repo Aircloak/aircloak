@@ -15,6 +15,7 @@ fi
 
 DOCKER_IMAGE="aircloak/air_db"
 DOCKER_IMAGE_VERSION="latest"
+DOCKER_DATA=${DOCKER_DATA:-$HOME/.aircloak}
 DOCKER_START_ARGS="
   -p $db_port:5432
   -v $DOCKER_DATA/docker_volumes/air_db_$DB_ENV:/var/lib/postgresql/data
