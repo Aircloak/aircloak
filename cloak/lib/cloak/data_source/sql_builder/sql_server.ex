@@ -10,8 +10,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   @impl Dialect
   def supported_functions(), do: ~w(
-      count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
-      variance variance_distinct
+      count sum min max avg stddev count_distinct variance
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod ^ * / + - %
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
