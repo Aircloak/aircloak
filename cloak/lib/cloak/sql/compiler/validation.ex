@@ -77,23 +77,13 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_standard_function_usage(%Expression{kind: :function, name: name, args: args} = expression) do
-    if not Function.aggregator?(name) and match?([{:distinct, _}], args),
+    if match?([{:distinct, _}], args) and name not in ~w(count count_noise),
       do:
         raise(
           CompilationError,
           source_location: expression.source_location,
-          message: "`DISTINCT` specified in non-aggregating function `#{Function.readable_name(name)}`."
+          message: "Only the `count` and `count_noise` functions support the `DISTINCT` modifier."
         )
-
-    if Function.aggregator?(name) and
-         match?([{:distinct, _}], args) and
-         name not in ~w(count count_noise),
-       do:
-         raise(
-           CompilationError,
-           source_location: expression.source_location,
-           message: "`DISTINCT` modifier is not allowed in aggregate function `#{Function.readable_name(name)}`."
-         )
 
     if name == "case", do: verify_case_arguments(expression.source_location, args)
 
