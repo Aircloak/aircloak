@@ -37,23 +37,12 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   def function_sql("hash", [arg]), do: ["SUBSTR(MD5(CAST(", arg, " AS char)), 5, 8)"]
 
-  def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]),
-    do: Dialect.bool_op_default(op, arg1, arg2)
+  def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]), do: Dialect.bool_op_default(op, arg1, arg2)
 
   def function_sql("checked_mod", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
 
   def function_sql("checked_div", [arg1, arg2, epsilon]),
-    do: [
-      "CASE WHEN ",
-      function_sql("abs", [arg2]),
-      " < ",
-      epsilon,
-      " THEN NULL ELSE ",
-      arg1,
-      " / ",
-      arg2,
-      " END"
-    ]
+    do: ["CASE WHEN ", function_sql("abs", [arg2]), " < ", epsilon, " THEN NULL ELSE ", arg1, " / ", arg2, " END"]
 
   for {function, operator} <- %{
         "unsafe_add" => "+",
@@ -62,8 +51,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
         "unsafe_div" => "/",
         "unsafe_mod" => "%"
       } do
-    def function_sql(unquote(function), [arg1, arg2]),
-      do: ["(", arg1, unquote(operator), arg2, ")"]
+    def function_sql(unquote(function), [arg1, arg2]), do: ["(", arg1, unquote(operator), arg2, ")"]
   end
 
   def function_sql("unsafe_pow", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
@@ -88,13 +76,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   @impl Dialect
   def cast_sql(value, :real, :integer),
-    do: [
-      "CASE WHEN ABS(",
-      value,
-      ") > #{@integer_range} THEN NULL ELSE CAST(",
-      value,
-      " AS SIGNED) END"
-    ]
+    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(", value, " AS SIGNED) END"]
 
   def cast_sql(value, :integer, :boolean),
     do: ["CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " = 0 THEN FALSE ELSE TRUE END"]
