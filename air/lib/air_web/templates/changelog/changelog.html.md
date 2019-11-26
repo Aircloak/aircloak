@@ -1,5 +1,10 @@
 ## Version 19.4.0
 
+### __Breaking changes__
+
+- Support for `median` was removed.
+- Support for `distinct` modifier was removed for all aggregate functions except `count` and `count_noise`.
+
 ### Enhancements
 
 - When a user changes their password all their other sessions are automatically revoked.
@@ -13,7 +18,6 @@
 ### Changes
 
 - Support for some obsolete cloak features and config fields (decoders, projections, user_id) was removed.
-- Support for `median` was removed.
 - The set of query restrictions was simplified and clarified.
 
 ### Known issues
