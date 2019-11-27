@@ -318,7 +318,11 @@ defmodule Cloak.DataSource do
   # We ignore non-timeout exits, since we don't expect that the task traps exits.
   defp handle_add_tables_result({{:exit, :timeout}, original_data_source}) do
     Logger.error("Data source `#{original_data_source.name}` is offline")
-    add_error_message(%{original_data_source | tables: %{}, status: :offline}, "Error loading tables: timeout reached.")
+
+    add_error_message(
+      %{original_data_source | tables: %{}, status: :offline},
+      "Error initializing tables: timeout reached."
+    )
   end
 
   defp to_data_source(data_source) do
