@@ -13,6 +13,7 @@
   `select_hints` field in the `parameters` section.
 - The Oracle Instant Client version 18.3 is bundled with the container and no longer needs to be
   provided separately.
+- The timeout for idle connections can now be adjusted in the Cloak config file, under the `connection_keep_time` field.
 
 ### Bugfixes
 ### Changes

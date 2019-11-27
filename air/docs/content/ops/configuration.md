@@ -341,7 +341,8 @@ The general shape of `config.json` is:
   "data_sources": string,
   "concurrency": integer,
   "lcf_buckets_aggregation_limit": integer,
-  "max_parallel_queries": positive_integer
+  "max_parallel_queries": positive_integer,
+  "connection_keep_time": integer
 }
 ```
 
@@ -371,6 +372,10 @@ of low-count filtered rows is done. The default value is 3. This setting can be 
 can be found in the [Low-count filtering](../sql/query-results.md#low-count-filtering) section.
 
 The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run simultaneously. The default value is 10.
+
+The `connection_keep_time` field is optional and controls the amount of time, in minutes, connections to the backend
+databases are kept after usage. It needs to be an integer value between 1 and 86 400 (1 day). If not set, a default
+timeout value of 1 minute is used.
 
 ### Data source configuration
 
