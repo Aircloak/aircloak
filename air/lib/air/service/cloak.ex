@@ -126,31 +126,28 @@ defmodule Air.Service.Cloak do
 
   defp add_error_on_conflicting_data_source_definitions(data_sources) do
     for data_source <- data_sources do
-      name = data_source.name
-
-      tables = data_source.tables
-
       existing_datasource_tables =
-        existing_definitions_for_data_source_by_cloak(name)
+        data_source.name
+        |> existing_definitions_for_data_source_by_cloak()
         |> Enum.map(fn {_cloak_name, data_source} -> data_source end)
         |> Enum.reject(&is_nil/1)
         |> Enum.map(& &1.tables)
+        |> Enum.reject(&Enum.empty?/1)
 
       {tables, existing_datasource_tables} =
-        if all_data_sources_done?([tables | existing_datasource_tables]) do
-          {tables, existing_datasource_tables}
+        if all_data_sources_done?([data_source.tables | existing_datasource_tables]) do
+          {data_source.tables, existing_datasource_tables}
         else
-          {strip_tables_of_temporary_state(tables),
+          {strip_tables_of_temporary_state(data_source.tables),
            Enum.map(existing_datasource_tables, &strip_tables_of_temporary_state/1)}
         end
 
-      existing_datasource_tables
-      |> Enum.all?(&(tables == &1))
-      |> if do
+      if Enum.empty?(tables) or Enum.all?(existing_datasource_tables, &(tables == &1)) do
         data_source
       else
-        ("The data source definition for data source `#{name}` differs between the different cloaks. Please ensure " <>
-           "the configurations for the data source are identical, across all the cloaks configured to serve the dataset.")
+        ("The data source definition for data source `#{data_source.name}` differs between the different cloaks. " <>
+           "Please ensure the configurations for the data source are identical, across all the cloaks configured " <>
+           "to serve the dataset.")
         |> add_error(data_source)
       end
     end

@@ -178,8 +178,14 @@ defmodule Cloak.DataSource do
 
   @doc "Expands a data source definition with tables derived from the database"
   @spec add_tables(t) :: t
+  def add_tables(%{initial_tables: initial_tables} = data_source) when initial_tables == %{} do
+    message = "Error initializing tables: no tables configured."
+    Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+    add_error_message(%{data_source | tables: %{}, status: :offline}, message)
+  end
+
   def add_tables(data_source) do
-    Logger.info("Loading tables from #{data_source.name} ...")
+    Logger.info("Initializing tables from #{data_source.name} ...")
     data_source = restore_init_fields(data_source)
     driver = data_source.driver
 
@@ -198,7 +204,7 @@ defmodule Cloak.DataSource do
       )
     rescue
       error in ExecutionError ->
-        message = "Error loading data source: #{Exception.message(error)}."
+        message = "Error initializing tables: #{Exception.message(error)}."
         Logger.error("Data source `#{data_source.name}` is offline: #{Exception.message(error)}")
         add_error_message(%{data_source | tables: %{}, status: :offline}, message)
     end
@@ -312,7 +318,11 @@ defmodule Cloak.DataSource do
   # We ignore non-timeout exits, since we don't expect that the task traps exits.
   defp handle_add_tables_result({{:exit, :timeout}, original_data_source}) do
     Logger.error("Data source `#{original_data_source.name}` is offline")
-    add_error_message(%{original_data_source | tables: %{}, status: :offline}, "timeout")
+
+    add_error_message(
+      %{original_data_source | tables: %{}, status: :offline},
+      "Error initializing tables: timeout reached."
+    )
   end
 
   defp to_data_source(data_source) do
@@ -395,7 +405,7 @@ defmodule Cloak.DataSource do
     data_source
   rescue
     error in ExecutionError ->
-      message = "Connection error: #{Exception.message(error)}."
+      message = "Error connecting to the data source: #{Exception.message(error)}."
       Logger.error("Data source `#{data_source.name}` is offline: #{message}")
       add_error_message(%{data_source | tables: %{}, status: :offline}, message)
   end

@@ -7,9 +7,10 @@ defmodule Air.Service.Cloak.Test do
   alias Air.{Repo, TestRepoHelper, TestSocketHelper, Schemas.DataSource, Service.Cloak}
 
   @data_source_name "data_source_name"
-  @data_source %{name: @data_source_name, tables: []}
+  @data_source %{name: @data_source_name, tables: [%{columns: []}]}
   @data_sources [@data_source]
-  @data_sources_that_differ [%{name: @data_source_name, tables: [%{different: true, columns: []}]}]
+  @data_source_different %{name: @data_source_name, tables: [%{different: true, columns: []}]}
+  @data_source_empty %{name: @data_source_name, tables: []}
 
   setup do
     wait_for_cleanup()
@@ -85,9 +86,15 @@ defmodule Air.Service.Cloak.Test do
 
   test "should record that a data source has conflicting definitions across cloaks" do
     Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
-    Cloak.register(TestRepoHelper.cloak_info("other_cloak"), @data_sources_that_differ)
+    Cloak.register(TestRepoHelper.cloak_info("other_cloak"), [@data_source_different])
     [error] = Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
     assert error =~ ~r/differs between .+ cloaks/
+  end
+
+  test "should ignore conflicting definitions across cloaks for data sources with no tables" do
+    Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
+    Cloak.register(TestRepoHelper.cloak_info("other_cloak"), [@data_source_empty])
+    assert Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors) == []
   end
 
   test "should not record differences in bounds stats when not all data sources done" do
