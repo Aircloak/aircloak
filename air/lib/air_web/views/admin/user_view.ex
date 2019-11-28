@@ -42,6 +42,8 @@ defmodule AirWeb.Admin.UserView do
     end
   end
 
+  defp reset_path(conn, token), do: "#{reset_password_path(conn, :show)}?token=#{token}"
+
   defp login(user) do
     Air.Service.User.main_login(user)
   end

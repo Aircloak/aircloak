@@ -59,8 +59,11 @@ defmodule AirWeb.Admin.UserController do
         audit_log(conn, "Created user")
         audit_log_for_user(conn, user, "User created")
 
+        token = User.reset_password_token(user)
+
         conn
         |> put_flash(:info, "User created")
+        |> put_flash(:reset_password_token, {user.id, token})
         |> redirect(to: admin_user_path(conn, :edit, user.id))
 
       {:error, changeset} ->
@@ -136,7 +139,8 @@ defmodule AirWeb.Admin.UserController do
   end
 
   def reset_password(conn, _params) do
-    render(conn, "reset_password.html", reset_path: reset_path(conn))
+    token = User.reset_password_token(conn.assigns.user)
+    render(conn, "reset_password.html", token: token)
   end
 
   def delete_sessions(conn, _params) do
@@ -200,11 +204,6 @@ defmodule AirWeb.Admin.UserController do
       |> redirect(to: admin_user_path(conn, :index))
 
   defp verify_last_admin_deleted(result, _conn, fun), do: fun.(result)
-
-  defp reset_path(conn) do
-    token = User.reset_password_token(conn.assigns.user)
-    "#{reset_password_path(conn, :show)}?token=#{token}"
-  end
 
   defp delete_error_message(:forbidden_no_active_admin),
     do: "The user cannot be deleted as it would leave the system without an active administrator."

@@ -49,7 +49,12 @@ defmodule AirWeb.Admin.UserController.Test do
         }
       )
 
-    assert redirected_to(conn) =~ ~r[admin/users/.*/edit]
+    assert {id, token} = get_flash(conn, :reset_password_token)
+    assert {:ok, decoded_id} = Air.Service.RevokableToken.verify(token, :password_reset)
+    assert id == decoded_id
+
+    assert redirected_to(conn) =~ "admin/users/#{id}/edit"
+
     users_html = login(admin) |> get("/admin/users") |> response(200)
     assert users_html =~ new_user_login
   end

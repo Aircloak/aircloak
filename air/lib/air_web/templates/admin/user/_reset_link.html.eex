@@ -1,0 +1,25 @@
+<div class="alert alert-info" >
+  <p>The user can set a new password using the following link. The link will remain valid for 1 week.</p>
+
+  <br/>
+
+  <pre id="reset-link"></pre>
+
+  <button id="copy-reset-link" class="btn btn-sm btn-default">Copy link</button>
+</div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      $("#reset-link").text(window.location.protocol + "//" + window.location.host + "<%= reset_path(@conn, @token) %>");
+      $("#copy-reset-link").click(function () {
+        var range = document.createRange();
+        range.selectNode(document.getElementById("reset-link"));
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.execCommand("copy");
+        window.getSelection().removeAllRanges();
+      });
+    }
+  };
+</script>
