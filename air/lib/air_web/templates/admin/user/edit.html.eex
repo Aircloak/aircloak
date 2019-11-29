@@ -3,6 +3,11 @@
   <li class="active"><%= @changeset.data.name %></li>
 </ol>
 
+<% user_id = @user.id %>
+<%= with {id, token} when id == user_id <- get_flash(@conn, :reset_password_token) do %>
+  <%= render "_reset_link.html", conn: @conn, token: token %>
+<% end %>
+
 <h2>Edit <%= @changeset.data.name %></h2>
 
 <%= render "_form.html", changeset: @changeset,
