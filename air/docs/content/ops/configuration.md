@@ -373,8 +373,8 @@ can be found in the [Low-count filtering](../sql/query-results.md#low-count-filt
 
 The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run simultaneously. The default value is 10.
 
-The `connection_keep_time` field is optional and controls the amount of time, in minutes, connections to the backend
-databases are kept after usage. It needs to be an integer value between 1 and 86 400 (1 day). If not set, a default
+The `connection_keep_time` field is optional and it determines how many minutes idle database connections are kept
+before they are closed. It needs to be an integer value between 1 and 86 400 (1 day). If not set, a default
 timeout value of 1 minute is used.
 
 ### Data source configuration
