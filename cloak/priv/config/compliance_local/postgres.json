@@ -3,6 +3,7 @@
   "name": "postgresql",
   "parameters": {
     "hostname": "localhost",
+    "port": 20002,
     "username": "root",
     "database": "compliance"
   },

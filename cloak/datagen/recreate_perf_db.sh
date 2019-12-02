@@ -16,5 +16,5 @@ function main() {
 }
 
 export DB_HOST=${DB_HOST:-127.0.0.1}
-export DB_PORT=${DB_PORT:-5432}
+export DB_PORT=${DB_PORT:-20002}
 (main)

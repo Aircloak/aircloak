@@ -85,6 +85,7 @@ defmodule Mix.Tasks.Gen.DevData do
     Postgrex.start_link(
       database: datasource.parameters[:database],
       hostname: datasource.parameters[:hostname],
+      port: datasource.parameters[:port],
       username: datasource.parameters[:username],
       password: datasource.parameters[:password]
     )
