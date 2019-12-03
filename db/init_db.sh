@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-for config in /runtime_config/$DB_ENV/*.json; do
+for config in /runtime_config/*.json; do
   database=$(cat $config | jq --raw-output ".database.name")
   user=$(cat $config | jq --raw-output ".database.user")
   password=$(cat $config | jq --raw-output ".database.password")
