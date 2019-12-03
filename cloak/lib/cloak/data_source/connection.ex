@@ -102,7 +102,7 @@ defmodule Cloak.DataSource.Connection do
       checkout_id: checkout_id
     }
 
-    {:ok, state, Driver.connection_keep_time()}
+    {:ok, state, Application.get_env(:cloak, :connection_keep_time)}
   end
 
   @impl GenServer
@@ -156,7 +156,7 @@ defmodule Cloak.DataSource.Connection do
 
   def handle_cast({:set_checkout_id, checkout_id}, state) do
     assert_not_used!(state)
-    {:noreply, %{state | checkout_id: checkout_id}, Driver.connection_keep_time()}
+    {:noreply, %{state | checkout_id: checkout_id}, Application.get_env(:cloak, :connection_keep_time)}
   end
 
   def handle_cast(:stop, state), do: {:stop, :normal, state}
@@ -259,7 +259,7 @@ defmodule Cloak.DataSource.Connection do
     if is_reference(state.query_mref), do: Process.demonitor(state.query_mref, [:flush])
     if is_reference(state.user_mref), do: Process.demonitor(state.user_mref, [:flush])
     new_state = %{state | streamer: nil, query_runner: nil, query_mref: nil, user_mref: nil}
-    {:noreply, new_state, Driver.connection_keep_time()}
+    {:noreply, new_state, Application.get_env(:cloak, :connection_keep_time)}
   end
 
   # -------------------------------------------------------------------

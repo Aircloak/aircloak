@@ -22,7 +22,10 @@ defmodule Cloak do
     with {:ok, lcf_buckets_aggregation_limit} <- Aircloak.DeployConfig.fetch("lcf_buckets_aggregation_limit"),
          do: Application.put_env(:cloak, :lcf_buckets_aggregation_limit, lcf_buckets_aggregation_limit)
 
-    with {:ok, aes_key} <- Aircloak.DeployConfig.fetch("aes_key"), do: Application.put_env(:cloak, :aes_key, aes_key)
+    case Aircloak.DeployConfig.fetch("connection_keep_time") do
+      {:ok, minutes} -> Application.put_env(:cloak, :connection_keep_time, :timer.minutes(minutes))
+      _ -> Application.put_env(:cloak, :connection_keep_time, Cloak.DataSource.Driver.connection_keep_time())
+    end
 
     with {:ok, _} = result <- Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do
       log_startup()
