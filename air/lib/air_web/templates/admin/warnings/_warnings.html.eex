@@ -2,6 +2,7 @@
 
 <h3>
   <%= length(@problems) %>
+  <%= " " %>
   <%= Inflex.inflect("Warning", length(@problems)) %>
 </h3>
 
