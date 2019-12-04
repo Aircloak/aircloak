@@ -86,18 +86,15 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp additive_expression() do
-    left_associative_expression([keyword(:+), keyword(:-)], multiplicative_expression())
+    left_associative_expression(keyword_of([:+, :-]), multiplicative_expression())
   end
 
   defp multiplicative_expression() do
-    left_associative_expression(
-      [keyword(:*), keyword(:/), keyword(:%)],
-      exponentiation_expression()
-    )
+    left_associative_expression(keyword_of([:*, :/, :%]), exponentiation_expression())
   end
 
   defp exponentiation_expression() do
-    left_associative_expression([keyword(:^)], unary_expression())
+    left_associative_expression(keyword(:^), unary_expression())
   end
 
   defp unary_expression() do
@@ -119,7 +116,7 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp concat_expression() do
-    left_associative_expression([keyword(:||)], infix_cast_expression())
+    left_associative_expression(keyword(:||), infix_cast_expression())
     |> map(&normalize_concat/1)
   end
 
@@ -398,8 +395,8 @@ defmodule Cloak.Sql.Parser.Internal do
     )
   end
 
-  defp left_associative_expression(operators, term_parser, normalizer \\ &infix_to_function/4) do
-    sep_by1_eager(term_parser, pair_both(next_position(), choice_deepest_error(operators)))
+  defp left_associative_expression(operator, term_parser, normalizer \\ &infix_to_function/4) do
+    sep_by1_eager(term_parser, pair_both(next_position(), operator))
     |> map(fn [first | rest] ->
       rest
       |> Enum.chunk_every(2)
@@ -912,7 +909,7 @@ defmodule Cloak.Sql.Parser.Internal do
   defp disjunction_expression(term_parser),
     do:
       left_associative_expression(
-        [keyword(:or)],
+        keyword(:or),
         conjunction_expression(term_parser),
         &infix_to_boolean_expression/4
       )
@@ -920,7 +917,7 @@ defmodule Cloak.Sql.Parser.Internal do
   defp conjunction_expression(term_parser),
     do:
       left_associative_expression(
-        [keyword(:and)],
+        keyword(:and),
         unary_not_expression(term_parser),
         &infix_to_boolean_expression/4
       )
