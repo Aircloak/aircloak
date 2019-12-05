@@ -5,7 +5,7 @@ cd $(dirname $0)
 
 . ./prepare_db.funcs.sh
 
-function main_local() {
+function main() {
   conditionally_create_user "cloak"
   conditionally_create_user "cloaktest1"
 
@@ -20,19 +20,7 @@ function main_local() {
   mix gen.test_data "compliance" 200
 }
 
-function main_docker() {
-  conditionally_create_user "cloak"
-
-  regenerate_database "cloak" "cloak"
-
-  # import dev schema and data
-  psql -h $DB_HOST -p $DB_PORT -U postgres cloak < dev_data.sql
-}
-
 export DB_HOST=${DB_HOST:-127.0.0.1}
 export DB_PORT=${DB_PORT:-20002}
-(main_local)
+(main)
 
-export DB_HOST=127.0.0.1
-export DB_PORT=20002
-(main_docker)
