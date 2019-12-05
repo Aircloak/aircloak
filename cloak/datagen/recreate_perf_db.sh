@@ -5,16 +5,13 @@ cd $(dirname $0)
 
 . ./prepare_db.funcs.sh
 
-function main() {
-  conditionally_create_user "performance"
+DB_HOST=${DB_HOST:-127.0.0.1}
+DB_PORT=${DB_PORT:-20002}
 
-  regenerate_database "performance" "performance"
+conditionally_create_user "performance"
 
-  cd ../
-	mix gen.test_data perf 10000
-	mix gen.data_source_config perf priv/config/perf
-}
+regenerate_database "performance" "performance"
 
-export DB_HOST=${DB_HOST:-127.0.0.1}
-export DB_PORT=${DB_PORT:-20002}
-(main)
+cd ../
+mix gen.test_data perf 10000
+mix gen.data_source_config perf priv/config/perf
