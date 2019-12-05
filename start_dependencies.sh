@@ -12,14 +12,12 @@ cd $(dirname $0)
 echo "Starting database"
 ./db/container.sh ensure_started
 
-# Air LDAP
 ./air/ldap/build-image.sh
 
 echo "Starting LDAP"
 LDAP_ENV="dev" ./air/ldap/container.sh ensure_started
 LDAP_ENV="test" ./air/ldap/container.sh ensure_started
 
-# Central mongodb
 if ! named_container_running central_mongo ; then
   printf "Starting mongodb for central "
   DOCKER_DATA=${DOCKER_DATA:-$HOME/.aircloak}
@@ -30,7 +28,6 @@ if ! named_container_running central_mongo ; then
   printf "\n"
 fi
 
-# Cloak InfluxDB
 if ! named_container_running aircloak_influxdb ; then
   printf "Starting InfluxDB "
   docker run -d --name aircloak_influxdb -p 8086:8086 influxdb:1.3.2 > /dev/null
