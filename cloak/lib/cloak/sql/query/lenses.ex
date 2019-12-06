@@ -219,7 +219,7 @@ defmodule Cloak.Sql.Query.Lenses do
   end
 
   @doc "Lens focusing on all conditions in joins."
-  deflens join_conditions(), do: joins() |> Lens.key(:conditions)
+  deflens join_conditions(), do: joins() |> Lens.key(:condition)
 
   @doc "Lens focusing selected leaf tables in the parser AST."
   deflens ast_tables(), do: Lens.key(:from) |> ast_tables_recursive()
@@ -272,8 +272,6 @@ defmodule Cloak.Sql.Query.Lenses do
   end
 
   defp do_subquery_lenses(_base_lens, _from), do: []
-
-  defp filters_operands(), do: filter_clauses() |> conditions() |> operands()
 
   deflensp bottom_up_elements() do
     Lens.match(fn
@@ -336,7 +334,7 @@ defmodule Cloak.Sql.Query.Lenses do
       Lens.keys?([:columns, :group_by, :db_columns, :property, :aggregators]),
       Lens.key?(:noise_layers) |> Lens.all() |> Lens.key(:expressions),
       Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
-      filters_operands()
+      filter_clauses()
     ])
   end
 

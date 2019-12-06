@@ -2,7 +2,6 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   @moduledoc "Deals with normalizing the query AST so that less cases must be handled downstream."
 
   alias Cloak.Sql.{Function, Parser, Compiler.Helpers, Query}
-  alias Cloak.Sql.Parser.DNFNormalization
 
   # -------------------------------------------------------------------
   # API functions
@@ -14,7 +13,7 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   Performs the following normalizations:
   * Replaces DISTINCT usage in SELECT lists with an equivalent GROUP BY (possibly adding a subquery).
   * Replaces NOT IN with an equivalent conjunction of <>
-  * Replaces all usages of unary NOT by converting the involved expressions into an equivalent form (for example using
+  * Replaces all usages of NOT by converting the involved expressions into an equivalent form (for example using
     De Morgan's laws)
   * Replaces IN (single_element) with = single_element
   * Lowercases the first argument of date_trunc
@@ -23,9 +22,8 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   @spec normalize(Parser.parsed_query()) :: Parser.parsed_query()
   def normalize(ast) do
     ast
-    |> update_in([Lens.keys([:where, :having])], &DNFNormalization.dnf/1)
+    |> Helpers.apply_bottom_up(&rewrite_not_expressions/1)
     |> Helpers.apply_bottom_up(&rewrite_not_in/1)
-    |> Helpers.apply_bottom_up(&rewrite_not/1)
     |> Helpers.apply_bottom_up(&rewrite_in/1)
     |> Helpers.apply_bottom_up(&rewrite_date_trunc/1)
     |> Helpers.apply_bottom_up(&normalize_synonyms/1)
@@ -63,9 +61,10 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   # -------------------------------------------------------------------
 
   defp rewrite_in(ast) do
-    update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
-      {:in, lhs, [exp]} -> {:comparison, lhs, :=, exp}
-      other -> other
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&match?({:function, "in", [_, _], _}, &1))
+    |> Lens.map(ast, fn {:function, "in", [subject, target], location} ->
+      {:function, "=", [subject, target], location}
     end)
   end
 
@@ -73,43 +72,51 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   # NOT rewriting
   # -------------------------------------------------------------------
 
-  defp rewrite_not(ast) do
-    update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.all_conditions()], fn
-      {:not, expr} -> negate(expr)
-      other -> other
-    end)
+  defp rewrite_not_expressions(ast) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&match?({:function, "not", [_], _}, &1))
+    |> Lens.map(ast, &rewrite_not_expression/1)
   end
 
-  defp negate({:not, expr}), do: expr
-  defp negate({:and, lhs, rhs}), do: {:or, negate(lhs), negate(rhs)}
-  defp negate({:or, lhs, rhs}), do: {:and, negate(lhs), negate(rhs)}
-  defp negate({:comparison, lhs, op, rhs}), do: {:comparison, lhs, negate_operator(op), rhs}
-  defp negate(expr), do: {:not, expr}
+  defp rewrite_not_expression({:function, "not", [{:function, "not", [expr], _}], _}), do: expr
 
-  defp negate_operator(:=), do: :<>
-  defp negate_operator(:<>), do: :=
-  defp negate_operator(:<), do: :>=
-  defp negate_operator(:>), do: :<=
-  defp negate_operator(:<=), do: :>
-  defp negate_operator(:>=), do: :<
+  defp rewrite_not_expression({:function, "not", [{:function, "and", [lhs, rhs], location_and}], location_not}) do
+    lhs = rewrite_not_expression({:function, "not", [lhs], location_not})
+    rhs = rewrite_not_expression({:function, "not", [rhs], location_not})
+    {:function, "or", [lhs, rhs], location_and}
+  end
+
+  defp rewrite_not_expression({:function, "not", [{:function, "or", [lhs, rhs], location_or}], location_not}) do
+    lhs = rewrite_not_expression({:function, "not", [lhs], location_not})
+    rhs = rewrite_not_expression({:function, "not", [rhs], location_not})
+    {:function, "and", [lhs, rhs], location_or}
+  end
+
+  defp rewrite_not_expression({:function, "not", [{:function, operator, args, location}], _})
+       when operator in ~w(> < = <> >= <=),
+       do: {:function, negate_operator(operator), args, location}
+
+  defp rewrite_not_expression(expr), do: expr
+
+  defp negate_operator("="), do: "<>"
+  defp negate_operator("<>"), do: "="
+  defp negate_operator("<"), do: ">="
+  defp negate_operator(">"), do: "<="
+  defp negate_operator("<="), do: ">"
+  defp negate_operator(">="), do: "<"
 
   # -------------------------------------------------------------------
   # NOT IN rewriting
   # -------------------------------------------------------------------
 
   defp rewrite_not_in(ast) do
-    update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
-      {:not, {:in, lhs, exps = [_ | _]}} ->
-        [exp | exps] = Enum.reverse(exps)
-
-        Enum.reduce(
-          exps,
-          {:comparison, lhs, :<>, exp},
-          &{:and, {:comparison, lhs, :<>, &1}, &2}
-        )
-
-      other ->
-        other
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&match?({:function, "not", [{:function, "in", _, _}], _}, &1))
+    |> Lens.map(ast, fn {:function, "not", [{:function, "in", [subject | targets], location_in}], location_not} ->
+      targets
+      |> Enum.reverse()
+      |> Enum.map(&{:function, "<>", [subject, &1], location_not})
+      |> Enum.reduce(&{:function, "and", [&1, &2], location_in})
     end)
   end
 end
