@@ -101,7 +101,54 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_expression(%Expression{kind: :column, table: :unknown, name: name}), do: "$" <> name
   defp parse_expression(%Expression{kind: :column, table: %{name: table}, name: name}), do: "$#{table}.#{name}"
 
+  # left of a negative value should return all but the last n characters.
+  # left("aircloak", -2) --> "airclo"
+  # left("aircloak", -100) --> ""
+  defp parse_function("left", [value, %{"$literal": negative_length}]) when negative_length < 0 do
+    substring_length =
+      parse_function("+", [
+        parse_function("length", [value]),
+        negative_length
+      ])
+
+    null_check(
+      value,
+      parse_function("case", [
+        %{"$gt": [substring_length, 0]},
+        parse_function("substring", [value, 1, substring_length]),
+        ""
+      ])
+    )
+  end
+
   defp parse_function("left", [string, count]), do: null_check(string, count, %{"$substrCP": [string, 0, count]})
+
+  # right of a negative value should return all but the first n characters
+  # right("aircloak", -2) --> "rcloak"
+  # right("aircloak", -100) --> ""
+  defp parse_function("right", [value, %{"$literal": negative_length}]) when negative_length < 0 do
+    substring_length =
+      parse_function("+", [
+        parse_function("length", [value]),
+        negative_length
+      ])
+
+    null_check(
+      value,
+      parse_function("case", [
+        %{"$gt": [substring_length, 0]},
+        parse_function("substring", [
+          value,
+          parse_function("+", [
+            parse_function("abs", [negative_length]),
+            1
+          ]),
+          substring_length
+        ]),
+        ""
+      ])
+    )
+  end
 
   defp parse_function("right", [string, count]),
     do:
