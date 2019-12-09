@@ -74,7 +74,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
       "CASE WHEN ",
       [substring_length, "> 0"],
       " THEN ",
-      function_sql("substring", [value, "1", substring_length]),
+      function_sql("SUBSTR", [value, "1", substring_length]),
       " ELSE ",
       "''",
       " END"
@@ -97,7 +97,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
       "CASE WHEN ",
       [substring_length, "> 0"],
       " THEN ",
-      function_sql("substring", [
+      function_sql("SUBSTR", [
         value,
         function_sql("+", [
           function_sql("abs", [length]),
