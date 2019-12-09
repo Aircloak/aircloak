@@ -1,4 +1,4 @@
-Air db
+Aircloak db
 ============
 
 ----------------------
@@ -11,7 +11,7 @@ Air db
 
 ## What it does
 
-This component is the containerized air database server. Locally it is used for development and testing. The container can be also used in production as a simple way of hosting the air database.
+This component is the containerized aircloak database server. Locally it is used for development and testing. The container can be also used in production as a simple way of hosting the air and/or central database.
 
 ## Running
 

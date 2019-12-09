@@ -3,6 +3,7 @@
   "name": "DataQualityAnonymized",
   "parameters": {
     "hostname": "localhost",
+    "port": 20002,
     "username": "data_quality",
     "database": "data_quality"
   },

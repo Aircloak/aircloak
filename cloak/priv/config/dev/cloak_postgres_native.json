@@ -3,6 +3,7 @@
   "name": "cloak_postgres_native",
   "parameters": {
     "hostname": "localhost",
+    "port": 20002,
     "username": "cloak",
     "database": "cloak"
   },

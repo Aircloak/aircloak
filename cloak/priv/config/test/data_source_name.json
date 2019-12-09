@@ -3,6 +3,7 @@
   "name": "data_source_name",
   "parameters": {
     "hostname": "localhost",
+    "port": 20002,
     "username": "postgres",
     "database": "cloaktest1"
   },

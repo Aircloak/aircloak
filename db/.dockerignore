@@ -2,4 +2,4 @@
 *
 
 # whitelist only needed folders
-!air/db/init_db.sh
+!/db/init_db.sh
