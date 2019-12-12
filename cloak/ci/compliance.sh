@@ -85,7 +85,7 @@ function start_dev_container {
   docker_script build_image
 
   container_id="local_ci_$(cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
-  STOP_AFTER=infinity DOCKER_ARGS="--network='container:air'" docker_script start_container $container_id
+  STOP_AFTER=infinity docker_script start_container $container_id
 
   local oracle_container_id="${container_id}_oracle"
   docker run \
