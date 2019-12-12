@@ -2,7 +2,6 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   @moduledoc "Helper module for converting a query to Oracle- specific SQL."
 
   @fmt_no_extra_whitespace "FM"
-  @unicode_substring "SUBSTRC"
 
   # -------------------------------------------------------------------
   # SqlBuilder.Dialect callbacks
@@ -74,14 +73,14 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
       "CASE WHEN ",
       [substring_length, "> 0"],
       " THEN ",
-      function_sql("SUBSTR", [value, "1", substring_length]),
+      function_sql("substring", [value, "1", substring_length]),
       " ELSE ",
       "''",
       " END"
     ]
   end
 
-  def function_sql("left", [string, number]), do: [@unicode_substring, "(", string, ", 0, ", number, ")"]
+  def function_sql("left", [string, number]), do: function_sql("substring", [string, "1", number])
 
   # right of a negative value should return all but the first n characters
   # right("aircloak", -2) --> "rcloak"
@@ -97,7 +96,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
       "CASE WHEN ",
       [substring_length, "> 0"],
       " THEN ",
-      function_sql("SUBSTR", [
+      function_sql("substring", [
         value,
         function_sql("+", [
           function_sql("abs", [length]),
@@ -111,8 +110,17 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   end
 
   def function_sql("right", [string, number]) do
-    number = ["LEAST(LENGTHC(", string, "), ", number, ")"]
-    [@unicode_substring, "(", string, ", -", number, ", ", number, ")"]
+    number =
+      function_sql("least", [
+        function_sql("length", [string]),
+        number
+      ])
+
+    function_sql("substring", [
+      string,
+      ["-", number],
+      number
+    ])
   end
 
   def function_sql("hex", [data]), do: ["LOWER(RAWTOHEX(", data, "))"]
@@ -121,7 +129,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("variance", [arg]), do: ["VAR_SAMP(", arg, ")"]
 
-  def function_sql("substring", args), do: function_sql(@unicode_substring, args)
+  def function_sql("substring", args), do: function_sql("SUBSTR", args)
 
   def function_sql("date_trunc", [[?', "second", ?'], arg2]), do: ["CAST(", arg2, " AS TIMESTAMP(0))"]
   def function_sql("date_trunc", [[?', "minute", ?'], arg2]), do: function_sql("TRUNC", [arg2, "'mi'"])
