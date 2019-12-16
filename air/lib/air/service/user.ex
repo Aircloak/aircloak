@@ -1,6 +1,7 @@
 defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
+  alias Aircloak.ChildSpec
   alias Air.Repo
   alias Air.Service
   alias Air.Service.{AuditLog, LDAP, Password, RevokableToken, AdminGuard}
@@ -20,10 +21,27 @@ defmodule Air.Service.User do
   @type change_options :: [ldap: true | false | :any]
   @type login :: String.t()
   @type password :: String.t()
+  @type user_notification :: :user_updated | :user_deleted
+
+  @notifications_registry __MODULE__.NotificationsRegistry
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Subscribes to notifications about activities."
+  @spec subscribe_to(user_notification) :: :ok
+  def subscribe_to(notification) do
+    Registry.register(@notifications_registry, notification, nil)
+    :ok
+  end
+
+  @doc "Subscribes to notifications about activities."
+  @spec unsubscribe_from(user_notification) :: :ok
+  def unsubscribe_from(notification) do
+    Registry.unregister(@notifications_registry, notification)
+    :ok
+  end
 
   @doc "Authenticates the given user, only allowing the main login to be used."
   @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_login_or_password}
@@ -215,8 +233,6 @@ defmodule Air.Service.User do
   def update(user, params, options \\ []) do
     check_ldap!(user, options)
 
-    datasources_before = Air.Service.DataSource.for_user(user)
-
     AdminGuard.commit_if_active_last_admin(fn ->
       user
       |> user_changeset(params)
@@ -225,7 +241,7 @@ defmodule Air.Service.User do
     end)
     |> case do
       {:ok, updated_user} ->
-        update_shadow_db(user, datasources_before, Air.Service.DataSource.for_user(updated_user))
+        notify_subscribers(:user_updated, {updated_user, user})
         {:ok, updated_user}
 
       other ->
@@ -441,6 +457,12 @@ defmodule Air.Service.User do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp notify_subscribers(notification, payload),
+    do:
+      Registry.lookup(@notifications_registry, notification)
+      |> Enum.map(fn {pid, nil} -> pid end)
+      |> Enum.each(&send(&1, {notification, payload}))
 
   defp do_login(login, password, meta, login_types) do
     normalized_login = String.downcase(login)
@@ -667,9 +689,7 @@ defmodule Air.Service.User do
     end)
     |> case do
       {:ok, _} = result ->
-        data_sources
-        |> Enum.each(&Air.PsqlServer.ShadowDb.drop(user, &1.name))
-
+        notify_subscribers(:user_deleted, user)
         result
 
       other ->
@@ -677,13 +697,18 @@ defmodule Air.Service.User do
     end
   end
 
-  defp update_shadow_db(user, datasources_before, datasources_after) do
-    datasources_before
-    |> Enum.reject(&Enum.member?(datasources_after, &1))
-    |> Enum.each(&Air.PsqlServer.ShadowDb.drop(user, &1.name))
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
 
-    datasources_after
-    |> Enum.reject(&Enum.member?(datasources_before, &1))
-    |> Enum.each(&Air.PsqlServer.ShadowDb.update(user, &1.name))
+  @doc false
+  def child_spec(_arg) do
+    ChildSpec.supervisor(
+      [
+        ChildSpec.registry(:duplicate, @notifications_registry)
+      ],
+      strategy: :one_for_one,
+      name: __MODULE__
+    )
   end
 end
