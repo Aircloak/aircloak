@@ -11,19 +11,7 @@ defmodule Cloak.Sql.Query do
   alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, NoiseLayer, Condition}
   require Logger
 
-  @type comparison :: {:comparison, Expression.t(), Parser.comparator(), Expression.t()}
-
-  @type condition ::
-          comparison
-          | {:like | :ilike, Expression.t(), Expression.t()}
-          | {:is, Expression.t(), :null}
-          | {:in, Expression.t(), [Expression.t()]}
-
-  @type filter_clause ::
-          nil
-          | condition
-          | {:not, condition}
-          | {:and | :or, condition, condition}
+  @type filter_clause :: nil | Expression.t()
 
   @type view_map :: %{(view_name :: String.t()) => view_sql :: String.t()}
 

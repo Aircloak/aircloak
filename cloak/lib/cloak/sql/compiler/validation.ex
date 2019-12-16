@@ -391,7 +391,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         Enum.each(query.selected_tables, &CyclicGraph.add_vertex(graph, &1.name))
         conditions = Lens.to_list(Query.Lenses.conditions(), query.where) ++ Helpers.all_join_conditions(query)
 
-        for {:comparison, column1, :=, column2} <- conditions,
+        for %Expression{kind: :function, name: "=", args: [column1, column2]} <- conditions,
             matching_key_types?(column1, column2),
             column1 != column2 do
           CyclicGraph.connect!(graph, column1.table.name, column2.table.name)
@@ -443,7 +443,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     selected_tables = verify_join_conditions_scope(join.lhs, selected_tables)
     selected_tables = verify_join_conditions_scope(join.rhs, selected_tables)
 
-    Lens.each(Lenses.conditions_terminals(), join.conditions, fn
+    Lens.each(Lenses.conditions_terminals(), join.condition, fn
       %Cloak.Sql.Expression{
         table: %{name: table_name},
         name: column_name,
@@ -458,7 +458,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         :ok
     end)
 
-    verify_where_clauses(join.conditions)
+    verify_where_clauses(join.condition)
     selected_tables
   end
 
@@ -493,17 +493,18 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_where(query), do: verify_where_clauses(query.where)
 
-  defp verify_condition_tree({:or, _, _}),
+  defp verify_condition_tree(%Expression{kind: :function, name: "or", source_location: location}),
     do:
       raise(
         CompilationError,
+        source_location: location,
         message:
           "Combining conditions with `OR` is not allowed. Note that an `OR` condition may " <>
             "arise when negating an `AND` condition. For example `NOT (x = 1 AND y = 2)` is equivalent to " <>
             "`x <> 1 OR y <> 2`."
       )
 
-  defp verify_condition_tree({:and, lhs, rhs}) do
+  defp verify_condition_tree(%Expression{kind: :function, name: "and", args: [lhs, rhs]}) do
     verify_condition_tree(lhs)
     verify_condition_tree(rhs)
   end
@@ -534,53 +535,32 @@ defmodule Cloak.Sql.Compiler.Validation do
       |> Lens.to_list(clauses)
       |> Enum.each(&verify_condition/1)
 
-  defp verify_condition({:comparison, column_a, comparator, column_b}) do
-    verify_where_condition_types(column_a, column_b)
-    check_for_string_inequalities(comparator, column_b)
+  defp verify_condition(%Expression{
+         kind: :function,
+         name: verb,
+         args: [_subject, %Expression{type: :text, source_location: location}]
+       })
+       when verb in ~w(< > <= >=) do
+    raise(
+      CompilationError,
+      source_location: location,
+      message: "Inequalities on string values are currently not supported."
+    )
   end
 
-  defp verify_condition({verb, column, _}) when verb in [:like, :ilike] do
+  defp verify_condition(%Expression{kind: :function, name: verb, args: [column, _pattern]})
+       when verb in ~w(like, ilike) do
     if column.type != :text do
-      verb = verb |> to_string() |> String.upcase()
-
       raise CompilationError,
         source_location: column.source_location,
         message:
-          "Column #{Expression.display_name(column)} of type `#{column.type}` cannot be used in a #{verb} expression."
+          "Column #{Expression.display_name(column)} of type `#{column.type}` " <>
+            "cannot be used in a #{String.upcase(verb)} expression."
     end
   end
 
-  defp verify_condition({:not, condition}), do: verify_condition(condition)
+  defp verify_condition(%Expression{kind: :function, name: "not", args: [condition]}), do: verify_condition(condition)
   defp verify_condition(_), do: :ok
-
-  defp verify_where_condition_types(column_a, column_b) do
-    unless comparable?(column_a.type, column_b.type) do
-      raise CompilationError,
-        source_location: column_a.source_location,
-        message:
-          "Column #{Expression.display_name(column_a)} of type `#{column_a.type}` and " <>
-            "column #{Expression.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
-    end
-  end
-
-  defp comparable?(:integer, :real), do: true
-  defp comparable?(:real, :integer), do: true
-  defp comparable?(type1, type2) when is_nil(type1) or is_nil(type2), do: true
-  defp comparable?(type1, type2), do: type1 == type2
-
-  defp check_for_string_inequalities(comparator, %Expression{
-         type: :text,
-         source_location: location
-       })
-       when comparator in [:>, :>=, :<, :<=],
-       do:
-         raise(
-           CompilationError,
-           source_location: location,
-           message: "Inequalities on string values are currently not supported."
-         )
-
-  defp check_for_string_inequalities(_, _), do: :ok
 
   defp verify_having(query) do
     verify_condition_tree(query.having)
@@ -649,7 +629,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     verify_in_types(in_condition)
   end
 
-  defp verify_in_rhs_constant({:in, _, items}) do
+  defp verify_in_rhs_constant(%Expression{kind: :function, name: "in", args: [_lhs | items]}) do
     items
     |> Enum.find(&(not Expression.constant?(&1)))
     |> case do
@@ -663,7 +643,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_in_types({:in, lhs, items}) do
+  defp verify_in_types(%Expression{kind: :function, name: "in", args: [lhs | items]}) do
     items
     |> Enum.find(&(&1.type != lhs.type))
     |> case do

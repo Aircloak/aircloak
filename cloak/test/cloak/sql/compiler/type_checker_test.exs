@@ -101,13 +101,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids function(column) NOT LIKE lhs" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT LIKE '%some pattern_'")
 
-      assert message =~ ~r/Expressions with NOT LIKE cannot include any functions/
+      assert message =~ ~r/Expressions with `NOT LIKE` cannot include any functions/
     end
 
     test "forbids function(column) NOT ILIKE lhs" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT ILIKE '%some pattern_'")
 
-      assert message =~ ~r/Expressions with NOT ILIKE cannot include any functions/
+      assert message =~ ~r/Expressions with `NOT ILIKE` cannot include any functions/
     end
 
     for function <- ~w(lower upper trim ltrim btrim) do

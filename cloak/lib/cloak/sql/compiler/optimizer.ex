@@ -68,9 +68,9 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   defp optimize_joins(query), do: Lens.map(Lenses.joins(), query, &push_down_simple_conditions/1)
 
   defp push_down_simple_conditions(join) do
-    {lhs, conditions} = move_simple_conditions_into_subqueries(join.lhs, join.conditions)
+    {lhs, conditions} = move_simple_conditions_into_subqueries(join.lhs, join.condition)
     {rhs, conditions} = move_simple_conditions_into_subqueries(join.rhs, conditions)
-    %{join | lhs: lhs, rhs: rhs, conditions: conditions}
+    %{join | lhs: lhs, rhs: rhs, condition: conditions}
   end
 
   defp move_simple_conditions_into_subqueries(branch, conditions) do
@@ -78,7 +78,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
     simple_condition? =
       if nullable_columns?,
-        do: &(Condition.verb(&1) != :is and condition_from_table?(&1, &2)),
+        do: &(Condition.verb(&1) != :is_null and condition_from_table?(&1, &2)),
         else: &condition_from_table?(&1, &2)
 
     branch_with_moved_conditions =
@@ -95,7 +95,16 @@ defmodule Cloak.Sql.Compiler.Optimizer do
         if nullable_columns? do
           Lenses.and_conditions()
           |> Lens.filter(&simple_condition?.(&1, name))
-          |> Lens.map(acc, &{:not, {:is, Condition.subject(&1), :null}})
+          |> Lens.map(
+            acc,
+            &Expression.function(
+              "not",
+              [
+                Expression.function("is_null", [Condition.subject(&1)], :boolean)
+              ],
+              :boolean
+            )
+          )
         else
           reject_and_conditions(acc, &simple_condition?.(&1, name))
         end
@@ -133,10 +142,10 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   end
 
   defp add_conditions_to_query(conditions, %Query{grouping_sets: []} = query),
-    do: %Query{query | where: Condition.combine(:and, query.where, conditions)}
+    do: %Query{query | where: Condition.both(query.where, conditions)}
 
   defp add_conditions_to_query(conditions, %Query{grouping_sets: [_ | _]} = query),
-    do: %Query{query | having: Condition.combine(:and, query.having, conditions)}
+    do: %Query{query | having: Condition.both(query.having, conditions)}
 
   defp condition_from_table?(condition, table_name) do
     Query.Lenses.conditions_terminals()
@@ -162,16 +171,16 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
   defp reject_and_conditions(nil, _matcher), do: nil
 
-  defp reject_and_conditions({:and, lhs, rhs}, matcher) do
+  defp reject_and_conditions(%Expression{kind: :function, name: "and", args: [lhs, rhs]} = expression, matcher) do
     case {reject_and_conditions(lhs, matcher), reject_and_conditions(rhs, matcher)} do
       {nil, nil} -> nil
       {nil, rhs} -> rhs
       {lhs, nil} -> lhs
-      {lhs, rhs} -> {:and, lhs, rhs}
+      _ -> expression
     end
   end
 
-  defp reject_and_conditions({:or, lhs, rhs}, _matcher), do: {:or, lhs, rhs}
+  defp reject_and_conditions(%Expression{kind: :function, name: "or"} = expression, _matcher), do: expression
 
   defp reject_and_conditions(condition, matcher), do: if(matcher.(condition), do: nil, else: condition)
 end

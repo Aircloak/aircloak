@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @moduledoc "Deals with normalizing some expressions so that they are easier to deal with at later stages."
 
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.Sql.{Expression, Query, LikePattern, Condition, CompilationError}
+  alias Cloak.Sql.{Expression, Query, LikePattern, Condition, Function, CompilationError}
 
   # -------------------------------------------------------------------
   # API functions
@@ -89,34 +89,25 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Normalizing comparisons
   # -------------------------------------------------------------------
 
-  defp normalize_comparisons(query),
-    do:
-      update_in(
-        query,
-        [
-          Query.Lenses.filter_clauses()
-          |> Query.Lenses.conditions()
-          |> Lens.filter(&(Condition.verb(&1) == :comparison))
-        ],
-        &do_normalize_comparison/1
-      )
+  defp normalize_comparisons(query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Function.condition?/1)
+    |> Lens.filter(&(Condition.verb(&1) == :comparison))
+    |> Lens.map(query, &do_normalize_comparison/1)
+  end
 
-  defp do_normalize_comparison({:not, condition}), do: {:not, do_normalize_comparison(condition)}
+  defp do_normalize_comparison(%Expression{kind: :function, name: operator, args: [lhs, rhs]} = comparison) do
+    if Expression.constant?(lhs) and not Expression.constant?(rhs),
+      do: %Expression{comparison | name: invert_inequality(operator), args: [rhs, lhs]},
+      else: comparison
+  end
 
-  defp do_normalize_comparison({:comparison, lhs, operator, rhs} = comparison),
-    do:
-      if(
-        Expression.constant?(lhs) and not Expression.constant?(rhs),
-        do: {:comparison, rhs, invert_inequality(operator), lhs},
-        else: comparison
-      )
-
-  defp invert_inequality(:=), do: :=
-  defp invert_inequality(:<>), do: :<>
-  defp invert_inequality(:>), do: :<
-  defp invert_inequality(:>=), do: :<=
-  defp invert_inequality(:<), do: :>
-  defp invert_inequality(:<=), do: :>=
+  defp invert_inequality("="), do: "="
+  defp invert_inequality("<>"), do: "<>"
+  defp invert_inequality(">"), do: "<"
+  defp invert_inequality(">="), do: "<="
+  defp invert_inequality("<"), do: ">"
+  defp invert_inequality("<="), do: ">="
 
   # -------------------------------------------------------------------
   # Collapsing constant expressions
@@ -152,25 +143,24 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp normalize_trivial_like(query),
     do:
-      Query.Lenses.like_clauses()
-      |> Lens.filter(&trivial_like?/1)
-      |> Lens.map(query, fn
-        {:like, lhs, rhs} ->
-          {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
+      Query.Lenses.top_down_query_expressions()
+      |> Lens.filter(&Function.condition?/1)
+      |> Lens.filter(&(Condition.verb(&1) == :like))
+      |> Lens.filter(&(&1 |> Condition.value() |> LikePattern.trivial?()))
+      |> Lens.map(query, &do_normalize_trivial_like/1)
 
-        {:ilike, lhs, rhs} ->
-          {:comparison, Expression.lowercase(lhs), :=, rhs |> Expression.lowercase() |> LikePattern.trivial_to_string()}
+  defp do_normalize_trivial_like(%Expression{kind: :function, name: "not", args: [expression]}) do
+    %Expression{do_normalize_trivial_like(expression) | name: "<>"}
+  end
 
-        {:not, {:like, lhs, rhs}} ->
-          {:comparison, lhs, :<>, LikePattern.trivial_to_string(rhs)}
+  defp do_normalize_trivial_like(%Expression{kind: :function, name: "like", args: [subject, target]} = expression) do
+    %Expression{expression | name: "=", args: [subject, LikePattern.trivial_to_string(target)]}
+  end
 
-        {:not, {:ilike, lhs, rhs}} ->
-          {:comparison, Expression.lowercase(lhs), :<>,
-           rhs |> Expression.lowercase() |> LikePattern.trivial_to_string()}
-      end)
-
-  defp trivial_like?({:not, like}), do: trivial_like?(like)
-  defp trivial_like?({_kind, _rhs, lhs}), do: LikePattern.trivial?(lhs.value)
+  defp do_normalize_trivial_like(%Expression{kind: :function, name: "ilike", args: [subject, target]} = expression) do
+    args = [Expression.lowercase(subject), target |> Expression.lowercase() |> LikePattern.trivial_to_string()]
+    %Expression{expression | name: "=", args: args}
+  end
 
   # -------------------------------------------------------------------
   # Normalizing bucket calls

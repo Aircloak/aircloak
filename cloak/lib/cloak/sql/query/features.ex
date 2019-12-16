@@ -175,22 +175,10 @@ defmodule Cloak.Sql.Query.Features do
       |> Lens.reject(&Condition.subject(&1).synthetic?)
     )
     |> Lens.to_list(query)
-    |> Enum.map(fn {subquery, filter} -> filter_to_tree(filter, subquery) end)
+    |> Enum.map(fn {subquery, condition} -> build_expression_tree(condition, subquery) end)
     |> Enum.map(&expression_tree_to_lisp/1)
     |> Enum.uniq()
   end
-
-  defp filter_to_tree({:not, something}, query), do: ["not", filter_to_tree(something, query)]
-
-  defp filter_to_tree({:comparison, column, comparison, comparator}, query),
-    do: [Atom.to_string(comparison), build_expression_tree(column, query), build_expression_tree(comparator, query)]
-
-  defp filter_to_tree({:in, column, _set}, query), do: ["in", build_expression_tree(column, query), "set"]
-
-  defp filter_to_tree({:is, column, :null}, query), do: ["is-null", build_expression_tree(column, query)]
-
-  defp filter_to_tree({condition, lhs, rhs}, query),
-    do: [Atom.to_string(condition), build_expression_tree(lhs, query), build_expression_tree(rhs, query)]
 
   defp stringify(string) when is_binary(string), do: string
   defp stringify(atom) when is_atom(atom), do: Atom.to_string(atom)

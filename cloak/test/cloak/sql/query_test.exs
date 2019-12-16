@@ -244,7 +244,7 @@ defmodule Cloak.Sql.QueryTest do
                """).filters
                |> Enum.into(MapSet.new())
 
-      assert MapSet.new(["(in col set)", "(<> col const)"]) ==
+      assert MapSet.new(["(in col const const)", "(<> col const)"]) ==
                features_from("""
                  SELECT height
                  FROM feat_users
@@ -254,7 +254,7 @@ defmodule Cloak.Sql.QueryTest do
                """).filters
                |> Enum.into(MapSet.new())
 
-      assert MapSet.new(["(is-null col)", "(not (is-null col))"]) ==
+      assert MapSet.new(["(is_null col)", "(not (is_null col))"]) ==
                features_from("""
                  SELECT height
                  FROM feat_users
@@ -510,7 +510,8 @@ defmodule Cloak.Sql.QueryTest do
     numeric_column = Table.column("numeric", :integer)
     table = Table.new("table", "uid", columns: [uid_column, numeric_column])
 
-    condition = {:comparison, Expression.column(numeric_column, table), :=, Expression.constant(:integer, 3)}
+    condition =
+      Expression.function("=", [Expression.column(numeric_column, table), Expression.constant(:integer, 3)], :boolean)
 
     query = %Query{command: :select, where: condition, selected_tables: [table], from: "table"}
 
@@ -524,7 +525,7 @@ defmodule Cloak.Sql.QueryTest do
     table = Table.new("table", "uid", columns: [uid_column, text_column])
 
     decoded_column = Expression.function("dec_b64", [Expression.column(text_column, table)], :text)
-    condition = {:comparison, decoded_column, :=, Expression.constant(:text, "a")}
+    condition = Expression.function("=", [decoded_column, Expression.constant(:text, "a")], :boolean)
 
     query = %Query{
       command: :select,

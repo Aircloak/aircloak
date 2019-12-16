@@ -184,8 +184,9 @@ defmodule Cloak.Sql.Expression do
   def display(%__MODULE__{kind: :function, name: {:bucket, align}, args: [value, by]}),
     do: "bucket(#{display(value)} by #{display(by)} align #{align})"
 
-  def display(%__MODULE__{kind: :function, name: function, args: [arg1, arg2]}) when function in ~w(+ - / * ^ %),
-    do: "#{display(arg1)} #{function} #{display(arg2)}"
+  def display(%__MODULE__{kind: :function, name: function, args: [arg1, arg2]})
+      when function in ~w(+ - / * ^ % < > = <> >= <=),
+      do: "#{display(arg1)} #{function} #{display(arg2)}"
 
   def display(%__MODULE__{kind: :function, name: function, args: args}),
     do: "#{function}(#{args |> Enum.map(&display/1) |> Enum.join(", ")})"
@@ -197,6 +198,9 @@ defmodule Cloak.Sql.Expression do
 
   def display(%__MODULE__{kind: :constant, type: type, value: value}) when type in [:date, :datetime, :time],
     do: "#{type} '#{to_string(value)}'"
+
+  def display(%__MODULE__{kind: :constant, type: :like_pattern, value: {pattern, escape}}),
+    do: "'#{pattern}' '#{escape}'"
 
   def display(%__MODULE__{kind: :constant, value: nil}), do: "NULL"
   def display(%__MODULE__{kind: :constant, value: value}), do: to_string(value)
@@ -405,6 +409,21 @@ defmodule Cloak.Sql.Expression do
     <<_::16, hash::binary-4, _::80>> = :crypto.hash(:md5, to_string(value))
     Base.encode16(hash, case: :lower)
   end
+
+  defp do_apply("and", [arg1, arg2]) when is_boolean(arg1) and is_boolean(arg2), do: arg1 and arg2
+  defp do_apply("or", [arg1, arg2]) when is_boolean(arg1) and is_boolean(arg2), do: arg1 or arg2
+  defp do_apply("not", [arg]) when is_boolean(arg), do: not arg
+
+  defp do_apply("=", [arg1, arg2]), do: arg1 === arg2
+  defp do_apply("<>", [arg1, arg2]), do: arg1 != arg2
+  defp do_apply(">", [arg1, arg2]), do: arg1 > arg2
+  defp do_apply("<", [arg1, arg2]), do: arg1 < arg2
+  defp do_apply(">=", [arg1, arg2]), do: arg1 >= arg2
+  defp do_apply("<=", [arg1, arg2]), do: arg1 <= arg2
+
+  defp do_apply("in", [arg | values]), do: arg in values
+  defp do_apply("is_null", [nil]), do: true
+  defp do_apply("is_null", [_]), do: false
 
   defp do_apply("bool_op", [_op, nil, _any]), do: nil
   defp do_apply("bool_op", [_op, _any, nil]), do: nil

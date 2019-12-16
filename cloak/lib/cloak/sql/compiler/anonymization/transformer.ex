@@ -363,7 +363,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
   defp statistics_buckets_filter(query, count_duid) do
     if Query.lcf_buckets_aggregation_limit(query) == 0 do
       # This is an optimization in case we dont care about censored buckets at all.
-      {:comparison, count_duid, :>, Expression.constant(:integer, 1)}
+      Expression.function(">", [count_duid, Expression.constant(:integer, 1)], :boolean)
     else
       nil
     end

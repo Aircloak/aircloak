@@ -153,7 +153,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     table_conditions =
       Query.Lenses.conditions_terminals() |> Lens.map(table_conditions, &%Expression{&1 | table: :unknown})
 
-    {Condition.combine(:and, complex_conditions, other_tables_conditions), table_conditions}
+    {Condition.both(complex_conditions, other_tables_conditions), table_conditions}
   end
 
   defp complex_filter([]), do: &complex_condition?(&1, [])

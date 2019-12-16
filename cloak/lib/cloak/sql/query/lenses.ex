@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Query.Lenses do
   @moduledoc "Lenses for traversing queries"
 
-  alias Cloak.Sql.{Expression, Function, Query, Condition}
+  alias Cloak.Sql.{Expression, Function, Query}
 
   use Lens.Macros
 
@@ -36,7 +36,7 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens leaf_expressions(), do: all_expressions() |> do_leaf_expressions()
 
   @doc "Lens focusing on all expressions in a list of expressions."
-  deflens all_expressions(), do: Lens.both(bottom_up_elements(), conditions_terminals()) |> expressions()
+  deflens all_expressions(), do: bottom_up_elements() |> expressions()
 
   @doc "Lens focusing on function expressions in the query that are sent to the database (subqueries are not included)."
   deflens db_needed_functions() do
@@ -87,23 +87,6 @@ defmodule Cloak.Sql.Query.Lenses do
     |> join_elements()
     |> Lens.filter(&match?({:subquery, _}, &1))
     |> Lens.filter(fn {:subquery, subquery} -> subquery.ast.analyst_table != nil end)
-  end
-
-  @doc "Lens focusing on all inequality condition-clauses in a query."
-  deflens order_condition_columns() do
-    Lens.match(fn
-      {:comparison, _, check, _} when check in ~w(> >= < <=)a ->
-        Lens.indices([1, 3]) |> order_condition_columns()
-
-      elements when is_list(elements) ->
-        Lens.all() |> order_condition_columns()
-
-      %Expression{} ->
-        Lens.root()
-
-      _ ->
-        Lens.empty()
-    end)
   end
 
   @doc "Lens focusing on the tables selected from the database. Does not include subqueries."
@@ -162,56 +145,48 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on the operands for a condition."
   deflens operands() do
     Lens.match(fn
-      {:not, _} -> Lens.at(1) |> operands()
-      {:comparison, _lhs, _comparator, _rhs} -> Lens.indices([1, 3])
-      {:is, _, :null} -> Lens.at(1)
-      {op, _, _} when op in [:like, :ilike] -> Lens.both(Lens.at(1), Lens.at(2))
-      {:in, _, _} -> Lens.both(Lens.at(1), Lens.at(2) |> Lens.all())
-      _ -> Lens.empty()
+      %Expression{kind: :function, name: "not"} ->
+        Lens.key(:args) |> Lens.at(0) |> operands()
+
+      %Expression{kind: :function, name: name} ->
+        if Function.condition?(name), do: Lens.key(:args) |> Lens.all(), else: Lens.root()
+
+      _ ->
+        Lens.root()
     end)
   end
 
   @doc "Lens focusing on individual conditions."
   deflens conditions() do
     Lens.match(fn
-      {:or, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
-      {:and, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
-      list when is_list(list) -> Lens.all() |> conditions()
-      nil -> Lens.empty()
-      _ -> Lens.root()
+      %Expression{kind: :function, name: name} when name in ~w(and or) ->
+        Lens.key(:args) |> conditions()
+
+      list when is_list(list) ->
+        Lens.all() |> conditions()
+
+      nil ->
+        Lens.empty()
+
+      _ ->
+        Lens.root()
     end)
   end
 
   @doc "Lens focusing on the individual conditions which are 'AND'-ed together."
   deflens and_conditions() do
     Lens.match(fn
-      {:or, _, _} -> Lens.empty()
-      {:and, _, _} -> Lens.both(Lens.at(1), Lens.at(2)) |> conditions()
-      list when is_list(list) -> Lens.all() |> conditions()
-      nil -> Lens.empty()
-      _ -> Lens.root()
-    end)
-  end
+      %Expression{kind: :function, name: "and"} ->
+        Lens.key(:args) |> Lens.all() |> conditions()
 
-  @doc "Lens focusing on all conditions, both leaf and intermediate nodes (AND, OR, NOT)."
-  deflens all_conditions() do
-    Lens.match(fn
-      {:or, _, _} ->
-        Lens.multiple([
-          Lens.at(1) |> all_conditions(),
-          Lens.at(2) |> all_conditions(),
-          Lens.root()
-        ])
+      %Expression{kind: :function, name: "or"} ->
+        Lens.empty()
 
-      {:and, _, _} ->
-        Lens.multiple([
-          Lens.at(1) |> all_conditions(),
-          Lens.at(2) |> all_conditions(),
-          Lens.root()
-        ])
+      list when is_list(list) ->
+        Lens.all() |> conditions()
 
-      {:not, _} ->
-        Lens.both(Lens.at(1) |> all_conditions(), Lens.root())
+      nil ->
+        Lens.empty()
 
       _ ->
         Lens.root()
@@ -228,25 +203,6 @@ defmodule Cloak.Sql.Query.Lenses do
   @spec subquery_lenses(Query.t()) :: [Lens.t()]
   def subquery_lenses(query), do: [Lens.root() | do_subquery_lenses(Lens.key(:from), query.from)]
 
-  @doc "Lens focusing on all like/ilike/not like/not ilike where clauses in the query conditions."
-  @spec like_clauses() :: Lens.t()
-  def like_clauses(),
-    do:
-      filter_clauses()
-      |> conditions()
-      |> Lens.filter(&(Condition.like?(&1) or Condition.not_like?(&1)))
-
-  @doc "Lens focusing on all like/ilike/not like/not ilike patterns in the query conditions."
-  @spec like_patterns() :: Lens.t()
-  def like_patterns(),
-    do:
-      like_clauses()
-      |> Lens.match(fn
-        {:not, {_kind, _lhs, _rhs}} -> Lens.at(1) |> Lens.at(2)
-        {_kind, _lhs, _rhs} -> Lens.at(2)
-      end)
-      |> Lens.key(:value)
-
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------
@@ -254,7 +210,7 @@ defmodule Cloak.Sql.Query.Lenses do
   defp do_join_condition_lenses({:join, %{lhs: lhs, rhs: rhs}}, path) do
     base = path |> Lens.at(1)
 
-    [base |> Lens.key(:conditions)] ++
+    [base |> Lens.key(:condition)] ++
       do_join_condition_lenses(lhs, base |> Lens.key(:lhs)) ++ do_join_condition_lenses(rhs, base |> Lens.key(:rhs))
   end
 

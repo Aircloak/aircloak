@@ -143,6 +143,11 @@ defmodule Cloak.Sql.Function do
   @spec unsafe?(t | Parser.function_name() | nil) :: boolean
   def unsafe?(param), do: has_attribute?(param, :unsafe)
 
+  @doc "Returns true if the given function call is a condition, false otherwise."
+  @spec condition?(t | Parser.function_name() | nil) :: boolean
+  def condition?(%Expression{kind: :function, name: "not", args: [arg]}), do: condition?(arg)
+  def condition?(param), do: has_attribute?(param, :condition)
+
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t()}}
   def deprecation_info({:function, name, _, _} = function) do
@@ -176,11 +181,13 @@ defmodule Cloak.Sql.Function do
   end
 
   defp do_well_typed?(function, argument_types) do
-    length(arguments(function)) <= length(argument_types) and
+    arguments = arguments(function)
+
+    length(arguments) <= length(argument_types) and
       argument_types
       |> Enum.with_index()
       |> Enum.all?(fn {type, index} ->
-        type_matches?(type, Enum.at(arguments(function), index))
+        type_matches?(type, Enum.at(arguments, index))
       end)
   end
 
@@ -202,6 +209,8 @@ defmodule Cloak.Sql.Function do
     do: expected == actual and Enum.all?(args, &Expression.constant?/1)
 
   defp type_matches?(_expected_type, %Expression{value: nil, type: nil}), do: true
+
+  defp type_matches?(:numeric, %{type: actual_type}), do: actual_type in [:integer, :real]
 
   defp type_matches?(expected_type, %{type: actual_type}), do: expected_type == actual_type
 end
