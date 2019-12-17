@@ -263,7 +263,7 @@ defmodule Air.Service.UserTest do
 
       assert {:ok, _} = User.delete_app_login(user, login_id)
       assert is_nil(Repo.get(Air.Schemas.Login, login_id))
-end
+    end
 
     test "does not delete other user's logins" do
       user = TestRepoHelper.create_user!()
@@ -635,9 +635,9 @@ end
   end
 
   describe "user events" do
-    test "raises deletion event" do
-      user = TestRepoHelper.create_user!()
+    test "publishes delete event" do
       User.subscribe_to(:user_deleted)
+      user = TestRepoHelper.create_user!()
 
       User.delete!(user)
 
@@ -645,18 +645,15 @@ end
       User.unsubscribe_from(:user_deleted)
     end
 
-    test "raises update event" do
+    test "publishes update event" do
+      User.subscribe_to(:user_updated)
       group1 = TestRepoHelper.create_group!()
       group2 = TestRepoHelper.create_group!()
       user = TestRepoHelper.create_user!(%{groups: [group1.id]})
-      User.subscribe_to(:user_updated)
 
       User.update!(user, %{groups: [group2.id]})
 
-      assert_receive {:user_updated, {_new, ^user}}
-
-      user = User.load!(user.id)
-      assert [group2.id] == Enum.map(user.groups, & &1.id)
+      assert_receive {:user_updated, %{user: _, previous_datasources: _}}
       User.unsubscribe_from(:user_updated)
     end
   end
