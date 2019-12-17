@@ -23,6 +23,14 @@ defmodule Air.PsqlServer.ShadowDbTest do
     [shadow_db_conn: pid]
   end
 
+  setup do
+    Air.PsqlServer.ShadowDb.SchemaSynchronizer.enable_events()
+
+    on_exit(fn ->
+      Air.PsqlServer.ShadowDb.SchemaSynchronizer.disable_events()
+    end)
+  end
+
   describe "datasource access change" do
     test "Regular user: Assigning a user to a group, should create shadow dbs for the groups data sources", context do
       group = TestRepoHelper.create_group!() |> Repo.preload(:users)

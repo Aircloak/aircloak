@@ -641,7 +641,7 @@ defmodule Air.Service.UserTest do
 
       User.delete!(user)
 
-      assert_receive {:user_updated, %{user: _, previous_data_sources: _}}
+      assert_receive {:user_deleted, %{user: _, previous_data_sources: _}}
       User.unsubscribe_from(:user_deleted)
     end
 
