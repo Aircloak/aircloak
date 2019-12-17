@@ -186,7 +186,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
       do:
         assert_equivalent(
           "SELECT COUNT(*) FROM (SELECT DISTINCT * FROM table) x",
-          "SELECT COUNT(*) FROM (SELECT uid, numeric, string FROM table GROUP BY 1, 2, 3) x"
+          "SELECT COUNT(*) FROM (SELECT uid, numeric, string, bool FROM table GROUP BY 1, 2, 3, 4) x"
         )
 
     test "distinct with only aggregators",
@@ -275,6 +275,29 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     assert result1 == result2
   end
 
+  describe "making boolean comparisons explicit" do
+    test "positive" do
+      result1 = compile!("SELECT * FROM table WHERE bool", data_source())
+      result2 = compile!("SELECT * FROM table WHERE bool = true", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    test "negative" do
+      result1 = compile!("SELECT * FROM table WHERE not bool", data_source())
+      result2 = compile!("SELECT * FROM table WHERE bool = false", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    test "multiple" do
+      result1 = compile!("SELECT * FROM table WHERE bool and not cast(numeric as boolean)", data_source())
+      result2 = compile!("SELECT * FROM table WHERE bool = true and cast(numeric as boolean) = false", data_source())
+
+      assert result1.where == result2.where
+    end
+  end
+
   defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
 
   defp data_source() do
@@ -290,7 +313,8 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
             columns: [
               Table.column("uid", :integer),
               Table.column("numeric", :integer),
-              Table.column("string", :text)
+              Table.column("string", :text),
+              Table.column("bool", :boolean)
             ],
             keys: %{"key" => :unknown}
           )

@@ -30,6 +30,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
+      |> Helpers.apply_bottom_up(&make_boolean_comparisons_explicit/1)
 
   @doc """
   Performs semantics-preserving query transformations that remove query properties needed by the validator
@@ -108,6 +109,27 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp invert_inequality(">="), do: "<="
   defp invert_inequality("<"), do: ">"
   defp invert_inequality("<="), do: ">="
+
+  # -------------------------------------------------------------------
+  # Making boolean comparisons explicit
+  # -------------------------------------------------------------------
+
+  defp make_boolean_comparisons_explicit(query) do
+    Query.Lenses.filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.reject(&Function.condition?/1)
+    |> Lens.map(query, &do_make_boolean_comparison_explicit/1)
+  end
+
+  defp do_make_boolean_comparison_explicit(%Expression{
+         kind: :function,
+         name: "not",
+         args: [%Expression{type: :boolean} = expression]
+       }),
+       do: Expression.function("=", [expression, Expression.constant(:boolean, false)], :boolean)
+
+  defp do_make_boolean_comparison_explicit(%Expression{type: :boolean} = expression),
+    do: Expression.function("=", [expression, Expression.constant(:boolean, true)], :boolean)
 
   # -------------------------------------------------------------------
   # Collapsing constant expressions
