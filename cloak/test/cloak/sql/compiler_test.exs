@@ -93,6 +93,26 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error == "Arguments of type (`integer`, `datetime`) are incorrect for `=`."
   end
 
+  describe "rejects non-boolean filtering clauses" do
+    test "where" do
+      assert {:error, error} = compile("select count(*) from table where 1", data_source())
+
+      assert error == "Row filtering clauses have to be boolean expressions."
+    end
+
+    test "having" do
+      assert {:error, error} = compile("select count(*) from table having 1", data_source())
+
+      assert error == "Row filtering clauses have to be boolean expressions."
+    end
+
+    test "on" do
+      assert {:error, error} = compile("select count(*) from table as t1 join table as t2 on 1", data_source())
+
+      assert error == "Row filtering clauses have to be boolean expressions."
+    end
+  end
+
   test "select NULL" do
     assert {:ok, _} = compile("select null from table", data_source())
   end

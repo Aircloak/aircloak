@@ -559,6 +559,17 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
+  defp verify_condition(%Expression{
+         kind: :function,
+         name: "=",
+         args: [%Expression{type: type, source_location: location}, %Expression{value: true}]
+       })
+       when type != :boolean do
+    raise CompilationError,
+      source_location: location,
+      message: "Row filtering clauses have to be boolean expressions."
+  end
+
   defp verify_condition(%Expression{kind: :function, name: "not", args: [condition]}), do: verify_condition(condition)
   defp verify_condition(_), do: :ok
 

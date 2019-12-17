@@ -124,11 +124,11 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp make_boolean_comparison_explicit(%Expression{
          kind: :function,
          name: "not",
-         args: [%Expression{type: :boolean} = expression]
+         args: [%Expression{} = expression]
        }),
        do: Expression.function("=", [expression, Expression.constant(:boolean, false)], :boolean)
 
-  defp make_boolean_comparison_explicit(%Expression{type: :boolean} = expression),
+  defp make_boolean_comparison_explicit(%Expression{} = expression),
     do: Expression.function("=", [expression, Expression.constant(:boolean, true)], :boolean)
 
   # -------------------------------------------------------------------
