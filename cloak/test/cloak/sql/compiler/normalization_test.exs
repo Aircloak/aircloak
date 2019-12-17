@@ -20,92 +20,89 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
 
   describe "constant normalization" do
     test "normalizing constant expressions" do
-      result1 = compile!("SELECT * FROM table WHERE numeric = 2 * 3 + 4", data_source())
-      result2 = compile!("SELECT * FROM table WHERE numeric = 10", data_source())
-
-      assert result1.where == result2.where
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE numeric = 2 * 3 + 4",
+        "SELECT STDDEV(uid) FROM table WHERE numeric = 10"
+      )
     end
 
     test "normalizing constant expressions with NULL" do
-      result1 = compile!("SELECT * FROM table WHERE numeric = 2 + NULL", data_source())
-      result2 = compile!("SELECT * FROM table WHERE numeric = NULL", data_source())
-
-      assert result1.where == result2.where
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE numeric = 2 + NULL",
+        "SELECT STDDEV(uid) FROM table WHERE numeric = NULL"
+      )
     end
 
     test "[Issue #3384] normalizing constant bucket" do
-      result1 = compile!("SELECT bucket(2 BY 7) FROM table", data_source())
-      result2 = compile!("SELECT 0::real AS \"bucket\" FROM table", data_source())
-
-      assert result1 == result2
+      assert_equivalent(
+        "SELECT bucket(2 BY 7) FROM table",
+        "SELECT 0::real AS \"bucket\" FROM table"
+      )
     end
 
     test "[Issue #3413] normalizing aggregators over constants" do
-      result1 = compile!("SELECT ABS(SUM(1 - 10)) FROM table", data_source())
-      result2 = compile!("SELECT ABS(SUM(-9)) FROM table", data_source())
-
-      assert result1 == result2
+      assert_equivalent(
+        "SELECT ABS(SUM(1 - 10)) FROM table",
+        "SELECT ABS(SUM(-9)) FROM table"
+      )
     end
   end
 
   test "normalization in subqueries" do
-    %{from: {:subquery, %{ast: result1}}} =
-      compile!("SELECT * FROM (SELECT * FROM table WHERE numeric = 2 * 3 + 4) x", data_source())
-
-    %{from: {:subquery, %{ast: result2}}} =
-      compile!("SELECT * FROM (SELECT * FROM table WHERE numeric = 10) x", data_source())
-
-    assert result1.where == result2.where
+    assert_equivalent(
+      "SELECT * FROM (SELECT STDDEV(uid) FROM table WHERE numeric = 2 * 3 + 4) x",
+      "SELECT * FROM (SELECT STDDEV(uid) FROM table WHERE numeric = 10) x"
+    )
   end
 
   test "normalizing trivial like patterns into =" do
-    result1 = compile!("SELECT * FROM table WHERE string LIKE 'abc'", data_source())
-    result2 = compile!("SELECT * FROM table WHERE string = 'abc'", data_source())
-
-    assert result1.where == result2.where
+    assert_equivalent(
+      "SELECT STDDEV(uid) FROM table WHERE string LIKE 'abc'",
+      "SELECT STDDEV(uid) FROM table WHERE string = 'abc'"
+    )
   end
 
   test "normalizing trivial not like patterns into <>" do
-    result1 = compile!("SELECT * FROM table WHERE string NOT LIKE 'abc'", data_source())
-    result2 = compile!("SELECT * FROM table WHERE string <> 'abc'", data_source())
-
-    assert result1.where == result2.where
+    assert_equivalent(
+      "SELECT STDDEV(uid) FROM table WHERE string NOT LIKE 'abc'",
+      "SELECT STDDEV(uid) FROM table WHERE string <> 'abc'"
+    )
   end
 
   test "normalizing trivial ilike patterns into =" do
-    result1 = compile!("SELECT * FROM table WHERE string ILIKE 'Abc'", data_source())
-    result2 = compile!("SELECT * FROM table WHERE lower(string) = 'abc'", data_source())
-
-    assert scrub_locations(result1).where == scrub_locations(result2).where
+    assert_equivalent(
+      "SELECT STDDEV(uid) FROM table WHERE string ILIKE 'Abc'",
+      "SELECT STDDEV(uid) FROM table WHERE lower(string) = 'abc'"
+    )
   end
 
   test "normalizing trivial not ilike patterns <>" do
-    result1 = compile!("SELECT * FROM table WHERE string NOT ILIKE 'Abc'", data_source())
-    result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'abc'", data_source())
-
-    assert scrub_locations(result1).where == scrub_locations(result2).where
+    assert_equivalent(
+      "SELECT STDDEV(uid) FROM table WHERE string NOT ILIKE 'Abc'",
+      "SELECT STDDEV(uid) FROM table WHERE lower(string) <> 'abc'"
+    )
   end
 
   describe "remove noops" do
     test "a cast of integer to integer" do
       assert_equivalent(
-        "SELECT * FROM table WHERE cast(numeric AS integer) = 1",
-        "SELECT * FROM table WHERE numeric = 1"
+        "SELECT STDDEV(uid) FROM table WHERE cast(numeric AS integer) = 1",
+        "SELECT STDDEV(uid) FROM table WHERE numeric = 1"
       )
     end
 
     for function <- ~w/round trunc/ do
       test "#{function} of integer without precision is removed" do
         assert_equivalent(
-          "SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1",
-          "SELECT * FROM table WHERE numeric = 1"
+          "SELECT STDDEV(uid) FROM table WHERE #{unquote(function)}(numeric) = 1",
+          "SELECT STDDEV(uid) FROM table WHERE numeric = 1"
         )
       end
 
       test "#{function} of integer with precision isn't removed" do
         refute_equivalent(
-          "SELECT * FROM table WHERE #{unquote(function)}(numeric, 0) = 1",
-          "SELECT * FROM table WHERE numeric = 1"
+          "SELECT STDDEV(uid) FROM table WHERE #{unquote(function)}(numeric, 0) = 1",
+          "SELECT STDDEV(uid) FROM table WHERE numeric = 1"
         )
       end
     end
@@ -113,8 +110,8 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     for function <- ~w/ceil ceiling floor/ do
       test "#{function} of integer is removed" do
         assert_equivalent(
-          "SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1",
-          "SELECT * FROM table WHERE numeric = 1"
+          "SELECT STDDEV(uid) FROM table WHERE #{unquote(function)}(numeric) = 1",
+          "SELECT STDDEV(uid) FROM table WHERE numeric = 1"
         )
       end
     end
@@ -277,24 +274,24 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
 
   describe "making boolean comparisons explicit" do
     test "positive" do
-      result1 = compile!("SELECT * FROM table WHERE bool", data_source())
-      result2 = compile!("SELECT * FROM table WHERE bool = true", data_source())
-
-      assert result1.where == result2.where
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE bool",
+        "SELECT STDDEV(uid) FROM table WHERE bool = true"
+      )
     end
 
     test "negative" do
-      result1 = compile!("SELECT * FROM table WHERE not bool", data_source())
-      result2 = compile!("SELECT * FROM table WHERE bool = false", data_source())
-
-      assert result1.where == result2.where
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE not bool",
+        "SELECT STDDEV(uid) FROM table WHERE bool = false"
+      )
     end
 
     test "multiple" do
-      result1 = compile!("SELECT * FROM table WHERE bool and not cast(numeric as boolean)", data_source())
-      result2 = compile!("SELECT * FROM table WHERE bool = true and cast(numeric as boolean) = false", data_source())
-
-      assert result1.where == result2.where
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE bool and not cast(numeric as boolean)",
+        "SELECT STDDEV(uid) FROM table WHERE bool = true and cast(numeric as boolean) = false"
+      )
     end
   end
 
