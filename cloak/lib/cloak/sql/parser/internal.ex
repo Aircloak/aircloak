@@ -94,7 +94,7 @@ defmodule Cloak.Sql.Parser.Internal do
         {option(keyword_with_position(:not)) |> keyword_with_position(:in), in_values()},
         {next_position() |> keyword(:is) |> option(keyword_with_position(:not)), keyword(:null)},
         {next_position() |> option(keyword(:not)) |> keyword(:between), comparison_range()},
-        {next_position() |> keyword_of([:<, :<=, :>, :>=, :=, :<>]), comparison_value()},
+        {next_position() |> keyword_of([:<, :<=, :>, :>=, :=, :<>]), not_expression(comparison_value())},
         {:else, return(nil)}
       ])
     )

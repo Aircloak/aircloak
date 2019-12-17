@@ -1896,6 +1896,13 @@ defmodule Cloak.Sql.Parser.Test do
       )
     end
 
+    test "true = not expression" do
+      assert_parse(
+        "select true = not foo from bar",
+        select(columns: [function("=", [constant(true), function("not", [identifier("foo")])])])
+      )
+    end
+
     test "not normalization" do
       assert_parse(
         "select not not foo from bar",
