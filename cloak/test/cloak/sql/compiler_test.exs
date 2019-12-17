@@ -35,16 +35,15 @@ defmodule Cloak.Sql.Compiler.Test do
     assert nil == subquery.where
   end
 
-  for first <- [:>, :>=],
-      second <- [:<, :<=] do
-    test "rejects inequalities on strings with #{first} and #{second}" do
-      {:error, error} =
-        compile(
-          "select * from table where string #{unquote(first)} " <> "'CEO' and string #{unquote(second)} 'CEP'",
-          data_source()
-        )
+  for operator <- [:>, :>=, :<, :<=] do
+    test "rejects inequalities on strings with #{operator}" do
+      {:error, error} = compile("select * from table where string #{unquote(operator)} 'CEO'", data_source())
+      assert error == "Inequalities on `text` values are currently not supported."
+    end
 
-      assert error == "Inequalities on string values are currently not supported."
+    test "rejects inequalities on booleans with #{operator}" do
+      {:error, error} = compile("select * from table where bool #{unquote(operator)} true", data_source())
+      assert error == "Inequalities on `boolean` values are currently not supported."
     end
   end
 
@@ -1454,7 +1453,8 @@ defmodule Cloak.Sql.Compiler.Test do
               Table.column("numeric", :integer),
               Table.column("float", :real),
               Table.column("string", :text),
-              Table.column("key", :integer)
+              Table.column("key", :integer),
+              Table.column("bool", :boolean)
             ],
             keys: %{"key" => :unknown}
           ),

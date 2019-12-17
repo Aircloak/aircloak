@@ -538,13 +538,13 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_condition(%Expression{
          kind: :function,
          name: verb,
-         args: [_subject, %Expression{type: :text, source_location: location}]
+         args: [_subject, %Expression{type: type, source_location: location}]
        })
-       when verb in ~w(< > <= >=) do
+       when verb in ~w(< > <= >=) and type in [:text, :boolean] do
     raise(
       CompilationError,
       source_location: location,
-      message: "Inequalities on string values are currently not supported."
+      message: "Inequalities on `#{type}` values are currently not supported."
     )
   end
 
