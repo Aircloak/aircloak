@@ -45,7 +45,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   def postvalidation_normalizations(query),
     do:
       query
-      |> Helpers.apply_bottom_up(&normalize_trivial_like/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&normalize_trivial_likes/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&normalize_bucket/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&normalize_anonymizing_aggregators/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&strip_source_location/1, analyst_tables?: false)
@@ -94,10 +94,10 @@ defmodule Cloak.Sql.Compiler.Normalization do
     Query.Lenses.query_expressions()
     |> Lens.filter(&Function.condition?/1)
     |> Lens.filter(&(Condition.verb(&1) == :comparison))
-    |> Lens.map(query, &do_normalize_comparison/1)
+    |> Lens.map(query, &normalize_comparison/1)
   end
 
-  defp do_normalize_comparison(%Expression{kind: :function, name: operator, args: [lhs, rhs]} = comparison) do
+  defp normalize_comparison(%Expression{kind: :function, name: operator, args: [lhs, rhs]} = comparison) do
     if Expression.constant?(lhs) and not Expression.constant?(rhs),
       do: %Expression{comparison | name: invert_inequality(operator), args: [rhs, lhs]},
       else: comparison
@@ -118,17 +118,17 @@ defmodule Cloak.Sql.Compiler.Normalization do
     Query.Lenses.filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.reject(&Function.condition?/1)
-    |> Lens.map(query, &do_make_boolean_comparison_explicit/1)
+    |> Lens.map(query, &make_boolean_comparison_explicit/1)
   end
 
-  defp do_make_boolean_comparison_explicit(%Expression{
+  defp make_boolean_comparison_explicit(%Expression{
          kind: :function,
          name: "not",
          args: [%Expression{type: :boolean} = expression]
        }),
        do: Expression.function("=", [expression, Expression.constant(:boolean, false)], :boolean)
 
-  defp do_make_boolean_comparison_explicit(%Expression{type: :boolean} = expression),
+  defp make_boolean_comparison_explicit(%Expression{type: :boolean} = expression),
     do: Expression.function("=", [expression, Expression.constant(:boolean, true)], :boolean)
 
   # -------------------------------------------------------------------
@@ -140,9 +140,9 @@ defmodule Cloak.Sql.Compiler.Normalization do
       Query.Lenses.terminals()
       |> Lens.filter(&Expression.constant?/1)
       |> Lens.filter(&Expression.function?/1)
-      |> Lens.map(query, &do_normalize_constants/1)
+      |> Lens.map(query, &normalize_constant/1)
 
-  defp do_normalize_constants(expression) do
+  defp normalize_constant(expression) do
     case {Expression.const_value(expression), Enum.any?(expression.args, &is_nil(&1.value))} do
       {nil, true} ->
         Expression.null()
@@ -163,23 +163,23 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Normalizing like patterns
   # -------------------------------------------------------------------
 
-  defp normalize_trivial_like(query),
+  defp normalize_trivial_likes(query),
     do:
       Query.Lenses.top_down_query_expressions()
       |> Lens.filter(&Function.condition?/1)
       |> Lens.filter(&(Condition.verb(&1) == :like))
       |> Lens.filter(&(&1 |> Condition.value() |> LikePattern.trivial?()))
-      |> Lens.map(query, &do_normalize_trivial_like/1)
+      |> Lens.map(query, &normalize_trivial_like/1)
 
-  defp do_normalize_trivial_like(%Expression{kind: :function, name: "not", args: [expression]}) do
-    %Expression{do_normalize_trivial_like(expression) | name: "<>"}
+  defp normalize_trivial_like(%Expression{kind: :function, name: "not", args: [expression]}) do
+    %Expression{normalize_trivial_like(expression) | name: "<>"}
   end
 
-  defp do_normalize_trivial_like(%Expression{kind: :function, name: "like", args: [subject, target]} = expression) do
+  defp normalize_trivial_like(%Expression{kind: :function, name: "like", args: [subject, target]} = expression) do
     %Expression{expression | name: "=", args: [subject, LikePattern.trivial_to_string(target)]}
   end
 
-  defp do_normalize_trivial_like(%Expression{kind: :function, name: "ilike", args: [subject, target]} = expression) do
+  defp normalize_trivial_like(%Expression{kind: :function, name: "ilike", args: [subject, target]} = expression) do
     args = [Expression.lowercase(subject), target |> Expression.lowercase() |> LikePattern.trivial_to_string()]
     %Expression{expression | name: "=", args: args}
   end
