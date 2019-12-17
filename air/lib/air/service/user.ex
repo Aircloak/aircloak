@@ -233,7 +233,7 @@ defmodule Air.Service.User do
   def update(user, params, options \\ []) do
     check_ldap!(user, options)
 
-    previous_datasources =
+    previous_data_sources =
       Air.Service.DataSource.for_user(user)
       |> Enum.map(& &1.name)
 
@@ -245,7 +245,7 @@ defmodule Air.Service.User do
     end)
     |> case do
       {:ok, updated_user} ->
-        notify_subscribers(:user_updated, %{user: updated_user, previous_datasources: previous_datasources})
+        notify_subscribers(:user_updated, %{user: updated_user, previous_data_sources: previous_data_sources})
         {:ok, updated_user}
 
       other ->
@@ -685,13 +685,17 @@ defmodule Air.Service.User do
   defp merge_login_errors(other), do: other
 
   defp do_delete(user) do
+    previous_data_sources =
+      Air.Service.DataSource.for_user(user)
+      |> Enum.map(& &1.name)
+
     Repo.transaction(fn ->
       Air.Service.AnalystTable.delete_all(user)
       Repo.delete(user)
     end)
     |> case do
       {:ok, _} = result ->
-        notify_subscribers(:user_deleted, user)
+        notify_subscribers(:user_deleted, %{user: user, previous_data_sources: previous_data_sources})
         result
 
       other ->
