@@ -31,6 +31,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
       |> Helpers.apply_bottom_up(&make_boolean_comparisons_explicit/1)
+      |> Helpers.apply_bottom_up(&normalize_boolean_comparisons/1)
 
   @doc """
   Performs semantics-preserving query transformations that remove query properties needed by the validator
@@ -130,6 +131,74 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp make_boolean_comparison_explicit(%Expression{} = expression),
     do: Expression.function("=", [expression, Expression.constant(:boolean, true)], :boolean)
+
+  # -------------------------------------------------------------------
+  # Normalizing boolean comparisons
+  # -------------------------------------------------------------------
+
+  defp normalize_boolean_comparisons(query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Function.condition?/1)
+    |> Lens.filter(&(Condition.verb(&1) == :comparison))
+    |> Lens.filter(&(Condition.subject(&1).type == :boolean))
+    |> Lens.map(query, &normalize_boolean_comparison/1)
+  end
+
+  defp normalize_boolean_comparison(
+         %Expression{
+           kind: :function,
+           name: operator,
+           args: [
+             %Expression{kind: :function, name: "not", args: [lhs]},
+             %Expression{kind: :function, name: "not", args: [rhs]}
+           ]
+         } = comparison
+       )
+       when operator in ~w(= <>),
+       do: %Expression{comparison | args: [lhs, rhs]}
+
+  defp normalize_boolean_comparison(
+         %Expression{
+           kind: :function,
+           name: operator,
+           args: [
+             %Expression{kind: :function, name: "not", args: [lhs]},
+             rhs
+           ]
+         } = comparison
+       )
+       when operator in ~w(= <>),
+       do: normalize_boolean_comparison(%Expression{comparison | name: negate_comparison(operator), args: [lhs, rhs]})
+
+  defp normalize_boolean_comparison(
+         %Expression{
+           kind: :function,
+           name: operator,
+           args: [
+             lhs,
+             %Expression{kind: :function, name: "not", args: [rhs]}
+           ]
+         } = comparison
+       )
+       when operator in ~w(= <>),
+       do: normalize_boolean_comparison(%Expression{comparison | name: negate_comparison(operator), args: [lhs, rhs]})
+
+  defp normalize_boolean_comparison(
+         %Expression{
+           kind: :function,
+           name: "<>",
+           args: [
+             lhs,
+             %Expression{kind: :constant, value: value} = rhs
+           ]
+         } = comparison
+       ),
+       do: %Expression{comparison | name: "=", args: [lhs, %Expression{rhs | value: not value}]}
+
+  defp normalize_boolean_comparison(expression), do: expression
+
+  defp negate_comparison("="), do: "<>"
+  defp negate_comparison("<>"), do: "="
 
   # -------------------------------------------------------------------
   # Collapsing constant expressions

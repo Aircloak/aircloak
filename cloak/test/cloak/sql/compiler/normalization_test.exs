@@ -295,6 +295,36 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
+  describe "normalize boolean comparisons" do
+    test "(not bool) = (not bool)" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE (not bool) = (not bool)",
+        "SELECT STDDEV(uid) FROM table WHERE bool = bool"
+      )
+    end
+
+    test "(not bool) <> constant" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE (not bool) = true",
+        "SELECT STDDEV(uid) FROM table WHERE bool = false"
+      )
+    end
+
+    test "bool = (not bool)" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE bool = (not bool)",
+        "SELECT STDDEV(uid) FROM table WHERE bool <> bool"
+      )
+    end
+
+    test "bool <> constant" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE bool <> false and bool <> true",
+        "SELECT STDDEV(uid) FROM table WHERE bool = true and bool = false"
+      )
+    end
+  end
+
   defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
 
   defp data_source() do
