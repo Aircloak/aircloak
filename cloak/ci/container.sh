@@ -24,7 +24,7 @@ function prepare_for_compliance {
   container_name=$1
   ensure_database_containers
 
-  for db_container in postgres9.6 mongo3.6 mysql5.7 sqlserver2017 oracle11g; do
+  for db_container in postgres9.6 mongo3.6 mysql5.7 sqlserver2017 oracle12ee; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container
   done
@@ -40,10 +40,10 @@ function ensure_database_containers {
   ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Sql{}server1' \
     microsoft/mssql-server-linux:2017-latest
 
-  ensure_supporting_container oracle11g -e ORACLE_DISABLE_ASYNCH_IO=true \
+  ensure_supporting_container oracle12ee -e ORACLE_DISABLE_ASYNCH_IO=true \
     --mount type=bind,src=$(pwd)/cloak/ci/init_oracle.sql,dst=/docker-entrypoint-initdb.d/init_oracle.sql \
     --mount type=bind,src=$(pwd)/cloak/ci/oracle_udfs.sql,dst=/mnt/cloak/oracle_udfs.sql \
-    quay.io/aircloak/oracle-xe-11g
+    quay.io/aircloak/oracle-ee:12.2.0.1
 }
 
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo

@@ -2,14 +2,13 @@
   "driver": "oracle",
   "name": "oracle",
   "parameters": {
-    "hostname": "oracle11g",
+    "hostname": "oracle12ee",
     "port": 1521,
     "username": "system",
-    "password": "oracle",
-    "database": "XE",
-    "sid": "XE"
+    "password": "Oradoc_db1",
+    "database": "ORCLPDB1.localdomain",
+    "sid": "ORCLCDB"
   },
-  "tables": {
-  },
+  "tables": {},
   "analyst_tables_enabled": true
 }
