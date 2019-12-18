@@ -124,7 +124,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
     end
 
     test "LDAP user: Adding a data source to a group should create shadow dbs for all users in the group", context do
-      group = TestRepoHelper.create_group!(%{ldap_dn: "group dn"})
+      group = TestRepoHelper.create_group!(%{ldap_dn: "group dn"}) |> Repo.preload(:data_sources)
       user = TestRepoHelper.create_user!(%{ldap_dn: "user dn", login: "alice", groups: [group.id]})
       data_source = create_data_source!()
 

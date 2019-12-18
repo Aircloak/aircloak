@@ -1,6 +1,7 @@
 defmodule Air.Service.Group do
   @moduledoc "Service module for working with groups."
 
+  alias Aircloak.ChildSpec
   alias Air.Repo
   alias Air.Schemas.{Group, User, DataSource}
   alias Air.Service.AdminGuard
@@ -12,10 +13,27 @@ defmodule Air.Service.Group do
   @ldap_required_fields ~w(ldap_dn)a
 
   @type change_options :: [ldap: true | false | :any]
+  @type group_notification :: :group_updated | :group_deleted
+
+  @notifications_registry __MODULE__.NotificationsRegistry
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Subscribes to notifications about activities."
+  @spec subscribe_to(group_notification) :: :ok
+  def subscribe_to(notification) do
+    Registry.register(@notifications_registry, notification, nil)
+    :ok
+  end
+
+  @doc "Subscribes to notifications about activities."
+  @spec unsubscribe_from(group_notification) :: :ok
+  def unsubscribe_from(notification) do
+    Registry.unregister(@notifications_registry, notification)
+    :ok
+  end
 
   @doc "Creates the new group, raises on error."
   @spec create!(map) :: Group.t()
@@ -54,8 +72,9 @@ defmodule Air.Service.Group do
   def update(group, params, options \\ []) do
     check_ldap!(group, options)
 
-    conditionally_alter_shadow_dbs(
+    with_notification(
       group,
+      :group_updated,
       fn ->
         AdminGuard.commit_if_active_last_admin(fn ->
           group
@@ -69,8 +88,9 @@ defmodule Air.Service.Group do
   @doc "Updates only the data sources of the given group."
   @spec update_data_sources(Group.t(), map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
   def update_data_sources(group, params) do
-    conditionally_alter_shadow_dbs(
+    with_notification(
       group,
+      :group_updated,
       fn ->
         group
         |> data_source_changeset(params)
@@ -91,8 +111,9 @@ defmodule Air.Service.Group do
   def delete(group, options \\ []) do
     check_ldap!(group, options)
 
-    conditionally_alter_shadow_dbs(
+    with_notification(
       group,
+      :group_deleted,
       fn -> AdminGuard.commit_if_active_last_admin(fn -> Repo.delete(group) end) end
     )
   end
@@ -130,6 +151,12 @@ defmodule Air.Service.Group do
   # -------------------------------------------------------------------
   # Private functions
   # -------------------------------------------------------------------
+
+  defp notify_subscribers(notification, payload),
+    do:
+      Registry.lookup(@notifications_registry, notification)
+      |> Enum.map(fn {pid, nil} -> pid end)
+      |> Enum.each(&send(&1, {notification, payload}))
 
   defp group_changeset(group, params, options \\ []),
     do:
@@ -174,41 +201,46 @@ defmodule Air.Service.Group do
     |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
   end
 
-  defp conditionally_alter_shadow_dbs(group, alteration_function) do
+  defp with_notification(group, notification_type, alteration_function) do
     group = group |> Repo.preload(:users)
 
     users_and_data_sources_before =
       group.users
-      |> Enum.map(&{&1, Air.Service.DataSource.for_user(&1)})
+      |> Enum.map(fn user ->
+        data_sources =
+          Air.Service.DataSource.for_user(user)
+          |> Enum.map(& &1.name)
+
+        {user, data_sources}
+      end)
       |> Enum.into(%{})
 
     case alteration_function.() do
       {:ok, altered_group} = result ->
-        for {user, originally_accessible_data_sources} <- users_and_data_sources_before do
-          accessible_data_sources = Air.Service.DataSource.for_user(user)
-
-          originally_accessible_data_sources
-          |> Enum.reject(&Enum.member?(accessible_data_sources, &1))
-          |> Enum.each(&Air.PsqlServer.ShadowDb.drop(user, &1.name))
-
-          accessible_data_sources
-          |> Enum.reject(&Enum.member?(originally_accessible_data_sources, &1))
-          |> Enum.each(&Air.PsqlServer.ShadowDb.update(user, &1.name))
-        end
-
-        altered_group = Repo.preload(altered_group, :users)
-
-        for user <- altered_group.users, not Map.has_key?(users_and_data_sources_before, user) do
-          # We do not have a handle on which data sources this user already had access to
-          # prior to joining this group. They could all be a result of joining the group.
-          Air.Service.DataSource.for_user(user)
-          |> Enum.each(&Air.PsqlServer.ShadowDb.update(user, &1.name))
-        end
+        notify_subscribers(notification_type, %{
+          group: altered_group,
+          previous_users_and_data_sources: users_and_data_sources_before
+        })
 
         result
 
       other ->
         other
     end
+  end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg) do
+    ChildSpec.supervisor(
+      [
+        ChildSpec.registry(:duplicate, @notifications_registry)
+      ],
+      strategy: :one_for_one,
+      name: __MODULE__
+    )
   end
 end
