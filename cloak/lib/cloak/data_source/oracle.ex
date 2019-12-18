@@ -21,9 +21,11 @@ defmodule Cloak.DataSource.Oracle do
 
   @impl Driver
   def load_tables(connection, table) do
+    discovery_query = &"SELECT * FROM #{&1} WHERE rownum < 0 OFFSET 0 ROWS FETCH FIRST 0 ROWS ONLY"
+
     columns =
       connection
-      |> RODBC.table_columns(update_in(table.db_name, &SqlBuilder.quote_table_name/1))
+      |> RODBC.table_columns(update_in(table.db_name, &SqlBuilder.quote_table_name/1), discovery_query)
       |> fix_column_types(connection, table)
 
     [%{table | columns: columns}]
