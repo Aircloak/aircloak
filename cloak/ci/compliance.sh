@@ -93,7 +93,7 @@ function start_dev_container {
     --name $oracle_container_id \
     --network=container:$container_id \
     -e ORACLE_DISABLE_ASYNCH_IO=true \
-    quay.io/aircloak/oracle-xe-11g
+    quay.io/aircloak/oracle-ee:12.2.0.1
 
   printf "\nyou can start the system with \`make start\`\n\n"
 
