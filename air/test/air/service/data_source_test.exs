@@ -544,6 +544,30 @@ defmodule Air.Service.DataSourceTest do
     end
   end
 
+  describe "data source events" do
+    test "publishes delete event" do
+      DataSource.subscribe_to(:data_source_deleted)
+      data_source = TestRepoHelper.create_data_source!()
+      noop = fn -> :noop end
+
+      DataSource.delete!(data_source, noop, noop)
+
+      assert_receive {:data_source_deleted, %{data_source_name: _, previous_users: _}}
+      DataSource.unsubscribe_from(:data_source_deleted)
+    end
+
+    test "publishes update event" do
+      DataSource.subscribe_to(:data_source_updated)
+      data_source = TestRepoHelper.create_data_source!()
+      group = TestRepoHelper.create_group!()
+
+      DataSource.update(data_source, %{groups: [group.id]})
+
+      assert_receive {:data_source_updated, %{data_source_name: _, previous_users: _}}
+      DataSource.unsubscribe_from(:data_source_updated)
+    end
+  end
+
   defp create_query(user, data_source, additional_data \\ %{}),
     do:
       TestRepoHelper.create_query!(

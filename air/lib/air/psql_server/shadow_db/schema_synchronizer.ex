@@ -61,6 +61,12 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
   end
 
   @impl GenServer
+  def handle_info({:group_deleted, data}, true) do
+    sync_group_users(data.previous_users_and_data_sources)
+    {:noreply, true}
+  end
+
+  @impl GenServer
   def handle_info({:group_updated, data}, true) do
     %{group: group, previous_users_and_data_sources: previous_state} = data
 
@@ -79,8 +85,33 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
   end
 
   @impl GenServer
-  def handle_info({:group_deleted, data}, true) do
-    sync_group_users(data.previous_users_and_data_sources)
+  def handle_info({:data_source_deleted, data}, true) do
+    %{data_source_name: data_source_name, previous_users: previous_users} = data
+
+    previous_users
+    |> Enum.each(&Air.PsqlServer.ShadowDb.drop(&1, data_source_name))
+
+    {:noreply, true}
+  end
+
+  @impl GenServer
+  def handle_info({:data_source_updated, data}, true) do
+    %{data_source_name: data_source_name, previous_users: previous_users} = data
+    data_source = Air.Service.DataSource.by_name(data_source_name)
+
+    new_users =
+      Repo.preload(data_source, groups: :users).groups
+      |> Stream.flat_map(& &1.users)
+      |> MapSet.new()
+
+    revoked_users = MapSet.difference(previous_users, new_users)
+
+    new_users
+    |> Enum.each(&Air.PsqlServer.ShadowDb.update(&1, data_source_name))
+
+    revoked_users
+    |> Enum.each(&Air.PsqlServer.ShadowDb.drop(&1, data_source_name))
+
     {:noreply, true}
   end
 
@@ -95,6 +126,8 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
     Air.Service.User.subscribe_to(:user_updated)
     Air.Service.Group.subscribe_to(:group_updated)
     Air.Service.Group.subscribe_to(:group_deleted)
+    Air.Service.DataSource.subscribe_to(:data_source_updated)
+    Air.Service.DataSource.subscribe_to(:data_source_deleted)
   end
 
   defp update_shadow_db(user, data_sources_before, data_sources_after) do

@@ -54,12 +54,29 @@ defmodule Air.Service.DataSource do
           ]
         }
 
+  @type data_source_notification :: :data_source_updated | :data_source_deleted
+
   @task_supervisor __MODULE__.TaskSupervisor
   @delete_supervisor __MODULE__.DeleteSupervisor
+  @notifications_registry __MODULE__.NotificationsRegistry
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Subscribes to notifications about activities."
+  @spec subscribe_to(data_source_notification) :: :ok
+  def subscribe_to(notification) do
+    Registry.register(@notifications_registry, notification, nil)
+    :ok
+  end
+
+  @doc "Subscribes to notifications about activities."
+  @spec unsubscribe_from(data_source_notification) :: :ok
+  def unsubscribe_from(notification) do
+    Registry.unregister(@notifications_registry, notification)
+    :ok
+  end
 
   @doc "Returns the count of all known non-deleted data sources."
   @spec count() :: non_neg_integer
@@ -222,11 +239,10 @@ defmodule Air.Service.DataSource do
 
       Enum.each(revoked_users, &Air.Service.AnalystTable.delete_all(&1, data_source))
 
-      new_users
-      |> Enum.each(&Air.PsqlServer.ShadowDb.update(&1, data_source.name))
-
-      revoked_users
-      |> Enum.each(&Air.PsqlServer.ShadowDb.drop(&1, data_source.name))
+      notify_subscribers(:data_source_updated, %{
+        data_source_name: data_source.name,
+        previous_users: old_users
+      })
 
       {:ok, data_source}
     end
@@ -243,7 +259,11 @@ defmodule Air.Service.DataSource do
     Task.Supervisor.start_child(@delete_supervisor, fn ->
       case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
         {:ok, _} ->
-          Enum.each(users, &Air.PsqlServer.ShadowDb.drop(&1, data_source.name))
+          notify_subscribers(:data_source_deleted, %{
+            data_source_name: data_source.name,
+            previous_users: users
+          })
+
           success_callback.()
 
         {:error, _} ->
@@ -324,6 +344,12 @@ defmodule Air.Service.DataSource do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp notify_subscribers(notification, payload),
+    do:
+      Registry.lookup(@notifications_registry, notification)
+      |> Enum.map(fn {pid, nil} -> pid end)
+      |> Enum.each(&send(&1, {notification, payload}))
 
   defp add_group(name, users) do
     case Air.Service.Group.get_by_name(name) do
@@ -497,7 +523,8 @@ defmodule Air.Service.DataSource do
       [
         QueryScheduler,
         ChildSpec.task_supervisor(name: @task_supervisor, restart: :temporary),
-        ChildSpec.task_supervisor(name: @delete_supervisor, restart: :temporary)
+        ChildSpec.task_supervisor(name: @delete_supervisor, restart: :temporary),
+        ChildSpec.registry(:duplicate, @notifications_registry)
       ],
       strategy: :one_for_one,
       name: __MODULE__
