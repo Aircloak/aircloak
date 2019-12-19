@@ -115,6 +115,15 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
     {:noreply, true}
   end
 
+  @impl GenServer
+  def handle_info({:revalidated_views, data}, true) do
+    %{user_id: user_id, data_source_id: data_source_id} = data
+    user = Air.Service.User.load!(user_id)
+    data_source = Air.Service.DataSource.by_id!(data_source_id)
+    Air.PsqlServer.ShadowDb.update(user, data_source.name)
+    {:noreply, true}
+  end
+
   def handle_info(_, listening), do: {:noreply, listening}
 
   # -------------------------------------------------------------------
@@ -128,6 +137,7 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
     Air.Service.Group.subscribe_to(:group_deleted)
     Air.Service.DataSource.subscribe_to(:data_source_updated)
     Air.Service.DataSource.subscribe_to(:data_source_deleted)
+    Air.Service.View.subscribe_to(:revalidated_views)
   end
 
   defp update_shadow_db(user, data_sources_before, data_sources_after) do

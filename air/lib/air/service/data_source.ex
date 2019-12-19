@@ -291,6 +291,11 @@ defmodule Air.Service.DataSource do
   def by_name(data_source_name),
     do: Repo.one(from(ds in DataSource, where: ds.name == ^data_source_name, preload: [:groups]))
 
+  @doc "Returns the data source with the given id."
+  @spec by_id!(pos_integer | binary) :: DataSource.t()
+  def by_id!(data_source_id),
+    do: Repo.one!(from(ds in DataSource, where: ds.id == ^data_source_id, preload: [:groups]))
+
   @doc "Returns the count of users per each distinct data source."
   @spec users_count() :: %{integer => non_neg_integer}
   def users_count(),

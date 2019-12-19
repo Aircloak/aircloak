@@ -2,8 +2,8 @@ defmodule Air.PsqlServer.ShadowDbTest do
   # because of shared mode
   use Air.SchemaCase, async: false
 
-  alias Air.TestRepoHelper
-  alias Air.Service.{User, Group, DataSource}
+  alias Air.{TestRepoHelper, TestSocketHelper}
+  alias Air.Service.{User, Group, DataSource, View}
   alias Air.Service.LDAP
   import Aircloak.AssertionHelper
 
@@ -37,11 +37,11 @@ defmodule Air.PsqlServer.ShadowDbTest do
       data_source = create_data_source!(%{groups: [group.id]})
       user = TestRepoHelper.create_user!()
 
-      refute shadow_db_exists(context, user, data_source)
+      refute shadow_db_exists?(context, user, data_source)
 
       Group.update!(group, %{users: [user.id]})
 
-      assert soon(shadow_db_exists(context, user, data_source), 5000),
+      assert soon(shadow_db_exists?(context, user, data_source), 5000),
              "Shadow db should be created after user is assigned to group"
     end
 
@@ -51,11 +51,11 @@ defmodule Air.PsqlServer.ShadowDbTest do
       data_source = create_data_source!(%{groups: [group.id]})
       user = TestRepoHelper.create_user!()
 
-      refute shadow_db_exists(context, user, data_source)
+      refute shadow_db_exists?(context, user, data_source)
 
       User.update!(user, %{groups: [group.id]})
 
-      assert soon(shadow_db_exists(context, user, data_source), 5000),
+      assert soon(shadow_db_exists?(context, user, data_source), 5000),
              "Shadow db should be created after user is assigned to group"
     end
 
@@ -64,11 +64,11 @@ defmodule Air.PsqlServer.ShadowDbTest do
       user = TestRepoHelper.create_user!(%{groups: [group.id]})
       data_source = create_data_source!()
 
-      refute shadow_db_exists(context, user, data_source)
+      refute shadow_db_exists?(context, user, data_source)
 
       Group.update!(group, %{data_sources: [data_source.id]})
 
-      assert soon(shadow_db_exists(context, user, data_source), 5000),
+      assert soon(shadow_db_exists?(context, user, data_source), 5000),
              "Shadow db should be created after user is assigned to group"
     end
 
@@ -77,11 +77,11 @@ defmodule Air.PsqlServer.ShadowDbTest do
       user = TestRepoHelper.create_user!(%{groups: [group.id]})
       data_source = create_data_source!()
 
-      refute shadow_db_exists(context, user, data_source)
+      refute shadow_db_exists?(context, user, data_source)
 
       DataSource.update!(data_source, %{groups: [group.id]})
 
-      assert soon(shadow_db_exists(context, user, data_source), 5000),
+      assert soon(shadow_db_exists?(context, user, data_source), 5000),
              "Shadow db should be created after user is assigned to group"
     end
 
@@ -93,7 +93,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       DataSource.update!(data_source, %{groups: []})
 
-      assert soon(not shadow_db_exists(context, user, data_source), 5000), "Shadow db should have been removed"
+      assert soon(not shadow_db_exists?(context, user, data_source), 5000), "Shadow db should have been removed"
     end
 
     test "Regular user: Removing a user from a group should remove the corresponding shadow dbs", context do
@@ -104,7 +104,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       User.update!(user, %{groups: []})
 
-      assert soon(not shadow_db_exists(context, user, data_source), 5000), "Shadow db should have been removed"
+      assert soon(not shadow_db_exists?(context, user, data_source), 5000), "Shadow db should have been removed"
     end
 
     test "LDAP user: Assigning a user to a group, should create shadow dbs for the groups data sources", context do
@@ -112,14 +112,14 @@ defmodule Air.PsqlServer.ShadowDbTest do
       user = TestRepoHelper.create_user!(%{ldap_dn: "user dn", login: "alice"})
       data_source = create_data_source!(%{groups: [group.id]})
 
-      refute shadow_db_exists(context, user, data_source)
+      refute shadow_db_exists?(context, user, data_source)
 
       LDAP.Sync.sync(
         [%LDAP.User{dn: "user dn", login: "alice", name: "Alice the Magnificent"}],
         [%LDAP.Group{dn: "group dn", name: "group", member_ids: ["alice"]}]
       )
 
-      assert soon(shadow_db_exists(context, user, data_source), 5000),
+      assert soon(shadow_db_exists?(context, user, data_source), 5000),
              "Shadow db should be created after user is assigned to group"
     end
 
@@ -128,11 +128,11 @@ defmodule Air.PsqlServer.ShadowDbTest do
       user = TestRepoHelper.create_user!(%{ldap_dn: "user dn", login: "alice", groups: [group.id]})
       data_source = create_data_source!()
 
-      refute shadow_db_exists(context, user, data_source)
+      refute shadow_db_exists?(context, user, data_source)
 
       Group.update_data_sources(group, %{data_sources: [data_source.id]})
 
-      assert soon(shadow_db_exists(context, user, data_source), 5000),
+      assert soon(shadow_db_exists?(context, user, data_source), 5000),
              "Shadow db should be created after a data source is assigned to group"
     end
 
@@ -146,7 +146,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
       Group.load(group.id)
       |> Group.update_data_sources(%{data_sources: []})
 
-      assert soon(not shadow_db_exists(context, user, data_source), 5000),
+      assert soon(not shadow_db_exists?(context, user, data_source), 5000),
              "Shadow db should be removed after data source is removed from the group"
     end
 
@@ -161,7 +161,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
         [%LDAP.Group{dn: "group dn", name: "group", member_ids: []}]
       )
 
-      assert soon(not shadow_db_exists(context, user, data_source), 5000),
+      assert soon(not shadow_db_exists?(context, user, data_source), 5000),
              "Shadow db should be removed after data source is removed from the group"
     end
   end
@@ -175,7 +175,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       User.delete!(user)
 
-      assert soon(not shadow_db_exists(context, user, data_source), 5000), "Shadow db should have been removed"
+      assert soon(not shadow_db_exists?(context, user, data_source), 5000), "Shadow db should have been removed"
     end
 
     test "If a group is deleted, the orphaned shadow dbs should be removed", context do
@@ -192,10 +192,10 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       Group.delete!(group1)
 
-      assert soon(not shadow_db_exists(context, user, data_source1), 5000),
+      assert soon(not shadow_db_exists?(context, user, data_source1), 5000),
              "Orphaned shadow db should have been removed"
 
-      assert shadow_db_exists(context, user, data_source2), "Shadow db for still accessible data source should remain"
+      assert shadow_db_exists?(context, user, data_source2), "Shadow db for still accessible data source should remain"
     end
 
     test "If a data source is deleted then all related shadow dbs should be removed", context do
@@ -206,12 +206,32 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       DataSource.delete!(data_source, fn -> :ok end, fn -> :ok end)
 
-      assert soon(not shadow_db_exists(context, user, data_source), 5000), "Shadow db should have been removed"
+      assert soon(not shadow_db_exists?(context, user, data_source), 5000), "Shadow db should have been removed"
     end
   end
 
   describe "selectables" do
-    test "Creating a view should create the corresponding table in the users shadow db"
+    test "Creating a view should create the corresponding table in the users shadow db", context do
+      group = TestRepoHelper.create_group!()
+      data_source = create_data_source!(%{groups: [group.id]})
+      user = TestRepoHelper.create_user!(%{groups: [group.id]})
+      trigger_shadow_db_creation(context, user, data_source)
+      socket = data_source_socket(data_source)
+
+      task =
+        Task.async(fn ->
+          View.create(user, data_source, "my view 1", "some sql")
+        end)
+
+      TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
+      TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
+
+      assert {:ok, view} = Task.await(task)
+      View.revalidate_all_views(data_source)
+
+      assert soon(shadow_db_has_table?(context, user, data_source, view.name))
+    end
+
     test "Altering a view should update the corresponding table in the users shadow db"
     test "Removing a view should remove the corresponding table in the users shadow db"
 
@@ -228,7 +248,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
     test "Analyst tables should be listed amongst tables"
   end
 
-  defp shadow_db_exists(context, user, data_source) do
+  defp shadow_db_exists?(context, user, data_source) do
     result =
       Postgrex.query!(
         context.shadow_db_conn,
@@ -239,6 +259,32 @@ defmodule Air.PsqlServer.ShadowDbTest do
     result.rows
     |> List.flatten()
     |> Enum.member?(Air.PsqlServer.ShadowDb.db_name(user, data_source.name))
+  end
+
+  defp shadow_db_has_table?(context, user, data_source, table) do
+    db_name = Air.PsqlServer.ShadowDb.db_name(user, data_source.name)
+    parent = self()
+
+    result =
+      Task.start(fn ->
+        Air.PsqlServer.ShadowDb.Connection.execute!(db_name, fn conn ->
+          {_columns, rows} =
+            Air.PsqlServer.ShadowDb.Connection.query!(
+              conn,
+              "SELECT table_name FROM information_schema.tables where table_schema=$1",
+              ["public"]
+            )
+
+          send(parent, {:rows, rows})
+        end)
+      end)
+
+    receive do
+      {:rows, rows} ->
+        Enum.any?(rows, fn [t] -> t == table end)
+    after
+      1000 -> false
+    end
   end
 
   def create_data_source!(params \\ %{}) do
@@ -253,7 +299,22 @@ defmodule Air.PsqlServer.ShadowDbTest do
   def trigger_shadow_db_creation(context, user, data_source) do
     Air.PsqlServer.ShadowDb.update(user, data_source.name)
 
-    assert soon(shadow_db_exists(context, user, data_source), 5000),
+    assert soon(shadow_db_exists?(context, user, data_source), 5000),
            "Shadow db should have been created or updated"
+  end
+
+  defp data_source_socket(data_source) do
+    socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
+
+    TestSocketHelper.join!(socket, "main", %{
+      data_sources: [%{name: data_source.name, tables: []}]
+    })
+
+    socket
+  end
+
+  defp revalidation_success(names) do
+    columns = [%{name: "foo", type: "integer", key_type: "user_id"}, %{name: "bar", type: "text", key_type: nil}]
+    Enum.map(names, &%{name: &1, columns: columns, valid: true})
   end
 end

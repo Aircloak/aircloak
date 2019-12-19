@@ -5,6 +5,7 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   require Logger
   alias Air.PsqlServer.ShadowDb.Connection
   alias Air.Schemas.User
+  import Ecto.Query
 
   # -------------------------------------------------------------------
   # API functions
@@ -115,10 +116,27 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
 
   defp name(user, data_source_name), do: Air.PsqlServer.ShadowDb.registered_name(user, data_source_name, __MODULE__)
 
-  defp data_source_tables(_user, data_source_name) do
+  defp data_source_tables(user, data_source_name) do
     case Air.Service.DataSource.by_name(data_source_name) do
-      nil -> []
-      data_source -> data_source |> Air.Schemas.DataSource.tables() |> normalize_tables()
+      nil ->
+        []
+
+      data_source ->
+        regular_tables =
+          data_source
+          |> Air.Schemas.DataSource.tables()
+          |> normalize_tables()
+
+        views =
+          from(
+            view in Air.Schemas.View,
+            where: view.user_id == ^user.id and view.data_source_id == ^data_source.id,
+            select: view
+          )
+          |> Air.Repo.all()
+          |> Enum.map(&normalize_view/1)
+
+        Enum.concat(regular_tables, views)
     end
   end
 
@@ -131,7 +149,16 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   defp normalize_table(table) do
     %{
       id: Map.fetch!(table, "id"),
-      columns: table |> Map.get("columns", []) |> Enum.map(&normalize_column/1)
+      columns: table |> Map.get("columns", []) |> Enum.map(&normalize_column/1),
+      broken: false
+    }
+  end
+
+  defp normalize_view(view) do
+    %{
+      id: view.name,
+      columns: view.columns,
+      broken: view.broken or Enum.empty?(view.columns)
     }
   end
 
@@ -197,11 +224,13 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   defp update_table_definition(conn, table) do
     Connection.query(conn, ~s/DROP TABLE IF EXISTS "#{sanitize_name(table.id)}"/, [])
 
-    Connection.query(
-      conn,
-      ~s/CREATE TABLE "#{sanitize_name(table.id)}" (#{columns_sql(table.columns)})/,
-      []
-    )
+    unless table.broken do
+      Connection.query(
+        conn,
+        ~s/CREATE TABLE "#{sanitize_name(table.id)}" (#{columns_sql(table.columns)})/,
+        []
+      )
+    end
   end
 
   defp report_error({table, {:error, error}}),
