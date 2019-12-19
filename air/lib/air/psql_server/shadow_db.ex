@@ -47,7 +47,7 @@ defmodule Air.PsqlServer.ShadowDb do
   def query(user, data_source_name, query, params) do
     ensure_database!(user, data_source_name)
     Manager.wait_until_initialized(user, data_source_name)
-    ConnectionPool.query(data_source_name, query, params)
+    ConnectionPool.query(user, data_source_name, query, params)
   end
 
   @doc "Parses the query on the given data source."
@@ -55,7 +55,7 @@ defmodule Air.PsqlServer.ShadowDb do
   def parse(user, data_source_name, query) do
     ensure_database!(user, data_source_name)
     Manager.wait_until_initialized(user, data_source_name)
-    ConnectionPool.parse(data_source_name, query)
+    ConnectionPool.parse(user, data_source_name, query)
   end
 
   @doc "Updates the shadow database for the given data source."
