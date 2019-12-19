@@ -548,9 +548,8 @@ defmodule Air.Service.DataSourceTest do
     test "publishes delete event" do
       DataSource.subscribe_to(:data_source_deleted)
       data_source = TestRepoHelper.create_data_source!()
-      noop = fn -> :noop end
 
-      DataSource.delete!(data_source, noop, noop)
+      DataSource.delete!(data_source, fn -> :ok end, fn -> :ok end)
 
       assert_receive {:data_source_deleted, %{data_source_name: _, previous_users: _}}
       DataSource.unsubscribe_from(:data_source_deleted)
