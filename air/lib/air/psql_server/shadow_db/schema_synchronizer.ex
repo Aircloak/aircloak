@@ -118,9 +118,14 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
   @impl GenServer
   def handle_info({:revalidated_views, data}, true) do
     %{user_id: user_id, data_source_id: data_source_id} = data
-    user = Air.Service.User.load!(user_id)
-    data_source = Air.Service.DataSource.by_id!(data_source_id)
-    Air.PsqlServer.ShadowDb.update(user, data_source.name)
+    sync_by_ids(user_id, data_source_id)
+    {:noreply, true}
+  end
+
+  @impl GenServer
+  def handle_info({:revalidated_analyst_tables, data}, true) do
+    %{user_id: user_id, data_source_id: data_source_id} = data
+    sync_by_ids(user_id, data_source_id)
     {:noreply, true}
   end
 
@@ -138,6 +143,7 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
     Air.Service.DataSource.subscribe_to(:data_source_updated)
     Air.Service.DataSource.subscribe_to(:data_source_deleted)
     Air.Service.View.subscribe_to(:revalidated_views)
+    Air.Service.AnalystTable.subscribe_to(:revalidated_analyst_tables)
   end
 
   defp update_shadow_db(user, data_sources_before, data_sources_after) do
@@ -155,6 +161,12 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
       data_sources_after = data_source_names(user)
       update_shadow_db(user, data_sources_before, data_sources_after)
     end
+  end
+
+  defp sync_by_ids(user_id, data_source_id) do
+    user = Air.Service.User.load!(user_id)
+    data_source = Air.Service.DataSource.by_id!(data_source_id)
+    Air.PsqlServer.ShadowDb.update(user, data_source.name)
   end
 
   defp data_source_names(user) do

@@ -134,9 +134,18 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
             select: view
           )
           |> Air.Repo.all()
-          |> Enum.map(&normalize_view/1)
+          |> Enum.map(&normalize_selectable/1)
 
-        Enum.concat(regular_tables, views)
+        analyst_tables =
+          from(
+            analyst_table in Air.Schemas.AnalystTable,
+            where: analyst_table.user_id == ^user.id and analyst_table.data_source_id == ^data_source.id,
+            select: analyst_table
+          )
+          |> Air.Repo.all()
+          |> Enum.map(&normalize_selectable/1)
+
+        Enum.concat([regular_tables, views, analyst_tables])
     end
   end
 
@@ -154,11 +163,11 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
     }
   end
 
-  defp normalize_view(view) do
+  defp normalize_selectable(selectable) do
     %{
-      id: view.name,
-      columns: view.columns,
-      broken: view.broken or Enum.empty?(view.columns)
+      id: selectable.name,
+      columns: selectable.columns,
+      broken: selectable.broken or Enum.empty?(selectable.columns)
     }
   end
 
