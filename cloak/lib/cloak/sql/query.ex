@@ -463,36 +463,34 @@ defmodule Cloak.Sql.Query do
   defp is_emulated_query?(query), do: query.type != :anonymized and has_emulated_expressions?(query)
 
   defp emulated_condition?(condition, query) do
-    emulated_expression_condition?(condition, query.data_source) or
+    emulated_expression?(condition, query.data_source) or
       (query.emulated? and (multiple_tables_condition?(condition) or not is_binary(query.from)))
   end
 
-  defp emulated_expression?(expression, data_source),
-    do: Expression.function?(expression) and not data_source.driver.supports_function?(expression, data_source)
-
-  defp emulated_expression_condition?(condition, data_source) do
-    Lenses.conditions_terminals()
-    |> Lens.to_list([condition])
-    |> Enum.any?(&emulated_expression?(&1, data_source))
+  defp emulated_expression?(expression, data_source) do
+    Lenses.all_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.reject(&data_source.driver.supports_function?(&1, data_source))
+    |> Lens.to_list(expression)
+    |> Enum.count() > 0
   end
 
   defp has_emulated_expressions?(query),
     do:
-      Lenses.all_expressions()
-      |> Lens.to_list([
+      [
         query.columns,
         query.group_by,
         query.having,
         query.where,
         order_by_expressions(query)
-      ])
+      ]
+      |> List.flatten()
       |> Enum.any?(&emulated_expression?(&1, query.data_source))
 
   defp has_emulated_join_conditions?(query),
     do:
       query
       |> Compiler.Helpers.all_join_conditions()
-      |> get_in([Lenses.all_expressions()])
       |> Enum.any?(&emulated_expression?(&1, query.data_source))
 
   defp multiple_tables_condition?(condition) do
