@@ -101,7 +101,7 @@ defmodule Cloak.Sql.Condition do
       {nil, nil} -> nil
       {nil, rhs} -> rhs
       {lhs, nil} -> lhs
-      _ -> expression
+      {lhs, rhs} -> %Expression{expression | args: [lhs, rhs]}
     end
   end
 

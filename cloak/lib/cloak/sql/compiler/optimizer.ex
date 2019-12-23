@@ -116,7 +116,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   defp move_conditions_into_subquery(subquery, conditions),
     do:
       Query.Lenses.conditions_terminals()
-      |> Lens.reject(&Expression.constant?/1)
+      |> Lens.filter(&Expression.column?/1)
       |> Lens.map(conditions, &lookup_column_in_query(&1, subquery))
       |> add_conditions_to_query(subquery)
 
@@ -149,7 +149,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
   defp condition_from_table?(condition, table_name) do
     Query.Lenses.conditions_terminals()
-    |> Lens.reject(&Expression.constant?/1)
+    |> Lens.filter(&Expression.column?/1)
     |> Lens.to_list(condition)
     |> Enum.map(& &1.table)
     |> Enum.uniq()
@@ -176,7 +176,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       {nil, nil} -> nil
       {nil, rhs} -> rhs
       {lhs, nil} -> lhs
-      _ -> expression
+      {lhs, rhs} -> %Expression{expression | args: [lhs, rhs]}
     end
   end
 
