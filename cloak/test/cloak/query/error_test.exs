@@ -274,7 +274,9 @@ defmodule Cloak.Query.ErrorTest do
 
   test "[Issue #2559] Inspecting an interval in an error" do
     assert_query("SELECT count(*) FROM test_errors WHERE interval 'PT1S' like ''", %{
-      error: "Column `PT1S` of type `interval` cannot be used in a LIKE" <> _
+      error:
+        "Function `like` requires arguments of type (`text`, `like_pattern`), " <>
+          "but got (`interval`, `like_pattern`)" <> _
     })
   end
 

@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.LikePattern do
   @moduledoc "Handles operations on like patterns."
 
-  @opaque t :: {String.t(), String.t()}
+  @opaque t :: {String.t(), Regex.t(), Regex.t()}
   @type grapheme :: String.t() | :% | :_
 
   @special_characters [:%, :_]
@@ -16,33 +16,26 @@ defmodule Cloak.Sql.LikePattern do
 
   @doc "Returns a new opaque and normalized like pattern construct that can be used with the like pattern module."
   @spec new(String.t(), String.t() | nil) :: t
-  def new(pattern, escape),
-    do: {
-      {pattern, escape}
-      |> graphemes()
+  def new(pattern, escape) do
+    standard_pattern =
+      pattern
+      |> graphemes(escape)
       |> do_normalize()
       |> Enum.map(&standard_escape/1)
-      |> Enum.join(),
-      @standard_escape_character
-    }
+      |> Enum.join()
 
-  @doc """
-  Returns a parsed representation of this like pattern. Regular characters are represented as one-character, while the
-  special characters % and _ are represented as :% and :_.
-  """
-  @spec graphemes({String.t(), String.t() | nil}) :: [grapheme]
-  def graphemes({pattern, escape}) do
-    [result] = Combine.parse(pattern, parser(escape))
-    result
+    regex = standard_pattern |> to_regex_pattern() |> Regex.compile!("usm")
+    regex_ci = standard_pattern |> to_regex_pattern() |> Regex.compile!("usmi")
+    {standard_pattern, regex, regex_ci}
   end
 
   @doc "Returns true if the pattern does not contain any special characters, false otherwise."
   @spec trivial?(t) :: boolean
-  def trivial?(pattern), do: pattern |> graphemes() |> Enum.all?(&(not wildcard?(&1)))
+  def trivial?({pattern, _regex, _regex_ci}), do: pattern |> graphemes() |> Enum.all?(&(not wildcard?(&1)))
 
   @doc "Returns true if the pattern is of the form 'foo', '%foo', 'foo%', or '%foo%', false otherwise."
   @spec simple?(t) :: boolean
-  def simple?(pattern) do
+  def simple?({pattern, _regex, _regex_ci}) do
     graphemes = graphemes(pattern)
 
     if Enum.any?(graphemes, &(&1 == :_)) do
@@ -54,13 +47,11 @@ defmodule Cloak.Sql.LikePattern do
 
   @doc "Converts a constant like pattern expression into a text expression. Fails if the pattern is not `trivial?/1`."
   @spec trivial_to_string(Expression.t()) :: Expression.t()
-  def trivial_to_string(expression) do
-    true = trivial?(expression.value)
-    Expression.constant(:text, expression.value |> graphemes() |> Enum.join())
-  end
+  def trivial_to_string(%Expression{type: :like_pattern, value: {pattern, _regex, _regex_ci}} = expression),
+    do: %Expression{expression | type: :text, value: pattern |> graphemes() |> Enum.join()}
 
   @doc "Returns a regex pattern implementing the given like pattern."
-  @spec to_regex_pattern(t) :: String.t()
+  @spec to_regex_pattern(String.t()) :: String.t()
   def to_regex_pattern(pattern),
     do:
       pattern
@@ -69,17 +60,12 @@ defmodule Cloak.Sql.LikePattern do
       |> Enum.join()
       |> anchor()
 
-  @doc "Returns a regex implementing the given pattern."
-  @spec to_regex(t) :: Regex.t()
-  def to_regex(pattern), do: pattern |> to_regex_pattern() |> Regex.compile!("usm")
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
-  @doc "Returns a regex implementing the given pattern that matches case-insensitively."
-  @spec to_case_insensitive_regex(t) :: Regex.t()
-  def to_case_insensitive_regex(pattern), do: pattern |> to_regex_pattern() |> Regex.compile!("usmi")
-
-  @doc "Lowercases the LIKE match pattern."
-  @spec lowercase(t) :: t
-  def lowercase({pattern, escape}), do: {String.downcase(pattern), escape}
+  def graphemes(pattern, escape \\ @standard_escape_character),
+    do: pattern |> Combine.parse(parser(escape)) |> Enum.at(0)
 
   # -------------------------------------------------------------------
   # Parsing

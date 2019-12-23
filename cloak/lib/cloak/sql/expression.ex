@@ -199,8 +199,8 @@ defmodule Cloak.Sql.Expression do
   def display(%__MODULE__{kind: :constant, type: type, value: value}) when type in [:date, :datetime, :time],
     do: "#{type} '#{to_string(value)}'"
 
-  def display(%__MODULE__{kind: :constant, type: :like_pattern, value: {pattern, escape}}),
-    do: "'#{pattern}' '#{escape}'"
+  def display(%__MODULE__{kind: :constant, type: :like_pattern, value: {pattern, _regex, _regex_ci}}),
+    do: "'#{pattern}'"
 
   def display(%__MODULE__{kind: :constant, value: nil}), do: "NULL"
   def display(%__MODULE__{kind: :constant, value: value}), do: to_string(value)
@@ -308,9 +308,6 @@ defmodule Cloak.Sql.Expression do
     do: %__MODULE__{expression | value: String.downcase(value)}
 
   def lowercase(%__MODULE__{type: :text} = expression), do: function("lower", [expression], expression.type)
-
-  def lowercase(%__MODULE__{type: :like_pattern, value: pattern} = expression),
-    do: %__MODULE__{expression | value: LikePattern.lowercase(pattern)}
 
   def lowercase(_), do: raise("Only textual expressions can be made lowercase")
 

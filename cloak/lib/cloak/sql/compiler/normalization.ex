@@ -249,7 +249,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   end
 
   defp normalize_trivial_like(%Expression{kind: :function, name: "ilike", args: [subject, target]} = expression) do
-    args = [Expression.lowercase(subject), target |> Expression.lowercase() |> LikePattern.trivial_to_string()]
+    args = [Expression.lowercase(subject), target |> LikePattern.trivial_to_string() |> Expression.lowercase()]
     %Expression{expression | name: "=", args: args}
   end
 
