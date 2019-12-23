@@ -220,16 +220,13 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       task =
         Task.async(fn ->
-          View.create(user, data_source, "my view 1", "some sql")
+          View.create(user, data_source, "my view 1", "some sql", skip_revalidation: true)
         end)
 
       TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
-      TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
 
       assert {:ok, view} = Task.await(task)
-      View.revalidate_all_views(data_source)
-
-      assert soon(shadow_db_has_table?(context, user, data_source, view.name))
+      assert soon(shadow_db_has_table?(user, data_source, view.name))
     end
 
     test "Altering a view should update the corresponding table in the users shadow db"
@@ -261,23 +258,22 @@ defmodule Air.PsqlServer.ShadowDbTest do
     |> Enum.member?(Air.PsqlServer.ShadowDb.db_name(user, data_source.name))
   end
 
-  defp shadow_db_has_table?(context, user, data_source, table) do
+  defp shadow_db_has_table?(user, data_source, table) do
     db_name = Air.PsqlServer.ShadowDb.db_name(user, data_source.name)
     parent = self()
 
-    result =
-      Task.start(fn ->
-        Air.PsqlServer.ShadowDb.Connection.execute!(db_name, fn conn ->
-          {_columns, rows} =
-            Air.PsqlServer.ShadowDb.Connection.query!(
-              conn,
-              "SELECT table_name FROM information_schema.tables where table_schema=$1",
-              ["public"]
-            )
+    Task.start(fn ->
+      Air.PsqlServer.ShadowDb.Connection.execute!(db_name, fn conn ->
+        {_columns, rows} =
+          Air.PsqlServer.ShadowDb.Connection.query!(
+            conn,
+            "SELECT table_name FROM information_schema.tables where table_schema=$1",
+            ["public"]
+          )
 
-          send(parent, {:rows, rows})
-        end)
+        send(parent, {:rows, rows})
       end)
+    end)
 
     receive do
       {:rows, rows} ->
