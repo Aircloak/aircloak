@@ -210,10 +210,10 @@ defmodule Cloak.Query.DbEmulator do
   defp update_join_conditions(join),
     do: %{
       join
-      | conditions:
+      | condition:
           Lens.map(
             Query.Lenses.conditions_terminals(),
-            join.conditions,
+            join.condition,
             &set_column_row_index(&1, join.columns)
           )
     }

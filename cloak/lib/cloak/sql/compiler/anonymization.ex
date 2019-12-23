@@ -158,7 +158,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         from_rhs = {:subquery, %{ast: distinct_statistics_query, alias: distinct_statistics_table.name}}
 
         # We join each query for distinct statistics to the main query with regular statistics.
-        from = {:join, %{type: :inner_join, lhs: from, rhs: from_rhs, conditions: conditions}}
+        from = {:join, %{type: :inner_join, lhs: from, rhs: from_rhs, condition: conditions}}
 
         {from, selected_tables ++ [distinct_statistics_table]}
       end)
