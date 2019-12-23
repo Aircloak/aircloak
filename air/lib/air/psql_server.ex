@@ -181,6 +181,7 @@ defmodule Air.PsqlServer do
       [
         Air.PsqlServer.ShadowDb,
         Air.PsqlServer.ConnectionRegistry,
+        {Air.PsqlServer.ShadowDb.SchemaSynchronizer, Mix.env() != :test},
         tcp_interface()
       ],
       strategy: :one_for_one,

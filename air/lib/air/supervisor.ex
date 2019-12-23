@@ -27,7 +27,6 @@ defmodule Air.Supervisor do
         in_env(test: nil, else: Air.Service.LDAP.PeriodicSync),
         Air.TimestampUpdater,
         Air.PsqlServer,
-        {Air.PsqlServer.ShadowDb.SchemaSynchronizer, Mix.env() != :test},
         Air.Web,
         AirWeb.MonitoringEndpoint,
         Air.BOM
