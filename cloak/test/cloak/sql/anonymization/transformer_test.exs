@@ -116,7 +116,7 @@ defmodule Cloak.Sql.TransformerTest do
                   table.uid AS uid,
                   COUNT(*) AS agg_0
                 FROM table
-                WHERE (NOT (table.uid IS NULL)) AND (table.col1 = 0)
+                WHERE (NOT (table.uid IS NULL) AND (table.col1 = 0))
                 GROUP BY table.uid
                ) AS uid_grouping
                """)
@@ -173,7 +173,7 @@ defmodule Cloak.Sql.TransformerTest do
                 GROUP BY table.uid, table.col1
                ) AS uid_grouping
                GROUP BY uid_grouping.group_0
-               HAVING SUM(uid_grouping.agg_0) = 0
+               HAVING (SUM(uid_grouping.agg_0) = 0)
                """)
     end
 

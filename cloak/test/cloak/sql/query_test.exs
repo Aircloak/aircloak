@@ -513,7 +513,13 @@ defmodule Cloak.Sql.QueryTest do
     condition =
       Expression.function("=", [Expression.column(numeric_column, table), Expression.constant(:integer, 3)], :boolean)
 
-    query = %Query{command: :select, where: condition, selected_tables: [table], from: "table"}
+    query = %Query{
+      command: :select,
+      where: condition,
+      selected_tables: [table],
+      from: "table",
+      data_source: hd(Cloak.DataSource.all())
+    }
 
     assert ^condition = Query.offloaded_where(query)
     assert nil == Query.emulated_where(query)

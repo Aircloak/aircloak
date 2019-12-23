@@ -11,6 +11,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct variance
+      < > <= >= = <> and or not in is_null like ilike
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod ^ * / + - %
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
@@ -72,14 +73,10 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   def function_sql("case", args), do: ["CASE", case_branches(args), " END"]
 
-  def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
+  def function_sql("like", [subject, pattern]), do: [?(, subject, " COLLATE Latin1_General_CS_AS LIKE ", pattern, ?)]
+  def function_sql("ilike", [subject, pattern]), do: [?(, subject, " COLLATE Latin1_General_CI_AS LIKE ", pattern, ?)]
 
-  @impl Dialect
-  def like_sql(what, match), do: super([what, " COLLATE Latin1_General_CS_AS"], match)
-
-  @impl Dialect
-  def ilike_sql(what, {pattern, escape = "\\"}),
-    do: [what, " COLLATE Latin1_General_CI_AS LIKE ", ?', pattern, ?', " ESCAPE ", ?', escape, ?']
+  def function_sql(name, args), do: super(name, args)
 
   @impl Dialect
   def limit_sql(nil, offset), do: [" OFFSET ", to_string(offset), " ROWS"]
@@ -93,7 +90,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def literal(false), do: "0"
   def literal(true), do: "1"
   def literal(value) when is_binary(value), do: ["N'", value, ?']
-  def literal(value), do: Dialect.literal_default(value)
+  def literal(value), do: super(value)
 
   @impl Dialect
   def cast_sql(["DISTINCT " | value], from, to), do: ["DISTINCT " | cast_sql(value, from, to)]

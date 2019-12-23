@@ -1556,6 +1556,7 @@ defmodule Cloak.Sql.Compiler.Test do
     %{
       name: "compiler_test_data_source",
       driver: Cloak.DataSource.MongoDB,
+      driver_info: "3.6.0",
       tables: %{
         table:
           Cloak.DataSource.Table.new(

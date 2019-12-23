@@ -323,12 +323,6 @@ defmodule Cloak.Sql.Query do
       |> Lens.map(query, fn _ -> new_expression end)
 
   @doc """
-  Returns true if the given expression is a raw database column, false otherwise.
-  """
-  @spec database_column?(Expression.t(), t) :: boolean
-  def database_column?(column, query), do: is_nil(source_subquery(column, query))
-
-  @doc """
   Finds the subquery a given column comes from.
 
   Returns `:database_column` if the column does not come from any subquery. Otherwise returns `{column, subquery}`.

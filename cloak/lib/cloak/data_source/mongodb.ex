@@ -34,7 +34,7 @@ defmodule Cloak.DataSource.MongoDB do
     name of the table being the base table name suffixed with the array name, separated by `_`.
   """
 
-  alias Cloak.Sql.{Query, Expression, Condition}
+  alias Cloak.Sql.{Query, Expression}
   alias Cloak.Query.ExecutionError
   alias Cloak.DataSource.{Driver, MongoDB.Schema, MongoDB.Pipeline}
 
@@ -162,7 +162,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   @impl Driver
   def supports_query?(query) do
-    supports_joins?(query) and supports_order_by?(query) and
+    Enum.all?(query.selected_tables, &(&1[:sharded?] != true)) and supports_order_by?(query) and
       supports_aggregators?(query) and supports_grouping?(query)
   end
 
@@ -242,20 +242,28 @@ defmodule Cloak.DataSource.MongoDB do
     end
   end
 
-  @supported_functions ~w(
+  @supported_functions_36 ~w(
     + - * / % unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod checked_div checked_mod
     count sum || concat lower upper year month day weekday hour minute second
     cast_integer_to_boolean cast_real_to_boolean cast_boolean_to_integer cast_boolean_to_real
     cast_boolean_to_text cast_text_to_boolean cast_integer_to_real cast_datetime_to_text
     ^ abs ceil floor round sqrt trunc quarter div cast_real_to_integer min max avg
     length left right substring cast_real_to_text cast_integer_to_text bool_op coalesce case
+    < > <= >= = <> and or not in is_null
   )
 
+  @supported_functions_42 @supported_functions_36 ++ ~w(like ilike)
+
   defp supported_functions(version) do
-    if Version.compare(version, "3.6.0") == :lt do
-      raise ExecutionError, message: "Unsupported MongoDB version: #{version}. At least 3.6 required."
-    else
-      @supported_functions
+    cond do
+      Version.compare(version, "3.6.0") == :lt ->
+        raise ExecutionError, message: "Unsupported MongoDB version: #{version}. At least 3.6 required."
+
+      Version.compare(version, "4.2.0") == :lt ->
+        @supported_functions_36
+
+      true ->
+        @supported_functions_42
     end
   end
 
@@ -263,20 +271,6 @@ defmodule Cloak.DataSource.MongoDB do
     do: "cast_#{value.type}_to_#{type}"
 
   defp function_signature(%Expression{kind: :function, name: name}), do: name
-
-  defp supports_joins?(query),
-    do: supported_join?(query.from) and not Enum.any?(query.selected_tables, & &1[:sharded?])
-
-  defp supported_join?({:join, join}),
-    do: supported_join_filters?(join.conditions) and supported_join?(join.lhs) and supported_join?(join.rhs)
-
-  defp supported_join?(_from), do: true
-
-  defp supported_join_filters?(conditions) do
-    Query.Lenses.conditions()
-    |> Lens.filter(&(Condition.verb(&1) == :like))
-    |> Lens.to_list(conditions) == []
-  end
 
   defp supports_order_by?(%{type: :anonymized}), do: true
 

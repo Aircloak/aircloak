@@ -23,6 +23,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct
+      < > <= >= = <> and or not in is_null like ilike
       year quarter month day hour minute second weekday date_trunc
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
@@ -93,7 +94,10 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("case", args), do: ["CASE", case_branches(args), " END"]
 
-  def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
+  def function_sql("ilike", [subject, [[?', pattern, ?'] | escape]]),
+    do: ["(LOWER(", subject, ") LIKE LOWER('", pattern, "')", escape, ?)]
+
+  def function_sql(name, args), do: super(name, args)
 
   @impl Dialect
   def cast_sql(value, :real, :integer),
@@ -135,10 +139,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def literal(%Timex.Duration{} = duration),
     do: ["NUMTODSINTERVAL(", duration |> Timex.Duration.to_seconds() |> to_string(), ", 'SECOND')"]
 
-  def literal(value), do: Dialect.literal_default(value)
-
-  @impl Dialect
-  def native_support_for_ilike?(), do: false
+  def literal(value), do: super(value)
 
   @impl Dialect
   def select_table_names(prefix),
