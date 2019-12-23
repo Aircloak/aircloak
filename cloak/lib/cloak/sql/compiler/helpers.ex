@@ -144,7 +144,8 @@ defmodule Cloak.Sql.Compiler.Helpers do
       |> Enum.map(&{Expression.title(&1), Expression.key_type(&1)})
       |> Enum.into(%{})
 
-    Table.new(table_name, user_id_name, Keyword.merge(opts, columns: table_columns, keys: keys))
+    opts = [type: :subquery] |> Keyword.merge(opts) |> Keyword.merge(columns: table_columns, keys: keys)
+    Table.new(table_name, user_id_name, opts)
   end
 
   # -------------------------------------------------------------------
