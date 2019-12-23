@@ -16,10 +16,25 @@ defmodule Air.Service.Cloak do
   @stats_name Stats
   @data_source_registry_name __MODULE__.DataSourceRegistry
   @all_cloak_registry_name __MODULE__.AllCloakRegistry
+  @notifications_registry __MODULE__.NotificationsRegistry
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Subscribes to notifications about asynchronous activities."
+  @spec subscribe_to(:data_sources_registered) :: :ok
+  def subscribe_to(notification) do
+    Registry.register(@notifications_registry, notification, nil)
+    :ok
+  end
+
+  @doc "Unsubscribes from notifications about asynchronous activities."
+  @spec unsubscribe_from(:data_sources_registered) :: :ok
+  def unsubscribe_from(notification) do
+    Registry.unregister(@notifications_registry, notification)
+    :ok
+  end
 
   @doc "Registers a data source (if needed), and associates the calling cloak with the data source."
   @spec register(Map.t(), Map.t()) :: [Air.Schemas.DataSource.t()]
@@ -27,9 +42,7 @@ defmodule Air.Service.Cloak do
     {data_source_names, cloak_info, data_source_schemas} =
       GenServer.call(@serializer_name, {:register, cloak_info, data_sources})
 
-    data_sources
-    |> Enum.map(&DataSource.by_name(&1.name))
-    |> Enum.each(&update_data_source(&1))
+    notify_subscribers(:data_sources_registered, %{data_sources: data_source_names})
 
     Registry.register(@all_cloak_registry_name, :all_cloaks, cloak_info)
 
@@ -114,11 +127,11 @@ defmodule Air.Service.Cloak do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp update_data_source(data_source),
+  defp notify_subscribers(notification, payload),
     do:
-      data_source
-      |> DataSource.users()
-      |> Enum.each(&Air.PsqlServer.ShadowDb.update(&1, data_source.name))
+      Registry.lookup(@notifications_registry, notification)
+      |> Enum.map(fn {pid, nil} -> pid end)
+      |> Enum.each(&send(&1, {notification, payload}))
 
   defp unregister_cloak() do
     Registry.unregister(@all_cloak_registry_name, :all_cloaks)
@@ -242,6 +255,7 @@ defmodule Air.Service.Cloak do
         ChildSpec.gen_server(Stats, [], name: @stats_name),
         ChildSpec.registry(:duplicate, @data_source_registry_name),
         ChildSpec.registry(:duplicate, @all_cloak_registry_name),
+        ChildSpec.registry(:duplicate, @notifications_registry),
         {Periodic, run: {Stats, :aggregate_and_report, []}, every: :timer.seconds(10)}
       ],
       strategy: :one_for_one,

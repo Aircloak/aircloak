@@ -78,7 +78,7 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
       # We do not have a handle on which data sources this user already had access to
       # prior to joining this group. They could all be a result of joining the group.
       Air.Service.DataSource.for_user(user)
-      |> Enum.each(&Air.PsqlServer.ShadowDb.update(user, &1.name))
+      |> Enum.each(&ShadowDb.update(user, &1.name))
     end
 
     {:noreply, true}
@@ -89,7 +89,7 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
     %{data_source_name: data_source_name, previous_users: previous_users} = data
 
     previous_users
-    |> Enum.each(&Air.PsqlServer.ShadowDb.drop(&1, data_source_name))
+    |> Enum.each(&ShadowDb.drop(&1, data_source_name))
 
     {:noreply, true}
   end
@@ -107,10 +107,10 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
     revoked_users = MapSet.difference(previous_users, new_users)
 
     new_users
-    |> Enum.each(&Air.PsqlServer.ShadowDb.update(&1, data_source_name))
+    |> Enum.each(&ShadowDb.update(&1, data_source_name))
 
     revoked_users
-    |> Enum.each(&Air.PsqlServer.ShadowDb.drop(&1, data_source_name))
+    |> Enum.each(&ShadowDb.drop(&1, data_source_name))
 
     {:noreply, true}
   end
@@ -129,6 +129,16 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
     {:noreply, true}
   end
 
+  def handle_info({:data_sources_registered, data}, true) do
+    %{data_sources: data_sources} = data
+
+    data_sources
+    |> Enum.map(&Air.Service.DataSource.by_name(&1))
+    |> Enum.each(&update_data_source(&1))
+
+    {:noreply, true}
+  end
+
   def handle_info(_, listening), do: {:noreply, listening}
 
   # -------------------------------------------------------------------
@@ -143,6 +153,7 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
     Air.Service.DataSource.subscribe_to(:data_source_updated)
     Air.Service.DataSource.subscribe_to(:data_source_deleted)
     Air.Service.View.subscribe_to(:revalidated_views)
+    Air.Service.Cloak.subscribe_to(:data_sources_registered)
     Air.Service.AnalystTable.subscribe_to(:revalidated_analyst_tables)
   end
 
@@ -156,6 +167,12 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
     |> Enum.each(&ShadowDb.update(user, &1))
   end
 
+  defp update_data_source(data_source),
+    do:
+      data_source
+      |> Air.Service.DataSource.users()
+      |> Enum.each(&ShadowDb.update(&1, data_source.name))
+
   defp sync_group_users(previous_data_sources) do
     for {user, data_sources_before} <- previous_data_sources do
       data_sources_after = data_source_names(user)
@@ -166,7 +183,7 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
   defp sync_by_ids(user_id, data_source_id) do
     user = Air.Service.User.load!(user_id)
     data_source = Air.Service.DataSource.by_id!(data_source_id)
-    Air.PsqlServer.ShadowDb.update(user, data_source.name)
+    ShadowDb.update(user, data_source.name)
   end
 
   defp data_source_names(user) do
