@@ -212,25 +212,32 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
   describe "selectables" do
     test "Creating a view should create the corresponding table in the users shadow db", context do
-      group = TestRepoHelper.create_group!()
-      data_source = create_data_source!(%{groups: [group.id]})
-      user = TestRepoHelper.create_user!(%{groups: [group.id]})
-      trigger_shadow_db_creation(context, user, data_source)
-      socket = data_source_socket(data_source)
-
-      task =
-        Task.async(fn ->
-          View.create(user, data_source, "my view 1", "some sql", skip_revalidation: true)
-        end)
-
-      TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
-
-      assert {:ok, view} = Task.await(task)
+      {view, user, data_source, _} = create_view(context)
       assert soon(shadow_db_has_table?(user, data_source, view.name))
     end
 
-    test "Altering a view should update the corresponding table in the users shadow db"
-    test "Removing a view should remove the corresponding table in the users shadow db"
+    test "Altering a view should update the corresponding table in the users shadow db", context do
+      {view, user, data_source, socket} = create_view(context)
+      assert soon(shadow_db_has_table?(user, data_source, view.name))
+
+      task = Task.async(fn -> View.update(view.id, user, "updated_view_name", "some sql") end)
+      TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
+      TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
+
+      assert {:ok, _} = Task.await(task)
+      assert soon(shadow_db_has_table?(user, data_source, "updated_view_name"))
+    end
+
+    test "Removing a view should remove the corresponding table in the users shadow db", context do
+      {view, user, data_source, socket} = create_view(context)
+      assert soon(shadow_db_has_table?(user, data_source, view.name))
+
+      task = Task.async(fn -> View.delete(view.id, user) end)
+      TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
+
+      assert :ok = Task.await(task)
+      assert soon(not shadow_db_has_table?(user, data_source, view.name))
+    end
 
     test "Creating an analyst table should, upon completion, create the corresponding table in the shadow db"
     test "Altering an analyst table should, upon completion, update the corresponding table in the shadow db"
@@ -283,7 +290,25 @@ defmodule Air.PsqlServer.ShadowDbTest do
     end
   end
 
-  def create_data_source!(params \\ %{}) do
+  defp create_view(context) do
+    group = TestRepoHelper.create_group!()
+    data_source = create_data_source!(%{groups: [group.id]})
+    user = TestRepoHelper.create_user!(%{groups: [group.id]})
+    trigger_shadow_db_creation(context, user, data_source)
+    socket = data_source_socket(data_source)
+
+    task =
+      Task.async(fn ->
+        View.create(user, data_source, "my view 1", "some sql", skip_revalidation: true)
+      end)
+
+    TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
+
+    assert {:ok, view} = Task.await(task)
+    {view, user, data_source, socket}
+  end
+
+  defp create_data_source!(params \\ %{}) do
     tables =
       Jason.encode!([
         %{columns: [%{key_type: "user_id", name: "uid", type: "integer", user_id: true}], id: "table_name"}
@@ -292,7 +317,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
     TestRepoHelper.create_data_source!(Map.merge(%{tables: tables}, params))
   end
 
-  def trigger_shadow_db_creation(context, user, data_source) do
+  defp trigger_shadow_db_creation(context, user, data_source) do
     Air.PsqlServer.ShadowDb.update(user, data_source.name)
 
     assert soon(shadow_db_exists?(context, user, data_source), 5000),
