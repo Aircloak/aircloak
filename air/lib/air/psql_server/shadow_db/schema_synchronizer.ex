@@ -9,6 +9,10 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Waits for the schema synchronizer to complete existing work."
+  @spec flush :: :ok
+  def flush(), do: GenServer.call(__MODULE__, :flush)
+
   @doc "Returns whether events are being listened to."
   @spec events_enabled?() :: boolean()
   def events_enabled?(), do: GenServer.call(__MODULE__, :events_enabled?)
@@ -30,6 +34,9 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
     subscribe()
     {:ok, listen}
   end
+
+  @impl GenServer
+  def handle_call(:flush, _, listening), do: {:reply, :ok, listening}
 
   @impl GenServer
   def handle_call(:events_enabled?, _, listening), do: {:reply, listening, listening}

@@ -99,6 +99,22 @@ defmodule Air.TestSocketHelper do
     :ok
   end
 
+  def respond_to_create_or_update_analyst_table(socket, timeout \\ :timer.seconds(1)) do
+    {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
+    %{request_id: request_id, event: "create_or_update_analyst_table", payload: %{}} = request
+
+    columns = [%{name: "foo", type: "integer", key_type: "user_id"}, %{name: "bar", type: "text", key_type: nil}]
+
+    {:ok, _ref} =
+      TestSocket.push(socket, "main", "cloak_response", %{
+        request_id: request_id,
+        status: :ok,
+        result: {columns, []}
+      })
+
+    :ok
+  end
+
   @doc "Runs the action while a cloak with the given name and data source exists and returns its result."
   @spec with_cloak(String.t(), String.t(), (() -> any)) :: any
   def with_cloak(cloak_name, data_source_name, action) do

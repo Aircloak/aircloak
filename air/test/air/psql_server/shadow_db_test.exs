@@ -239,7 +239,12 @@ defmodule Air.PsqlServer.ShadowDbTest do
       assert soon(not shadow_db_has_table?(user, data_source, view.name))
     end
 
-    test "Creating an analyst table should, upon completion, create the corresponding table in the shadow db"
+    test "Creating an analyst table should, upon completion, create the corresponding table in the shadow db",
+         context do
+      {table, user, data_source, _} = create_analyst_table(context)
+      assert soon(shadow_db_has_table?(user, data_source, table.name))
+    end
+
     test "Altering an analyst table should, upon completion, update the corresponding table in the shadow db"
     test "Removing an analyst table should remove the corresponding table in the shadow db"
 
@@ -290,16 +295,46 @@ defmodule Air.PsqlServer.ShadowDbTest do
     end
   end
 
+  defp create_analyst_table(context) do
+    Air.Service.AnalystTable.subscribe_to(:revalidated_analyst_tables)
+    group = TestRepoHelper.create_group!()
+    data_source = create_data_source!(%{groups: [group.id]})
+    user = TestRepoHelper.create_user!(%{groups: [group.id]})
+    trigger_shadow_db_creation(context, user, data_source)
+    socket = data_source_socket(data_source)
+    name = "my table 1"
+
+    assert not shadow_db_has_table?(user, data_source, name)
+
+    task =
+      Task.async(fn ->
+        Air.Service.AnalystTable.create(user, data_source, name, "some sql")
+      end)
+
+    TestSocketHelper.respond_to_create_or_update_analyst_table(socket)
+
+    assert {:ok, table} = Task.await(task)
+    assert_receive {:revalidated_analyst_tables, _}
+
+    Air.Service.AnalystTable.unsubscribe_from(:revalidated_analyst_tables)
+
+    Air.PsqlServer.ShadowDb.SchemaSynchronizer.flush()
+    {table, user, data_source, socket}
+  end
+
   defp create_view(context) do
     group = TestRepoHelper.create_group!()
     data_source = create_data_source!(%{groups: [group.id]})
     user = TestRepoHelper.create_user!(%{groups: [group.id]})
     trigger_shadow_db_creation(context, user, data_source)
     socket = data_source_socket(data_source)
+    name = "my view 1"
+
+    assert not shadow_db_has_table?(user, data_source, name)
 
     task =
       Task.async(fn ->
-        View.create(user, data_source, "my view 1", "some sql", skip_revalidation: true)
+        View.create(user, data_source, name, "some sql", skip_revalidation: true)
       end)
 
     TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
