@@ -82,8 +82,15 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   @impl GenServer
   def init({user, data_source_name}) do
     Process.flag(:trap_exit, true)
+    GenServer.cast(name(user, data_source_name), :ensure_exists)
     update_definition(user, data_source_name)
     {:ok, %{user: user, data_source_name: data_source_name, tables: []}}
+  end
+
+  @impl GenServer
+  def handle_cast(:ensure_exists, state) do
+    exec_queued(fn -> ensure_db!(state.user, state.data_source_name) end)
+    {:noreply, state}
   end
 
   @impl GenServer
