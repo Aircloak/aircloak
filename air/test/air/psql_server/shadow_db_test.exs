@@ -212,8 +212,9 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
   describe "selectables" do
     test "Creating a view should create the corresponding table in the users shadow db", context do
-      {view, user, data_source, _} = create_view(context)
+      {view, user, data_source, _socket} = create_view(context)
       assert soon(shadow_db_has_table?(user, data_source, view.name))
+      cleanup(user, data_source)
     end
 
     test "Altering a view should update the corresponding table in the users shadow db", context do
@@ -226,6 +227,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       assert {:ok, _} = Task.await(task)
       assert soon(shadow_db_has_table?(user, data_source, "updated_view_name"))
+      cleanup(user, data_source)
     end
 
     test "Removing a view should remove the corresponding table in the users shadow db", context do
@@ -237,16 +239,54 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       assert :ok = Task.await(task)
       assert soon(not shadow_db_has_table?(user, data_source, view.name))
+      cleanup(user, data_source)
     end
 
     test "Creating an analyst table should, upon completion, create the corresponding table in the shadow db",
          context do
-      {table, user, data_source, _} = create_analyst_table(context)
+      {table, user, data_source, _socket} = create_analyst_table(context)
       assert soon(shadow_db_has_table?(user, data_source, table.name))
+      cleanup(user, data_source)
     end
 
-    test "Altering an analyst table should, upon completion, update the corresponding table in the shadow db"
-    test "Removing an analyst table should remove the corresponding table in the shadow db"
+    test "Altering an analyst table should, upon completion, update the corresponding table in the shadow db",
+         context do
+      {table, user, data_source, socket} = create_analyst_table(context)
+      old_name = table.name
+      new_name = "my updated table 1"
+
+      task =
+        Task.async(fn ->
+          Air.Service.AnalystTable.update(table.id, user, new_name, "some sql")
+        end)
+
+      TestSocketHelper.respond_to_create_or_update_analyst_table(socket)
+      assert {:ok, table} = Task.await(task)
+
+      assert soon(not shadow_db_has_table?(user, data_source, old_name))
+      assert soon(shadow_db_has_table?(user, data_source, new_name))
+
+      cleanup(user, data_source)
+    end
+
+    test "Removing an analyst table should remove the corresponding table in the shadow db", context do
+      {table, user, data_source, socket} = create_analyst_table(context)
+
+      assert soon(shadow_db_has_table?(user, data_source, table.name))
+
+      task =
+        Task.async(fn ->
+          Air.Service.AnalystTable.delete(table.id, user)
+        end)
+
+      TestSocketHelper.respond_to_drop_analyst_table(socket)
+
+      :ok = Task.await(task)
+
+      assert soon(not shadow_db_has_table?(user, data_source, table.name))
+
+      cleanup(user, data_source)
+    end
 
     test "Other users should not have access to a users selectables through shadow db"
     test "Recreating a shadow db based on schema changes from cloak should also include selectables"
@@ -296,7 +336,6 @@ defmodule Air.PsqlServer.ShadowDbTest do
   end
 
   defp create_analyst_table(context) do
-    Air.Service.AnalystTable.subscribe_to(:revalidated_analyst_tables)
     group = TestRepoHelper.create_group!()
     data_source = create_data_source!(%{groups: [group.id]})
     user = TestRepoHelper.create_user!(%{groups: [group.id]})
@@ -314,11 +353,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
     TestSocketHelper.respond_to_create_or_update_analyst_table(socket)
 
     assert {:ok, table} = Task.await(task)
-    assert_receive {:revalidated_analyst_tables, _}
 
-    Air.Service.AnalystTable.unsubscribe_from(:revalidated_analyst_tables)
-
-    Air.PsqlServer.ShadowDb.SchemaSynchronizer.flush()
     {table, user, data_source, socket}
   end
 
@@ -367,6 +402,13 @@ defmodule Air.PsqlServer.ShadowDbTest do
     })
 
     socket
+  end
+
+  defp cleanup(user, data_source) do
+    # Async activities may linger after tests, which results in confusing Ecto errors.
+    # We wait for ShadowDb servers to handle all messages before concluding tests.
+    Air.PsqlServer.ShadowDb.SchemaSynchronizer.flush()
+    Air.PsqlServer.ShadowDb.Manager.wait_until_initialized(user, data_source.name)
   end
 
   defp revalidation_success(names) do
