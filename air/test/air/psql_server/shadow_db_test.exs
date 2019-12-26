@@ -287,7 +287,34 @@ defmodule Air.PsqlServer.ShadowDbTest do
       cleanup(user, data_source)
     end
 
-    test "Other users should not have access to a users selectables through shadow db"
+    test "Other users should not have access to a users selectables through shadow db", context do
+      {selectable1, user1, data_source1, _socket1} = create_view(context)
+      {selectable2, user2, data_source2, _socket2} = create_analyst_table(context)
+
+      assert soon(shadow_db_has_table?(user1, data_source1, selectable1.name))
+      assert soon(shadow_db_has_table?(user2, data_source2, selectable2.name))
+
+      assert not shadow_db_has_table?(user1, data_source1, selectable2.name)
+      assert not shadow_db_has_table?(user2, data_source2, selectable1.name)
+
+      [%{id: group1_id}] = user1.groups
+      [%{id: group2_id}] = user2.groups
+
+      User.update!(user1, %{groups: [group1_id, group2_id]})
+      User.update!(user2, %{groups: [group1_id, group2_id]})
+
+      assert soon(shadow_db_exists?(context, user1, data_source2), 5000)
+      assert soon(shadow_db_exists?(context, user2, data_source1), 5000)
+
+      assert soon(not shadow_db_has_table?(user1, data_source2, selectable2.name))
+      assert soon(not shadow_db_has_table?(user2, data_source1, selectable1.name))
+
+      cleanup(user1, data_source1)
+      cleanup(user1, data_source2)
+      cleanup(user2, data_source1)
+      cleanup(user2, data_source2)
+    end
+
     test "Recreating a shadow db based on schema changes from cloak should also include selectables"
   end
 
