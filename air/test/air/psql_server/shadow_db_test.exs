@@ -213,12 +213,15 @@ defmodule Air.PsqlServer.ShadowDbTest do
   describe "selectables" do
     test "Creating a view should create the corresponding table in the users shadow db", context do
       {view, user, data_source, _socket} = create_view(context)
+
       assert soon(shadow_db_has_table?(user, data_source, view.name))
+
       cleanup(user, data_source)
     end
 
     test "Altering a view should update the corresponding table in the users shadow db", context do
       {view, user, data_source, socket} = create_view(context)
+
       assert soon(shadow_db_has_table?(user, data_source, view.name))
 
       task = Task.async(fn -> View.update(view.id, user, "updated_view_name", "some sql") end)
@@ -232,6 +235,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
     test "Removing a view should remove the corresponding table in the users shadow db", context do
       {view, user, data_source, socket} = create_view(context)
+
       assert soon(shadow_db_has_table?(user, data_source, view.name))
 
       task = Task.async(fn -> View.delete(view.id, user) end)
@@ -245,7 +249,9 @@ defmodule Air.PsqlServer.ShadowDbTest do
     test "Creating an analyst table should, upon completion, create the corresponding table in the shadow db",
          context do
       {table, user, data_source, _socket} = create_analyst_table(context)
+
       assert soon(shadow_db_has_table?(user, data_source, table.name))
+
       cleanup(user, data_source)
     end
 
@@ -265,7 +271,6 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       assert soon(not shadow_db_has_table?(user, data_source, old_name))
       assert soon(shadow_db_has_table?(user, data_source, new_name))
-
       cleanup(user, data_source)
     end
 
@@ -274,17 +279,11 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       assert soon(shadow_db_has_table?(user, data_source, table.name))
 
-      task =
-        Task.async(fn ->
-          Air.Service.AnalystTable.delete(table.id, user)
-        end)
-
+      task = Task.async(fn -> Air.Service.AnalystTable.delete(table.id, user) end)
       TestSocketHelper.respond_to_drop_analyst_table(socket)
 
       :ok = Task.await(task)
-
       assert soon(not shadow_db_has_table?(user, data_source, table.name))
-
       cleanup(user, data_source)
     end
 
