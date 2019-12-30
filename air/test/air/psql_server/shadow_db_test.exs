@@ -367,6 +367,11 @@ defmodule Air.PsqlServer.ShadowDbTest do
     user = TestRepoHelper.create_user!(%{groups: [group.id]})
     trigger_shadow_db_creation(context, user, data_source)
     socket = data_source_socket(data_source)
+    table = create_analyst_table(user, data_source, socket)
+    {table, user, data_source, socket}
+  end
+
+  defp create_analyst_table(user, data_source, socket) do
     name = "my table 1"
 
     assert not shadow_db_has_table?(user, data_source, name)
@@ -380,7 +385,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
     assert {:ok, table} = Task.await(task)
 
-    {table, user, data_source, socket}
+    table
   end
 
   defp create_view(context) do
@@ -389,6 +394,11 @@ defmodule Air.PsqlServer.ShadowDbTest do
     user = TestRepoHelper.create_user!(%{groups: [group.id]})
     trigger_shadow_db_creation(context, user, data_source)
     socket = data_source_socket(data_source)
+    view = create_view(user, data_source, socket)
+    {view, user, data_source, socket}
+  end
+
+  defp create_view(user, data_source, socket) do
     name = "my view 1"
 
     assert not shadow_db_has_table?(user, data_source, name)
@@ -401,7 +411,8 @@ defmodule Air.PsqlServer.ShadowDbTest do
     TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
 
     assert {:ok, view} = Task.await(task)
-    {view, user, data_source, socket}
+
+    view
   end
 
   defp create_data_source!(params \\ %{}) do
