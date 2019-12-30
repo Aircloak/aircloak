@@ -66,7 +66,7 @@ defmodule Air.PsqlServer.QueryExecution do
         RanchServer.query_result(conn, {:error, "permission denied"})
 
       internal_query?(query) ->
-        describe_from_shadow_db(conn.assigns.data_source_name, query)
+        describe_from_shadow_db(conn.assigns.user, conn.assigns.data_source_name, query)
         conn
 
       true ->
@@ -154,9 +154,9 @@ defmodule Air.PsqlServer.QueryExecution do
     )
   end
 
-  defp describe_from_shadow_db(data_source_name, query) do
+  defp describe_from_shadow_db(user, data_source_name, query) do
     RanchServer.run_async(
-      fn -> Air.PsqlServer.ShadowDb.parse(data_source_name, query) end,
+      fn -> Air.PsqlServer.ShadowDb.parse(user, data_source_name, query) end,
       on_success: fn
         conn, {:ok, columns, param_types} ->
           RanchServer.describe_result(conn, columns: columns, param_types: param_types)
