@@ -318,11 +318,6 @@ defmodule Air.PsqlServer.ShadowDbTest do
     test "Recreating a shadow db based on schema changes from cloak should also include selectables"
   end
 
-  describe "psql interface" do
-    test "Views should be listed amongst tables"
-    test "Analyst tables should be listed amongst tables"
-  end
-
   defp shadow_db_exists?(context, user, data_source) do
     result =
       Postgrex.query!(
