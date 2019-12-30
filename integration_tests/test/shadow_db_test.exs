@@ -21,7 +21,7 @@ defmodule IntegrationTest.ShadowDbTest do
   end
 
   describe "psql interface's shadow db" do
-    test "Views should be listed amongst tables", context do
+    test "Analyst tables should be listed amongst tables", context do
       name = unique_name(:table)
 
       assert not table_exists?(context.conn, name)
@@ -31,7 +31,7 @@ defmodule IntegrationTest.ShadowDbTest do
       assert soon(table_exists?(context.conn, name))
     end
 
-    test "Analyst tables should be listed amongst tables", context do
+    test "Views should be listed amongst tables", context do
       name = unique_name(:view)
 
       assert not table_exists?(context.conn, name)
