@@ -74,7 +74,7 @@ defmodule Cloak.DataSource.StreamerTest do
       ExUnit.CaptureLog.capture_log(fn ->
         assert {:error, error} = rows("select * from test_streamer", data_source(%{hostname: "invalid_host"}))
         assert error =~ ~r/Failed to establish a connection to the database/
-        assert error =~ ~r/tcp connect \(invalid_host:5432\)/
+        assert error =~ ~r/tcp connect \(invalid_host:\d+\)/
       end)
     end)
   end

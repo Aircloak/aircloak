@@ -58,13 +58,8 @@ You can override some of the configuration settings by creating a `config/dev.lo
 
 ### Preparing the database
 
-You need a local PostgreSQL instance listening on port 5432. It is assumed that you have a user called `postgres` that
-is a superuser. You can create such user with `CREATE USER postgres WITH SUPERUSER`.
-
-You can create the empty database by running `make recreate-db`.
-
-If you want to run cloak in a local docker container, you need to run this command once more to create the database in
-the PostgreSQL container: `DB_PORT=20002 ./regenerate-db.sh`.
+You can create a database with initial data by running `make recreate-db`.
+It assumes you have a postgres server running on port 20002, which is started by default with [start_dependencies.sh](../start_dependencies.sh).
 
 If everything is properly installed and setup, standard tests invoked with `make test` should pass.
 

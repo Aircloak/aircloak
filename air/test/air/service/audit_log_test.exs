@@ -19,15 +19,19 @@ defmodule Air.Service.AuditLogTest do
   test "filter audit logs by time" do
     user = create_user!()
 
+    t0 = Timex.now()
     AuditLog.log(user, "event1", %{})
-    AuditLog.log(user, "event1", %{})
-    AuditLog.log(user, "event1", %{})
+    t1 = Timex.now()
+    AuditLog.log(user, "event2", %{})
+    t2 = Timex.now()
+    AuditLog.log(user, "event3", %{})
+    t3 = Timex.now()
 
-    [first, _, last] = Repo.all(Air.Schemas.AuditLog |> order_by(:inserted_at))
-
-    from = first.inserted_at |> Timex.shift(milliseconds: 1)
-    to = last.inserted_at |> Timex.shift(milliseconds: -1)
-    assert entries_count(params(%{from: from, to: to}), 1)
+    assert [e1, e2, e3] = Repo.all(Air.Schemas.AuditLog |> order_by(:inserted_at))
+    assert entries_count(params(%{from: t0, to: t0}), 0)
+    assert entries_count(params(%{from: t0, to: t1}), 1)
+    assert entries_count(params(%{from: t0, to: t2}), 2)
+    assert entries_count(params(%{from: t0, to: t3}), 3)
   end
 
   test "limiting number of results" do

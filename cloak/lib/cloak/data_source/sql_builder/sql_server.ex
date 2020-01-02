@@ -63,6 +63,54 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   def function_sql("substring", [arg1, arg2]), do: ["SUBSTRING(", arg1, ", ", arg2, ", LEN(", arg1, "))"]
 
+  # left of a negative value should return all but the last n characters.
+  # left("aircloak", -2) --> "airclo"
+  # left("aircloak", -100) --> ""
+  def function_sql("left", [value, "-" <> length]) do
+    substring_length =
+      function_sql("-", [
+        function_sql("length", [value]),
+        length
+      ])
+
+    [
+      "CASE WHEN",
+      [substring_length, "> 0"],
+      " THEN ",
+      function_sql("substring", [value, "1", substring_length]),
+      " ELSE ",
+      "''",
+      " END"
+    ]
+  end
+
+  # right of a negative value should return all but the first n characters
+  # right("aircloak", -2) --> "rcloak"
+  # right("aircloak", -100) --> ""
+  def function_sql("right", [value, "-" <> length]) do
+    substring_length =
+      function_sql("-", [
+        function_sql("length", [value]),
+        length
+      ])
+
+    [
+      "CASE WHEN",
+      [substring_length, "> 0"],
+      " THEN ",
+      function_sql("substring", [
+        value,
+        function_sql("+", [
+          function_sql("abs", [length]),
+          "1"
+        ])
+      ]),
+      " ELSE ",
+      "''",
+      " END"
+    ]
+  end
+
   def function_sql("^", [arg1, arg2]), do: ["POWER(", cast_sql(arg1, :numeric, :real), ", ", arg2, ")"]
   def function_sql("checked_div", [arg1, arg2, _epsilon]), do: function_sql("/", [arg1, arg2])
   def function_sql("/", [arg1, arg2]), do: ["(", cast_sql(arg1, :numeric, :real), " / ", arg2, ")"]

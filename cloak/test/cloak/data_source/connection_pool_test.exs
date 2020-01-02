@@ -105,18 +105,13 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
   end
 
   defp with_short_connection_keep_time(fun) do
-    data_source_config = Application.get_env(:cloak, :data_source)
-
-    Application.put_env(
-      :cloak,
-      :data_source,
-      Keyword.put(data_source_config, :connection_keep_time, 50)
-    )
+    connection_keep_time = Application.get_env(:cloak, :connection_keep_time)
+    Application.put_env(:cloak, :connection_keep_time, 50)
 
     try do
       fun.()
     after
-      Application.put_env(:cloak, :data_source, data_source_config)
+      Application.put_env(:cloak, :connection_keep_time, connection_keep_time)
     end
   end
 end

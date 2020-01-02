@@ -1,5 +1,11 @@
 This document serves to describe breaking changes and provide upgrade hints when major changes are introduced. When you're creating a pull with some major changes, please add brief upgrade instructions here.
 
+## Moved development databases to single PostgreSQL 12.1
+
+- `start_dependencies.sh` starts a local docker container with PostgreSQL 12.1 on port 20002.
+- There is no longer a distiction between dev and test database servers.
+- Docker volumes by default point to `~/.aircloak/docker_volumes`.
+
 ## Upgraded local central database image to PostgreSQL 9.5
 
 To apply the change locally:
