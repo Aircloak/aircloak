@@ -29,6 +29,11 @@ defmodule IntegrationTest.ShadowDbTest do
       assert {:ok, _table} = create_analyst_table(context.user, name, "select user_id, name from users")
 
       assert soon(table_exists?(context.conn, name))
+
+      assert [
+               ["user_id", "text"],
+               ["name", "text"]
+             ] = table_columns(context.conn, name)
     end
 
     test "Analyst table updates should reflect in the shadow db", context do
@@ -40,6 +45,7 @@ defmodule IntegrationTest.ShadowDbTest do
 
       assert soon(not table_exists?(context.conn, name))
       assert soon(table_exists?(context.conn, new_name))
+      assert [["user_id", "text"]] = table_columns(context.conn, new_name)
     end
 
     test "Views should be listed amongst tables", context do
@@ -50,6 +56,11 @@ defmodule IntegrationTest.ShadowDbTest do
       assert {:ok, _view} = create_view(context.user, name, "select user_id, name from users")
 
       assert soon(table_exists?(context.conn, name))
+
+      assert [
+               ["user_id", "text"],
+               ["name", "text"]
+             ] = table_columns(context.conn, name)
     end
 
     test "View updates should reflect in the shadow db", context do
@@ -61,6 +72,7 @@ defmodule IntegrationTest.ShadowDbTest do
 
       assert soon(not table_exists?(context.conn, name))
       assert soon(table_exists?(context.conn, new_name))
+      assert [["user_id", "text"]] = table_columns(context.conn, new_name)
     end
 
     test "Recreating a shadow db based on schema changes from cloak should also include selectables"
@@ -72,6 +84,33 @@ defmodule IntegrationTest.ShadowDbTest do
 
   defp create_view(user, name, sql) do
     Air.Service.View.create(user, Manager.data_source(), name, sql)
+  end
+
+  defp table_columns(conn, table_name) do
+    result =
+      Postgrex.query!(
+        conn,
+        """
+        SELECT
+          a.attname as "Column",
+          pg_catalog.format_type(a.atttypid, a.atttypmod) as "Datatype"
+        FROM
+          pg_catalog.pg_attribute a
+        WHERE
+          a.attnum > 0
+          AND NOT a.attisdropped
+          AND a.attrelid = (
+              SELECT c.oid
+              FROM pg_catalog.pg_class c
+                  LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+              WHERE c.relname = $1
+                  AND pg_catalog.pg_table_is_visible(c.oid)
+          );
+        """,
+        [table_name]
+      )
+
+    result.rows
   end
 
   defp table_exists?(conn, table_name) do
