@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.LikePattern do
   @moduledoc "Handles operations on like patterns."
 
-  @opaque t :: {String.t(), Regex.t(), Regex.t()}
+  @type t :: {String.t(), Regex.t(), Regex.t()}
   @type grapheme :: String.t() | :% | :_
 
   @special_characters [:%, :_]
