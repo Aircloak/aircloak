@@ -24,11 +24,22 @@ defmodule IntegrationTest.ShadowDbTest do
     test "Analyst tables should be listed amongst tables", context do
       name = unique_name(:table)
 
-      assert not table_exists?(context.conn, name)
+      refute table_exists?(context.conn, name)
 
       assert {:ok, _table} = create_analyst_table(context.user, name, "select user_id, name from users")
 
       assert soon(table_exists?(context.conn, name))
+    end
+
+    test "Analyst table updates should reflect in the shadow db", context do
+      name = unique_name(:table)
+      new_name = unique_name(:table)
+
+      assert {:ok, table} = create_analyst_table(context.user, name, "select user_id, name from users")
+      assert {:ok, _} = Air.Service.AnalystTable.update(table.id, context.user, new_name, "select user_id from users")
+
+      assert soon(not table_exists?(context.conn, name))
+      assert soon(table_exists?(context.conn, new_name))
     end
 
     test "Views should be listed amongst tables", context do
@@ -40,6 +51,19 @@ defmodule IntegrationTest.ShadowDbTest do
 
       assert soon(table_exists?(context.conn, name))
     end
+
+    test "View updates should reflect in the shadow db", context do
+      name = unique_name(:view)
+      new_name = unique_name(:view)
+
+      assert {:ok, view} = create_view(context.user, name, "select user_id, name from users")
+      assert {:ok, _} = Air.Service.View.update(view.id, context.user, new_name, "select user_id from users")
+
+      assert soon(not table_exists?(context.conn, name))
+      assert soon(table_exists?(context.conn, new_name))
+    end
+
+    test "Recreating a shadow db based on schema changes from cloak should also include selectables"
   end
 
   defp create_analyst_table(user, name, sql) do

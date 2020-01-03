@@ -314,8 +314,6 @@ defmodule Air.PsqlServer.ShadowDbTest do
       wait_for_synchronization(user2, data_source1)
       wait_for_synchronization(user2, data_source2)
     end
-
-    test "Recreating a shadow db based on schema changes from cloak should also include selectables"
   end
 
   defp shadow_db_exists?(context, user, data_source) do
