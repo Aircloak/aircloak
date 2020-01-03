@@ -16,9 +16,9 @@ defmodule Air.PsqlServer do
        system.
 
     - `Air.PsqlServer.ShadowDb` module implements the shadow db functionality. A shadow db is a local database which
-       corresponds in structure to a cloak datasource. There is one shadow db per each known datasource. These databases
-       is used by `Air.PsqlServer.QueryExecution` to execute meta queries (statements which are querying the database
-       structure).
+       corresponds in structure to a cloak datasource. There is one shadow db per each user for any known datasource.
+       These databases are used by `Air.PsqlServer.QueryExecution` to execute meta queries (statements which are
+       querying the database structure).
 
     - `Air.PsqlServer.ConnectionRegistry` is responsible for tracking connection processes, mostly for the purpose of
        query cancellation.
@@ -36,6 +36,7 @@ defmodule Air.PsqlServer do
   alias Air.Service.{User, DataSource}
   require Logger
   require Aircloak.DeployConfig
+  import Aircloak, only: [in_env: 1]
 
   @behaviour RanchServer
 
@@ -49,6 +50,21 @@ defmodule Air.PsqlServer do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Enables ShadowDb synchronization by starting the synchronizer process."
+  @spec enable_shadowdb_synchronization() :: :ok
+  def enable_shadowdb_synchronization() do
+    Supervisor.start_child(__MODULE__, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
+    :ok
+  end
+
+  @doc "Disables ShadowDb synchronization by stopping the synchronizer process."
+  @spec disable_shadowdb_synchronization() :: :ok
+  def disable_shadowdb_synchronization() do
+    Supervisor.terminate_child(__MODULE__, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
+    Supervisor.delete_child(__MODULE__, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
+    :ok
+  end
 
   @doc "Returns the postgresql server configuration."
   @spec configuration() :: configuration
@@ -181,9 +197,10 @@ defmodule Air.PsqlServer do
       [
         Air.PsqlServer.ShadowDb,
         Air.PsqlServer.ConnectionRegistry,
-        {Air.PsqlServer.ShadowDb.SchemaSynchronizer, Mix.env() != :test},
+        in_env(test: nil, else: Air.PsqlServer.ShadowDb.SchemaSynchronizer),
         tcp_interface()
-      ],
+      ]
+      |> Enum.reject(&is_nil/1),
       strategy: :one_for_one,
       name: __MODULE__
     )

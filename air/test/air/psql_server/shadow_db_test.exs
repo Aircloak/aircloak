@@ -24,10 +24,10 @@ defmodule Air.PsqlServer.ShadowDbTest do
   end
 
   setup do
-    Air.PsqlServer.ShadowDb.SchemaSynchronizer.enable_events()
+    Air.PsqlServer.enable_shadowdb_synchronization()
 
     on_exit(fn ->
-      Air.PsqlServer.ShadowDb.SchemaSynchronizer.disable_events()
+      Air.PsqlServer.disable_shadowdb_synchronization()
     end)
   end
 
@@ -216,7 +216,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       assert soon(shadow_db_has_table?(user, data_source, view.name))
 
-      cleanup(user, data_source)
+      wait_for_synchronization(user, data_source)
     end
 
     test "Altering a view should update the corresponding table in the users shadow db", context do
@@ -230,7 +230,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       assert {:ok, _} = Task.await(task)
       assert soon(shadow_db_has_table?(user, data_source, "updated_view_name"))
-      cleanup(user, data_source)
+      wait_for_synchronization(user, data_source)
     end
 
     test "Removing a view should remove the corresponding table in the users shadow db", context do
@@ -243,7 +243,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       assert :ok = Task.await(task)
       assert soon(not shadow_db_has_table?(user, data_source, view.name))
-      cleanup(user, data_source)
+      wait_for_synchronization(user, data_source)
     end
 
     test "Creating an analyst table should, upon completion, create the corresponding table in the shadow db",
@@ -252,7 +252,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       assert soon(shadow_db_has_table?(user, data_source, table.name))
 
-      cleanup(user, data_source)
+      wait_for_synchronization(user, data_source)
     end
 
     test "Altering an analyst table should, upon completion, update the corresponding table in the shadow db",
@@ -271,7 +271,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       assert soon(not shadow_db_has_table?(user, data_source, old_name))
       assert soon(shadow_db_has_table?(user, data_source, new_name))
-      cleanup(user, data_source)
+      wait_for_synchronization(user, data_source)
     end
 
     test "Removing an analyst table should remove the corresponding table in the shadow db", context do
@@ -284,7 +284,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
 
       :ok = Task.await(task)
       assert soon(not shadow_db_has_table?(user, data_source, table.name))
-      cleanup(user, data_source)
+      wait_for_synchronization(user, data_source)
     end
 
     test "Other users should not have access to a users selectables through shadow db", context do
@@ -309,10 +309,10 @@ defmodule Air.PsqlServer.ShadowDbTest do
       assert soon(not shadow_db_has_table?(user1, data_source2, selectable2.name))
       assert soon(not shadow_db_has_table?(user2, data_source1, selectable1.name))
 
-      cleanup(user1, data_source1)
-      cleanup(user1, data_source2)
-      cleanup(user2, data_source1)
-      cleanup(user2, data_source2)
+      wait_for_synchronization(user1, data_source1)
+      wait_for_synchronization(user1, data_source2)
+      wait_for_synchronization(user2, data_source1)
+      wait_for_synchronization(user2, data_source2)
     end
 
     test "Recreating a shadow db based on schema changes from cloak should also include selectables"
@@ -436,10 +436,10 @@ defmodule Air.PsqlServer.ShadowDbTest do
     socket
   end
 
-  defp cleanup(user, data_source) do
+  defp wait_for_synchronization(user, data_source) do
     # Async activities may linger after tests, which results in confusing Ecto errors.
     # We wait for ShadowDb servers to handle all messages before concluding tests.
-    Air.PsqlServer.ShadowDb.SchemaSynchronizer.flush()
+    Air.PsqlServer.ShadowDb.SchemaSynchronizer.wait_for_synchronization()
     Air.PsqlServer.ShadowDb.Manager.wait_until_initialized(user, data_source.name)
   end
 

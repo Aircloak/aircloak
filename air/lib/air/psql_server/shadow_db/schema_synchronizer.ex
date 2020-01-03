@@ -10,71 +10,50 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
   # -------------------------------------------------------------------
 
   @doc "Waits for the schema synchronizer to complete existing work."
-  @spec flush :: :ok
-  def flush(), do: GenServer.call(__MODULE__, :flush)
-
-  @doc "Returns whether events are being listened to."
-  @spec events_enabled?() :: boolean()
-  def events_enabled?(), do: GenServer.call(__MODULE__, :events_enabled?)
-
-  @doc "Enables handlers to events for updating shadow dbs."
-  @spec enable_events() :: :ok
-  def enable_events(), do: GenServer.call(__MODULE__, :enable_events)
-
-  @doc "Disables handlers to events for updating shadow dbs."
-  @spec disable_events() :: :ok
-  def disable_events(), do: GenServer.call(__MODULE__, :disable_events)
+  @spec wait_for_synchronization() :: :ok
+  def wait_for_synchronization(), do: GenServer.call(__MODULE__, :wait_for_synchronization)
 
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(listen) do
+  def init(state \\ nil) do
     subscribe()
-    {:ok, listen}
+    {:ok, state}
   end
 
   @impl GenServer
-  def handle_call(:flush, _, listening), do: {:reply, :ok, listening}
+  def handle_call(:wait_for_synchronization, _, state), do: {:reply, :ok, state}
 
   @impl GenServer
-  def handle_call(:events_enabled?, _, listening), do: {:reply, listening, listening}
-
-  @impl GenServer
-  def handle_call(:enable_events, _, _), do: {:reply, :ok, true}
-
-  @impl GenServer
-  def handle_call(:disable_events, _, _), do: {:reply, :ok, false}
-
-  @impl GenServer
-  def handle_info({:user_deleted, data}, true) do
+  def handle_info({:user_deleted, data}, state) do
     %{user: user, previous_data_sources: data_sources} = data
 
     data_sources
     |> Enum.each(&ShadowDb.drop(user, &1))
 
-    {:noreply, true}
+    {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info({:user_updated, data}, true) do
+  def handle_info({:user_updated, data}, state) do
     %{user: user, previous_data_sources: previous_data_sources} = data
     current_data_sources = data_source_names(user)
 
     update_shadow_db(user, previous_data_sources, current_data_sources)
 
-    {:noreply, true}
+    {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info({:group_deleted, data}, true) do
+  def handle_info({:group_deleted, data}, state) do
     sync_group_users(data.previous_users_and_data_sources)
-    {:noreply, true}
+    {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info({:group_updated, data}, true) do
+  def handle_info({:group_updated, data}, state) do
     %{group: group, previous_users_and_data_sources: previous_state} = data
 
     sync_group_users(previous_state)
@@ -88,21 +67,21 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
       |> Enum.each(&ShadowDb.update(user, &1.name))
     end
 
-    {:noreply, true}
+    {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info({:data_source_deleted, data}, true) do
+  def handle_info({:data_source_deleted, data}, state) do
     %{data_source_name: data_source_name, previous_users: previous_users} = data
 
     previous_users
     |> Enum.each(&ShadowDb.drop(&1, data_source_name))
 
-    {:noreply, true}
+    {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info({:data_source_updated, data}, true) do
+  def handle_info({:data_source_updated, data}, state) do
     %{data_source_name: data_source_name, previous_users: previous_users} = data
     data_source = Air.Service.DataSource.by_name(data_source_name)
 
@@ -119,34 +98,32 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
     revoked_users
     |> Enum.each(&ShadowDb.drop(&1, data_source_name))
 
-    {:noreply, true}
+    {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info({:revalidated_views, data}, true) do
+  def handle_info({:revalidated_views, data}, state) do
     %{user_id: user_id, data_source_id: data_source_id} = data
     sync_by_ids(user_id, data_source_id)
-    {:noreply, true}
+    {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info({:revalidated_analyst_tables, data}, true) do
+  def handle_info({:revalidated_analyst_tables, data}, state) do
     %{user_id: user_id, data_source_id: data_source_id} = data
     sync_by_ids(user_id, data_source_id)
-    {:noreply, true}
+    {:noreply, state}
   end
 
-  def handle_info({:data_sources_registered, data}, true) do
+  def handle_info({:data_sources_registered, data}, state) do
     %{data_sources: data_sources} = data
 
     data_sources
     |> Enum.map(&Air.Service.DataSource.by_name(&1))
     |> Enum.each(&update_data_source(&1))
 
-    {:noreply, true}
+    {:noreply, state}
   end
-
-  def handle_info(_, listening), do: {:noreply, listening}
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -202,7 +179,7 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
   # Supervision tree
   # -------------------------------------------------------------------
 
-  def start_link(listen \\ true) do
-    GenServer.start_link(__MODULE__, listen, name: __MODULE__)
+  def start_link(state \\ nil) do
+    GenServer.start_link(__MODULE__, state, name: __MODULE__)
   end
 end
