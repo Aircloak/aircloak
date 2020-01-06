@@ -30,27 +30,25 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   @doc "Drops the given shadow database."
   @spec drop_database(User.t(), String.t()) :: :ok
   def drop_database(user, data_source_name) do
-    if Application.get_env(:air, :shadow_db?, true) do
-      exec_queued(fn ->
-        Connection.execute!(
-          Air.PsqlServer.ShadowDb.connection_params().name,
-          fn conn ->
-            # force close all existing connections to the database
-            Connection.query(
-              conn,
-              """
-              SELECT pg_terminate_backend(pg_stat_activity.pid)
-              FROM pg_stat_activity
-              WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
-              """,
-              [db_name(user, data_source_name)]
-            )
+    exec_queued(fn ->
+      Connection.execute!(
+        Air.PsqlServer.ShadowDb.connection_params().name,
+        fn conn ->
+          # force close all existing connections to the database
+          Connection.query(
+            conn,
+            """
+            SELECT pg_terminate_backend(pg_stat_activity.pid)
+            FROM pg_stat_activity
+            WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+            """,
+            [db_name(user, data_source_name)]
+          )
 
-            Connection.query(conn, ~s/DROP DATABASE IF EXISTS "#{sanitize_name(db_name(user, data_source_name))}"/, [])
-          end
-        )
-      end)
-    end
+          Connection.query(conn, ~s/DROP DATABASE IF EXISTS "#{sanitize_name(db_name(user, data_source_name))}"/, [])
+        end
+      )
+    end)
 
     :ok
   end
@@ -95,13 +93,9 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
 
   @impl GenServer
   def handle_cast(:update_definition, state) do
-    if Application.get_env(:air, :shadow_db?, true) do
-      tables = data_source_tables(state.user, state.data_source_name)
-      if state.tables != tables, do: exec_queued(fn -> update_shadow_db(state, tables) end)
-      {:noreply, %{state | tables: tables}}
-    else
-      {:noreply, state}
-    end
+    tables = data_source_tables(state.user, state.data_source_name)
+    if state.tables != tables, do: exec_queued(fn -> update_shadow_db(state, tables) end)
+    {:noreply, %{state | tables: tables}}
   end
 
   @impl GenServer

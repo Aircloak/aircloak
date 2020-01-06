@@ -88,7 +88,7 @@ defmodule IntegrationTest.ShadowDbTest do
       Cloak.DataSource.reinitialize_all_data_sources()
       Manager.restart_cloak()
 
-      # # Wait for updates to settle.
+      # Wait for updates to settle.
       Air.PsqlServer.ShadowDb.SchemaSynchronizer.wait_for_synchronization()
       Air.PsqlServer.ShadowDb.Manager.wait_until_initialized(context.user, Manager.data_source_name())
 

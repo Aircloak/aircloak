@@ -98,7 +98,7 @@ defmodule Air.PsqlServer.ShadowDb do
 
   @impl Supervisor
   def init(_arg) do
-    if Application.get_env(:air, :shadow_db?, true), do: wait_local_postgresql()
+    wait_local_postgresql()
 
     Supervisor.init(
       [
