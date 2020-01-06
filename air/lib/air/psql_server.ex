@@ -36,7 +36,6 @@ defmodule Air.PsqlServer do
   alias Air.Service.{User, DataSource}
   require Logger
   require Aircloak.DeployConfig
-  import Aircloak, only: [in_env: 1]
 
   @behaviour RanchServer
 
@@ -197,10 +196,8 @@ defmodule Air.PsqlServer do
       [
         Air.PsqlServer.ShadowDb,
         Air.PsqlServer.ConnectionRegistry,
-        in_env(test: nil, else: Air.PsqlServer.ShadowDb.SchemaSynchronizer),
         tcp_interface()
-      ]
-      |> Enum.reject(&is_nil/1),
+      ],
       strategy: :one_for_one,
       name: __MODULE__
     )

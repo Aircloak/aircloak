@@ -12,6 +12,7 @@ defmodule Air.PsqlServer.ShadowDb do
   alias Aircloak.ChildSpec
   alias Air.PsqlServer.ShadowDb.{Connection, ConnectionPool, Database, Manager}
   alias Air.Schemas.User
+  import Aircloak, only: [in_env: 1]
 
   @database_supervisor __MODULE__.Databases
   @registry __MODULE__.Registry
@@ -102,8 +103,10 @@ defmodule Air.PsqlServer.ShadowDb do
     Supervisor.init(
       [
         ChildSpec.registry(:unique, @registry),
-        ChildSpec.dynamic_supervisor(name: @database_supervisor)
-      ],
+        ChildSpec.dynamic_supervisor(name: @database_supervisor),
+        in_env(test: nil, else: Air.PsqlServer.ShadowDb.SchemaSynchronizer)
+      ]
+      |> Enum.reject(&is_nil/1),
       strategy: :one_for_one
     )
   end
