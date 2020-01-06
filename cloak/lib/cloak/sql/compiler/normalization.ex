@@ -212,7 +212,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Lens.map(query, &normalize_constant/1)
 
   defp normalize_constant(expression) do
-    case {Expression.const_value(expression), Enum.any?(expression.args, &is_nil(&1.value))} do
+    case {Expression.const_value(expression),
+          Enum.any?(expression.args, &match?(%Expression{kind: :constant, value: nil}, &1))} do
       {nil, true} ->
         Expression.null()
 

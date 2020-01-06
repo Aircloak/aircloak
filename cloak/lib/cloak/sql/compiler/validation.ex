@@ -564,7 +564,7 @@ defmodule Cloak.Sql.Compiler.Validation do
          name: "=",
          args: [%Expression{type: type, source_location: location}, %Expression{value: true}]
        })
-       when type != :boolean do
+       when type not in [:boolean, nil] do
     raise CompilationError,
       source_location: location,
       message: "Row filtering clauses have to be boolean expressions."
