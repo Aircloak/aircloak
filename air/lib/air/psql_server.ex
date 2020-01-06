@@ -60,6 +60,7 @@ defmodule Air.PsqlServer do
   @doc "Disables ShadowDb synchronization by stopping the synchronizer process."
   @spec disable_shadowdb_synchronization() :: :ok
   def disable_shadowdb_synchronization() do
+    Air.PsqlServer.ShadowDb.SchemaSynchronizer.wait_for_synchronization()
     Supervisor.terminate_child(__MODULE__, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
     Supervisor.delete_child(__MODULE__, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
     :ok
