@@ -75,7 +75,26 @@ defmodule IntegrationTest.ShadowDbTest do
       assert [["user_id", "text"]] = table_columns(context.conn, new_name)
     end
 
-    test "Recreating a shadow db based on schema changes from cloak should also include selectables"
+    test "Recreating a shadow db based on schema changes from cloak should also include selectables", context do
+      table_name = unique_name(:table)
+      view_name = unique_name(:view)
+
+      assert {:ok, _table} = create_analyst_table(context.user, table_name, "select user_id, name from users")
+      assert {:ok, _view} = create_view(context.user, view_name, "select user_id, name from users")
+
+      assert soon(table_exists?(context.conn, table_name))
+      assert soon(table_exists?(context.conn, view_name))
+
+      Cloak.DataSource.reinitialize_all_data_sources()
+      Manager.restart_cloak()
+
+      # # Wait for updates to settle.
+      Air.PsqlServer.ShadowDb.SchemaSynchronizer.wait_for_synchronization()
+      Air.PsqlServer.ShadowDb.Manager.wait_until_initialized(context.user, Manager.data_source_name())
+
+      assert soon(table_exists?(context.conn, table_name))
+      assert soon(table_exists?(context.conn, view_name))
+    end
   end
 
   defp create_analyst_table(user, name, sql) do
