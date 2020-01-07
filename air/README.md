@@ -53,6 +53,7 @@ Once the language environment is setup, run the following two commands to downlo
 
 - `mix deps.get` installs our elixir and erlang dependencies
 - `cd assets && yarn install` installs our node dependencies
+- `cd docs && yarn install` installs documentation dependencies
 
 Before you run the application for the first time, you also need to make sure you initialize the database
 with `make recreate-db`
@@ -65,7 +66,7 @@ to edit your `/etc/hosts` file to point `insights.air-local` to `127.0.0.1` by a
 ### Running
 
 First, make sure the dependencies are started by running `../start_dependencies.sh`. To start the development server, you run: `make start`. Now you can access the
-site at http://localhost:8080/.
+site at http://localhost:8080/. In development there is a default admin user with username: `admin@aircloak.com` and password: `password1234`.
 
 Note that there's no need to migrate the database. This will happen automatically when the application starts.
 However, if you do need to manually migrate/rollback (for example while creating a new migration), you can do

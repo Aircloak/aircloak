@@ -36,13 +36,14 @@ You need to have following installed:
 - linux:
   - packages: `unixodbc`, `odbc-postgresql`
   - Configured ODBC DSN for PostgreSQL - execute the following as root from the `cloak` folder:
-    `odbcinst -i -d -l -f priv/odbc/odbcinst.ini && odbcinst -i -s -l -f priv/odbc/odbc.ini`
+    `odbcinst -i -s -l -f priv/odbc/odbc.ini`
 - macos
   - packages (homebrew): `unixodbc`, `psqlodbc`
   - Configured ODBC DSN for PostgreSQL - execute the following as root from the `cloak` folder:
-    `odbcinst -i -d -l -f priv/odbc/osx/odbcinst.ini && odbcinst -i -s -l -f priv/odbc/osx/odbc.ini
+    `odbcinst -i -s -l -f priv/odbc/osx/odbc.ini
   - Double check the [macos guide](osx_erlang_with_odbc.md) to ensure you have Erlang built
     with support for odbc.
+  - `brew install wget` as the Makefile relies on `wget` to install ODBC drivers
 
 
 ### First build
