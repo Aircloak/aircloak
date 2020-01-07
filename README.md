@@ -35,6 +35,11 @@ If the variable `DOCKER_DATA` is not set, then `$HOME/.aircloak/docker_volumes` 
 This is useful for development and testing, where you can easily wipe the data or upgrade databases to newer versions.
 See [this postgres issue](https://github.com/docker-library/postgres/issues/37) that discusses the problem of upgrading.
 
+
+## Next Steps
+
+Since this is a monorepo with multiple components, you can find further documentation in each components README. Usually you will want to start with the [`air`](./air/README.md) and [`cloak`](./cloak/README.md) components.
+
 ## Deploying
 
 Each component can be deployed to a __deploy target__. The targets are provided in the [deploy_targets](./deploy_targets) folder.
