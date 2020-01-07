@@ -9,6 +9,7 @@ defmodule Cloak.DataSource.Oracle do
   require Logger
   alias Cloak.DataSource.{RODBC, Table, SqlBuilder}
   alias Cloak.Sql.{Expression, Query, Compiler.Helpers, Function}
+  alias Cloak.Query.ExecutionError
 
   @mathematical_operators ~w(+ - * / ^)
 
@@ -21,12 +22,19 @@ defmodule Cloak.DataSource.Oracle do
 
   @impl Driver
   def load_tables(connection, table) do
-    columns =
-      connection
-      |> RODBC.table_columns(update_in(table.db_name, &SqlBuilder.quote_table_name/1))
-      |> fix_column_types(connection, table)
-
-    [%{table | columns: columns}]
+    connection
+    |> select!("""
+      SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS
+      WHERE #{table_filter(table)}
+    """)
+    |> Enum.map(fn [column_name, data_type] ->
+      Table.column(column_name, RODBC.column_type(data_type))
+    end)
+    |> fix_column_types(connection, table)
+    |> case do
+      [] -> raise ExecutionError, message: "Table #{table.db_name} does not have any columns"
+      columns -> [%{table | columns: columns}]
+    end
   end
 
   @impl Driver

@@ -48,6 +48,14 @@ defmodule Cloak.DataSource.RODBC do
     end
   end
 
+  @doc "Returns the canonical data type of a column type string."
+  @spec column_type(String.t()) :: atom() | {:unsupported, String.t()}
+  def column_type(column) do
+    column
+    |> String.downcase()
+    |> parse_type()
+  end
+
   @doc "Selects the data from the database."
   @spec select(
           pid,
@@ -215,6 +223,7 @@ defmodule Cloak.DataSource.RODBC do
   defp boolean_field_mapper(nil), do: nil
 
   defp parse_type("varchar"), do: :text
+  defp parse_type("varchar2"), do: :text
   defp parse_type("wvarchar"), do: :text
   defp parse_type("binary"), do: :text
   defp parse_type("guid"), do: :text
@@ -223,6 +232,7 @@ defmodule Cloak.DataSource.RODBC do
   defp parse_type("integer"), do: :integer
   defp parse_type("float"), do: :real
   defp parse_type("numeric"), do: :real
+  defp parse_type("number"), do: :real
   defp parse_type("time"), do: :time
   defp parse_type("date"), do: :date
   defp parse_type("datetime"), do: :datetime
