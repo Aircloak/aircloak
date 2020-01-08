@@ -24,13 +24,14 @@ defmodule Cloak.DataSource.Oracle do
   def load_tables(connection, table) do
     connection
     |> select!("""
-      SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS
+      SELECT COLUMN_NAME, DATA_TYPE, DATA_SCALE
+      FROM ALL_TAB_COLUMNS
       WHERE #{table_filter(table)}
     """)
-    |> Enum.map(fn [column_name, data_type] ->
-      Table.column(column_name, RODBC.column_type(data_type))
+    |> Enum.map(fn
+      [column_name, "NUMBER", 0] -> Table.column(column_name, :integer)
+      [column_name, data_type, _] -> Table.column(column_name, RODBC.column_type(data_type))
     end)
-    |> fix_column_types(connection, table)
     |> case do
       [] -> raise ExecutionError, message: "Table #{table.db_name} does not have any columns"
       columns -> [%{table | columns: columns}]
@@ -74,27 +75,6 @@ defmodule Cloak.DataSource.Oracle do
       Pwd: normalized_parameters[:password],
       DSN: "Oracle"
     }
-  end
-
-  defp fix_column_types(rodbc_columns, connection, table) do
-    # Oracle ODBC driver returns wrong information for some data types (see below). Therefore, we'll query the
-    # metadata table ALL_TAB_COLUMNS to figure out the correct types.
-    # Oracle ODBC driver returns datetime for date type
-    # Oracle ODBC driver returns float for `NUMBER` type, so we need to check the scale to recognize integers
-
-    correct_column_types =
-      connection
-      |> select!("""
-        SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS
-        WHERE #{table_filter(table)} AND (DATA_TYPE = 'DATE' OR (DATA_TYPE = 'NUMBER' AND DATA_SCALE = 0))
-      """)
-      |> Enum.map(fn
-        [name, "DATE"] -> {name, :date}
-        [name, "NUMBER"] -> {name, :integer}
-      end)
-      |> Map.new()
-
-    Enum.map(rodbc_columns, &%{&1 | type: Map.get(correct_column_types, &1.name, &1.type)})
   end
 
   defp table_filter(table) do
