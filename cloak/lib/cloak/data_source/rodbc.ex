@@ -231,6 +231,7 @@ defmodule Cloak.DataSource.RODBC do
   defp parse_type("bigint"), do: :integer
   defp parse_type("integer"), do: :integer
   defp parse_type("float"), do: :real
+  defp parse_type("binary_float"), do: :real
   defp parse_type("numeric"), do: :real
   defp parse_type("number"), do: :real
   defp parse_type("time"), do: :time
@@ -248,6 +249,7 @@ defmodule Cloak.DataSource.RODBC do
   defp parse_type("tinyint"), do: :integer
   defp parse_type("real"), do: :real
   defp parse_type("double"), do: :real
+  defp parse_type("binary_double"), do: :real
   defp parse_type("decimal" <> _), do: :real
   defp parse_type("smalldecimal"), do: :real
   defp parse_type("seconddate"), do: :datetime
