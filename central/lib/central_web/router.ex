@@ -29,11 +29,6 @@ defmodule CentralWeb.Router do
     post("/", SessionController, :create)
   end
 
-  scope "/proxy_auth", CentralWeb do
-    pipe_through([:browser, CentralWeb.Plug.Session.HaltIfNotAuthenticated])
-    get("/", ProxyController, :noop)
-  end
-
   scope "/privacy_policy", CentralWeb do
     pipe_through([:browser, :browser_for_all])
     get("/", PrivacyPolicyController, :index)
@@ -41,8 +36,6 @@ defmodule CentralWeb.Router do
 
   scope "/", CentralWeb do
     pipe_through([:browser, :browser_auth])
-
-    get("/stats_proxy", ProxyController, :proxy_placeholder)
 
     resources("/users", UserController)
 
@@ -55,11 +48,7 @@ defmodule CentralWeb.Router do
       end
     end
 
-    resources("/stats", StatsController)
-
     get("/", CustomerController, :index)
     delete("/logout", SessionController, :delete)
-
-    resources("/imports", ImportController)
   end
 end

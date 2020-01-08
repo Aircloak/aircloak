@@ -77,14 +77,9 @@ defmodule CentralWeb.Socket.Air.MainChannel do
   # Handling air sync calls
   # -------------------------------------------------------------------
 
-  defp handle_air_call("call_with_retry", call_data, request_id, socket) do
-    Customer.start_air_message_handler(
-      call_data,
-      socket.assigns.customer,
-      socket.assigns.air_name,
-      socket.assigns.air_version
-    )
-
+  defp handle_air_call("call_with_retry", _call_data, request_id, socket) do
+    # This is here to ensure compatibility with older versions of Air,
+    # which used to send query related statistics here. This was subsequently removed.
     respond_to_air(socket, request_id, :ok)
     {:noreply, socket}
   end

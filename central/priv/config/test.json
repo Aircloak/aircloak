@@ -4,7 +4,6 @@
     "endpoint_key_base": "7nOn9WDwUZLjXnQah8+ocSF0r/YhYpDp0hSw4FE6Zq+Ic2TVYcDCQe+2MT8wqD/R",
     "customer_token_salt": "ik/WxOrtgkv5Aervx2GPbxXYNxMOVw9QEgfe+NMUhjblzYon8ivPXGa+7Y2WI54n1inakG3wm1fQGRg7xFoIMA"
   },
-
   "database": {
     "host": "localhost",
     "port": 20002,
@@ -12,11 +11,5 @@
     "user": "central_test",
     "password": "",
     "name": "central_test"
-  },
-
-  "stats_db": {
-    "hostname": "localhost",
-    "port": 27017,
-    "database": "stats_test"
   }
 }
