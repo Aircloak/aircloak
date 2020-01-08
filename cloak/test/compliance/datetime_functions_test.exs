@@ -14,15 +14,7 @@ Enum.each(
     "date_trunc('day', <col>)",
     "date_trunc('hour', <col>)",
     "date_trunc('minute', <col>)",
-    "date_trunc('second', <col>)",
-    "<col> + interval 'P1Y'",
-    "<col> - interval 'P1M'",
-    "<col> - (<col> - interval 'P1D')",
-    "<col> + 2 * interval 'P1Y'",
-    "(<col> - (<col> - interval 'P1Y')) / 2",
-    "interval 'P1DT1H'",
-    "interval 'PT1H'",
-    "interval 'P1D'"
+    "date_trunc('second', <col>)"
   ],
   fn function ->
     defmodule Module.concat([Compliance.DateTimeFunctions, String.to_atom(function), Test]) do
@@ -36,7 +28,6 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
-          |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table)})
           |> assert_consistent_and_not_failing("""
             SELECT
@@ -56,13 +47,7 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} query"
         test "#{function} on input #{column} in query on #{table}", context do
           context
-          |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table)})
-          # SQL Server doesn't like `ORDER BY constant` clauses.
-          |> disable_for(
-            Cloak.DataSource.SQLServer,
-            unquote(table) == "users_public" and unquote(function) == "interval 'P1DT1H'"
-          )
           |> assert_consistent_and_not_failing("""
             SELECT #{on_column(unquote(function), unquote(column))}
             FROM #{unquote(table)}
@@ -70,19 +55,6 @@ Enum.each(
           """)
         end
       end)
-
-      defp disable_subquery_interval(context, function) do
-        if function =~ ~r/<col> (\+|-) .*interval/ do
-          # See #2634 (https://github.com/Aircloak/aircloak/issues/2634) for details.
-          context
-          |> disable_for(Cloak.DataSource.MySQL, true)
-          |> disable_for(Cloak.DataSource.SQLServer, true)
-          |> disable_for(Cloak.DataSource.MongoDB, true)
-          |> disable_for(Cloak.DataSource.Oracle, function =~ ~r/P1Y/ or function =~ ~r/P1M/ or function =~ ~r/P1D/)
-        else
-          context
-        end
-      end
 
       defp disable_unsupported_on_dates(context, function, column) do
         context
