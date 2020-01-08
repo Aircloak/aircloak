@@ -48,9 +48,9 @@ defmodule Cloak.DataSource.RODBC do
     end
   end
 
-  @doc "Returns the canonical data type of a column type string."
-  @spec column_type(String.t()) :: atom() | {:unsupported, String.t()}
-  def column_type(column) do
+  @doc "Parses the db column type and returns an atom representing its canonical data type."
+  @spec parse_column_type(String.t()) :: atom() | {:unsupported, String.t()}
+  def parse_column_type(column) do
     column
     |> String.downcase()
     |> parse_type()
@@ -237,7 +237,6 @@ defmodule Cloak.DataSource.RODBC do
   defp parse_type("time"), do: :time
   defp parse_type("date"), do: :date
   defp parse_type("datetime"), do: :datetime
-  defp parse_type("timestamp"), do: :datetime
   defp parse_type("nvarchar"), do: :text
   defp parse_type("nclob"), do: :text
   defp parse_type("clob"), do: :text
@@ -265,12 +264,6 @@ defmodule Cloak.DataSource.RODBC do
   defp parse_type("uniqueidentifier"), do: :text
   defp parse_type("datetime2"), do: :datetime
   defp parse_type("datetimeoffset"), do: :datetime
-
-  defp parse_type(type) do
-    if type |> String.starts_with?("timestamp") do
-      :datetime
-    else
-      {:unsupported, type}
-    end
-  end
+  defp parse_type("timestamp" <> _), do: :datetime
+  defp parse_type(type), do: {:unsupported, type}
 end

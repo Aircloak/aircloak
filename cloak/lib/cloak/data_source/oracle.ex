@@ -29,15 +29,8 @@ defmodule Cloak.DataSource.Oracle do
       WHERE #{table_filter(table)}
     """)
     |> Enum.map(fn
-      [column_name, "NUMBER", scale] ->
-        if scale == nil or scale <= 0.0 do
-          Table.column(column_name, :integer)
-        else
-          Table.column(column_name, :real)
-        end
-
-      [column_name, data_type, _] ->
-        Table.column(column_name, RODBC.column_type(data_type))
+      [column_name, "NUMBER", scale] when scale == nil or scale <= 0 -> Table.column(column_name, :integer)
+      [column_name, data_type, _] -> Table.column(column_name, RODBC.parse_column_type(data_type))
     end)
     |> case do
       [] -> raise ExecutionError, message: "Table #{table.db_name} does not have any columns"
