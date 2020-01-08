@@ -265,5 +265,12 @@ defmodule Cloak.DataSource.RODBC do
   defp parse_type("uniqueidentifier"), do: :text
   defp parse_type("datetime2"), do: :datetime
   defp parse_type("datetimeoffset"), do: :datetime
-  defp parse_type(type), do: {:unsupported, type}
+
+  defp parse_type(type) do
+    if type |> String.starts_with?("timestamp") do
+      :datetime
+    else
+      {:unsupported, type}
+    end
+  end
 end
