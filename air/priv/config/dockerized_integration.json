@@ -21,5 +21,13 @@
     "user": "postgres",
     "password": "",
     "name": "air_test"
+  },
+  "shadow_database": {
+    "host": "postgres9.4",
+    "port": 5432,
+    "ssl": false,
+    "user": "postgres",
+    "password": "",
+    "name": "air_test"
   }
 }
