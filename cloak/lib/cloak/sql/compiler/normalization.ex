@@ -46,6 +46,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   def postvalidation_normalizations(query),
     do:
       query
+      |> Helpers.apply_bottom_up(&normalize_filter_clauses/1)
       |> Helpers.apply_bottom_up(&normalize_trivial_likes/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&normalize_bucket/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&normalize_anonymizing_aggregators/1, analyst_tables?: false)
@@ -228,6 +229,31 @@ defmodule Cloak.Sql.Compiler.Normalization do
         |> put_in([Lens.key(:alias)], expression.alias)
     end
   end
+
+  # -------------------------------------------------------------------
+  # Normalizing filter clauses
+  # -------------------------------------------------------------------
+
+  defp normalize_filter_clauses(query),
+    do:
+      Query.Lenses.filter_clauses()
+      |> Lens.filter(&Expression.constant?/1)
+      |> Lens.filter(&match?(%Expression{kind: :function, name: "="}, &1))
+      |> Lens.map(query, &normalize_filter_clause/1)
+
+  defp normalize_filter_clause(%Expression{
+         kind: :function,
+         name: "=",
+         args: [
+           %Expression{kind: :constant, type: :boolean, value: value},
+           %Expression{kind: :constant, type: :boolean, value: value}
+         ]
+       })
+       when value in [true, false],
+       do: nil
+
+  defp normalize_filter_clause(%Expression{kind: :function, name: "="} = expression),
+    do: %Expression{expression | args: [Expression.constant(:boolean, false), Expression.constant(:boolean, true)]}
 
   # -------------------------------------------------------------------
   # Normalizing like patterns

@@ -325,6 +325,36 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
+  describe "normalize filter clauses" do
+    test "true <=> empty" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE true",
+        "SELECT STDDEV(uid) FROM table"
+      )
+    end
+
+    test "true = true <=> false = false" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table HAVING true = true",
+        "SELECT STDDEV(uid) FROM table HAVING false = false"
+      )
+    end
+
+    test "null <=> false" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE false",
+        "SELECT STDDEV(uid) FROM table WHERE NULL"
+      )
+    end
+
+    test "false = true <=> null = false" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table HAVING false = true",
+        "SELECT STDDEV(uid) FROM table HAVING NULL = false"
+      )
+    end
+  end
+
   defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
 
   defp data_source() do
