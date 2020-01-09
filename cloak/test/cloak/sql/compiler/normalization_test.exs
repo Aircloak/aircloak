@@ -355,6 +355,13 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
+  test "join normalization" do
+    assert_equivalent(
+      "SELECT * FROM (SELECT STDDEV(uid) FROM table) AS t1 JOIN (SELECT STDDEV(uid) FROM table) AS t2 ON true",
+      "SELECT * FROM (SELECT STDDEV(uid) FROM table) AS t1, (SELECT STDDEV(uid) FROM table) AS t2"
+    )
+  end
+
   defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
 
   defp data_source() do

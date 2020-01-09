@@ -47,6 +47,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     do:
       query
       |> Helpers.apply_bottom_up(&normalize_filter_clauses/1)
+      |> Helpers.apply_bottom_up(&normalize_joins/1)
       |> Helpers.apply_bottom_up(&normalize_trivial_likes/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&normalize_bucket/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&normalize_anonymizing_aggregators/1, analyst_tables?: false)
@@ -254,6 +255,16 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp normalize_filter_clause(%Expression{kind: :function, name: "="} = expression),
     do: %Expression{expression | args: [Expression.constant(:boolean, false), Expression.constant(:boolean, true)]}
+
+  # -------------------------------------------------------------------
+  # Normalizing joins
+  # -------------------------------------------------------------------
+
+  defp normalize_joins(query),
+    do:
+      Query.Lenses.joins()
+      |> Lens.filter(&match?(%{condition: nil}, &1))
+      |> Lens.map(query, &%{&1 | type: :cross_join})
 
   # -------------------------------------------------------------------
   # Normalizing like patterns
