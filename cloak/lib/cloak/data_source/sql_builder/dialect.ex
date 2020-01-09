@@ -134,6 +134,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   defp case_branches([else_branch]), do: [" ELSE ", else_branch]
 
   @spec default_function_sql(String.t(), iodata) :: iodata
+  def default_function_sql("not", [[subject, " IS NULL"]]), do: [subject, " IS NOT NULL"]
+
   def default_function_sql("not", [arg]), do: ["NOT (", arg, ")"]
 
   def default_function_sql("is_null", [subject]), do: [subject, " IS NULL"]
