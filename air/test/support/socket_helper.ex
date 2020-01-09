@@ -54,7 +54,7 @@ defmodule Air.TestSocketHelper do
   @doc "Awaits run_query request with any task_id and responds with the given status."
   @spec respond_to_start_task_request!(pid, String.t(), any) :: :ok
   def respond_to_start_task_request!(socket, status, result \\ nil) do
-    timeout = :timer.seconds(1)
+    timeout = :timer.seconds(2)
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
     %{event: "run_query", request_id: request_id} = request
 
@@ -66,7 +66,7 @@ defmodule Air.TestSocketHelper do
 
   @doc "Awaits an is_alive request with the given query_id and responds with the given result."
   @spec respond_to_running_queries!(pid, [String.t()], pos_integer) :: :ok
-  def respond_to_running_queries!(socket, result, timeout \\ :timer.seconds(1)) do
+  def respond_to_running_queries!(socket, result, timeout \\ :timer.seconds(2)) do
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
     %{request_id: request_id, event: "running_queries", payload: nil} = request
 
@@ -85,7 +85,7 @@ defmodule Air.TestSocketHelper do
   view names being validated.
   """
   @spec respond_to_validate_views!(pid, ([String.t()] -> [map]), pos_integer) :: :ok
-  def respond_to_validate_views!(socket, result_fun, timeout \\ :timer.seconds(1)) do
+  def respond_to_validate_views!(socket, result_fun, timeout \\ :timer.seconds(2)) do
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
     %{request_id: request_id, event: "validate_views", payload: %{views: views}} = request
 
