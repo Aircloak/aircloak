@@ -190,10 +190,6 @@ defmodule Aircloak.Functions do
                  attributes: [:restricted, :cast]
                },
                ~w(dec_b64) => %{type_specs: %{[:text] => :text}, attributes: [:unsafe]},
-               ~w(bool_op) => %{
-                 type_specs: %{[:text, :any, :any] => :boolean},
-                 attributes: [:unsafe]
-               },
                ~w(coalesce) => %{
                  type_specs: %{{:many1, :any} => :any},
                  attributes: [:unsafe]

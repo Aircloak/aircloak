@@ -331,13 +331,6 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_function("ilike", [subject, regex]),
     do: %{"$regexMatch": %{input: subject, regex: regex, options: "msi"}}
 
-  @bool_operators %{"=" => "$eq", "<>" => "$ne", ">" => "$gt", ">=" => "$gte", "<" => "$lt", "<=" => "$lte"}
-  defp parse_function("bool_op", [%{"$literal": "<>"}, arg, %{"$literal": nil}]), do: %{"$gt": [arg, nil]}
-  defp parse_function("bool_op", [%{"$literal": "="}, arg, %{"$literal": nil}]), do: %{"$lte": [arg, nil]}
-
-  defp parse_function("bool_op", [%{"$literal": op}, arg1, arg2]),
-    do: %{Map.fetch!(@bool_operators, op) => [arg1, arg2]}
-
   defp parse_function("coalesce", [arg]), do: arg
   defp parse_function("coalesce", [first | rest]), do: %{"$ifNull": [first, parse_function("coalesce", rest)]}
 

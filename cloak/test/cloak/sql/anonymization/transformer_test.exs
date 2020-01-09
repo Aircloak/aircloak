@@ -317,7 +317,7 @@ defmodule Cloak.Sql.TransformerTest do
                flatten("""
                SELECT
                 uid_grouping.grouping_id AS grouping_id,
-                MAX((CAST((uid_grouping.user_id IS NOT NULL) AS integer)*CAST(uid_grouping.count_distinct AS bigint)))
+                MAX((CAST(NOT (uid_grouping.user_id IS NULL) AS integer)*CAST(uid_grouping.count_distinct AS bigint)))
                   AS noise_factor,
                 SUM(uid_grouping.count_distinct) AS count_distinct
                FROM (
@@ -349,7 +349,7 @@ defmodule Cloak.Sql.TransformerTest do
                SELECT
                 uid_grouping.grouping_id AS grouping_id,
                 uid_grouping.group_0 AS group_0,
-                MAX((CAST((uid_grouping.user_id IS NOT NULL) AS integer)*CAST(uid_grouping.count_distinct AS bigint)))
+                MAX((CAST(NOT (uid_grouping.user_id IS NULL) AS integer)*CAST(uid_grouping.count_distinct AS bigint)))
                   AS noise_factor,
                 SUM(uid_grouping.count_distinct) AS count_distinct
                FROM (

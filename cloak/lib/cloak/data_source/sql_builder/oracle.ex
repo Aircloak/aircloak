@@ -28,14 +28,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
       checked_mod checked_div checked_pow
       sqrt floor ceil abs round trunc
       length lower upper btrim ltrim rtrim left right substring concat
-      hex cast coalesce hash bool_op grouping_id case
+      hex cast coalesce hash grouping_id case
     )
-
-  @impl Dialect
-  def function_sql("bool_op", [[?', op, ?'], arg1, arg2]) do
-    condition = Dialect.bool_op_default(op, arg1, arg2)
-    ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
-  end
 
   for datepart <- ~w(year month day hour minute second) do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
