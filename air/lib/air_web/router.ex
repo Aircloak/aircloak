@@ -138,10 +138,6 @@ defmodule AirWeb.Router do
     get("/activity_monitor", ActivityMonitorController, :index)
     get("/", WarningsController, :warnings_if_any, as: :warnings_if_any)
 
-    get("/central/export_for_aircloak", CentralController, :export)
-    post("/central/new_export", CentralController, :new_export)
-    get("/central/download_export/:export_id", CentralController, :download_export)
-
     get("/warnings", WarningsController, :index)
 
     resources("/license", LicenseController, only: [:edit, :update], singleton: true)
