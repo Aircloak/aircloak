@@ -8,16 +8,11 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   # -------------------------------------------------------------------
 
   @doc "Generates SQL for a function invocation. Provided arguments list must contain SQL fragments."
-  @spec function_sql(Expression.function_name(), [iodata], atom) :: iodata
-  for name <- ~w(round floor ceil trunc) do
-    def function_sql(unquote(name), [arg], sql_dialect_module) do
-      unquote(name)
-      |> sql_dialect_module.function_sql([arg])
-      |> sql_dialect_module.cast_sql(:real, :integer)
-    end
-  end
+  @spec function_sql(String.t(), [iodata], atom) :: iodata
+  def function_sql(name, [arg], dialect) when name in ~w(round floor ceil trunc),
+    do: name |> dialect.function_sql([arg]) |> dialect.cast_sql(:real, :integer)
 
-  def function_sql(name, args, sql_dialect_module), do: sql_dialect_module.function_sql(name, args)
+  def function_sql(name, args, dialect), do: dialect.function_sql(name, args)
 
   @doc "Checks if the specified function can be executed by the SQL driver."
   @spec supports_function?(Expression.t(), Cloak.DataSource.t()) :: boolean
@@ -31,9 +26,8 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp function_signature(%Expression{kind: :function, name: name, args: [{:distinct, _arg}]})
-       when is_binary(name),
-       do: {name <> "_distinct", 1}
+  defp function_signature(%Expression{kind: :function, name: "count", args: [{:distinct, _arg}]}),
+    do: {"count_distinct", 1}
 
   defp function_signature(%Expression{kind: :function, name: name, args: args}) when is_binary(name),
     do: {name, length(args)}

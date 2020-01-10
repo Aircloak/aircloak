@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
   use Combine
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.Sql.{Query, Expression, Compiler, Function}
   alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, Oracle}
   alias Cloak.DataSource.Table
 
@@ -12,7 +12,12 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec build(Query.t()) :: String.t()
   @doc "Constructs a parametrized SQL query that can be executed against a backend."
-  def build(query), do: query |> build_fragments() |> to_string()
+  def build(query),
+    do:
+      query
+      |> Compiler.Helpers.apply_bottom_up(&mark_boolean_expressions/1)
+      |> build_fragments()
+      |> to_string()
 
   @doc """
   Makes sure the specified partial or full table name is quoted.
@@ -116,10 +121,10 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp build_fragments(query) do
     common_clauses = [
-      columns_sql(query.db_columns, query),
+      columns_sql(query),
       " FROM ",
       from_clause(query.from, query),
-      where_fragments(query.where, query),
+      where_fragments(query),
       group_by_fragments(query),
       having_fragments(query),
       order_by_fragments(query)
@@ -135,51 +140,83 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
 
   # MySQL requires that at least one column is selected; SQL Server requires that the column has a name;
-  defp columns_sql([], query) do
+  defp columns_sql(%Query{db_columns: []} = query) do
     dialect = sql_dialect_module(query)
     dialect.alias_sql("0", quote_name("__ac_dummy", dialect.quote_char()))
   end
 
-  defp columns_sql(columns, query) do
-    columns
-    |> Enum.map(&column_sql(&1, query))
+  defp columns_sql(query) do
+    query.db_columns
+    |> Enum.map(&column_sql(&1, sql_dialect_module(query)))
     |> Enum.intersperse(?,)
   end
 
-  defp column_sql(:*, _query), do: "*"
+  defp column_sql(:*, _dialect), do: "*"
 
-  defp column_sql({:distinct, column}, query),
-    do: ["DISTINCT ", column_sql(column, query)]
+  defp column_sql({:distinct, column}, dialect),
+    do: ["DISTINCT ", column_sql(column, dialect)]
 
-  defp column_sql(%Expression{alias: alias} = column, query) when alias not in [nil, ""] do
-    sql_dialect_module(query).alias_sql(
-      column_sql(%Expression{column | alias: nil}, query),
-      quote_name(alias, sql_dialect_module(query).quote_char())
+  defp column_sql(%Expression{alias: alias} = column, dialect) when alias not in [nil, ""] do
+    dialect.alias_sql(
+      column_sql(%Expression{column | alias: nil}, dialect),
+      quote_name(alias, dialect.quote_char())
     )
   end
 
-  defp column_sql(%Expression{kind: :function, name: fun_name, type: type, args: args}, query)
+  defp column_sql(%Expression{kind: :function, name: fun_name, type: type, args: args}, dialect)
        when fun_name in ["+", "-"] and type in [:time, :date, :datetime],
-       do: sql_dialect_module(query).time_arithmetic_expression(fun_name, Enum.map(args, &to_fragment(&1, query)))
+       do: dialect.time_arithmetic_expression(fun_name, Enum.map(args, &to_fragment(&1, dialect)))
 
-  defp column_sql(%Expression{kind: :function, name: "/", type: :interval, args: args}, query),
-    do: sql_dialect_module(query).interval_division(Enum.map(args, &to_fragment(&1, query)))
+  defp column_sql(%Expression{kind: :function, name: "/", type: :interval, args: args}, dialect),
+    do: dialect.interval_division(Enum.map(args, &to_fragment(&1, dialect)))
 
-  defp column_sql(%Expression{kind: :function, name: "-", type: :interval, args: args}, query),
-    do: sql_dialect_module(query).date_subtraction_expression(Enum.map(args, &to_fragment(&1, query)))
+  defp column_sql(%Expression{kind: :function, name: "-", type: :interval, args: args}, dialect),
+    do: dialect.date_subtraction_expression(Enum.map(args, &to_fragment(&1, dialect)))
 
-  defp column_sql(%Expression{kind: :function, name: {:cast, to_type}, args: [arg]}, query),
-    do: arg |> to_fragment(query) |> sql_dialect_module(query).cast_sql(arg.type, to_type)
+  defp column_sql(%Expression{kind: :function, name: {:cast, to_type}, args: [arg]}, dialect),
+    do: arg |> to_fragment(dialect) |> dialect.cast_sql(arg.type, to_type)
 
-  defp column_sql(expression = %Expression{kind: :function, name: "date_trunc", type: :date}, query),
-    do: column_sql(cast(%{expression | type: :datetime}, :date), query)
+  defp column_sql(expression = %Expression{kind: :function, name: "date_trunc", type: :date}, dialect),
+    do: column_sql(cast(%{expression | type: :datetime}, :date), dialect)
 
-  defp column_sql(%Expression{kind: :function, name: "sum", args: [arg], type: :real}, query) do
+  defp column_sql(%Expression{kind: :function, name: "sum", args: [arg], type: :real}, dialect) do
     # Force `SUM` of reals to use double precision.
-    Support.function_sql("sum", [arg |> cast(:real) |> to_fragment(query)], sql_dialect_module(query))
+    Support.function_sql("sum", [arg |> cast(:real) |> to_fragment(dialect)], dialect)
   end
 
-  defp column_sql(%Expression{kind: :function, name: fun_name, args: args}, query) do
+  defp column_sql(
+         %Expression{kind: :function, name: comparator, args: [%Expression{type: :text} = arg1, arg2]},
+         dialect
+       )
+       when comparator in ~w(> < = <> >= <=) and dialect in [SQLServer, MySQL],
+       # Some servers ignore trailing spaces during text comparisons.
+       do:
+         Support.function_sql(
+           comparator,
+           [
+             arg1 |> dot_terminate() |> column_sql(dialect),
+             arg2 |> dot_terminate() |> column_sql(dialect)
+           ],
+           dialect
+         )
+
+  defp column_sql(
+         %Expression{kind: :function, name: "in", args: [%Expression{type: :text} = subject | values]},
+         dialect
+       )
+       # Some servers ignore trailing spaces during text comparisons.
+       when dialect in [SQLServer, MySQL],
+       do:
+         Support.function_sql(
+           "in",
+           [
+             subject |> dot_terminate() |> column_sql(dialect)
+             | Enum.map(values, &(&1 |> dot_terminate() |> to_fragment(dialect)))
+           ],
+           dialect
+         )
+
+  defp column_sql(%Expression{kind: :function, name: fun_name, args: args}, dialect) do
     args =
       if Cloak.Sql.Function.math_function?(fun_name) do
         Enum.map(args, &force_max_precision/1)
@@ -187,19 +224,16 @@ defmodule Cloak.DataSource.SqlBuilder do
         args
       end
 
-    Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, query)), sql_dialect_module(query))
+    Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, dialect)), dialect)
   end
 
-  defp column_sql(%Expression{kind: :constant, type: :like_pattern, value: value}, _query),
-    do: like_pattern_to_fragment(value)
+  defp column_sql(%Expression{kind: :constant, value: value}, dialect),
+    do: constant_to_fragment(value, dialect)
 
-  defp column_sql(%Expression{kind: :constant, value: value}, query),
-    do: constant_to_fragment(value, query)
+  defp column_sql(%Expression{kind: :column, bounds: bounds} = column, dialect) do
+    sql = column |> column_name(dialect.quote_char()) |> cast_type(column.type, dialect)
 
-  defp column_sql(%Expression{kind: :column, bounds: bounds} = column, query) do
-    sql = column |> column_name(sql_dialect_module(query).quote_char()) |> cast_type(column.type, query)
-
-    if Query.database_column?(column, query) do
+    if column.table.type in [:regular, :virtual] do
       restrict(column.type, sql, bounds)
     else
       sql
@@ -226,7 +260,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       join_sql(join.type),
       " ",
       from_clause(join.rhs, query),
-      on_clause(join.conditions, query),
+      on_clause(join.condition, query),
       " "
     ]
   end
@@ -247,7 +281,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp on_clause(nil, _query), do: []
 
   defp on_clause(condition, query),
-    do: [" ON ", conditions_to_fragments(condition, query)]
+    do: [" ON ", column_sql(condition, sql_dialect_module(query))]
 
   defp join_sql(:cross_join), do: "CROSS JOIN"
   defp join_sql(:inner_join), do: "INNER JOIN"
@@ -258,128 +292,38 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: quote_table_name(table_name, sql_dialect_module(query).quote_char())
 
   defp table_to_from(table, query) do
-    sql_dialect_module(query).alias_sql(
-      quote_table_name(table.db_name, sql_dialect_module(query).quote_char()),
-      quote_name(table.name, sql_dialect_module(query).quote_char())
+    dialect = sql_dialect_module(query)
+
+    dialect.alias_sql(
+      quote_table_name(table.db_name, dialect.quote_char()),
+      quote_name(table.name, dialect.quote_char())
     )
   end
 
-  defp where_fragments(nil, _query), do: []
+  defp where_fragments(%Query{where: nil}), do: []
+  defp where_fragments(query), do: [" WHERE ", column_sql(query.where, sql_dialect_module(query))]
 
-  defp where_fragments(where_clause, query),
-    do: [" WHERE ", conditions_to_fragments(where_clause, query)]
+  defp to_fragment(string, _dialect) when is_binary(string), do: string
 
-  defp conditions_to_fragments(expression, query),
-    do: conditions_to_fragments(expression, sql_dialect_module(query), query)
+  defp to_fragment(atom, _dialect) when is_atom(atom), do: to_string(atom) |> String.upcase()
 
-  defp conditions_to_fragments({:and, lhs, rhs}, sql_dialect_module, query),
-    do: [
-      "(",
-      conditions_to_fragments(lhs, sql_dialect_module, query),
-      ") AND (",
-      conditions_to_fragments(rhs, sql_dialect_module, query),
-      ")"
-    ]
+  defp to_fragment(distinct = {:distinct, _}, dialect),
+    do: column_sql(distinct, dialect)
 
-  defp conditions_to_fragments({:or, lhs, rhs}, sql_dialect_module, query),
-    do: [
-      "(",
-      conditions_to_fragments(lhs, sql_dialect_module, query),
-      ") OR (",
-      conditions_to_fragments(rhs, sql_dialect_module, query),
-      ")"
-    ]
-
-  defp conditions_to_fragments(
-         {:comparison, %Expression{type: :text} = what, comparator, value},
-         sql_dialect_module,
-         query
-       )
-       when sql_dialect_module in [SQLServer, MySQL],
-       # Some servers ignore trailing spaces during text comparisons.
-       do: [
-         "(",
-         what |> dot_terminate() |> to_fragment(query),
-         " #{comparator} ",
-         value |> dot_terminate() |> to_fragment(query),
-         ")"
-       ]
-
-  defp conditions_to_fragments({:comparison, what, comparator, value}, _sql_dialect_module, query),
-    do: [
-      to_fragment(what, query),
-      " #{comparator} ",
-      to_fragment(value, query)
-    ]
-
-  defp conditions_to_fragments({:in, %Expression{type: :text} = what, values}, sql_dialect_module, query)
-       when sql_dialect_module in [SQLServer, MySQL],
-       # Some servers ignore trailing spaces during text comparisons.
-       do: [
-         what |> dot_terminate() |> to_fragment(query),
-         " IN (",
-         Enum.map(values, &(&1 |> dot_terminate() |> to_fragment(query))) |> join(", "),
-         ")"
-       ]
-
-  defp conditions_to_fragments({:in, what, values}, _sql_dialect_module, query),
-    do: [
-      to_fragment(what, query),
-      " IN (",
-      Enum.map(values, &to_fragment(&1, query)) |> join(", "),
-      ")"
-    ]
-
-  defp conditions_to_fragments({:like, what, match}, sql_dialect_module, query),
-    do:
-      sql_dialect_module.like_sql(
-        to_fragment(what, query),
-        to_fragment(match, query)
-      )
-
-  defp conditions_to_fragments({:ilike, what, match}, sql_dialect_module, query) do
-    if sql_dialect_module.native_support_for_ilike?() do
-      sql_dialect_module.ilike_sql(to_fragment(what, query), match.value)
-    else
-      conditions_to_fragments(
-        {:like, Expression.lowercase(what), Expression.lowercase(match)},
-        sql_dialect_module,
-        query
-      )
-    end
-  end
-
-  defp conditions_to_fragments({:is, what, match}, _sql_dialect_module, query),
-    do: [to_fragment(what, query), " IS ", to_fragment(match, query)]
-
-  defp conditions_to_fragments({:not, condition}, sql_dialect_module, query),
-    do: ["NOT (", conditions_to_fragments(condition, sql_dialect_module, query), ")"]
-
-  defp to_fragment(string, _query) when is_binary(string), do: string
-
-  defp to_fragment(atom, _query) when is_atom(atom), do: to_string(atom) |> String.upcase()
-
-  defp to_fragment(distinct = {:distinct, _}, query),
-    do: column_sql(distinct, query)
-
-  defp to_fragment(%Expression{alias: alias} = column, query)
+  defp to_fragment(%Expression{alias: alias} = column, dialect)
        when alias != nil and alias != "",
-       do: column_sql(%Expression{column | alias: nil}, query)
+       do: column_sql(%Expression{column | alias: nil}, dialect)
 
-  defp to_fragment(%Expression{} = column, query),
-    do: column_sql(column, query)
+  defp to_fragment(%Expression{} = column, dialect), do: column_sql(column, dialect)
 
-  defp constant_to_fragment(:*, query), do: sql_dialect_module(query).literal("*")
+  defp constant_to_fragment(:*, dialect), do: dialect.literal("*")
 
-  defp constant_to_fragment(value, query) when is_binary(value),
-    do: sql_dialect_module(query).literal(escape_string(value))
+  defp constant_to_fragment(value, dialect) when is_binary(value), do: dialect.literal(escape_string(value))
 
-  defp constant_to_fragment(value, query),
-    do: sql_dialect_module(query).literal(value)
+  defp constant_to_fragment({pattern, _regex, _regex_ci}, dialect),
+    do: [pattern |> escape_string() |> dialect.literal(), " ESCAPE ", dialect.literal("\\")]
 
-  defp like_pattern_to_fragment({pattern, escape = "\\"}) do
-    [?', pattern, ?', "ESCAPE", ?', escape, ?']
-  end
+  defp constant_to_fragment(value, dialect), do: dialect.literal(value)
 
   defp dot_terminate(%Expression{kind: :constant, type: :text, value: value} = expression) when is_binary(value),
     do: %Expression{expression | value: value <> "."}
@@ -392,14 +336,16 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
 
   defp group_by_fragments(%Query{subquery?: true, grouping_sets: [_ | _]} = query) do
+    dialect = sql_dialect_module(query)
+
     query.grouping_sets
     |> Enum.map(fn grouping_set ->
       grouping_set
-      |> Enum.map(&(query.group_by |> Enum.at(&1) |> column_sql(query)))
+      |> Enum.map(&(query.group_by |> Enum.at(&1) |> column_sql(dialect)))
       |> Enum.intersperse(", ")
     end)
     |> case do
-      [[]] -> if sql_dialect_module(query) in [MySQL], do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
+      [[]] -> if dialect in [MySQL], do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
       [grouping_set] -> [" GROUP BY ", grouping_set]
       grouping_sets -> [" GROUP BY GROUPING SETS ((", Enum.intersperse(grouping_sets, "), ("), "))"]
     end
@@ -407,17 +353,17 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp group_by_fragments(_query), do: []
 
-  defp having_fragments(%Query{subquery?: true, having: having_clause} = query)
-       when having_clause != nil,
-       do: [" HAVING ", conditions_to_fragments(having_clause, query)]
-
-  defp having_fragments(_query), do: []
+  defp having_fragments(%Query{subquery?: false}), do: []
+  defp having_fragments(%Query{having: nil}), do: []
+  defp having_fragments(query), do: [" HAVING ", column_sql(query.having, sql_dialect_module(query))]
 
   defp order_by_fragments(%Query{subquery?: true, order_by: [_ | _] = order_by} = query) do
+    dialect = sql_dialect_module(query)
+
     order_by =
       for {expression, dir, nulls} <- order_by do
-        column = expression |> Expression.unalias() |> column_sql(query)
-        sql_dialect_module(query).order_by(column, dir, nulls)
+        column = expression |> Expression.unalias() |> column_sql(dialect)
+        dialect.order_by(column, dir, nulls)
       end
 
     [" ORDER BY ", Enum.intersperse(order_by, ", ")]
@@ -460,9 +406,15 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp cast({:distinct, expression}, to), do: {:distinct, cast(expression, to)}
   defp cast(expression, to), do: Expression.function({:cast, to}, [expression], to)
 
+  # -------------------------------------------------------------------
+  # `JOIN` timing protection
+  # -------------------------------------------------------------------
+
   defp add_join_timing_protection(%{ast: query, join_timing_protection?: true}) do
+    dialect = sql_dialect_module(query)
+
     from =
-      case sql_dialect_module(query) do
+      case dialect do
         Oracle -> " FROM dual"
         _ -> ""
       end
@@ -471,7 +423,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       " UNION ALL SELECT ",
       query.db_columns
       |> Enum.map(&Table.invalid_value(&1.type))
-      |> Enum.map(&constant_to_fragment(&1, query))
+      |> Enum.map(&constant_to_fragment(&1, dialect))
       |> join(", "),
       from,
       " WHERE NOT EXISTS(",
@@ -481,4 +433,47 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
 
   defp add_join_timing_protection(_subquery), do: []
+
+  # -------------------------------------------------------------------
+  # Mark boolean expressions
+  # -------------------------------------------------------------------
+
+  # Some backends (like SQL Server and Oracle) have limited support for boolean expressions.
+  # A boolean expression is an expression consisting of conditions and boolean operators (`and`, `or`, `not`).
+  # We wrap boolean expressions in non-filtering clauses inside a dummy `boolean_expression` function call.
+  # This will result in no-op on backends where boolean expressions are supported and
+  # in a `case` statement where they aren't.
+
+  defp mark_boolean_expressions(query) do
+    query
+    |> update_in([non_filter_clauses()], &mark_boolean_expression(&1, :mark))
+    |> update_in([Query.Lenses.filter_clauses()], &mark_boolean_expression(&1, :ignore))
+  end
+
+  defp non_filter_clauses() do
+    Lens.multiple([
+      Lens.keys?([:columns, :group_by, :db_columns]) |> Lens.all(),
+      Lens.key?(:order_by) |> Lens.all() |> Lens.at(0)
+    ])
+  end
+
+  defp mark_boolean_expression(%Expression{kind: :function} = function, state) do
+    cond do
+      state == :mark and boolean_expression?(function) ->
+        alias = function.alias
+        function = function |> Expression.unalias() |> mark_boolean_expression(:ignore)
+        %Expression{function | name: "boolean_expression", alias: alias, args: [function]}
+
+      state == :ignore and function.name not in ~w(and not or) ->
+        %Expression{function | args: Enum.map(function.args, &mark_boolean_expression(&1, :mark))}
+
+      true ->
+        %Expression{function | args: Enum.map(function.args, &mark_boolean_expression(&1, state))}
+    end
+  end
+
+  defp mark_boolean_expression(expression, _state), do: expression
+
+  defp boolean_expression?(%Expression{kind: :function} = function),
+    do: function.name in ~w(and or) or Function.condition?(function)
 end

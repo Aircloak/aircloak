@@ -31,7 +31,7 @@ defmodule Cloak.DataSource.Table do
           optional(any) => any
         }
 
-  @type type :: :regular | :virtual | :analyst | :subquery | nil
+  @type type :: :regular | :virtual | :analyst | :subquery
 
   @type option ::
           {:db_name, String.t()}
@@ -63,7 +63,7 @@ defmodule Cloak.DataSource.Table do
         maintain_shadow_db: true,
         status: :created,
         user_id_join_chain: if(user_id_column_name == nil, do: nil, else: []),
-        type: nil
+        type: :regular
       }
       |> Map.merge(Map.new(opts))
 

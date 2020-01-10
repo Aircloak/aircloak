@@ -1,22 +1,11 @@
 defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @moduledoc "Specifies the interface for implementing dialect-specific SQL operations."
 
-  alias Cloak.Sql.Expression
-
   @doc "Returns the list of supported functions for this SQL dialect."
   @callback supported_functions() :: [String.t()]
 
   @doc "Generates dialect-specific SQL for a function invocation. Provided arguments list must contain SQL fragments."
-  @callback function_sql(Expression.function_name(), [iodata]) :: iodata
-
-  @doc "Generates dialect-specific SQL for the LIKE operator."
-  @callback like_sql(iodata, iodata) :: iodata
-
-  @doc "Defaults to true. If false, the sql builder will rewrite ILIKE to the LIKE equivalent"
-  @callback native_support_for_ilike?() :: boolean
-
-  @doc "Generates dialect-specific SQL for the ILIKE operator."
-  @callback ilike_sql(iodata, Cloak.Sql.LikePattern.t()) :: iodata
+  @callback function_sql(String.t(), [iodata]) :: iodata
 
   @doc "Generates dialect-specific SQL for the LIMIT clause."
   @callback limit_sql(pos_integer | nil, non_neg_integer) :: iodata
@@ -66,20 +55,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       @integer_range 9_223_372_036_854_775_807
 
       @impl unquote(__MODULE__)
-      def like_sql(what, match), do: [what, " LIKE ", match]
-
-      @impl unquote(__MODULE__)
-      def native_support_for_ilike?(), do: true
-
-      @impl unquote(__MODULE__)
-      def ilike_sql(what, pattern),
-        # ILIKE requires the support for collation. Each data source that returns true for
-        # `native_support_for_ilike?/1` must explicitly handle this
-        do:
-          raise(
-            ExecutionError,
-            message: "This data source is missing an Aircloak ILIKE implementation"
-          )
+      def function_sql(name, args), do: unquote(__MODULE__).default_function_sql(name, args)
 
       @impl unquote(__MODULE__)
       def limit_sql(nil, _offset),
@@ -103,7 +79,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def interval_division(args), do: function_sql("/", args)
 
       @impl unquote(__MODULE__)
-      def literal(value), do: literal_default(value)
+      def literal(value), do: unquote(__MODULE__).literal_default(value)
 
       @impl unquote(__MODULE__)
       def order_by(column, :asc, :nulls_natural), do: [column, " ASC"]
@@ -157,8 +133,17 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   defp case_branches([if_arg, then_arg | rest]), do: [" WHEN ", if_arg, " THEN ", then_arg, case_branches(rest)]
   defp case_branches([else_branch]), do: [" ELSE ", else_branch]
 
-  @spec bool_op_default(Cloak.DataSource.field(), Cloak.DataSource.field(), Cloak.DataSource.field()) :: iodata
-  def bool_op_default("<>", arg, "NULL"), do: ["(", arg, " IS NOT NULL)"]
-  def bool_op_default("=", arg, "NULL"), do: ["(", arg, " IS NULL)"]
-  def bool_op_default(op, arg1, arg2), do: ["(", arg1, " ", op, " ", arg2, ")"]
+  @spec default_function_sql(String.t(), iodata) :: iodata
+  def default_function_sql("not", [[subject, " IS NULL"]]), do: [subject, " IS NOT NULL"]
+
+  def default_function_sql("not", [arg]), do: ["NOT (", arg, ")"]
+
+  def default_function_sql("is_null", [subject]), do: [subject, " IS NULL"]
+
+  def default_function_sql("in", [subject | values]), do: [subject, " IN (", Enum.intersperse(values, ", "), ")"]
+
+  def default_function_sql(name, [arg1, arg2]) when name in ~w(and or > < = <> >= <= + - * / like ilike),
+    do: [?(, arg1, " #{String.upcase(name)} ", arg2, ?)]
+
+  def default_function_sql(name, args), do: [String.upcase(name), ?(, Enum.intersperse(args, ", "), ?)]
 end

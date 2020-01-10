@@ -48,11 +48,9 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp reject_null_user_ids(%Query{type: :anonymized} = query) do
     user_id = %Expression{Helpers.id_column(query) | synthetic?: true}
+    is_not_null = Expression.function("not", [Expression.function("is_null", [user_id], :boolean)], :boolean)
 
-    %{
-      query
-      | where: Condition.combine(:and, {:not, {:is, user_id, :null}}, query.where)
-    }
+    %{query | where: Condition.both(is_not_null, query.where)}
   end
 
   defp reject_null_user_ids(query), do: query
@@ -67,7 +65,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     Lens.multiple([
       Lens.keys([:columns, :group_by]) |> Lens.all(),
       Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
-      Lens.key(:having) |> Lenses.all_conditions() |> Lenses.operands()
+      Lens.key(:having) |> Lenses.conditions() |> Lenses.operands()
     ])
     |> Lens.filter(&non_aggregated_uid_expression?/1)
     |> Lens.map(query, &Expression.constant(&1.type, :*))
@@ -214,12 +212,12 @@ defmodule Cloak.Sql.Compiler.Execution do
 
     if implement_range?({left, right}, conditions) do
       [lhs, rhs] = conditions
-      range = {:and, lhs, rhs}
-      update_in(query, [lens], &Condition.combine(:and, range, &1))
+      range = Condition.both(lhs, rhs)
+      update_in(query, [lens], &Condition.both(range, &1))
     else
       query
-      |> add_clause(lens, {:comparison, column, :<, Expression.constant(column.type, right)})
-      |> add_clause(lens, {:comparison, column, :>=, Expression.constant(column.type, left)})
+      |> add_clause(lens, Expression.function("<", [column, Expression.constant(column.type, right)], :boolean))
+      |> add_clause(lens, Expression.function(">=", [column, Expression.constant(column.type, left)], :boolean))
       |> Query.add_info(
         "The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= " <>
           "#{Expression.short_name(column)} < #{right}."
@@ -228,13 +226,15 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp implement_range?({left, right}, conditions) do
-    [{_, _, left_operator, left_column}, {_, _, right_operator, right_column}] =
-      Enum.sort_by(conditions, &Condition.value/1, &Cloak.Data.lt_eq/2)
+    [
+      %Expression{kind: :function, name: left_operator, args: [_, left_column]},
+      %Expression{kind: :function, name: right_operator, args: [_, right_column]}
+    ] = Enum.sort_by(conditions, &Condition.value/1, &Cloak.Data.lt_eq/2)
 
-    left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
+    left_operator == ">=" and left_column.value == left and right_operator == "<" and right_column.value == right
   end
 
-  defp add_clause(query, lens, clause), do: Lens.map(lens, query, &Condition.combine(:and, clause, &1))
+  defp add_clause(query, lens, clause), do: Lens.map(lens, query, &Condition.both(clause, &1))
 
   defp verify_ranges(grouped_inequalities) do
     grouped_inequalities
@@ -310,9 +310,9 @@ defmodule Cloak.Sql.Compiler.Execution do
     hash_limit = round(aligned_amount / 100 * @max_hash_value)
     hex_hash_limit = <<hash_limit::32>> |> Base.encode16(case: :lower) |> String.pad_leading(8, "0")
 
-    sample_condition = {:comparison, user_id_hash, :<=, Expression.constant(:text, hex_hash_limit)}
+    sample_condition = Expression.function("<=", [user_id_hash, Expression.constant(:text, hex_hash_limit)], :boolean)
 
-    %Query{query | where: Condition.combine(:and, sample_condition, query.where)}
+    %Query{query | where: Condition.both(sample_condition, query.where)}
     |> Query.add_info(messages)
   end
 
@@ -358,7 +358,9 @@ defmodule Cloak.Sql.Compiler.Execution do
     Lenses.db_filter_clauses() |> Lens.reject(&is_nil/1) |> Lens.reject(&key_comparison?/1) |> Lens.to_list(query) != []
   end
 
-  defp key_comparison?({:comparison, subject, :=, target}), do: Expression.key?(subject) and Expression.key?(target)
+  defp key_comparison?(%Expression{kind: :function, name: "=", args: [subject, target]}),
+    do: Expression.key?(subject) and Expression.key?(target)
+
   defp key_comparison?(_), do: false
 
   defp query_needs_protection?(query), do: query.type == :restricted and query_has_db_filters?(query)

@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.MongoDB.Projector do
   @moduledoc "MongoDB helper functions for projecting columns into the aggregation pipeline."
 
-  alias Cloak.Sql.Expression
+  alias Cloak.Sql.{Expression, LikePattern}
   alias Cloak.Query.ExecutionError
   alias Cloak.DataSource.MongoDB.Schema
 
@@ -86,6 +86,9 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   defp parse_expression(%Expression{kind: :constant, value: %Timex.Duration{} = value}),
     do: %{"$literal": Timex.Duration.to_seconds(value)}
+
+  defp parse_expression(%Expression{kind: :constant, type: :like_pattern, value: {pattern, _regex, _regex_ci}}),
+    do: LikePattern.to_regex_pattern(pattern)
 
   defp parse_expression(%Expression{kind: :constant, value: value}), do: %{"$literal": value}
 
@@ -226,7 +229,16 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         "avg" => "$avg",
         "min" => "$min",
         "max" => "$max",
-        "stddev" => "$stdDevSamp"
+        "stddev" => "$stdDevSamp",
+        "and" => "$and",
+        "or" => "$or",
+        "not" => "$not",
+        "=" => "$eq",
+        "<>" => "$ne",
+        ">" => "$gt",
+        ">=" => "$gte",
+        "<" => "$lt",
+        "<=" => "$lte"
       },
       do: defp(parse_function(unquote(name), args), do: %{unquote(translation) => args})
 
@@ -310,12 +322,14 @@ defmodule Cloak.DataSource.MongoDB.Projector do
       message: "Casting from `#{from}` to `#{to}` is not supported in subqueries on MongoDB data sources."
   end
 
-  @bool_operators %{"=" => "$eq", "<>" => "$ne", ">" => "$gt", ">=" => "$gte", "<" => "$lt", "<=" => "$lte"}
-  defp parse_function("bool_op", [%{"$literal": "<>"}, arg, %{"$literal": nil}]), do: %{"$gt": [arg, nil]}
-  defp parse_function("bool_op", [%{"$literal": "="}, arg, %{"$literal": nil}]), do: %{"$lte": [arg, nil]}
+  defp parse_function("is_null", arg), do: %{"$lte": [arg, nil]}
+  defp parse_function("in", [subject | targets]), do: %{"$in": [subject, targets]}
 
-  defp parse_function("bool_op", [%{"$literal": op}, arg1, arg2]),
-    do: %{Map.fetch!(@bool_operators, op) => [arg1, arg2]}
+  defp parse_function("like", [subject, regex]),
+    do: %{"$regexMatch": %{input: subject, regex: regex, options: "ms"}}
+
+  defp parse_function("ilike", [subject, regex]),
+    do: %{"$regexMatch": %{input: subject, regex: regex, options: "msi"}}
 
   defp parse_function("coalesce", [arg]), do: arg
   defp parse_function("coalesce", [first | rest]), do: %{"$ifNull": [first, parse_function("coalesce", rest)]}

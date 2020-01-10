@@ -82,22 +82,76 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp column() do
-    lazy(fn -> additive_expression() end)
+    lazy(fn -> disjunction_expression(condition_expression()) end)
+  end
+
+  defp condition_expression() do
+    pair_both(
+      additive_expression(),
+      switch([
+        {option(keyword_with_position(:not)) |> keyword_of_with_position([:like, :ilike]),
+         sequence([constant(:string), like_escape()])},
+        {option(keyword_with_position(:not)) |> keyword_with_position(:in), in_values()},
+        {next_position() |> keyword(:is) |> option(keyword_with_position(:not)), keyword(:null)},
+        {next_position() |> option(keyword(:not)) |> keyword(:between), comparison_range()},
+        {next_position() |> keyword_of([:<, :<=, :>, :>=, :=, :<>]), not_expression(comparison_value())},
+        {:else, return(nil)}
+      ])
+    )
+    |> map(fn
+      {lhs, {[nil, {location, like_verb}], [[string_constant, escape]]}} when like_verb in [:like, :ilike] ->
+        {:function, to_string(like_verb), [lhs, {:like_pattern, string_constant, escape}], location}
+
+      {lhs, {[{location_not, :not}, {location_like, like_verb}], [[string_constant, escape]]}}
+      when like_verb in [:like, :ilike] ->
+        {:function, "not",
+         [{:function, to_string(like_verb), [lhs, {:like_pattern, string_constant, escape}], location_like}],
+         location_not}
+
+      {lhs, {[nil, {location, :in}], [in_values]}} ->
+        {:function, "in", [lhs | in_values], location}
+
+      {lhs, {[{location_not, :not}, {location_in, :in}], [in_values]}} ->
+        {:function, "not", [{:function, "in", [lhs | in_values], location_in}], location_not}
+
+      {lhs, {[location, :is, nil], [:null]}} ->
+        {:function, "is_null", [lhs], location}
+
+      {lhs, {[location_is, :is, {location_not, :not}], [:null]}} ->
+        {:function, "not", [{:function, "is_null", [lhs], location_is}], location_not}
+
+      {lhs, {[location, nil, :between], [{min, max}]}} ->
+        {:function, "and",
+         [
+           {:function, ">=", [lhs, min], location},
+           {:function, "<", [lhs, max], location}
+         ], location}
+
+      {lhs, {[location, :not, :between], [{min, max}]}} ->
+        {:function, "or",
+         [
+           {:function, "<", [lhs, min], location},
+           {:function, ">=", [lhs, max], location}
+         ], location}
+
+      {lhs, {[location, comparator], [rhs]}} ->
+        {:function, to_string(comparator), [lhs, rhs], location}
+
+      {lhs, nil} ->
+        lhs
+    end)
   end
 
   defp additive_expression() do
-    left_associative_expression([keyword(:+), keyword(:-)], multiplicative_expression())
+    left_associative_expression(keyword_of([:+, :-]), multiplicative_expression())
   end
 
   defp multiplicative_expression() do
-    left_associative_expression(
-      [keyword(:*), keyword(:/), keyword(:%)],
-      exponentiation_expression()
-    )
+    left_associative_expression(keyword_of([:*, :/, :%]), exponentiation_expression())
   end
 
   defp exponentiation_expression() do
-    left_associative_expression([keyword(:^)], unary_expression())
+    left_associative_expression(keyword(:^), unary_expression())
   end
 
   defp unary_expression() do
@@ -119,7 +173,7 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp concat_expression() do
-    left_associative_expression([keyword(:||)], infix_cast_expression())
+    left_associative_expression(keyword(:||), infix_cast_expression())
     |> map(&normalize_concat/1)
   end
 
@@ -398,20 +452,16 @@ defmodule Cloak.Sql.Parser.Internal do
     )
   end
 
-  defp left_associative_expression(operators, term_parser, normalizer \\ &infix_to_function/4) do
-    sep_by1_eager(term_parser, pair_both(next_position(), choice_deepest_error(operators)))
+  defp left_associative_expression(operator, term_parser) do
+    sep_by1_eager(term_parser, pair_both(next_position(), operator))
     |> map(fn [first | rest] ->
       rest
       |> Enum.chunk_every(2)
       |> Enum.reduce(first, fn [{location, operator}, right], left ->
-        normalizer.(operator, left, right, location)
+        {:function, to_string(operator), [left, right], location}
       end)
     end)
   end
-
-  defp infix_to_function(operator, left, right, location), do: {:function, to_string(operator), [left, right], location}
-
-  defp infix_to_boolean_expression(operator, left, right, _location), do: {operator, left, right}
 
   defp field_or_parameter(), do: either_deepest_error(column_identifier_with_location(), parameter())
 
@@ -492,8 +542,8 @@ defmodule Cloak.Sql.Parser.Internal do
     pair_joins([to_join(join_type, table_or_join, table) | rest])
   end
 
-  defp to_join({join_type, :on, conditions}, left_expr, right_expr),
-    do: {:join, %{type: join_type, lhs: left_expr, rhs: right_expr, conditions: conditions}}
+  defp to_join({join_type, :on, condition}, left_expr, right_expr),
+    do: {:join, %{type: join_type, lhs: left_expr, rhs: right_expr, condition: condition}}
 
   defp to_join(:cross_join, left_expr, right_expr), do: to_join({:cross_join, :on, nil}, left_expr, right_expr)
 
@@ -514,7 +564,7 @@ defmodule Cloak.Sql.Parser.Internal do
       sequence([
         table_or_subquery(),
         keyword(:on),
-        filter_expressions(),
+        column(),
         next_join()
       ])
     end)
@@ -598,61 +648,12 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp optional_where() do
     switch([
-      {keyword(:where), filter_expressions()},
+      {keyword(:where), column()},
       {:else, noop()}
     ])
     |> map(fn
-      {[:where], [filter_expressions]} -> {:where, filter_expressions}
+      {[:where], [expression]} -> {:where, expression}
       other -> other
-    end)
-  end
-
-  defp filter_expressions(), do: disjunction_expression(filter_expression())
-
-  defp filter_expression() do
-    switch([
-      {column()
-       |> option(keyword(:not))
-       |> choice_deepest_error([keyword(:like), keyword(:ilike)]), sequence([constant(:string), like_escape()])},
-      {column() |> option(keyword(:not)) |> keyword(:in), in_values()},
-      {column() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
-      {column() |> keyword(:between), allowed_where_range()},
-      {column() |> comparator(), allowed_where_value()},
-      {sequence([next_position(), column()]), return(:implicit)}
-    ])
-    |> map(fn
-      {[identifier, nil, :like], [[string_constant, escape]]} ->
-        {:like, identifier, {:like_pattern, string_constant, escape}}
-
-      {[identifier, nil, :ilike], [[string_constant, escape]]} ->
-        {:ilike, identifier, {:like_pattern, string_constant, escape}}
-
-      {[identifier, :not, :like], [[string_constant, escape]]} ->
-        {:not, {:like, identifier, {:like_pattern, string_constant, escape}}}
-
-      {[identifier, :not, :ilike], [[string_constant, escape]]} ->
-        {:not, {:ilike, identifier, {:like_pattern, string_constant, escape}}}
-
-      {[identifier, nil, :in], [in_values]} ->
-        {:in, identifier, in_values}
-
-      {[identifier, :not, :in], [in_values]} ->
-        {:not, {:in, identifier, in_values}}
-
-      {[identifier, :is, nil], [:null]} ->
-        {:is, identifier, :null}
-
-      {[identifier, :is, :not], [:null]} ->
-        {:not, {:is, identifier, :null}}
-
-      {[identifier, :between], [{min, max}]} ->
-        {:and, {:comparison, identifier, :>=, min}, {:comparison, identifier, :<, max}}
-
-      {[[location, column]], [:implicit]} ->
-        {:comparison, column, :=, {:constant, :boolean, true, location}}
-
-      {[lhs, comparator], [rhs]} ->
-        {:comparison, lhs, comparator, rhs}
     end)
   end
 
@@ -664,17 +665,17 @@ defmodule Cloak.Sql.Parser.Internal do
     end)
   end
 
-  defp allowed_where_range() do
-    pipe([allowed_where_value(), keyword(:and), allowed_where_value()], fn [min, :and, max] -> {min, max} end)
+  defp comparison_range() do
+    pipe([comparison_value(), keyword(:and), comparison_value()], fn [min, :and, max] -> {min, max} end)
   end
 
-  defp allowed_where_value() do
-    either_deepest_error(column(), any_constant())
+  defp comparison_value() do
+    either_deepest_error(additive_expression(), any_constant())
     |> label("comparison value")
   end
 
   defp in_values() do
-    pipe([keyword(:"("), comma_delimited1(column()), keyword(:")")], fn [_, values, _] ->
+    pipe([keyword(:"("), comma_delimited1(additive_expression()), keyword(:")")], fn [_, values, _] ->
       values
     end)
   end
@@ -845,14 +846,13 @@ defmodule Cloak.Sql.Parser.Internal do
     |> label("identifier")
   end
 
-  defp comparator(previous_parser),
-    do: previous_parser |> keyword_of([:<, :<=, :>, :>=, :=, :<>]) |> label("comparator")
-
   defp keyword_of(parser \\ noop(), types) do
     parser
     |> choice_deepest_error(Enum.map(types, &keyword(&1)))
     |> label(types |> Enum.join(" or "))
   end
+
+  defp keyword_of_with_position(parser, types), do: pair_both(parser, next_position(), keyword_of(types))
 
   defp keyword(parser \\ noop(), type) do
     parser
@@ -860,6 +860,8 @@ defmodule Cloak.Sql.Parser.Internal do
     |> map(& &1.category)
     |> label(to_string(type))
   end
+
+  defp keyword_with_position(parser \\ noop(), type), do: pair_both(parser, next_position(), keyword(type))
 
   defp comma_delimited(term_parser) do
     sep_by_until(term_parser, keyword(:","), keyword(:from))
@@ -900,11 +902,11 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp optional_having() do
     switch([
-      {keyword(:having), filter_expressions()},
+      {keyword(:having), column()},
       {:else, noop()}
     ])
     |> map(fn
-      {[:having], [filter_expressions]} -> {:having, filter_expressions}
+      {[:having], [expression]} -> {:having, expression}
       other -> other
     end)
   end
@@ -912,28 +914,26 @@ defmodule Cloak.Sql.Parser.Internal do
   defp disjunction_expression(term_parser),
     do:
       left_associative_expression(
-        [keyword(:or)],
-        conjunction_expression(term_parser),
-        &infix_to_boolean_expression/4
+        keyword(:or),
+        conjunction_expression(term_parser)
       )
 
   defp conjunction_expression(term_parser),
     do:
       left_associative_expression(
-        [keyword(:and)],
-        unary_not_expression(term_parser),
-        &infix_to_boolean_expression/4
+        keyword(:and),
+        not_expression(term_parser)
       )
 
-  defp unary_not_expression(term_parser),
+  defp not_expression(term_parser),
     do:
       choice_deepest_error([
-        sequence([keyword(:not), lazy(fn -> unary_not_expression(term_parser) end)]),
+        sequence([keyword_with_position(:not), lazy(fn -> not_expression(term_parser) end)]),
         term_parser,
-        paren_parser(lazy(fn -> disjunction_expression(term_parser) end), term_parser)
+        paren_parser(column(), term_parser)
       ])
       |> map(fn
-        [:not, expr] -> {:not, expr}
+        [{location, :not}, expr] -> {:function, "not", [expr], location}
         expr -> expr
       end)
 

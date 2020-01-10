@@ -811,26 +811,19 @@ defmodule Cloak.Sql.Compiler.Specification do
   # -------------------------------------------------------------------
 
   defp perform_implicit_casts(query) do
-    Lenses.filter_clauses()
-    |> Lenses.conditions()
-    |> Lens.map(query, fn clause ->
-      column = Condition.subject(clause)
-      perform_implicit_cast(clause, column.type)
+    Lenses.query_expressions()
+    |> Lens.filter(&Function.condition?/1)
+    |> Lens.filter(&(Condition.verb(&1) in [:comparison, :in]))
+    |> Lens.map(query, fn %Expression{kind: :function, args: [subject | values]} = expression ->
+      values = Enum.map(values, &perform_implicit_cast(&1, subject.type))
+      %Expression{expression | args: [subject | values]}
     end)
   end
 
   @castable_conditions [:datetime, :time, :date, :real]
 
-  defp perform_implicit_cast({:comparison, identifier, comparator, rhs}, type) when type in @castable_conditions,
-    do: {:comparison, identifier, comparator, perform_implicit_cast_if_constant(rhs, type)}
-
-  defp perform_implicit_cast({:in, column, values}, type) when type in @castable_conditions,
-    do: {:in, column, Enum.map(values, &perform_implicit_cast_if_constant(&1, type))}
-
-  defp perform_implicit_cast(clause, _), do: clause
-
-  defp perform_implicit_cast_if_constant(expression, type) do
-    if Expression.constant?(expression) do
+  defp perform_implicit_cast(expression, type) do
+    if Expression.constant?(expression) and type in @castable_conditions do
       do_perform_implicit_cast(expression, type)
     else
       expression

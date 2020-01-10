@@ -27,10 +27,10 @@ defmodule Cloak.Sql.Query.Lenses.Test do
 
   describe "join_condition_lenses" do
     test "a simple join" do
-      query = %{from: {:join, %{lhs: "lhs", rhs: "rhs", conditions: :simple_conditions}}}
+      query = %{from: {:join, %{lhs: "lhs", rhs: "rhs", condition: :simple_condition}}}
       lenses = Lenses.join_condition_lenses(query)
 
-      assert [:simple_conditions] = Enum.map(lenses, &Lens.one!(&1, query))
+      assert [:simple_condition] = Enum.map(lenses, &Lens.one!(&1, query))
     end
 
     test "a complex join" do
@@ -38,15 +38,15 @@ defmodule Cloak.Sql.Query.Lenses.Test do
         from:
           {:join,
            %{
-             lhs: {:join, %{lhs: "lhs", rhs: "rhs", conditions: :conditions2}},
-             rhs: {:join, %{lhs: "lhs", rhs: "rhs", conditions: :conditions3}},
-             conditions: :conditions1
+             lhs: {:join, %{lhs: "lhs", rhs: "rhs", condition: :condition2}},
+             rhs: {:join, %{lhs: "lhs", rhs: "rhs", condition: :condition3}},
+             condition: :condition1
            }}
       }
 
       lenses = Lenses.join_condition_lenses(query)
 
-      assert [:conditions1, :conditions2, :conditions3] = Enum.map(lenses, &Lens.one!(&1, query))
+      assert [:condition1, :condition2, :condition3] = Enum.map(lenses, &Lens.one!(&1, query))
     end
   end
 

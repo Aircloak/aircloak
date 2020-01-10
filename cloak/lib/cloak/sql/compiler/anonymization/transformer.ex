@@ -115,9 +115,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     min_user_id = Expression.function("min", [user_id], user_id.type)
     count_distinct_user_id = Expression.function("count", [{:distinct, user_id}], :integer)
 
-    constant_lower = Expression.constant(:text, "<")
-    constant_3 = Expression.constant(:integer, 3)
-    low_count_user_id? = Expression.function("bool_op", [constant_lower, count_distinct_user_id, constant_3], :boolean)
+    low_count_user_id? = Expression.function("<", [count_distinct_user_id, Expression.constant(:integer, 3)], :boolean)
 
     # The user id is valid only for at-risk values in the target column.
     user_id_aggregator =
@@ -188,8 +186,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     grouping_id = column_from_synthetic_table(uid_grouping_table, "__ac_grouping_id")
     count_distinct = column_from_synthetic_table(uid_grouping_table, "__ac_count_distinct")
 
-    constant_different = Expression.constant(:text, "<>")
-    low_count_user_id? = Expression.function("bool_op", [constant_different, user_id, Expression.null()], :boolean)
+    low_count_user_id? = Expression.function("not", [Expression.function("is_null", [user_id], :boolean)], :boolean)
     low_count_user_id_as_integer = Expression.function({:cast, :integer}, [low_count_user_id?], :integer)
     noise_factor = Expression.function("unsafe_mul", [low_count_user_id_as_integer, count_distinct], :integer)
 
@@ -363,7 +360,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
   defp statistics_buckets_filter(query, count_duid) do
     if Query.lcf_buckets_aggregation_limit(query) == 0 do
       # This is an optimization in case we dont care about censored buckets at all.
-      {:comparison, count_duid, :>, Expression.constant(:integer, 1)}
+      Expression.function(">", [count_duid, Expression.constant(:integer, 1)], :boolean)
     else
       nil
     end

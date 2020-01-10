@@ -13,12 +13,13 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct
+      < > <= >= = <> and or not in is_null like ilike
       year quarter month day hour minute second weekday
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
       sqrt floor ceil abs round trunc
       length lower upper btrim/1 ltrim/1 rtrim/1 left right substring concat
-      hex cast coalesce hash bool_op case
+      hex cast coalesce hash case
     )
 
   @impl Dialect
@@ -37,7 +38,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   def function_sql("hash", [arg]), do: ["SUBSTR(MD5(CAST(", arg, " AS char)), 5, 8)"]
 
-  def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]), do: Dialect.bool_op_default(op, arg1, arg2)
+  def function_sql("boolean_expression", [arg]), do: arg
 
   def function_sql("checked_mod", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
 
@@ -60,6 +61,9 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
     do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
 
   def function_sql("case", args), do: Dialect.case_default(args)
+
+  def function_sql("like", [subject, pattern]), do: [?(, subject, " COLLATE utf8_bin LIKE ", pattern, ?)]
+  def function_sql("ilike", [subject, pattern]), do: [?(, subject, " COLLATE utf8_general_ci LIKE ", pattern, ?)]
 
   # left of a negative value should return all but the last n characters.
   # left("aircloak", -2) --> "airclo"
@@ -101,14 +105,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
     ])
   end
 
-  def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
-
-  @impl Dialect
-  def like_sql(what, match), do: super([what, " COLLATE utf8_bin"], match)
-
-  @impl Dialect
-  def ilike_sql(what, {pattern, escape = "\\"}),
-    do: [what, " COLLATE utf8_general_ci LIKE ", ?', pattern, ?', " ESCAPE ", ?', escape, ?']
+  def function_sql(name, args), do: super(name, args)
 
   @impl Dialect
   def limit_sql(nil, offset), do: [" LIMIT ", to_string(offset), ", #{@max_unsigned_bigint}"]
@@ -146,7 +143,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   @impl Dialect
   def literal(value) when is_binary(value), do: ["N'", value, ?']
-  def literal(value), do: Dialect.literal_default(value)
+  def literal(value), do: super(value)
 
   @impl Dialect
   def order_by(column, :asc, :nulls_last), do: [column, " IS NULL, ", column, " ASC"]

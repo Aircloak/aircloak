@@ -348,7 +348,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp inner_join(lhs, rhs, join) do
     rhs_pre_filter = create_join_pre_filter(rhs, join)
-    filter = Condition.to_function(join.conditions)
+    filter = Condition.to_function(join.condition)
 
     Stream.flat_map(lhs, fn lhs_row ->
       lhs_row
@@ -370,7 +370,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp outer_join(lhs, rhs, join, rows_combiner, unmatched_handler, matched_handler) do
     rhs_pre_filter = create_join_pre_filter(rhs, join)
-    filter = Condition.to_function(join.conditions)
+    filter = Condition.to_function(join.condition)
 
     Stream.flat_map(lhs, fn lhs_row ->
       lhs_row
@@ -419,9 +419,9 @@ defmodule Cloak.Query.DbEmulator.Selector do
   end
 
   defp best_condition_for_matching(join) do
-    conditions = Lens.to_list(Query.Lenses.conditions(), join.conditions)
+    conditions = Lens.to_list(Query.Lenses.conditions(), join.condition)
 
-    for {:comparison, subject, :=, target} <- conditions,
+    for %Expression{kind: :function, name: "=", args: [subject, target]} <- conditions,
         subject != target and subject.name != nil and target.name != nil do
       {subject, target}
     end

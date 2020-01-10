@@ -4,7 +4,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     validations in later steps. It also prepares the anonymized subqueries for the anonymized aggregation pipeline.
   """
 
-  alias Cloak.Sql.{Query, Expression, Query.Lenses}
+  alias Cloak.Sql.{Query, Expression, Query.Lenses, Condition}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Compiler.Anonymization.Transformer
 
@@ -111,18 +111,24 @@ defmodule Cloak.Sql.Compiler.Anonymization do
          %Expression{name: "__ac_grouping_id"} = column1,
          %Expression{name: "__ac_grouping_id"} = column2
        ),
-       do: {:comparison, column1, :=, column2}
+       do: Expression.function("=", [column1, column2], :boolean)
 
   defp columns_equal_or_null_condition(column1, column2) do
-    columns_equal = {:comparison, column1, :=, column2}
-    columns_null = {:and, {:is, column1, :null}, {:is, column2, :null}}
-    {:or, columns_equal, columns_null}
+    columns_equal = Expression.function("=", [column1, column2], :boolean)
+
+    columns_null =
+      Condition.both(
+        Expression.function("is_null", [column1], :boolean),
+        Expression.function("is_null", [column2], :boolean)
+      )
+
+    Expression.function("or", [columns_equal, columns_null], :boolean)
   end
 
   defp groups_equal_or_null_conditions(group1, group2) do
     Enum.zip(group1, group2)
     |> Enum.map(fn {column1, column2} -> columns_equal_or_null_condition(column1, column2) end)
-    |> Enum.reduce(fn condition, accumulator -> {:and, accumulator, condition} end)
+    |> Enum.reduce(fn condition, accumulator -> Condition.both(accumulator, condition) end)
   end
 
   defp convert_to_statistics_anonymization(query) do
@@ -152,7 +158,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         from_rhs = {:subquery, %{ast: distinct_statistics_query, alias: distinct_statistics_table.name}}
 
         # We join each query for distinct statistics to the main query with regular statistics.
-        from = {:join, %{type: :inner_join, lhs: from, rhs: from_rhs, conditions: conditions}}
+        from = {:join, %{type: :inner_join, lhs: from, rhs: from_rhs, condition: conditions}}
 
         {from, selected_tables ++ [distinct_statistics_table]}
       end)

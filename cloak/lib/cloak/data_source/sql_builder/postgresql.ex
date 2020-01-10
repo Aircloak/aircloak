@@ -23,12 +23,13 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct variance
+      < > <= >= = <> and or not in is_null like ilike
       year quarter month day hour minute second weekday date_trunc
       sqrt floor ceil abs round trunc mod ^ * / + - %
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
       length lower upper btrim ltrim rtrim left right substring concat
-      hex cast coalesce hash bool_op grouping_id case
+      hex cast coalesce hash grouping_id case
     )
 
   @impl Dialect
@@ -43,7 +44,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   def function_sql("hash", [arg]), do: ["SUBSTR(MD5(", arg, "::text), 5, 8)"]
 
-  def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: Dialect.bool_op_default(op, arg1, arg2)
+  def function_sql("boolean_expression", [arg]), do: arg
 
   def function_sql("unsafe_div", [arg1, arg2]), do: ["(", arg1, " :: double precision / ", arg2, ")"]
 
@@ -79,10 +80,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   def function_sql("case", args), do: Dialect.case_default(args)
 
-  def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
-
-  @impl Dialect
-  def ilike_sql(what, {pattern, escape = "\\"}), do: [what, " ILIKE ", ?', pattern, ?', " ESCAPE ", ?', escape, ?']
+  def function_sql(name, args), do: super(name, args)
 
   @impl Dialect
   def limit_sql(nil, offset), do: [" OFFSET ", to_string(offset)]
@@ -124,7 +122,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   @impl Dialect
   def literal(%Timex.Duration{} = value), do: ["interval '", interval_to_string(value), ?']
-  def literal(value), do: Dialect.literal_default(value)
+  def literal(value), do: super(value)
 
   @impl Dialect
   def select_table_names(prefix),

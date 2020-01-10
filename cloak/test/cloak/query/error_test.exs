@@ -47,7 +47,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "reports an error on wrong cast" do
     assert_query("select * from test_errors where datetime > 0", %{error: error})
-    assert error =~ ~r/Cannot cast `0` to datetime./
+    assert error =~ ~r/Arguments of type \(`datetime`, `integer`\) are incorrect for `>`./
   end
 
   test "reports an error on ambiguous usage of an alias occurring multiple times" do
@@ -274,7 +274,9 @@ defmodule Cloak.Query.ErrorTest do
 
   test "[Issue #2559] Inspecting an interval in an error" do
     assert_query("SELECT count(*) FROM test_errors WHERE interval 'PT1S' like ''", %{
-      error: "Column `PT1S` of type `interval` cannot be used in a LIKE" <> _
+      error:
+        "Function `like` requires arguments of type (`text`, `like_pattern`), " <>
+          "but got (`interval`, `like_pattern`)" <> _
     })
   end
 

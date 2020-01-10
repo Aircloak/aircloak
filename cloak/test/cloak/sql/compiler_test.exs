@@ -8,13 +8,19 @@ defmodule Cloak.Sql.Compiler.Test do
 
   defmacrop column(table_name, column_name) do
     quote do
-      %{name: unquote(column_name), table: %{db_name: unquote(table_name)}}
+      %{kind: :column, name: unquote(column_name), table: %{db_name: unquote(table_name)}}
     end
   end
 
   defmacrop column(column_name) do
     quote do
-      %{name: unquote(column_name)}
+      %{kind: :column, name: unquote(column_name)}
+    end
+  end
+
+  defmacrop function(function_name, args) do
+    quote do
+      %{kind: :function, name: unquote(function_name), args: unquote(args)}
     end
   end
 
@@ -24,44 +30,41 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "adds a non-nil condition on user_id for top query" do
     query = compile!("select stddev(uid) from (select uid, column from table) as t", data_source())
-    assert {:not, {:is, %{name: "uid"}, :null}} = query.where
+    assert function("not", [function("is_null", [column("uid")])]) = query.where
     {:subquery, %{ast: subquery}} = query.from
     assert nil == subquery.where
   end
 
-  for first <- [:>, :>=],
-      second <- [:<, :<=] do
-    test "rejects inequalities on strings with #{first} and #{second}" do
-      {:error, error} =
-        compile(
-          "select * from table where string #{unquote(first)} " <> "'CEO' and string #{unquote(second)} 'CEP'",
-          data_source()
-        )
+  for operator <- [:>, :>=, :<, :<=] do
+    test "rejects inequalities on strings with #{operator}" do
+      {:error, error} = compile("select * from table where string #{unquote(operator)} 'CEO'", data_source())
+      assert error == "Inequalities on `text` values are currently not supported."
+    end
 
-      assert error == "Inequalities on string values are currently not supported."
+    test "rejects inequalities on booleans with #{operator}" do
+      {:error, error} = compile("select * from table where bool #{unquote(operator)} true", data_source())
+      assert error == "Inequalities on `boolean` values are currently not supported."
     end
   end
 
   test "rejects mistyped where conditions" do
     {:error, error} = compile("select * from table where numeric = column", data_source())
 
-    assert error ==
-             "Column `numeric` from table `table` of type `integer` and column `column` from table `table` " <>
-               "of type `datetime` cannot be compared."
+    assert error == "Arguments of type (`integer`, `datetime`) are incorrect for `=`."
   end
 
   test "rejects mistyped where conditions with constants" do
     {:error, error} = compile("select count(*) from table where string = 2", data_source())
 
-    assert error ==
-             "Column `string` from table `table` of type `text` and column `2` of type `integer` " <>
-               "cannot be compared."
+    assert error == "Arguments of type (`text`, `integer`) are incorrect for `=`."
   end
 
   test "rejects mistyped like conditions" do
     {:error, error} = compile("select * from table where numeric like 'something'", data_source())
 
-    assert error == "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
+    assert error ==
+             "Function `like` requires arguments of type (`text`, `like_pattern`), " <>
+               "but got (`integer`, `like_pattern`)."
   end
 
   test "rejects mistyped having conditions" do
@@ -73,9 +76,7 @@ defmodule Cloak.Sql.Compiler.Test do
         data_source()
       )
 
-    assert error ==
-             "Column `numeric` from table `table` of type `integer` and column `column` from table `table` " <>
-               "of type `datetime` cannot be compared."
+    assert error == "Arguments of type (`integer`, `datetime`) are incorrect for `=`."
   end
 
   test "rejects mistyped having conditions in subqueries" do
@@ -88,9 +89,27 @@ defmodule Cloak.Sql.Compiler.Test do
         data_source()
       )
 
-    assert error ==
-             "Column `numeric` from table `table` of type `integer` and column `column` from table `table` " <>
-               "of type `datetime` cannot be compared."
+    assert error == "Arguments of type (`integer`, `datetime`) are incorrect for `=`."
+  end
+
+  describe "rejects non-boolean filtering clauses" do
+    test "where" do
+      assert {:error, error} = compile("select count(*) from table where 1", data_source())
+
+      assert error == "Row filtering clauses have to be boolean expressions."
+    end
+
+    test "having" do
+      assert {:error, error} = compile("select count(*) from table having 1", data_source())
+
+      assert error == "Row filtering clauses have to be boolean expressions."
+    end
+
+    test "on" do
+      assert {:error, error} = compile("select count(*) from table as t1 join table as t2 on 1", data_source())
+
+      assert error == "Row filtering clauses have to be boolean expressions."
+    end
   end
 
   test "select NULL" do
@@ -131,7 +150,8 @@ defmodule Cloak.Sql.Compiler.Test do
         data_source()
       )
 
-    assert [_is_not_null_id, {:comparison, column("table", "column"), :>=, value}, _rhs] = conditions_list(result.where)
+    assert [_is_not_null_id, function(">=", [column("table", "column"), value]), _lt_date] =
+             conditions_list(result.where)
 
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
@@ -139,14 +159,14 @@ defmodule Cloak.Sql.Compiler.Test do
   test "[Issue #2152] an invalid datetime comparison",
     do:
       assert(
-        {:error, "Cannot cast `900` to datetime."} =
+        {:error, "Arguments of type (`datetime`, `integer`) are incorrect for `=`."} =
           compile("select * from table where column = 1000 - 100", data_source())
       )
 
   test "[Issue #2562] doesn't cast expressions that are already datetime" do
     result = compile!("select stddev(uid) from table where column = cast('2017-01-01' as datetime)", data_source())
 
-    assert [_is_not_null_id, {:comparison, column("table", "column"), :=, value}] = conditions_list(result.where)
+    assert [_is_not_null_id, function("=", [column("table", "column"), value])] = conditions_list(result.where)
     assert value == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
   end
 
@@ -157,7 +177,9 @@ defmodule Cloak.Sql.Compiler.Test do
         data_source()
       )
 
-    assert [_is_not_null_id, {:in, column("table", "column"), [value1, value2]}] = conditions_list(result.where)
+    assert [_is_not_null_id, function("in", [column("table", "column"), value1, value2])] =
+             conditions_list(result.where)
+
     assert value1 == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
     assert value2 == Expression.constant(:datetime, ~N[2017-02-02 00:00:00.000000])
   end
@@ -167,31 +189,34 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "casts time where conditions" do
-    assert %{where: {:and, _is_not_null_id, range}} =
+    assert %{where: function("and", [_is_not_null_id, range])} =
              compile!(
                "select stddev(uid) from table where column >= '01:00:00' and column < '02:00:00'",
                time_data_source()
              )
 
-    assert {:and, {:comparison, column("table", "column"), :>=, value}, _rhs} = range
+    assert function("and", [function(">=", [column("table", "column"), value]), _rhs]) = range
     assert value == Expression.constant(:time, ~T[01:00:00.000000])
   end
 
   test "casts date where conditions" do
-    assert %{where: {:and, _is_not_null_id, range}} =
+    assert %{where: function("and", [_is_not_null_id, range])} =
              compile!(
                "select stddev(uid) from table where column >= '2015-01-01' and column < '2016-01-01'",
                date_data_source()
              )
 
-    assert {:and, {:comparison, column("table", "column"), :>=, value}, _rhs} = range
+    assert function("and", [function(">=", [column("table", "column"), value]), _rhs]) = range
     assert value == Expression.constant(:date, ~D[2015-01-01])
   end
 
   test "casts datetime in `in` conditions" do
     result = compile!("select stddev(uid) from table where column in ('2015-01-01', '2015-01-02')", data_source())
 
-    assert {:and, {:not, {:is, column("table", "uid"), :null}}, {:in, column("table", "column"), times}} = result.where
+    assert function("and", [
+             function("not", [function("is_null", [column("table", "uid")])]),
+             function("in", [column("table", "column") | times])
+           ]) = result.where
 
     assert times |> Enum.map(& &1.value) |> Enum.sort() ==
              [~N[2015-01-01 00:00:00.000000], ~N[2015-01-02 00:00:00.000000]]
@@ -200,8 +225,10 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casts datetime in negated conditions" do
     result = compile!("select stddev(uid) from table where column <> '2015-01-01'", data_source())
 
-    assert {:and, {:not, {:is, column("table", "uid"), :null}}, {:comparison, column("table", "column"), :<>, value}} =
-             result.where
+    assert function("and", [
+             function("not", [function("is_null", [column("table", "uid")])]),
+             function("<>", [column("table", "column"), value])
+           ]) = result.where
 
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
@@ -209,7 +236,11 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casts integers to reals in IN" do
     result = compile!("select stddev(uid) from table where float IN (1, 1.1)", data_source())
 
-    assert {:and, {:not, {:is, column("table", "uid"), :null}}, {:in, column("table", "float"), values}} = result.where
+    assert function("and", [
+             function("not", [function("is_null", [column("table", "uid")])]),
+             function("in", [column("table", "float") | values])
+           ]) = result.where
+
     assert [%Expression{type: :real, value: 1}, %Expression{type: :real, value: 1.1}] = values
   end
 
@@ -530,8 +561,8 @@ defmodule Cloak.Sql.Compiler.Test do
                "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` < 10.0."
              ]
 
-    {:join, %{conditions: conditions1}} = query1.from
-    {:join, %{conditions: conditions2}} = query2.from
+    {:join, %{condition: conditions1}} = query1.from
+    {:join, %{condition: conditions2}} = query2.from
     assert conditions_list(conditions1) == conditions_list(conditions2)
   end
 
@@ -566,8 +597,7 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error ==
-             "Column `cast` of type `text` and column `uid` from table `t2` of type `integer` cannot be compared."
+    assert error == "Arguments of type (`text`, `integer`) are incorrect for `=`."
   end
 
   test "allows qualified identifiers in function calls" do
@@ -600,10 +630,10 @@ defmodule Cloak.Sql.Compiler.Test do
            ] = result.columns
 
     conditions = conditions_list(result.where)
-    assert Enum.any?(conditions, &match?({:comparison, column("table", "numeric"), :>=, _}, &1))
-    assert Enum.any?(conditions, &match?({:comparison, column("table", "numeric"), :<, _}, &1))
-    assert Enum.any?(conditions, &match?({:not, {:is, column("table", "uid"), :null}}, &1))
-    assert Enum.any?(conditions, &match?({:comparison, column("table", "column"), :<>, _}, &1))
+    assert Enum.any?(conditions, &match?(function(">=", [column("table", "numeric"), _]), &1))
+    assert Enum.any?(conditions, &match?(function("<", [column("table", "numeric"), _]), &1))
+    assert Enum.any?(conditions, &match?(function("not", [function("is_null", [column("table", "uid")])]), &1))
+    assert Enum.any?(conditions, &match?(function("<>", [column("table", "column"), _]), &1))
     assert [column("table", "column")] = result.group_by
     assert [{expr_1, :desc, _}, {expr_2, :desc, _}] = result.order_by
     assert %Expression{name: "variance"} = expr_1
@@ -654,12 +684,12 @@ defmodule Cloak.Sql.Compiler.Test do
 
     conditions = conditions_list(result.where)
     assert [column("t1", "c1"), _] = result.columns
-    assert Enum.any?(conditions, &match?({:comparison, column("t1", "c2"), :>=, _}, &1))
-    assert Enum.any?(conditions, &match?({:comparison, column("t1", "c2"), :<, _}, &1))
+    assert Enum.any?(conditions, &match?(function(">=", [column("t1", "c2"), _]), &1))
+    assert Enum.any?(conditions, &match?(function("<", [column("t1", "c2"), _]), &1))
 
     assert Enum.any?(
              conditions,
-             &match?({:comparison, column("t1", "uid"), :=, column("t2", "uid")}, &1)
+             &match?(function("=", [column("t1", "uid"), column("t2", "uid")]), &1)
            )
 
     assert [column("t1", "c1"), column("t2", "c3")] = result.group_by
@@ -1373,14 +1403,14 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "casting interval parameter" do
     assert {:error, "Constant expression is out of valid range" <> _} =
-             compile("SELECT COUNT(*) FROM table WHERE $1 = $1", data_source(),
+             compile("SELECT COUNT(*) FROM table WHERE column - column = $1", data_source(),
                parameters: [%{type: :interval, value: "P1000Y"}]
              )
   end
 
   test "casting time parameter" do
     assert [%{type: :time, value: ~T[10:20:30]}] =
-             compile!("SELECT COUNT(*) FROM table WHERE $1 = $1", data_source(),
+             compile!("SELECT COUNT(*) FROM table WHERE cast(column as time) = $1", data_source(),
                parameters: [%{type: :time, value: "10:20:30"}]
              ).parameters
   end
@@ -1423,7 +1453,8 @@ defmodule Cloak.Sql.Compiler.Test do
               Table.column("numeric", :integer),
               Table.column("float", :real),
               Table.column("string", :text),
-              Table.column("key", :integer)
+              Table.column("key", :integer),
+              Table.column("bool", :boolean)
             ],
             keys: %{"key" => :unknown}
           ),
@@ -1525,6 +1556,7 @@ defmodule Cloak.Sql.Compiler.Test do
     %{
       name: "compiler_test_data_source",
       driver: Cloak.DataSource.MongoDB,
+      driver_info: "3.6.0",
       tables: %{
         table:
           Cloak.DataSource.Table.new(

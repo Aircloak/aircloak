@@ -1,161 +1,107 @@
 defmodule Cloak.Sql.Condition do
   @moduledoc "Contains utility functions for working with conditions."
 
-  alias Cloak.Sql.{Query, Expression, Parser, LikePattern}
+  alias Cloak.Sql.{Query, Expression}
 
-  @inequalities [:<, :>, :<=, :>=]
-
-  @type direction :: :< | :>
+  @inequalities ~w(< > <= >=)
+  @comparisons ~w(= <>) ++ @inequalities
 
   @doc "Return true if the given where clause is an inequality (<, >, <=, >=), false otherwise."
   @spec inequality?(Query.where_clause()) :: boolean
-  def inequality?({:not, comparison}), do: inequality?(comparison)
-  def inequality?({:comparison, _, operator, _}), do: Enum.member?(@inequalities, operator)
+  def inequality?(%Expression{kind: :function, name: "not", args: [arg]}), do: inequality?(arg)
+  def inequality?(%Expression{kind: :function, name: name}) when name in @inequalities, do: true
   def inequality?(_), do: false
 
   @doc "Returns true if the given where clause is an equality (=), false otherwise."
   @spec equals?(Query.where_clause()) :: boolean
-  def equals?({:comparison, _, :=, _}), do: true
+  def equals?(%Expression{kind: :function, name: "="}), do: true
   def equals?(_), do: false
 
   @doc "Returns true if the given where clause is a not-equals clause (<>), false otherwise."
   @spec not_equals?(Query.where_clause()) :: boolean
-  def not_equals?({:comparison, _, :<>, _}), do: true
+  def not_equals?(%Expression{kind: :function, name: "<>"}), do: true
   def not_equals?(_), do: false
+
+  @doc "Returns true if the given where clause is a LIKE clause, false otherwise."
+  @spec like?(Query.where_clause()) :: boolean
+  def like?(%Expression{kind: :function, name: name}) when name in ~w(like ilike), do: true
+  def like?(_), do: false
 
   @doc "Returns true if the given where clause is a NOT (I)LIKE clause, false otherwise."
   @spec not_like?(Query.where_clause()) :: boolean
-  def not_like?({:not, {:like, _, _}}), do: true
-  def not_like?({:not, {:ilike, _, _}}), do: true
+  def not_like?(%Expression{kind: :function, name: "not", args: [arg]}), do: like?(arg)
   def not_like?(_), do: false
 
   @doc "Returns true if the given where clause is a NOT ILIKE clause, false otherwise."
   @spec not_ilike?(Query.where_clause()) :: boolean
-  def not_ilike?({:not, {:ilike, _, _}}), do: true
-  def not_ilike?(_), do: false
+  def not_ilike?(%Expression{kind: :function, name: "not", args: [%Expression{kind: :function, name: "ilike"}]}),
+    do: true
 
-  @doc "Returns true if the given where clause is a LIKE clause, false otherwise."
-  @spec like?(Query.where_clause()) :: boolean
-  def like?({:like, _, _}), do: true
-  def like?({:ilike, _, _}), do: true
-  def like?(_), do: false
+  def not_ilike?(_), do: false
 
   @doc "Returns true if the given where clause is an IN clause, false otherwise."
   @spec in?(Query.where_clause()) :: boolean
-  def in?({:in, _, _}), do: true
+  def in?(%Expression{kind: :function, name: "in"}), do: true
   def in?(_), do: false
 
-  @doc "Returns the constant term the given comparison compares against."
+  @doc "Returns the targets of the condition."
+  @spec targets(Query.where_clause()) :: [Expression.t()]
+  def targets(%Expression{kind: :function, name: "not", args: [arg]}), do: targets(arg)
+  def targets(%Expression{kind: :function, args: args}), do: args
+
+  @doc "Returns the subject term the given condition acts on."
+  @spec subject(Query.where_clause()) :: Expression.t()
+  def subject(condition), do: condition |> targets() |> Enum.at(0)
+
+  @doc "Returns the constant term the given condition compares against."
   @spec value(Query.where_clause()) :: any
-  def value({:comparison, lhs, _, rhs}),
-    do: if(Expression.constant?(lhs) and not Expression.constant?(rhs), do: lhs, else: rhs) |> Expression.const_value()
-
-  def value({:not, comparison}), do: value(comparison)
-  def value({:is, _lhs, :null}), do: nil
-  def value({:in, _lhs, rhs}), do: Enum.map(rhs, &Expression.value/1)
-  def value({:like, _lhs, rhs}), do: Expression.const_value(rhs)
-  def value({:ilike, _lhs, rhs}), do: Expression.const_value(rhs)
-
-  @doc "Returns the term the given comparison acts on."
-  @spec subject(Query.where_clause() | Parser.where_clause()) :: Expression.t() | Parser.column()
-  def subject({:comparison, lhs, _, rhs}),
-    do: if(Expression.constant?(lhs) and not Expression.constant?(rhs), do: rhs, else: lhs)
-
-  def subject({:not, comparison}), do: subject(comparison)
-  def subject({:is, lhs, :null}), do: lhs
-  def subject({:in, lhs, _rhs}), do: lhs
-  def subject({:like, lhs, _rhs}), do: lhs
-  def subject({:ilike, lhs, _rhs}), do: lhs
-
-  @doc "Returns the targets of the comparison."
-  @spec targets(Query.where_clause() | Parser.where_clause()) :: [Expression.t() | Parser.column()]
-  def targets({:comparison, lhs, _, rhs}), do: [lhs, rhs]
-  def targets({:not, comparison}), do: targets(comparison)
-  def targets({:is, lhs, :null}), do: [lhs]
-  def targets({:in, lhs, rhs}), do: [lhs | rhs]
-  def targets({:like, lhs, rhs}), do: [lhs, rhs]
-  def targets({:ilike, lhs, rhs}), do: [lhs, rhs]
-
-  @doc "Returns a representation of the direction of the given inequality as `:<` or `:>`."
-  @spec direction(Query.where_clause()) :: direction
-  def direction({:comparison, lhs, operator, rhs}) when operator in [:<, :<=],
-    do: if(Expression.constant?(lhs) and not Expression.constant?(rhs), do: :>, else: :<)
-
-  def direction({:comparison, lhs, operator, rhs}) when operator in [:>, :>=],
-    do: if(Expression.constant?(lhs) and not Expression.constant?(rhs), do: :<, else: :>)
-
-  @doc "Converts the given condition to a function that checks a row."
-  @spec to_function(Query.where_clause(), boolean) :: (any -> boolean)
-  def to_function(_condition, _truth \\ true)
-  def to_function(nil, _truth), do: nil
-
-  def to_function({:and, lhs, rhs}, truth) do
-    lhs_fun = to_function(lhs, truth)
-    rhs_fun = to_function(rhs, truth)
-    fn row -> lhs_fun.(row) and rhs_fun.(row) == truth end
-  end
-
-  def to_function({:or, lhs, rhs}, truth) do
-    lhs_fun = to_function(lhs, truth)
-    rhs_fun = to_function(rhs, truth)
-    fn row -> lhs_fun.(row) or rhs_fun.(row) == truth end
-  end
-
-  def to_function({:not, condition}, truth), do: to_function(condition, not truth)
-
-  def to_function({:comparison, column, operator, value}, truth) do
-    fn row ->
-      lhs = Expression.value(column, row)
-      rhs = Expression.value(value, row)
-      compare(operator, lhs, rhs) == truth
+  def value(condition) do
+    condition
+    |> targets()
+    |> case do
+      [_subject] -> nil
+      [_subject, value] -> Expression.const_value(value)
+      [_subject | values] -> Enum.map(values, &Expression.value/1)
     end
   end
 
-  def to_function({:like, column, %Expression{type: :like_pattern, value: pattern}}, truth) do
-    regex = LikePattern.to_regex(pattern)
-    fn row -> compare(:=~, Expression.value(column, row), regex) == truth end
-  end
+  @doc "Returns a representation of the direction of the given inequality as `:<` or `:>`."
+  @spec direction(Query.where_clause()) :: :> | :<
+  def direction(%Expression{kind: :function, name: name}) when name in ~w(< <=), do: :<
+  def direction(%Expression{kind: :function, name: name}) when name in ~w(> >=), do: :>
 
-  def to_function({:ilike, column, %Expression{type: :like_pattern, value: pattern}}, truth) do
-    regex = LikePattern.to_case_insensitive_regex(pattern)
-    fn row -> compare(:=~, Expression.value(column, row), regex) == truth end
-  end
+  @doc "Converts the given condition to a function that checks a row."
+  @spec to_function(Query.where_clause()) :: (any -> boolean) | nil
+  def to_function(nil), do: nil
 
-  def to_function({:is, column, :null}, truth) do
-    fn row -> Expression.value(column, row) == nil == truth end
-  end
-
-  def to_function({:in, column, values}, truth) do
-    values = for %Expression{kind: :constant, value: value} <- values, do: value
-    fn row -> compare(:in, Expression.value(column, row), values) == truth end
-  end
+  def to_function(condition), do: &Expression.value(condition, &1)
 
   @doc "Returns the verb of the condition."
-  @spec verb(Query.where_clause()) :: atom
-  def verb({:not, condition}), do: verb(condition)
-  def verb({:comparison, _lhs, _, _rhs}), do: :comparison
-  def verb({:is, _lhs, :null}), do: :is
-  def verb({:in, _lhs, _rhs}), do: :in
-  def verb({:like, _lhs, _rhs}), do: :like
-  def verb({:ilike, _lhs, _rhs}), do: :ilike
+  @spec verb(Query.where_clause()) :: :comparison | :is_null | :in | :like
+  def verb(%Expression{kind: :function, name: "not", args: [arg]}), do: verb(arg)
+  def verb(%Expression{kind: :function, name: "is_null"}), do: :is_null
+  def verb(%Expression{kind: :function, name: "in"}), do: :in
+  def verb(%Expression{kind: :function, name: name}) when name in @comparisons, do: :comparison
+  def verb(%Expression{kind: :function, name: name}) when name in ~w(like ilike), do: :like
 
-  @doc "Combines two clauses with the given operator."
-  @spec combine(:and | :or, Query.where_clause(), Query.where_clause()) :: Query.where_clause()
-  def combine(_op, nil, nil), do: nil
-  def combine(_op, lhs, nil), do: lhs
-  def combine(_op, nil, rhs), do: rhs
-  def combine(op, lhs, rhs), do: {op, lhs, rhs}
+  @doc "Combines two conditions with the AND operator."
+  @spec both(Query.where_clause(), Query.where_clause()) :: Query.where_clause()
+  def both(nil, nil), do: nil
+  def both(lhs, nil), do: lhs
+  def both(nil, rhs), do: rhs
+  def both(lhs, rhs), do: Expression.function("and", [lhs, rhs], :boolean)
 
   @doc "Rejects conditions that match the given function."
   @spec reject(Query.where_clause(), (Query.where_clause() -> boolean)) :: Query.where_clause()
   def reject(nil, _matcher), do: nil
 
-  def reject({operator, lhs, rhs}, matcher) when operator in [:or, :and] do
+  def reject(%Expression{kind: :function, name: name, args: [lhs, rhs]} = expression, matcher)
+      when name in ~w(or, and) do
     case {reject(lhs, matcher), reject(rhs, matcher)} do
       {nil, nil} -> nil
       {nil, rhs} -> rhs
       {lhs, nil} -> lhs
-      {lhs, rhs} -> {operator, lhs, rhs}
+      {lhs, rhs} -> %Expression{expression | args: [lhs, rhs]}
     end
   end
 
@@ -169,27 +115,4 @@ defmodule Cloak.Sql.Condition do
     matching = reject(conditions, &(not matcher.(&1)))
     {matching, non_matching}
   end
-
-  @doc "Negates a condition."
-  @spec negate(Query.where_clause()) :: Query.where_clause()
-  def negate({:not, condition}), do: condition
-  def negate(condition), do: {:not, condition}
-
-  @doc "Returns an impossible condition (TRUE = FALSE)."
-  @spec impossible() :: Query.where_clause()
-  def impossible(), do: {:comparison, Expression.constant(:boolean, true), :=, Expression.constant(:boolean, false)}
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp compare(_operator, nil, _value), do: nil
-  defp compare(:in, target, values) when is_list(values), do: Enum.member?(values, target)
-  defp compare(:=, target, value), do: target == value
-  defp compare(:<>, target, value), do: target != value
-  defp compare(:>, target, value), do: Cloak.Data.gt(target, value)
-  defp compare(:<, target, value), do: Cloak.Data.lt(target, value)
-  defp compare(:>=, target, value), do: Cloak.Data.gt_eq(target, value)
-  defp compare(:<=, target, value), do: Cloak.Data.lt_eq(target, value)
-  defp compare(:=~, target, value), do: target =~ value
 end

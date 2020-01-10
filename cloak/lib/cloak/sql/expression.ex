@@ -184,8 +184,9 @@ defmodule Cloak.Sql.Expression do
   def display(%__MODULE__{kind: :function, name: {:bucket, align}, args: [value, by]}),
     do: "bucket(#{display(value)} by #{display(by)} align #{align})"
 
-  def display(%__MODULE__{kind: :function, name: function, args: [arg1, arg2]}) when function in ~w(+ - / * ^ %),
-    do: "#{display(arg1)} #{function} #{display(arg2)}"
+  def display(%__MODULE__{kind: :function, name: function, args: [arg1, arg2]})
+      when function in ~w(+ - / * ^ % < > = <> >= <=),
+      do: "#{display(arg1)} #{function} #{display(arg2)}"
 
   def display(%__MODULE__{kind: :function, name: function, args: args}),
     do: "#{function}(#{args |> Enum.map(&display/1) |> Enum.join(", ")})"
@@ -197,6 +198,9 @@ defmodule Cloak.Sql.Expression do
 
   def display(%__MODULE__{kind: :constant, type: type, value: value}) when type in [:date, :datetime, :time],
     do: "#{type} '#{to_string(value)}'"
+
+  def display(%__MODULE__{kind: :constant, type: :like_pattern, value: {pattern, _regex, _regex_ci}}),
+    do: "'#{pattern}'"
 
   def display(%__MODULE__{kind: :constant, value: nil}), do: "NULL"
   def display(%__MODULE__{kind: :constant, value: value}), do: to_string(value)
@@ -305,9 +309,6 @@ defmodule Cloak.Sql.Expression do
 
   def lowercase(%__MODULE__{type: :text} = expression), do: function("lower", [expression], expression.type)
 
-  def lowercase(%__MODULE__{type: :like_pattern, value: pattern} = expression),
-    do: %__MODULE__{expression | value: LikePattern.lowercase(pattern)}
-
   def lowercase(_), do: raise("Only textual expressions can be made lowercase")
 
   @doc "Checks if a string is a valid name for a column."
@@ -406,15 +407,38 @@ defmodule Cloak.Sql.Expression do
     Base.encode16(hash, case: :lower)
   end
 
-  defp do_apply("bool_op", [_op, nil, _any]), do: nil
-  defp do_apply("bool_op", [_op, _any, nil]), do: nil
-  defp do_apply("bool_op", ["=", arg1, arg2]), do: arg1 == arg2
-  defp do_apply("bool_op", ["<>", arg1, arg2]), do: arg1 != arg2
-  defp do_apply("bool_op", [">", arg1, arg2]), do: arg1 > arg2
-  defp do_apply("bool_op", [">=", arg1, arg2]), do: arg1 >= arg2
-  defp do_apply("bool_op", ["<", arg1, arg2]), do: arg1 < arg2
-  defp do_apply("bool_op", ["<=", arg1, arg2]), do: arg1 <= arg2
-  defp do_apply("bool_op", [op, _arg1, _arg2]), do: raise("Invalid boolean operator `#{op}` specified!")
+  # three-valued logic system
+
+  defp do_apply("and", [true, arg2]), do: arg2
+  defp do_apply("and", [arg1, true]), do: arg1
+  defp do_apply("and", [false, _any]), do: false
+  defp do_apply("and", [nil, arg2]), do: arg2
+
+  defp do_apply("or", [true, _any]), do: true
+  defp do_apply("or", [_any, true]), do: true
+  defp do_apply("or", [false, arg2]), do: arg2
+  defp do_apply("or", [nil, _any]), do: nil
+
+  defp do_apply("not", [nil]), do: nil
+  defp do_apply("not", [arg]) when is_boolean(arg), do: not arg
+
+  defp do_apply(operator, [arg1, arg2]) when operator in ~w(= <> > < >= <=) and (arg1 == nil or arg2 == nil), do: nil
+
+  defp do_apply("=", [arg1, arg2]), do: arg1 == arg2
+  defp do_apply("<>", [arg1, arg2]), do: arg1 != arg2
+  defp do_apply(">", [arg1, arg2]), do: arg1 > arg2
+  defp do_apply("<", [arg1, arg2]), do: arg1 < arg2
+  defp do_apply(">=", [arg1, arg2]), do: arg1 >= arg2
+  defp do_apply("<=", [arg1, arg2]), do: arg1 <= arg2
+
+  defp do_apply("in", [nil | _values]), do: nil
+  defp do_apply("in", [arg | values]), do: arg in values
+
+  defp do_apply("is_null", [nil]), do: true
+  defp do_apply("is_null", [_]), do: false
+
+  defp do_apply("like", [subject, {_pattern, regex, _regex_ci}]), do: subject =~ regex
+  defp do_apply("ilike", [subject, {_pattern, _regex, regex_ci}]), do: subject =~ regex_ci
 
   defp do_apply("extract_words", [nil]), do: [nil]
   defp do_apply("extract_words", [string]), do: String.split(string)

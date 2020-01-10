@@ -190,10 +190,6 @@ defmodule Aircloak.Functions do
                  attributes: [:restricted, :cast]
                },
                ~w(dec_b64) => %{type_specs: %{[:text] => :text}, attributes: [:unsafe]},
-               ~w(bool_op) => %{
-                 type_specs: %{[:text, :any, :any] => :boolean},
-                 attributes: [:unsafe]
-               },
                ~w(coalesce) => %{
                  type_specs: %{{:many1, :any} => :any},
                  attributes: [:unsafe]
@@ -216,6 +212,44 @@ defmodule Aircloak.Functions do
                ~w(case) => %{
                  type_specs: %{[{:many1, :any}] => :any},
                  attributes: [:unsafe]
+               },
+               ~w(< > = <> >= <=) => %{
+                 type_specs: %{
+                   [:text, :text] => :boolean,
+                   [:numeric, :numeric] => :boolean,
+                   [:date, :date] => :boolean,
+                   [:date, :text] => :boolean,
+                   [:text, :date] => :boolean,
+                   [:time, :time] => :boolean,
+                   [:time, :text] => :boolean,
+                   [:text, :time] => :boolean,
+                   [:datetime, :datetime] => :boolean,
+                   [:datetime, :text] => :boolean,
+                   [:text, :datetime] => :boolean,
+                   [:interval, :interval] => :boolean,
+                   [:boolean, :boolean] => :boolean
+                 },
+                 attributes: [:condition]
+               },
+               ~w(like ilike) => %{
+                 type_specs: %{[:text, :like_pattern] => :boolean},
+                 attributes: [:condition]
+               },
+               ~w(and or) => %{
+                 type_specs: %{[:boolean, :boolean] => :boolean},
+                 attributes: []
+               },
+               ~w(in) => %{
+                 type_specs: %{[{:many1, :any}] => :boolean},
+                 attributes: [:condition]
+               },
+               ~w(is_null) => %{
+                 type_specs: %{[:any] => :boolean},
+                 attributes: [:condition]
+               },
+               ~w(not) => %{
+                 type_specs: %{[:boolean] => :boolean},
+                 attributes: []
                }
              }
              |> Enum.flat_map(fn {functions, traits} -> Enum.map(functions, &{&1, traits}) end)
