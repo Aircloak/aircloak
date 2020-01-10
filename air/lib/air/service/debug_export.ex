@@ -19,7 +19,8 @@ defmodule Air.Service.DebugExport do
         context: query.context,
         created_on: query.inserted_at,
         login: User.main_login(user),
-        features: query.features || [],
+        selected_types: query.selected_types || [],
+        parameter_types: query.parameter_types || [],
         last_update: query.updated_at,
         user: user.name
       },

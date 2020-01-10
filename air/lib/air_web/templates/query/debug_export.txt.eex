@@ -11,10 +11,8 @@ Export by <%= get_in(@data, [:metadata, :user]) %> (<%= get_in(@data, [:metadata
 - Last updated: <%= get_in(@data, [:metadata, :last_update]) %>
 - Cloak: <%= get_in(@data, [:metadata, :cloak_id]) %>
 - Context: <%= get_in(@data, [:metadata, :context]) %>
-- Recorded features:
-<%= for feature <- get_in(@data, [:metadata, :features]) do %>
-  - <%= format_map(feature) %>
-<% end %>
+- Selected types: <%= get_in(@data, [:metadata, :selected_types]) %>
+- Parameter types: <%= get_in(@data, [:metadata, :parameter_types]) %>
 
 <%= banner("RESULT", "=") %>
 

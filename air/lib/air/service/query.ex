@@ -287,7 +287,6 @@ defmodule Air.Service.Query do
     log_result_error(query, result)
     UserChannel.broadcast_state_change(query, buckets(query, 0))
     Air.Service.Query.Events.trigger_result(result)
-    report_query_result(result)
   end
 
   defp query_state(%{error: error}) when is_binary(error), do: :error
@@ -318,7 +317,7 @@ defmodule Air.Service.Query do
     # use string keys, so we end up consistent with what is returned from the database
     storable_result = %{
       "columns" => result[:columns],
-      "types" => result[:features][:selected_types],
+      "types" => result[:selected_types],
       "error" => error_text(result),
       "info" => result[:info],
       "row_count" => result.row_count || 0,
@@ -330,7 +329,8 @@ defmodule Air.Service.Query do
         query,
         Map.merge(updated_time_spent(query), %{
           execution_time: result[:execution_time],
-          features: result[:features],
+          selected_types: result[:selected_types],
+          parameter_types: result[:parameter_types],
           query_state: query_state(result),
           result: storable_result
         })
@@ -428,12 +428,6 @@ defmodule Air.Service.Query do
 
   defp result_chunks(query_id, chunk_index),
     do: from(chunk in result_chunks(query_id, :all), where: chunk.index == ^chunk_index)
-
-  if Mix.env() == :test do
-    defp report_query_result(_), do: :ok
-  else
-    defp report_query_result(result), do: Air.Service.Central.report_query_result(result)
-  end
 
   defp add_id_to_changeset(changeset, :autogenerate), do: changeset
   defp add_id_to_changeset(changeset, id), do: Query.add_id_to_changeset(changeset, id)
