@@ -138,6 +138,9 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("hash", [arg]), do: ["TO_CHAR(ORA_HASH(", arg, "), '#{@fmt_no_extra_whitespace}0000000X')"]
 
+  def function_sql("boolean_expression", [expression]),
+    do: ["(CASE WHEN ", expression, " THEN 1 WHEN NOT (", expression, ") THEN 0 ELSE NULL END)"]
+
   for {operator, alias} <- @safe_aliases do
     def function_sql(unquote(operator), args), do: function_sql("aircloak.#{unquote(alias)}", args)
   end

@@ -44,6 +44,8 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   def function_sql("hash", [arg]), do: ["SUBSTR(MD5(", arg, "::text), 5, 8)"]
 
+  def function_sql("boolean_expression", [arg]), do: arg
+
   def function_sql("unsafe_div", [arg1, arg2]), do: ["(", arg1, " :: double precision / ", arg2, ")"]
 
   def function_sql("checked_div", [arg1, arg2, epsilon]),

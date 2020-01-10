@@ -52,6 +52,9 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("hash", [arg]),
     do: function_sql("hex", [["SUBSTRING(HASHBYTES('md5', CAST(", arg, " AS varchar)), 3, 4)"]])
 
+  def function_sql("boolean_expression", [expression]),
+    do: ["(CASE WHEN ", expression, " THEN 1 WHEN NOT (", expression, ") THEN 0 ELSE NULL END)"]
+
   def function_sql("avg", [arg]), do: ["AVG(", cast_sql(arg, :numeric, :real), ")"]
   def function_sql("stddev", [arg]), do: ["STDEV(", cast_sql(arg, :numeric, :real), ")"]
   def function_sql("variance", [arg]), do: ["VAR(", cast_sql(arg, :numeric, :real), ")"]

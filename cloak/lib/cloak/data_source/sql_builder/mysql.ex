@@ -38,6 +38,8 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   def function_sql("hash", [arg]), do: ["SUBSTR(MD5(CAST(", arg, " AS char)), 5, 8)"]
 
+  def function_sql("boolean_expression", [arg]), do: arg
+
   def function_sql("checked_mod", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
 
   def function_sql("checked_div", [arg1, arg2, epsilon]),

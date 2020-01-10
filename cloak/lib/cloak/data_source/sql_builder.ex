@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
   use Combine
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.Sql.{Query, Expression, Compiler, Function}
   alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, Oracle}
   alias Cloak.DataSource.Table
 
@@ -12,7 +12,12 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec build(Query.t()) :: String.t()
   @doc "Constructs a parametrized SQL query that can be executed against a backend."
-  def build(query), do: query |> build_fragments() |> to_string()
+  def build(query),
+    do:
+      query
+      |> Compiler.Helpers.apply_bottom_up(&mark_boolean_expressions/1)
+      |> build_fragments()
+      |> to_string()
 
   @doc """
   Makes sure the specified partial or full table name is quoted.
@@ -401,6 +406,10 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp cast({:distinct, expression}, to), do: {:distinct, cast(expression, to)}
   defp cast(expression, to), do: Expression.function({:cast, to}, [expression], to)
 
+  # -------------------------------------------------------------------
+  # `JOIN` timing protection
+  # -------------------------------------------------------------------
+
   defp add_join_timing_protection(%{ast: query, join_timing_protection?: true}) do
     dialect = sql_dialect_module(query)
 
@@ -424,4 +433,47 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
 
   defp add_join_timing_protection(_subquery), do: []
+
+  # -------------------------------------------------------------------
+  # Mark boolean expressions
+  # -------------------------------------------------------------------
+
+  # Some backends (like SQL Server and Oracle) have limited support for boolean expressions.
+  # A boolean expression is an expression consisting of conditions and boolean operators (`and`, `or`, `not`).
+  # We wrap boolean expressions in non-filtering clauses inside a dummy `boolean_expression` function call.
+  # This will result in no-op on backends where boolean expressions are supported and
+  # in a `case` statement where they aren't.
+
+  defp mark_boolean_expressions(query) do
+    query
+    |> update_in([non_filter_clauses()], &mark_boolean_expression(&1, :mark))
+    |> update_in([Query.Lenses.filter_clauses()], &mark_boolean_expression(&1, :ignore))
+  end
+
+  defp non_filter_clauses() do
+    Lens.multiple([
+      Lens.keys?([:columns, :group_by, :db_columns]) |> Lens.all(),
+      Lens.key?(:order_by) |> Lens.all() |> Lens.at(0)
+    ])
+  end
+
+  defp mark_boolean_expression(%Expression{kind: :function} = function, state) do
+    cond do
+      state == :mark and boolean_expression?(function) ->
+        alias = function.alias
+        function = function |> Expression.unalias() |> mark_boolean_expression(:ignore)
+        %Expression{function | name: "boolean_expression", alias: alias, args: [function]}
+
+      state == :ignore and function.name not in ~w(and not or) ->
+        %Expression{function | args: Enum.map(function.args, &mark_boolean_expression(&1, :mark))}
+
+      true ->
+        %Expression{function | args: Enum.map(function.args, &mark_boolean_expression(&1, state))}
+    end
+  end
+
+  defp mark_boolean_expression(expression, _state), do: expression
+
+  defp boolean_expression?(%Expression{kind: :function} = function),
+    do: function.name in ~w(and or) or Function.condition?(function)
 end
