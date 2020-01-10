@@ -71,7 +71,7 @@ defmodule Cloak.Sql.Condition do
   def direction(%Expression{kind: :function, name: name}) when name in ~w(> >=), do: :>
 
   @doc "Converts the given condition to a function that checks a row."
-  @spec to_function(Query.where_clause()) :: (any -> boolean)
+  @spec to_function(Query.where_clause()) :: (any -> boolean) | nil
   def to_function(nil), do: nil
 
   def to_function(condition), do: &Expression.value(condition, &1)
