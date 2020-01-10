@@ -10,24 +10,26 @@ defmodule Cloak.Query.Result do
           buckets: [bucket],
           columns: [String.t()],
           types: [atom],
-          features: map
+          selected_types: [String.t()],
+          parameter_types: [String.t()]
         }
 
   @type bucket :: %{row: Cloak.DataSource.row(), occurrences: pos_integer}
 
-  defstruct buckets: [], columns: [], types: [], features: %{}
+  defstruct buckets: [], columns: [], types: [], selected_types: [], parameter_types: []
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Creates the result struct that corresponds to the given query."
-  @spec new([bucket], [String.t()], Query.features()) :: t
-  def new(buckets, columns, features),
+  @spec new([bucket], [String.t()], Query.metadata()) :: t
+  def new(buckets, columns, metadata),
     do: %__MODULE__{
       buckets: normalize(buckets),
       columns: columns,
-      features: features
+      selected_types: metadata.selected_types,
+      parameter_types: metadata.parameter_types
     }
 
   # -------------------------------------------------------------------

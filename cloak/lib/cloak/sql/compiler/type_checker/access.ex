@@ -1,6 +1,6 @@
 defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   @moduledoc """
-  This module exposes some access functions that TypeChecker uses to navigate the query. They are used by Query.Features
+  This module exposes some access functions that TypeChecker uses to navigate the query. They are used by Query.Metadata
   to compute things related to shadow table/isolator checks. They are made common, so that the two modules agree on the
   definitions.
   """

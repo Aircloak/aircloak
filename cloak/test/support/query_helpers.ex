@@ -57,7 +57,7 @@ defmodule Cloak.Test.QueryHelpers do
         |> Stream.zip(data_sources)
         |> Enum.map(fn
           {{:ok, result}, data_source} ->
-            {data_source, Map.drop(result, [:execution_time, :features])}
+            {data_source, Map.drop(result, [:execution_time, :parameter_types, :selected_types])}
 
           {{:exit, _} = exit_value, data_source} ->
             {data_source, exit_value}

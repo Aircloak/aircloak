@@ -4,7 +4,7 @@ defmodule Cloak.ResultSender.Test do
   alias Cloak.ResultSender
 
   describe "encode_result" do
-    for key <- ~w/query_id columns features error cancelled info execution_time log/a do
+    for key <- ~w/query_id columns selected_types parameter_types error cancelled info execution_time log/a do
       test "preserves #{key}" do
         assert {:ok, %{unquote(key) => :something}} = ResultSender.encode_result(%{unquote(key) => :something})
       end

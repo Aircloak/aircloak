@@ -28,7 +28,7 @@ defmodule Cloak.Query.Runner do
           parameters: [Cloak.DataSource.field()],
           views: [Cloak.Sql.Query.view_map()],
           state_updater: (Cloak.ResultSender.query_state() -> any),
-          feature_updater: (Cloak.Query.features() -> any)
+          metadata_updater: (Cloak.Query.metadata() -> any)
         }
 
   @type result :: {:ok, Sql.Query.Result.t(), [String.t()]} | {:error, String.t()}
@@ -185,7 +185,7 @@ defmodule Cloak.Query.Runner do
     runner_args =
       Map.merge(runner_args, %{
         state_updater: with(me <- self(), do: &send(me, {:send_state, runner_args.query_id, &1})),
-        feature_updater: with(me <- self(), do: &send(me, {:features, &1}))
+        metadata_updater: with(me <- self(), do: &send(me, {:metadata, &1}))
       })
 
     Parent.GenServer.start_child(%{
@@ -200,7 +200,8 @@ defmodule Cloak.Query.Runner do
        result_target: Map.get(runner_args, :result_target, :air_socket),
        start_time: :erlang.monotonic_time(:milli_seconds),
        execution_time: nil,
-       features: nil,
+       selected_types: [],
+       parameter_types: [],
        log_format: Logger.Formatter.compile(Application.get_env(:logger, :console)[:format]),
        log_metadata: Application.get_env(:logger, :console)[:metadata],
        log: [],
@@ -247,7 +248,7 @@ defmodule Cloak.Query.Runner do
     {:noreply, %{state | query_state: query_state}}
   end
 
-  def handle_info({:features, features}, state), do: {:noreply, %{state | features: features}}
+  def handle_info({:metadata, metadata}, state), do: {:noreply, Map.merge(state, metadata)}
 
   def handle_info({:query_result, result}, state),
     do: {:noreply, send_result_report(state, result)}
@@ -378,16 +379,17 @@ defmodule Cloak.Query.Runner do
       columns: result.columns,
       rows: result.buckets,
       info: info,
-      features: result.features
+      selected_types: result.selected_types,
+      parameter_types: result.parameter_types
     }
 
   defp format_result({:error, reason}, state) when is_binary(reason),
-    do: %{error: reason, features: state[:features]}
+    do: %{error: reason}
 
   defp format_result(:oom, state),
-    do: %{error: "Query aborted due to low memory.", features: state[:features]}
+    do: %{error: "Query aborted due to low memory."}
 
-  defp format_result(:cancelled, state), do: %{cancelled: true, features: state[:features]}
+  defp format_result(:cancelled, state), do: %{cancelled: true}
 
   defp format_result({:error, reason}, state) do
     Logger.error("Unknown query error: #{inspect(reason)}")
