@@ -44,6 +44,8 @@ function ensure_database_containers {
     --mount type=bind,src=$(pwd)/cloak/ci/init_oracle.sql,dst=/docker-entrypoint-initdb.d/init_oracle.sql \
     --mount type=bind,src=$(pwd)/cloak/ci/oracle_udfs.sql,dst=/mnt/cloak/oracle_udfs.sql \
     quay.io/aircloak/oracle-xe-11g
+
+  sleep 60 # wait for containers to finish initializing
 }
 
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo

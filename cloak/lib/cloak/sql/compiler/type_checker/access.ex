@@ -88,10 +88,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
     |> Lens.to_list(query)
   end
 
-  defp unclear_isolator_condition?({:not, condition}, query), do: unclear_isolator_condition?(condition, query)
-  defp unclear_isolator_condition?({:in, _, _}, _), do: true
-  defp unclear_isolator_condition?({:like, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
-  defp unclear_isolator_condition?({:ilike, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
+  defp unclear_isolator_condition?(%Expression{kind: :function, name: "not", args: [condition]}, query),
+    do: unclear_isolator_condition?(condition, query)
+
+  defp unclear_isolator_condition?(%Expression{kind: :function, name: "in"}, _), do: true
+
+  defp unclear_isolator_condition?(%Expression{kind: :function, name: verb, args: [_, pattern]}, _)
+       when verb in ~w(like ilike),
+       do: not LikePattern.simple?(pattern.value)
+
+  defp unclear_isolator_condition?(%Expression{kind: :constant, type: :boolean}, _query), do: false
 
   defp unclear_isolator_condition?(condition, query),
     do: condition |> Condition.targets() |> Enum.any?(&unclear_isolator_expression?(&1, query))

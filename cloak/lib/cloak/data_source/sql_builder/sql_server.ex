@@ -11,12 +11,13 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct variance
+      < > <= >= = <> and or not in is_null like ilike
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod ^ * / + - %
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
       length lower upper ltrim rtrim left right substring concat
-      hex cast coalesce hash bool_op grouping_id case
+      hex cast coalesce hash grouping_id case
     )
 
   @aliases %{
@@ -51,10 +52,8 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("hash", [arg]),
     do: function_sql("hex", [["SUBSTRING(HASHBYTES('md5', CAST(", arg, " AS varchar)), 3, 4)"]])
 
-  def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]) do
-    condition = Dialect.bool_op_default(op, arg1, arg2)
-    ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
-  end
+  def function_sql("boolean_expression", [expression]),
+    do: ["(CASE WHEN ", expression, " THEN 1 WHEN NOT (", expression, ") THEN 0 ELSE NULL END)"]
 
   def function_sql("avg", [arg]), do: ["AVG(", cast_sql(arg, :numeric, :real), ")"]
   def function_sql("stddev", [arg]), do: ["STDEV(", cast_sql(arg, :numeric, :real), ")"]
@@ -120,14 +119,10 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   def function_sql("case", args), do: ["CASE", case_branches(args), " END"]
 
-  def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
+  def function_sql("like", [subject, pattern]), do: [?(, subject, " COLLATE Latin1_General_CS_AS LIKE ", pattern, ?)]
+  def function_sql("ilike", [subject, pattern]), do: [?(, subject, " COLLATE Latin1_General_CI_AS LIKE ", pattern, ?)]
 
-  @impl Dialect
-  def like_sql(what, match), do: super([what, " COLLATE Latin1_General_CS_AS"], match)
-
-  @impl Dialect
-  def ilike_sql(what, {pattern, escape = "\\"}),
-    do: [what, " COLLATE Latin1_General_CI_AS LIKE ", ?', pattern, ?', " ESCAPE ", ?', escape, ?']
+  def function_sql(name, args), do: super(name, args)
 
   @impl Dialect
   def limit_sql(nil, offset), do: [" OFFSET ", to_string(offset), " ROWS"]
@@ -141,7 +136,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def literal(false), do: "0"
   def literal(true), do: "1"
   def literal(value) when is_binary(value), do: ["N'", value, ?']
-  def literal(value), do: Dialect.literal_default(value)
+  def literal(value), do: super(value)
 
   @impl Dialect
   def cast_sql(["DISTINCT " | value], from, to), do: ["DISTINCT " | cast_sql(value, from, to)]

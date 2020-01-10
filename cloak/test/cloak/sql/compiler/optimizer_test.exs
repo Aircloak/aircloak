@@ -50,7 +50,7 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
   end
 
   test "simple conditions in joined subquery are pushed down" do
-    assert %{from: {:join, %{lhs: {:subquery, %{ast: subquery}}, conditions: conditions}}} =
+    assert %{from: {:join, %{lhs: {:subquery, %{ast: subquery}}, condition: condition}}} =
              compile!(
                """
                  SELECT stddev(t1.uid) FROM
@@ -61,8 +61,8 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
                data_source()
              )
 
-    assert {:and, _, _} = subquery.where
-    assert {:comparison, _, :=, _} = conditions
+    assert %{name: "and"} = subquery.where
+    assert %{name: "="} = condition
   end
 
   test "simple conditions in complex joined subquery are pushed down" do
@@ -78,9 +78,9 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
                data_source()
              )
 
-    assert {:join, %{lhs: lhs_branch, conditions: {:comparison, _, :=, _}}} = from
+    assert {:join, %{lhs: lhs_branch, condition: %{name: "="}}} = from
     assert {:join, %{lhs: {:subquery, %{ast: subquery}}}} = lhs_branch
-    assert {:comparison, %{name: "numeric"}, :<>, %{value: 0}} = subquery.where
+    assert %{name: "<>", args: [%{name: "numeric"}, %{value: 0}]} = subquery.where
   end
 
   test "simple conditions in upper query are pushed down" do
@@ -94,8 +94,8 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
                data_source()
              )
 
-    assert {:not, {:is, %{name: "uid"}, :null}} = where
-    assert {:comparison, %{name: "numeric"}, :=, %{value: 0}} = subquery.where
+    assert %{name: "not", args: [%{name: "is_null", args: [%{name: "uid"}]}]} = where
+    assert %{name: "=", args: [%{name: "numeric"}, %{value: 0}]} = subquery.where
   end
 
   test "[BUG] pushing a range with negative number into subquery" do
@@ -109,10 +109,15 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
                data_source()
              )
 
-    assert {:not, {:is, %{name: "uid"}, :null}} = where
+    assert %{name: "not", args: [%{name: "is_null", args: [%{name: "uid"}]}]} = where
 
-    assert {:and, {:comparison, %{name: "numeric"}, :>=, %{value: -5}},
-            {:comparison, %{name: "numeric"}, :<, %{value: 0}}} = subquery.where
+    assert %{
+             name: "and",
+             args: [
+               %{name: ">=", args: [%{name: "numeric"}, %{value: -5}]},
+               %{name: "<", args: [%{name: "numeric"}, %{value: 0}]}
+             ]
+           } = subquery.where
   end
 
   test "complex groups are offloaded" do

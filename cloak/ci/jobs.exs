@@ -3,30 +3,21 @@ test = fn
     {:sequence,
      [
        "MIX_ENV=test ./check_warnings.sh",
-       {:parallel,
-        [
-          "MIX_ENV=test mix lint",
-          {:sequence,
-           [
-             "mongod --fork --logpath /var/log/mongodb.log",
-             "CLOAK_DATA_SOURCES=postgresql9.6 mix cloak.create_db dockerized_ci",
-             "CLOAK_DATA_SOURCES=postgresql9.6 mix test --include exclude_in_dev"
-           ]}
-        ]}
+       "MIX_ENV=test mix lint",
+       "mongod --fork --logpath /var/log/mongodb.log",
+       "CLOAK_DATA_SOURCES=postgresql9.6 mix cloak.create_db dockerized_ci",
+       "CLOAK_DATA_SOURCES=postgresql9.6 mix test --include exclude_in_dev"
      ]}
 
   :dev ->
     {:sequence,
      [
        "MIX_ENV=dev ./check_warnings.sh",
-       {:parallel,
-        [
-          "mix docs",
-          "mix lint",
-          "make check-format",
-          "mix bom --elixir deps --rust src/rodbc /tmp/",
-          "MIX_HOME=_build make dialyze"
-        ]}
+       "mix docs",
+       "mix lint",
+       "make check-format",
+       "mix bom --elixir deps --rust src/rodbc /tmp/",
+       "MIX_HOME=_build make dialyze"
      ]}
 
   :prod ->
@@ -39,15 +30,9 @@ end
     {:sequence,
      [
        "make",
-       {:parallel,
-        [
-          {:sequence,
-           [
-             "MIX_ENV=test make",
-             "MIX_ENV=prod make"
-           ]},
-          "MIX_HOME=_build mix dialyze --no-analyse"
-        ]}
+       "MIX_ENV=test make",
+       "MIX_ENV=prod make",
+       "MIX_HOME=_build mix dialyze --no-analyse"
      ]},
   test:
     {:sequence,

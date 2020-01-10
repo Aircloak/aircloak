@@ -1198,6 +1198,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     assert result1 == result2
   end
 
+  test "noise layers for identical conditions should be identical" do
+    result1 = compile!("SELECT COUNT(*) FROM table WHERE dummy")
+    result2 = compile!("SELECT COUNT(*) FROM table WHERE dummy = true")
+
+    assert result1.noise_layers == result2.noise_layers
+  end
+
   defp compile!(query, opts \\ []),
     do:
       Cloak.Test.QueryHelpers.compile!(query, data_source(), opts)

@@ -1,8 +1,7 @@
 defmodule Cloak.DataSource.MongoDB.Pipeline do
   @moduledoc "MongoDB helper functions for mapping a query to an aggregation pipeline."
 
-  alias Cloak.Sql.{Query, Expression, Condition, LikePattern, Function}
-  alias Cloak.Query.ExecutionError
+  alias Cloak.Sql.{Query, Expression, Condition, Function}
   alias Cloak.DataSource.MongoDB.{Schema, Projector}
   alias Cloak.DataSource.Table
 
@@ -51,7 +50,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
     lhs_tables = tables_in_branch(join.lhs)
     outer_join? = join.type == :left_outer_join
-    pipeline = lhs_pipeline ++ join_pipeline(rhs_collection, rhs_pipeline, join.conditions, lhs_tables, outer_join?)
+    pipeline = lhs_pipeline ++ join_pipeline(rhs_collection, rhs_pipeline, join.condition, lhs_tables, outer_join?)
 
     {lhs_collection, pipeline, conditions}
   end
@@ -80,69 +79,15 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> aggregate_and_project(top_level?)
 
   defp filter_data(nil), do: []
-  defp filter_data(condition), do: [%{"$match": parse_where_condition(condition)}]
 
-  defp parse_operator(:=), do: :"$eq"
-  defp parse_operator(:>), do: :"$gt"
-  defp parse_operator(:>=), do: :"$gte"
-  defp parse_operator(:<), do: :"$lt"
-  defp parse_operator(:<=), do: :"$lte"
-  defp parse_operator(:<>), do: :"$ne"
-
-  defp map_column(%Expression{kind: :column, table: :unknown, name: name}), do: name
-  defp map_column(%Expression{kind: :column, table: %{name: table}, name: name}), do: table <> "." <> name
-
-  defp map_column(_),
-    do: raise(ExecutionError, message: "Condition on MongoDB data source expects a column as subject.")
-
-  defp parse_where_condition({:and, lhs, rhs}), do: %{"$and": [parse_where_condition(lhs), parse_where_condition(rhs)]}
-
-  defp parse_where_condition({:or, lhs, rhs}), do: %{"$or": [parse_where_condition(lhs), parse_where_condition(rhs)]}
-
-  defp parse_where_condition({:comparison, subject, operator, target}),
-    do: %{
-      "$expr": %{
-        parse_operator(operator) => [Projector.project_expression(subject), Projector.project_expression(target)]
+  defp filter_data(condition),
+    do: [
+      %{
+        "$match": %{
+          "$expr": Projector.project_expression(condition)
+        }
       }
-    }
-
-  defp parse_where_condition({:not, {:comparison, subject, :=, target}}),
-    do: %{"$expr": %{"$ne": [Projector.project_expression(subject), Projector.project_expression(target)]}}
-
-  defp parse_where_condition({:not, {:comparison, subject, :<>, target}}),
-    do: %{"$expr": %{"$eq": [Projector.project_expression(subject), Projector.project_expression(target)]}}
-
-  defp parse_where_condition({:is, subject, :null}),
-    do: %{"$expr": %{"$eq": [Projector.project_expression(subject), nil]}}
-
-  defp parse_where_condition({:not, {:is, subject, :null}}),
-    do: %{"$expr": %{"$gt": [Projector.project_expression(subject), nil]}}
-
-  defp parse_where_condition({:in, subject, targets}),
-    do: %{
-      "$expr": %{"$in": [Projector.project_expression(subject), Enum.map(targets, &Projector.project_expression/1)]}
-    }
-
-  defp parse_where_condition({:not, {:in, subject, targets}}),
-    do: %{
-      "$expr": %{"$nin": [Projector.project_expression(subject), Enum.map(targets, &Projector.project_expression/1)]}
-    }
-
-  defp parse_where_condition({:like, subject, pattern}), do: %{map_column(subject) => regex(pattern, "ms")}
-
-  defp parse_where_condition({:ilike, subject, pattern}), do: %{map_column(subject) => regex(pattern, "msi")}
-
-  defp parse_where_condition({:not, {:like, subject, pattern}}),
-    do: %{map_column(subject) => %{"$not": regex(pattern, "ms")}}
-
-  defp parse_where_condition({:not, {:ilike, subject, pattern}}),
-    do: %{map_column(subject) => %{"$not": regex(pattern, "msi")}}
-
-  defp regex(%Expression{kind: :constant, value: pattern}, options),
-    do: %BSON.Regex{
-      pattern: LikePattern.to_regex_pattern(pattern),
-      options: options
-    }
+    ]
 
   defp extract_basic_conditions(table, conditions) do
     {complex_conditions, basic_conditions} = Condition.partition(conditions, complex_filter(table.array_path))
@@ -153,7 +98,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     table_conditions =
       Query.Lenses.conditions_terminals() |> Lens.map(table_conditions, &%Expression{&1 | table: :unknown})
 
-    {Condition.combine(:and, complex_conditions, other_tables_conditions), table_conditions}
+    {Condition.both(complex_conditions, other_tables_conditions), table_conditions}
   end
 
   defp complex_filter([]), do: &complex_condition?(&1, [])

@@ -33,11 +33,11 @@ defmodule Cloak.DataSource.Isolators.Query do
 
     """
       SELECT isolating, COUNT(*) FROM (
-        SELECT BOOL_OP('=', MAX(#{user_id}), MIN(#{user_id})) AS isolating
+        SELECT MAX(#{user_id}) = MIN(#{user_id}) AS isolating
         FROM #{table_chain}
+        WHERE #{user_id} IS NOT NULL
         GROUP BY "#{table_name}"."#{column}"
       ) x
-      WHERE isolating IS NOT NULL
       GROUP BY 1
       ORDER BY 1
     """

@@ -8,22 +8,10 @@ defmodule Cloak.Sql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, NoiseLayer, Condition}
+  alias Cloak.Sql.{Expression, Compiler, Parser, Query.Lenses, NoiseLayer, Condition}
   require Logger
 
-  @type comparison :: {:comparison, Expression.t(), Parser.comparator(), Expression.t()}
-
-  @type condition ::
-          comparison
-          | {:like | :ilike, Expression.t(), Expression.t()}
-          | {:is, Expression.t(), :null}
-          | {:in, Expression.t(), [Expression.t()]}
-
-  @type filter_clause ::
-          nil
-          | condition
-          | {:not, condition}
-          | {:and | :or, condition, condition}
+  @type filter_clause :: nil | Expression.t()
 
   @type view_map :: %{(view_name :: String.t()) => view_sql :: String.t()}
 
@@ -35,22 +23,37 @@ defmodule Cloak.Sql.Query do
 
   @type anonymization_type :: :statistics | :user_id
 
+  @type from_clause :: table | subquery | join
+
+  @type table :: String.t()
+
+  @type join ::
+          {:join,
+           %{
+             type: :cross_join | :inner_join | :full_outer_join | :left_outer_join | :right_outer_join,
+             lhs: from_clause,
+             rhs: from_clause,
+             condition: filter_clause
+           }}
+
+  @type subquery :: {:subquery, %{ast: t, alias: String.t()}}
+
   @type t :: %__MODULE__{
           analyst_id: analyst_id,
           data_source: DataSource.t(),
           command: :select | :show,
           columns: [Expression.t()],
           column_titles: [String.t()],
-          aggregators: [Function.t()],
+          aggregators: [Expression.t()],
           implicit_count?: boolean,
-          group_by: [Function.t()],
+          group_by: [Expression.t()],
           grouping_sets: [[non_neg_integer()]],
           where: filter_clause,
           order_by: [{Expression.t(), :asc | :desc, :nulls_first | :nulls_last | :nulls_natural}],
           show: :tables | :columns | nil,
           selected_tables: [DataSource.Table.t()],
           db_columns: [Expression.t()],
-          from: Parser.from_clause() | String.t() | nil,
+          from: from_clause | nil,
           subquery?: boolean,
           limit: pos_integer | nil,
           offset: non_neg_integer,
@@ -310,12 +313,6 @@ defmodule Cloak.Sql.Query do
       |> Lens.map(query, fn _ -> new_expression end)
 
   @doc """
-  Returns true if the given expression is a raw database column, false otherwise.
-  """
-  @spec database_column?(Expression.t(), t) :: boolean
-  def database_column?(column, query), do: is_nil(source_subquery(column, query))
-
-  @doc """
   Finds the subquery a given column comes from.
 
   Returns `:database_column` if the column does not come from any subquery. Otherwise returns `{column, subquery}`.
@@ -450,36 +447,34 @@ defmodule Cloak.Sql.Query do
   defp is_emulated_query?(query), do: query.type != :anonymized and has_emulated_expressions?(query)
 
   defp emulated_condition?(condition, query) do
-    emulated_expression_condition?(condition, query.data_source) or
+    emulated_expression?(condition, query.data_source) or
       (query.emulated? and (multiple_tables_condition?(condition) or not is_binary(query.from)))
   end
 
-  defp emulated_expression?(expression, data_source),
-    do: Expression.function?(expression) and not data_source.driver.supports_function?(expression, data_source)
-
-  defp emulated_expression_condition?(condition, data_source) do
-    Lenses.conditions_terminals()
-    |> Lens.to_list([condition])
-    |> Enum.any?(&emulated_expression?(&1, data_source))
+  defp emulated_expression?(expression, data_source) do
+    Lenses.all_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.reject(&data_source.driver.supports_function?(&1, data_source))
+    |> Lens.to_list(expression)
+    |> Enum.count() > 0
   end
 
   defp has_emulated_expressions?(query),
     do:
-      Lenses.all_expressions()
-      |> Lens.to_list([
+      [
         query.columns,
         query.group_by,
         query.having,
         query.where,
         order_by_expressions(query)
-      ])
+      ]
+      |> List.flatten()
       |> Enum.any?(&emulated_expression?(&1, query.data_source))
 
   defp has_emulated_join_conditions?(query),
     do:
       query
       |> Compiler.Helpers.all_join_conditions()
-      |> get_in([Lenses.all_expressions()])
       |> Enum.any?(&emulated_expression?(&1, query.data_source))
 
   defp multiple_tables_condition?(condition) do

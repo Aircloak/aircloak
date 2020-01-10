@@ -3,14 +3,6 @@ defmodule Cloak.Sql.Parser do
 
   alias Cloak.Sql.Parser.ASTNormalization
 
-  @type comparator ::
-          :=
-          | :<
-          | :<=
-          | :>=
-          | :>
-          | :<>
-
   @type unqualified_identifier :: {:quoted, String.t()} | {:unquoted, String.t()}
 
   @type location :: {integer, integer} | nil
@@ -36,25 +28,7 @@ defmodule Cloak.Sql.Parser do
 
   @type function_spec :: {:function, function_name, [column], location}
 
-  @type comparison :: {:comparison, column, comparator, any}
-
-  @type condition ::
-          comparison
-          | {:like | :ilike, column, constant, constant}
-          | {:is, String.t(), :null}
-          | {:in, String.t(), [any]}
-
-  @type where_clause ::
-          nil
-          | condition
-          | {:not, condition}
-          | {:and | :or, condition, condition}
-
-  @type having_clause ::
-          nil
-          | comparison
-          | {:not, comparison}
-          | {:and | :or, comparison, comparison}
+  @type filter_clause :: nil | column
 
   @type from_clause :: table | subquery | join
 
@@ -66,7 +40,7 @@ defmodule Cloak.Sql.Parser do
              type: :cross_join | :inner_join | :full_outer_join | :left_outer_join | :right_outer_join,
              lhs: from_clause,
              rhs: from_clause,
-             conditions: where_clause
+             condition: filter_clause
            }}
 
   @type subquery :: {:subquery, %{ast: parsed_query, alias: String.t()}}
@@ -76,9 +50,9 @@ defmodule Cloak.Sql.Parser do
           columns: [column | {column, :as, String.t()} | {:*, String.t()} | :*],
           grouping_sets: [[column]],
           from: from_clause,
-          where: where_clause,
+          where: filter_clause,
           order_by: [{column, :asc | :desc, :nulls_first | :nulls_last | :nulls_natural}],
-          having: having_clause,
+          having: filter_clause,
           show: :tables | :columns,
           limit: integer,
           offset: integer,

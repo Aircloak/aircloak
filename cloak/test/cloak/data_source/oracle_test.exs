@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.Oracle.Test do
   use ExUnit.Case
 
-  alias Cloak.DataSource.{Oracle, Table}
+  alias Cloak.DataSource.{Oracle, Table, SqlBuilder}
   alias Cloak.Sql.Query
   import Cloak.Test.QueryHelpers
 
@@ -47,12 +47,73 @@ defmodule Cloak.DataSource.Oracle.Test do
     end
   end
 
+  test "boolean expression (1)" do
+    assert "SELECT (CASE WHEN (table.uid = 0) THEN 1 WHEN NOT ((table.uid = 0)) THEN 0 ELSE NULL END) x FROM table" ==
+             translate!("SELECT uid = 0 AS x FROM table")
+  end
+
+  test "boolean expression (2)" do
+    assert flatten("""
+           SELECT
+             CAST((CASE WHEN (table.uid = 0) THEN 1 WHEN NOT ((table.uid = 0)) THEN 0 ELSE NULL END) AS VARCHAR2) x
+           FROM table
+           GROUP BY
+             CAST((CASE WHEN (table.uid = 0) THEN 1 WHEN NOT ((table.uid = 0)) THEN 0 ELSE NULL END) AS VARCHAR2)
+           """) == translate!("SELECT CAST(uid = 0 AS text) AS x FROM table GROUP BY 1")
+  end
+
+  test "boolean expression (3)" do
+    assert flatten("""
+           SELECT
+            COUNT(*) count
+           FROM table
+           WHERE
+            (table.uid IN (0, 1)
+            AND
+            (CAST((CASE WHEN (table.uid > 0) THEN 1 WHEN NOT ((table.uid > 0)) THEN 0 ELSE NULL END) AS INTEGER) = 1))
+           """) == translate!("SELECT COUNT(*) FROM table WHERE uid IN (0, 1) AND CAST(uid > 0 AS integer) = 1")
+  end
+
+  test "boolean expression (4)" do
+    assert flatten("""
+           SELECT
+            table.uid uid
+           FROM table
+           GROUP BY table.uid
+           HAVING (CASE
+              WHEN (MAX(table.uid) = MIN(table.uid)) THEN 1
+              WHEN NOT ((MAX(table.uid) = MIN(table.uid))) THEN 0
+              ELSE NULL
+            END) IS NOT NULL
+           """) == translate!("SELECT uid FROM table GROUP BY uid HAVING (MAX(uid) = MIN(uid)) IS NOT NULL")
+  end
+
+  defp translate!(statement) do
+    query = compile!(statement, data_source())
+
+    columns =
+      query.columns
+      |> Enum.zip(query.column_titles)
+      |> Enum.map(fn {column, title} -> %{column | alias: title} end)
+
+    %{query | subquery?: true, db_columns: columns}
+    |> SqlBuilder.build()
+    |> String.replace("\"", "")
+  end
+
+  defp flatten(statement),
+    do:
+      statement
+      |> String.replace("\n", " ")
+      |> String.replace(~r/\s+/, " ")
+      |> String.trim()
+
   defp data_source do
     %{
       name: "oracle_test_data_source",
       driver: Oracle,
       tables: %{
-        table: Table.new("table", "uid", db_name: "table", columns: [Table.column("uid", :integer)])
+        table: Table.new("table", nil, db_name: "table", columns: [Table.column("uid", :integer)])
       }
     }
   end

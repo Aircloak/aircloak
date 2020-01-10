@@ -308,7 +308,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     do:
       clear_conditions()
       |> Lens.to_list(query)
-      |> Enum.flat_map(fn {:comparison, column, :=, constant} ->
+      |> Enum.flat_map(fn %Expression{kind: :function, name: "=", args: [column, constant]} ->
         [
           static_noise_layer(query.anonymization_type, column, constant),
           uid_noise_layer(column, constant, top_level_uid)
@@ -356,7 +356,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     do:
       conditions_satisfying(&Condition.in?/1)
       |> Lens.to_list(query)
-      |> Enum.flat_map(fn {:in, column, constants} ->
+      |> Enum.flat_map(fn %Expression{kind: :function, name: "in", args: [column | constants]} ->
         non_synthetic_expressions()
         |> raw_columns(column)
         |> Enum.flat_map(fn column ->
@@ -393,7 +393,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp do_not_equals_noise_layers(
          query,
-         {:comparison, column, :<>, constant = %Expression{kind: :constant, type: :text}},
+         %Expression{kind: :function, name: "<>", args: [column, %Expression{kind: :constant, type: :text} = constant]},
          top_level_uid
        ),
        do:
@@ -409,7 +409,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp do_not_equals_noise_layers(
          query,
-         {:comparison, column, :<>, constant = %Expression{kind: :constant}},
+         %Expression{kind: :function, name: "<>", args: [column, %Expression{kind: :constant} = constant]},
          top_level_uid
        ),
        do:
@@ -422,7 +422,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
            ]
          )
 
-  defp do_not_equals_noise_layers(_query, {:comparison, _column, :<>, _other_column}, _top_level_uid), do: []
+  defp do_not_equals_noise_layers(_query, %Expression{kind: :function, name: "<>"}, _top_level_uid), do: []
 
   defp lower(%Expression{kind: :constant, type: :text, value: value}),
     do: Expression.constant(:text, String.downcase(value))
@@ -434,7 +434,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp not_like_noise_layers(query, top_level_uid) do
     conditions_satisfying(&Condition.not_like?/1)
     |> Lens.to_list(query)
-    |> Enum.flat_map(fn {:not, {_kind, column, _pattern}} ->
+    |> Enum.flat_map(fn %Expression{
+                          kind: :function,
+                          name: "not",
+                          args: [%Expression{kind: :function, name: verb, args: [column, _pattern]}]
+                        }
+                        when verb in ~w(like ilike) ->
       non_synthetic_expressions()
       |> raw_columns(column)
       |> Enum.flat_map(
@@ -576,9 +581,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.reject(&clear_condition?/1)
   end
 
-  deflensp db_conditions() do
-    Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions()
-  end
+  deflensp db_conditions(),
+    do: Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions() |> Lens.reject(&Expression.constant?/1)
 
   deflensp non_uid_expressions(), do: Lens.filter(&(not &1.user_id?))
 
@@ -591,18 +595,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.reject(&Expression.constant?/1)
   end
 
-  defp clear_condition?({:comparison, %Expression{kind: :column}, :=, %Expression{kind: :constant}}),
-    do: true
+  defp clear_condition?(%Expression{
+         kind: :function,
+         name: "=",
+         args: [%Expression{kind: :column}, %Expression{kind: :constant}]
+       }),
+       do: true
 
   defp clear_condition?(_), do: false
 
-  defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do: Expression.key?(lhs) and Expression.key?(rhs)
+  defp fk_pk_condition?(%Expression{kind: :function, name: "=", args: [lhs, rhs]}),
+    do: Expression.key?(lhs) and Expression.key?(rhs)
 
   defp fk_pk_condition?(_), do: false
 
-  defp uid_null_conditions?({:not, {:is, %Expression{user_id?: true}, :null}}), do: true
-  defp uid_null_conditions?({:is, %Expression{user_id?: true}, :null}), do: true
-  defp uid_null_conditions?(_), do: false
+  defp uid_null_conditions?(condition),
+    do: Condition.verb(condition) == :is_null and Condition.subject(condition).user_id?
 
   defp table_name(_virtual_table = %{db_name: nil, name: name}), do: name
   defp table_name(table), do: table.db_name

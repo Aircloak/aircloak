@@ -68,7 +68,7 @@ defmodule Cloak.Sql.TransformerTest do
                   table.col1 AS group_0,
                   COUNT(*) AS agg_0
                 FROM table
-                WHERE NOT (table.uid IS NULL)
+                WHERE table.uid IS NOT NULL
                 GROUP BY table.uid, table.col1
                ) AS uid_grouping
                """)
@@ -84,7 +84,7 @@ defmodule Cloak.Sql.TransformerTest do
                   table.uid AS uid,
                   COUNT(*) AS agg_0
                 FROM table
-                WHERE NOT (table.uid IS NULL)
+                WHERE table.uid IS NOT NULL
                 GROUP BY table.uid
                ) AS uid_grouping
                """)
@@ -100,7 +100,7 @@ defmodule Cloak.Sql.TransformerTest do
                   table.uid AS uid,
                   COUNT(table.col1) AS agg_0
                 FROM table
-                WHERE NOT (table.uid IS NULL)
+                WHERE table.uid IS NOT NULL
                 GROUP BY table.uid
                ) AS uid_grouping
                """)
@@ -116,7 +116,7 @@ defmodule Cloak.Sql.TransformerTest do
                   table.uid AS uid,
                   COUNT(*) AS agg_0
                 FROM table
-                WHERE (NOT (table.uid IS NULL)) AND (table.col1 = 0)
+                WHERE (table.uid IS NOT NULL AND (table.col1 = 0))
                 GROUP BY table.uid
                ) AS uid_grouping
                """)
@@ -132,7 +132,7 @@ defmodule Cloak.Sql.TransformerTest do
                   table.uid AS uid,
                   table.col1 AS group_0
                 FROM table
-                WHERE NOT (table.uid IS NULL)
+                WHERE table.uid IS NOT NULL
                 GROUP BY table.uid, table.col1
                ) AS uid_grouping
                GROUP BY uid_grouping.group_0
@@ -151,7 +151,7 @@ defmodule Cloak.Sql.TransformerTest do
                   table.col1 AS group_0,
                   SUM(table.col2) AS agg_0
                 FROM table
-                WHERE NOT (table.uid IS NULL)
+                WHERE table.uid IS NOT NULL
                 GROUP BY table.uid, table.col1
                ) AS uid_grouping
                GROUP BY uid_grouping.group_0
@@ -169,11 +169,11 @@ defmodule Cloak.Sql.TransformerTest do
                   table.col1 AS group_0,
                   SUM(table.col2) AS agg_0
                 FROM table
-                WHERE NOT (table.uid IS NULL)
+                WHERE table.uid IS NOT NULL
                 GROUP BY table.uid, table.col1
                ) AS uid_grouping
                GROUP BY uid_grouping.group_0
-               HAVING SUM(uid_grouping.agg_0) = 0
+               HAVING (SUM(uid_grouping.agg_0) = 0)
                """)
     end
 
@@ -193,7 +193,7 @@ defmodule Cloak.Sql.TransformerTest do
                 COUNT(*) AS agg_0,
                 GROUPING(table.col1, table.col2) AS grouping_id
                FROM table
-               WHERE NOT (table.uid IS NULL)
+               WHERE table.uid IS NOT NULL
                GROUP BY GROUPING SETS ((table.uid, table.col1), (table.uid, table.col2))
                ) AS uid_grouping
                GROUP BY GROUPING SETS ((uid_grouping.group_0), (uid_grouping.group_1))
@@ -229,7 +229,7 @@ defmodule Cloak.Sql.TransformerTest do
                   COUNT(*) AS agg_0,
                   0 AS grouping_id
                 FROM table
-                WHERE NOT (table.uid IS NULL)
+                WHERE table.uid IS NOT NULL
                 GROUP BY table.uid, table.col1
                ) AS uid_grouping
                GROUP BY uid_grouping.grouping_id, uid_grouping.group_0
@@ -261,7 +261,7 @@ defmodule Cloak.Sql.TransformerTest do
                   SUM(table.col1) AS agg_0,
                   0 AS grouping_id
                 FROM table
-                WHERE NOT (table.uid IS NULL)
+                WHERE table.uid IS NOT NULL
                 GROUP BY table.uid
                ) AS uid_grouping
                GROUP BY uid_grouping.grouping_id
@@ -295,7 +295,7 @@ defmodule Cloak.Sql.TransformerTest do
                   COUNT(table.col1) AS agg_0,
                   0 AS grouping_id
                 FROM table
-                WHERE NOT (table.uid IS NULL)
+                WHERE table.uid IS NOT NULL
                 GROUP BY table.uid, table.col2
                ) AS uid_grouping
                GROUP BY uid_grouping.grouping_id, uid_grouping.group_0
@@ -317,7 +317,7 @@ defmodule Cloak.Sql.TransformerTest do
                flatten("""
                SELECT
                 uid_grouping.grouping_id AS grouping_id,
-                MAX((CAST((uid_grouping.user_id IS NOT NULL) AS integer)*CAST(uid_grouping.count_distinct AS bigint)))
+                MAX((CAST(uid_grouping.user_id IS NOT NULL AS integer)*CAST(uid_grouping.count_distinct AS bigint)))
                   AS noise_factor,
                 SUM(uid_grouping.count_distinct) AS count_distinct
                FROM (
@@ -331,7 +331,7 @@ defmodule Cloak.Sql.TransformerTest do
                     table.col1 AS target,
                     CASE WHEN (COUNT(DISTINCT table.uid) < 3) THEN MIN(table.uid) ELSE NULL END AS user_id
                   FROM table
-                  WHERE NOT (table.uid IS NULL)
+                  WHERE table.uid IS NOT NULL
                   GROUP BY table.col1
                ) AS distinct_values
                GROUP BY distinct_values.grouping_id, distinct_values.user_id
@@ -349,7 +349,7 @@ defmodule Cloak.Sql.TransformerTest do
                SELECT
                 uid_grouping.grouping_id AS grouping_id,
                 uid_grouping.group_0 AS group_0,
-                MAX((CAST((uid_grouping.user_id IS NOT NULL) AS integer)*CAST(uid_grouping.count_distinct AS bigint)))
+                MAX((CAST(uid_grouping.user_id IS NOT NULL AS integer)*CAST(uid_grouping.count_distinct AS bigint)))
                   AS noise_factor,
                 SUM(uid_grouping.count_distinct) AS count_distinct
                FROM (
@@ -365,7 +365,7 @@ defmodule Cloak.Sql.TransformerTest do
                     table.col1 AS target,
                     CASE WHEN (COUNT(DISTINCT table.uid) < 3) THEN MIN(table.uid) ELSE NULL END AS user_id
                   FROM table
-                  WHERE NOT (table.uid IS NULL)
+                  WHERE table.uid IS NOT NULL
                   GROUP BY table.col2, table.col1
                 ) AS distinct_values
                 GROUP BY distinct_values.grouping_id, distinct_values.user_id, distinct_values.group_0

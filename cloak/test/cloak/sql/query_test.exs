@@ -163,9 +163,16 @@ defmodule Cloak.Sql.QueryTest do
     numeric_column = Table.column("numeric", :integer)
     table = Table.new("table", "uid", columns: [uid_column, numeric_column])
 
-    condition = {:comparison, Expression.column(numeric_column, table), :=, Expression.constant(:integer, 3)}
+    condition =
+      Expression.function("=", [Expression.column(numeric_column, table), Expression.constant(:integer, 3)], :boolean)
 
-    query = %Query{command: :select, where: condition, selected_tables: [table], from: "table"}
+    query = %Query{
+      command: :select,
+      where: condition,
+      selected_tables: [table],
+      from: "table",
+      data_source: hd(Cloak.DataSource.all())
+    }
 
     assert ^condition = Query.offloaded_where(query)
     assert nil == Query.emulated_where(query)
@@ -177,7 +184,7 @@ defmodule Cloak.Sql.QueryTest do
     table = Table.new("table", "uid", columns: [uid_column, text_column])
 
     decoded_column = Expression.function("dec_b64", [Expression.column(text_column, table)], :text)
-    condition = {:comparison, decoded_column, :=, Expression.constant(:text, "a")}
+    condition = Expression.function("=", [decoded_column, Expression.constant(:text, "a")], :boolean)
 
     query = %Query{
       command: :select,

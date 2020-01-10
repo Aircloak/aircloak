@@ -48,6 +48,14 @@ defmodule Cloak.DataSource.RODBC do
     end
   end
 
+  @doc "Parses the db column type and returns an atom representing its canonical data type."
+  @spec parse_column_type(String.t()) :: atom() | {:unsupported, String.t()}
+  def parse_column_type(column) do
+    column
+    |> String.downcase()
+    |> parse_type()
+  end
+
   @doc "Selects the data from the database."
   @spec select(
           pid,
@@ -215,6 +223,7 @@ defmodule Cloak.DataSource.RODBC do
   defp boolean_field_mapper(nil), do: nil
 
   defp parse_type("varchar"), do: :text
+  defp parse_type("varchar2"), do: :text
   defp parse_type("wvarchar"), do: :text
   defp parse_type("binary"), do: :text
   defp parse_type("guid"), do: :text
@@ -222,11 +231,12 @@ defmodule Cloak.DataSource.RODBC do
   defp parse_type("bigint"), do: :integer
   defp parse_type("integer"), do: :integer
   defp parse_type("float"), do: :real
+  defp parse_type("binary_float"), do: :real
   defp parse_type("numeric"), do: :real
+  defp parse_type("number"), do: :real
   defp parse_type("time"), do: :time
   defp parse_type("date"), do: :date
   defp parse_type("datetime"), do: :datetime
-  defp parse_type("timestamp"), do: :datetime
   defp parse_type("nvarchar"), do: :text
   defp parse_type("nclob"), do: :text
   defp parse_type("clob"), do: :text
@@ -238,6 +248,7 @@ defmodule Cloak.DataSource.RODBC do
   defp parse_type("tinyint"), do: :integer
   defp parse_type("real"), do: :real
   defp parse_type("double"), do: :real
+  defp parse_type("binary_double"), do: :real
   defp parse_type("decimal" <> _), do: :real
   defp parse_type("smalldecimal"), do: :real
   defp parse_type("seconddate"), do: :datetime
@@ -253,5 +264,6 @@ defmodule Cloak.DataSource.RODBC do
   defp parse_type("uniqueidentifier"), do: :text
   defp parse_type("datetime2"), do: :datetime
   defp parse_type("datetimeoffset"), do: :datetime
+  defp parse_type("timestamp" <> _), do: :datetime
   defp parse_type(type), do: {:unsupported, type}
 end

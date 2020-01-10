@@ -62,7 +62,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp verify_lhs_of_in_is_clear(query),
     do:
-      verify_conditions(query, &Condition.in?/1, fn {:in, lhs, _} ->
+      verify_conditions(query, &Condition.in?/1, fn %Expression{kind: :function, name: "in", args: [lhs | _]} ->
         unless lhs |> Type.establish_type(query) |> Type.clear_expression?() do
           raise CompilationError,
             source_location: lhs.source_location,
@@ -75,28 +75,37 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp verify_not_equals_is_clear(query),
     do:
-      verify_conditions(query, &Condition.not_equals?/1, fn {:comparison, lhs, :<>, rhs} ->
-        check_columns_comparison_is_clear(lhs, rhs, query)
-      end)
+      verify_conditions(
+        query,
+        &Condition.not_equals?/1,
+        fn %Expression{kind: :function, name: "<>", args: [lhs, rhs]} ->
+          check_columns_comparison_is_clear(lhs, rhs, query)
+        end
+      )
 
   defp verify_string_based_conditions_are_clear(query),
     do:
-      verify_conditions(query, &(Condition.equals?(&1) or Condition.not_equals?(&1)), fn {:comparison, lhs, _, rhs} ->
-        lhs_type = Type.establish_type(lhs, query)
-        rhs_type = Type.establish_type(rhs, query)
+      verify_conditions(
+        query,
+        &(Condition.equals?(&1) or Condition.not_equals?(&1)),
+        fn %Expression{kind: :function, name: verb, args: [lhs, rhs]} when verb in ~w(= <>) ->
+          lhs_type = Type.establish_type(lhs, query)
+          rhs_type = Type.establish_type(rhs, query)
 
-        if Type.string_manipulation?(lhs_type) and lhs_type.constant_involved? and not Type.clear_expression?(rhs_type),
-          do:
-            raise(
-              CompilationError,
-              source_location: lhs.source_location,
-              message: """
-              Results of string manipulation functions can only be compared to clear expressions.
-              For more information see the "Text operations" subsection of the "Restrictions" section
-              in the user guides.
-              """
-            )
-      end)
+          if Type.string_manipulation?(lhs_type) and lhs_type.constant_involved? and
+               not Type.clear_expression?(rhs_type),
+             do:
+               raise(
+                 CompilationError,
+                 source_location: lhs.source_location,
+                 message: """
+                 Results of string manipulation functions can only be compared to clear expressions.
+                 For more information see the "Text operations" subsection of the "Restrictions" section
+                 in the user guides.
+                 """
+               )
+        end
+      )
 
   defp verify_string_based_expressions_are_clear(query),
     do:
@@ -119,19 +128,27 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   @allowed_like_functions []
   defp verify_lhs_of_not_like_is_clear(query),
     do:
-      verify_conditions(query, &Condition.not_like?/1, fn {:not, {kind, lhs, _}} ->
-        unless lhs |> Type.establish_type(query) |> Type.clear_expression?(@allowed_like_functions) do
-          raise CompilationError,
-            source_location: lhs.source_location,
-            message: """
-            Expressions with NOT #{like_kind_name(kind)} cannot include any functions except aggregators and a cast.
-            For more information see the "Restrictions" section of the user guides.
-            """
+      verify_conditions(
+        query,
+        &Condition.not_like?/1,
+        fn %Expression{
+             kind: :function,
+             name: "not",
+             args: [
+               %Expression{kind: :function, name: verb, args: [lhs, _pattern]}
+             ]
+           }
+           when verb in ~w(like ilike) ->
+          unless lhs |> Type.establish_type(query) |> Type.clear_expression?(@allowed_like_functions) do
+            raise CompilationError,
+              source_location: lhs.source_location,
+              message: """
+              Expressions with `NOT #{String.upcase(verb)}` cannot include any functions except aggregators and a cast.
+              For more information see the "Restrictions" section of the user guides.
+              """
+          end
         end
-      end)
-
-  defp like_kind_name(:like), do: "LIKE"
-  defp like_kind_name(:ilike), do: "ILIKE"
+      )
 
   defp verify_ranges_are_clear(query),
     do:

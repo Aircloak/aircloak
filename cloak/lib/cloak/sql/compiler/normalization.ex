@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @moduledoc "Deals with normalizing some expressions so that they are easier to deal with at later stages."
 
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.Sql.{Expression, Query, LikePattern, Condition, CompilationError}
+  alias Cloak.Sql.{Expression, Query, LikePattern, Condition, Function, CompilationError}
 
   # -------------------------------------------------------------------
   # API functions
@@ -30,6 +30,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
+      |> Helpers.apply_bottom_up(&make_boolean_comparisons_explicit/1)
+      |> Helpers.apply_bottom_up(&normalize_boolean_comparisons/1)
 
   @doc """
   Performs semantics-preserving query transformations that remove query properties needed by the validator
@@ -44,7 +46,9 @@ defmodule Cloak.Sql.Compiler.Normalization do
   def postvalidation_normalizations(query),
     do:
       query
-      |> Helpers.apply_bottom_up(&normalize_trivial_like/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&normalize_filter_clauses/1)
+      |> Helpers.apply_bottom_up(&normalize_joins/1)
+      |> Helpers.apply_bottom_up(&normalize_trivial_likes/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&normalize_bucket/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&normalize_anonymizing_aggregators/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&strip_source_location/1, analyst_tables?: false)
@@ -89,34 +93,114 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Normalizing comparisons
   # -------------------------------------------------------------------
 
-  defp normalize_comparisons(query),
-    do:
-      update_in(
-        query,
-        [
-          Query.Lenses.filter_clauses()
-          |> Query.Lenses.conditions()
-          |> Lens.filter(&(Condition.verb(&1) == :comparison))
-        ],
-        &do_normalize_comparison/1
-      )
+  defp normalize_comparisons(query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Function.condition?/1)
+    |> Lens.filter(&(Condition.verb(&1) == :comparison))
+    |> Lens.map(query, &normalize_comparison/1)
+  end
 
-  defp do_normalize_comparison({:not, condition}), do: {:not, do_normalize_comparison(condition)}
+  defp normalize_comparison(%Expression{kind: :function, name: operator, args: [lhs, rhs]} = comparison) do
+    if Expression.constant?(lhs) and not Expression.constant?(rhs),
+      do: %Expression{comparison | name: invert_inequality(operator), args: [rhs, lhs]},
+      else: comparison
+  end
 
-  defp do_normalize_comparison({:comparison, lhs, operator, rhs} = comparison),
-    do:
-      if(
-        Expression.constant?(lhs) and not Expression.constant?(rhs),
-        do: {:comparison, rhs, invert_inequality(operator), lhs},
-        else: comparison
-      )
+  defp invert_inequality("="), do: "="
+  defp invert_inequality("<>"), do: "<>"
+  defp invert_inequality(">"), do: "<"
+  defp invert_inequality(">="), do: "<="
+  defp invert_inequality("<"), do: ">"
+  defp invert_inequality("<="), do: ">="
 
-  defp invert_inequality(:=), do: :=
-  defp invert_inequality(:<>), do: :<>
-  defp invert_inequality(:>), do: :<
-  defp invert_inequality(:>=), do: :<=
-  defp invert_inequality(:<), do: :>
-  defp invert_inequality(:<=), do: :>=
+  # -------------------------------------------------------------------
+  # Making boolean comparisons explicit
+  # -------------------------------------------------------------------
+
+  defp make_boolean_comparisons_explicit(query) do
+    Query.Lenses.filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.reject(&Function.condition?/1)
+    |> Lens.map(query, &make_boolean_comparison_explicit/1)
+  end
+
+  defp make_boolean_comparison_explicit(%Expression{
+         kind: :function,
+         name: "not",
+         args: [%Expression{} = expression]
+       }),
+       do: Expression.function("=", [expression, Expression.constant(:boolean, false)], :boolean)
+
+  defp make_boolean_comparison_explicit(%Expression{} = expression),
+    do: Expression.function("=", [expression, Expression.constant(:boolean, true)], :boolean)
+
+  # -------------------------------------------------------------------
+  # Normalizing boolean comparisons
+  # -------------------------------------------------------------------
+
+  defp normalize_boolean_comparisons(query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Function.condition?/1)
+    |> Lens.filter(&(Condition.verb(&1) == :comparison))
+    |> Lens.filter(&(Condition.subject(&1).type == :boolean))
+    |> Lens.map(query, &normalize_boolean_comparison/1)
+  end
+
+  defp normalize_boolean_comparison(
+         %Expression{
+           kind: :function,
+           name: operator,
+           args: [
+             %Expression{kind: :function, name: "not", args: [lhs]},
+             %Expression{kind: :function, name: "not", args: [rhs]}
+           ]
+         } = comparison
+       )
+       when operator in ~w(= <>),
+       do: %Expression{comparison | args: [lhs, rhs]}
+
+  defp normalize_boolean_comparison(
+         %Expression{
+           kind: :function,
+           name: operator,
+           args: [
+             %Expression{kind: :function, name: "not", args: [lhs]},
+             rhs
+           ]
+         } = comparison
+       )
+       when operator in ~w(= <>),
+       do: normalize_boolean_comparison(%Expression{comparison | name: negate_comparison(operator), args: [lhs, rhs]})
+
+  defp normalize_boolean_comparison(
+         %Expression{
+           kind: :function,
+           name: operator,
+           args: [
+             lhs,
+             %Expression{kind: :function, name: "not", args: [rhs]}
+           ]
+         } = comparison
+       )
+       when operator in ~w(= <>),
+       do: normalize_boolean_comparison(%Expression{comparison | name: negate_comparison(operator), args: [lhs, rhs]})
+
+  defp normalize_boolean_comparison(
+         %Expression{
+           kind: :function,
+           name: "<>",
+           args: [
+             lhs,
+             %Expression{kind: :constant, value: value} = rhs
+           ]
+         } = comparison
+       ),
+       do: %Expression{comparison | name: "=", args: [lhs, %Expression{rhs | value: not value}]}
+
+  defp normalize_boolean_comparison(expression), do: expression
+
+  defp negate_comparison("="), do: "<>"
+  defp negate_comparison("<>"), do: "="
 
   # -------------------------------------------------------------------
   # Collapsing constant expressions
@@ -127,10 +211,11 @@ defmodule Cloak.Sql.Compiler.Normalization do
       Query.Lenses.terminals()
       |> Lens.filter(&Expression.constant?/1)
       |> Lens.filter(&Expression.function?/1)
-      |> Lens.map(query, &do_normalize_constants/1)
+      |> Lens.map(query, &normalize_constant/1)
 
-  defp do_normalize_constants(expression) do
-    case {Expression.const_value(expression), Enum.any?(expression.args, &is_nil(&1.value))} do
+  defp normalize_constant(expression) do
+    case {Expression.const_value(expression),
+          Enum.any?(expression.args, &match?(%Expression{kind: :constant, value: nil}, &1))} do
       {nil, true} ->
         Expression.null()
 
@@ -147,30 +232,64 @@ defmodule Cloak.Sql.Compiler.Normalization do
   end
 
   # -------------------------------------------------------------------
+  # Normalizing filter clauses
+  # -------------------------------------------------------------------
+
+  defp normalize_filter_clauses(query),
+    do:
+      Query.Lenses.filter_clauses()
+      |> Lens.filter(&Expression.constant?/1)
+      |> Lens.filter(&match?(%Expression{kind: :function, name: "="}, &1))
+      |> Lens.map(query, &normalize_filter_clause/1)
+
+  defp normalize_filter_clause(%Expression{
+         kind: :function,
+         name: "=",
+         args: [
+           %Expression{kind: :constant, type: :boolean, value: value},
+           %Expression{kind: :constant, type: :boolean, value: value}
+         ]
+       })
+       when value in [true, false],
+       do: nil
+
+  defp normalize_filter_clause(%Expression{kind: :function, name: "="} = expression),
+    do: %Expression{expression | args: [Expression.constant(:boolean, false), Expression.constant(:boolean, true)]}
+
+  # -------------------------------------------------------------------
+  # Normalizing joins
+  # -------------------------------------------------------------------
+
+  defp normalize_joins(query),
+    do:
+      Query.Lenses.joins()
+      |> Lens.filter(&match?(%{condition: nil}, &1))
+      |> Lens.map(query, &%{&1 | type: :cross_join})
+
+  # -------------------------------------------------------------------
   # Normalizing like patterns
   # -------------------------------------------------------------------
 
-  defp normalize_trivial_like(query),
+  defp normalize_trivial_likes(query),
     do:
-      Query.Lenses.like_clauses()
-      |> Lens.filter(&trivial_like?/1)
-      |> Lens.map(query, fn
-        {:like, lhs, rhs} ->
-          {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
+      Query.Lenses.top_down_query_expressions()
+      |> Lens.filter(&Function.condition?/1)
+      |> Lens.filter(&(Condition.verb(&1) == :like))
+      |> Lens.filter(&(&1 |> Condition.value() |> LikePattern.trivial?()))
+      |> Lens.map(query, &normalize_trivial_like/1)
 
-        {:ilike, lhs, rhs} ->
-          {:comparison, Expression.lowercase(lhs), :=, rhs |> Expression.lowercase() |> LikePattern.trivial_to_string()}
+  defp normalize_trivial_like(%Expression{kind: :function, name: "not", args: [expression]}) do
+    %Expression{normalize_trivial_like(expression) | name: "<>"}
+  end
 
-        {:not, {:like, lhs, rhs}} ->
-          {:comparison, lhs, :<>, LikePattern.trivial_to_string(rhs)}
+  defp normalize_trivial_like(%Expression{kind: :function, name: "like", args: [subject, target]} = expression) do
+    %Expression{expression | name: "=", args: [subject, LikePattern.trivial_to_string(target)]}
+  end
 
-        {:not, {:ilike, lhs, rhs}} ->
-          {:comparison, Expression.lowercase(lhs), :<>,
-           rhs |> Expression.lowercase() |> LikePattern.trivial_to_string()}
-      end)
-
-  defp trivial_like?({:not, like}), do: trivial_like?(like)
-  defp trivial_like?({_kind, _rhs, lhs}), do: LikePattern.trivial?(lhs.value)
+  defp normalize_trivial_like(%Expression{kind: :function, name: "ilike", args: [subject, target]} = expression) do
+    args = [Expression.lowercase(subject), target |> LikePattern.trivial_to_string() |> Expression.lowercase()]
+    %Expression{expression | name: "=", args: args}
+  end
 
   # -------------------------------------------------------------------
   # Normalizing bucket calls

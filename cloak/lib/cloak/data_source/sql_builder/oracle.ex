@@ -22,19 +22,14 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct
+      < > <= >= = <> and or not in is_null like ilike
       year quarter month day hour minute second weekday date_trunc
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
       sqrt floor ceil abs round trunc
       length lower upper btrim ltrim rtrim left right substring concat
-      hex cast coalesce hash bool_op grouping_id case
+      hex cast coalesce hash grouping_id case
     )
-
-  @impl Dialect
-  def function_sql("bool_op", [[?', op, ?'], arg1, arg2]) do
-    condition = Dialect.bool_op_default(op, arg1, arg2)
-    ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
-  end
 
   for datepart <- ~w(year month day hour minute second) do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
@@ -143,13 +138,19 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("hash", [arg]), do: ["TO_CHAR(ORA_HASH(", arg, "), '#{@fmt_no_extra_whitespace}0000000X')"]
 
+  def function_sql("boolean_expression", [expression]),
+    do: ["(CASE WHEN ", expression, " THEN 1 WHEN NOT (", expression, ") THEN 0 ELSE NULL END)"]
+
   for {operator, alias} <- @safe_aliases do
     def function_sql(unquote(operator), args), do: function_sql("aircloak.#{unquote(alias)}", args)
   end
 
   def function_sql("case", args), do: ["CASE", case_branches(args), " END"]
 
-  def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
+  def function_sql("ilike", [subject, [[?', pattern, ?'] | escape]]),
+    do: ["(LOWER(", subject, ") LIKE LOWER('", pattern, "')", escape, ?)]
+
+  def function_sql(name, args), do: super(name, args)
 
   @impl Dialect
   def cast_sql(value, :real, :integer),
@@ -191,10 +192,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def literal(%Timex.Duration{} = duration),
     do: ["NUMTODSINTERVAL(", duration |> Timex.Duration.to_seconds() |> to_string(), ", 'SECOND')"]
 
-  def literal(value), do: Dialect.literal_default(value)
-
-  @impl Dialect
-  def native_support_for_ilike?(), do: false
+  def literal(value), do: super(value)
 
   @impl Dialect
   def select_table_names(prefix),

@@ -197,8 +197,7 @@ defmodule Cloak.Query.JoinTest do
       %{error: error}
     )
 
-    assert "Column `name` from table `heights_join` of type `text` and column `age` from table " <>
-             "`children_join` of type `integer` cannot be compared." <> _ = error
+    assert "Arguments of type (`text`, `integer`) are incorrect for `=`." <> _ = error
   end
 
   test "functions in JOIN condition" do

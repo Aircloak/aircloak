@@ -448,6 +448,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp constant(:boolean, _context), do: {:boolean, :rand.uniform() > 0.5, []}
   defp constant(:integer, context), do: {:integer, uniform(context.complexity), []}
   defp constant(:real, context), do: {:real, real(context), []}
+  defp constant(:numeric, context), do: constant(Enum.random([:integer, :real]), context)
   defp constant(:text, context), do: {:text, name(context), []}
   defp constant(:date, context), do: {:date, Timex.shift(~D[2018-01-01], days: uniform(context.complexity)), []}
   defp constant(:time, context), do: {:time, Time.add(~T[12:12:34], uniform(context.complexity), :second), []}
