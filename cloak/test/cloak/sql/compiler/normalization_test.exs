@@ -303,7 +303,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
       )
     end
 
-    test "(not bool) <> constant" do
+    test "(not bool) = constant" do
       assert_equivalent(
         "SELECT STDDEV(uid) FROM table WHERE (not bool) = true",
         "SELECT STDDEV(uid) FROM table WHERE bool = false"
