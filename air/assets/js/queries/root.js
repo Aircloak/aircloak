@@ -336,7 +336,7 @@ export default class QueriesView extends React.PureComponent {
   }
 
   renderDataSourceDescription() {
-    if (this.props.dataSourceDescription != null && this.props.dataSourceDescription.length > 0) {
+    if (this.props.dataSourceDescription) {
       return <small className="newline">{this.props.dataSourceDescription}</small>;
     } else {
       return null;
