@@ -8,16 +8,14 @@
     "keyfile": "ssl_key.pem",
     "use_staging_license_key": true
   },
-
   "psql_server": {
     "require_ssl": false,
     "certfile": "ssl_cert.pem",
     "keyfile": "ssl_key.pem",
     "max_connections": 5
   },
-
   "database": {
-    "host": "postgres9.4",
+    "host": "postgres11.2",
     "port": 5432,
     "ssl": false,
     "user": "postgres",

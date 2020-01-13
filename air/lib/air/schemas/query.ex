@@ -57,8 +57,8 @@ defmodule Air.Schemas.Query do
 
   @required_fields ~w()a
   @optional_fields ~w(
-    cloak_id statement data_source_id tables execution_time users_count selected_types parameter_types session_id parameters query_state
-    context result last_state_change_at time_spent audit_meta
+    cloak_id statement data_source_id tables execution_time users_count selected_types parameter_types session_id
+    parameters query_state context result last_state_change_at time_spent audit_meta
   )a
 
   # -------------------------------------------------------------------

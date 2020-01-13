@@ -4,7 +4,7 @@ defmodule CentralWeb.Socket.Air.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  alias Central.Service.{Customer, License}
+  alias Central.Service.License
 
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions

@@ -319,7 +319,7 @@ defmodule Cloak.Query.Runner do
   defp send_result_report(state, result) do
     result =
       result
-      |> format_result(state)
+      |> format_result()
       |> Map.put(:query_id, state.query_id)
       |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
 
@@ -374,7 +374,7 @@ defmodule Cloak.Query.Runner do
     end
   end
 
-  defp format_result({:ok, result, info}, _state),
+  defp format_result({:ok, result, info}),
     do: %{
       columns: result.columns,
       rows: result.buckets,
@@ -383,17 +383,17 @@ defmodule Cloak.Query.Runner do
       parameter_types: result.parameter_types
     }
 
-  defp format_result({:error, reason}, state) when is_binary(reason),
+  defp format_result({:error, reason}) when is_binary(reason),
     do: %{error: reason}
 
-  defp format_result(:oom, state),
+  defp format_result(:oom),
     do: %{error: "Query aborted due to low memory."}
 
-  defp format_result(:cancelled, state), do: %{cancelled: true}
+  defp format_result(:cancelled), do: %{cancelled: true}
 
-  defp format_result({:error, reason}, state) do
+  defp format_result({:error, reason}) do
     Logger.error("Unknown query error: #{inspect(reason)}")
-    format_result({:error, "Unknown cloak error."}, state)
+    format_result({:error, "Unknown cloak error."})
   end
 
   # -------------------------------------------------------------------

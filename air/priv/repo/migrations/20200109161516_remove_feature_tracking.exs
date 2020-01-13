@@ -12,11 +12,11 @@ defmodule Air.Repo.Migrations.RemoveFeatureTracking do
 $f$ LANGUAGE sql IMMUTABLE")
 
     execute(
-      "UPDATE queries SET selected_types = json_to_array(features -> 'selected_types') WHERE features ->> 'selected_types' IS NOT NULL"
+      "UPDATE queries SET selected_types = json_to_array(features -> 'selected_types') WHERE (features ->> 'selected_types') IS NOT NULL"
     )
 
     execute(
-      "UPDATE queries SET parameter_types = json_to_array(features -> 'parameter_types') WHERE features ->> 'parameter_types' IS NOT NULL"
+      "UPDATE queries SET parameter_types = json_to_array(features -> 'parameter_types') WHERE (features ->> 'parameter_types') IS NOT NULL"
     )
 
     execute("DROP FUNCTION json_to_array(jsonb)")
