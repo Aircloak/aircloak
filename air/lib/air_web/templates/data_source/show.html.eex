@@ -37,7 +37,7 @@
         lastQuery: @last_query,
         pendingQueries: @pending_queries,
         dataSourceName: @data_source.name,
-        dataSourceDescription: @data_source.description || "",
+        dataSourceDescription: @data_source.description,
         dataSourceStatus: status(@data_source),
         CSRFToken: @csrf_token,
         socketToken: @socket_token,
