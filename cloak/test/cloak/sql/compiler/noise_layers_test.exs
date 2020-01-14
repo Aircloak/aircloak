@@ -347,12 +347,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                }
              ] = result.noise_layers
     end
-
-    test "no noise layer from sample_users" do
-      result = compile!("SELECT STDDEV(uid) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x")
-
-      assert [generic_layer()] = result.noise_layers
-    end
   end
 
   describe "negative conditions" do

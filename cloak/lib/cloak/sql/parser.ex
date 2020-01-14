@@ -56,8 +56,7 @@ defmodule Cloak.Sql.Parser do
           show: :tables | :columns,
           limit: integer,
           offset: integer,
-          distinct?: boolean,
-          sample_rate: number
+          distinct?: boolean
         }
 
   @combine_error_regex ~r/(?<error>.*) at line (?<line>\d+), column (?<column>\d+)/

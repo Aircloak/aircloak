@@ -224,8 +224,7 @@ defmodule Cloak.Compliance.QueryGenerator do
          having(scaffold, tables),
          order_by,
          limit,
-         offset(scaffold, order_by, limit),
-         sample_users(scaffold)
+         offset(scaffold, order_by, limit)
        ]},
       selected_tables
     }
@@ -653,15 +652,6 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp order_expression({:select, _, items}), do: {:integer, uniform(length(items)), []}
 
-  defp sample_users(%{select_user_id?: false}), do: empty()
-
-  defp sample_users(scaffold) do
-    frequency(scaffold.complexity, [
-      {1, empty()},
-      {1, {:sample_users, real(scaffold), []}}
-    ])
-  end
-
   defp limit(_scaffold, _order_by = {:empty, _, _}), do: empty()
 
   defp limit(scaffold, _order_by) do
@@ -709,7 +699,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   @keywords ~w(
     select show tables columns from inner outer left right full join on cross where and not or cast bucket
     align like ilike escape in is between order group by nulls asc desc as null true false distinct all extract trim
-    both leading trailing substring for having limit offset sample_users
+    both leading trailing substring for having limit offset
   )
 
   defp name(context) do

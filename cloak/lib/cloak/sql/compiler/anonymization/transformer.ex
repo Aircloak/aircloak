@@ -48,7 +48,6 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
         having: nil,
         limit: nil,
         offset: 0,
-        sample_rate: nil,
         distinct?: false,
         implicit_count?: false
     }
@@ -92,7 +91,6 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
         having: statistics_buckets_filter(query, count_duid),
         limit: nil,
         offset: 0,
-        sample_rate: nil,
         distinct?: false,
         implicit_count?: false
     }
@@ -147,7 +145,6 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
         having: nil,
         limit: nil,
         offset: 0,
-        sample_rate: nil,
         distinct?: false,
         implicit_count?: false
     }

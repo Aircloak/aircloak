@@ -138,7 +138,6 @@ __Notes__
 
 The following constructs are not natively supported on this data source and will require emulation:
 
-* The `SAMPLE_USERS`-clause
 * Using an `ASC` order with `NULLS LAST` or a `DESC` order with `NULLS FIRST`
 * Global aggregators (aggregators without grouping) in standard queries
 

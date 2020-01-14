@@ -43,7 +43,6 @@ defmodule Cloak.Sql.Compiler.Validation do
     verify_user_id_usage(query, nil)
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
-    Helpers.each_subquery(query, &verify_sample_rate/1)
     Helpers.each_subquery(query, &verify_grouping_sets_uid/1)
     query
   end
@@ -488,7 +487,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   # -------------------------------------------------------------------
-  # Where, having, limit, offset, sample
+  # Where, having, limit, offset
   # -------------------------------------------------------------------
 
   defp verify_where(query), do: verify_where_clauses(query.where)
@@ -612,16 +611,6 @@ defmodule Cloak.Sql.Compiler.Validation do
       )
 
   defp verify_offset(_query), do: :ok
-
-  defp verify_sample_rate(%Query{sample_rate: amount})
-       when is_integer(amount) and (amount < 0 or amount > 100),
-       do:
-         raise(
-           CompilationError,
-           message: "The `SAMPLE` clause expects an integer value between 1 and 100."
-         )
-
-  defp verify_sample_rate(_query), do: :ok
 
   # -------------------------------------------------------------------
   # IN verification
