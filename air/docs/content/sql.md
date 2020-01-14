@@ -27,7 +27,6 @@ SELECT [DISTINCT | ALL]
   [ GROUP BY column_expression | position [, ...] ]
   [ HAVING filter_expression [AND ...] ]
   [ ORDER BY column_name  | position [ASC | DESC] [NULLS FIRST | LAST] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
-  [ SAMPLE_USERS <0..100>% ]
 
 field_expression :=
   * | table_name.* | column_expression [AS alias]
@@ -95,14 +94,6 @@ inequality_operator :=
   corresponding expression from the select list is used as the grouping or ordering expression.
 - Values of type `datetime with timezone` are not supported. The timezone information will be dropped and the value will
   be exposed as a simple `datetime` in the UTC format.
-- The `SAMPLE_USERS` clause is an Aircloak-specific feature that can be used to reduce the amount of users queried.
-  This speeds up query execution and is useful for estimating the results when querying large datasets.
-  The given parameter specifies the probability that an user will be included in the input. The sampling is not
-  100% exact (especially for small inputs), but it is deterministic. The included users are an approximation of the
-  requested percent from the total number of users, but the same users will be included each time a query is executed.
-  Aggregates present in the query are not automatically adjusted. For example the `COUNT` returned when
-  `SAMPLE_USERS 10%` is used will be approximately 10% of the count returned when the `SAMPLE_USERS`-clause
-  is omitted. Fractions (like `SAMPLE_USERS 0.1%`) can be used when samples smaller than 1% are desired.
 - The order of rows in subqueries is not preserved in the outer query. Add an `ORDER BY` clause in the outer query
   if you want a specific order.
 - When `NULL` handling is not specified in an `ORDER BY` in a subquery (either `NULLS FIRST` or `NULLS LAST`) the

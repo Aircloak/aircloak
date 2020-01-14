@@ -118,7 +118,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> align_limit()
     |> align_offset()
     |> align_having()
-    |> align_sample_rate()
   end
 
   @minimum_subquery_limit 10
@@ -289,34 +288,6 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp extract_columns(columns), do: Query.Lenses.leaf_expressions() |> Lens.to_list(columns)
-
-  @max_hash_value 4_294_967_295
-
-  defp align_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
-    if query.type == :standard,
-      do: raise(CompilationError, message: "The `SAMPLE_USERS` clause is not valid in standard queries.")
-
-    user_id_hash =
-      Expression.function("hash", [Helpers.id_column(query)], :text)
-      |> put_in([Query.Lenses.all_expressions() |> Lens.key(:synthetic?)], true)
-
-    aligned_amount = FixAlign.align(amount)
-
-    messages =
-      if amount == aligned_amount,
-        do: [],
-        else: ["Sample rate adjusted from #{amount}% to #{aligned_amount}%"]
-
-    hash_limit = round(aligned_amount / 100 * @max_hash_value)
-    hex_hash_limit = <<hash_limit::32>> |> Base.encode16(case: :lower) |> String.pad_leading(8, "0")
-
-    sample_condition = Expression.function("<=", [user_id_hash, Expression.constant(:text, hex_hash_limit)], :boolean)
-
-    %Query{query | where: Condition.both(sample_condition, query.where)}
-    |> Query.add_info(messages)
-  end
-
-  defp align_sample_rate(query), do: query
 
   # -------------------------------------------------------------------
   # Virtual tables

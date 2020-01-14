@@ -261,18 +261,6 @@ defmodule Cloak.Query.JoinTest do
     )
   end
 
-  test "sample from join" do
-    :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
-    :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
-
-    assert_query(
-      """
-        select count(*) FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id sample_users 10%
-      """,
-      %{rows: [%{row: [7], occurrences: 1}]}
-    )
-  end
-
   test "bugfix: complex JOIN in subquery with extra identically-named columns selected" do
     :ok = insert_rows(_user_ids = 1..100, "heights_join", ["height", "name"], [180, "h"])
     :ok = insert_rows(_user_ids = 1..100, "purchases", ["price", "name"], [200, "p"])

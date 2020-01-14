@@ -1713,10 +1713,6 @@ defmodule Cloak.Sql.Parser.Test do
         select(columns: [identifier("x"), {{:*, "foo"}, _}, identifier("y"), {{:*, "bar"}, _}])
       )
 
-  test "sample from table", do: assert_parse("select x from foo sample_users 10%", select(sample_rate: 10))
-
-  test "sample under 1%", do: assert_parse("select x from foo sample_users 0.44%", select(sample_rate: 0.44))
-
   describe "NOT" do
     test "with a simple condition",
       do:

@@ -72,8 +72,7 @@ defmodule Cloak.Sql.Parser.Internal do
       optional_having(),
       optional_order_by(),
       optional_limit(),
-      optional_offset(),
-      optional_sample_users()
+      optional_offset()
     ])
   end
 
@@ -961,14 +960,6 @@ defmodule Cloak.Sql.Parser.Internal do
     token(:parameter)
     |> map(&{:parameter, &1.value})
     |> label("expected parameter")
-  end
-
-  defp optional_sample_users() do
-    switch([
-      {keyword(:sample_users), pair_both(numeric_constant(), keyword(:%))},
-      {:else, noop()}
-    ])
-    |> map(fn {[:sample_users], [{{:constant, _, amount, _}, :%}]} -> {:sample_rate, amount} end)
   end
 
   defp next_position(),

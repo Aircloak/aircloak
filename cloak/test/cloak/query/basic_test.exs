@@ -1575,25 +1575,6 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
-  describe "sample users" do
-    test "sample from table" do
-      :ok = insert_rows(_user_ids = 1..1000, "heights", ["height"], [180])
-      assert_query("select count(height) from heights sample_users 10%", %{rows: [%{row: [78]}]})
-    end
-
-    test "sample less than 1% of users" do
-      :ok = insert_rows(_user_ids = 1..2000, "heights", ["height"], [180])
-      assert_query("select count(height) from heights sample_users 0.5%", %{rows: [%{row: [8]}]})
-    end
-
-    test "sample users is snapped" do
-      :ok = insert_rows(_user_ids = 1..2000, "heights", ["height"], [180])
-
-      assert_query("select count(height) from heights sample_users 0.5%", %{rows: rows})
-      assert_query("select count(height) from heights sample_users 0.4%", %{rows: ^rows})
-    end
-  end
-
   test "aggregation of low-count values" do
     :ok = insert_rows(_user_ids = 1..3, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 3..5, "heights", ["height"], [178])

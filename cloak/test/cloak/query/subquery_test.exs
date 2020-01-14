@@ -229,14 +229,6 @@ defmodule Cloak.Query.SubqueryTest do
     )
   end
 
-  test "sample in subquery" do
-    :ok = insert_rows(_user_ids = 1..1000, "heights_sq", ["height"], [180])
-
-    assert_query("select count(*) from (select * from heights_sq sample_users 2%) t1", %{
-      rows: [%{row: [12]}]
-    })
-  end
-
   test "*-select constants in subquery" do
     assert_query("select * from (select 1, 2 from heights_sq) t", %{
       columns: ["", ""],

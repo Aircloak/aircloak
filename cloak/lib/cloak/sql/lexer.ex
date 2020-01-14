@@ -73,7 +73,6 @@ defmodule Cloak.Sql.Lexer do
               "HAVING",
               "LIMIT",
               "OFFSET",
-              "SAMPLE_USERS",
               "GROUPING",
               "SETS",
               "CUBE",

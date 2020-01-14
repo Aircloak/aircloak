@@ -24,16 +24,6 @@ defmodule Cloak.Sql.Range.Test do
              ] = Range.find_ranges(subquery)
     end
 
-    test "invalid ranges" do
-      %{from: {:subquery, %{ast: subquery}}} =
-        compile("""
-          SELECT COUNT(*) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x
-        """)
-        |> Compiler.Execution.align()
-
-      assert [%Range{interval: :invalid}] = Range.find_ranges(subquery)
-    end
-
     test "function range in SELECT" do
       query = compile("SELECT month(timestamp) FROM table")
 
