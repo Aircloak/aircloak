@@ -27,7 +27,7 @@ type Props = {
   sessionId: string,
   socketToken: string,
   dataSourceName: string,
-  dataSourceDescription: string,
+  dataSourceDescription: ?string,
   dataSourceStatus: string,
   selectables: Selectable[],
   lastQuery: {statement: string},
@@ -336,7 +336,7 @@ export default class QueriesView extends React.PureComponent {
   }
 
   renderDataSourceDescription() {
-    if (this.props.dataSourceDescription.length > 0) {
+    if (this.props.dataSourceDescription) {
       return <small className="newline">{this.props.dataSourceDescription}</small>;
     } else {
       return null;
