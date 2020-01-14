@@ -147,6 +147,22 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  describe "boolean expressions" do
+    test "allow conjunctions in anonymizing select" do
+      assert {:ok, _} = compile("select bool and not bool from table", data_source())
+    end
+
+    test "allow disjunctions in standard select" do
+      assert {:ok, _} = compile_standard("select bool or not bool from table", data_source())
+    end
+
+    test "reject disjunction in anonymizing select" do
+      assert {:error, error} = compile("select bool or not bool from table", data_source())
+
+      assert error == "Disjunctions can not be used in anonymizing queries."
+    end
+  end
+
   test "select NULL" do
     assert {:ok, _} = compile("select null from table", data_source())
   end
