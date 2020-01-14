@@ -42,6 +42,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   def verify_anonymization_restrictions(%Query{command: :select} = query) do
     verify_user_id_usage(query, nil)
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
+    Helpers.each_subquery(query, &verify_conditions_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
     Helpers.each_subquery(query, &verify_sample_rate/1)
     Helpers.each_subquery(query, &verify_grouping_sets_uid/1)
@@ -735,6 +736,32 @@ defmodule Cloak.Sql.Compiler.Validation do
       _ ->
         :ok
     end)
+  end
+
+  # -------------------------------------------------------------------
+  # Conditions usage verification
+  # -------------------------------------------------------------------
+
+  defp verify_conditions_usage(%Query{type: :standard}), do: :ok
+
+  defp verify_conditions_usage(query) do
+    Lens.multiple([
+      Lens.keys?([:columns, :group_by]) |> Lens.all(),
+      Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
+      Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions() |> Query.Lenses.operands()
+    ])
+    |> Lenses.all_expressions()
+    |> Lens.filter(&Function.condition?/1)
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [condition | _rest] ->
+        raise CompilationError,
+          message: "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries.",
+          source_location: condition.source_location
+    end
   end
 
   # -------------------------------------------------------------------

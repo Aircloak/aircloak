@@ -112,6 +112,41 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  describe "conditions usage" do
+    test "rejects conditions in anonymizing select" do
+      assert {:error, error} = compile("select numeric = 0 from table", data_source())
+
+      assert error ==
+               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+    end
+
+    test "rejects conditions in anonymizing group by" do
+      assert {:error, error} = compile("select 1 from table group by numeric in (0, 1)", data_source())
+
+      assert error ==
+               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+    end
+
+    test "rejects conditions in anonymizing order by" do
+      assert {:error, error} = compile("select 1 from table order by string like '%aaa'", data_source())
+
+      assert error ==
+               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+    end
+
+    test "rejects conditions in function calls" do
+      assert {:error, error} =
+               compile("select count(*) from table where cast(numeric > 0 as integer) = 0", data_source())
+
+      assert error ==
+               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+    end
+
+    test "allow conditions in non-filtering clauses in standard queries" do
+      assert {:ok, _} = compile_standard("select numeric = 0 from table", data_source())
+    end
+  end
+
   test "select NULL" do
     assert {:ok, _} = compile("select null from table", data_source())
   end
@@ -1426,7 +1461,7 @@ defmodule Cloak.Sql.Compiler.Test do
     {:ok, parsed_query} = Parser.parse(query_string)
 
     try do
-      Compiler.compile_standard!(parsed_query, nil, data_source)
+      {:ok, Compiler.compile_standard!(parsed_query, nil, data_source)}
     rescue
       error in Cloak.Sql.CompilationError -> {:error, error.message}
     end
