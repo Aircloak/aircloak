@@ -1,5 +1,5 @@
 <div class="data-source body-wrapper">
-  <div class="container">
+  <div class="container-fluid">
     <div class="column col-sm-9">
       <div class="content-wrapper">
         <ol class="breadcrumb">
@@ -23,7 +23,7 @@
     </div>
 
     <div id="selectable-column" class="column col-sm-3">
-      <div data-spy="affix">
+      <div data-spy="affix" class="quarter-width">
         <div id="selectable-info"></div>
       </div>
     </div>

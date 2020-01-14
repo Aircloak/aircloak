@@ -50,6 +50,14 @@
 
 #sql-editor {
   margin-bottom: 3em;
+  position: sticky;
+  top: 50px;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  z-index: 7;
+  padding-bottom: 15px;
+  padding-top: 15px;
 }
 
 #sql-editor select {
@@ -57,7 +65,7 @@
 }
 
 .right-align {
-  float: right;
+  align-self: flex-end;
 }
 
 .options-menu {
