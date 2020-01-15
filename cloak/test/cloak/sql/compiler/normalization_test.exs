@@ -362,6 +362,71 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     )
   end
 
+  describe "normalize boolean expressions" do
+    test "x and true" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE bool and true",
+        "SELECT STDDEV(uid) FROM table WHERE bool"
+      )
+    end
+
+    test "true and x" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE true and bool",
+        "SELECT STDDEV(uid) FROM table WHERE bool"
+      )
+    end
+
+    test "false and x" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE false and bool",
+        "SELECT STDDEV(uid) FROM table WHERE false"
+      )
+    end
+
+    test "x and false" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE bool and false",
+        "SELECT STDDEV(uid) FROM table WHERE false"
+      )
+    end
+
+    test "x or true" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE bool or true",
+        "SELECT STDDEV(uid) FROM table"
+      )
+    end
+
+    test "true or x" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE true or bool",
+        "SELECT STDDEV(uid) FROM table"
+      )
+    end
+
+    test "false or x" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE false or bool",
+        "SELECT STDDEV(uid) FROM table WHERE bool"
+      )
+    end
+
+    test "x or false" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE bool or false",
+        "SELECT STDDEV(uid) FROM table WHERE bool"
+      )
+    end
+
+    test "multiple" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE true and bool or false",
+        "SELECT STDDEV(uid) FROM table WHERE bool"
+      )
+    end
+  end
+
   defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
 
   defp data_source() do
