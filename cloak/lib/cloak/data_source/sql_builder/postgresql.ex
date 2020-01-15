@@ -29,7 +29,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
       length lower upper btrim ltrim rtrim left right substring concat
-      hex cast coalesce hash grouping_id case
+      hex cast coalesce grouping_id case
     )
 
   @impl Dialect
@@ -41,8 +41,6 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def function_sql("trunc", [arg1, arg2]), do: ["TRUNC(CAST(", arg1, " AS decimal), ", arg2, ")"]
   def function_sql("round", [arg1, arg2]), do: ["ROUND(CAST(", arg1, " AS decimal), ", arg2, ")"]
   def function_sql("hex", [arg]), do: ["ENCODE(CONVERT_TO(", arg, ", 'utf8'), 'hex')"]
-
-  def function_sql("hash", [arg]), do: ["SUBSTR(MD5(", arg, "::text), 5, 8)"]
 
   def function_sql("boolean_expression", [arg]), do: arg
 
