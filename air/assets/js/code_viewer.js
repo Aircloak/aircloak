@@ -9,7 +9,7 @@ export const CodeViewer = (props: {statement: string}) => {
   const options = {
     indentUnit: 2,
     indentWithTabs: false,
-    lineNumbers: true,
+    lineNumbers: false,
     lineWrapping: true,
     readOnly: true,
     mode: "text/x-aircloak-sql",

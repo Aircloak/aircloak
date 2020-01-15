@@ -17,6 +17,8 @@ type Props = {
   newViewURL: string,
   userId: number,
   dataSourceName: string,
+  dataSourceDescription: ?string,
+  dataSourceStatus: string,
   frontendSocket: FrontendSocket,
   supportsCreateTable: boolean,
   selectableToExclude: number,
@@ -24,7 +26,7 @@ type Props = {
 
 export default class SelectableInfo extends React.Component {
   props: Props;
-  state: {expanded: Set<string>, filter: Filter, selectables: Selectable[]};
+  state: {expanded: Set<string>, filter: Filter, selectables: Selectable[], dataSourceStatus: string};
   toggleExpand: (t: Selectable) => (() => void);
   onFilterChange: (filter: Filter) => void;
   updateSelectables: (event: {selectables: Selectable[]}) => void;
@@ -37,6 +39,7 @@ export default class SelectableInfo extends React.Component {
       expanded: new Set(),
       filter: new EmptyFilter(),
       selectables: props.selectables,
+      dataSourceStatus: this.props.dataSourceStatus,
     };
 
     this.toggleExpand = this.toggleExpand.bind(this);
@@ -49,6 +52,10 @@ export default class SelectableInfo extends React.Component {
         joined: (event) => this.updateSelectables(event),
       }
     );
+
+    this.props.frontendSocket.joinDataSourceChannel(this.props.dataSourceName, {
+      handleEvent: (event) => this.dataSourceStatusReceived(event),
+    });
   }
 
   onFilterChange(filter: Filter) {
@@ -80,39 +87,78 @@ export default class SelectableInfo extends React.Component {
       selectable.internal_id === (this.props.selectableToExclude || "don't exclude any"));
   }
 
+  dataSourceStatusReceived(event: { status: string }) {
+    this.setState({dataSourceStatus: event.status});
+  }
+
+
+  renderAvailabilityLabel() {
+    switch (this.state.dataSourceStatus) {
+      case "online": return <span className="label label-success pull-right">Online</span>;
+      case "offline": return <span className="label label-danger pull-right">Offline</span>;
+      case "analyzing": return this.analyzing();
+      default: return <span className="label label-warning pull-right">Broken</span>;
+    }
+  }
+
+  analyzing() {
+    return (<span className="label label-success pull-right">
+      Online
+      <sup>
+        <a
+          href="/docs/sql/restrictions.html#column-analysis"
+          target="blank"
+          data-toggle="tooltip"
+          data-placement="right"
+          title="Some features unavailable pending analysis"
+        >
+          *
+        </a>
+      </sup>
+    </span>);
+  }
+
+  renderDataSourceDescription() {
+    if (this.props.dataSourceDescription) {
+      return <p>{this.props.dataSourceDescription}</p>;
+    } else {
+      return null;
+    }
+  }
+
   render() {
     return (
-      <div>
-        <div className="panel panel-default selectable-info">
+      <div className="panel panel-default selectable-info">
 
-          <div className="panel-heading selectable-heading">
-            <strong>Tables and views</strong>
-          </div>
+        <div className="panel-heading selectable-heading">
+          <strong>{this.props.dataSourceName}</strong>
+          {this.renderAvailabilityLabel()}
+          {this.renderDataSourceDescription()}
+        </div>
 
-          <FilterView onFilterChange={this.onFilterChange} />
+        <FilterView onFilterChange={this.onFilterChange} />
 
-          <div className="selectable-info-content">
-            {this.selectables().map((selectable, i) =>
-              <
-                SelectableView
-                key={i}
-                filter={this.state.filter}
-                selectable={selectable}
-                selectablesEditUrl={this.props.selectablesEditUrl}
-                channel={this.channel}
-                expanded={this.expanded(selectable)}
-                onClick={this.toggleExpand(selectable)}
-              />
-            )}
-          </div>
-
-          <div className="panel-footer">
-            <NewSelectableToolbarView
-              newTableURL={this.props.newTableURL}
-              newViewURL={this.props.newViewURL}
-              supportsCreateTable={this.props.supportsCreateTable}
+        <div className="selectable-info-content">
+          {this.selectables().map((selectable, i) =>
+            <
+              SelectableView
+              key={i}
+              filter={this.state.filter}
+              selectable={selectable}
+              selectablesEditUrl={this.props.selectablesEditUrl}
+              channel={this.channel}
+              expanded={this.expanded(selectable)}
+              onClick={this.toggleExpand(selectable)}
             />
-          </div>
+          )}
+        </div>
+
+        <div className="panel-footer">
+          <NewSelectableToolbarView
+            newTableURL={this.props.newTableURL}
+            newViewURL={this.props.newViewURL}
+            supportsCreateTable={this.props.supportsCreateTable}
+          />
         </div>
       </div>
     );
