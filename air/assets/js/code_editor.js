@@ -2,7 +2,6 @@
 
 import React from "react";
 import {UnControlled as Codemirror} from "react-codemirror2";
-import $ from "jquery";
 import _ from "lodash";
 import Editor from "codemirror";
 
@@ -108,9 +107,6 @@ export class CodeEditor extends React.Component {
       smartIndent: true,
       viewportMargin: Infinity,
       cursorBlinkRate: 530,
-    };
-
-    $.extend(options, {
       autofocus: true,
       extraKeys: {
         "Ctrl-Enter": this.run,
@@ -118,7 +114,7 @@ export class CodeEditor extends React.Component {
         "Ctrl-Space": this.showHint,
         "Cmd-Space": this.showHint,
       },
-    });
+    };
 
     return (
       <Codemirror

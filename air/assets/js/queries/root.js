@@ -309,40 +309,6 @@ export default class QueriesView extends React.PureComponent {
     );
   }
 
-  renderAvailabilityLabel() {
-    switch (this.state.dataSourceStatus) {
-      case "online": return <span className="label label-success">Online</span>;
-      case "offline": return <span className="label label-danger">Offline</span>;
-      case "analyzing": return this.analyzing();
-      default: return <span className="label label-warning">Broken</span>;
-    }
-  }
-
-  analyzing() {
-    return (<span className="label label-success">
-      Online
-      <sup>
-        <a
-          href="/docs/sql/restrictions.html#column-analysis"
-          target="blank"
-          data-toggle="tooltip"
-          data-placement="right"
-          title="Some features unavailable pending analysis"
-        >
-          *
-        </a>
-      </sup>
-    </span>);
-  }
-
-  renderDataSourceDescription() {
-    if (this.props.dataSourceDescription) {
-      return <small className="newline">{this.props.dataSourceDescription}</small>;
-    } else {
-      return null;
-    }
-  }
-
   renderCodeEditorOrViewer() {
     if (this.runEnabled()) {
       return (<CodeEditor
@@ -358,27 +324,21 @@ export default class QueriesView extends React.PureComponent {
   }
 
   renderButton() {
-    return (<div className="right-align">
+    return (
       <button
         className="btn btn-primary"
         onClick={this.runQuery}
         disabled={!this.runEnabled()}
+        data-toggle="tooltip"
+        data-placement="bottom"
+        title="or press Ctrl + Enter"
       >Run</button>
-      <span> or </span>
-      <kbd>Ctrl + Enter</kbd>
-    </div>);
+    );
   }
 
   render() {
     activateTooltips();
-    return (<div>
-      <h2>
-        {this.props.dataSourceName}
-        &nbsp;
-        {this.renderAvailabilityLabel()}
-        {this.renderDataSourceDescription()}
-      </h2>
-
+    return (<React.Fragment>
       <Disconnected channel={this.channel} />
 
       <div id="sql-editor">
@@ -393,7 +353,7 @@ export default class QueriesView extends React.PureComponent {
       />
 
       <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
-    </div>);
+    </React.Fragment>);
   }
 }
 
