@@ -11,12 +11,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @doc """
   Performs semantics-preserving query transformations that should be done ahead of the
   query validation and before the noise layers and other anonymization properties are calculated.
-
-  Performs rewrites such as:
-  * Removing casts that cast a value to the same type it already is
-  * Removing rounding/truncating of integers
-  * Ensuring comparisons bewteen columns and constants have the form {column, operator, constant}
-  * Removing grouping by constant (column number references should have been compiled at this point)
   """
   @spec prevalidation_normalizations(Query.t()) :: Query.t()
   def prevalidation_normalizations(query),
@@ -30,17 +24,13 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
+      |> Helpers.apply_bottom_up(&normalize_boolean_expressions/1)
       |> Helpers.apply_bottom_up(&make_boolean_comparisons_explicit/1)
       |> Helpers.apply_bottom_up(&normalize_boolean_comparisons/1)
 
   @doc """
   Performs semantics-preserving query transformations that remove query properties needed by the validator
   (or other query compiler mechanics) and therefore cannot be done earlier.
-
-  * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
-  * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
-  * Expands `BUCKET` calls into equivalent mathematical expressions
-  * Expands `AVG` calls into `SUM/COUNT` calls.
   """
   @spec postvalidation_normalizations(Query.t()) :: Query.t()
   def postvalidation_normalizations(query),
@@ -201,6 +191,39 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp negate_comparison("="), do: "<>"
   defp negate_comparison("<>"), do: "="
+
+  # -------------------------------------------------------------------
+  # Normalizing boolean expressions
+  # -------------------------------------------------------------------
+
+  defp normalize_boolean_expressions(query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name in ~w(and or)))
+    |> Lens.map(query, &normalize_boolean_expression/1)
+  end
+
+  defp normalize_boolean_expression(%Expression{kind: :function, name: "and", args: [lhs, rhs]} = expression) do
+    cond do
+      lhs.kind == :constant and lhs.value == true -> rhs
+      rhs.kind == :constant and rhs.value == true -> lhs
+      lhs.kind == :constant and lhs.value == false -> lhs
+      rhs.kind == :constant and rhs.value == false -> rhs
+      true -> expression
+    end
+  end
+
+  defp normalize_boolean_expression(%Expression{kind: :function, name: "or", args: [lhs, rhs]} = expression) do
+    cond do
+      lhs.kind == :constant and lhs.value == true -> lhs
+      rhs.kind == :constant and rhs.value == true -> rhs
+      lhs.kind == :constant and lhs.value == false -> rhs
+      rhs.kind == :constant and rhs.value == false -> lhs
+      true -> expression
+    end
+  end
+
+  defp normalize_boolean_expression(expression), do: expression
 
   # -------------------------------------------------------------------
   # Collapsing constant expressions
