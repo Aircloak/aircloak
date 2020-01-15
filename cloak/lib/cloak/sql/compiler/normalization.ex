@@ -11,12 +11,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @doc """
   Performs semantics-preserving query transformations that should be done ahead of the
   query validation and before the noise layers and other anonymization properties are calculated.
-
-  Performs rewrites such as:
-  * Removing casts that cast a value to the same type it already is
-  * Removing rounding/truncating of integers
-  * Ensuring comparisons bewteen columns and constants have the form {column, operator, constant}
-  * Removing grouping by constant (column number references should have been compiled at this point)
   """
   @spec prevalidation_normalizations(Query.t()) :: Query.t()
   def prevalidation_normalizations(query),
@@ -36,11 +30,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @doc """
   Performs semantics-preserving query transformations that remove query properties needed by the validator
   (or other query compiler mechanics) and therefore cannot be done earlier.
-
-  * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
-  * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
-  * Expands `BUCKET` calls into equivalent mathematical expressions
-  * Expands `AVG` calls into `SUM/COUNT` calls.
   """
   @spec postvalidation_normalizations(Query.t()) :: Query.t()
   def postvalidation_normalizations(query),
