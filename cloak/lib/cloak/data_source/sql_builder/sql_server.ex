@@ -17,7 +17,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
       length lower upper ltrim rtrim left right substring concat
-      hex cast coalesce hash grouping_id case
+      hex cast coalesce grouping_id case
     )
 
   @aliases %{
@@ -48,9 +48,6 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("round", [arg]), do: ["ROUND(", arg, ", 0)"]
 
   def function_sql("hex", [arg]), do: ["LOWER(CONVERT(nvarchar, CAST(", arg, " AS varbinary), 2))"]
-
-  def function_sql("hash", [arg]),
-    do: function_sql("hex", [["SUBSTRING(HASHBYTES('md5', CAST(", arg, " AS varchar)), 3, 4)"]])
 
   def function_sql("boolean_expression", [expression]),
     do: ["(CASE WHEN ", expression, " THEN 1 WHEN NOT (", expression, ") THEN 0 ELSE NULL END)"]

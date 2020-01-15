@@ -1,8 +1,6 @@
 defmodule Cloak.DataSource.SqlBuilder.Oracle do
   @moduledoc "Helper module for converting a query to Oracle- specific SQL."
 
-  @fmt_no_extra_whitespace "FM"
-
   # -------------------------------------------------------------------
   # SqlBuilder.Dialect callbacks
   # -------------------------------------------------------------------
@@ -28,7 +26,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
       checked_mod checked_div checked_pow
       sqrt floor ceil abs round trunc
       length lower upper btrim ltrim rtrim left right substring concat
-      hex cast coalesce hash grouping_id case
+      hex cast coalesce grouping_id case
     )
 
   for datepart <- ~w(year month day hour minute second) do
@@ -135,8 +133,6 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("btrim", [arg]), do: ["TRIM(", arg, ")"]
   def function_sql("btrim", [arg1, arg2]), do: ["TRIM(", arg1, " FROM ", arg2, ")"]
-
-  def function_sql("hash", [arg]), do: ["TO_CHAR(ORA_HASH(", arg, "), '#{@fmt_no_extra_whitespace}0000000X')"]
 
   def function_sql("boolean_expression", [expression]),
     do: ["(CASE WHEN ", expression, " THEN 1 WHEN NOT (", expression, ") THEN 0 ELSE NULL END)"]

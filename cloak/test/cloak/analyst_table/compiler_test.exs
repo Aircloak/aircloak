@@ -18,14 +18,6 @@ defmodule Cloak.AnalystTable.CompilerTest do
                ~s/SELECT "mv1"."user_id" AS "user_id","mv1"."x" AS "x" FROM "cloak_test"."mv1" AS "mv1"/
     end
 
-    test "function support" do
-      {:ok, query} = compile("table_name", "select user_id, hash(y) from mv1")
-
-      assert db_select(query) ==
-               ~s/SELECT "mv1"."user_id" AS "user_id",SUBSTR(MD5("mv1"."y"::text), 5, 8) AS "hash",/ <>
-                 ~s/"mv1"."y" AS "__ac_nlc__0" FROM "cloak_test"."mv1" AS "mv1"/
-    end
-
     test "subquery support" do
       {:ok, query} = compile("table_name", "select user_id, x from (select * from mv1) sq")
 

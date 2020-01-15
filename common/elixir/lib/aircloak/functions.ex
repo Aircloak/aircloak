@@ -154,9 +154,6 @@ defmodule Aircloak.Functions do
                },
                ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
                ~w(hex) => %{type_specs: %{[:text] => :text}},
-               ~w(hash) => %{
-                 type_specs: %{[{:or, [:text, :integer, :real]}] => :text}
-               },
                [{:cast, :integer}] => %{
                  type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer},
                  attributes: [:restricted, :cast]

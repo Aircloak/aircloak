@@ -402,11 +402,6 @@ defmodule Cloak.Sql.Expression do
     end
   end
 
-  defp do_apply("hash", [value]) do
-    <<_::16, hash::binary-4, _::80>> = :crypto.hash(:md5, to_string(value))
-    Base.encode16(hash, case: :lower)
-  end
-
   # three-valued logic system
 
   defp do_apply("and", [true, arg2]), do: arg2
