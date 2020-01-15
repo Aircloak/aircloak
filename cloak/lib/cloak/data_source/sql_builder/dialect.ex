@@ -46,6 +46,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the expression for representing a large string constant."
   @callback long_string(String.t()) :: String.t()
 
+  @doc "Returns whether custom escape characters can be specified in LIKE/ILIKE patterns."
+  @callback supports_overriding_pattern_escape?() :: boolean
+
   alias Cloak.Query.ExecutionError
 
   defmacro __using__(_opts) do
@@ -105,6 +108,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
 
       @impl unquote(__MODULE__)
       def long_string(string), do: "'#{string}'"
+
+      @impl unquote(__MODULE__)
+      def supports_overriding_pattern_escape?(), do: true
 
       defoverridable unquote(__MODULE__)
     end

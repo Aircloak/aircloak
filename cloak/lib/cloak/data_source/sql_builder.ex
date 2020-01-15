@@ -320,8 +320,15 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp constant_to_fragment(value, dialect) when is_binary(value), do: dialect.literal(escape_string(value))
 
-  defp constant_to_fragment({pattern, _regex, _regex_ci}, dialect),
-    do: [pattern |> escape_string() |> dialect.literal(), " ESCAPE ", dialect.literal("\\")]
+  defp constant_to_fragment({pattern, _regex, _regex_ci}, dialect) do
+    escaped_pattern = pattern |> escape_string() |> dialect.literal()
+
+    if dialect.supports_overriding_pattern_escape?() do
+      [escaped_pattern, " ESCAPE ", dialect.literal("\\")]
+    else
+      escaped_pattern
+    end
+  end
 
   defp constant_to_fragment(value, dialect), do: dialect.literal(value)
 

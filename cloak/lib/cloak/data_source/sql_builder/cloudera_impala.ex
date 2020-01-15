@@ -16,10 +16,12 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
     "unsafe_mod" => "%"
   }
 
+  # ILIKE requires CDH 5.7 / Impala 2.5 and higher
+
   @impl Dialect
   def supported_functions(), do: ~w(
     count sum min max avg stddev count_distinct variance
-    < > <= >= = <> and or not in is_null
+    < > <= >= = <> and or not in is_null like ilike
     unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
   )
 
@@ -44,6 +46,9 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
 
   @impl Dialect
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
+
+  @impl Dialect
+  def supports_overriding_pattern_escape?(), do: false
 
   # -------------------------------------------------------------------
   # Internal functions
