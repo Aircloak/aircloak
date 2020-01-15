@@ -22,10 +22,19 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   def supported_functions(), do: ~w(
     count sum min max avg stddev count_distinct variance
     < > <= >= = <> and or not in is_null like ilike
+    year month day hour minute second quarter weekday
     unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
   )
 
   @impl Dialect
+  for datepart <- ~w(year month day hour minute second) do
+    def function_sql(unquote(datepart), args), do: ["EXTRACT(", args, ", '", unquote(datepart), "')"]
+  end
+
+  # quarter is not supported natively in CDP 5.13
+  def function_sql("quarter", args), do: ["CAST((FLOOR((EXTRACT(", args, ", 'month') - 1) / 3) + 1) AS INT)"]
+  def function_sql("weekday", args), do: ["DAYOFWEEK(", args, ")"]
+
   def function_sql("unsafe_pow", [arg1, arg2]), do: ["pow(", arg1, ", ", arg2, ")"]
 
   for {function, operator} <- @unsafe_operators do
