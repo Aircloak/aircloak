@@ -25,6 +25,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
     year month day hour minute second quarter weekday date_trunc
     sqrt floor ceil abs round trunc
     unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
+    checked_mod checked_div checked_pow
   )
 
   @impl Dialect
@@ -46,7 +47,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   def function_sql("date_trunc", [[?', "second", ?'], arg2]),
     do: ["SECONDS_ADD(TRUNC(", arg2, ", 'MI'), EXTRACT(", arg2, ", 'second'))"]
 
-  def function_sql("unsafe_pow", [arg1, arg2]), do: ["pow(", arg1, ", ", arg2, ")"]
+  def function_sql("unsafe_pow", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
 
   for {function, operator} <- @unsafe_operators do
     def function_sql(unquote(function), [arg1, arg2]), do: ["(", arg1, unquote(operator), arg2, ")"]
@@ -54,7 +55,16 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
 
   def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
 
+  def function_sql("checked_mod", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
+
+  def function_sql("checked_div", [arg1, arg2, epsilon]),
+    do: ["CASE WHEN ABS(", arg2, ") < ", epsilon, " THEN NULL ELSE (", arg1, " / ", arg2, ") END"]
+
+  def function_sql("checked_pow", [arg1, arg2]),
+    do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
+
   def function_sql("trunc", args), do: super("TRUNCATE", args)
+
   def function_sql(name, args), do: super(name, args)
 
   @impl Dialect
