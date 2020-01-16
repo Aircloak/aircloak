@@ -1473,6 +1473,17 @@ defmodule Cloak.Sql.Compiler.Test do
              )
   end
 
+  test "NOT IN is not rewritten in standard queries" do
+    {:ok, result} = compile_standard("select count(*) from table where numeric not in (1, 2, 3)", data_source())
+
+    assert [function("not", [function("in", [column("table", "numeric"), value1, value2, value3])])] =
+             conditions_list(result.where)
+
+    assert value1 = Expression.constant(:integer, 1)
+    assert value2 = Expression.constant(:integer, 2)
+    assert value3 = Expression.constant(:integer, 3)
+  end
+
   defp compile_standard(query_string, data_source) do
     {:ok, parsed_query} = Parser.parse(query_string)
 

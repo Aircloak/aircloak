@@ -12,7 +12,6 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
 
   Performs the following normalizations:
   * Replaces DISTINCT usage in SELECT lists with an equivalent GROUP BY (possibly adding a subquery).
-  * Replaces NOT IN with an equivalent conjunction of <>
   * Replaces all usages of NOT by converting the involved expressions into an equivalent form (for example using
     De Morgan's laws)
   * Replaces IN (single_element) with = single_element
@@ -23,7 +22,6 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   def normalize(ast) do
     ast
     |> Helpers.apply_bottom_up(&rewrite_not_expressions/1)
-    |> Helpers.apply_bottom_up(&rewrite_not_in/1)
     |> Helpers.apply_bottom_up(&rewrite_in/1)
     |> Helpers.apply_bottom_up(&rewrite_date_trunc/1)
     |> Helpers.apply_bottom_up(&normalize_synonyms/1)
@@ -104,19 +102,4 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   defp negate_operator(">"), do: "<="
   defp negate_operator("<="), do: ">"
   defp negate_operator(">="), do: "<"
-
-  # -------------------------------------------------------------------
-  # NOT IN rewriting
-  # -------------------------------------------------------------------
-
-  defp rewrite_not_in(ast) do
-    Query.Lenses.query_expressions()
-    |> Lens.filter(&match?({:function, "not", [{:function, "in", _, _}], _}, &1))
-    |> Lens.map(ast, fn {:function, "not", [{:function, "in", [subject | targets], location_in}], location_not} ->
-      targets
-      |> Enum.reverse()
-      |> Enum.map(&{:function, "<>", [subject, &1], location_not})
-      |> Enum.reduce(&{:function, "and", [&1, &2], location_in})
-    end)
-  end
 end

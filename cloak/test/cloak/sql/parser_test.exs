@@ -1994,9 +1994,8 @@ defmodule Cloak.Sql.Parser.Test do
         "select foo not in (1, 2) from bar",
         select(
           columns: [
-            function("and", [
-              function("<>", [identifier("foo"), constant(1)]),
-              function("<>", [identifier("foo"), constant(2)])
+            function("not", [
+              function("in", [identifier("foo"), constant(1), constant(2)])
             ])
           ]
         )

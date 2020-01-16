@@ -21,6 +21,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
       |> Helpers.apply_bottom_up(&remove_conditionless_cases/1)
       |> Helpers.apply_bottom_up(&normalize_non_anonymizing_noise/1)
+      |> Helpers.apply_bottom_up(&rewrite_not_in_expressions/1)
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
@@ -564,4 +565,31 @@ defmodule Cloak.Sql.Compiler.Normalization do
         other ->
           other
       end)
+
+  # -------------------------------------------------------------------
+  # Rewrite NOT IN expressions
+  # -------------------------------------------------------------------
+
+  defp rewrite_not_in_expressions(%Query{type: :standard} = query), do: query
+
+  defp rewrite_not_in_expressions(query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Function.condition?/1)
+    |> Lens.filter(&(Condition.verb(&1) == :in))
+    |> Lens.filter(&(&1.name == "not"))
+    |> Lens.map(query, &rewrite_not_in_expression/1)
+  end
+
+  defp rewrite_not_in_expression(
+         %Expression{
+           kind: :function,
+           name: "not",
+           args: [%Expression{kind: :function, name: "in", args: [subject | targets]}]
+         } = expression
+       ) do
+    targets
+    |> Enum.reverse()
+    |> Enum.map(&%Expression{expression | name: "<>", args: [subject, &1]})
+    |> Enum.reduce(&Condition.both/2)
+  end
 end

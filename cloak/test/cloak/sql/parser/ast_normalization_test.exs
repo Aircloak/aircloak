@@ -17,29 +17,6 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
     end
   end
 
-  describe "rewriting NOT IN" do
-    test "with one element in LHS",
-      do:
-        assert_equivalent(
-          "SELECT * FROM table WHERE x NOT IN ('string')",
-          "SELECT * FROM table WHERE x <> 'string'"
-        )
-
-    test "with many elements in LHS",
-      do:
-        assert_equivalent(
-          "SELECT * FROM table WHERE x NOT IN (1, 2, 3)",
-          "SELECT * FROM table WHERE x <> 1 AND (x <> 2 AND x <> 3)"
-        )
-
-    test "acts on subqueries",
-      do:
-        assert_equivalent(
-          "SELECT * FROM (SELECT * FROM Table WHERE x NOT IN (1, 2, 3)) x",
-          "SELECT * FROM (SELECT * FROM Table WHERE x <> 1 AND (x <> 2 AND x <> 3)) x"
-        )
-  end
-
   describe "rewriting NOT" do
     %{
       "=" => "<>",
@@ -89,14 +66,7 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
       do:
         assert_equivalent(
           "SELECT * FROM table WHERE NOT x IN (1)",
-          "SELECT * FROM table WHERE x <> 1"
-        )
-
-    test "NOT x IN (multiple, values)",
-      do:
-        assert_equivalent(
-          "SELECT * FROM table WHERE NOT x IN (1, 2, 3)",
-          "SELECT * FROM table WHERE x <> 1 AND (x <> 2 AND x <> 3)"
+          "SELECT * FROM table WHERE NOT x = 1"
         )
 
     test "NOT x NOT IN (single_value)",
