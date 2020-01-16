@@ -23,6 +23,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
     count sum min max avg stddev count_distinct variance
     < > <= >= = <> and or not in is_null like ilike
     year month day hour minute second quarter weekday date_trunc
+    sqrt floor ceil abs round trunc
     unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
   )
 
@@ -51,6 +52,9 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
     def function_sql(unquote(function), [arg1, arg2]), do: ["(", arg1, unquote(operator), arg2, ")"]
   end
 
+  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
+
+  def function_sql("trunc", args), do: super("TRUNCATE", args)
   def function_sql(name, args), do: super(name, args)
 
   @impl Dialect
