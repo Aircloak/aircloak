@@ -5,6 +5,22 @@ import {Bar} from "react-chartjs-2";
 import _ from "lodash";
 
 import type {GraphDataT} from "./graph_data";
+import {GraphConfig} from "./graph_data";
+
+type ColumnAction = (columnIndex: number) => () => void;
+
+type Props = {
+  graphInfo: GraphInfoT,
+  graphConfig: GraphConfig,
+  addX: ColumnAction,
+  addY: ColumnAction,
+  remove: ColumnAction
+};
+
+type State = {
+  propsCache: Props,
+  redraw: boolean,
+};
 
 const fillColors = [
   "rgba(170, 100, 100, 0.4)",
@@ -45,16 +61,21 @@ const options = (graphData) => ({
   },
 });
 
-class BarWrapper extends React.Component {
+class BarWrapper extends React.Component<Props, State> {
   constructor(props) {
     super(props);
-    this.state = {redraw: true};
+    this.state = {
+      propsCache: props,
+      redraw: true,
+    };
   }
 
-  state: {redraw: boolean};
-
-  componentWillReceiveProps(nextProps) {
-    this.setState({redraw: ! _.isEqual(nextProps, this.props)});
+  static getDerivedStateFromProps(nextProps, prevState) {
+    if (_.isEqual(nextProps, prevState.propsCache)) {
+      return {redraw: false};
+    } else {
+      return {redraw: true, propsCache: nextProps};
+    }
   }
 
   render() {
