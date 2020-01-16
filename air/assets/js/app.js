@@ -15,6 +15,7 @@
 // to also remove its path from "config.paths.watched".
 require("core-js");
 
+import css from "../css/app.css";
 import "phoenix_html";
 import React from "react";
 import ReactDOM from "react-dom";
