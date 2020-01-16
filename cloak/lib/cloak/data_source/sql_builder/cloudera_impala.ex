@@ -22,7 +22,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   def supported_functions(), do: ~w(
     count sum min max avg stddev count_distinct variance
     < > <= >= = <> and or not in is_null like ilike
-    year month day hour minute second quarter weekday
+    year month day hour minute second quarter weekday date_trunc
     unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
   )
 
@@ -34,6 +34,16 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   # quarter is not supported natively in CDP 5.13
   def function_sql("quarter", args), do: ["CAST((FLOOR((EXTRACT(", args, ", 'month') - 1) / 3) + 1) AS INT)"]
   def function_sql("weekday", args), do: ["DAYOFWEEK(", args, ")"]
+
+  def function_sql("date_trunc", [[?', "year", ?'], arg2]), do: ["TRUNC(", arg2, ", 'YY')"]
+  def function_sql("date_trunc", [[?', "quarter", ?'], arg2]), do: ["TRUNC(", arg2, ", 'Q')"]
+  def function_sql("date_trunc", [[?', "month", ?'], arg2]), do: ["TRUNC(", arg2, ", 'MM')"]
+  def function_sql("date_trunc", [[?', "day", ?'], arg2]), do: ["TRUNC(", arg2, ", 'DD')"]
+  def function_sql("date_trunc", [[?', "hour", ?'], arg2]), do: ["TRUNC(", arg2, ", 'HH')"]
+  def function_sql("date_trunc", [[?', "minute", ?'], arg2]), do: ["TRUNC(", arg2, ", 'MI')"]
+
+  def function_sql("date_trunc", [[?', "second", ?'], arg2]),
+    do: ["SECONDS_ADD(TRUNC(", arg2, ", 'MI'), EXTRACT(", arg2, ", 'second'))"]
 
   def function_sql("unsafe_pow", [arg1, arg2]), do: ["pow(", arg1, ", ", arg2, ")"]
 
