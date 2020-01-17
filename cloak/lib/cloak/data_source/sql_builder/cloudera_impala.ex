@@ -20,14 +20,14 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
 
   @impl Dialect
   def supported_functions(), do: ~w(
-    count sum min max avg stddev count_distinct variance
-    < > <= >= = <> and or not in is_null like ilike
-    year month day hour minute second quarter weekday date_trunc
-    sqrt floor ceil abs round trunc
-    unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
-    checked_mod checked_div checked_pow
-    length lower upper
-    hex coalesce
+      count sum min max avg stddev count_distinct variance
+      < > <= >= = <> and or not in is_null like ilike
+      year month day hour minute second quarter weekday date_trunc
+      sqrt floor ceil abs round trunc
+      unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
+      checked_mod checked_div checked_pow
+      length lower upper btrim ltrim/1 rtrim/1
+      hex coalesce
   )
 
   @impl Dialect
