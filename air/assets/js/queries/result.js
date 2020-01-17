@@ -141,6 +141,9 @@ export class ResultView extends React.Component<Props, State> {
     this.getInfoMessages = this.getInfoMessages.bind(this);
   }
 
+  // eslint-disable-next-line react/static-property-placement
+  static contextType = AuthContext;
+
   minRowsToShow: number;
 
   graphInfo: GraphInfoT;
@@ -557,5 +560,3 @@ rows.
     );
   }
 }
-
-ResultView.contextType = AuthContext;

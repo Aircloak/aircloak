@@ -96,6 +96,9 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
   }
 
+  // eslint-disable-next-line react/static-property-placement
+  static contextType = AuthContext;
+
   connectedInterval: IntervalID;
 
   channel: Channel;
@@ -372,5 +375,3 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     );
   }
 }
-
-QueriesView.contextType = AuthContext;

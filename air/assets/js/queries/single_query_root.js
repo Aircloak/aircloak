@@ -35,6 +35,7 @@ export default class QueryView extends React.Component<Props, State> {
     });
   }
 
+  // eslint-disable-next-line react/static-property-placement
   static contextType = AuthContext;
 
   resultReceived = (result: Result) => {
