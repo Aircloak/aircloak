@@ -34,26 +34,29 @@ type State = {
 export default class SelectableInfo extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
+    const {
+      dataSourceStatus, frontendSocket, dataSourceName, userId
+    } = this.props;
 
     this.state = {
       expanded: new Set(),
       filter: new EmptyFilter(),
       selectables: props.selectables,
-      dataSourceStatus: this.props.dataSourceStatus,
+      dataSourceStatus: dataSourceStatus,
     };
 
     this.toggleExpand = this.toggleExpand.bind(this);
     this.onFilterChange = this.onFilterChange.bind(this);
     this.updateSelectables = this.updateSelectables.bind(this);
 
-    this.channel = this.props.frontendSocket.joinSelectablesChannel(
-      this.props.dataSourceName, this.props.userId, {
+    this.channel = frontendSocket.joinSelectablesChannel(
+      dataSourceName, userId, {
         handleEvent: (event) => this.updateSelectables(event),
         joined: (event) => this.updateSelectables(event),
       },
     );
 
-    this.props.frontendSocket.joinDataSourceChannel(this.props.dataSourceName, {
+    frontendSocket.joinDataSourceChannel(dataSourceName, {
       handleEvent: (event) => this.dataSourceStatusReceived(event),
     });
   }
@@ -78,16 +81,24 @@ export default class SelectableInfo extends React.Component<Props, State> {
     this.setState({selectables: event.selectables});
   }
 
-  expanded = (selectable: Selectable) => this.state.expanded.has(selectable.id)
+  expanded = (selectable: Selectable) => {
+    const {expanded} = this.state;
+    return expanded.has(selectable.id);
+  }
 
-  selectables = () => _.reject(this.state.selectables, (selectable) => selectable.internal_id === (this.props.selectableToExclude || "don't exclude any"))
+  selectables = () => {
+    const {selectableToExclude} = this.props;
+    const {selectables} = this.state;
+    return _.reject(selectables, (selectable) => selectable.internal_id === (selectableToExclude || "don't exclude any"))
+  }
 
   dataSourceStatusReceived = (event: { status: string }) => {
     this.setState({dataSourceStatus: event.status});
   }
 
   renderAvailabilityLabel = () => {
-    switch (this.state.dataSourceStatus) {
+    const {dataSourceStatus} = this.state;
+    switch (dataSourceStatus) {
       case "online": return <span className="label label-success pull-right">Online</span>;
       case "offline": return <span className="label label-danger pull-right">Offline</span>;
       case "analyzing": return this.analyzing();
@@ -113,45 +124,52 @@ export default class SelectableInfo extends React.Component<Props, State> {
   )
 
   renderDataSourceDescription = () => {
-    if (this.props.dataSourceDescription) {
-      return <p>{this.props.dataSourceDescription}</p>;
+    const {dataSourceDescription} = this.props;
+    if (dataSourceDescription) {
+      return <p>{dataSourceDescription}</p>;
     } else {
       return null;
     }
   }
 
-  render = () => (
-    <div className="panel panel-default selectable-info">
+  render = () => {
+    const {
+      dataSourceName, selectablesEditUrl, newTableURL, newViewURL, supportsCreateTable
+    } = this.props;
+    const {filter} = this.state;
+    return (
+      <div className="panel panel-default selectable-info">
 
-      <div className="panel-heading selectable-heading">
-        <strong>{this.props.dataSourceName}</strong>
-        {this.renderAvailabilityLabel()}
-        {this.renderDataSourceDescription()}
-      </div>
+        <div className="panel-heading selectable-heading">
+          <strong>{dataSourceName}</strong>
+          {this.renderAvailabilityLabel()}
+          {this.renderDataSourceDescription()}
+        </div>
 
-      <FilterView onFilterChange={this.onFilterChange} />
+        <FilterView onFilterChange={this.onFilterChange} />
 
-      <div className="selectable-info-content">
-        {this.selectables().map((selectable, i) => (
-          <SelectableView
-            key={i}
-            filter={this.state.filter}
-            selectable={selectable}
-            selectablesEditUrl={this.props.selectablesEditUrl}
-            channel={this.channel}
-            expanded={this.expanded(selectable)}
-            onClick={this.toggleExpand(selectable)}
+        <div className="selectable-info-content">
+          {this.selectables().map((selectable, i) => (
+            <SelectableView
+              key={i}
+              filter={filter}
+              selectable={selectable}
+              selectablesEditUrl={selectablesEditUrl}
+              channel={this.channel}
+              expanded={this.expanded(selectable)}
+              onClick={this.toggleExpand(selectable)}
+            />
+          ))}
+        </div>
+
+        <div className="panel-footer">
+          <NewSelectableToolbarView
+            newTableURL={newTableURL}
+            newViewURL={newViewURL}
+            supportsCreateTable={supportsCreateTable}
           />
-        ))}
+        </div>
       </div>
-
-      <div className="panel-footer">
-        <NewSelectableToolbarView
-          newTableURL={this.props.newTableURL}
-          newViewURL={this.props.newViewURL}
-          supportsCreateTable={this.props.supportsCreateTable}
-        />
-      </div>
-    </div>
-  )
+    );
+  }
 }

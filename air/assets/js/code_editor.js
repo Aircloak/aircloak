@@ -39,7 +39,8 @@ export class CodeEditor extends React.Component<Props> {
   errorMarker: ?any;
 
   run = () => {
-    this.props.onRun();
+    const {onRun} = this.props;
+    onRun();
   }
 
   showHint = (editor: Editor) => {
@@ -47,21 +48,25 @@ export class CodeEditor extends React.Component<Props> {
   }
 
   onChange = (editor: Editor) => {
-    this.props.onChange(editor.getValue());
+    const {onChange} = this.props;
+    onChange(editor.getValue());
   }
 
   editorDidMount = (editor: Editor) => {
     this.editor = editor;
   }
 
-  completionList = (cm: Editor) => completions(
-    cm.getLine(cm.getCursor().line),
-    cm.getCursor().ch,
-    (pos) => _.merge({}, cm.getCursor(), {ch: pos}),
-    this.props.tableNames,
-    this.props.columnNames,
-    this.props.statement,
-  )
+  completionList = (cm: Editor) => {
+    const {tableNames, columnNames, statement} = this.props;
+    return completions(
+      cm.getLine(cm.getCursor().line),
+      cm.getCursor().ch,
+      (pos) => _.merge({}, cm.getCursor(), {ch: pos}),
+      tableNames,
+      columnNames,
+      statement,
+    );
+  }
 
   insertWordInEditor = (word: String) => {
     const doc = this.editor.getDoc();
@@ -104,9 +109,10 @@ export class CodeEditor extends React.Component<Props> {
       },
     };
 
+    const {statement} = this.props;
     return (
       <Codemirror
-        value={this.props.statement}
+        value={statement}
         editorDidMount={this.editorDidMount}
         onChange={this.onChange}
         options={options}

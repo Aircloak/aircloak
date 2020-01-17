@@ -25,29 +25,32 @@ const stateItem = (state, currentState) => {
   }
 };
 
-export const PendingResultView = (props: Props) => (
-  <div className="panel panel-info">
-    <div className="panel-heading" />
-    <div className="panel-body">
-      <CodeViewer statement={props.result.statement} />
+export const PendingResultView = (props: Props) => {
+  const {result, authentication} = props;
+  return (
+    <div className="panel panel-info">
+      <div className="panel-heading" />
+      <div className="panel-body">
+        <CodeViewer statement={result.statement} />
 
-      <p className="text-center spinner">
-        {" "}
-        <img src="/images/loader.gif" role="presentation" />
-        {" "}
-      </p>
-      <ul>
-        {pendingStates.map((state, i) => <li key={i}>{stateItem(state, props.result.query_state)}</li>)}
-      </ul>
+        <p className="text-center spinner">
+          {" "}
+          <img src="/images/loader.gif" role="presentation" />
+          {" "}
+        </p>
+        <ul>
+          {pendingStates.map((state, i) => <li key={i}>{stateItem(state, result.query_state)}</li>)}
+        </ul>
 
-      <div className="right-align">
-        <a
-          className="btn btn-small btn-warning"
-          onClick={() => cancel(props.result.id, props.authentication)}
-        >
-          Cancel
-        </a>
+        <div className="right-align">
+          <a
+            className="btn btn-small btn-warning"
+            onClick={() => cancel(result.id, authentication)}
+          >
+            Cancel
+          </a>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+}

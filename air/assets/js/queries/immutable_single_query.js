@@ -15,17 +15,22 @@ type Props = {
   authentication: Authentication,
 };
 
-export default (props: Props) => (
-  <div>
-    <h3>Properties</h3>
-    <PropertiesView {...props.result} />
+export default (props: Props) => {
+  const {
+    result, numberFormat, debugModeEnabled, authentication,
+  } = props;
+  return (
+    <div>
+      <h3>Properties</h3>
+      <PropertiesView {...result} />
 
-    <h3>Query</h3>
-    <Results
-      numberFormat={props.numberFormat}
-      results={[props.result]}
-      debugModeEnabled={props.debugModeEnabled}
-      authentication={props.authentication}
-    />
-  </div>
-);
+      <h3>Query</h3>
+      <Results
+        numberFormat={numberFormat}
+        results={[result]}
+        debugModeEnabled={debugModeEnabled}
+        authentication={authentication}
+      />
+    </div>
+  );
+}

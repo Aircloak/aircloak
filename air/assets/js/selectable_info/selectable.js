@@ -54,27 +54,32 @@ export class SelectableView extends React.Component<Props> {
     // here.
     if (event.target.tagName !== "A" && !this.pending()) {
       event.preventDefault();
-      this.props.onClick();
+      const {onClick} = this.props;
+      onClick();
     }
   }
 
   isAnalystCreatedSelectable = () => {
-    const {kind} = this.props.selectable;
-    return kind === "view" || kind === "analyst_table";
+    const {selectable} = this.props;
+    return selectable.kind === "view" || selectable.kind === "analyst_table";
   }
 
-  hasRenderableContent = () => this.props.filter.anyColumnMatches(this.props.selectable.columns)
+  hasRenderableContent = () => {
+    const {filter, selectable} = this.props;
+    return filter.anyColumnMatches(selectable.columns);
+  }
 
   editLinkUrl = () => {
-    const {selectable} = this.props;
-    return `${this.props.selectablesEditUrl}?kind=${selectable.kind}&id=${selectable.internal_id}`;
+    const {selectable, selectablesEditUrl} = this.props;
+    return `${selectablesEditUrl}?kind=${selectable.kind}&id=${selectable.internal_id}`;
   }
 
   triggerDelete = (event: {preventDefault: () => void}) => {
-    if (confirm(`Do you want to permanently delete ${this.props.selectable.id}?`)) { // eslint-disable-line no-alert
-      this.props.channel.push("delete_selectable", {
-        internal_id: this.props.selectable.internal_id,
-        kind: this.props.selectable.kind,
+    const {selectable, channel} = this.props;
+    if (confirm(`Do you want to permanently delete ${selectable.id}?`)) { // eslint-disable-line no-alert
+      channel.push("delete_selectable", {
+        internal_id: selectable.internal_id,
+        kind: selectable.kind,
       });
     }
     event.preventDefault();
@@ -96,7 +101,8 @@ export class SelectableView extends React.Component<Props> {
   }
 
   brokenErrorMessage = () => {
-    if (this.props.selectable.kind === "view") {
+    const {selectable} = this.props;
+    if (selectable.kind === "view") {
       return VIEW_INVALID_MESSAGE;
     } else {
       return TABLE_INVALID_MESSAGE;
@@ -119,36 +125,43 @@ export class SelectableView extends React.Component<Props> {
     }
   }
 
-  pending = () => this.props.selectable.creation_status === "pending"
+  pending = () => {
+    const {selectable} = this.props;
+    return selectable.creation_status === "pending"
+  }
 
   renderIcon = () => {
+    const {expanded} = this.props;
     if (this.pending()) {
       return <img src="/images/loader.gif" role="presentation" height="12" width="12" />;
     } else {
-      const glyphType = this.props.expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
+      const glyphType = expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
       return <span className={glyphType} />;
     }
   }
 
-  renderSelectableView = () => (
-    <div className="list-group-item">
-      <div onClick={this.handleToggleClick} {...this.broken()}>
-        {this.renderIcon()}
-          &nbsp;
-        {this.props.selectable.id}
+  renderSelectableView = () => {
+    const {selectable, expanded, filter} = this.props;
+    return (
+      <div className="list-group-item">
+        <div onClick={this.handleToggleClick} {...this.broken()}>
+          {this.renderIcon()}
+            &nbsp;
+          {selectable.id}
 
-        {this.isAnalystCreatedSelectable() ? this.renderSelectableActionMenu() : null}
+          {this.isAnalystCreatedSelectable() ? this.renderSelectableActionMenu() : null}
+        </div>
+
+        {(() => {
+          if (expanded) {
+            return <ColumnsView columns={selectable.columns} filter={filter} />;
+          } else {
+            return null;
+          }
+        })()}
       </div>
-
-      {(() => {
-        if (this.props.expanded) {
-          return <ColumnsView columns={this.props.selectable.columns} filter={this.props.filter} />;
-        } else {
-          return null;
-        }
-      })()}
-    </div>
-  )
+    );
+  }
 
   render = () => {
     if (this.hasRenderableContent()) {

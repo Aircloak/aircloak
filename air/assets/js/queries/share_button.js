@@ -21,24 +21,28 @@ export class ShareButton extends React.Component<Props, State> {
   }
 
   privatePermalink(): ?string {
-    if (this.props.result.private_permalink) return `${window.location.origin}${this.props.result.private_permalink}`;
+    const {result} = this.props;
+    if (result.private_permalink) return `${window.location.origin}${result.private_permalink}`;
   }
 
   publicPermalink(): ?string {
-    if (this.props.result.public_permalink) return `${window.location.origin}${this.props.result.public_permalink}`;
+    const {result} = this.props;
+    if (result.public_permalink) return `${window.location.origin}${result.public_permalink}`;
   }
 
   isEnabled() {
-    return this.props.result.private_permalink || this.props.result.public_permalink;
+    const {result} = this.props;
+    return result.private_permalink || result.public_permalink;
   }
 
   render() {
+    const {showModal} = this.state;
     if (this.isEnabled()) {
       return (
         <span>
           <a className="btn btn-default btn-xs" onClick={() => this.setState({showModal: true})}>Share</a>
 
-          <Modal show={this.state.showModal} onHide={() => this.setState({showModal: false})}>
+          <Modal show={showModal} onHide={() => this.setState({showModal: false})}>
             <Modal.Header>
               <Modal.Title>Share</Modal.Title>
             </Modal.Header>

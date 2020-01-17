@@ -28,8 +28,9 @@ export default class QueryView extends React.Component<Props, State> {
     };
 
     this.resultReceived = this.resultReceived.bind(this);
+    const {frontendSocket, result} = this.props;
 
-    this.props.frontendSocket.joinUpdatesForQuery(props.result.id, {
+    frontendSocket.joinUpdatesForQuery(result.id, {
       handleEvent: this.resultReceived,
     });
   }
@@ -40,12 +41,17 @@ export default class QueryView extends React.Component<Props, State> {
     this.setState({result});
   }
 
-  render = () => (
-    <ImmutableSingleQuery
-      numberFormat={this.props.numberFormat}
-      debugModeEnabled={this.props.debugModeEnabled}
-      result={this.state.result}
-      authentication={this.context.authentication}
-    />
-  )
+  render = () => {
+    const {numberFormat, debugModeEnabled} = this.props;
+    const {result} = this.state;
+    const {authentication} = this.context;
+    return (
+      <ImmutableSingleQuery
+        numberFormat={numberFormat}
+        debugModeEnabled={debugModeEnabled}
+        result={result}
+        authentication={authentication}
+      />
+    );
+  }
 }

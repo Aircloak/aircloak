@@ -39,29 +39,32 @@ export class QueryView extends React.Component<Props> {
   static contextType = AuthContext;
 
   shouldComponentUpdate(nextProps: Props) {
-    return nextProps.query.state !== this.props.query.state;
+    const {query} = this.props;
+    return nextProps.query.state !== query.state;
   }
 
   render() {
+    const {query} = this.props;
+    const {authentication} = this.context;
     return (
       <tr>
-        <td>{this.props.query.data_source_name}</td>
-        <td>{this.props.query.cloak_name}</td>
-        <td>{this.props.query.analyst_name}</td>
+        <td>{query.data_source_name}</td>
+        <td>{query.cloak_name}</td>
+        <td>{query.analyst_name}</td>
         <td>
-          <code>{queryExcerpt(this.props.query.statement)}</code>
+          <code>{queryExcerpt(query.statement)}</code>
         </td>
-        <td><StateView state={this.props.query.state} /></td>
+        <td><StateView state={query.state} /></td>
         <td>
           <button
             className="btn btn-warning btn-xs"
-            onClick={() => cancel(this.props.query.id, this.context.authentication)}
-            disabled={isFinished(this.props.query.state)}
+            onClick={() => cancel(query.id, authentication)}
+            disabled={isFinished(query.state)}
           >
             cancel
           </button>
         </td>
-        <td><a href={queryViewUrl(this.props.query)}>view</a></td>
+        <td><a href={queryViewUrl(query)}>view</a></td>
       </tr>
     );
   }

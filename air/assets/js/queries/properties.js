@@ -17,30 +17,35 @@ const formatTime = (isoTime) => {
 };
 
 
-export const PropertiesView = (props: PropertyResult) => (
-  <table className="table table-condensed">
-    <tbody>
-      <tr>
-        <td className="active col-md-2">User</td>
-        <td>{props.user.name}</td>
-      </tr>
+export const PropertiesView = (props: PropertyResult) => {
+  const {
+    user, data_source, inserted_at, query_state
+  } = props;
+  return (
+    <table className="table table-condensed">
+      <tbody>
+        <tr>
+          <td className="active col-md-2">User</td>
+          <td>{user.name}</td>
+        </tr>
 
-      <tr>
-        <td className="active col-md-2">Data source</td>
-        <td>{props.data_source.name}</td>
-      </tr>
+        <tr>
+          <td className="active col-md-2">Data source</td>
+          <td>{data_source.name}</td>
+        </tr>
 
-      <tr>
-        <td className="active col-md-2">Started on</td>
-        <td>{formatTime(props.inserted_at)}</td>
-      </tr>
+        <tr>
+          <td className="active col-md-2">Started on</td>
+          <td>{formatTime(inserted_at)}</td>
+        </tr>
 
-      <tr>
-        <td className="active col-md-2">Current state</td>
-        <td>
-          <StateView state={props.query_state} />
-        </td>
-      </tr>
-    </tbody>
-  </table>
-);
+        <tr>
+          <td className="active col-md-2">Current state</td>
+          <td>
+            <StateView state={query_state} />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}

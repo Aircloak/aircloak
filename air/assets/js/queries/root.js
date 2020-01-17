@@ -62,11 +62,15 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   constructor(props: Props) {
     super(props);
 
+    const {
+      userId, pendingQueries, dataSourceName, dataSourceStatus, frontendSocket,
+    } = props;
+
     this.state = {
       statement: this.initialStatement(),
-      sessionResults: this.props.pendingQueries,
+      sessionResults: pendingQueries,
       connected: true,
-      dataSourceStatus: this.props.dataSourceStatus,
+      dataSourceStatus: dataSourceStatus,
       history: emptyHistory,
     };
 
@@ -83,10 +87,10 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     this.initialStatement = this.initialStatement.bind(this);
 
     this.bindKeysWithoutEditorFocus();
-    this.props.frontendSocket.joinDataSourceChannel(this.props.dataSourceName, {
+    frontendSocket.joinDataSourceChannel(dataSourceName, {
       handleEvent: (event) => this.dataSourceStatusReceived(event),
     });
-    this.channel = this.props.frontendSocket.joinUserQueriesChannel(this.props.userId, {
+    this.channel = frontendSocket.joinUserQueriesChannel(userId, {
       handleEvent: (event) => this.resultReceived(event),
     });
     this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
@@ -96,7 +100,10 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
   channel: Channel;
 
-  initialStatement = () => (this.props.lastQuery ? this.props.lastQuery.statement : "")
+  initialStatement = () => {
+    const {lastQuery} = this.props;
+    return (lastQuery ? lastQuery.statement : "");
+  }
 
   static contextType = AuthContext;
 
@@ -108,9 +115,15 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     this.setState({connected: this.channel.isJoined()});
   }
 
-  runEnabled = () => this.dataSourceAvailable() && this.state.connected
+  runEnabled = () => {
+    const {connected} = this.state;
+    return this.dataSourceAvailable() && connected;
+  }
 
-  dataSourceAvailable = () => this.state.dataSourceStatus !== "offline"
+  dataSourceAvailable = () => {
+    const {dataSourceStatus} = this.state;
+    return dataSourceStatus !== "offline";
+  }
 
   setStatement = (statement: string) => {
     this.setState({statement});
@@ -132,14 +145,15 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   }
 
   replaceResult = (result: Result) => {
-    const sessionResults = this.state.sessionResults.map((item) => {
+    const {sessionResults} = this.state;
+    const processedSessionResults = sessionResults.map((item) => {
       if (item.id === result.id) {
         return result;
       } else {
         return item;
       }
     });
-    this.setResults(sessionResults);
+    this.setResults(processedSessionResults);
   }
 
   resultReceived = (result: Result) => {
@@ -159,25 +173,34 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
   shouldDisplayResult = (result: Result) => this.createdInThisSession(result) || this.alreadyDisplayed(result)
 
-  createdInThisSession = (result: Result) => result.session_id === this.props.sessionId
+  createdInThisSession = (result: Result) => {
+    const {sessionId} = this.props;
+    return result.session_id === sessionId;
+  }
 
-  alreadyDisplayed = (result: Result) => _.some(this.state.sessionResults, (sessionResult) => sessionResult.id === result.id)
+  alreadyDisplayed = (result: Result) => {
+    const {sessionResults} = this.state;
+    return _.some(sessionResults, (sessionResult) => sessionResult.id === result.id);
+  }
 
   addPendingResult = (queryId: string, statement: string) => {
+    const {sessionId, dataSourceName} = this.props;
+    const {sessionResults} = this.state;
     const pendingResult: PendingResult = {
       id: queryId,
       statement,
       query_state: "created",
-      session_id: this.props.sessionId,
+      session_id: sessionId,
       private_permalink: null,
       public_permalink: null,
       inserted_at: null,
-      data_source: {name: this.props.dataSourceName},
+      data_source: {name: dataSourceName},
     };
-    this.setResults([pendingResult].concat(this.state.sessionResults));
+    this.setResults([pendingResult].concat(sessionResults));
   }
 
   replacePendingResultWithError = (generatedTempId: string, statement: string, error: string) => {
+    const {sessionId, dataSourceName} = this.props;
     const errorResult = {
       query_state: "error",
       id: generatedTempId,
@@ -187,8 +210,8 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       private_permalink: null,
       public_permalink: null,
       inserted_at: null,
-      session_id: this.props.sessionId,
-      data_source: {name: this.props.dataSourceName},
+      session_id: sessionId,
+      data_source: {name: dataSourceName},
     };
     this.replaceResult(errorResult);
   }
@@ -197,14 +220,18 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     Mousetrap.bind(["command+enter", "ctrl+enter"], this.runQuery);
   }
 
-  queryData = (queryId: string) => JSON.stringify({
-    query: {
-      id: queryId,
-      statement: this.state.statement,
-      data_source_name: this.props.dataSourceName,
-      session_id: this.props.sessionId,
-    },
-  })
+  queryData = (queryId: string) => {
+    const {dataSourceName, sessionId} = this.props;
+    const {statement} = this.state;
+    return JSON.stringify({
+      query: {
+        id: queryId,
+        statement: statement,
+        data_source_name: dataSourceName,
+        session_id: sessionId,
+      },
+    });
+  }
 
   runQuery = () => {
     if (!this.runEnabled()) return;
@@ -213,9 +240,11 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
     const queryId = uuidv4();
     const {statement} = this.state;
+    const {authentication} = this.context;
+
     this.addPendingResult(queryId, statement);
 
-    startQuery(this.queryData(queryId), this.context.authentication, {
+    startQuery(this.queryData(queryId), authentication, {
       success: (response) => {
         if (!response.success) {
           this.replacePendingResultWithError(queryId, statement,
@@ -241,15 +270,18 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   }
 
   handleLoadHistory = () => {
-    const {before} = this.state.history;
-    const history = {
+    const {history, sessionResults} = this.state;
+    const {before} = history;
+    const updatedHistory = {
       before,
       loaded: false,
       loading: true,
     };
-    this.setState({history});
+    this.setState({history: updatedHistory});
 
-    loadHistory(this.props.dataSourceName, before, this.context.authentication, {
+    const {dataSourceName} = this.props;
+    const {authentication} = this.context;
+    loadHistory(dataSourceName, before, authentication, {
       success: (response) => {
         const successHistory = (response.length < historyPageSize) ? {
           before: "",
@@ -260,8 +292,8 @@ export default class QueriesView extends React.PureComponent<Props, State> {
           loaded: false,
           loading: false,
         };
-        const sessionResults = _.uniqBy(this.state.sessionResults.concat(response), "id");
-        this.setState({sessionResults, history: successHistory});
+        const ammendedSessionResults = _.uniqBy(sessionResults.concat(response), "id");
+        this.setState({sessionResults: ammendedSessionResults, history: successHistory});
       },
 
       error: (_error) => {
@@ -276,9 +308,15 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     });
   }
 
-  tableNames = () => this.props.selectables.map<string>((table) => table.id)
+  tableNames = () => {
+    const {selectables} = this.props;
+    return selectables.map<string>((table) => table.id);
+  }
 
-  columnNames = () => _.flatMap(this.props.selectables, (table) => table.columns.map<string>((column) => column.name))
+  columnNames = () => {
+    const {selectables} = this.props;
+    return _.flatMap(selectables, (table) => table.columns.map<string>((column) => column.name));
+  }
 
   renderCodeEditorOrViewer = () => {
     if (this.runEnabled()) {
@@ -311,6 +349,9 @@ Run
 
   render = () => {
     activateTooltips();
+    const {numberFormat, debugModeEnabled} = this.props;
+    const {sessionResults, history} = this.state;
+    const {authentication} = this.context;
     return (
       <>
         <Disconnected channel={this.channel} />
@@ -321,13 +362,13 @@ Run
         </div>
 
         <Results
-          results={this.state.sessionResults}
-          numberFormat={this.props.numberFormat}
-          debugModeEnabled={this.props.debugModeEnabled}
-          authentication={this.context.authentication}
+          results={sessionResults}
+          numberFormat={numberFormat}
+          debugModeEnabled={debugModeEnabled}
+          authentication={authentication}
         />
 
-        <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
+        <HistoryLoader history={history} handleLoadHistory={this.handleLoadHistory} />
       </>
     );
   }

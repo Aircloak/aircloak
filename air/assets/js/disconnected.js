@@ -31,11 +31,13 @@ export class Disconnected extends React.Component<Props, State> {
   }
 
   updateConnected = () => {
-    this.setState({isConnected: this.props.channel.isJoined()});
+    const {channel} = this.props
+    this.setState({isConnected: channel.isJoined()});
   }
 
   render = () => {
-    if (!this.state.isConnected) {
+    const {isConnected} = this.state;
+    if (!isConnected) {
       return (
         <p className="alert alert-warning">
         Connection to Aircloak lost. The system might be down or you might have lost your network connection.

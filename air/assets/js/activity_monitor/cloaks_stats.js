@@ -19,21 +19,24 @@ const renderCloaks = (cloakStats: CloakStat[]) => {
   }
 };
 
-export const CloaksStatsView = (props: {cloakStats: CloakStat[]}) => (
-  <div>
-    <h3>Cloaks</h3>
-    <table className="table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Current memory</th>
-          <th>% memory usage over time</th>
-          <th># queries over time</th>
-        </tr>
-      </thead>
-      <tbody>
-        {renderCloaks(props.cloakStats)}
-      </tbody>
-    </table>
-  </div>
-);
+export const CloaksStatsView = (props: {cloakStats: CloakStat[]}) => {
+  const {cloakStats} = props;
+  return (
+    <div>
+      <h3>Cloaks</h3>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Current memory</th>
+            <th>% memory usage over time</th>
+            <th># queries over time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {renderCloaks(cloakStats)}
+        </tbody>
+      </table>
+    </div>
+  );
+}

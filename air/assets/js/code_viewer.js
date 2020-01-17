@@ -19,9 +19,10 @@ export const CodeViewer = (props: {statement: string}) => {
     cursorBlinkRate: -1,
   };
 
+  const {statement} = props;
   return (
     <Codemirror
-      value={props.statement}
+      value={statement}
       options={options}
     />
   );

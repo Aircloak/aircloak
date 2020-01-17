@@ -101,13 +101,15 @@ class BarWrapper extends React.Component<Props, State> {
     // Setting redraw=true also doesn't work as the graph is then animated on
     // every UI change, even unrelated ones, like typing in the editor.
     // The clone is needed, because chart.js seems to modify the data passed to it.
-    return <Bar {... _.cloneDeep(this.props)} redraw={this.state.redraw} />;
+    const {redraw} = this.state;
+    return <Bar {... _.cloneDeep(this.props)} redraw={redraw} />;
   }
 }
 
 export const GraphView = (props: {graphData: GraphDataT}) => {
-  if (props.graphData.ready()) {
-    return <BarWrapper data={data(props.graphData)} options={options(props.graphData)} />;
+  const {graphData} = props;
+  if (graphData.ready()) {
+    return <BarWrapper data={data(graphData)} options={options(graphData)} />;
   } else {
     return <div className="alert alert-warning">Select at least one X and Y axis.</div>;
   }

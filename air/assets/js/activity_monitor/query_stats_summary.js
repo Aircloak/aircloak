@@ -12,7 +12,8 @@ type Props = {
 
 export const QueryStatsSummaryView = (props: Props) => {
   const queryStats = {};
-  props.queries.forEach((query) => {
+  const {queries} = props;
+  queries.forEach((query) => {
     if (queryStats[query.state]) {
       queryStats[query.state] += 1;
     } else {

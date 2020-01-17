@@ -15,24 +15,25 @@ type Props = {
 };
 
 export const HistoryLoader = (props: Props) => {
-  if (props.history.error) {
+  const {history, handleLoadHistory} = props;
+  if (history.error) {
     return (
       <div>
         <span className="label label-danger">Error</span>
         Loading history failed.
         {" "}
-        <button className="btn btn-default" onClick={props.handleLoadHistory}>
+        <button className="btn btn-default" onClick={handleLoadHistory}>
           Retry loading previous queries
         </button>
       </div>
     );
   }
 
-  if (props.history.loaded) {
+  if (history.loaded) {
     return null;
   }
 
-  if (props.history.loading) {
+  if (history.loading) {
     return (
       <p>
         <img role="presentation" src="/images/loader.gif" />
@@ -42,7 +43,7 @@ export const HistoryLoader = (props: Props) => {
     );
   } else {
     return (
-      <button className="btn btn-default" onClick={props.handleLoadHistory}>
+      <button className="btn btn-default" onClick={handleLoadHistory}>
         Load previous queries
       </button>
     );

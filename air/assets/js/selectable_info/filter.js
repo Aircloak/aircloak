@@ -50,7 +50,8 @@ export class FilterView extends React.Component<Props, State> {
     try {
       const caseInsensitive = "i";
       const regex = new RegExp(filterText, caseInsensitive);
-      this.props.onFilterChange(new Filter(regex));
+      const {onFilterChange} = this.props;
+      onFilterChange(new Filter(regex));
     } catch (SyntaxError) {
       // If the regular expression doesn't compile, it's
       // probably due to it not being finished yet, hence we
@@ -58,23 +59,26 @@ export class FilterView extends React.Component<Props, State> {
     }
   }
 
-  render = () => (
-    <div className="column-filter">
-      <div className="input-group">
-        <input
-          onChange={(event) => this.filterTextChange(event.target.value)}
-          type="text"
-          className="form-control"
-          placeholder="Filter columns"
-          value={this.state.filterText}
-        />
-        <div
-          className="input-group-addon"
-          onClick={() => this.filterTextChange("")}
-        >
-          <span className="glyphicon glyphicon-remove" aria-hidden="true" />
+  render = () => {
+    const {filterText} = this.state;
+    return (
+      <div className="column-filter">
+        <div className="input-group">
+          <input
+            onChange={(event) => this.filterTextChange(event.target.value)}
+            type="text"
+            className="form-control"
+            placeholder="Filter columns"
+            value={filterText}
+          />
+          <div
+            className="input-group-addon"
+            onClick={() => this.filterTextChange("")}
+          >
+            <span className="glyphicon glyphicon-remove" aria-hidden="true" />
+          </div>
         </div>
       </div>
-    </div>
-  )
+    );
+  }
 }

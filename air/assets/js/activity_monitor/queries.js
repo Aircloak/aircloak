@@ -49,10 +49,11 @@ const renderNumActiveQueriesShown = (queries: Query[]) => {
 
 export class QueriesView extends React.PureComponent<Props> {
   render() {
+    const {queries} = this.props;
     return (
       <div>
         <h3>Queries</h3>
-        {renderNumActiveQueriesShown(this.props.queries)}
+        {renderNumActiveQueriesShown(queries)}
         <table className="table">
           <thead>
             <tr>
@@ -66,7 +67,7 @@ export class QueriesView extends React.PureComponent<Props> {
             </tr>
           </thead>
           <tbody>
-            {renderQueries(this.props.queries)}
+            {renderQueries(queries)}
           </tbody>
         </table>
       </div>

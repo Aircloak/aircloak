@@ -26,13 +26,14 @@ export default class PasswordField extends React.Component<Props, State> {
   }
 
   renderScore = () => {
-    if (this.state.value === "") {
+    const {value, score} = this.state;
+    if (value === "") {
       return null;
-    } else if (this.state.score <= 1) {
+    } else if (score <= 1) {
       return "weak";
-    } else if (this.state.score <= 2) {
+    } else if (score <= 2) {
       return "medium";
-    } else if (this.state.score <= 3) {
+    } else if (score <= 3) {
       return "strong";
     } else {
       return "very strong";
@@ -40,21 +41,25 @@ export default class PasswordField extends React.Component<Props, State> {
   }
 
   highlightClass = () => {
-    if (this.state.value === "") {
+    const {value, score} = this.state;
+    if (value === "") {
       return null;
-    } else if (this.state.score <= 1) {
+    } else if (score <= 1) {
       return "has-error";
-    } else if (this.state.score <= 2) {
+    } else if (score <= 2) {
       return "has-warning";
     } else {
       return "has-success";
     }
   }
 
-  render = () => (
-    <div className={this.highlightClass()}>
-      <input type="password" className="form-control" value={this.state.value} onChange={this.updateValue} />
-      <span className="help-block">{this.renderScore()}</span>
-    </div>
-  )
+  render = () => {
+    const {value} = this.state;
+    return (
+      <div className={this.highlightClass()}>
+        <input type="password" className="form-control" value={value} onChange={this.updateValue} />
+        <span className="help-block">{this.renderScore()}</span>
+      </div>
+    );
+  }
 }

@@ -33,35 +33,43 @@ export default class AuditLogEntry extends React.Component<Props, State> {
 
   toggleDetails = (event: Event) => {
     event.preventDefault();
-    this.setState({details: !this.state.details});
+    const {details} = this.state;
+    this.setState({details: !details});
   }
 
-  render = () => (
-    <tbody>
-      <tr>
-        <td>{formatTime(this.props.auditLog.time)}</td>
-        <td><a href="#" onClick={this.toggleDetails}>Details</a></td>
-      </tr>
-      {this.renderDetails()}
-    </tbody>
-  )
+  render = () => {
+    const {auditLog} = this.props;
+    return (
+      <tbody>
+        <tr>
+          <td>{formatTime(auditLog.time)}</td>
+          <td><a href="#" onClick={this.toggleDetails}>Details</a></td>
+        </tr>
+        {this.renderDetails()}
+      </tbody>
+    );
+  }
 
   renderDetails = () => {
-    if (this.state.details) {
+    const {details} = this.state;
+    if (details) {
       return (<tr><td colSpan="2">{this.renderMetadata()}</td></tr>);
     } else {
       return null;
     }
   }
 
-  renderMetadata = () => (
-    <dl>
-      {_.toPairs(this.props.auditLog.metadata).map(([key, value]) => (
-        <div className="row" key={key}>
-          <dt className="col-sm-3">{_.toString(key)}</dt>
-          <dd className="col-sm-9">{_.toString(value)}</dd>
-        </div>
-      ))}
-    </dl>
-  )
+  renderMetadata = () => {
+    const {auditLog} = this.props;
+    return (
+      <dl>
+        {_.toPairs(auditLog.metadata).map(([key, value]) => (
+          <div className="row" key={key}>
+            <dt className="col-sm-3">{_.toString(key)}</dt>
+            <dd className="col-sm-9">{_.toString(value)}</dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
 }

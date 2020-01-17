@@ -31,31 +31,34 @@ const columnClassName = (column: Column) => {
   }
 };
 
-export const ColumnsView = (props: {filter: Filter, columns: Column[]}) => (
-  <table className="table table-condensed">
-    <thead>
-      <tr>
-        <th>Column</th>
-        <th>Type</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {props.filter.filterColumns(props.columns).map((column, i) => (
-        <tr key={i}>
-          <td
-            onClick={(event) => {
-              event.preventDefault();
-              window.insertWordInEditor(column.name);
-            }}
-            className={columnClassName(column)}
-          >
-            {potentiallyRenderColumnIcon(column)}
-            {column.name}
-          </td>
-          <td>{column.key_type ? `${column.key_type} (${column.type})` : column.type}</td>
+export const ColumnsView = (props: {filter: Filter, columns: Column[]}) => {
+  const {filter, columns} = props;
+  return (
+    <table className="table table-condensed">
+      <thead>
+        <tr>
+          <th>Column</th>
+          <th>Type</th>
         </tr>
-      ))}
-    </tbody>
-  </table>
-);
+      </thead>
+
+      <tbody>
+        {filter.filterColumns(columns).map((column, i) => (
+          <tr key={i}>
+            <td
+              onClick={(event) => {
+                event.preventDefault();
+                window.insertWordInEditor(column.name);
+              }}
+              className={columnClassName(column)}
+            >
+              {potentiallyRenderColumnIcon(column)}
+              {column.name}
+            </td>
+            <td>{column.key_type ? `${column.key_type} (${column.type})` : column.type}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
