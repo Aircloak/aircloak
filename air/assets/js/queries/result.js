@@ -345,7 +345,7 @@ export class ResultView extends React.Component<Props, State> {
     if (row.unreliable) {
       return {
         title: "These values are unreliable because of the low number of users involved.",
-        "data-toggle": "tooltip",
+        dataToggle: "tooltip",
         className: "unreliable",
       };
     } else {
@@ -370,10 +370,16 @@ export class ResultView extends React.Component<Props, State> {
       const occurrencesForAccumulateRow = Math.min(remainingRowsToProduce, accumulateRow.occurrences);
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
+        const {
+          title,
+          dataToggle,
+          className,
+        } = this.getRowAttrs(accumulateRow);
         return (
-          <tr key={`${i}-${occurrenceCount}`} {...this.getRowAttrs(accumulateRow)}>
+          <tr key={`${i}-${occurrenceCount}`} title={title} className={className} data-toggle={dataToggle}>
             {accumulateRow.row.map((value, j) => (
-              <td className={tableAligner.alignmentClass(j)}>
+              // eslint-disable-next-line react/no-array-index-key
+              <td key={j} className={tableAligner.alignmentClass(j)}>
                 {this.formatValue(value, j)}
               </td>
             ))}
@@ -394,8 +400,7 @@ export class ResultView extends React.Component<Props, State> {
       return (
         <div className="row-count">
           {result.row_count}
-          {" "}
-rows.
+          {" rows."}
         </div>
       );
     } else if (this.showingAllOfManyRows()) {
@@ -542,7 +547,12 @@ rows.
             <table className="table table-striped table-condensed table-hover">
               <thead>
                 <tr>
-                  {result.columns.map((column, i) => <th className={tableAligner.alignmentClass(i)}>{column}</th>)}
+                  {
+                    result.columns.map((column, i) => {
+                      // eslint-disable-next-line react/no-array-index-key
+                      return <th key={i} className={tableAligner.alignmentClass(i)}>{column}</th>;
+                    })
+                  }
                 </tr>
               </thead>
 
