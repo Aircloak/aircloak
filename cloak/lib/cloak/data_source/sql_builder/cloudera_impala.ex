@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
       sqrt floor ceil abs round trunc
       unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
       checked_mod checked_div checked_pow
-      length lower upper btrim ltrim/1 rtrim/1
+      length lower upper btrim ltrim/1 rtrim/1 left right
       hex coalesce
   )
 
@@ -66,6 +66,9 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
     do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
 
   def function_sql("trunc", args), do: super("TRUNCATE", args)
+
+  def function_sql("left", args), do: super("STRLEFT", args)
+  def function_sql("right", args), do: super("STRRIGHT", args)
 
   def function_sql(name, args), do: super(name, args)
 
