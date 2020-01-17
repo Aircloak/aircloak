@@ -27,7 +27,12 @@ type Props = {
   cloak_stats: CloakStat[],
 };
 
-export default class ActivityMonitorView extends React.Component {
+type State = {
+  queries: Query[],
+  cloakStats: CloakStat[],
+};
+
+export default class ActivityMonitorView extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -51,10 +56,6 @@ export default class ActivityMonitorView extends React.Component {
     });
   }
 
-  state: {
-    queries: Query[],
-    cloakStats: CloakStat[],
-  };
   queryRemovalTime: number;
   channel: Channel;
 

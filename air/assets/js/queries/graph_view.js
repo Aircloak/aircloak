@@ -5,17 +5,36 @@ import {Bar} from "react-chartjs-2";
 import _ from "lodash";
 
 import type {GraphDataT} from "./graph_data";
-import {GraphConfig} from "./graph_data";
+import type {Series} from "./graph_data";
+import type {Column} from "./result";
 
-type ColumnAction = (columnIndex: number) => () => void;
+type Options = {
+  scales: {
+    yAxes: {ticks: {beginAtZero: boolean}}[],
+    xAxes: {
+      ticks: {beginAtZero: boolean, maxTicksLimit: number},
+      scaleLabel: {
+        display: boolean,
+        labelString: string
+      },
+      gridLines: {
+        display: boolean
+      }
+    }[]
+  }
+}
+
+type Data = {
+  labels: Column[],
+  datasets: (Series & {
+    backgroundColor: string
+  }) []
+};
 
 type Props = {
-  graphInfo: GraphInfoT,
-  graphConfig: GraphConfig,
-  addX: ColumnAction,
-  addY: ColumnAction,
-  remove: ColumnAction
-};
+  data: Data,
+  options: Options
+}
 
 type State = {
   propsCache: Props,
@@ -37,7 +56,7 @@ const data = (graphData) => ({
     _.merge(series, {backgroundColor: fillColors[series.indexInResult % fillColors.length]})),
 });
 
-const options = (graphData) => ({
+const options = (graphData): Options => ({
   scales: {
     yAxes: [{
       ticks: {
@@ -62,7 +81,7 @@ const options = (graphData) => ({
 });
 
 class BarWrapper extends React.Component<Props, State> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
     this.state = {
       propsCache: props,
@@ -70,7 +89,7 @@ class BarWrapper extends React.Component<Props, State> {
     };
   }
 
-  static getDerivedStateFromProps(nextProps, prevState) {
+  static getDerivedStateFromProps(nextProps: Props, prevState: State) {
     if (_.isEqual(nextProps, prevState.propsCache)) {
       return {redraw: false};
     } else {

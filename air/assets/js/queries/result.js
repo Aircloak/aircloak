@@ -28,31 +28,50 @@ export type Row = {
 export type Column = string;
 export type Type = string;
 
-export type Result = {
+export type Result = SuccessResult | PendingResult | CancelledResult | ErrorResult;
+
+type CommonResultFeatures = {
   id: string,
   statement: string,
+  data_source: {
+    name: string,
+  },
+  private_permalink: ?string,
+  public_permalink: ?string,
+  session_id: ?string,
+  inserted_at: ?string,
+}
+
+export type SuccessResult = CommonResultFeatures & {
+  query_state: "completed",
   columns: Column[],
   types: Type[],
   rows: Row[],
   row_count: number,
   info: string[],
-  error: string,
-  query_state: string,
-  data_source: {
-    name: string,
-  },
   user: {
     name: string,
   },
   inserted_at: string,
-  session_id: string,
-  private_permalink: string,
-  public_permalink: string,
   buckets_link: string,
 };
 
+export type PendingResult = CommonResultFeatures & {
+  query_state: "created",
+}
+
+export type CancelledResult = CommonResultFeatures & {
+  query_state: "cancelled",
+}
+
+export type ErrorResult = CommonResultFeatures & {
+  query_state: "error",
+  error: string,
+  info: string[]
+};
+
 type Props = {
-  result: Result,
+  result: SuccessResult,
   numberFormat: NumberFormat,
   debugModeEnabled: boolean
 };
@@ -72,7 +91,7 @@ type State = {
 const ZERO_WIDTH_SPACE = "\u200B";
 const ALL_CHUNKS = -1;
 
-export class ResultView extends React.Component {
+export class ResultView extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -136,7 +155,7 @@ export class ResultView extends React.Component {
   showingAllOfFewRows: () => void;
   showingAllOfManyRows: () => void;
   showingMinimumNumberOfManyRows: () => void;
-  componentDidUpdate: (prevProps: Props, prevState: State) => void;
+  componentDidUpdate: () => void;
   renderChartButton: () => void;
   renderAxesButton: () => void;
   conditionallyRenderChartConfig: () => void;
@@ -240,10 +259,10 @@ export class ResultView extends React.Component {
     const type = this.props.result.types[columnIndex];
     if (value === null) {
       return "<null>";
-    } else if (this.isNumeric(value)) {
-      return formatNumber(value, this.props.numberFormat);
     } else if (value === "") {
       return ZERO_WIDTH_SPACE; // keeps table row from collapsing
+    } else if (this.isNumeric(value)) {
+      return formatNumber(value, this.props.numberFormat);
     } else if (type === "datetime") {
       return this.formatDateTime(value);
     } else if (type === "time") {
@@ -325,10 +344,10 @@ export class ResultView extends React.Component {
     }
   }
 
-  getInfoMessages() {
+  getInfoMessages(): string[] {
     const messages = this.props.result.info;
     if (!this.props.debugModeEnabled) {
-      return messages.filter((message) => !message.startsWith("[Debug]"));
+      return messages.filter(message => !message.startsWith("[Debug]"));
     } else {
       return messages;
     }

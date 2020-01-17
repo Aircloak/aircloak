@@ -11,25 +11,18 @@ type Props = {
   selectables: Selectable[],
 }
 
-export default class ViewEditor extends React.Component {
-  constructor(props: Props) {
-    super(props);
-    this.setStatement = this.setStatement.bind(this);
-  }
-  props: Props;
-  setStatement: () => void;
-
+export default class ViewEditor extends React.Component<Props> {
   setStatement(statement: string) {
     $("#sql").val(statement);
   }
 
   tableNames() {
-    return this.props.selectables.map((table) => table.id);
+    return this.props.selectables.map<string>((table) => table.id);
   }
 
   columnNames() {
     return _.flatMap(this.props.selectables, (table) =>
-      table.columns.map((column) => column.name)
+      table.columns.map<string>((column) => column.name)
     );
   }
 

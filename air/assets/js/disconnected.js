@@ -4,8 +4,16 @@ import React from "react";
 
 import {Channel} from "phoenix";
 
-export class Disconnected extends React.Component {
-  constructor(props: {channel: Channel}) {
+type Props = {
+  channel: Channel
+}
+
+type State = {
+  isConnected: boolean
+}
+
+export class Disconnected extends React.Component<Props, State> {
+  constructor(props: Props) {
     super(props);
 
     this.state = {isConnected: true};
@@ -16,10 +24,7 @@ export class Disconnected extends React.Component {
     this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
   }
 
-  state: {
-    isConnected: boolean,
-  }
-  connectedInterval: number;
+  connectedInterval: IntervalID;
 
   componentWillUnmount: () => void;
   updateConnected: () => void;

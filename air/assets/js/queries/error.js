@@ -8,12 +8,12 @@ import {Info} from "./info";
 import {DebugExport} from "./debug_export";
 import {ShareButton} from "./share_button";
 
-import type {Result} from "./result";
+import type {ErrorResult} from "./result";
 
 const mdToHtml = (text: string) => ({__html: pagedown.getSanitizingConverter().makeHtml(text)});
 
 export const Error =
-  (props: {result: Result, debugModeEnabled: boolean}) =>
+  (props: {result: ErrorResult, debugModeEnabled: boolean}) =>
     <div className="panel panel-danger">
       <div className="panel-heading" />
       <div className="panel-body">

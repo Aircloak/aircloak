@@ -10,7 +10,7 @@ import uuidv4 from "uuid/v4";
 import {CodeEditor} from "../code_editor";
 import {CodeViewer} from "../code_viewer";
 import {Results} from "./results";
-import type {Result} from "./result";
+import type {Result, PendingResult} from "./result";
 import type {NumberFormat} from "../number_format";
 import type {Selectable} from "../selectable_info/selectable";
 import {FrontendSocket} from "../frontend_socket";
@@ -37,6 +37,14 @@ type Props = {
   debugModeEnabled: boolean,
 };
 
+type State = {
+  statement: string,
+  sessionResults: Result[],
+  history: History,
+  connected: boolean,
+  dataSourceStatus: string,
+}
+
 const upgradeRequired = 426;
 
 const runQueryTimeout = 500; // ms
@@ -51,11 +59,7 @@ const emptyHistory = {
   loading: false,
 };
 
-function setDefaultResultFields(result: Result) : Result {
-  return Object.assign({}, result, {columns: result.columns || [], types: result.types || [], rows: result.rows || []});
-}
-
-export default class QueriesView extends React.PureComponent {
+export default class QueriesView extends React.PureComponent<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -93,24 +97,16 @@ export default class QueriesView extends React.PureComponent {
     return this.props.lastQuery ? this.props.lastQuery.statement : "";
   }
 
-  state: {
-    statement: string,
-    sessionResults: Result[],
-    history: History,
-    connected: boolean,
-    dataSourceStatus: string,
-  }
   channel: Channel;
-  connectedInterval: number;
-
+  connectedInterval: IntervalID;
+  tableNames: () => string [];
+  columnNames: () => string [];
   setStatement: () => void;
   runQuery: () => void;
-  queryData: () => QueryData;
-  setResults: () => void;
+  queryData: (string) => QueryData;
+  setResults: (Result[]) => void;
   handleLoadHistory: () => void;
-  replaceResult: () => void;
-  columnNames: () => void;
-  tableNames: () => void;
+  replaceResult: Result => void;
   updateConnected: () => void;
   initialStatement: () => string;
 
@@ -141,7 +137,7 @@ export default class QueriesView extends React.PureComponent {
     const recentResults = _.takeWhile(results, (result) => {
       if (isFinished(result.query_state)) { completed++; }
       return completed <= recentResultsToShow;
-    }).map(setDefaultResultFields);
+    });
 
     if (_.isEmpty(recentResults)) {
       this.setState({sessionResults: recentResults});
@@ -190,10 +186,15 @@ export default class QueriesView extends React.PureComponent {
   }
 
   addPendingResult(queryId: string, statement: string) {
-    const pendingResult = {
-      statement,
+    const pendingResult: PendingResult = {
       id: queryId,
+      statement,
       query_state: "created",
+      session_id: this.props.sessionId,
+      private_permalink: null,
+      public_permalink: null,
+      inserted_at: null,
+      data_source: {name: this.props.dataSourceName},
     };
     this.setResults([pendingResult].concat(this.state.sessionResults));
   }
@@ -205,6 +206,11 @@ export default class QueriesView extends React.PureComponent {
       statement,
       error,
       info: [],
+      private_permalink: null,
+      public_permalink: null,
+      inserted_at: null,
+      session_id: this.props.sessionId,
+      data_source: {name: this.props.dataSourceName},
     };
     this.replaceResult(errorResult);
   }
@@ -278,7 +284,7 @@ export default class QueriesView extends React.PureComponent {
           loaded: false,
           loading: false,
         };
-        const sessionResults = _.uniqBy(this.state.sessionResults.concat(response.map(setDefaultResultFields)), "id");
+        const sessionResults = _.uniqBy(this.state.sessionResults.concat(response), "id");
         this.setState({sessionResults, history: successHistory});
       },
 
@@ -294,18 +300,13 @@ export default class QueriesView extends React.PureComponent {
     });
   }
 
-  addError(statement: string, text: string) {
-    const result = {statement, query_state: "error", error: text};
-    this.setResults([result].concat(this.state.sessionResults));
-  }
-
   tableNames() {
-    return this.props.selectables.map((table) => table.id);
+    return this.props.selectables.map<string>((table) => table.id);
   }
 
   columnNames() {
     return _.flatMap(this.props.selectables, (table) =>
-      table.columns.map((column) => column.name)
+      table.columns.map<string>((column) => column.name)
     );
   }
 

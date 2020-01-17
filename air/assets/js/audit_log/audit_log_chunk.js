@@ -12,12 +12,12 @@ type Props = {auditLogs: Array<AuditLog>};
 
 type State = {collapsed: boolean};
 
-const formatTime = (isoTime) => {
+const formatTime = (isoTime: string) => {
   const time = moment.tz(isoTime, "UTC");
   return time.format("YYYY-MM-DD HH:mm:ss z");
 };
 
-export default class AuditLogChunk extends React.Component {
+export default class AuditLogChunk extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -30,12 +30,11 @@ export default class AuditLogChunk extends React.Component {
     this.renderEvents = this.renderEvents.bind(this);
   }
 
-  state: State;
   numberOfEvents: () => number;
   eventName: () => string;
   user: () => string;
   toggleCollapsed: (event: Event) => void;
-  renderEvents: () => Node;
+  renderEvents: () => React$Node;
 
   numberOfEvents() {
     return this.props.auditLogs.length;
@@ -50,7 +49,7 @@ export default class AuditLogChunk extends React.Component {
   }
 
   times() {
-    return this.props.auditLogs.map((auditLog) => formatTime(auditLog.time));
+    return this.props.auditLogs.map<AuditLog>(auditLog => formatTime(auditLog.time));
   }
 
   toggleCollapsed(event: Event) {
@@ -58,7 +57,7 @@ export default class AuditLogChunk extends React.Component {
     this.setState({collapsed: !this.state.collapsed});
   }
 
-  renderEvents() {
+  renderEvents(): React$Node {
     if (this.state.collapsed) {
       return null;
     } else {
@@ -70,7 +69,7 @@ export default class AuditLogChunk extends React.Component {
               <th></th>
             </tr>
           </thead>
-          {this.props.auditLogs.map((auditLog, i) =>
+          {this.props.auditLogs.map<React$Element<typeof AuditLogEntry>>((auditLog, i) =>
             <AuditLogEntry key={i} auditLog={auditLog} />)}
         </table>
       </td></tr>);

@@ -3,14 +3,14 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-import type {Result} from "./result";
+import type {PendingResult} from "./result";
 import {CodeViewer} from "../code_viewer";
 import {pendingStates, later, format} from "./state";
 import {cancel} from "../request";
 import type {Authentication} from "../request";
 
 type Props = {
-  result: Result,
+  result: PendingResult,
 }
 
 type Context = {
@@ -27,7 +27,7 @@ const stateItem = (state, currentState) => {
   }
 };
 
-export const PendingResult = (props: Props, context: Context) =>
+export const PendingResultView = (props: Props, context: Context) =>
   <div className="panel panel-info">
     <div className="panel-heading" />
     <div className="panel-body">
@@ -48,7 +48,3 @@ export const PendingResult = (props: Props, context: Context) =>
       </div>
     </div>
   </div>;
-
-PendingResult.contextTypes = {
-  authentication: PropTypes.object.isRequired,
-};

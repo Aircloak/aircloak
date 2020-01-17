@@ -8,7 +8,7 @@ type Props = {
   supportsCreateTable: boolean,
 };
 
-export class NewSelectableToolbarView extends React.Component {
+export class NewSelectableToolbarView extends React.Component<Props> {
   props: Props;
 
   conditionallyRenderNewTableButton() {

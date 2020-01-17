@@ -9,21 +9,25 @@ type Props = {
   result: Result,
 }
 
-export class ShareButton extends React.Component {
+type State = {
+  showModal: boolean
+};
+
+export class ShareButton extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
     this.state = {showModal: false};
   }
 
-  state: {showModal: boolean}
-
-  privatePermalink() {
-    return `${window.location.origin}${this.props.result.private_permalink}`;
+  privatePermalink(): ?string {
+    if (this.props.result.private_permalink)
+      return `${window.location.origin}${this.props.result.private_permalink}`;
   }
 
-  publicPermalink() {
-    return `${window.location.origin}${this.props.result.public_permalink}`;
+  publicPermalink(): ?string {
+    if (this.props.result.public_permalink)
+      return `${window.location.origin}${this.props.result.public_permalink}`;
   }
 
   isEnabled() {

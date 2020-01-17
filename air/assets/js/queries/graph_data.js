@@ -5,7 +5,7 @@ import type {Row, Column} from "./result";
 
 type ValueFormatter = (value: any, columnIndex: number) => any;
 
-type Series = {label: Column, data: number[], indexInResult: number};
+export type Series = {label: Column, data: number[], indexInResult: number};
 
 export type GraphDataT = {
   ready: () => boolean,

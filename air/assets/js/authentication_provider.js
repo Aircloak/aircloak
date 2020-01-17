@@ -3,7 +3,14 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-export class AuthenticationProvider extends React.Component {
+type Props = {
+  children: ?React$Node,
+  authentication: {
+    CSRFToken: string,
+  },
+}
+
+export class AuthenticationProvider extends React.Component<Props> {
   getChildContext() {
     return {authentication: this.props.authentication};
   }
@@ -12,12 +19,3 @@ export class AuthenticationProvider extends React.Component {
     return <React.Fragment>{this.props.children}</React.Fragment>;
   }
 }
-
-AuthenticationProvider.propTypes = {
-  children: PropTypes.element,
-  authentication: PropTypes.object.isRequired,
-};
-
-AuthenticationProvider.childContextTypes = {
-  authentication: PropTypes.object.isRequired,
-};

@@ -4,7 +4,7 @@ import React from "react";
 
 import {ResultView} from "./result";
 import type {Result} from "./result";
-import {PendingResult} from "./pending_result";
+import {PendingResultView} from "./pending_result";
 import {Error} from "./error";
 import {Cancelled} from "./cancelled";
 import type {NumberFormat} from "../number_format";
@@ -39,7 +39,7 @@ export const Results = (props: Props) =>
             debugModeEnabled={props.debugModeEnabled}
           />);
         default:
-          return <PendingResult key={result.id} result={result} />;
+          return <PendingResultView key={result.id} result={result} />;
       }
     })}
   </div>;

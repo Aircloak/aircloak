@@ -6,13 +6,18 @@ import {StateView} from "../activity_monitor/state_view";
 import type {Result} from "./result";
 import moment from "moment-timezone";
 
+export type PropertyResult = Result & {
+  user: {name: string},
+  inserted_at: string
+}
+
 const formatTime = (isoTime) => {
   const time = moment.tz(isoTime, "UTC");
   return `${time.format("YYYY-MM-DD HH:mm:ss z")} (${time.fromNow()})`;
 };
 
 
-export const PropertiesView = (props: Result) =>
+export const PropertiesView = (props: PropertyResult) =>
   <table className="table table-condensed">
     <tbody>
       <tr>

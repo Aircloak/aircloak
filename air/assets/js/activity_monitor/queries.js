@@ -6,6 +6,10 @@ import {QueryView} from "./query";
 import {QueryStatsSummaryView} from "./query_stats_summary";
 import type {Query} from "./query";
 
+type Props = {
+  queries: Query[]
+}
+
 const MAX_QUERIES_TO_SHOW = 20;
 
 const renderQueries = (queries: Query[]) => {
@@ -42,7 +46,7 @@ const renderNumActiveQueriesShown = (queries: Query[]) => {
   }
 };
 
-export class QueriesView extends React.PureComponent {
+export class QueriesView extends React.PureComponent<Props> {
   render() {
     return (
       <div>

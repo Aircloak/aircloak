@@ -37,11 +37,11 @@ const TABLE_INVALID_MESSAGE =
   `This table creation failed or the table is no longer valid. ${ERROR_REASON_MESSAGE}. ` +
     "More information may be available in Insights Cloak logs - contact your administrator for access.";
 
-export class SelectableView extends React.Component {
+export class SelectableView extends React.Component<Props> {
   handleToggleClick: () => void;
   isAnalystCreatedSelectable: () => boolean;
-  renderSelectableActionMenu: () => void;
-  renderSelectableView: () => void;
+  renderSelectableActionMenu: () => React$Node;
+  renderSelectableView: () => React$Node;
   hasRenderableContent: () => boolean;
   triggerDelete: (event: {preventDefault: () => void}) => void;
   brokenErrorMessage: () => string;

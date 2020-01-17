@@ -6,9 +6,9 @@ import {CodeViewer} from "../code_viewer";
 import {DebugExport} from "./debug_export";
 import {ShareButton} from "./share_button";
 
-import type {Result} from "./result";
+import type {CancelledResult} from "./result";
 
-export const Cancelled = (props: {result: Result, debugModeEnabled: boolean}) =>
+export const Cancelled = (props: {result: CancelledResult, debugModeEnabled: boolean}) =>
   <div className="panel panel-warning">
     <div className="panel-heading" />
     <div className="panel-body">

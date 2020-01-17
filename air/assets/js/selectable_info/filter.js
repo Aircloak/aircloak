@@ -6,8 +6,11 @@ import _ from "lodash";
 import type {Column} from "./columns";
 
 type Props = {
-  value: string,
-  onFilterChange: () => void,
+  onFilterChange: (Filter) => void
+};
+
+type State = {
+  filterText: string
 };
 
 export class Filter {
@@ -40,9 +43,9 @@ export class Filter {
 export const EmptyFilter = () =>
   new Filter(new RegExp(""));
 
-export class FilterView extends React.Component {
+export class FilterView extends React.Component<Props, State> {
   state: {filterText: string};
-  filterTextChange: () => void;
+  filterTextChange: (string) => void;
 
   constructor(props: Props) {
     super(props);

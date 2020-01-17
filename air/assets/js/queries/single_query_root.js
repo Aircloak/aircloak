@@ -15,7 +15,11 @@ type Props = {
   debugModeEnabled: boolean,
 };
 
-export default class QueryView extends React.Component {
+type State = {
+  result: Result
+}
+
+export default class QueryView extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 

@@ -13,14 +13,14 @@ require("codemirror/addon/hint/anyword-hint");
 require("./code_editor/mode");
 
 type Props = {
-  onRun: () => void;
-  onChange: () => void;
+  onRun: () => void,
+  onChange: (string) => void,
   tableNames: string[],
   columnNames: string[],
   statement: string,
 }
 
-export class CodeEditor extends React.Component {
+export class CodeEditor extends React.Component<Props> {
   constructor(props: Props) {
     super(props);
     this.completionList = this.completionList.bind(this);
@@ -34,7 +34,6 @@ export class CodeEditor extends React.Component {
     window.clearErrorLocation = this.clearErrorLocation.bind(this);
   }
 
-  props: Props;
   reactCodeMirrorComponent: Codemirror;
   codeMirrorClass: () => Codemirror;
   completionList: () => void;

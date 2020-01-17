@@ -3,8 +3,15 @@
 import React from "react";
 import zxcvbn from "zxcvbn";
 
-export default class PasswordField extends React.Component {
-  constructor(props: {}) {
+type Props = {};
+
+type State = {
+  value: string,
+  score: number,
+};
+
+export default class PasswordField extends React.Component<Props, State> {
+  constructor(props: Props) {
     super(props);
 
     this.state = {value: "", score: 0};
@@ -19,12 +26,12 @@ export default class PasswordField extends React.Component {
     score: number,
   }
 
-  updateValue: (event: Event) => void;
+  updateValue: (event: SyntheticInputEvent<EventTarget>) => void;
   renderScore: () => string;
   highlightClass: () => string;
 
-  updateValue({target}: {target: window.HTMLInputElement}) {
-    this.setState({value: target.value, score: zxcvbn(target.value).score});
+  updateValue(e: SyntheticInputEvent<EventTarget>) {
+    this.setState({value: e.target.value, score: zxcvbn(e.target.value).score});
   }
 
   renderScore() {
@@ -55,7 +62,7 @@ export default class PasswordField extends React.Component {
 
   render() {
     return (<div className={this.highlightClass()}>
-      <input type="password" value={this.state.value} onChange={this.updateValue} {...this.props}></input>
+      <input type="password" value={this.state.value} onChange={this.updateValue}></input>
       <span className="help-block">{this.renderScore()}</span>
     </div>);
   }

@@ -35,7 +35,7 @@ export const startQuery = (queryData: QueryData, authentication: Authentication,
 };
 
 export const loadHistory = (
-  dataSourceName: number,
+  dataSourceName: string,
   before: string,
   authentication: Authentication,
   callbacks: Callbacks

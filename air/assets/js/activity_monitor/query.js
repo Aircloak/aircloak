@@ -35,7 +35,7 @@ const queryExcerpt = (statement: string) => {
 
 const queryViewUrl = (query: Query) => `/admin/queries/${query.id}`;
 
-export class QueryView extends React.Component {
+export class QueryView extends React.Component<Props> {
   shouldComponentUpdate(nextProps: Props) {
     return nextProps.query.state !== this.props.query.state;
   }

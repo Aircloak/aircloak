@@ -20,7 +20,7 @@ const formatTime = (isoTime) => {
   return `${time.format("YYYY-MM-DD HH:mm:ss z")} (${time.fromNow()})`;
 };
 
-export default class AuditLogEntry extends React.Component {
+export default class AuditLogEntry extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -31,7 +31,6 @@ export default class AuditLogEntry extends React.Component {
     this.renderMetadata = this.renderMetadata.bind(this);
   }
 
-  state: State;
   toggleDetails: () => void;
   renderDetails: () => void;
   renderMetadata: () => void;

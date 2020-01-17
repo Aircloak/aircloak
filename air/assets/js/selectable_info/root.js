@@ -24,9 +24,14 @@ type Props = {
   selectableToExclude: number,
 };
 
-export default class SelectableInfo extends React.Component {
-  props: Props;
-  state: {expanded: Set<string>, filter: Filter, selectables: Selectable[], dataSourceStatus: string};
+type State = {
+  expanded: Set<string>,
+  filter: Filter,
+  selectables: Selectable[],
+  dataSourceStatus: string,
+}
+
+export default class SelectableInfo extends React.Component<Props, State> {
   toggleExpand: (t: Selectable) => (() => void);
   onFilterChange: (filter: Filter) => void;
   updateSelectables: (event: {selectables: Selectable[]}) => void;

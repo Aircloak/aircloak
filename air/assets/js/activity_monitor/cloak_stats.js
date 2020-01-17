@@ -18,6 +18,10 @@ export type CloakStat = {
   }
 };
 
+type Props = {
+  cloakStat: CloakStat
+}
+
 const toGB = (memoryInKBytes: number) => {
   if (memoryInKBytes === null || memoryInKBytes === undefined) {
     return 0;
@@ -71,14 +75,14 @@ const renderQueriesGraph = (queryStats) => {
   );
 };
 
-export class CloakStatsView extends React.PureComponent {
+export class CloakStatsView extends React.PureComponent<Props> {
   render() {
     return (
       <tr>
-        <td>{this.props.name}</td>
-        {renderCurrentMemoryUtilisation(this.props.stats.memory)}
-        {renderMemoryUtilisationGraph(this.props.stats.memory.readings)}
-        {renderQueriesGraph(this.props.stats.queries)}
+        <td>{this.props.cloakStat.name}</td>
+        {renderCurrentMemoryUtilisation(this.props.cloakStat.stats.memory)}
+        {renderMemoryUtilisationGraph(this.props.cloakStat.stats.memory.readings)}
+        {renderQueriesGraph(this.props.cloakStat.stats.queries)}
       </tr>
     );
   }
