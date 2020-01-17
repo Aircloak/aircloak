@@ -30,5 +30,8 @@ module.exports = {
     "flowtype": {
       "onlyFilesWithFlowAnnotation": false
     }
+  },
+  "globals": {
+      "global": "writable"
   }
 };

@@ -13,12 +13,13 @@
 //
 // If you no longer want to use a dependency, remember
 // to also remove its path from "config.paths.watched".
-import css from "../css/app.css";
+import "../css/app.css";
 import "phoenix_html";
+import "eonasdan-bootstrap-datetimepicker";
 import React from "react";
 import ReactDOM from "react-dom";
+import codeMirror from "codemirror";
 import $ from "jquery";
-import datetimepicker from "eonasdan-bootstrap-datetimepicker";
 
 import Queries from "./queries/root";
 import SingleQuery from "./queries/single_query_root";
@@ -32,7 +33,6 @@ import {NumberFormatExample} from "./number_format";
 import AuditLog from "./audit_log/root";
 import PasswordField from "./password_field";
 
-import codeMirror from "codemirror";
 
 require("core-js");
 require("codemirror/mode/markdown/markdown");

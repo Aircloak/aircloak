@@ -4,8 +4,8 @@ import React from "react";
 import _ from "lodash";
 
 import {AuthContext} from "../authentication_provider";
-import {CodeViewer} from "../code_viewer";
-import {Info} from "./info";
+import CodeViewer from "../code_viewer";
+import InfoView from "./info_view";
 import {GraphData, GraphInfo, GraphConfig} from "./graph_data";
 import {GraphConfigView} from "./graph_config_view";
 import {GraphView} from "./graph_view";
@@ -15,8 +15,8 @@ import type {TableAlignerT} from "./table_aligner";
 import type {NumberFormat} from "../number_format";
 import {formatNumber} from "../number_format";
 import {loadBuckets} from "../request";
-import {DebugExport} from "./debug_export";
-import {ShareButton} from "./share_button";
+import DebugExport from "./debug_export";
+import ShareButton from "./share_button";
 import {activateTooltips} from "../tooltips";
 
 export type Row = {
@@ -512,7 +512,7 @@ of
         <div className="panel-heading" />
         <div className="panel-body">
           <CodeViewer statement={result.statement} />
-          <Info info={this.getInfoMessages()} />
+          <InfoView info={this.getInfoMessages()} />
           <div className="result-table">
             <table className="table table-striped table-condensed table-hover">
               <thead>

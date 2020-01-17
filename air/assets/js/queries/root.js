@@ -7,9 +7,9 @@ import Channel from "phoenix";
 import uuidv4 from "uuid/v4";
 
 import {AuthContext} from "../authentication_provider";
-import {CodeEditor} from "../code_editor";
-import {CodeViewer} from "../code_viewer";
-import {Results} from "./results";
+import CodeEditor from "../code_editor";
+import CodeViewer from "../code_viewer";
+import Results from "./results";
 import type {Result, PendingResult} from "./result";
 import type {NumberFormat} from "../number_format";
 import type {Selectable} from "../selectable_info/selectable";

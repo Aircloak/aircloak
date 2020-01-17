@@ -20,7 +20,7 @@ type Props = {
   statement: string,
 }
 
-export class CodeEditor extends React.Component<Props> {
+export default class CodeEditor extends React.Component<Props> {
   constructor(props: Props) {
     super(props);
     this.completionList = this.completionList.bind(this);

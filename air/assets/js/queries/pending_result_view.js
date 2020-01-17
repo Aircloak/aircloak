@@ -6,7 +6,7 @@ import type {PendingResult} from "./result";
 import type {Authentication, AuthContextType} from "../authentication_provider";
 import {AuthContext} from "../authentication_provider";
 
-import {CodeViewer} from "../code_viewer";
+import CodeViewer from "../code_viewer";
 import {pendingStates, later, format} from "./state";
 import {cancel} from "../request";
 
@@ -25,7 +25,7 @@ const stateItem = (state, currentState) => {
   }
 };
 
-export const PendingResultView = (props: Props) => {
+export default (props: Props) => {
   const {result, authentication} = props;
   return (
     <div className="panel panel-info">

@@ -5,9 +5,9 @@ import React from "react";
 import {ResultView} from "./result";
 import type {Result} from "./result";
 import type {Authentication} from "../authentication_provider";
-import {PendingResultView} from "./pending_result";
-import {Error} from "./error";
-import {Cancelled} from "./cancelled";
+import PendingResultView from "./pending_result_view";
+import ErrorView from "./error_view";
+import Cancelled from "./cancelled";
 import type {NumberFormat} from "../number_format";
 
 type Props = {
@@ -17,7 +17,7 @@ type Props = {
   authentication: Authentication
 };
 
-export const Results = (props: Props) => {
+export default (props: Props) => {
   const {
     results, numberFormat, debugModeEnabled, authentication,
   } = props;
@@ -44,7 +44,7 @@ export const Results = (props: Props) => {
             );
           case "error":
             return (
-              <Error
+              <ErrorView
                 key={result.id}
                 result={result}
                 debugModeEnabled={debugModeEnabled}

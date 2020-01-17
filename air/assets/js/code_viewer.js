@@ -5,7 +5,7 @@ import {UnControlled as Codemirror} from "react-codemirror2";
 
 require("./code_editor/mode");
 
-export const CodeViewer = (props: {statement: string}) => {
+export default (props: {statement: string}) => {
   const options = {
     indentUnit: 2,
     indentWithTabs: false,

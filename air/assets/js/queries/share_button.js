@@ -13,7 +13,7 @@ type State = {
   showModal: boolean
 };
 
-export class ShareButton extends React.Component<Props, State> {
+export default class ShareButton extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 

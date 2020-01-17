@@ -3,7 +3,7 @@
 import React from "react";
 import $ from "jquery";
 import _ from "lodash";
-import {CodeEditor} from "../code_editor";
+import CodeEditor from "../code_editor";
 import type {Selectable} from "../selectable_info/selectable";
 
 type Props = {

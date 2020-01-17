@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import {Results} from "./results";
+import Results from "./results";
 import {PropertiesView} from "./properties";
 import type {Authentication} from "../authentication_provider";
 import type {Result} from "./result";

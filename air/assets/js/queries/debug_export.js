@@ -2,7 +2,7 @@
 
 import React from "react";
 
-export const DebugExport = (props: {id: string, debugModeEnabled: boolean}) => {
+export default (props: {id: string, debugModeEnabled: boolean}) => {
   const {debugModeEnabled, id} = props;
   if (debugModeEnabled) {
     return (

@@ -2,13 +2,13 @@
 
 import React from "react";
 
-import {CodeViewer} from "../code_viewer";
-import {DebugExport} from "./debug_export";
-import {ShareButton} from "./share_button";
+import CodeViewer from "../code_viewer";
+import DebugExport from "./debug_export";
+import ShareButton from "./share_button";
 
 import type {CancelledResult} from "./result";
 
-export const Cancelled = (props: {result: CancelledResult, debugModeEnabled: boolean}) => {
+export default (props: {result: CancelledResult, debugModeEnabled: boolean}) => {
   const {result, debugModeEnabled} = props;
   return (
     <div className="panel panel-warning">
