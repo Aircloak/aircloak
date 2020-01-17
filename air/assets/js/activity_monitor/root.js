@@ -9,7 +9,7 @@ import type {Query} from "./query";
 import {CloaksStatsView} from "./cloaks_stats";
 import type {CloakStat} from "./cloak_stats";
 
-import {FrontendSocket} from "../frontend_socket";
+import FrontendSocket from "../frontend_socket";
 import {isFinished} from "../queries/state";
 import {Disconnected} from "../disconnected";
 

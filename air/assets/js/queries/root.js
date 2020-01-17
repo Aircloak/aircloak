@@ -13,7 +13,7 @@ import Results from "./results";
 import type {Result, PendingResult} from "./result";
 import type {NumberFormat} from "../number_format";
 import type {Selectable} from "../selectable_info/selectable";
-import {FrontendSocket} from "../frontend_socket";
+import FrontendSocket from "../frontend_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
 import {Disconnected} from "../disconnected";

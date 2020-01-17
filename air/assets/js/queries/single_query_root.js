@@ -4,7 +4,7 @@ import React from "react";
 
 import ImmutableSingleQuery from "./immutable_single_query";
 import type {Result} from "./result";
-import {FrontendSocket} from "../frontend_socket";
+import FrontendSocket from "../frontend_socket";
 import type {NumberFormat} from "../number_format";
 import {AuthContext} from "../authentication_provider";
 

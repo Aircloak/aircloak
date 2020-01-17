@@ -7,7 +7,7 @@ import Channel from "phoenix";
 import {SelectableView} from "./selectable";
 import {NewSelectableToolbarView} from "./new_selectable_toolbar";
 import {FilterView, Filter, EmptyFilter} from "./filter";
-import {FrontendSocket} from "../frontend_socket";
+import FrontendSocket from "../frontend_socket";
 import type {Selectable} from "./selectable";
 
 type Props = {

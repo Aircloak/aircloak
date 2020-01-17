@@ -28,7 +28,7 @@ import SelectableInfoView from "./selectable_info/root";
 import EditorView from "./view/editor";
 import ActivityMonitorView from "./activity_monitor/root";
 import {AuthenticationProvider} from "./authentication_provider";
-import {FrontendSocket} from "./frontend_socket";
+import FrontendSocket from "./frontend_socket";
 import {NumberFormatExampleView} from "./number_format";
 import AuditLogView from "./audit_log/root";
 import PasswordField from "./password_field";
