@@ -70,7 +70,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       statement: this.initialStatement(),
       sessionResults: pendingQueries,
       connected: true,
-      dataSourceStatus: dataSourceStatus,
+      dataSourceStatus,
       history: emptyHistory,
     };
 
@@ -130,7 +130,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   setResults = (results: Result[]) => {
     let completed = 0;
     const recentResults = _.takeWhile(results, (result) => {
-      if (isFinished(result.query_state)) { completed++; }
+      if (isFinished(result.query_state)) { completed += 1; }
       return completed <= recentResultsToShow;
     });
 
@@ -224,7 +224,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     return JSON.stringify({
       query: {
         id: queryId,
-        statement: statement,
+        statement,
         data_source_name: dataSourceName,
         session_id: sessionId,
       },
