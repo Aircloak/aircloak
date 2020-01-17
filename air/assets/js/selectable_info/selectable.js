@@ -27,12 +27,13 @@ type Props = {
   channel: Channel
 };
 
-const ERROR_REASON_MESSAGE = "This might be caused by a change in the underlying data source, a dependent analyst table, or a view.";
+const ERROR_REASON_MESSAGE = "This might be caused by a change in the underlying data source, "
+  + "a dependent analyst table, or a view.";
 
 const VIEW_INVALID_MESSAGE = `This view is no longer valid. ${ERROR_REASON_MESSAGE}`;
 
 const TABLE_INVALID_MESSAGE = `This table creation failed or the table is no longer valid. ${ERROR_REASON_MESSAGE}. `
-    + "More information may be available in Insights Cloak logs - contact your administrator for access.";
+  + "More information may be available in Insights Cloak logs - contact your administrator for access.";
 
 export class SelectableView extends React.Component<Props> {
   constructor(props: Props) {
@@ -92,9 +93,9 @@ export class SelectableView extends React.Component<Props> {
       return (
         <span className="pull-right">
           &nbsp;
-          <a className="btn btn-xs btn-default" href={this.editLinkUrl()}>Edit</a>
+          <button type="button" className="btn btn-xs btn-default" href={this.editLinkUrl()}>Edit</button>
           &nbsp;
-          <a className="btn btn-xs btn-danger" onClick={this.triggerDelete}>Delete</a>
+          <button type="button" className="btn btn-xs btn-danger" onClick={this.triggerDelete}>Delete</button>
         </span>
       );
     }
@@ -109,13 +110,13 @@ export class SelectableView extends React.Component<Props> {
     }
   }
 
-  broken = () => {
+  brokenMetaData = () => {
     const {selectable} = this.props;
     if (selectable.broken || selectable.creation_status === "failed") {
       return {
         title: this.brokenErrorMessage(),
-        "data-toggle": "tooltip",
-        "data-container": "body",
+        dataToggle: "tooltip",
+        dataContainer: "body",
         className: "list-group-item-heading alert-danger",
       };
     } else {
@@ -133,7 +134,7 @@ export class SelectableView extends React.Component<Props> {
   renderIcon = () => {
     const {expanded} = this.props;
     if (this.pending()) {
-      return <img src="/images/loader.gif" role="presentation" height="12" width="12" />;
+      return <img src="/images/loader.gif" alt="indicated analyst table is being created" height="12" width="12" />;
     } else {
       const glyphType = expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
       return <span className={glyphType} />;
@@ -142,9 +143,24 @@ export class SelectableView extends React.Component<Props> {
 
   renderSelectableView = () => {
     const {selectable, expanded, filter} = this.props;
+    const {
+      title,
+      dataToggle,
+      dataContainer,
+      className,
+    } = this.brokenMetaData();
     return (
       <div className="list-group-item">
-        <div onClick={this.handleToggleClick} {...this.broken()}>
+        <div
+          role="button"
+          tabIndex={0}
+          onKeyDown={this.handleToggleClick}
+          onClick={this.handleToggleClick}
+          title={title}
+          data-container={dataContainer}
+          data-toggle={dataToggle}
+          className={className}
+        >
           {this.renderIcon()}
             &nbsp;
           {selectable.id}
