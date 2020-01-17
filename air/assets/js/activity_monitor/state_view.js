@@ -12,5 +12,4 @@ const stateClasses = {
 
 const stateClass = (state) => stateClasses[state] || "label label-info";
 
-export const StateView = (props: {state: string}) =>
-  <span className={stateClass(props.state)}>{format(props.state)}</span>;
+export const StateView = (props: {state: string}) => <span className={stateClass(props.state)}>{format(props.state)}</span>;

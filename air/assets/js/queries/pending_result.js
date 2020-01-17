@@ -3,9 +3,9 @@
 import React from "react";
 
 import type {PendingResult} from "./result";
-import type {Authentication} from "../authentication_provider";
+import type {Authentication, AuthContextType} from "../authentication_provider";
 import {AuthContext} from "../authentication_provider";
-import type {AuthContextType} from "../authentication_provider";
+
 import {CodeViewer} from "../code_viewer";
 import {pendingStates, later, format} from "./state";
 import {cancel} from "../request";
@@ -25,24 +25,29 @@ const stateItem = (state, currentState) => {
   }
 };
 
-export const PendingResultView = (props: Props) =>
+export const PendingResultView = (props: Props) => (
   <div className="panel panel-info">
     <div className="panel-heading" />
     <div className="panel-body">
       <CodeViewer statement={props.result.statement} />
 
-      <p className="text-center spinner"> <img src="/images/loader.gif" role="presentation" /> </p>
+      <p className="text-center spinner">
+        {" "}
+        <img src="/images/loader.gif" role="presentation" />
+        {" "}
+      </p>
       <ul>
-        {pendingStates.map((state, i) =>
-          <li key={i}>{stateItem(state, props.result.query_state)}</li>
-        )}
+        {pendingStates.map((state, i) => <li key={i}>{stateItem(state, props.result.query_state)}</li>)}
       </ul>
 
       <div className="right-align">
         <a
           className="btn btn-small btn-warning"
           onClick={() => cancel(props.result.id, props.authentication)}
-        >Cancel</a>
+        >
+          Cancel
+        </a>
       </div>
     </div>
-  </div>;
+  </div>
+);

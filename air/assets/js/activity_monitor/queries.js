@@ -14,9 +14,7 @@ const MAX_QUERIES_TO_SHOW = 20;
 
 const renderQueries = (queries: Query[]) => {
   if (queries.length > 0) {
-    return queries.slice(0, MAX_QUERIES_TO_SHOW).map((query) =>
-      <QueryView key={query.id} query={query} />
-    );
+    return queries.slice(0, MAX_QUERIES_TO_SHOW).map((query) => <QueryView key={query.id} query={query} />);
   } else {
     return (
       <tr>
@@ -36,8 +34,11 @@ const renderNumActiveQueriesShown = (queries: Query[]) => {
         <QueryStatsSummaryView queries={queries} />
 
         <p>
-          Showing the <strong>{MAX_QUERIES_TO_SHOW}</strong> most recent
-          of the <strong>{numQueries}</strong> currently active queries.
+          {"Showing the "}
+          <strong>{MAX_QUERIES_TO_SHOW}</strong>
+          {" most recent of the "}
+          <strong>{numQueries}</strong>
+          {" currently active queries."}
         </p>
       </div>
     );
@@ -60,8 +61,8 @@ export class QueriesView extends React.PureComponent<Props> {
               <th>Analyst</th>
               <th>Query</th>
               <th>State</th>
-              <th></th>
-              <th></th>
+              <th />
+              <th />
             </tr>
           </thead>
           <tbody>

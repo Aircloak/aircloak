@@ -12,11 +12,10 @@ const headers = ({CSRFToken}) => ({
   "Content-Type": "application/json",
 });
 
-export const cancel = (queryId: string, authentication: Authentication) =>
-  $.ajax(`/queries/${queryId}/cancel`, {
-    method: "POST",
-    headers: headers(authentication),
-  });
+export const cancel = (queryId: string, authentication: Authentication) => $.ajax(`/queries/${queryId}/cancel`, {
+  method: "POST",
+  headers: headers(authentication),
+});
 
 export const startQuery = (queryData: string, authentication: Authentication, callbacks: Callbacks) => {
   $.ajax("/queries", {
@@ -32,7 +31,7 @@ export const loadHistory = (
   dataSourceName: string,
   before: string,
   authentication: Authentication,
-  callbacks: Callbacks
+  callbacks: Callbacks,
 ) => {
   $.ajax(`/queries/load_history/${dataSourceName}?before=${before}`, {
     method: "GET",
@@ -46,7 +45,7 @@ export const loadBuckets = (
   bucketsLink: string,
   chunk: number,
   authentication: Authentication,
-  callbacks: Callbacks
+  callbacks: Callbacks,
 ) => {
   const desiredChunk = (chunk >= 0) ? chunk : "all";
   $.ajax(`${bucketsLink}?chunk=${desiredChunk}`, {

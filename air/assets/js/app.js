@@ -13,14 +13,12 @@
 //
 // If you no longer want to use a dependency, remember
 // to also remove its path from "config.paths.watched".
-require("core-js");
-
 import css from "../css/app.css";
 import "phoenix_html";
 import React from "react";
 import ReactDOM from "react-dom";
 import $ from "jquery";
-import datetimepicker from "eonasdan-bootstrap-datetimepicker"
+import datetimepicker from "eonasdan-bootstrap-datetimepicker";
 
 import Queries from "./queries/root";
 import SingleQuery from "./queries/single_query_root";
@@ -35,6 +33,8 @@ import AuditLog from "./audit_log/root";
 import PasswordField from "./password_field";
 
 import codeMirror from "codemirror";
+
+require("core-js");
 require("codemirror/mode/markdown/markdown");
 
 const App = {
@@ -58,7 +58,7 @@ const App = {
       mode: "markdown",
       lineNumbers: true,
     });
-    elementEditor.on("change", editor => {
+    elementEditor.on("change", (editor) => {
       targetElement.value = editor.getValue(); // eslint-disable-line no-param-reassign
     });
   },
@@ -70,7 +70,7 @@ const App = {
       <AuthenticationProvider authentication={authentication}>
         {App.renderPage(page, props)}
       </AuthenticationProvider>,
-      elem
+      elem,
     );
   },
 

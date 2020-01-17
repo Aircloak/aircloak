@@ -57,6 +57,7 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
   }
 
   channel: Channel;
+
   queryRemovalTime: number;
 
   handleRemoveQuery = (queryId: string) => {
@@ -77,15 +78,17 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
       const newQuery = queryEvent.query;
       this.setState({queries: [newQuery, ...this.state.queries]});
     } else {
-      this.setState({queries: _.map(this.state.queries, (existingQuery) => {
-        if (existingQuery.id === queryEvent.query_id) {
-          const alteredQuery = _.clone(existingQuery);
-          alteredQuery.state = queryEvent.event;
-          return alteredQuery;
-        } else {
-          return existingQuery;
-        }
-      })});
+      this.setState({
+        queries: _.map(this.state.queries, (existingQuery) => {
+          if (existingQuery.id === queryEvent.query_id) {
+            const alteredQuery = _.clone(existingQuery);
+            alteredQuery.state = queryEvent.event;
+            return alteredQuery;
+          } else {
+            return existingQuery;
+          }
+        }),
+      });
     }
   }
 
@@ -94,13 +97,11 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
     this.setState({cloakStats});
   }
 
-  render = () => {
-    return (
-      <div>
-        <Disconnected channel={this.channel} />
-        <CloaksStatsView cloakStats={this.state.cloakStats} />
-        <QueriesView queries={this.state.queries} />
-      </div>
-    );
-  }
+  render = () => (
+    <div>
+      <Disconnected channel={this.channel} />
+      <CloaksStatsView cloakStats={this.state.cloakStats} />
+      <QueriesView queries={this.state.queries} />
+    </div>
+  )
 }

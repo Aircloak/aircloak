@@ -19,7 +19,10 @@ export const formatNumber = (value: number, format: NumberFormat): string => {
   return string;
 };
 
-export const NumberFormatExample = (props: NumberFormat) =>
+export const NumberFormatExample = (props: NumberFormat) => (
   <div>
-    Format example with the current settings: <b>{formatNumber(123456789.123456789, props)}</b>
-  </div>;
+    Format example with the current settings:
+    {" "}
+    <b>{formatNumber(123456789.123456789, props)}</b>
+  </div>
+);

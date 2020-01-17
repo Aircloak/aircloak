@@ -51,10 +51,10 @@ export default class PasswordField extends React.Component<Props, State> {
     }
   }
 
-  render = () => {
-    return (<div className={this.highlightClass()}>
-      <input type="password" className="form-control" value={this.state.value} onChange={this.updateValue}></input>
+  render = () => (
+    <div className={this.highlightClass()}>
+      <input type="password" className="form-control" value={this.state.value} onChange={this.updateValue} />
       <span className="help-block">{this.renderScore()}</span>
-    </div>);
-  }
+    </div>
+  )
 }

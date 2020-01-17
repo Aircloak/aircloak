@@ -35,6 +35,7 @@ export class CodeEditor extends React.Component<Props> {
   }
 
   editor: Editor;
+
   errorMarker: ?any;
 
   run = () => {
@@ -53,16 +54,14 @@ export class CodeEditor extends React.Component<Props> {
     this.editor = editor;
   }
 
-  completionList = (cm: Editor) => {
-    return completions(
-      cm.getLine(cm.getCursor().line),
-      cm.getCursor().ch,
-      (pos) => _.merge({}, cm.getCursor(), {ch: pos}),
-      this.props.tableNames,
-      this.props.columnNames,
-      this.props.statement,
-    );
-  }
+  completionList = (cm: Editor) => completions(
+    cm.getLine(cm.getCursor().line),
+    cm.getCursor().ch,
+    (pos) => _.merge({}, cm.getCursor(), {ch: pos}),
+    this.props.tableNames,
+    this.props.columnNames,
+    this.props.statement,
+  )
 
   insertWordInEditor = (word: String) => {
     const doc = this.editor.getDoc();

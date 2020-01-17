@@ -16,14 +16,14 @@ const createModeDefinition = () => {
     return obj;
   };
 
-  const basicSqlKeywords = "align all and as asc between both bucket by cast columns cross cube desc distinct escape" +
-    " extract for from full group grouping having ilike in inner is join leading left like limit not nulls offset on" +
-    " or order outer right rollup select sets show substring tables trailing trim where";
+  const basicSqlKeywords = "align all and as asc between both bucket by cast columns cross cube desc distinct escape"
+    + " extract for from full group grouping having ilike in inner is join leading left like limit not nulls offset on"
+    + " or order outer right rollup select sets show substring tables trailing trim where";
 
-  const aircloakFunctionsList = _.chain(aircloakFunctionCompletions).
-    keys().
-    join(" ").
-    value();
+  const aircloakFunctionsList = _.chain(aircloakFunctionCompletions)
+    .keys()
+    .join(" ")
+    .value();
 
   return {
     name: "sql",

@@ -24,21 +24,14 @@ export class Filter {
 
   regex: RegExp;
 
-  filterFun = (column: Column): boolean => {
-    return this.regex.test(column.name) || this.regex.test(column.type);
-  }
+  filterFun = (column: Column): boolean => this.regex.test(column.name) || this.regex.test(column.type)
 
-  anyColumnMatches = (columns: Column[]): boolean => {
-    return _.find(columns, this.filterFun) !== undefined;
-  }
+  anyColumnMatches = (columns: Column[]): boolean => _.find(columns, this.filterFun) !== undefined
 
-  filterColumns = (columns: Column[]): Column[] => {
-    return _.filter(columns, this.filterFun);
-  }
+  filterColumns = (columns: Column[]): Column[] => _.filter(columns, this.filterFun)
 }
 
-export const EmptyFilter = () =>
-  new Filter(new RegExp(""));
+export const EmptyFilter = () => new Filter(new RegExp(""));
 
 export class FilterView extends React.Component<Props, State> {
   constructor(props: Props) {
@@ -65,25 +58,23 @@ export class FilterView extends React.Component<Props, State> {
     }
   }
 
-  render = () => {
-    return (
-      <div className="column-filter">
-        <div className="input-group">
-          <input
-            onChange={(event) => this.filterTextChange(event.target.value)}
-            type="text"
-            className="form-control"
-            placeholder="Filter columns"
-            value={this.state.filterText}
-          />
-          <div
-            className="input-group-addon"
-            onClick={() => this.filterTextChange("")}
-          >
-            <span className="glyphicon glyphicon-remove" aria-hidden="true" />
-          </div>
+  render = () => (
+    <div className="column-filter">
+      <div className="input-group">
+        <input
+          onChange={(event) => this.filterTextChange(event.target.value)}
+          type="text"
+          className="form-control"
+          placeholder="Filter columns"
+          value={this.state.filterText}
+        />
+        <div
+          className="input-group-addon"
+          onClick={() => this.filterTextChange("")}
+        >
+          <span className="glyphicon glyphicon-remove" aria-hidden="true" />
         </div>
       </div>
-    );
-  }
+    </div>
+  )
 }

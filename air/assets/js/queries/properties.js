@@ -2,9 +2,9 @@
 
 import React from "react";
 
+import moment from "moment-timezone";
 import {StateView} from "../activity_monitor/state_view";
 import type {Result} from "./result";
-import moment from "moment-timezone";
 
 export type PropertyResult = Result & {
   user: {name: string},
@@ -17,7 +17,7 @@ const formatTime = (isoTime) => {
 };
 
 
-export const PropertiesView = (props: PropertyResult) =>
+export const PropertiesView = (props: PropertyResult) => (
   <table className="table table-condensed">
     <tbody>
       <tr>
@@ -42,4 +42,5 @@ export const PropertiesView = (props: PropertyResult) =>
         </td>
       </tr>
     </tbody>
-  </table>;
+  </table>
+);

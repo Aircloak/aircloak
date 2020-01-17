@@ -17,16 +17,15 @@ type Props = {
 
 const activeClass = (active) => (active ? "btn btn-info" : "btn btn-default");
 
-const noneClass = (graphConfig, column) =>
-  activeClass(!graphConfig.xColumns().includes(column) && !graphConfig.yColumns().includes(column));
+const noneClass = (graphConfig, column) => activeClass(!graphConfig.xColumns().includes(column) && !graphConfig.yColumns().includes(column));
 
 const xClass = (graphConfig, column) => activeClass(graphConfig.xColumns().includes(column));
 
 const yClass = (graphConfig, column) => activeClass(graphConfig.yColumns().includes(column));
 
-export const GraphConfigView = (props: Props) =>
+export const GraphConfigView = (props: Props) => (
   <form className="form-horizontal">
-    {props.graphInfo.xColumns().map((column, columnIndex) =>
+    {props.graphInfo.xColumns().map((column, columnIndex) => (
       <div key={columnIndex} className="form-group">
         <label className="col-sm-3 control-label">{column}</label>
         <div className="col-sm-9 btn-group" role="group">
@@ -34,21 +33,28 @@ export const GraphConfigView = (props: Props) =>
             type="button"
             className={noneClass(props.graphConfig, columnIndex)}
             onClick={props.remove(columnIndex)}
-          > None </button>
+          >
+            None
+          </button>
 
           <button
             type="button"
             className={xClass(props.graphConfig, columnIndex)}
             onClick={props.addX(columnIndex)}
-          >X</button>
+          >
+            X
+          </button>
 
           <button
             type="button"
             className={yClass(props.graphConfig, columnIndex)}
             onClick={props.addY(columnIndex)}
             disabled={!props.graphInfo.usableAsY(columnIndex)}
-          > Y </button>
+          >
+            Y
+          </button>
         </div>
       </div>
-    )}
-  </form>;
+    ))}
+  </form>
+);

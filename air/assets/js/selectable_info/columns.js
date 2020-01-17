@@ -31,7 +31,7 @@ const columnClassName = (column: Column) => {
   }
 };
 
-export const ColumnsView = (props: {filter: Filter, columns: Column[]}) =>
+export const ColumnsView = (props: {filter: Filter, columns: Column[]}) => (
   <table className="table table-condensed">
     <thead>
       <tr>
@@ -41,7 +41,7 @@ export const ColumnsView = (props: {filter: Filter, columns: Column[]}) =>
     </thead>
 
     <tbody>
-      {props.filter.filterColumns(props.columns).map((column, i) =>
+      {props.filter.filterColumns(props.columns).map((column, i) => (
         <tr key={i}>
           <td
             onClick={(event) => {
@@ -55,6 +55,7 @@ export const ColumnsView = (props: {filter: Filter, columns: Column[]}) =>
           </td>
           <td>{column.key_type ? `${column.key_type} (${column.type})` : column.type}</td>
         </tr>
-      )}
+      ))}
     </tbody>
-  </table>;
+  </table>
+);

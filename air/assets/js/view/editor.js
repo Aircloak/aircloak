@@ -21,9 +21,7 @@ export default class ViewEditor extends React.Component<Props> {
   }
 
   columnNames() {
-    return _.flatMap(this.props.selectables, (table) =>
-      table.columns.map<string>((column) => column.name)
-    );
+    return _.flatMap(this.props.selectables, (table) => table.columns.map<string>((column) => column.name));
   }
 
   save() {

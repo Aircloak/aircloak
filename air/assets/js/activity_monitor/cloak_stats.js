@@ -50,19 +50,23 @@ const memoryUtilisationClasses = (memoryUtilisationPercentage) => {
   }
 };
 
-const renderCurrentMemoryUtilisation = (memory) =>
+const renderCurrentMemoryUtilisation = (memory) => (
   <td>
     <span className={memoryUtilisationClasses(memory.in_use_percent)}>
-      {toGBstring(memory.currently_in_use)} / {toGBstring(memory.total)}
+      {toGBstring(memory.currently_in_use)}
+      {" / "}
+      {toGBstring(memory.total)}
     </span>
-  </td>;
+  </td>
+);
 
-const renderMemoryUtilisationGraph = (readings) =>
+const renderMemoryUtilisationGraph = (readings) => (
   <td>
     <Sparklines data={readings} svgHeight={25} svgWidth={190} min={0} max={100}>
       <SparklinesLine />
     </Sparklines>
-  </td>;
+  </td>
+);
 
 const renderQueriesGraph = (queryStats) => {
   const maxQueriesStat = _.max([1, ...queryStats]);

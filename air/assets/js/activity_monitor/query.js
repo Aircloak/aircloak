@@ -24,9 +24,9 @@ const maxExcerptLength = 40;
 
 const queryExcerpt = (statement: string) => {
   if (statement.length > maxExcerptLength + 3) {
-    const shortenedForm = statement.replace(/[\s\n]/g, " ").
-      replace(/ +/, " ").
-      slice(0, maxExcerptLength);
+    const shortenedForm = statement.replace(/[\s\n]/g, " ")
+      .replace(/ +/, " ")
+      .slice(0, maxExcerptLength);
     return `${shortenedForm}...`;
   } else {
     return statement;
@@ -57,7 +57,9 @@ export class QueryView extends React.Component<Props> {
             className="btn btn-warning btn-xs"
             onClick={() => cancel(this.props.query.id, this.context.authentication)}
             disabled={isFinished(this.props.query.state)}
-          > cancel </button>
+          >
+            cancel
+          </button>
         </td>
         <td><a href={queryViewUrl(this.props.query)}>view</a></td>
       </tr>

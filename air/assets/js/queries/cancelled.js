@@ -8,7 +8,7 @@ import {ShareButton} from "./share_button";
 
 import type {CancelledResult} from "./result";
 
-export const Cancelled = (props: {result: CancelledResult, debugModeEnabled: boolean}) =>
+export const Cancelled = (props: {result: CancelledResult, debugModeEnabled: boolean}) => (
   <div className="panel panel-warning">
     <div className="panel-heading" />
     <div className="panel-body">
@@ -19,4 +19,5 @@ export const Cancelled = (props: {result: CancelledResult, debugModeEnabled: boo
         <DebugExport id={props.result.id} debugModeEnabled={props.debugModeEnabled} />
       </div>
     </div>
-  </div>;
+  </div>
+);

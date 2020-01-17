@@ -36,15 +36,15 @@ export default class AuditLogEntry extends React.Component<Props, State> {
     this.setState({details: !this.state.details});
   }
 
-  render = () => {
-    return (<tbody>
+  render = () => (
+    <tbody>
       <tr>
         <td>{formatTime(this.props.auditLog.time)}</td>
         <td><a href="#" onClick={this.toggleDetails}>Details</a></td>
       </tr>
       {this.renderDetails()}
-    </tbody>);
-  }
+    </tbody>
+  )
 
   renderDetails = () => {
     if (this.state.details) {
@@ -54,14 +54,14 @@ export default class AuditLogEntry extends React.Component<Props, State> {
     }
   }
 
-  renderMetadata = () => {
-    return (<dl>
+  renderMetadata = () => (
+    <dl>
       {_.toPairs(this.props.auditLog.metadata).map(([key, value]) => (
         <div className="row" key={key}>
           <dt className="col-sm-3">{_.toString(key)}</dt>
           <dd className="col-sm-9">{_.toString(value)}</dd>
         </div>
       ))}
-    </dl>);
-  }
+    </dl>
+  )
 }

@@ -10,9 +10,7 @@ export const Info = (props: {info: string[]}) => {
     return (
       <div>
         <h4>Info</h4>
-        {props.info.map((infoMessage, i) =>
-          <p key={i} dangerouslySetInnerHTML={mdToHtml(infoMessage)} />)
-        }
+        {props.info.map((infoMessage, i) => <p key={i} dangerouslySetInnerHTML={mdToHtml(infoMessage)} />)}
       </div>
     );
   } else {

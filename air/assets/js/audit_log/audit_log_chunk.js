@@ -30,21 +30,13 @@ export default class AuditLogChunk extends React.Component<Props, State> {
     this.renderEvents = this.renderEvents.bind(this);
   }
 
-  numberOfEvents = () => {
-    return this.props.auditLogs.length;
-  }
+  numberOfEvents = () => this.props.auditLogs.length
 
-  eventName = () => {
-    return this.props.auditLogs[0].event;
-  }
+  eventName = () => this.props.auditLogs[0].event
 
-  user = () => {
-    return this.props.auditLogs[0].user;
-  }
+  user = () => this.props.auditLogs[0].user
 
-  times = () => {
-    return this.props.auditLogs.map<AuditLog>(auditLog => formatTime(auditLog.time));
-  }
+  times = () => this.props.auditLogs.map<AuditLog>((auditLog) => formatTime(auditLog.time))
 
   toggleCollapsed = (event: Event) => {
     event.preventDefault();
@@ -55,31 +47,38 @@ export default class AuditLogChunk extends React.Component<Props, State> {
     if (this.state.collapsed) {
       return null;
     } else {
-      return (<tr><td colSpan="5">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th></th>
-            </tr>
-          </thead>
-          {this.props.auditLogs.map<React$Element<typeof AuditLogEntry>>((auditLog, i) =>
-            <AuditLogEntry key={i} auditLog={auditLog} />)}
-        </table>
-      </td></tr>);
+      return (
+        <tr>
+          <td colSpan="5">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th />
+                </tr>
+              </thead>
+              {this.props.auditLogs.map<React$Element<typeof AuditLogEntry>>((auditLog, i) => <AuditLogEntry key={i} auditLog={auditLog} />)}
+            </table>
+          </td>
+        </tr>
+      );
     }
   }
 
-  render = () => {
-    return (<tbody className="panel panel-default">
+  render = () => (
+    <tbody className="panel panel-default">
       <tr className="panel-heading">
         <td>{this.eventName()}</td>
         <td>{this.numberOfEvents()}</td>
         <td>{this.user()}</td>
-        <td>{_.min(this.times())} - {_.max(this.times())}</td>
+        <td>
+          {_.min(this.times())}
+          {" - "}
+          {_.max(this.times())}
+        </td>
         <td><a href="#" onClick={this.toggleCollapsed}>Events</a></td>
       </tr>
       {this.renderEvents()}
-    </tbody>);
-  }
+    </tbody>
+  )
 }

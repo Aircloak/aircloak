@@ -16,8 +16,8 @@ type Props = {
 
 export class AuthenticationProvider extends React.Component<Props> {
   render() {
-    let authContext = {
-      authentication: this.props.authentication
+    const authContext = {
+      authentication: this.props.authentication,
     };
     return (
       <AuthContext.Provider value={authContext}>

@@ -27,15 +27,12 @@ type Props = {
   channel: Channel
 };
 
-const ERROR_REASON_MESSAGE =
-  "This might be caused by a change in the underlying data source, a dependent analyst table, or a view.";
+const ERROR_REASON_MESSAGE = "This might be caused by a change in the underlying data source, a dependent analyst table, or a view.";
 
-const VIEW_INVALID_MESSAGE =
-  `This view is no longer valid. ${ERROR_REASON_MESSAGE}`;
+const VIEW_INVALID_MESSAGE = `This view is no longer valid. ${ERROR_REASON_MESSAGE}`;
 
-const TABLE_INVALID_MESSAGE =
-  `This table creation failed or the table is no longer valid. ${ERROR_REASON_MESSAGE}. ` +
-    "More information may be available in Insights Cloak logs - contact your administrator for access.";
+const TABLE_INVALID_MESSAGE = `This table creation failed or the table is no longer valid. ${ERROR_REASON_MESSAGE}. `
+    + "More information may be available in Insights Cloak logs - contact your administrator for access.";
 
 export class SelectableView extends React.Component<Props> {
   constructor(props: Props) {
@@ -55,23 +52,21 @@ export class SelectableView extends React.Component<Props> {
     // However, the problem here is that we're injecting some html provided by the server, which
     // internally generates A elements. Therefore, we don't have such option, so we're doing it
     // here.
-    if (event.target.tagName !== "A" && ! this.pending()) {
+    if (event.target.tagName !== "A" && !this.pending()) {
       event.preventDefault();
       this.props.onClick();
     }
   }
 
   isAnalystCreatedSelectable = () => {
-    const kind = this.props.selectable.kind;
+    const {kind} = this.props.selectable;
     return kind === "view" || kind === "analyst_table";
   }
 
-  hasRenderableContent = () => {
-    return this.props.filter.anyColumnMatches(this.props.selectable.columns);
-  }
+  hasRenderableContent = () => this.props.filter.anyColumnMatches(this.props.selectable.columns)
 
   editLinkUrl = () => {
-    const selectable = this.props.selectable;
+    const {selectable} = this.props;
     return `${this.props.selectablesEditUrl}?kind=${selectable.kind}&id=${selectable.internal_id}`;
   }
 
@@ -109,7 +104,7 @@ export class SelectableView extends React.Component<Props> {
   }
 
   broken = () => {
-    const selectable = this.props.selectable;
+    const {selectable} = this.props;
     if (selectable.broken || selectable.creation_status === "failed") {
       return {
         title: this.brokenErrorMessage(),
@@ -124,9 +119,7 @@ export class SelectableView extends React.Component<Props> {
     }
   }
 
-  pending = () => {
-    return this.props.selectable.creation_status === "pending";
-  }
+  pending = () => this.props.selectable.creation_status === "pending"
 
   renderIcon = () => {
     if (this.pending()) {
@@ -137,27 +130,25 @@ export class SelectableView extends React.Component<Props> {
     }
   }
 
-  renderSelectableView = () => {
-    return (
-      <div className="list-group-item">
-        <div onClick={this.handleToggleClick} {...this.broken()}>
-          {this.renderIcon()}
+  renderSelectableView = () => (
+    <div className="list-group-item">
+      <div onClick={this.handleToggleClick} {...this.broken()}>
+        {this.renderIcon()}
           &nbsp;
-          {this.props.selectable.id}
+        {this.props.selectable.id}
 
-          {this.isAnalystCreatedSelectable() ? this.renderSelectableActionMenu() : null}
-        </div>
-
-        {(() => {
-          if (this.props.expanded) {
-            return <ColumnsView columns={this.props.selectable.columns} filter={this.props.filter} />;
-          } else {
-            return null;
-          }
-        })()}
+        {this.isAnalystCreatedSelectable() ? this.renderSelectableActionMenu() : null}
       </div>
-    );
-  }
+
+      {(() => {
+        if (this.props.expanded) {
+          return <ColumnsView columns={this.props.selectable.columns} filter={this.props.filter} />;
+        } else {
+          return null;
+        }
+      })()}
+    </div>
+  )
 
   render = () => {
     if (this.hasRenderableContent()) {

@@ -93,11 +93,10 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   }
 
   connectedInterval: IntervalID;
+
   channel: Channel;
 
-  initialStatement = () => {
-    return this.props.lastQuery ? this.props.lastQuery.statement : "";
-  }
+  initialStatement = () => (this.props.lastQuery ? this.props.lastQuery.statement : "")
 
   static contextType = AuthContext;
 
@@ -109,13 +108,9 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     this.setState({connected: this.channel.isJoined()});
   }
 
-  runEnabled = () => {
-    return this.dataSourceAvailable() && this.state.connected;
-  }
+  runEnabled = () => this.dataSourceAvailable() && this.state.connected
 
-  dataSourceAvailable = () => {
-    return this.state.dataSourceStatus !== "offline";
-  }
+  dataSourceAvailable = () => this.state.dataSourceStatus !== "offline"
 
   setStatement = (statement: string) => {
     this.setState({statement});
@@ -162,17 +157,11 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     this.setState({dataSourceStatus: event.status});
   }
 
-  shouldDisplayResult = (result: Result) => {
-    return this.createdInThisSession(result) || this.alreadyDisplayed(result);
-  }
+  shouldDisplayResult = (result: Result) => this.createdInThisSession(result) || this.alreadyDisplayed(result)
 
-  createdInThisSession = (result: Result) => {
-    return result.session_id === this.props.sessionId;
-  }
+  createdInThisSession = (result: Result) => result.session_id === this.props.sessionId
 
-  alreadyDisplayed = (result: Result) => {
-    return _.some(this.state.sessionResults, (sessionResult) => sessionResult.id === result.id);
-  }
+  alreadyDisplayed = (result: Result) => _.some(this.state.sessionResults, (sessionResult) => sessionResult.id === result.id)
 
   addPendingResult = (queryId: string, statement: string) => {
     const pendingResult: PendingResult = {
@@ -208,29 +197,27 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     Mousetrap.bind(["command+enter", "ctrl+enter"], this.runQuery);
   }
 
-  queryData = (queryId: string) => {
-    return JSON.stringify({
-      query: {
-        id: queryId,
-        statement: this.state.statement,
-        data_source_name: this.props.dataSourceName,
-        session_id: this.props.sessionId,
-      },
-    });
-  }
+  queryData = (queryId: string) => JSON.stringify({
+    query: {
+      id: queryId,
+      statement: this.state.statement,
+      data_source_name: this.props.dataSourceName,
+      session_id: this.props.sessionId,
+    },
+  })
 
   runQuery = () => {
-    if (! this.runEnabled()) return;
+    if (!this.runEnabled()) return;
 
     window.clearErrorLocation();
 
     const queryId = uuidv4();
-    const statement = this.state.statement;
+    const {statement} = this.state;
     this.addPendingResult(queryId, statement);
 
     startQuery(this.queryData(queryId), this.context.authentication, {
       success: (response) => {
-        if (! response.success) {
+        if (!response.success) {
           this.replacePendingResultWithError(queryId, statement,
             `Error connecting to server. Reported reason: ${response.reason}.`);
         }
@@ -254,7 +241,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   }
 
   handleLoadHistory = () => {
-    const before = this.state.history.before;
+    const {before} = this.state.history;
     const history = {
       before,
       loaded: false,
@@ -289,61 +276,59 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     });
   }
 
-  tableNames = () => {
-    return this.props.selectables.map<string>((table) => table.id);
-  }
+  tableNames = () => this.props.selectables.map<string>((table) => table.id)
 
-  columnNames = () => {
-    return _.flatMap(this.props.selectables, (table) =>
-      table.columns.map<string>((column) => column.name)
-    );
-  }
+  columnNames = () => _.flatMap(this.props.selectables, (table) => table.columns.map<string>((column) => column.name))
 
   renderCodeEditorOrViewer = () => {
     if (this.runEnabled()) {
-      return (<CodeEditor
-        onRun={this.runQuery}
-        onChange={this.setStatement}
-        statement={this.initialStatement()}
-        tableNames={this.tableNames()}
-        columnNames={this.columnNames()}
-      />);
+      return (
+        <CodeEditor
+          onRun={this.runQuery}
+          onChange={this.setStatement}
+          statement={this.initialStatement()}
+          tableNames={this.tableNames()}
+          columnNames={this.columnNames()}
+        />
+      );
     } else {
       return <CodeViewer statement={this.initialStatement()} />;
     }
   }
 
-  renderButton = () => {
-    return (
-      <button
-        className="btn btn-primary"
-        onClick={this.runQuery}
-        disabled={!this.runEnabled()}
-        data-toggle="tooltip"
-        data-placement="bottom"
-        title="or press Ctrl + Enter"
-      >Run</button>
-    );
-  }
+  renderButton = () => (
+    <button
+      className="btn btn-primary"
+      onClick={this.runQuery}
+      disabled={!this.runEnabled()}
+      data-toggle="tooltip"
+      data-placement="bottom"
+      title="or press Ctrl + Enter"
+    >
+Run
+    </button>
+  )
 
   render = () => {
     activateTooltips();
-    return (<React.Fragment>
-      <Disconnected channel={this.channel} />
+    return (
+      <>
+        <Disconnected channel={this.channel} />
 
-      <div id="sql-editor">
-        {this.renderCodeEditorOrViewer()}
-        {this.renderButton()}
-      </div>
+        <div id="sql-editor">
+          {this.renderCodeEditorOrViewer()}
+          {this.renderButton()}
+        </div>
 
-      <Results
-        results={this.state.sessionResults}
-        numberFormat={this.props.numberFormat}
-        debugModeEnabled={this.props.debugModeEnabled}
-        authentication={this.context.authentication}
-      />
+        <Results
+          results={this.state.sessionResults}
+          numberFormat={this.props.numberFormat}
+          debugModeEnabled={this.props.debugModeEnabled}
+          authentication={this.context.authentication}
+        />
 
-      <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
-    </React.Fragment>);
+        <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />
+      </>
+    );
   }
 }

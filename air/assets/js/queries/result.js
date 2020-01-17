@@ -140,8 +140,11 @@ export class ResultView extends React.Component<Props, State> {
   }
 
   minRowsToShow: number;
+
   graphInfo: GraphInfoT;
+
   graphData: GraphDataT;
+
   static contextType = AuthContext;
 
   componentDidUpdate = () => {
@@ -153,7 +156,7 @@ export class ResultView extends React.Component<Props, State> {
       this.props.result.columns,
       this.state.availableRows,
       this.state.graphConfig,
-      this.formatValue
+      this.formatValue,
     );
   }
 
@@ -210,29 +213,17 @@ export class ResultView extends React.Component<Props, State> {
     });
   }
 
-  showingAllOfFewRows = () => {
-    return this.props.result.row_count <= this.minRowsToShow;
-  }
+  showingAllOfFewRows = () => this.props.result.row_count <= this.minRowsToShow
 
-  showingAllOfManyRows = () => {
-    return this.props.result.row_count === this.state.rowsToShowCount;
-  }
+  showingAllOfManyRows = () => this.props.result.row_count === this.state.rowsToShowCount
 
-  showingMinimumNumberOfManyRows = () => {
-    return this.state.rowsToShowCount === this.minRowsToShow && this.props.result.row_count > this.minRowsToShow;
-  }
+  showingMinimumNumberOfManyRows = () => this.state.rowsToShowCount === this.minRowsToShow && this.props.result.row_count > this.minRowsToShow
 
-  addX = (col: number) => {
-    return () => this.setState({graphConfig: this.state.graphConfig.addX(col)});
-  }
+  addX = (col: number) => () => this.setState({graphConfig: this.state.graphConfig.addX(col)})
 
-  addY = (col: number) => {
-    return () => this.setState({graphConfig: this.state.graphConfig.addY(col)});
-  }
+  addY = (col: number) => () => this.setState({graphConfig: this.state.graphConfig.addY(col)})
 
-  removeColumn = (col: number) => {
-    return () => this.setState({graphConfig: this.state.graphConfig.remove(col)});
-  }
+  removeColumn = (col: number) => () => this.setState({graphConfig: this.state.graphConfig.remove(col)})
 
   formatValue = (value: any, columnIndex: number): string => {
     const type = this.props.result.types[columnIndex];
@@ -251,9 +242,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  isNumeric = (n: any): boolean => {
-    return typeof(n) === "number" && isFinite(n);
-  }
+  isNumeric = (n: any): boolean => typeof (n) === "number" && isFinite(n)
 
   formatDateTime = (value: string): string => {
     const [date, time] = value.split("T");
@@ -292,7 +281,12 @@ export class ResultView extends React.Component<Props, State> {
   conditionallyRenderChartConfig = () => {
     if (this.state.loadingChunks) {
       return (
-        <p className="text-center"> <img src="/images/loader.gif" role="presentation" /> Loading more rows.</p>
+        <p className="text-center">
+          {" "}
+          <img src="/images/loader.gif" role="presentation" />
+          {" "}
+          Loading more rows.
+        </p>
       );
     } else if (this.state.loadError) {
       return (<div className="alert alert-danger">Failed to load more rows.</div>);
@@ -326,7 +320,7 @@ export class ResultView extends React.Component<Props, State> {
   getInfoMessages = (): string[] => {
     const messages = this.props.result.info;
     if (!this.props.debugModeEnabled) {
-      return messages.filter(message => !message.startsWith("[Debug]"));
+      return messages.filter((message) => !message.startsWith("[Debug]"));
     } else {
       return messages;
     }
@@ -338,13 +332,15 @@ export class ResultView extends React.Component<Props, State> {
       const occurrencesForAccumulateRow = Math.min(remainingRowsToProduce, accumulateRow.occurrences);
       return _.range(occurrencesForAccumulateRow).map((occurrenceCount) => {
         remainingRowsToProduce -= 1;
-        return (<tr key={`${i}-${occurrenceCount}`} {...this.getRowAttrs(accumulateRow)}>
-          {accumulateRow.row.map((value, j) =>
-            <td key={j} className={this.state.tableAligner.alignmentClass(j)}>
-              {this.formatValue(value, j)}
-            </td>
-          )}
-        </tr>);
+        return (
+          <tr key={`${i}-${occurrenceCount}`} {...this.getRowAttrs(accumulateRow)}>
+            {accumulateRow.row.map((value, j) => (
+              <td key={j} className={this.state.tableAligner.alignmentClass(j)}>
+                {this.formatValue(value, j)}
+              </td>
+            ))}
+          </tr>
+        );
       });
     });
     activateTooltips();
@@ -357,20 +353,29 @@ export class ResultView extends React.Component<Props, State> {
     } else if (this.showingAllOfFewRows()) {
       return (
         <div className="row-count">
-          {this.props.result.row_count} rows.
+          {this.props.result.row_count}
+          {" "}
+rows.
         </div>
       );
     } else if (this.showingAllOfManyRows()) {
       return (
         <div className="row-count">
-          {this.props.result.row_count} rows.&nbsp;
+          {this.props.result.row_count}
+          {" "}
+rows.&nbsp;
           <a onClick={this.handleClickLessRows}>Show fewer rows</a>
         </div>
       );
     } else if (this.showingMinimumNumberOfManyRows()) {
       return (
         <div className="row-count">
-          Showing {this.minRowsToShow} of {this.props.result.row_count} rows.&nbsp;
+          Showing
+          {" "}
+          {this.minRowsToShow}
+          {" of "}
+          {this.props.result.row_count}
+          {" rows "}
           <a onClick={this.handleClickMoreRows}>Show more rows</a>
         </div>
       );
@@ -378,9 +383,16 @@ export class ResultView extends React.Component<Props, State> {
       const rowsShown = Math.min(this.state.rowsToShowCount, this.props.result.row_count);
       return (
         <div className="row-count">
-          Showing {rowsShown} of {this.props.result.row_count} rows.&nbsp;
-          Show&nbsp;
-          <a onClick={this.handleClickLessRows}>fewer rows</a>,&nbsp;
+          Showing
+          {" "}
+          {rowsShown}
+          {" "}
+of
+          {" "}
+          {this.props.result.row_count}
+          {" rows. Show "}
+          <a onClick={this.handleClickLessRows}>fewer rows</a>
+          {", "}
           <a onClick={this.handleClickMoreRows}>more rows</a>
         </div>
       );
@@ -427,7 +439,7 @@ export class ResultView extends React.Component<Props, State> {
       return (
         <button
           className="btn btn-default btn-xs"
-          onClick={() => this.setState({showChartConfig: ! this.state.showChartConfig})}
+          onClick={() => this.setState({showChartConfig: !this.state.showChartConfig})}
         >
           {text}
         </button>
@@ -437,46 +449,40 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  renderOptionMenu = () => {
-    return (
-      <div className="options-menu">
-        <ShareButton result={this.props.result} />
-        <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
-        <DebugExport id={this.props.result.id} debugModeEnabled={this.props.debugModeEnabled} />
-        {this.renderChartButton()}
-        {this.renderAxesButton()}
-      </div>
-    );
-  }
+  renderOptionMenu = () => (
+    <div className="options-menu">
+      <ShareButton result={this.props.result} />
+      <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
+      <DebugExport id={this.props.result.id} debugModeEnabled={this.props.debugModeEnabled} />
+      {this.renderChartButton()}
+      {this.renderAxesButton()}
+    </div>
+  )
 
-  render = () => {
-    return (
-      <div className="panel panel-success">
-        <div className="panel-heading" />
-        <div className="panel-body">
-          <CodeViewer statement={this.props.result.statement} />
-          <Info info={this.getInfoMessages()} />
-          <div className="result-table">
-            <table className="table table-striped table-condensed table-hover">
-              <thead>
-                <tr>
-                  {this.props.result.columns.map((column, i) =>
-                    <th key={i} className={this.state.tableAligner.alignmentClass(i)}>{column}</th>
-                  )}
-                </tr>
-              </thead>
+  render = () => (
+    <div className="panel panel-success">
+      <div className="panel-heading" />
+      <div className="panel-body">
+        <CodeViewer statement={this.props.result.statement} />
+        <Info info={this.getInfoMessages()} />
+        <div className="result-table">
+          <table className="table table-striped table-condensed table-hover">
+            <thead>
+              <tr>
+                {this.props.result.columns.map((column, i) => <th key={i} className={this.state.tableAligner.alignmentClass(i)}>{column}</th>)}
+              </tr>
+            </thead>
 
-              <tbody>
-                {this.renderRows()}
-              </tbody>
-            </table>
-          </div>
-          {this.renderShowAll()}
-          {this.renderOptionMenu()}
-          {this.conditionallyRenderChartConfig()}
-          {this.conditionallyRenderChart()}
+            <tbody>
+              {this.renderRows()}
+            </tbody>
+          </table>
         </div>
+        {this.renderShowAll()}
+        {this.renderOptionMenu()}
+        {this.conditionallyRenderChartConfig()}
+        {this.conditionallyRenderChart()}
       </div>
-    );
-  }
+    </div>
+  )
 }

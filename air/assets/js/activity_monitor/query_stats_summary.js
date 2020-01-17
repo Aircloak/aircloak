@@ -12,7 +12,7 @@ type Props = {
 
 export const QueryStatsSummaryView = (props: Props) => {
   const queryStats = {};
-  props.queries.forEach(query => {
+  props.queries.forEach((query) => {
     if (queryStats[query.state]) {
       queryStats[query.state] += 1;
     } else {
@@ -31,12 +31,12 @@ export const QueryStatsSummaryView = (props: Props) => {
           </tr>
         </thead>
         <tbody>
-          {_.map(queryStats, (count, queryState) =>
+          {_.map(queryStats, (count, queryState) => (
             <tr key={queryState}>
               <td><StateView state={queryState} /></td>
               <td>{count}</td>
             </tr>
-          )}
+          ))}
         </tbody>
       </table>
     </div>

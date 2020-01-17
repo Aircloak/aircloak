@@ -36,9 +36,11 @@ export class Disconnected extends React.Component<Props, State> {
 
   render = () => {
     if (!this.state.isConnected) {
-      return (<p className="alert alert-warning">
+      return (
+        <p className="alert alert-warning">
         Connection to Aircloak lost. The system might be down or you might have lost your network connection.
-      </p>);
+        </p>
+      );
     } else {
       return null;
     }

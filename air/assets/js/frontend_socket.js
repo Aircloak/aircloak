@@ -12,7 +12,7 @@ export class FrontendSocket {
       {
         params: {token: userToken},
         transport: FrontendSocket.transport(transportName),
-      }
+      },
     );
 
     this.socket.connect();

@@ -15,7 +15,7 @@ type Props = {
   authentication: Authentication,
 };
 
-export default (props: Props) =>
+export default (props: Props) => (
   <div>
     <h3>Properties</h3>
     <PropertiesView {...props.result} />
@@ -27,4 +27,5 @@ export default (props: Props) =>
       debugModeEnabled={props.debugModeEnabled}
       authentication={props.authentication}
     />
-  </div>;
+  </div>
+);

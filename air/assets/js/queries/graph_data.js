@@ -25,7 +25,7 @@ export const GraphInfo = (columns: Column[], rows: Row[]): GraphInfoT => {
   // Internal functions
   // ----------------------------------------------------------------
 
-  const isNumeric = (n) => typeof(n) === "number" && isFinite(n);
+  const isNumeric = (n) => typeof (n) === "number" && isFinite(n);
 
 
   // ----------------------------------------------------------------
@@ -36,10 +36,9 @@ export const GraphInfo = (columns: Column[], rows: Row[]): GraphInfoT => {
 
   const usableAsY = (index) => isNumeric(rows[0].row[index]);
 
-  const chartable = () =>
-    columns.length >= 2 &&
-    rows.length > 1 &&
-    _.some(columns, (_column, index) => usableAsY(index));
+  const chartable = () => columns.length >= 2
+    && rows.length > 1
+    && _.some(columns, (_column, index) => usableAsY(index));
 
   return {xColumns, usableAsY, chartable};
 };
@@ -55,6 +54,7 @@ export class GraphConfig {
   }
 
   _xColumns: Set<number>;
+
   _yColumns: Set<number>;
 
 
@@ -77,7 +77,7 @@ export const GraphData = (
   columns: Column[],
   rows: Row[],
   graphConfig: GraphConfig,
-  formatter: ValueFormatter
+  formatter: ValueFormatter,
 ): GraphDataT => {
   // ----------------------------------------------------------------
   // Internal functions
@@ -92,15 +92,9 @@ export const GraphData = (
 
   const ready = () => graphConfig.xColumns().length > 0 && graphConfig.yColumns().length > 0;
 
-  const x = () => rows.map(({row}) =>
-    graphConfig.xColumns().map((columnIndex) =>
-        valueFormatter(row[columnIndex], columnIndex)
-      ).join(", ")
-    );
+  const x = () => rows.map(({row}) => graphConfig.xColumns().map((columnIndex) => valueFormatter(row[columnIndex], columnIndex)).join(", "));
 
-  const xLabel = () => graphConfig.xColumns().map((columnIndex) =>
-    columns[columnIndex]
-  ).join(", ");
+  const xLabel = () => graphConfig.xColumns().map((columnIndex) => columns[columnIndex]).join(", ");
 
   const series = () => graphConfig.yColumns().map((columnIndex) => ({
     label: columns[columnIndex],
@@ -108,5 +102,7 @@ export const GraphData = (
     indexInResult: columnIndex,
   }));
 
-  return {ready, x, xLabel, series};
+  return {
+    ready, x, xLabel, series,
+  };
 };

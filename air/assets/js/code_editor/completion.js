@@ -67,38 +67,36 @@ export default function completionList(
       potentialMatchSequences.push(potentialMatchSequence);
     }
   }
-  const finalClause = _.chain(potentialMatchSequences).
-    reverse().
-    join("").
-    value();
+  const finalClause = _.chain(potentialMatchSequences)
+    .reverse()
+    .join("")
+    .value();
 
-  const keywordsFromStatement = _.chain(statement).
-    split(/[\s\(\),]/).
-    reject((word) => word.length < 3).
-    reject((word) => _.last(rawCodeWords) === word).
-    value();
+  const keywordsFromStatement = _.chain(statement)
+    .split(/[\s\(\),]/)
+    .reject((word) => word.length < 3)
+    .reject((word) => _.last(rawCodeWords) === word)
+    .value();
 
   const matcher = new RegExp(finalClause, "i");
 
-  const showColumnsFromTables =
-    _.map(tableNames, tableName => `SHOW COLUMNS FROM ${tableName}`);
+  const showColumnsFromTables = _.map(tableNames, (tableName) => `SHOW COLUMNS FROM ${tableName}`);
 
-  const fromWithTables =
-    _.map(tableNames, tableName => `FROM ${tableName}`);
+  const fromWithTables = _.map(tableNames, (tableName) => `FROM ${tableName}`);
 
-  const aircloakSQLFunctions = _.chain(aircloakFunctionCompletions).
-    values().
-    flatten().
-    value();
+  const aircloakSQLFunctions = _.chain(aircloakFunctionCompletions)
+    .values()
+    .flatten()
+    .value();
 
-  const list = _.chain(SQL_KEYWORDS).
-    concat(aircloakSQLFunctions).
-    concat(tableNames).
-    concat(showColumnsFromTables).
-    concat(fromWithTables).
-    concat(columnNames).
-    concat(keywordsFromStatement).
-    map((candidate) => {
+  const list = _.chain(SQL_KEYWORDS)
+    .concat(aircloakSQLFunctions)
+    .concat(tableNames)
+    .concat(showColumnsFromTables)
+    .concat(fromWithTables)
+    .concat(columnNames)
+    .concat(keywordsFromStatement)
+    .map((candidate) => {
       const bestMatch = candidate.match(matcher).shift();
       if (bestMatch === "") {
         return null;
@@ -109,11 +107,11 @@ export default function completionList(
           to: posBuilder(end),
         };
       }
-    }).
-    reject((candidate) => candidate === null).
-    uniqBy((candidate) => _.upperCase(candidate.text)).
-    sortBy(longestFirst).
-    value();
+    })
+    .reject((candidate) => candidate === null)
+    .uniqBy((candidate) => _.upperCase(candidate.text))
+    .sortBy(longestFirst)
+    .value();
 
   if (list.length > 0) {
     // CodeMirror expects there being a global from/to pair, despite these being

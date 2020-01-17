@@ -40,12 +40,12 @@ export default class QueryView extends React.Component<Props, State> {
     this.setState({result});
   }
 
-  render = () => {
-    return (<ImmutableSingleQuery
+  render = () => (
+    <ImmutableSingleQuery
       numberFormat={this.props.numberFormat}
       debugModeEnabled={this.props.debugModeEnabled}
       result={this.state.result}
       authentication={this.context.authentication}
-    />);
-  }
+    />
+  )
 }
