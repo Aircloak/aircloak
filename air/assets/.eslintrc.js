@@ -32,6 +32,6 @@ module.exports = {
     }
   },
   "globals": {
-      "global": "writable"
+    "window": true
   }
 };
