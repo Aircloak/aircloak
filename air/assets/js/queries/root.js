@@ -105,8 +105,6 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     return (lastQuery ? lastQuery.statement : "");
   }
 
-  static contextType = AuthContext;
-
   componentWillUnmount = () => {
     clearInterval(this.connectedInterval);
   }
@@ -374,3 +372,5 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     );
   }
 }
+
+QueriesView.contextType = AuthContext;

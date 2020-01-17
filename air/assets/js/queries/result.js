@@ -147,8 +147,6 @@ export class ResultView extends React.Component<Props, State> {
 
   graphData: GraphDataT;
 
-  static contextType = AuthContext;
-
   componentDidUpdate = () => {
     this.rebuildGraphData();
   }
@@ -537,3 +535,5 @@ of
     );
   }
 }
+
+ResultView.contextType = AuthContext;
