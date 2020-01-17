@@ -40,7 +40,7 @@ export const HistoryLoader = (props: Props) => {
   if (history.loading) {
     return (
       <p>
-        <img role="presentation" src="/images/loader.gif" />
+        <img alt="Icon indicating loading of past queries" src="/images/loader.gif" />
         {" "}
         loading history
       </p>

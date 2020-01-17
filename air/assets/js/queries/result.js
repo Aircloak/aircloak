@@ -318,7 +318,7 @@ export class ResultView extends React.Component<Props, State> {
       return (
         <p className="text-center">
           {" "}
-          <img src="/images/loader.gif" role="presentation" />
+          <img alt="indication of more rows being loaded" src="/images/loader.gif" />
           {" "}
           Loading more rows.
         </p>

@@ -35,7 +35,7 @@ export default (props: Props) => {
 
         <p className="text-center spinner">
           {" "}
-          <img src="/images/loader.gif" role="presentation" />
+          <img src="/images/loader.gif" alt="indicating the result is being computed" />
           {" "}
         </p>
         <ul>
