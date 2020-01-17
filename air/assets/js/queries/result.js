@@ -28,8 +28,6 @@ export type Row = {
 export type Column = string;
 export type Type = string;
 
-export type Result = SuccessResult | PendingResult | CancelledResult | ErrorResult;
-
 type CommonResultFeatures = {
   id: string,
   statement: string,
@@ -69,6 +67,8 @@ export type ErrorResult = CommonResultFeatures & {
   error: string,
   info: string[]
 };
+
+export type Result = SuccessResult | PendingResult | CancelledResult | ErrorResult;
 
 type Props = {
   result: SuccessResult,
