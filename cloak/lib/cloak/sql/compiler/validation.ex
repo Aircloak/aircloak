@@ -494,26 +494,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_where(query), do: verify_where_clauses(query.where)
 
-  defp verify_condition_tree(%Expression{kind: :function, name: "or", source_location: location}),
-    do:
-      raise(
-        CompilationError,
-        source_location: location,
-        message:
-          "Combining conditions with `OR` is not allowed. Note that an `OR` condition may " <>
-            "arise when negating an `AND` condition. For example `NOT (x = 1 AND y = 2)` is equivalent to " <>
-            "`x <> 1 OR y <> 2`."
-      )
-
-  defp verify_condition_tree(%Expression{kind: :function, name: "and", args: [lhs, rhs]}) do
-    verify_condition_tree(lhs)
-    verify_condition_tree(rhs)
-  end
-
-  defp verify_condition_tree(_), do: :ok
-
   defp verify_where_clauses(clauses) do
-    verify_condition_tree(clauses)
     verify_conditions(clauses)
 
     Lenses.conditions_terminals()
@@ -575,7 +556,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_condition(_), do: :ok
 
   defp verify_having(query) do
-    verify_condition_tree(query.having)
     verify_conditions(query.having)
 
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
@@ -756,7 +736,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_or_usage(%Query{type: :standard}), do: :ok
 
   defp verify_or_usage(query) do
-    non_filtering_expressions_lens()
+    Query.Lenses.query_expressions()
     |> Lens.filter(&Expression.function?/1)
     |> Lens.filter(&(&1.name == "or"))
     |> Lens.to_list(query)
@@ -766,7 +746,10 @@ defmodule Cloak.Sql.Compiler.Validation do
 
       [condition | _rest] ->
         raise CompilationError,
-          message: "Disjunctions can not be used in anonymizing queries.",
+          message:
+            "Combining boolean expressions with `OR` is not allowed in anonymizing queries. " <>
+              "Note that an `OR` expression may arise when negating an `AND` expression. " <>
+              "For example `NOT (x = 1 AND y = 2)` is equivalent to `x <> 1 OR y <> 2`.",
           source_location: condition.source_location
     end
   end
