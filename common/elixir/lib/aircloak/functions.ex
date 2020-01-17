@@ -188,7 +188,7 @@ defmodule Aircloak.Functions do
                },
                ~w(dec_b64) => %{type_specs: %{[:text] => :text}, attributes: [:unsafe]},
                ~w(coalesce) => %{
-                 type_specs: %{{:many1, :any} => :any},
+                 type_specs: %{[{:many1, :any}] => :any},
                  attributes: [:unsafe]
                },
                ~w(current_datetime) => %{
