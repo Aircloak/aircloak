@@ -127,7 +127,7 @@ export class SelectableView extends React.Component<Props> {
 
   pending = () => {
     const {selectable} = this.props;
-    return selectable.creation_status === "pending"
+    return selectable.creation_status === "pending";
   }
 
   renderIcon = () => {

@@ -61,4 +61,4 @@ export const ColumnsView = (props: {filter: Filter, columns: Column[]}) => {
       </tbody>
     </table>
   );
-}
+};

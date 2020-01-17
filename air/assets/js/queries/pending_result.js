@@ -53,4 +53,4 @@ export const PendingResultView = (props: Props) => {
       </div>
     </div>
   );
-}
+};

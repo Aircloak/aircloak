@@ -62,4 +62,4 @@ export const GraphConfigView = (props: Props) => {
       ))}
     </form>
   );
-}
+};

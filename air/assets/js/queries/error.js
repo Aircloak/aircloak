@@ -32,4 +32,4 @@ export const Error = (props: {result: ErrorResult, debugModeEnabled: boolean}) =
       </div>
     </div>
   );
-}
+};

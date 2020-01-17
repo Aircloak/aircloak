@@ -48,4 +48,4 @@ export const PropertiesView = (props: PropertyResult) => {
       </tbody>
     </table>
   );
-}
+};

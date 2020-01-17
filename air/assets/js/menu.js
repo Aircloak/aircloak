@@ -5,7 +5,7 @@ import React from "react";
 export const Menu = (props: {children: ?Iterable<React$Node>}) => {
   const {children} = props;
   return <div id="task-menu">{children}</div>;
-}
+};
 
 export const MenuButton = (props: {onClick: () => void, isActive: boolean, children?: Iterable<React$Node>}) => {
   const {children, isActive, onClick} = props;
@@ -19,4 +19,4 @@ export const MenuButton = (props: {onClick: () => void, isActive: boolean, child
       {children}
     </button>
   );
-}
+};

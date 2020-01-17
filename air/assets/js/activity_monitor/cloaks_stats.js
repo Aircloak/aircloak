@@ -39,4 +39,4 @@ export const CloaksStatsView = (props: {cloakStats: CloakStat[]}) => {
       </table>
     </div>
   );
-}
+};

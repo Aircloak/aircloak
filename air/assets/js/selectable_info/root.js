@@ -89,7 +89,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
   selectables = () => {
     const {selectableToExclude} = this.props;
     const {selectables} = this.state;
-    return _.reject(selectables, (selectable) => selectable.internal_id === (selectableToExclude || "don't exclude any"))
+    return _.reject(selectables, (selectable) => selectable.internal_id === (selectableToExclude || "don't exclude any"));
   }
 
   dataSourceStatusReceived = (event: { status: string }) => {

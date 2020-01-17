@@ -23,4 +23,4 @@ export const Cancelled = (props: {result: CancelledResult, debugModeEnabled: boo
       </div>
     </div>
   );
-}
+};

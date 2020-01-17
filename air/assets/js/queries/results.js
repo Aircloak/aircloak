@@ -56,4 +56,4 @@ export const Results = (props: Props) => {
       })}
     </div>
   );
-}
+};

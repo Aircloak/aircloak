@@ -31,7 +31,7 @@ export class Disconnected extends React.Component<Props, State> {
   }
 
   updateConnected = () => {
-    const {channel} = this.props
+    const {channel} = this.props;
     this.setState({isConnected: channel.isJoined()});
   }
 
@@ -47,4 +47,4 @@ export class Disconnected extends React.Component<Props, State> {
       return null;
     }
   }
-}
+};
