@@ -156,10 +156,18 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:ok, _} = compile_standard("select bool or not bool from table", data_source())
     end
 
-    test "reject disjunction in anonymizing select" do
-      assert {:error, error} = compile("select bool or not bool from table", data_source())
+    test "allow disjunctions in standard where" do
+      assert {:ok, _} = compile_standard("select count(*) from table where bool or not bool", data_source())
+    end
 
-      assert error == "Disjunctions can not be used in anonymizing queries."
+    test "reject disjunction in anonymizing select" do
+      assert {:error, "Combining boolean expressions with `OR` is not allowed in anonymizing queries" <> _} =
+               compile("select bool or not bool from table", data_source())
+    end
+
+    test "rejects disjunction in anonymizing where" do
+      {:error, "Combining boolean expressions with `OR` is not allowed in anonymizing queries" <> _} =
+        compile("select * from table where numeric = 1 or numeric = 2", data_source())
     end
   end
 
@@ -1163,12 +1171,6 @@ defmodule Cloak.Sql.Compiler.Test do
     assert unaligned.info == [
              "The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."
            ]
-  end
-
-  test "rejects `or` conditions" do
-    {:error, error} = compile("select * from table where numeric = 1 or numeric = 2", data_source())
-
-    assert error =~ ~r/Combining conditions with `OR` is not allowed./
   end
 
   test "rejects `FULL OUTER JOINs`" do
