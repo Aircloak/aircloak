@@ -12,7 +12,7 @@ export default (props: {info: string[]}) => {
     return (
       <div>
         <h4>Info</h4>
-        {info.mar((infoMessage, i) => <p key={i} dangerouslySetInnerHTML={mdToHtml(infoMessage)} />)}
+        {info.map((infoMessage) => <p dangerouslySetInnerHTML={mdToHtml(infoMessage)} />)}
       </div>
     );
   } else {
