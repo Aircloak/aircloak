@@ -32,6 +32,7 @@ module.exports = {
     }
   },
   "globals": {
-    "window": true
+    "window": true,
+    "confirm": true
   }
 };
