@@ -6,7 +6,7 @@ import Channel from "phoenix";
 import {ColumnsView} from "./columns";
 import {Filter} from "./filter";
 import type {Column} from "./columns";
-import {activateTooltips} from "../tooltips";
+import activateTooltips from "../tooltips";
 
 export type Selectable = {
   id: string,
