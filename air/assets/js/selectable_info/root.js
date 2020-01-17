@@ -6,7 +6,8 @@ import Channel from "phoenix";
 
 import {SelectableView} from "./selectable";
 import NewSelectableToolbarView from "./new_selectable_toolbar";
-import {FilterView, Filter, EmptyFilter} from "./filter";
+import {Filter, EmptyFilter} from "./filter";
+import FilterView from "./filter_view";
 import FrontendSocket from "../frontend_socket";
 import type {Selectable} from "./selectable";
 
