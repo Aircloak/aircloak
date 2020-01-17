@@ -85,30 +85,30 @@ const App = {
 
   renderPage: (page, props) => {
     const {
+      auditLogs,
       authentication,
+      cloak_stats,
       dataSourceDescription,
       dataSourceName,
       dataSourceStatus,
       debugModeEnabled,
       lastQuery,
-      numberFormat,
-      pendingQueries,
-      result,
-      selectables,
-      sessionId,
-      socketToken,
-      userId,
-      selectablesEditUrl,
       newTableUrl,
       newViewURL,
-      supportsCreateTable,
-      selectableToExclude,
-      statement,
+      numberFormat,
+      pendingQueries,
       queries,
-      auditLogs,
-      cloak_stats,
-      value,
+      result,
       score,
+      selectables,
+      selectablesEditUrl,
+      selectableToExclude,
+      sessionId,
+      socketToken,
+      statement,
+      supportsCreateTable,
+      userId,
+      value,
     } = props;
     switch (page) {
       case "queries":
@@ -169,9 +169,9 @@ const App = {
             selectables={selectables}
           />
         );
-      case "activity_monitor": 
+      case "activity_monitor":
         return (
-          <ActivityMonitorView 
+          <ActivityMonitorView
             userId={userId}
             socketToken={socketToken}
             frontendSocket={App.buildSocket(props)}
@@ -179,7 +179,7 @@ const App = {
             cloak_stats={cloak_stats}
           />
         );
-      case "number_format_example": 
+      case "number_format_example":
         return (
           <NumberFormatExampleView
             numberFormat={numberFormat}
