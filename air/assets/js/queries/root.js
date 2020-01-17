@@ -297,6 +297,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
         this.setState({sessionResults: ammendedSessionResults, history: successHistory});
       },
 
+      // eslint-disable-next-line no-unused-vars
       error: (_error) => {
         const errorHistory = {
           before: "",
