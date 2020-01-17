@@ -27,6 +27,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
     unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
     checked_mod checked_div checked_pow
     length lower upper
+    hex coalesce
   )
 
   @impl Dialect
