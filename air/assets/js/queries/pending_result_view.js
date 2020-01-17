@@ -3,8 +3,7 @@
 import React from "react";
 
 import type {PendingResult} from "./result";
-import type {Authentication, AuthContextType} from "../authentication_provider";
-import {AuthContext} from "../authentication_provider";
+import type {Authentication} from "../authentication_provider";
 
 import CodeViewer from "../code_viewer";
 import {pendingStates, later, format} from "./state";
