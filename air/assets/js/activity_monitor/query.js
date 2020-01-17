@@ -1,11 +1,11 @@
 // @flow
 
 import React from "react";
-import PropTypes from "prop-types";
 
 import {StateView} from "./state_view";
 import {cancel} from "../request";
 import {isFinished} from "../queries/state";
+import {AuthContext} from "../authentication_provider";
 
 export type Query = {
   id: string,
@@ -36,6 +36,8 @@ const queryExcerpt = (statement: string) => {
 const queryViewUrl = (query: Query) => `/admin/queries/${query.id}`;
 
 export class QueryView extends React.Component<Props> {
+  static contextType = AuthContext;
+
   shouldComponentUpdate(nextProps: Props) {
     return nextProps.query.state !== this.props.query.state;
   }
@@ -62,18 +64,3 @@ export class QueryView extends React.Component<Props> {
     );
   }
 }
-
-QueryView.contextTypes = {
-  authentication: PropTypes.object.isRequired,
-};
-
-QueryView.propTypes = {
-  query: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    state: PropTypes.string.isRequired,
-    analyst_name: PropTypes.string.isRequired,
-    data_source_name: PropTypes.string.isRequired,
-    cloak_name: PropTypes.string.isRequired,
-    statement: PropTypes.string.isRequired,
-  }).isRequired,
-};

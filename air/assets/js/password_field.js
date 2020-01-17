@@ -21,20 +21,11 @@ export default class PasswordField extends React.Component<Props, State> {
     this.highlightClass = this.highlightClass.bind(this);
   }
 
-  state: {
-    value: string,
-    score: number,
-  }
-
-  updateValue: (event: SyntheticInputEvent<EventTarget>) => void;
-  renderScore: () => string;
-  highlightClass: () => string;
-
-  updateValue(e: SyntheticInputEvent<EventTarget>) {
+  updateValue = (e: SyntheticInputEvent<EventTarget>) => {
     this.setState({value: e.target.value, score: zxcvbn(e.target.value).score});
   }
 
-  renderScore() {
+  renderScore = () => {
     if (this.state.value === "") {
       return null;
     } else if (this.state.score <= 1) {
@@ -48,7 +39,7 @@ export default class PasswordField extends React.Component<Props, State> {
     }
   }
 
-  highlightClass() {
+  highlightClass = () => {
     if (this.state.value === "") {
       return null;
     } else if (this.state.score <= 1) {
@@ -60,7 +51,7 @@ export default class PasswordField extends React.Component<Props, State> {
     }
   }
 
-  render() {
+  render = () => {
     return (<div className={this.highlightClass()}>
       <input type="password" value={this.state.value} onChange={this.updateValue}></input>
       <span className="help-block">{this.renderScore()}</span>

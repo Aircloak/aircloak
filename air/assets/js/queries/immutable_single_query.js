@@ -4,6 +4,7 @@ import React from "react";
 
 import {Results} from "./results";
 import {PropertiesView} from "./properties";
+import type {Authentication} from "../authentication_provider";
 import type {Result} from "./result";
 import type {NumberFormat} from "../number_format";
 
@@ -11,6 +12,7 @@ type Props = {
   result: Result,
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
+  authentication: Authentication,
 };
 
 export default (props: Props) =>
@@ -23,5 +25,6 @@ export default (props: Props) =>
       numberFormat={props.numberFormat}
       results={[props.result]}
       debugModeEnabled={props.debugModeEnabled}
+      authentication={props.authentication}
     />
   </div>;

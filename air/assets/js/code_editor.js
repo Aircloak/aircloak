@@ -34,36 +34,26 @@ export class CodeEditor extends React.Component<Props> {
     window.clearErrorLocation = this.clearErrorLocation.bind(this);
   }
 
-  reactCodeMirrorComponent: Codemirror;
-  codeMirrorClass: () => Codemirror;
-  completionList: () => void;
-  showHint: () => void;
-  onChange: () => void;
-  editorDidMount: () => void;
-  run: () => void;
-  insertWordInEditor: () => void;
-  showErrorLocation: () => void;
-  clearErrorLocation: () => void;
-  errorMarker: null;
   editor: Editor;
+  errorMarker: ?any;
 
-  run() {
+  run = () => {
     this.props.onRun();
   }
 
-  showHint(editor: Editor) {
+  showHint = (editor: Editor) => {
     editor.showHint({hint: this.completionList});
   }
 
-  onChange(editor: Editor) {
+  onChange = (editor: Editor) => {
     this.props.onChange(editor.getValue());
   }
 
-  editorDidMount(editor: Editor) {
+  editorDidMount = (editor: Editor) => {
     this.editor = editor;
   }
 
-  completionList(cm: Editor) {
+  completionList = (cm: Editor) => {
     return completions(
       cm.getLine(cm.getCursor().line),
       cm.getCursor().ch,
@@ -74,26 +64,26 @@ export class CodeEditor extends React.Component<Props> {
     );
   }
 
-  insertWordInEditor(word: String) {
+  insertWordInEditor = (word: String) => {
     const doc = this.editor.getDoc();
     doc.replaceSelection(word);
     this.editor.focus();
   }
 
-  clearErrorLocation() {
+  clearErrorLocation = () => {
     if (this.errorMarker) {
       this.errorMarker.clear();
       this.errorMarker = null;
     }
   }
 
-  showErrorLocation(line: number, ch: number) {
+  showErrorLocation = (line: number, ch: number) => {
     this.clearErrorLocation();
     const doc = this.editor.getDoc();
     this.errorMarker = doc.markText({line, ch}, {line, ch: ch + 1}, {className: "error-location"});
   }
 
-  render() {
+  render = () => {
     const options = {
       indentUnit: 2,
       indentWithTabs: false,

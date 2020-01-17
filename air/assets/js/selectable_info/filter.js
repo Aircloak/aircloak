@@ -14,11 +14,6 @@ type State = {
 };
 
 export class Filter {
-  regex: RegExp;
-  anyColumnMatches: (columns: Column[]) => boolean;
-  filterColumns: (columns: Column[]) => Column[];
-  filterFun: (column: Column) => boolean;
-
   constructor(regex: RegExp) {
     this.regex = regex;
 
@@ -27,15 +22,17 @@ export class Filter {
     this.filterFun = this.filterFun.bind(this);
   }
 
-  filterFun(column: Column): boolean {
+  regex: RegExp;
+
+  filterFun = (column: Column): boolean => {
     return this.regex.test(column.name) || this.regex.test(column.type);
   }
 
-  anyColumnMatches(columns: Column[]): boolean {
+  anyColumnMatches = (columns: Column[]): boolean => {
     return _.find(columns, this.filterFun) !== undefined;
   }
 
-  filterColumns(columns: Column[]): Column[] {
+  filterColumns = (columns: Column[]): Column[] => {
     return _.filter(columns, this.filterFun);
   }
 }
@@ -44,9 +41,6 @@ export const EmptyFilter = () =>
   new Filter(new RegExp(""));
 
 export class FilterView extends React.Component<Props, State> {
-  state: {filterText: string};
-  filterTextChange: (string) => void;
-
   constructor(props: Props) {
     super(props);
 
@@ -57,7 +51,7 @@ export class FilterView extends React.Component<Props, State> {
     this.filterTextChange = this.filterTextChange.bind(this);
   }
 
-  filterTextChange(filterText: string) {
+  filterTextChange = (filterText: string) => {
     this.setState({filterText});
 
     try {
@@ -71,7 +65,7 @@ export class FilterView extends React.Component<Props, State> {
     }
   }
 
-  render() {
+  render = () => {
     return (
       <div className="column-filter">
         <div className="input-group">

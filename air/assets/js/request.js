@@ -2,16 +2,10 @@
 
 import $ from "jquery";
 
-export type Authentication = {CSRFToken: string};
+import type {Authentication} from "./authentication_provider";
 
 type Callback = (result: any) => void;
 type Callbacks = {success?: Callback, error?: Callback};
-
-export type QueryData = {
-  statement: string,
-  data_source_id: number,
-  session_id: string,
-};
 
 const headers = ({CSRFToken}) => ({
   "X-CSRF-TOKEN": CSRFToken,
@@ -24,7 +18,7 @@ export const cancel = (queryId: string, authentication: Authentication) =>
     headers: headers(authentication),
   });
 
-export const startQuery = (queryData: QueryData, authentication: Authentication, callbacks: Callbacks) => {
+export const startQuery = (queryData: string, authentication: Authentication, callbacks: Callbacks) => {
   $.ajax("/queries", {
     method: "POST",
     headers: headers(authentication),

@@ -32,11 +32,6 @@ type State = {
 }
 
 export default class SelectableInfo extends React.Component<Props, State> {
-  toggleExpand: (t: Selectable) => (() => void);
-  onFilterChange: (filter: Filter) => void;
-  updateSelectables: (event: {selectables: Selectable[]}) => void;
-  channel: Channel;
-
   constructor(props: Props) {
     super(props);
 
@@ -63,11 +58,13 @@ export default class SelectableInfo extends React.Component<Props, State> {
     });
   }
 
-  onFilterChange(filter: Filter) {
+  channel: Channel;
+
+  onFilterChange = (filter: Filter) => {
     this.setState({filter});
   }
 
-  toggleExpand(selectable: Selectable) {
+  toggleExpand = (selectable: Selectable) => {
     return () => {
       const expanded = this.state.expanded;
       if (this.expanded(selectable)) {
@@ -79,25 +76,24 @@ export default class SelectableInfo extends React.Component<Props, State> {
     };
   }
 
-  updateSelectables(event: {selectables: Selectable[]}) {
+  updateSelectables = (event: {selectables: Selectable[]}) => {
     this.setState({selectables: event.selectables});
   }
 
-  expanded(selectable: Selectable) {
+  expanded = (selectable: Selectable) => {
     return this.state.expanded.has(selectable.id);
   }
 
-  selectables() {
+  selectables = () => {
     return _.reject(this.state.selectables, (selectable) =>
       selectable.internal_id === (this.props.selectableToExclude || "don't exclude any"));
   }
 
-  dataSourceStatusReceived(event: { status: string }) {
+  dataSourceStatusReceived = (event: { status: string }) => {
     this.setState({dataSourceStatus: event.status});
   }
 
-
-  renderAvailabilityLabel() {
+  renderAvailabilityLabel = () => {
     switch (this.state.dataSourceStatus) {
       case "online": return <span className="label label-success pull-right">Online</span>;
       case "offline": return <span className="label label-danger pull-right">Offline</span>;
@@ -106,7 +102,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
     }
   }
 
-  analyzing() {
+  analyzing = () => {
     return (<span className="label label-success pull-right">
       Online
       <sup>
@@ -123,7 +119,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
     </span>);
   }
 
-  renderDataSourceDescription() {
+  renderDataSourceDescription = () => {
     if (this.props.dataSourceDescription) {
       return <p>{this.props.dataSourceDescription}</p>;
     } else {
@@ -131,7 +127,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
     }
   }
 
-  render() {
+  render = () => {
     return (
       <div className="panel panel-default selectable-info">
 

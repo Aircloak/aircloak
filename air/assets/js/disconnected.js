@@ -26,18 +26,15 @@ export class Disconnected extends React.Component<Props, State> {
 
   connectedInterval: IntervalID;
 
-  componentWillUnmount: () => void;
-  updateConnected: () => void;
-
-  componentWillUnmount() {
+  componentWillUnmount = () => {
     clearInterval(this.connectedInterval);
   }
 
-  updateConnected() {
+  updateConnected = () => {
     this.setState({isConnected: this.props.channel.isJoined()});
   }
 
-  render() {
+  render = () => {
     if (!this.state.isConnected) {
       return (<p className="alert alert-warning">
         Connection to Aircloak lost. The system might be down or you might have lost your network connection.

@@ -31,16 +31,12 @@ export default class AuditLogEntry extends React.Component<Props, State> {
     this.renderMetadata = this.renderMetadata.bind(this);
   }
 
-  toggleDetails: () => void;
-  renderDetails: () => void;
-  renderMetadata: () => void;
-
-  toggleDetails(event: Event) {
+  toggleDetails = (event: Event) => {
     event.preventDefault();
     this.setState({details: !this.state.details});
   }
 
-  render() {
+  render = () => {
     return (<tbody>
       <tr>
         <td>{formatTime(this.props.auditLog.time)}</td>
@@ -50,7 +46,7 @@ export default class AuditLogEntry extends React.Component<Props, State> {
     </tbody>);
   }
 
-  renderDetails() {
+  renderDetails = () => {
     if (this.state.details) {
       return (<tr><td colSpan="2">{this.renderMetadata()}</td></tr>);
     } else {
@@ -58,7 +54,7 @@ export default class AuditLogEntry extends React.Component<Props, State> {
     }
   }
 
-  renderMetadata() {
+  renderMetadata = () => {
     return (<dl>
       {_.toPairs(this.props.auditLog.metadata).map(([key, value]) => (
         <div className="row" key={key}>

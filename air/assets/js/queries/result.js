@@ -1,9 +1,9 @@
 // @flow
 
 import React from "react";
-import PropTypes from "prop-types";
 import _ from "lodash";
 
+import {AuthContext} from "../authentication_provider";
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 import {GraphData, GraphInfo, GraphConfig} from "./graph_data";
@@ -139,37 +139,16 @@ export class ResultView extends React.Component<Props, State> {
     this.getInfoMessages = this.getInfoMessages.bind(this);
   }
 
-  state: State;
-  props: Props;
   minRowsToShow: number;
-  graphData: GraphDataT;
   graphInfo: GraphInfoT;
-  formatValue: (value: any, columnIndex: number) => string;
-  handleClickMoreRows: () => void;
-  handleClickLessRows: () => void;
-  loadAndShowMoreRows: (rowsToShowCount: number, availableRows: Row[], availableChunks: number) => void;
-  renderRows: () => void;
-  renderShowAll: () => void;
-  renderOptionMenu: () => void;
-  conditionallyRenderChart: () => void;
-  showingAllOfFewRows: () => void;
-  showingAllOfManyRows: () => void;
-  showingMinimumNumberOfManyRows: () => void;
-  componentDidUpdate: () => void;
-  renderChartButton: () => void;
-  renderAxesButton: () => void;
-  conditionallyRenderChartConfig: () => void;
-  rebuildGraphData: () => void;
-  addX: (col: number) => () => void;
-  addY: (col: number) => () => void;
-  removeColumn: (col: number) => () => void;
-  getInfoMessages: () => string[];
+  graphData: GraphDataT;
+  static contextType = AuthContext;
 
-  componentDidUpdate() {
+  componentDidUpdate = () => {
     this.rebuildGraphData();
   }
 
-  rebuildGraphData() {
+  rebuildGraphData = () => {
     this.graphData = new GraphData(
       this.props.result.columns,
       this.state.availableRows,
@@ -178,17 +157,17 @@ export class ResultView extends React.Component<Props, State> {
     );
   }
 
-  handleClickMoreRows() {
+  handleClickMoreRows = () => {
     const rowsToShowCount = Math.min(2 * this.state.rowsToShowCount, this.props.result.row_count);
     this.loadAndShowMoreRows(rowsToShowCount, this.state.availableRows, this.state.availableChunks);
   }
 
-  handleClickLessRows() {
+  handleClickLessRows = () => {
     const rowsToShowCount = Math.max(Math.round(this.state.rowsToShowCount / 2), this.minRowsToShow);
     this.setState({rowsToShowCount});
   }
 
-  showChart() {
+  showChart = () => {
     if (this.state.availableChunks !== ALL_CHUNKS) {
       this.loadChunks(ALL_CHUNKS, (allRows) => {
         this.setState({availableRows: allRows, availableChunks: ALL_CHUNKS, showChart: true});
@@ -198,7 +177,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  loadAndShowMoreRows(rowsToShowCount: number, availableRows: Row[], availableChunks: number) {
+  loadAndShowMoreRows = (rowsToShowCount: number, availableRows: Row[], availableChunks: number) => {
     const availableRowsCount = _.sum(_.flatMap(availableRows, (row) => row.occurrences));
     if (availableChunks === ALL_CHUNKS || rowsToShowCount <= availableRowsCount) {
       this.setState({rowsToShowCount, availableRows, availableChunks});
@@ -218,7 +197,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  loadChunks(desiredChunk: number, fun: ((rows: Row[]) => void)) {
+  loadChunks = (desiredChunk: number, fun: ((rows: Row[]) => void)) => {
     this.setState({loadingChunks: true, loadError: false});
     loadBuckets(this.props.result.buckets_link, desiredChunk, this.context.authentication, {
       success: (buckets) => {
@@ -231,31 +210,31 @@ export class ResultView extends React.Component<Props, State> {
     });
   }
 
-  showingAllOfFewRows() {
+  showingAllOfFewRows = () => {
     return this.props.result.row_count <= this.minRowsToShow;
   }
 
-  showingAllOfManyRows() {
+  showingAllOfManyRows = () => {
     return this.props.result.row_count === this.state.rowsToShowCount;
   }
 
-  showingMinimumNumberOfManyRows() {
+  showingMinimumNumberOfManyRows = () => {
     return this.state.rowsToShowCount === this.minRowsToShow && this.props.result.row_count > this.minRowsToShow;
   }
 
-  addX(col: number) {
+  addX = (col: number) => {
     return () => this.setState({graphConfig: this.state.graphConfig.addX(col)});
   }
 
-  addY(col: number) {
+  addY = (col: number) => {
     return () => this.setState({graphConfig: this.state.graphConfig.addY(col)});
   }
 
-  removeColumn(col: number) {
+  removeColumn = (col: number) => {
     return () => this.setState({graphConfig: this.state.graphConfig.remove(col)});
   }
 
-  formatValue(value: any, columnIndex: number): string {
+  formatValue = (value: any, columnIndex: number): string => {
     const type = this.props.result.types[columnIndex];
     if (value === null) {
       return "<null>";
@@ -272,11 +251,11 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  isNumeric(n: any): boolean {
+  isNumeric = (n: any): boolean => {
     return typeof(n) === "number" && isFinite(n);
   }
 
-  formatDateTime(value: string): string {
+  formatDateTime = (value: string): string => {
     const [date, time] = value.split("T");
     if (time === undefined) {
       return date;
@@ -285,7 +264,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  formatTime(value: string): string {
+  formatTime = (value: string): string => {
     const [hms, us] = value.split(".");
     const ZERO_US = "000000";
     if (us === ZERO_US || us === undefined) {
@@ -296,7 +275,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  conditionallyRenderChart() {
+  conditionallyRenderChart = () => {
     if (this.state.showChart) {
       return (
         <GraphView
@@ -310,7 +289,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  conditionallyRenderChartConfig() {
+  conditionallyRenderChartConfig = () => {
     if (this.state.loadingChunks) {
       return (
         <p className="text-center"> <img src="/images/loader.gif" role="presentation" /> Loading more rows.</p>
@@ -332,7 +311,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  getRowAttrs(row: Row) {
+  getRowAttrs = (row: Row) => {
     if (row.unreliable) {
       return {
         title: "These values are unreliable because of the low number of users involved.",
@@ -344,7 +323,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  getInfoMessages(): string[] {
+  getInfoMessages = (): string[] => {
     const messages = this.props.result.info;
     if (!this.props.debugModeEnabled) {
       return messages.filter(message => !message.startsWith("[Debug]"));
@@ -353,7 +332,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  renderRows() {
+  renderRows = () => {
     let remainingRowsToProduce = this.state.rowsToShowCount;
     const rows = _.flatMap(this.state.availableRows, (accumulateRow, i) => {
       const occurrencesForAccumulateRow = Math.min(remainingRowsToProduce, accumulateRow.occurrences);
@@ -372,7 +351,7 @@ export class ResultView extends React.Component<Props, State> {
     return rows;
   }
 
-  renderShowAll() {
+  renderShowAll = () => {
     if (this.state.loadingChunks) {
       return null;
     } else if (this.showingAllOfFewRows()) {
@@ -408,7 +387,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  renderChartButton() {
+  renderChartButton = () => {
     if (this.graphInfo.chartable()) {
       const chartButtonText = this.state.showChart ? "Hide chart" : "Show chart";
       return (
@@ -433,7 +412,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  chartButtonClass() {
+  chartButtonClass = () => {
     const baseClasses = "btn btn-default btn-xs";
     if (this.state.loadingChunks) {
       return `${baseClasses} disabled`;
@@ -442,7 +421,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  renderAxesButton() {
+  renderAxesButton = () => {
     if (this.state.showChart) {
       const text = this.state.showChartConfig ? "Hide axes" : "Show axes";
       return (
@@ -458,7 +437,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  renderOptionMenu() {
+  renderOptionMenu = () => {
     return (
       <div className="options-menu">
         <ShareButton result={this.props.result} />
@@ -470,7 +449,7 @@ export class ResultView extends React.Component<Props, State> {
     );
   }
 
-  render() {
+  render = () => {
     return (
       <div className="panel panel-success">
         <div className="panel-heading" />
@@ -500,9 +479,4 @@ export class ResultView extends React.Component<Props, State> {
       </div>
     );
   }
-
 }
-
-ResultView.contextTypes = {
-  authentication: PropTypes.object.isRequired,
-};

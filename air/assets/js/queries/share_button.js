@@ -49,7 +49,7 @@ export class ShareButton extends React.Component<Props, State> {
               <div className="form-group">
                 <label>Public link</label>
                 <p className="help-block">Anyone with this link will be able to view the query and its results.</p>
-                <input className="form-control" readOnly="true" value={this.publicPermalink()} />
+                <input className="form-control" readOnly={true} value={this.publicPermalink()} />
               </div>
 
               <div className="form-group">
@@ -57,7 +57,7 @@ export class ShareButton extends React.Component<Props, State> {
                 <p className="help-block">
                   This link requires logging in with an Insights Air account that is allowed to access this data source.
                 </p>
-                <input className="form-control" readOnly="true" value={this.privatePermalink()} />
+                <input className="form-control" readOnly={true} value={this.privatePermalink()} />
               </div>
             </Modal.Body>
 

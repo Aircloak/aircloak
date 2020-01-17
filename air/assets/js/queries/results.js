@@ -4,6 +4,7 @@ import React from "react";
 
 import {ResultView} from "./result";
 import type {Result} from "./result";
+import type {Authentication} from "../authentication_provider";
 import {PendingResultView} from "./pending_result";
 import {Error} from "./error";
 import {Cancelled} from "./cancelled";
@@ -13,6 +14,7 @@ type Props = {
   results: Result[],
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
+  authentication: Authentication
 };
 
 export const Results = (props: Props) =>
@@ -39,7 +41,7 @@ export const Results = (props: Props) =>
             debugModeEnabled={props.debugModeEnabled}
           />);
         default:
-          return <PendingResultView key={result.id} result={result} />;
+          return <PendingResultView key={result.id} authentication={props.authentication} result={result} />;
       }
     })}
   </div>;

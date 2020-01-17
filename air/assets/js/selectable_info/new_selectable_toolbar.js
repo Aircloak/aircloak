@@ -9,8 +9,6 @@ type Props = {
 };
 
 export class NewSelectableToolbarView extends React.Component<Props> {
-  props: Props;
-
   conditionallyRenderNewTableButton() {
     if (this.props.supportsCreateTable) {
       return <a href={this.props.newTableURL} className="btn btn-default">New table</a>;

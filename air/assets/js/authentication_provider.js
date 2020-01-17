@@ -1,21 +1,28 @@
 // @flow
 
 import React from "react";
-import PropTypes from "prop-types";
+
+export type Authentication = {CSRFToken: string};
+export type AuthContextType = {
+  authentication: Authentication
+};
+
+export const AuthContext = React.createContext<AuthContextType>({});
 
 type Props = {
   children: ?React$Node,
-  authentication: {
-    CSRFToken: string,
-  },
+  authentication: Authentication,
 }
 
 export class AuthenticationProvider extends React.Component<Props> {
-  getChildContext() {
-    return {authentication: this.props.authentication};
-  }
-
   render() {
-    return <React.Fragment>{this.props.children}</React.Fragment>;
+    let authContext = {
+      authentication: this.props.authentication
+    };
+    return (
+      <AuthContext.Provider value={authContext}>
+        {this.props.children}
+      </AuthContext.Provider>
+    );
   }
 }

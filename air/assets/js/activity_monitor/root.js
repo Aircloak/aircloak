@@ -56,25 +56,21 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
     });
   }
 
-  queryRemovalTime: number;
   channel: Channel;
+  queryRemovalTime: number;
 
-  handleQueryEvent: (queryEvent: QueryEvent) => void;
-  handleRemoveQuery: (queryId: string) => void;
-  handleCloakStatsUpdate: (cloakStatUpdate: {cloak_stats: CloakStat[]}) => void;
-
-  handleRemoveQuery(queryId: string) {
+  handleRemoveQuery = (queryId: string) => {
     const queries = _.reject(this.state.queries, (query) => query.id === queryId);
     this.setState({queries});
   }
 
-  conditionallyScheduleQueryRemoval(queryEvent: QueryEvent) {
+  conditionallyScheduleQueryRemoval = (queryEvent: QueryEvent) => {
     if (isFinished(queryEvent.event)) {
       setTimeout(() => this.handleRemoveQuery(queryEvent.query_id), this.queryRemovalTime);
     }
   }
 
-  handleQueryEvent(queryEvent: QueryEvent) {
+  handleQueryEvent = (queryEvent: QueryEvent) => {
     this.conditionallyScheduleQueryRemoval(queryEvent);
 
     if (queryEvent.event === "started") {
@@ -93,12 +89,12 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
     }
   }
 
-  handleCloakStatsUpdate(cloakStatsUpdate: {cloak_stats: CloakStat[]}) {
+  handleCloakStatsUpdate = (cloakStatsUpdate: {cloak_stats: CloakStat[]}) => {
     const cloakStats = _.sortBy(cloakStatsUpdate.cloak_stats, ["name"]);
     this.setState({cloakStats});
   }
 
-  render() {
+  render = () => {
     return (
       <div>
         <Disconnected channel={this.channel} />

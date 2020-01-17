@@ -1,20 +1,18 @@
 // @flow
 
 import React from "react";
-import PropTypes from "prop-types";
 
 import type {PendingResult} from "./result";
+import type {Authentication} from "../authentication_provider";
+import {AuthContext} from "../authentication_provider";
+import type {AuthContextType} from "../authentication_provider";
 import {CodeViewer} from "../code_viewer";
 import {pendingStates, later, format} from "./state";
 import {cancel} from "../request";
-import type {Authentication} from "../request";
 
 type Props = {
   result: PendingResult,
-}
-
-type Context = {
-  authentication: Authentication,
+  authentication: Authentication
 }
 
 const stateItem = (state, currentState) => {
@@ -27,7 +25,7 @@ const stateItem = (state, currentState) => {
   }
 };
 
-export const PendingResultView = (props: Props, context: Context) =>
+export const PendingResultView = (props: Props) =>
   <div className="panel panel-info">
     <div className="panel-heading" />
     <div className="panel-body">
@@ -43,7 +41,7 @@ export const PendingResultView = (props: Props, context: Context) =>
       <div className="right-align">
         <a
           className="btn btn-small btn-warning"
-          onClick={() => cancel(props.result.id, context.authentication)}
+          onClick={() => cancel(props.result.id, props.authentication)}
         >Cancel</a>
       </div>
     </div>

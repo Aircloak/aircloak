@@ -30,34 +30,28 @@ export default class AuditLogChunk extends React.Component<Props, State> {
     this.renderEvents = this.renderEvents.bind(this);
   }
 
-  numberOfEvents: () => number;
-  eventName: () => string;
-  user: () => string;
-  toggleCollapsed: (event: Event) => void;
-  renderEvents: () => React$Node;
-
-  numberOfEvents() {
+  numberOfEvents = () => {
     return this.props.auditLogs.length;
   }
 
-  eventName() {
+  eventName = () => {
     return this.props.auditLogs[0].event;
   }
 
-  user() {
+  user = () => {
     return this.props.auditLogs[0].user;
   }
 
-  times() {
+  times = () => {
     return this.props.auditLogs.map<AuditLog>(auditLog => formatTime(auditLog.time));
   }
 
-  toggleCollapsed(event: Event) {
+  toggleCollapsed = (event: Event) => {
     event.preventDefault();
     this.setState({collapsed: !this.state.collapsed});
   }
 
-  renderEvents(): React$Node {
+  renderEvents = (): React$Node => {
     if (this.state.collapsed) {
       return null;
     } else {
@@ -76,7 +70,7 @@ export default class AuditLogChunk extends React.Component<Props, State> {
     }
   }
 
-  render() {
+  render = () => {
     return (<tbody className="panel panel-default">
       <tr className="panel-heading">
         <td>{this.eventName()}</td>

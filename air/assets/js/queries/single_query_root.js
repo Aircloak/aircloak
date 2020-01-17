@@ -1,12 +1,12 @@
 // @flow
 
 import React from "react";
-import PropTypes from "prop-types";
 
 import ImmutableSingleQuery from "./immutable_single_query";
 import type {Result} from "./result";
 import {FrontendSocket} from "../frontend_socket";
 import type {NumberFormat} from "../number_format";
+import {AuthContext} from "../authentication_provider";
 
 type Props = {
   result: Result,
@@ -34,24 +34,18 @@ export default class QueryView extends React.Component<Props, State> {
     });
   }
 
-  state: {
-    result: Result,
-  }
-  resultReceived: (result: Result) => void;
+  static contextType = AuthContext;
 
-  resultReceived(result: Result) {
+  resultReceived = (result: Result) => {
     this.setState({result});
   }
 
-  render() {
+  render = () => {
     return (<ImmutableSingleQuery
       numberFormat={this.props.numberFormat}
       debugModeEnabled={this.props.debugModeEnabled}
       result={this.state.result}
+      authentication={this.context.authentication}
     />);
   }
 }
-
-QueryView.contextTypes = {
-  authentication: PropTypes.object.isRequired,
-};

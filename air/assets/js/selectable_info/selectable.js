@@ -38,14 +38,6 @@ const TABLE_INVALID_MESSAGE =
     "More information may be available in Insights Cloak logs - contact your administrator for access.";
 
 export class SelectableView extends React.Component<Props> {
-  handleToggleClick: () => void;
-  isAnalystCreatedSelectable: () => boolean;
-  renderSelectableActionMenu: () => React$Node;
-  renderSelectableView: () => React$Node;
-  hasRenderableContent: () => boolean;
-  triggerDelete: (event: {preventDefault: () => void}) => void;
-  brokenErrorMessage: () => string;
-
   constructor(props: Props) {
     super(props);
 
@@ -58,7 +50,7 @@ export class SelectableView extends React.Component<Props> {
     this.brokenErrorMessage = this.brokenErrorMessage.bind(this);
   }
 
-  handleToggleClick(event: {target: Element, preventDefault: () => void}) {
+  handleToggleClick = (event: {target: Element, preventDefault: () => void}) => {
     // Hacky solution to prevent bubbling from `<a>` elements. Normally, we'd use stopPropagation.
     // However, the problem here is that we're injecting some html provided by the server, which
     // internally generates A elements. Therefore, we don't have such option, so we're doing it
@@ -69,21 +61,21 @@ export class SelectableView extends React.Component<Props> {
     }
   }
 
-  isAnalystCreatedSelectable() {
+  isAnalystCreatedSelectable = () => {
     const kind = this.props.selectable.kind;
     return kind === "view" || kind === "analyst_table";
   }
 
-  hasRenderableContent() {
+  hasRenderableContent = () => {
     return this.props.filter.anyColumnMatches(this.props.selectable.columns);
   }
 
-  editLinkUrl() {
+  editLinkUrl = () => {
     const selectable = this.props.selectable;
     return `${this.props.selectablesEditUrl}?kind=${selectable.kind}&id=${selectable.internal_id}`;
   }
 
-  triggerDelete(event: {preventDefault: () => void}) {
+  triggerDelete = (event: {preventDefault: () => void}) => {
     if (confirm(`Do you want to permanently delete ${this.props.selectable.id}?`)) { // eslint-disable-line no-alert
       this.props.channel.push("delete_selectable", {
         internal_id: this.props.selectable.internal_id,
@@ -93,7 +85,7 @@ export class SelectableView extends React.Component<Props> {
     event.preventDefault();
   }
 
-  renderSelectableActionMenu() {
+  renderSelectableActionMenu = () => {
     if (this.pending()) {
       return null;
     } else {
@@ -108,7 +100,7 @@ export class SelectableView extends React.Component<Props> {
     }
   }
 
-  brokenErrorMessage() {
+  brokenErrorMessage = () => {
     if (this.props.selectable.kind === "view") {
       return VIEW_INVALID_MESSAGE;
     } else {
@@ -116,7 +108,7 @@ export class SelectableView extends React.Component<Props> {
     }
   }
 
-  broken() {
+  broken = () => {
     const selectable = this.props.selectable;
     if (selectable.broken || selectable.creation_status === "failed") {
       return {
@@ -132,11 +124,11 @@ export class SelectableView extends React.Component<Props> {
     }
   }
 
-  pending() {
+  pending = () => {
     return this.props.selectable.creation_status === "pending";
   }
 
-  renderIcon() {
+  renderIcon = () => {
     if (this.pending()) {
       return <img src="/images/loader.gif" role="presentation" height="12" width="12" />;
     } else {
@@ -145,7 +137,7 @@ export class SelectableView extends React.Component<Props> {
     }
   }
 
-  renderSelectableView() {
+  renderSelectableView = () => {
     return (
       <div className="list-group-item">
         <div onClick={this.handleToggleClick} {...this.broken()}>
@@ -167,7 +159,7 @@ export class SelectableView extends React.Component<Props> {
     );
   }
 
-  render() {
+  render = () => {
     if (this.hasRenderableContent()) {
       activateTooltips();
       return this.renderSelectableView();
