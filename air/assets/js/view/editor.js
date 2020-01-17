@@ -12,32 +12,33 @@ type Props = {
 }
 
 export default class ViewEditor extends React.Component<Props> {
-  setStatement(statement: string) {
+  static setStatement(statement: string) {
     $("#sql").val(statement);
   }
 
   tableNames() {
-    return this.props.selectables.map<string>((table) => table.id);
+    const {selectables} = this.props;
+    return selectables.map<string>((table) => table.id);
   }
 
   columnNames() {
-    return _.flatMap(this.props.selectables, (table) => table.columns.map<string>((column) => column.name));
+    const {selectables} = this.props;
+    return _.flatMap(selectables, (table) => table.columns.map<string>((column) => column.name));
   }
 
-  save() {
+  static save() {
     $("#viewForm").submit();
   }
 
   render() {
+    const {statement} = this.props;
     return (
       <CodeEditor
-        columnNames={[]}
-        tableNames={[]}
-        statement={this.props.statement}
+        statement={statement}
         tableNames={this.tableNames()}
         columnNames={this.columnNames()}
-        onChange={this.setStatement}
-        onRun={this.save}
+        onChange={ViewEditor.setStatement}
+        onRun={ViewEditor.save}
       />
     );
   }

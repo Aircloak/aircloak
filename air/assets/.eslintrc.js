@@ -24,6 +24,7 @@ module.exports = {
     /* Handled by plugin-import */
     "no-duplicate-imports": ["off"],
     "no-underscore-dangle": ["off"],
+    "react/jsx-filename-extension": [0],
   },
   "settings": {
     "flowtype": {
