@@ -40,7 +40,7 @@ export default class ShareButton extends React.Component<Props, State> {
     if (this.isEnabled()) {
       return (
         <span>
-          <a className="btn btn-default btn-xs" onClick={() => this.setState({showModal: true})}>Share</a>
+          <button type="button" className="btn btn-default btn-xs" onClick={() => this.setState({showModal: true})}>Share</button>
 
           <Modal show={showModal} onHide={() => this.setState({showModal: false})}>
             <Modal.Header>

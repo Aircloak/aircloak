@@ -399,9 +399,14 @@ rows.
       return (
         <div className="row-count">
           {result.row_count}
-          {" "}
-rows.&nbsp;
-          <a onClick={this.handleClickLessRows}>Show fewer rows</a>
+          {" rows. "}
+          <button
+            type="button"
+            className="btn btn-default btn-xs"
+            onClick={this.handleClickLessRows}
+          >
+            Show fewer rows
+          </button>
         </div>
       );
     } else if (this.showingMinimumNumberOfManyRows()) {
@@ -412,8 +417,14 @@ rows.&nbsp;
           {this.minRowsToShow}
           {" of "}
           {result.row_count}
-          {" rows "}
-          <a onClick={this.handleClickMoreRows}>Show more rows</a>
+          {" rows. "}
+          <button
+            type="button"
+            className="btn btn-default btn-xs"
+            onClick={this.handleClickMoreRows}
+          >
+            Show more rows
+          </button>
         </div>
       );
     } else {
@@ -423,14 +434,25 @@ rows.&nbsp;
           Showing
           {" "}
           {rowsShown}
-          {" "}
-of
-          {" "}
+          {" of "}
           {result.row_count}
           {" rows. Show "}
-          <a onClick={this.handleClickLessRows}>fewer rows</a>
+          <button
+            className="btn btn-default btn-xs"
+            type="button"
+            onClick={this.handleClickLessRows}
+          >
+            fewer rows
+          </button>
           {", "}
-          <a onClick={this.handleClickMoreRows}>more rows</a>
+          <button
+            className="btn btn-default btn-xs"
+            type="button"
+            onClick={this.handleClickMoreRows}
+          >
+            more rows
+          </button>
+          .
         </div>
       );
     }
