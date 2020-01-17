@@ -35,14 +35,14 @@ export default class SelectableInfo extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     const {
-      dataSourceStatus, frontendSocket, dataSourceName, userId
+      dataSourceStatus, frontendSocket, dataSourceName, userId,
     } = this.props;
 
     this.state = {
       expanded: new Set(),
       filter: new EmptyFilter(),
       selectables: props.selectables,
-      dataSourceStatus: dataSourceStatus,
+      dataSourceStatus,
     };
 
     this.toggleExpand = this.toggleExpand.bind(this);
@@ -89,7 +89,8 @@ export default class SelectableInfo extends React.Component<Props, State> {
   selectables = () => {
     const {selectableToExclude} = this.props;
     const {selectables} = this.state;
-    return _.reject(selectables, (selectable) => selectable.internal_id === (selectableToExclude || "don't exclude any"));
+    return _.reject(selectables, (selectable) => selectable.internal_id
+      === (selectableToExclude || "don't exclude any"));
   }
 
   dataSourceStatusReceived = (event: { status: string }) => {
@@ -134,7 +135,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
 
   render = () => {
     const {
-      dataSourceName, selectablesEditUrl, newTableURL, newViewURL, supportsCreateTable
+      dataSourceName, selectablesEditUrl, newTableURL, newViewURL, supportsCreateTable,
     } = this.props;
     const {filter} = this.state;
     return (
@@ -151,6 +152,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
         <div className="selectable-info-content">
           {this.selectables().map((selectable, i) => (
             <SelectableView
+              // eslint-disable-next-line react/no-array-index-key
               key={i}
               filter={filter}
               selectable={selectable}
