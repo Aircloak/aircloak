@@ -20,6 +20,7 @@ import "phoenix_html";
 import React from "react";
 import ReactDOM from "react-dom";
 import $ from "jquery";
+import datetimepicker from "eonasdan-bootstrap-datetimepicker"
 
 import Queries from "./queries/root";
 import SingleQuery from "./queries/single_query_root";
