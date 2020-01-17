@@ -12,7 +12,7 @@ export const TableAligner = (rows: Row[]): TableAlignerT => {
   // Internal functions
   // ----------------------------------------------------------------
 
-  const isNumeric = (n) => typeof (n) === "number" && isFinite(n);
+  const isNumeric = (n) => typeof (n) === "number" && Number.isFinite(n);
 
   const ignorableValues = ["*", null, undefined];
 
