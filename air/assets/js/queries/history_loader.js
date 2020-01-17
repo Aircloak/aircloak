@@ -22,7 +22,11 @@ export const HistoryLoader = (props: Props) => {
         <span className="label label-danger">Error</span>
         Loading history failed.
         {" "}
-        <button className="btn btn-default" onClick={handleLoadHistory}>
+        <button 
+          className="btn btn-default" 
+          onClick={handleLoadHistory}
+          type="button"
+        >
           Retry loading previous queries
         </button>
       </div>
@@ -43,7 +47,11 @@ export const HistoryLoader = (props: Props) => {
     );
   } else {
     return (
-      <button className="btn btn-default" onClick={handleLoadHistory}>
+      <button 
+        type="button"
+        className="btn btn-default" 
+        onClick={handleLoadHistory}
+      >
         Load previous queries
       </button>
     );

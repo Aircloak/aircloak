@@ -342,8 +342,9 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       data-toggle="tooltip"
       data-placement="bottom"
       title="or press Ctrl + Enter"
+      type="button"
     >
-Run
+      Run
     </button>
   )
 

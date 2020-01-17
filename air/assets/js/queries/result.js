@@ -444,6 +444,7 @@ of
       const chartButtonText = showChart ? "Hide chart" : "Show chart";
       return (
         <button
+          type="button"
           className={this.chartButtonClass()}
           onClick={() => {
             if (!loadingChunks) {
@@ -480,6 +481,7 @@ of
       const text = showChartConfig ? "Hide axes" : "Show axes";
       return (
         <button
+          type="button"
           className="btn btn-default btn-xs"
           onClick={() => this.setState({showChartConfig: !showChartConfig})}
         >
