@@ -11,7 +11,7 @@
         browserSocketTransport: "<%= Air.browser_socket_transport() %>",
         userId: "<%= @current_user.id %>",
         queries: <%= to_json(format_queries(@running_queries)) %>,
-        cloak_stats: <%= to_json(@cloak_stats) %>
+        cloakStats: <%= to_json(@cloak_stats) %>
       };
 
       App.activityMonitor(props, document.getElementById("activity-monitor-view"));

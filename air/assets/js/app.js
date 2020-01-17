@@ -87,7 +87,7 @@ const App = {
     const {
       auditLogs,
       authentication,
-      cloak_stats,
+      cloakStats,
       dataSourceDescription,
       dataSourceName,
       dataSourceStatus,
@@ -176,7 +176,7 @@ const App = {
             socketToken={socketToken}
             frontendSocket={App.buildSocket(props)}
             queries={queries}
-            cloak_stats={cloak_stats}
+            cloakStats={cloakStats}
           />
         );
       case "number_format_example":

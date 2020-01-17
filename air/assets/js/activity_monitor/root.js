@@ -24,7 +24,7 @@ type Props = {
   socketToken: string,
   frontendSocket: FrontendSocket,
   queries: Query[],
-  cloak_stats: CloakStat[],
+  cloakStats: CloakStat[],
 };
 
 type State = {
@@ -35,14 +35,14 @@ type State = {
 export default class ActivityMonitorView extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    const {queries, cloak_stats, frontendSocket} = this.props;
+    const {queries, cloakStats, frontendSocket} = this.props;
 
     // How long to display a query after it has completed
     this.queryRemovalTime = 10000; // 10 seconds
 
     this.state = {
-      queries: queries,
-      cloakStats: cloak_stats,
+      queries,
+      cloakStats,
     };
 
     this.handleQueryEvent = this.handleQueryEvent.bind(this);
@@ -95,8 +95,8 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
     }
   }
 
-  handleCloakStatsUpdate = (cloakStatsUpdate: {cloak_stats: CloakStat[]}) => {
-    const cloakStats = _.sortBy(cloakStatsUpdate.cloak_stats, ["name"]);
+  handleCloakStatsUpdate = (cloakStatsUpdate: {cloakStats: CloakStat[]}) => {
+    const cloakStats = _.sortBy(cloakStatsUpdate.cloakStats, ["name"]);
     this.setState({cloakStats});
   }
 
