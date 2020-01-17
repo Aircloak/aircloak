@@ -271,7 +271,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   }
 
-  isNumeric = (n: any): boolean => typeof (n) === "number" && isFinite(n)
+  isNumeric = (n: any): boolean => typeof (n) === "number" && Number.isFinite(n)
 
   formatDateTime = (value: string): string => {
     const [date, time] = value.split("T");
