@@ -370,7 +370,7 @@ export class ResultView extends React.Component<Props, State> {
         return (
           <tr key={`${i}-${occurrenceCount}`} {...this.getRowAttrs(accumulateRow)}>
             {accumulateRow.row.map((value, j) => (
-              <td key={j} className={tableAligner.alignmentClass(j)}>
+              <td className={tableAligner.alignmentClass(j)}>
                 {this.formatValue(value, j)}
               </td>
             ))}
@@ -517,7 +517,7 @@ of
             <table className="table table-striped table-condensed table-hover">
               <thead>
                 <tr>
-                  {result.columns.map((column, i) => <th key={i} className={tableAligner.alignmentClass(i)}>{column}</th>)}
+                  {result.columns.map((column, i) => <th className={tableAligner.alignmentClass(i)}>{column}</th>)}
                 </tr>
               </thead>
 
