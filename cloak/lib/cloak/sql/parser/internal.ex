@@ -339,7 +339,7 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp function_expression() do
     switch([
-      {next_position() |> function_name() |> keyword(:"("), lazy(fn -> function_arguments() end) |> keyword(:")")},
+      {next_position() |> function_name() |> keyword(:"("), function_arguments() |> keyword(:")")},
       {:else, error_message(fail(""), "Expected an argument list")}
     ])
     |> map(fn {[location, function, :"("], [arguments, :")"]} ->
@@ -380,7 +380,7 @@ defmodule Cloak.Sql.Parser.Internal do
         keyword(:"("),
         date_part(),
         keyword(:from),
-        lazy(fn -> map(column(), &[&1]) end),
+        map(column(), &[&1]),
         keyword(:")")
       ],
       fn [location, :extract, :"(", part, :from, column, :")"] ->
