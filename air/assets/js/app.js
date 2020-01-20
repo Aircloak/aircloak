@@ -93,7 +93,7 @@ const App = {
       dataSourceStatus,
       debugModeEnabled,
       lastQuery,
-      newTableUrl,
+      newTableURL,
       newViewURL,
       numberFormat,
       pendingQueries,
@@ -155,7 +155,7 @@ const App = {
           <SelectableInfoView
             selectables={selectables}
             selectablesEditUrl={selectablesEditUrl}
-            newTableURL={newTableUrl}
+            newTableURL={newTableURL}
             newViewURL={newViewURL}
             userId={userId}
             dataSourceName={dataSourceName}
