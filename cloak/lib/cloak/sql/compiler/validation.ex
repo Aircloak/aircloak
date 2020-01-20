@@ -109,23 +109,23 @@ defmodule Cloak.Sql.Compiler.Validation do
         :ok
     end
 
-    default_arg = args |> Enum.reverse() |> Enum.at(0)
-    then_args = args |> Enum.drop(1) |> Enum.take_every(2)
+    else_branch = args |> Enum.reverse() |> Enum.at(0)
+    then_branches = args |> Enum.drop(1) |> Enum.take_every(2)
 
-    [default_arg | then_args]
+    [else_branch | then_branches]
     |> Enum.map(& &1.type)
     |> Enum.uniq()
     |> Enum.reject(&is_nil/1)
     |> case do
-      [_type] ->
-        :ok
-
-      _ ->
+      types when length(types) > 1 ->
         raise(
           CompilationError,
           source_location: source_location,
           message: "`case` expression requires that all branches return the same type."
         )
+
+      _ ->
+        :ok
     end
   end
 

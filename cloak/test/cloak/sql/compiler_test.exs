@@ -1366,6 +1366,10 @@ defmodule Cloak.Sql.Compiler.Test do
     test "null return values are ignored from type checking" do
       assert {:ok, _} = compile_standard("select case when true then null else string end from table", data_source())
     end
+
+    test "all null return values" do
+      assert {:ok, _} = compile_standard("select case when string = '' then null end from table", data_source())
+    end
   end
 
   test "rejects usage of distinct in non-aggregates" do
