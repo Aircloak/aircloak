@@ -10,6 +10,8 @@ import {AuthContext} from "../authentication_provider";
 
 type Props = {
   result: Result,
+  insertedAt: string,
+  user: {name: string},
   frontendSocket: FrontendSocket,
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
@@ -43,13 +45,17 @@ export default class QueryView extends React.Component<Props, State> {
   }
 
   render = () => {
-    const {numberFormat, debugModeEnabled} = this.props;
+    const {
+      numberFormat, user, insertedAt, debugModeEnabled,
+    } = this.props;
     const {result} = this.state;
     const {authentication} = this.context;
     return (
       <ImmutableSingleQuery
         numberFormat={numberFormat}
         debugModeEnabled={debugModeEnabled}
+        insertedAt={insertedAt}
+        user={user}
         result={result}
         authentication={authentication}
       />

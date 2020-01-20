@@ -121,6 +121,9 @@ export class SelectableView extends React.Component<Props> {
       };
     } else {
       return {
+        title: null,
+        dataToggle: null,
+        dataContainer: null,
         className: "list-group-item-heading",
       };
     }

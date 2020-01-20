@@ -132,7 +132,9 @@ const App = {
         return (
           <SingleQueryView
             result={result}
+            insertedAt={result.inserted_at}
             numberFormat={numberFormat}
+            user={result.user}
             debugModeEnabled={debugModeEnabled}
             frontendSocket={App.buildSocket(props)}
           />

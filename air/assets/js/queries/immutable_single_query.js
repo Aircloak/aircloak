@@ -27,7 +27,7 @@ export default (props: Props) => {
       <PropertiesView
         user={user}
         insertedAt={insertedAt}
-        dataSource={result.dataSource}
+        dataSource={result.data_source}
         queryState={result.query_state}
       />
 
