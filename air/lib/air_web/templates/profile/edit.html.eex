@@ -212,7 +212,7 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      var props = <%= to_json(number_format_settings(@conn)) %>;
+      var props = <%= to_json(%{numberFormat: number_format_settings(@conn)}) %>;
       App.numberFormatExample(props, document.getElementById("example"));
 
       var passwordProps = {className: "form-control", id: "user_password", name: "user[password]"};
