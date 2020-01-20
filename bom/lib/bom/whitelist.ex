@@ -22,7 +22,7 @@ defmodule BOM.Whitelist do
       {"scrivener_ecto", "2.2.0"} => %{type: :mit, text: :provided},
       {"scrivener_html", "1.3.3"} => %{type: :mit, text: :standard},
       {"scrivener", "2.3.0"} => %{type: :mit, text: :standard},
-      {"scrivener", "2.7.0"} => %{type: :mit, text: :provided},
+      {"scrivener", "2.7.0"} => %{type: :mit, text: :provided}
     },
     :node => %{
       {"ast-types-flow", "0.0.7"} => %{type: :mit, text: :provided},
@@ -105,7 +105,7 @@ defmodule BOM.Whitelist do
       {"weak-map", "1.0.5"} => %{type: :apache2, text: :provided},
       {"webpack-addons", "1.1.5"} => %{type: :mit, text: :standard},
       {"wgs84", "0.0.0"} => %{type: :bsd_2_clause, text: :standard},
-      {"wordwrap", "0.0.2"} => %{type: :mit, text: :provided},
+      {"wordwrap", "0.0.2"} => %{type: :mit, text: :provided}
     },
     :rust => %{
       {"c_vec", "1.3.2"} => %{type: :mit, text: :provided},
