@@ -42,6 +42,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&normalize_bucket/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&normalize_anonymizing_aggregators/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&strip_source_location/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&remove_redundant_case_statements/1)
 
   # -------------------------------------------------------------------
   # Removing source location
@@ -550,6 +551,29 @@ defmodule Cloak.Sql.Compiler.Normalization do
       columns
       |> Enum.reject(&Helpers.aggregated_column?/1)
       |> Enum.all?(&Expression.member?(group_bys, &1))
+
+  # -------------------------------------------------------------------
+  # Removing redundant `case` statements
+  # -------------------------------------------------------------------
+
+  defp remove_redundant_case_statements(query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name == "case"))
+    |> Lens.map(query, &remove_redundant_case_statement/1)
+  end
+
+  defp remove_redundant_case_statement(%Expression{kind: :function, name: "case", args: args} = expression) do
+    else_branch = args |> Enum.reverse() |> Enum.at(0)
+    then_branches = args |> Enum.drop(1) |> Enum.take_every(2)
+
+    [else_branch | then_branches]
+    |> Expression.unique()
+    |> case do
+      [_unique_branch] -> else_branch
+      _ -> expression
+    end
+  end
 
   # -------------------------------------------------------------------
   # Rewrite NOT IN expressions
