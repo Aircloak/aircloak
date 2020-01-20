@@ -25,7 +25,30 @@ defmodule BOM.Whitelist do
       {"scrivener_html", "1.3.3"} => %{type: :mit, text: :standard}
     },
     :node => %{
+      {"webpack-addons", "1.1.5"} => %{type: :mit, text: :standard},
+      {"type-fest", "0.8.1"} => %{type: :cca3u, text: :standard},
+      {"spdx-exceptions", "2.2.0"} => %{type: :cca3u, text: :standard},
+      {"run-queue", "1.0.3"} => %{type: :isc, text: :provided},
+      {"pako", "1.0.10"} => %{type: :mit, text: :provided},
+      {"mem-fs-editor", "4.0.3"} => %{type: :mit, text: :provided},
+      {"mem-fs", "1.1.3"} => %{type: :mit, text: :provided},
+      {"ignore", "3.3.10"} => %{type: :mit, text: :provided},
+      {"http-cache-semantics", "3.8.1"} => %{type: :bsd_2_clause, text: :provided},
+      {"glob-all", "3.1.0"} => %{type: :mit, text: :provided},
+      {"coa", "1.0.4"} => %{type: :mit, text: :provided},
+      {"flow-parser", "0.116.0"} => %{type: :mit, text: :provided},
+      {"error", "7.2.1"} => %{type: :mit, text: :standard},
+      {"errno", "0.1.7"} => %{type: :mit, text: :standard},
+      {"detect-conflict", "1.0.1"} => %{type: :mit, text: :provided},
+      {"cli-table", "0.3.1"} => %{type: :mit, text: :provided},
+      {"caniuse-db", "1.0.30001021"} => %{type: :cca4i, text: :standard},
+      {"buffer-alloc", "1.2.0"} => %{type: :mit, text: :provided},
+      {"buffer-fill", "1.0.0"} => %{type: :mit, text: :provided},
+      {"buffer-alloc-unsafe", "1.1.0"} => %{type: :mit, text: :provided},
+      {"babel-plugin-syntax-dynamic-import", "6.18.0"} => %{type: :mit, text: :standard},
+      {"babel-plugin-transform-async-generator-functions", "6.24.1"} => %{type: :mit, text: :standard},
       {"base64-js", "0.0.2"} => %{type: :mit, text: :provided},
+      {"ast-types-flow", "0.0.7"} => %{type: :mit, text: :provided},
       {"bcrypt-pbkdf", "1.0.0"} => %{type: :bsd_4_clause, text: :standard},
       {"bit-twiddle", "0.0.2"} => %{type: :mit, text: :provided},
       {"browser-stdout", "1.3.0"} => %{type: :isc, text: :standard},
@@ -70,6 +93,7 @@ defmodule BOM.Whitelist do
       {"quickselect", "1.0.0"} => %{type: :isc, text: :standard},
       {"randombytes", "2.0.3"} => %{type: :mit, text: :standard},
       {"react-onclickoutside", "4.9.0"} => %{type: :mit, text: :standard},
+      {"regenerator-runtime", "0.11.1"} => %{type: :mit, text: :provided},
       {"regenerator-runtime", "0.12.1"} => %{type: :mit, text: :standard},
       {"regenerator-runtime", "0.9.5"} => %{type: :bsd_2_clause, text: :provided},
       {"simplicial-complex", "0.3.3"} => %{type: :mit, text: :provided},
@@ -96,6 +120,14 @@ defmodule BOM.Whitelist do
   }
 
   @type_by_text_digest %{
+    # node/type-fest
+    "915042b5df33c31a6db2b37eadaa00e3" => :mit,
+    # node/pako
+    "a4f08d6b2d1bf3f3a1bc296a6109a25b" => :mit,
+    # node/caniuse-lite
+    "60f8103054954b2c75f1faa295ea3590" => :cca4i,
+    # node/atob
+    "493adefc1fe80b079a23203e4732d945" => :mit,
     # node/amdefine
     "c06db4b145ce991f7e579f17699fdf2f" => :mit,
     # node/babel-brunch
