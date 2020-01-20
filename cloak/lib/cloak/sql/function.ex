@@ -62,12 +62,23 @@ defmodule Cloak.Sql.Function do
   def return_type(%Expression{kind: :function, name: name, args: args}),
     do: return_type({:function, name, args, nil})
 
+  def return_type(%Expression{type: type}), do: type
+
+  def return_type({:function, "case", args, _}) do
+    else_branch = args |> Enum.reverse() |> Enum.at(0)
+    then_branches = args |> Enum.drop(1) |> Enum.take_every(2)
+
+    [else_branch | then_branches]
+    |> Enum.map(&return_type/1)
+    |> Enum.find(&(&1 != nil))
+  end
+
   def return_type(function = {:function, name, _, _}) do
     Aircloak.Functions.function_spec()[canonical_name(name)].type_specs
     |> Enum.find(fn {arguments, _} -> do_well_typed?(function, arguments) end)
     |> case do
       {_arguments, return_type} -> return_type
-      nil -> nil
+      nil -> :unknown
     end
   end
 
