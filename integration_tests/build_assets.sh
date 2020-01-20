@@ -4,4 +4,5 @@ set -eo pipefail
 
 cd /aircloak/air
 make deps
-assets/node_modules/brunch/bin/brunch build assets/
+cd /aircloak/air/assets
+yarn deploy
