@@ -43,7 +43,7 @@ export default class AuditLogEntry extends React.Component<Props, State> {
       <tbody>
         <tr>
           <td>{formatTime(auditLog.time)}</td>
-          <td><a href="#" onClick={this.toggleDetails}>Details</a></td>
+          <td><button type="button" onClick={this.toggleDetails}>Details</button></td>
         </tr>
         {this.renderDetails()}
       </tbody>

@@ -4,14 +4,14 @@ import React from "react";
 import _ from "lodash";
 import {Channel} from "phoenix";
 
-import {QueriesView} from "./queries";
+import QueriesView from "./queries";
 import type {Query} from "./query";
-import {CloaksStatsView} from "./cloaks_stats";
+import CloaksStatsView from "./cloaks_stats";
 import type {CloakStat} from "./cloak_stats";
 
 import FrontendSocket from "../frontend_socket";
 import {isFinished} from "../queries/state";
-import {Disconnected} from "../disconnected";
+import Disconnected from "../disconnected";
 
 type QueryEvent = {
   query_id: string,
@@ -20,8 +20,6 @@ type QueryEvent = {
 };
 
 type Props = {
-  userId: number,
-  socketToken: string,
   frontendSocket: FrontendSocket,
   queries: Query[],
   cloakStats: CloakStat[],

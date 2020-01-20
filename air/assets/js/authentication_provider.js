@@ -14,16 +14,14 @@ type Props = {
   authentication: Authentication,
 }
 
-export class AuthenticationProvider extends React.Component<Props> {
-  render() {
-    const {authentication, children} = this.props;
-    const authContextValue = {
-      authentication: authentication,
-    };
-    return (
-      <AuthContext.Provider value={authContextValue}>
-        {children}
-      </AuthContext.Provider>
-    );
-  }
-}
+export default (props: Props) => {
+  const {authentication, children} = props;
+  const authContextValue = {
+    authentication,
+  };
+  return (
+    <AuthContext.Provider value={authContextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
+};

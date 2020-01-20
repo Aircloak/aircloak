@@ -28,13 +28,13 @@ const wordEnd = (string, start) => {
   let end = start;
 
   while (end < string.length && wordCharRegex.test(string.charAt(end))) {
-    end++;
+    end += 1;
   }
 
   return end;
 };
 
-const escapeWord = (word) => word.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+const escapeWord = (word) => word.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&");
 
 export default function completionList(
   curLine: string,
@@ -54,12 +54,12 @@ export default function completionList(
   // we take the full document into account), lose the location info of
   // where the match starts, when prepping and creating the RegExp match string.
   // This could be worked around, but it seems only for marginal gains.
-  const rawCodeWords = _.split(curLine.slice(0, end), /[\s\(]/);
+  const rawCodeWords = _.split(curLine.slice(0, end), /[\s(]/);
   const codeWords = _.map(rawCodeWords, escapeWord);
   const potentialMatchSequences = [];
-  for (let i = codeWords.length; i >= 0; i--) {
+  for (let i = codeWords.length; i >= 0; i -= 1) {
     const wordsToUse = [];
-    for (let j = i; j < codeWords.length; j++) {
+    for (let j = i; j < codeWords.length; j += 1) {
       wordsToUse.push(codeWords[j]);
     }
     if (wordsToUse.length > 0) {
@@ -73,7 +73,7 @@ export default function completionList(
     .value();
 
   const keywordsFromStatement = _.chain(statement)
-    .split(/[\s\(\),]/)
+    .split(/[\s(),]/)
     .reject((word) => word.length < 3)
     .reject((word) => _.last(rawCodeWords) === word)
     .value();

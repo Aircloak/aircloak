@@ -1,4 +1,5 @@
 // @flow
+/* eslint-disable jsx-a11y/label-has-associated-control */
 
 import React from "react";
 import {Modal, Button} from "react-bootstrap";
@@ -22,12 +23,20 @@ export default class ShareButton extends React.Component<Props, State> {
 
   privatePermalink(): ?string {
     const {result} = this.props;
-    if (result.private_permalink) return `${window.location.origin}${result.private_permalink}`;
+    if (result.private_permalink) {
+      return `${window.location.origin}${result.private_permalink}`;
+    } else {
+      return null;
+    }
   }
 
   publicPermalink(): ?string {
     const {result} = this.props;
-    if (result.public_permalink) return `${window.location.origin}${result.public_permalink}`;
+    if (result.public_permalink) {
+      return `${window.location.origin}${result.public_permalink}`;
+    } else {
+      return null;
+    }
   }
 
   isEnabled() {
@@ -40,7 +49,13 @@ export default class ShareButton extends React.Component<Props, State> {
     if (this.isEnabled()) {
       return (
         <span>
-          <button type="button" className="btn btn-default btn-xs" onClick={() => this.setState({showModal: true})}>Share</button>
+          <button
+            type="button"
+            className="btn btn-default btn-xs"
+            onClick={() => this.setState({showModal: true})}
+          >
+            Share
+          </button>
 
           <Modal show={showModal} onHide={() => this.setState({showModal: false})}>
             <Modal.Header>

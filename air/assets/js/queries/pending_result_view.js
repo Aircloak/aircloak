@@ -38,16 +38,17 @@ export default (props: Props) => {
           {" "}
         </p>
         <ul>
-          {pendingStates.map((state, i) => <li key={i}>{stateItem(state, result.query_state)}</li>)}
+          {pendingStates.map((state) => <li key={state}>{stateItem(state, result.query_state)}</li>)}
         </ul>
 
         <div className="right-align">
-          <a
+          <button
+            type="button"
             className="btn btn-small btn-warning"
             onClick={() => cancel(result.id, authentication)}
           >
             Cancel
-          </a>
+          </button>
         </div>
       </div>
     </div>

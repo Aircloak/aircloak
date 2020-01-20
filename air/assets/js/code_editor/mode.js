@@ -12,7 +12,7 @@ const createModeDefinition = () => {
   const set = (str) => {
     const obj = {};
     const words = str.split(" ");
-    for (let i = 0; i < words.length; ++i) obj[words[i]] = true;
+    for (let i = 0; i < words.length; i += 1) obj[words[i]] = true;
     return obj;
   };
 
@@ -31,7 +31,7 @@ const createModeDefinition = () => {
     keywords: set(basicSqlKeywords + aircloakFunctionsList),
     builtin: set("boolean date datetime integer real text time"),
     atoms: set("false true null"),
-    operatorChars: /^[*+\-%<>!=&|^\/#@?~]/,
+    operatorChars: /^[*+\-%<>!=&|^/#@?~]/,
     dateSQL: set("date time timestamp"),
     support: set("ODBCdotTable decimallessFloat zerolessFloat binaryNumber hexNumber nCharCast charsetCast"),
   };

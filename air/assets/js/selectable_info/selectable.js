@@ -77,7 +77,7 @@ export class SelectableView extends React.Component<Props> {
 
   triggerDelete = (event: {preventDefault: () => void}) => {
     const {selectable, channel} = this.props;
-    if (confirm(`Do you want to permanently delete ${selectable.id}?`)) { // eslint-disable-line no-alert
+    if (window.confirm(`Do you want to permanently delete ${selectable.id}?`)) { // eslint-disable-line no-alert
       channel.push("delete_selectable", {
         internal_id: selectable.internal_id,
         kind: selectable.kind,

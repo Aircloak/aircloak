@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import {StateView} from "./state_view";
+import StateView from "./state_view";
 import {cancel} from "../request";
 import {isFinished} from "../queries/state";
 import {AuthContext} from "../authentication_provider";
@@ -36,6 +36,7 @@ const queryExcerpt = (statement: string) => {
 const queryViewUrl = (query: Query) => `/admin/queries/${query.id}`;
 
 export class QueryView extends React.Component<Props> {
+  // eslint-disable-next-line react/static-property-placement
   static contextType = AuthContext;
 
   shouldComponentUpdate(nextProps: Props) {
@@ -57,6 +58,7 @@ export class QueryView extends React.Component<Props> {
         <td><StateView state={query.state} /></td>
         <td>
           <button
+            type="button"
             className="btn btn-warning btn-xs"
             onClick={() => cancel(query.id, authentication)}
             disabled={isFinished(query.state)}

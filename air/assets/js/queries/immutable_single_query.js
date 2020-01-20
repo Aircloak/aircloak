@@ -3,13 +3,15 @@
 import React from "react";
 
 import Results from "./results";
-import {PropertiesView} from "./properties";
+import PropertiesView from "./properties";
 import type {Authentication} from "../authentication_provider";
 import type {Result} from "./result";
 import type {NumberFormat} from "../number_format";
 
 type Props = {
   result: Result,
+  user: {name: string},
+  insertedAt: string,
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
   authentication: Authentication,
@@ -17,12 +19,17 @@ type Props = {
 
 export default (props: Props) => {
   const {
-    result, numberFormat, debugModeEnabled, authentication,
+    result, user, insertedAt, numberFormat, debugModeEnabled, authentication,
   } = props;
   return (
     <div>
       <h3>Properties</h3>
-      <PropertiesView {...result} />
+      <PropertiesView
+        user={user}
+        insertedAt={insertedAt}
+        dataSource={result.dataSource}
+        queryState={result.query_state}
+      />
 
       <h3>Query</h3>
       <Results

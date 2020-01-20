@@ -17,21 +17,23 @@ type Props = {
 
 const activeClass = (active) => (active ? "btn btn-info" : "btn btn-default");
 
-const noneClass = (graphConfig, column) => activeClass(!graphConfig.xColumns().includes(column) && !graphConfig.yColumns().includes(column));
+const noneClass = (graphConfig, column) => (
+  activeClass(!graphConfig.xColumns().includes(column) && !graphConfig.yColumns().includes(column))
+);
 
 const xClass = (graphConfig, column) => activeClass(graphConfig.xColumns().includes(column));
 
 const yClass = (graphConfig, column) => activeClass(graphConfig.yColumns().includes(column));
 
-export const GraphConfigView = (props: Props) => {
+export default (props: Props) => {
   const {
-    graphInfo, graphConfig, remove, addX, addY
+    graphInfo, graphConfig, remove, addX, addY,
   } = props;
   return (
     <form className="form-horizontal">
       {graphInfo.xColumns().map((column, columnIndex) => (
-        <div key={columnIndex} className="form-group">
-          <label className="col-sm-3 control-label">{column}</label>
+        <div key={column} className="form-group">
+          <span className="col-sm-3 control-label">{column}</span>
           <div className="col-sm-9 btn-group" role="group">
             <button
               type="button"

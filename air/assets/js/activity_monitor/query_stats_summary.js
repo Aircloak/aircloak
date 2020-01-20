@@ -4,13 +4,13 @@ import React from "react";
 import _ from "lodash";
 
 import type {Query} from "./query";
-import {StateView} from "./state_view";
+import StateView from "./state_view";
 
 type Props = {
   queries: Query[]
 }
 
-export const QueryStatsSummaryView = (props: Props) => {
+export default (props: Props) => {
   const queryStats = {};
   const {queries} = props;
   queries.forEach((query) => {

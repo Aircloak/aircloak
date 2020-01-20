@@ -25,7 +25,7 @@ export const GraphInfo = (columns: Column[], rows: Row[]): GraphInfoT => {
   // Internal functions
   // ----------------------------------------------------------------
 
-  const isNumeric = (n) => typeof (n) === "number" && isFinite(n);
+  const isNumeric = (n) => typeof (n) === "number" && Number.isFinite(n);
 
 
   // ----------------------------------------------------------------
@@ -92,7 +92,9 @@ export const GraphData = (
 
   const ready = () => graphConfig.xColumns().length > 0 && graphConfig.yColumns().length > 0;
 
-  const x = () => rows.map(({row}) => graphConfig.xColumns().map((columnIndex) => valueFormatter(row[columnIndex], columnIndex)).join(", "));
+  const x = () => rows.map(({row}) => (
+    graphConfig.xColumns().map((columnIndex) => valueFormatter(row[columnIndex], columnIndex)).join(", ")
+  ));
 
   const xLabel = () => graphConfig.xColumns().map((columnIndex) => columns[columnIndex]).join(", ");
 

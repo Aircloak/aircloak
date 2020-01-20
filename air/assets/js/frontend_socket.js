@@ -1,6 +1,6 @@
 // @flow
 
-import {Socket, LongPoll} from "phoenix";
+import {Socket, WebSocket, LongPoll} from "phoenix";
 
 type Callback = (event: any) => void;
 type Callbacks = {joined?: Callback, failedJoin?: Callback, handleEvent?: Callback};

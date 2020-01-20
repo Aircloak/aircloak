@@ -69,10 +69,13 @@ export default class AuditLogChunk extends React.Component<Props, State> {
               <thead>
                 <tr>
                   <th>Time</th>
-                  <th />
+                  <th>{" "}</th>
                 </tr>
               </thead>
-              {auditLogs.map<React$Element<typeof AuditLogEntry>>((auditLog, i) => <AuditLogEntry key={i} auditLog={auditLog} />)}
+              {auditLogs.map<React$Element<typeof AuditLogEntry>>((auditLog, i) => (
+                // eslint-disable-next-line react/no-array-index-key
+                <AuditLogEntry key={i} auditLog={auditLog} />
+              ))}
             </table>
           </td>
         </tr>
@@ -91,7 +94,7 @@ export default class AuditLogChunk extends React.Component<Props, State> {
           {" - "}
           {_.max(this.times())}
         </td>
-        <td><a href="#" onClick={this.toggleCollapsed}>Events</a></td>
+        <td><button type="button" onClick={this.toggleCollapsed}>Events</button></td>
       </tr>
       {this.renderEvents()}
     </tbody>

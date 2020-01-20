@@ -43,8 +43,10 @@ export const ColumnsView = (props: {filter: Filter, columns: Column[]}) => {
       </thead>
 
       <tbody>
-        {filter.filterColumns(columns).map((column, i) => (
-          <tr key={i}>
+        {filter.filterColumns(columns).map((column) => (
+          <tr key={column.name}>
+            {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions,
+                               jsx-a11y/click-events-have-key-events */}
             <td
               onClick={(event) => {
                 event.preventDefault();
@@ -55,6 +57,8 @@ export const ColumnsView = (props: {filter: Filter, columns: Column[]}) => {
               {potentiallyRenderColumnIcon(column)}
               {column.name}
             </td>
+            {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions,
+                               jsx-a11y/click-events-have-key-events */}
             <td>{column.key_type ? `${column.key_type} (${column.type})` : column.type}</td>
           </tr>
         ))}

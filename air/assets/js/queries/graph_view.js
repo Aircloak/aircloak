@@ -50,12 +50,14 @@ const fillColors = [
 
 const maxTicksShown = 20;
 
-const data = (graphData) => ({
+const genData = (graphData) => ({
   labels: graphData.x(),
-  datasets: graphData.series().map((series) => _.merge(series, {backgroundColor: fillColors[series.indexInResult % fillColors.length]})),
+  datasets: graphData.series().map((series) => (
+    _.merge(series, {backgroundColor: fillColors[series.indexInResult % fillColors.length]})
+  )),
 });
 
-const options = (graphData): Options => ({
+const genOptions = (graphData): Options => ({
   scales: {
     yAxes: [{
       ticks: {
@@ -102,14 +104,15 @@ class BarWrapper extends React.Component<Props, State> {
     // every UI change, even unrelated ones, like typing in the editor.
     // The clone is needed, because chart.js seems to modify the data passed to it.
     const {redraw} = this.state;
-    return <Bar {... _.cloneDeep(this.props)} redraw={redraw} />;
+    const {data, options} = this.props;
+    return <Bar data={_.cloneDeep(data)} options={_.cloneDeep(options)} redraw={redraw} />;
   }
 }
 
-export const GraphView = (props: {graphData: GraphDataT}) => {
+export default (props: {graphData: GraphDataT}) => {
   const {graphData} = props;
   if (graphData.ready()) {
-    return <BarWrapper data={data(graphData)} options={options(graphData)} />;
+    return <BarWrapper data={genData(graphData)} options={genOptions(graphData)} />;
   } else {
     return <div className="alert alert-warning">Select at least one X and Y axis.</div>;
   }

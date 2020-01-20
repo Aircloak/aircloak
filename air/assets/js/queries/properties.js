@@ -3,12 +3,13 @@
 import React from "react";
 
 import moment from "moment-timezone";
-import {StateView} from "../activity_monitor/state_view";
-import type {Result} from "./result";
+import StateView from "../activity_monitor/state_view";
 
-export type PropertyResult = Result & {
+type Props = {
   user: {name: string},
-  inserted_at: string
+  queryState: string,
+  insertedAt: string,
+  dataSource: {name: string},
 }
 
 const formatTime = (isoTime) => {
@@ -16,10 +17,9 @@ const formatTime = (isoTime) => {
   return `${time.format("YYYY-MM-DD HH:mm:ss z")} (${time.fromNow()})`;
 };
 
-
-export const PropertiesView = (props: PropertyResult) => {
+export default (props: Props) => {
   const {
-    user, data_source, inserted_at, query_state
+    user, dataSource, insertedAt, queryState,
   } = props;
   return (
     <table className="table table-condensed">
@@ -31,18 +31,18 @@ export const PropertiesView = (props: PropertyResult) => {
 
         <tr>
           <td className="active col-md-2">Data source</td>
-          <td>{data_source.name}</td>
+          <td>{dataSource.name}</td>
         </tr>
 
         <tr>
           <td className="active col-md-2">Started on</td>
-          <td>{formatTime(inserted_at)}</td>
+          <td>{formatTime(insertedAt)}</td>
         </tr>
 
         <tr>
           <td className="active col-md-2">Current state</td>
           <td>
-            <StateView state={query_state} />
+            <StateView state={queryState} />
           </td>
         </tr>
       </tbody>

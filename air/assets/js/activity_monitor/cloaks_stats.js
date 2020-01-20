@@ -19,7 +19,7 @@ const renderCloaks = (cloakStats: CloakStat[]) => {
   }
 };
 
-export const CloaksStatsView = (props: {cloakStats: CloakStat[]}) => {
+export default (props: {cloakStats: CloakStat[]}) => {
   const {cloakStats} = props;
   return (
     <div>

@@ -3,7 +3,7 @@
 import React from "react";
 
 import {QueryView} from "./query";
-import {QueryStatsSummaryView} from "./query_stats_summary";
+import QueryStatsSummaryView from "./query_stats_summary";
 import type {Query} from "./query";
 
 type Props = {
@@ -47,7 +47,7 @@ const renderNumActiveQueriesShown = (queries: Query[]) => {
   }
 };
 
-export class QueriesView extends React.PureComponent<Props> {
+export default class QueriesView extends React.PureComponent<Props> {
   render() {
     const {queries} = this.props;
     return (
@@ -62,8 +62,8 @@ export class QueriesView extends React.PureComponent<Props> {
               <th>Analyst</th>
               <th>Query</th>
               <th>State</th>
-              <th />
-              <th />
+              <th>{" "}</th>
+              <th>{" "}</th>
             </tr>
           </thead>
           <tbody>

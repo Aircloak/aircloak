@@ -12,7 +12,7 @@ type State = {
   isConnected: boolean
 }
 
-export class Disconnected extends React.Component<Props, State> {
+export default class Disconnected extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -47,4 +47,4 @@ export class Disconnected extends React.Component<Props, State> {
       return null;
     }
   }
-};
+}

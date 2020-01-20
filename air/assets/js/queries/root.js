@@ -16,7 +16,7 @@ import type {Selectable} from "../selectable_info/selectable";
 import FrontendSocket from "../frontend_socket";
 import {HistoryLoader} from "./history_loader";
 import type {History} from "./history_loader";
-import {Disconnected} from "../disconnected";
+import Disconnected from "../disconnected";
 import {isFinished} from "./state";
 import {startQuery, loadHistory} from "../request";
 import activateTooltips from "../tooltips";
@@ -24,9 +24,7 @@ import activateTooltips from "../tooltips";
 type Props = {
   userId: number,
   sessionId: string,
-  socketToken: string,
   dataSourceName: string,
-  dataSourceDescription: ?string,
   dataSourceStatus: string,
   selectables: Selectable[],
   lastQuery: {statement: string},

@@ -7,8 +7,8 @@ import {AuthContext} from "../authentication_provider";
 import CodeViewer from "../code_viewer";
 import InfoView from "./info_view";
 import {GraphData, GraphInfo, GraphConfig} from "./graph_data";
-import {GraphConfigView} from "./graph_config_view";
-import {GraphView} from "./graph_view";
+import GraphConfigView from "./graph_config_view";
+import GraphView from "./graph_view";
 import type {GraphDataT, GraphInfoT} from "./graph_data";
 import {TableAligner} from "./table_aligner";
 import type {TableAlignerT} from "./table_aligner";
@@ -17,7 +17,7 @@ import {formatNumber} from "../number_format";
 import {loadBuckets} from "../request";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
-import {activateTooltips} from "../tooltips";
+import activateTooltips from "../tooltips";
 
 export type Row = {
   occurrences: number,
@@ -37,7 +37,6 @@ type CommonResultFeatures = {
   private_permalink: ?string,
   public_permalink: ?string,
   session_id: ?string,
-  inserted_at: ?string,
 }
 
 export type SuccessResult = CommonResultFeatures & {
@@ -548,10 +547,10 @@ export class ResultView extends React.Component<Props, State> {
               <thead>
                 <tr>
                   {
-                    result.columns.map((column, i) => {
+                    result.columns.map((column, i) => (
                       // eslint-disable-next-line react/no-array-index-key
-                      return <th key={i} className={tableAligner.alignmentClass(i)}>{column}</th>;
-                    })
+                      <th key={i} className={tableAligner.alignmentClass(i)}>{column}</th>
+                    ))
                   }
                 </tr>
               </thead>

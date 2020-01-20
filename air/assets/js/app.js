@@ -27,7 +27,7 @@ import ImmutableSingleQueryView from "./queries/immutable_single_query";
 import SelectableInfoView from "./selectable_info/root";
 import EditorView from "./view/editor";
 import ActivityMonitorView from "./activity_monitor/root";
-import {AuthenticationProvider} from "./authentication_provider";
+import AuthenticationProvider from "./authentication_provider";
 import FrontendSocket from "./frontend_socket";
 import {NumberFormatExampleView} from "./number_format";
 import AuditLogView from "./audit_log/root";
@@ -128,7 +128,7 @@ const App = {
             debugModeEnabled={debugModeEnabled}
           />
         );
-      case "query_show": 
+      case "query_show":
         return (
           <SingleQueryView
             result={result}
@@ -137,10 +137,12 @@ const App = {
             frontendSocket={App.buildSocket(props)}
           />
         );
-      case "immutable_query_show": 
+      case "immutable_query_show":
         return (
-          <ImmutableSingleQueryView 
+          <ImmutableSingleQueryView
             result={result}
+            user={result.user}
+            insertedAt={result.insertedAt}
             numberFormat={numberFormat}
             debugModeEnabled={debugModeEnabled}
             authentication={authentication}

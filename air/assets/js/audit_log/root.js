@@ -19,7 +19,7 @@ export default (props: Props) => (
         <th>Occurences</th>
         <th>User</th>
         <th>Time</th>
-        <th />
+        <th>{" "}</th>
       </tr>
     </thead>
     {(() => {
@@ -33,6 +33,7 @@ export default (props: Props) => (
         );
       } else {
         return chunkBy(props.auditLogs, auditLogKey).map(
+          // eslint-disable-next-line react/no-array-index-key
           (auditLogs, id) => <AuditLogChunk key={id} auditLogs={auditLogs} />,
         );
       }
