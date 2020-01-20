@@ -75,6 +75,14 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   def function_sql(name, args), do: super(name, args)
 
   @impl Dialect
+  def literal(%NaiveDateTime{} = value), do: ["CAST('", to_string(value), "' AS TIMESTAMP)"]
+  def literal(%Date{} = value), do: ["CAST('", to_string(value), "' AS TIMESTAMP)"]
+  def literal(%Time{} = value), do: ["CAST('", to_string(value), "' AS TIMESTAMP)"]
+
+  def literal(%Timex.Duration{} = value) do
+    ["INTERVAL ", Timex.Duration.to_seconds(value) |> to_string(), " SECONDS"]
+  end
+
   def literal(value), do: super(value)
 
   @impl Dialect
