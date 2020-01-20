@@ -27,7 +27,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
       unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
       checked_mod checked_div checked_pow
       length lower upper btrim ltrim/1 rtrim/1 left right substring concat
-      hex coalesce
+      hex cast coalesce
   )
 
   @impl Dialect
@@ -83,6 +83,21 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
   @impl Dialect
+  def cast_sql(value, :real, :integer),
+    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(", value, " AS BIGINT) END"]
+
+  def cast_sql(value, :text, :boolean),
+    do: [
+      "CASE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('1', 't', 'true', 'yes', 'y') THEN TRUE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('0', 'f', 'false', 'no', 'n') THEN FALSE ELSE NULL END"
+    ]
+
+  def cast_sql(value, :boolean, :text),
+    do: ["CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " THEN 'true' ELSE 'false' END"]
+
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
