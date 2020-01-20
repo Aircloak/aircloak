@@ -27,7 +27,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
       unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
       checked_mod checked_div checked_pow
       length lower upper btrim ltrim/1 rtrim/1 left right substring concat
-      hex cast coalesce
+      hex cast coalesce case
   )
 
   @impl Dialect
@@ -69,6 +69,8 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
 
   def function_sql("left", args), do: super("STRLEFT", args)
   def function_sql("right", args), do: super("STRRIGHT", args)
+
+  def function_sql("case", args), do: Dialect.case_default(args)
 
   def function_sql(name, args), do: super(name, args)
 
