@@ -92,14 +92,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_case_arguments(source_location, args) do
-    if rem(length(args), 2) == 0 do
-      raise(
-        CompilationError,
-        source_location: source_location,
-        message: "`case` expression requires a default branch."
-      )
-    end
-
     args
     |> Enum.take_every(2)
     |> Enum.reverse()
@@ -123,6 +115,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     [default_arg | then_args]
     |> Enum.map(& &1.type)
     |> Enum.uniq()
+    |> Enum.reject(&is_nil/1)
     |> case do
       [_type] ->
         :ok
