@@ -115,11 +115,15 @@ defmodule BOM.Whitelist do
       {"odbc-safe", "0.4.1"} => %{type: :mit, text: :provided},
       {"odbc-sys", "0.6.3"} => %{type: :mit, text: :provided},
       {"odbc", "0.9.12"} => %{type: :mit, text: :provided},
-      {"simple-error", "0.1.11"} => %{type: :mit, text: :provided},
+      {"simple-error", "0.1.11"} => %{type: :mit, text: :provided}
     }
   }
 
   @type_by_text_digest %{
+    # node/cli-table
+    "742167dd80c0afaa048b5fc2d45ca499" => :mit,
+    # node/caniuse-db
+    "eacc0b19e3fb8dd12d2e110b24be0452" => :cca4i,
     # node/type-fest
     "915042b5df33c31a6db2b37eadaa00e3" => :mit,
     # node/pako
