@@ -133,7 +133,7 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "functions" do
     test "no function" do
-      assert %{functions: ["sum"], top_level_functions: [], subquery_functions: ["sum"]} =
+      assert %{functions: [], top_level_functions: [], subquery_functions: []} =
                features_from("SELECT height FROM feat_users")
     end
 
@@ -147,7 +147,7 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "function used in WHERE" do
-      assert %{functions: ["sqrt", "sum"], top_level_functions: [], subquery_functions: ["sqrt", "sum"]} =
+      assert %{functions: ["sqrt"], top_level_functions: [], subquery_functions: ["sqrt"]} =
                features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
     end
 
@@ -169,7 +169,7 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "select_functions" do
     test "no function" do
-      assert %{top_level_select_functions: [], subquery_select_functions: ["sum"], select_functions: ["sum"]} =
+      assert %{top_level_select_functions: [], subquery_select_functions: [], select_functions: []} =
                features_from("SELECT height FROM feat_users")
     end
 
@@ -177,21 +177,21 @@ defmodule Cloak.Sql.QueryTest do
     test "function used" do
       assert %{
                top_level_select_functions: [],
-               subquery_select_functions: ["sqrt", "abs", "min", "max", "sum"],
-               select_functions: ["sqrt", "abs", "min", "max", "sum"]
+               subquery_select_functions: ["sqrt", "abs", "min", "max"],
+               select_functions: ["sqrt", "abs", "min", "max"]
              } = features_from("SELECT abs(foo) FROM (SELECT sqrt(height) AS foo FROM feat_users) x")
     end
 
     test "deduplicates" do
       assert %{
                top_level_select_functions: [],
-               subquery_select_functions: ["sqrt", "min", "max", "sum"],
-               select_functions: ["sqrt", "min", "max", "sum"]
+               subquery_select_functions: ["sqrt", "min", "max"],
+               select_functions: ["sqrt", "min", "max"]
              } = features_from("SELECT sqrt(x) FROM (SELECT sqrt(height) AS x FROM feat_users) foo")
     end
 
     test "function used in WHERE" do
-      assert %{top_level_select_functions: [], subquery_select_functions: ["sum"], select_functions: ["sum"]} =
+      assert %{top_level_select_functions: [], subquery_select_functions: [], select_functions: []} =
                features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
     end
   end
