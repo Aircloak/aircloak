@@ -1591,7 +1591,7 @@ defmodule Cloak.Query.BasicTest do
           height, count(distinct height), min(height), max(height), round(stddev(height)), round(avg(height))
         from heights group by height
       """,
-      %{rows: [%{row: [:*, 8, 153, 177, 13, 167]}]}
+      %{rows: [%{row: [:*, 8, 154, 176, 13, 167]}]}
     )
   end
 
