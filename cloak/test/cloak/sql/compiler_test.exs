@@ -1372,7 +1372,8 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "return type is properly set" do
-      assert {:ok, _} = compile_standard("select SUM(case when bool then null else 1 end) from table", data_source())
+      assert {:ok, query} = compile_standard("select case when bool then null else 1 end from table", data_source())
+      assert [%{type: :integer}] = query.columns
     end
   end
 
