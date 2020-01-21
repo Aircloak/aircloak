@@ -19,7 +19,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&rewrite_distinct/1)
       |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
       |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
-      |> Helpers.apply_bottom_up(&remove_conditionless_cases/1)
       |> Helpers.apply_bottom_up(&normalize_non_anonymizing_noise/1)
       |> Helpers.apply_bottom_up(&rewrite_not_in_expressions/1)
       |> Helpers.apply_bottom_up(&normalize_constants/1)
@@ -43,6 +42,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&normalize_bucket/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&normalize_anonymizing_aggregators/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&strip_source_location/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&remove_redundant_case_statements/1)
 
   # -------------------------------------------------------------------
   # Removing source location
@@ -553,18 +553,25 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Enum.all?(&Expression.member?(group_bys, &1))
 
   # -------------------------------------------------------------------
-  # Removing conditionless cases
+  # Removing redundant `case` statements
   # -------------------------------------------------------------------
 
-  defp remove_conditionless_cases(query),
-    do:
-      update_in(query, [Query.Lenses.terminals()], fn
-        %Expression{kind: :function, name: "case", args: [expr]} ->
-          expr
+  defp remove_redundant_case_statements(query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name == "case"))
+    |> Lens.map(query, &remove_redundant_case_statement/1)
+  end
 
-        other ->
-          other
-      end)
+  defp remove_redundant_case_statement(%Expression{kind: :function, name: "case", args: args} = expression) do
+    args
+    |> Function.case_branches()
+    |> Expression.unique()
+    |> case do
+      [unique_branch] -> unique_branch
+      _ -> expression
+    end
+  end
 
   # -------------------------------------------------------------------
   # Rewrite NOT IN expressions

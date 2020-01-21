@@ -700,7 +700,7 @@ defmodule Cloak.Query.DBEmulatorTest do
 
     assert_query(
       "select n from #{@vt} order by 1",
-      "select user_id, case(cast(dec_b64(value) as boolean), 1, 0) as n from #{@emulated}",
+      "select user_id, case when cast(dec_b64(value) as boolean) then 1 else 0 end as n from #{@emulated}",
       %{rows: [%{row: [0], occurrences: 5}, %{row: [1], occurrences: 5}]}
     )
   end
@@ -710,7 +710,7 @@ defmodule Cloak.Query.DBEmulatorTest do
 
     assert_query(
       "select n from #{@vt} order by 1",
-      "select user_id, case(cast(number % 2 as boolean), 1, 0) as n from #{@emulated}",
+      "select user_id, case when cast(number % 2 as boolean) then 1 else 0 end as n from #{@emulated}",
       %{rows: [%{row: [0], occurrences: 5}, %{row: [1], occurrences: 5}]}
     )
   end
