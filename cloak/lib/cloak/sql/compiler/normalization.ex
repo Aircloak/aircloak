@@ -564,13 +564,11 @@ defmodule Cloak.Sql.Compiler.Normalization do
   end
 
   defp remove_redundant_case_statement(%Expression{kind: :function, name: "case", args: args} = expression) do
-    else_branch = args |> Enum.reverse() |> Enum.at(0)
-    then_branches = args |> Enum.drop(1) |> Enum.take_every(2)
-
-    [else_branch | then_branches]
+    args
+    |> Function.case_branches()
     |> Expression.unique()
     |> case do
-      [_unique_branch] -> else_branch
+      [unique_branch] -> unique_branch
       _ -> expression
     end
   end

@@ -65,10 +65,8 @@ defmodule Cloak.Sql.Function do
   def return_type(%Expression{type: type}), do: type
 
   def return_type({:function, "case", args, _}) do
-    else_branch = args |> Enum.reverse() |> Enum.at(0)
-    then_branches = args |> Enum.drop(1) |> Enum.take_every(2)
-
-    [else_branch | then_branches]
+    args
+    |> case_branches()
     |> Enum.map(&return_type/1)
     |> Enum.find(&(&1 != nil))
   end
@@ -179,6 +177,14 @@ defmodule Cloak.Sql.Function do
   @spec type_specs(Parser.function_name()) :: map
   def type_specs(function),
     do: Aircloak.Functions.function_spec()[canonical_name(function)].type_specs
+
+  @doc "Returns the branches of a `case` statement given the arguments to the `case` function."
+  @spec case_branches([t]) :: [t]
+  def case_branches(args) do
+    else_branch = args |> Enum.reverse() |> Enum.at(0)
+    then_branches = args |> Enum.drop(1) |> Enum.take_every(2)
+    then_branches ++ [else_branch]
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
