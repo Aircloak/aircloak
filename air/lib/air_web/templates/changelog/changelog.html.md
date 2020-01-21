@@ -4,7 +4,7 @@
 
 - Support for `median` was removed.
 - Support for `distinct` modifier was removed for all aggregate functions except `count` and `count_noise`.
-- Support for `SAMPLE_USERS` was removed. 
+- Support for `SAMPLE_USERS` was removed.
 - Support for the `hash` function was removed.
 - Minimum Oracle version supported is now 12c.
 
@@ -26,11 +26,6 @@
 - Support for some obsolete cloak features and config fields (decoders, projections, user_id) was removed.
 - The set of query restrictions was simplified and clarified.
 - Allow date ranges from `1900-01-01` to `9999-12-31`.
-
-### Known issues
-
-- Views and analyst tables are not tracked in the shadow DB, so they won't appear in \d commands issued from psql or
-  in some tools that use pg-specific means of detecting the schema.
 
 ## Version 19.3.0
 
