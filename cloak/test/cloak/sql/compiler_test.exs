@@ -1421,7 +1421,7 @@ defmodule Cloak.Sql.Compiler.Test do
     {:error, error} = compile("select count(date '1801-01-01' - interval 'P10Y') from table", data_source())
 
     assert error =~
-             "Constant expression is out of valid range: date values have to be inside the interval [`1800-01-01`, `2999-12-31`]."
+             "Constant expression is out of valid range: date values have to be inside the interval [`1900-01-01`, `9999-12-31`]."
   end
 
   test "rejects interval constant values out of range" do
@@ -1440,14 +1440,14 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casting date parameter" do
     assert {:error, "Constant expression is out of valid range" <> _} =
              compile("SELECT COUNT(*) FROM table WHERE column = $1::datetime", data_source(),
-               parameters: [%{type: :date, value: "4000-01-01"}]
+               parameters: [%{type: :date, value: "1800-01-01"}]
              )
   end
 
   test "casting datetime parameter" do
     assert {:error, "Constant expression is out of valid range" <> _} =
              compile("SELECT COUNT(*) FROM table WHERE column = $1", data_source(),
-               parameters: [%{type: :datetime, value: "4000-01-01 10:20:30"}]
+               parameters: [%{type: :datetime, value: "1800-01-01 10:20:30"}]
              )
   end
 
