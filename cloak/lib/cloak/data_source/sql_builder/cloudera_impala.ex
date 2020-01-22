@@ -67,7 +67,48 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
 
   def function_sql("trunc", args), do: super("TRUNCATE", args)
 
+  # left of a negative value should return all but the last n characters.
+  # left("aircloak", -2) --> "airclo"
+  # left("aircloak", -100) --> ""
+  def function_sql("left", [value, "-" <> length]) do
+    substring_length =
+      function_sql("unsafe_sub", [
+        function_sql("length", [value]),
+        length
+      ])
+
+    function_sql("case", [
+      [substring_length, "> 0"],
+      function_sql("substring", [value, "1", substring_length]),
+      "''"
+    ])
+  end
+
   def function_sql("left", args), do: super("STRLEFT", args)
+
+  # right of a negative value should return all but the first n characters
+  # right("aircloak", -2) --> "rcloak"
+  # right("aircloak", -100) --> ""
+  def function_sql("right", [value, "-" <> length]) do
+    substring_length =
+      function_sql("unsafe_sub", [
+        function_sql("length", [value]),
+        length
+      ])
+
+    function_sql("case", [
+      [substring_length, "> 0"],
+      function_sql("substring", [
+        value,
+        function_sql("unsafe_add", [
+          function_sql("abs", [length]),
+          "1"
+        ])
+      ]),
+      "''"
+    ])
+  end
+
   def function_sql("right", args), do: super("STRRIGHT", args)
 
   def function_sql("hex", args), do: ["LOWER(HEX(", args, "))"]
