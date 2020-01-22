@@ -72,6 +72,8 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
 
   def function_sql("case", args), do: Dialect.case_default(args)
 
+  def function_sql("boolean_expression", [arg]), do: arg
+
   def function_sql(name, args), do: super(name, args)
 
   @impl Dialect
@@ -89,7 +91,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   def quote_char(), do: ?`
 
   @impl Dialect
-  def limit_sql(nil, offset), do: [" OFFSET ", to_string(offset)]
+  def limit_sql(nil, offset), do: [" LIMIT 9223372036854775807 OFFSET ", to_string(offset)]
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
   @impl Dialect
@@ -124,6 +126,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   defp sql_type(:boolean), do: "BOOLEAN"
   defp sql_type(:datetime), do: "TIMESTAMP"
   defp sql_type(:date), do: "TIMESTAMP"
+  defp sql_type(:time), do: "TIMESTAMP"
   defp sql_type(:text), do: "STRING"
   defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end
