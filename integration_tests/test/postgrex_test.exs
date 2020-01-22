@@ -108,7 +108,7 @@ defmodule IntegrationTest.PostgrexTest do
 
   test "[Issue #3770] parameterized query with dates", context do
     assert {:error, %{postgres: %{message: "Constant expression is out of valid range" <> _}}} =
-             Postgrex.query(context.conn, "SELECT $1::date FROM users", [~D[4000-01-01]])
+             Postgrex.query(context.conn, "SELECT $1::date FROM users", [~D[1850-01-01]])
   end
 
   defp param_select(conn, value, cast) do

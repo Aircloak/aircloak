@@ -235,10 +235,10 @@ SELECT COUNT(*) FROM table WHERE datetime >= '2016-01-01 12:27:00' AND date < '2
 -- The 5 minute intervals can start on a full five-minute mark or a 2 minutes 30 seconds mark
 
 SELECT COUNT(*) FROM table WHERE date >= '2017-01-10' AND date < '2017-01-20'
--- Adjusted to 20 days - '2017-01-04' <= date < '2017-01-24'
--- The day-sized intervals can only start a multiple of their size from 1970-01-01
+-- Adjusted to 20 days - '2017-01-07' <= date < '2017-01-27'
+-- The day-sized intervals can only start a multiple of their size from 1900-01-01
 
-SELECT COUNT(*) FROM table WHERE date >= '2017-01-04' AND date < '2017-01-14'
+SELECT COUNT(*) FROM table WHERE date >= '2017-01-07' AND date < '2017-01-17'
 -- Not adjusted -- see previous example
 ```
 
