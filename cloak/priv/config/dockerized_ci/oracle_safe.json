@@ -2,11 +2,11 @@
   "driver": "oracle",
   "name": "oracle_safe",
   "parameters": {
-    "hostname": "oracle12ee",
+    "hostname": "oracle-db12ee",
     "port": 1521,
     "username": "system",
-    "password": "Oradoc_db1",
-    "database": "ORCLPDB1.localdomain",
+    "password": "oracle",
+    "database": "ORCLPDB1",
     "sid": "ORCLCDB",
     "aircloak_udfs": true
   },
