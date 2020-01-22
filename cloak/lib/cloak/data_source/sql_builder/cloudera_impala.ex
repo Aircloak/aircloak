@@ -70,6 +70,8 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   def function_sql("left", args), do: super("STRLEFT", args)
   def function_sql("right", args), do: super("STRRIGHT", args)
 
+  def function_sql("hex", args), do: ["LOWER(HEX(", args, "))"]
+
   def function_sql("case", args), do: Dialect.case_default(args)
 
   def function_sql("boolean_expression", [arg]), do: arg
