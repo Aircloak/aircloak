@@ -24,7 +24,7 @@
 
 - Support for some obsolete cloak features and config fields (decoders, projections, user_id) was removed.
 - The set of query restrictions was simplified and clarified.
-- Allowed dates range is from `1900-01-01` to `9999-12-31`
+- Allow date ranges from `1900-01-01` to `9999-12-31`.
 
 ### Known issues
 
