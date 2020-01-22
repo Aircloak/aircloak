@@ -17,6 +17,9 @@ defmodule Cloak.DataSource.ClouderaImpala do
   def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
 
   @impl Driver
+  def supports_query?(query), do: length(query.grouping_sets) <= 1 or query.type == :anonymized
+
+  @impl Driver
   def load_tables(connection, table),
     do:
       connection

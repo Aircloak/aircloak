@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   use Combine
   alias Cloak.Sql.{Query, Expression, Compiler, Function}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, Oracle}
+  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, Oracle, ClouderaImpala}
   alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
@@ -352,7 +352,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       |> Enum.intersperse(", ")
     end)
     |> case do
-      [[]] -> if dialect in [MySQL], do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
+      [[]] -> if dialect in [MySQL, ClouderaImpala], do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
       [grouping_set] -> [" GROUP BY ", grouping_set]
       grouping_sets -> [" GROUP BY GROUPING SETS ((", Enum.intersperse(grouping_sets, "), ("), "))"]
     end
