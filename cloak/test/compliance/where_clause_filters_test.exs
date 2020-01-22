@@ -272,6 +272,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     test "input #{column} with a WHERE-clause range on #{table}", context do
       context
       |> disable_for(Cloak.DataSource.MongoDB, true)
+      |> disable_for(Cloak.DataSource.ClouderaImpala, true)
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM #{unquote(table)}

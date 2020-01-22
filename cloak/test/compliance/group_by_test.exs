@@ -7,6 +7,7 @@ defmodule Compliance.GroupByTest do
       context
       |> disable_unicode(unquote(table), unquote(column))
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
+      |> disable_for(Cloak.DataSource.ClouderaImpala, unquote(column) == "birthday")
       |> disable_for(:all, unquote(table) == "users_public" and unquote(column) == "name")
       |> assert_consistent_and_not_failing("""
         SELECT #{unquote(column)}, COUNT(DISTINCT user_id)
@@ -50,6 +51,7 @@ defmodule Compliance.GroupByTest do
       context
       |> disable_unicode(unquote(table), unquote(column))
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
+      |> disable_for(Cloak.DataSource.ClouderaImpala, unquote(column) == "birthday")
       |> disable_for(
         Cloak.DataSource.Oracle,
         unquote(table) == "users_public" and unquote(column) == "column_with_a_very_long_name"
@@ -67,6 +69,7 @@ defmodule Compliance.GroupByTest do
       context
       |> disable_unicode(unquote(table), unquote(column))
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
+      |> disable_for(Cloak.DataSource.ClouderaImpala, unquote(column) == "birthday")
       # MySQL and SQL Server order NULLs differently by default
       |> disable_for(Cloak.DataSource.MySQL, unquote(column) == "nullable")
       |> disable_for(Cloak.DataSource.SQLServer, unquote(column) == "nullable")
@@ -85,6 +88,7 @@ defmodule Compliance.GroupByTest do
     context
     |> disable_for(Cloak.DataSource.SQLServer, column == "name")
     |> disable_for(Cloak.DataSource.MySQL, column == "name")
+    |> disable_for(Cloak.DataSource.ClouderaImpala, column == "name")
     |> disable_for(:all, table == "users_public" and column == "name")
   end
 end

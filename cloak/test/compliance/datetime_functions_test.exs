@@ -60,6 +60,7 @@ Enum.each(
         context
         |> disable_for(:all, column in date_columns() and unsupported_on_dates?(function))
         |> disable_for(Cloak.DataSource.MongoDB, column in date_columns())
+        |> disable_for(Cloak.DataSource.ClouderaImpala, column in date_columns())
       end
 
       defp unsupported_on_dates?(function) do
