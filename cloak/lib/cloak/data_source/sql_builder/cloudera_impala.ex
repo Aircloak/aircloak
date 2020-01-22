@@ -65,7 +65,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   def function_sql("checked_pow", [arg1, arg2]),
     do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
 
-  def function_sql("trunc", [arg1, arg2]), do: ["TRUNCATE(CAST(", arg1, " AS DECIMAL), ", arg2, ")"]
+  def function_sql("trunc", [arg1, arg2]), do: ["TRUNCATE(CAST(", arg1, " AS DECIMAL(18, 6)), ", arg2, ")"]
   def function_sql("trunc", args), do: super("TRUNCATE", args)
 
   # left of a negative value should return all but the last n characters.
@@ -140,7 +140,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
 
   @impl Dialect
   def cast_sql(value, :real, :integer),
-    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(", value, " AS BIGINT) END"]
+    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(ROUND(", value, ") AS BIGINT) END"]
 
   def cast_sql(value, :text, :boolean),
     do: [
