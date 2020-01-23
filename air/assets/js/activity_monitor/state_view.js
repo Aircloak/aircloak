@@ -10,9 +10,8 @@ const stateClasses = {
   cancelled: "label label-warning",
 };
 
-const stateClass = (state) => stateClasses[state] || "label label-info";
+const stateClass = (queryState) => stateClasses[queryState] || "label label-info";
 
-export default (props: {state: string}) => {
-  const {state} = props;
-  return <span className={stateClass(state)}>{format(state)}</span>;
+export default ({queryState}: {queryState: string}) => {
+  return <span className={stateClass(queryState)}>{format(queryState)}</span>;
 };

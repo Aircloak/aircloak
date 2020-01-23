@@ -42,7 +42,7 @@ export default (props: Props) => {
         <tr>
           <td className="active col-md-2">Current state</td>
           <td>
-            <StateView state={queryState} />
+            <StateView queryState={queryState} />
           </td>
         </tr>
       </tbody>

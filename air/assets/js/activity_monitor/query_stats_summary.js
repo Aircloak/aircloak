@@ -34,7 +34,7 @@ export default (props: Props) => {
         <tbody>
           {_.map(queryStats, (count, queryState) => (
             <tr key={queryState}>
-              <td><StateView state={queryState} /></td>
+              <td><StateView queryState={queryState} /></td>
               <td>{count}</td>
             </tr>
           ))}

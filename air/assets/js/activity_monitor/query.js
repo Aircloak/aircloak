@@ -55,7 +55,7 @@ export class QueryView extends React.Component<Props> {
         <td>
           <code>{queryExcerpt(query.statement)}</code>
         </td>
-        <td><StateView state={query.state} /></td>
+        <td><StateView queryState={query.state} /></td>
         <td>
           <button
             type="button"
