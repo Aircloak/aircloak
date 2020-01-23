@@ -14,4 +14,3 @@ config :air, Air.BOM,
   dependencies: "priv/dependencies.zip.example"
 
 config :air, Air.PsqlServer, port: 8432
-
