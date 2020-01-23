@@ -4,12 +4,12 @@ import React from "react";
 import _ from "lodash";
 import Channel from "phoenix";
 
-import {SelectableView} from "./selectable";
+import { SelectableView } from "./selectable";
 import NewSelectableToolbarView from "./new_selectable_toolbar";
-import {Filter, EmptyFilter} from "./filter";
+import { Filter, EmptyFilter } from "./filter";
 import FilterView from "./filter_view";
 import FrontendSocket from "../frontend_socket";
-import type {Selectable} from "./selectable";
+import type { Selectable } from "./selectable";
 
 type Props = {
   selectables: Selectable[],
@@ -22,28 +22,31 @@ type Props = {
   dataSourceStatus: string,
   frontendSocket: FrontendSocket,
   supportsCreateTable: boolean,
-  selectableToExclude: number,
+  selectableToExclude: number
 };
 
 type State = {
   expanded: Set<string>,
   filter: Filter,
   selectables: Selectable[],
-  dataSourceStatus: string,
-}
+  dataSourceStatus: string
+};
 
 export default class SelectableInfo extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     const {
-      dataSourceStatus, frontendSocket, dataSourceName, userId,
+      dataSourceStatus,
+      frontendSocket,
+      dataSourceName,
+      userId
     } = this.props;
 
     this.state = {
       expanded: new Set(),
       filter: new EmptyFilter(),
       selectables: props.selectables,
-      dataSourceStatus,
+      dataSourceStatus
     };
 
     this.toggleExpand = this.toggleExpand.bind(this);
@@ -51,62 +54,71 @@ export default class SelectableInfo extends React.Component<Props, State> {
     this.updateSelectables = this.updateSelectables.bind(this);
 
     this.channel = frontendSocket.joinSelectablesChannel(
-      dataSourceName, userId, {
-        handleEvent: (event) => this.updateSelectables(event),
-        joined: (event) => this.updateSelectables(event),
-      },
+      dataSourceName,
+      userId,
+      {
+        handleEvent: event => this.updateSelectables(event),
+        joined: event => this.updateSelectables(event)
+      }
     );
 
     frontendSocket.joinDataSourceChannel(dataSourceName, {
-      handleEvent: (event) => this.dataSourceStatusReceived(event),
+      handleEvent: event => this.dataSourceStatusReceived(event)
     });
   }
 
   channel: Channel;
 
   onFilterChange = (filter: Filter) => {
-    this.setState({filter});
-  }
+    this.setState({ filter });
+  };
 
   toggleExpand = (selectable: Selectable) => () => {
-    const {expanded} = this.state;
+    const { expanded } = this.state;
     if (this.expanded(selectable)) {
       expanded.delete(selectable.id);
     } else {
       expanded.add(selectable.id);
     }
-    this.setState({expanded});
-  }
+    this.setState({ expanded });
+  };
 
-  updateSelectables = (event: {selectables: Selectable[]}) => {
-    this.setState({selectables: event.selectables});
-  }
+  updateSelectables = (event: { selectables: Selectable[] }) => {
+    this.setState({ selectables: event.selectables });
+  };
 
   expanded = (selectable: Selectable) => {
-    const {expanded} = this.state;
+    const { expanded } = this.state;
     return expanded.has(selectable.id);
-  }
+  };
 
   selectables = () => {
-    const {selectableToExclude} = this.props;
-    const {selectables} = this.state;
-    return _.reject(selectables, (selectable) => selectable.internal_id
-      === (selectableToExclude || "don't exclude any"));
-  }
+    const { selectableToExclude } = this.props;
+    const { selectables } = this.state;
+    return _.reject(
+      selectables,
+      selectable =>
+        selectable.internal_id === (selectableToExclude || "don't exclude any")
+    );
+  };
 
   dataSourceStatusReceived = (event: { status: string }) => {
-    this.setState({dataSourceStatus: event.status});
-  }
+    this.setState({ dataSourceStatus: event.status });
+  };
 
   renderAvailabilityLabel = () => {
-    const {dataSourceStatus} = this.state;
+    const { dataSourceStatus } = this.state;
     switch (dataSourceStatus) {
-      case "online": return <span className="label label-success pull-right">Online</span>;
-      case "offline": return <span className="label label-danger pull-right">Offline</span>;
-      case "analyzing": return this.analyzing();
-      default: return <span className="label label-warning pull-right">Broken</span>;
+      case "online":
+        return <span className="label label-success pull-right">Online</span>;
+      case "offline":
+        return <span className="label label-danger pull-right">Offline</span>;
+      case "analyzing":
+        return this.analyzing();
+      default:
+        return <span className="label label-warning pull-right">Broken</span>;
     }
-  }
+  };
 
   analyzing = () => (
     <span className="label label-success pull-right">
@@ -123,25 +135,28 @@ export default class SelectableInfo extends React.Component<Props, State> {
         </a>
       </sup>
     </span>
-  )
+  );
 
   renderDataSourceDescription = () => {
-    const {dataSourceDescription} = this.props;
+    const { dataSourceDescription } = this.props;
     if (dataSourceDescription) {
       return <p>{dataSourceDescription}</p>;
     } else {
       return null;
     }
-  }
+  };
 
   render = () => {
     const {
-      dataSourceName, selectablesEditUrl, newTableURL, newViewURL, supportsCreateTable,
+      dataSourceName,
+      selectablesEditUrl,
+      newTableURL,
+      newViewURL,
+      supportsCreateTable
     } = this.props;
-    const {filter} = this.state;
+    const { filter } = this.state;
     return (
       <div className="panel panel-default selectable-info">
-
         <div className="panel-heading selectable-heading">
           <strong>{dataSourceName}</strong>
           {this.renderAvailabilityLabel()}
@@ -174,5 +189,5 @@ export default class SelectableInfo extends React.Component<Props, State> {
         </div>
       </div>
     );
-  }
+  };
 }

@@ -2,25 +2,25 @@
 
 import React from "react";
 
-import {QueryView} from "./query";
+import { QueryView } from "./query";
 import QueryStatsSummaryView from "./query_stats_summary";
-import type {Query} from "./query";
+import type { Query } from "./query";
 
 type Props = {
   queries: Query[]
-}
+};
 
 const MAX_QUERIES_TO_SHOW = 20;
 
 const renderQueries = (queries: Query[]) => {
   if (queries.length > 0) {
-    return queries.slice(0, MAX_QUERIES_TO_SHOW).map((query) => <QueryView key={query.id} query={query} />);
+    return queries
+      .slice(0, MAX_QUERIES_TO_SHOW)
+      .map(query => <QueryView key={query.id} query={query} />);
   } else {
     return (
       <tr>
-        <td colSpan="5">
-          Currently there are no queries running.
-        </td>
+        <td colSpan="5">Currently there are no queries running.</td>
       </tr>
     );
   }
@@ -49,7 +49,7 @@ const renderNumActiveQueriesShown = (queries: Query[]) => {
 
 export default class QueriesView extends React.PureComponent<Props> {
   render() {
-    const {queries} = this.props;
+    const { queries } = this.props;
     return (
       <div>
         <h3>Queries</h3>
@@ -62,13 +62,11 @@ export default class QueriesView extends React.PureComponent<Props> {
               <th>Analyst</th>
               <th>Query</th>
               <th>State</th>
-              <th>{" "}</th>
-              <th>{" "}</th>
+              <th> </th>
+              <th> </th>
             </tr>
           </thead>
-          <tbody>
-            {renderQueries(queries)}
-          </tbody>
+          <tbody>{renderQueries(queries)}</tbody>
         </table>
       </div>
     );

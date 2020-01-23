@@ -6,18 +6,18 @@ import moment from "moment-timezone";
 import StateView from "../activity_monitor/state_view";
 
 type Props = {
-  user: {name: string},
+  user: { name: string },
   queryState: string,
   insertedAt: string,
-  dataSource: {name: string},
-}
+  dataSource: { name: string }
+};
 
-const formatTime = (isoTime) => {
+const formatTime = isoTime => {
   const time = moment.tz(isoTime, "UTC");
   return `${time.format("YYYY-MM-DD HH:mm:ss z")} (${time.fromNow()})`;
 };
 
-export default ({user, dataSource, insertedAt, queryState}: Props) => {
+export default ({ user, dataSource, insertedAt, queryState }: Props) => {
   return (
     <table className="table table-condensed">
       <tbody>

@@ -8,14 +8,14 @@ export type AuditLog = {
   event: string,
   user: string,
   time: string,
-  metadata: {},
+  metadata: {}
 };
 
-type Props = {auditLog: AuditLog};
+type Props = { auditLog: AuditLog };
 
-type State = {details: boolean};
+type State = { details: boolean };
 
-const formatTime = (isoTime) => {
+const formatTime = isoTime => {
   const time = moment.tz(isoTime, "UTC");
   return `${time.format("YYYY-MM-DD HH:mm:ss z")} (${time.fromNow()})`;
 };
@@ -24,7 +24,7 @@ export default class AuditLogEntry extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    this.state = {details: false};
+    this.state = { details: false };
 
     this.toggleDetails = this.toggleDetails.bind(this);
     this.renderDetails = this.renderDetails.bind(this);
@@ -33,34 +33,42 @@ export default class AuditLogEntry extends React.Component<Props, State> {
 
   toggleDetails = (event: Event) => {
     event.preventDefault();
-    const {details} = this.state;
-    this.setState({details: !details});
-  }
+    const { details } = this.state;
+    this.setState({ details: !details });
+  };
 
   render = () => {
-    const {auditLog} = this.props;
+    const { auditLog } = this.props;
     return (
       <tbody>
         <tr>
           <td>{formatTime(auditLog.time)}</td>
-          <td><button type="button" onClick={this.toggleDetails}>Details</button></td>
+          <td>
+            <button type="button" onClick={this.toggleDetails}>
+              Details
+            </button>
+          </td>
         </tr>
         {this.renderDetails()}
       </tbody>
     );
-  }
+  };
 
   renderDetails = () => {
-    const {details} = this.state;
+    const { details } = this.state;
     if (details) {
-      return (<tr><td colSpan="2">{this.renderMetadata()}</td></tr>);
+      return (
+        <tr>
+          <td colSpan="2">{this.renderMetadata()}</td>
+        </tr>
+      );
     } else {
       return null;
     }
-  }
+  };
 
   renderMetadata = () => {
-    const {auditLog} = this.props;
+    const { auditLog } = this.props;
     return (
       <dl>
         {_.toPairs(auditLog.metadata).map(([key, value]) => (
@@ -71,5 +79,5 @@ export default class AuditLogEntry extends React.Component<Props, State> {
         ))}
       </dl>
     );
-  }
+  };
 }

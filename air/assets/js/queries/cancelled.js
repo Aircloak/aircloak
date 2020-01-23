@@ -6,9 +6,15 @@ import CodeViewer from "../code_viewer";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
 
-import type {CancelledResult} from "./result";
+import type { CancelledResult } from "./result";
 
-export default ({result, debugModeEnabled}: {result: CancelledResult, debugModeEnabled: boolean}) => {
+export default ({
+  result,
+  debugModeEnabled
+}: {
+  result: CancelledResult,
+  debugModeEnabled: boolean
+}) => {
   return (
     <div className="panel panel-warning">
       <div className="panel-heading" />

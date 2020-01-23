@@ -7,14 +7,14 @@ type Props = {};
 
 type State = {
   value: string,
-  score: number,
+  score: number
 };
 
 export default class PasswordField extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    this.state = {value: "", score: 0};
+    this.state = { value: "", score: 0 };
 
     this.updateValue = this.updateValue.bind(this);
     this.renderScore = this.renderScore.bind(this);
@@ -22,11 +22,14 @@ export default class PasswordField extends React.Component<Props, State> {
   }
 
   updateValue = (e: SyntheticInputEvent<EventTarget>) => {
-    this.setState({value: e.target.value, score: zxcvbn(e.target.value).score});
-  }
+    this.setState({
+      value: e.target.value,
+      score: zxcvbn(e.target.value).score
+    });
+  };
 
   renderScore = () => {
-    const {value, score} = this.state;
+    const { value, score } = this.state;
     if (value === "") {
       return null;
     } else if (score <= 1) {
@@ -38,10 +41,10 @@ export default class PasswordField extends React.Component<Props, State> {
     } else {
       return "very strong";
     }
-  }
+  };
 
   highlightClass = () => {
-    const {value, score} = this.state;
+    const { value, score } = this.state;
     if (value === "") {
       return null;
     } else if (score <= 1) {
@@ -51,15 +54,20 @@ export default class PasswordField extends React.Component<Props, State> {
     } else {
       return "has-success";
     }
-  }
+  };
 
   render = () => {
-    const {value} = this.state;
+    const { value } = this.state;
     return (
       <div className={this.highlightClass()}>
-        <input type="password" className="form-control" value={value} onChange={this.updateValue} />
+        <input
+          type="password"
+          className="form-control"
+          value={value}
+          onChange={this.updateValue}
+        />
         <span className="help-block">{this.renderScore()}</span>
       </div>
     );
-  }
+  };
 }

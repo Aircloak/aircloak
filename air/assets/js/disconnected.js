@@ -2,49 +2,53 @@
 
 import React from "react";
 
-import {Channel} from "phoenix";
+import { Channel } from "phoenix";
 
 type Props = {
   channel: Channel
-}
+};
 
 type State = {
   isConnected: boolean
-}
+};
 
 export default class Disconnected extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    this.state = {isConnected: true};
+    this.state = { isConnected: true };
 
     this.componentWillUnmount = this.componentWillUnmount.bind(this);
     this.updateConnected = this.updateConnected.bind(this);
 
-    this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
+    this.connectedInterval = setInterval(
+      this.updateConnected,
+      1000 /* 1 second */
+    );
   }
 
   connectedInterval: IntervalID;
 
   componentWillUnmount = () => {
     clearInterval(this.connectedInterval);
-  }
+  };
 
   updateConnected = () => {
-    const {channel} = this.props;
-    this.setState({isConnected: channel.isJoined()});
-  }
+    const { channel } = this.props;
+    this.setState({ isConnected: channel.isJoined() });
+  };
 
   render = () => {
-    const {isConnected} = this.state;
+    const { isConnected } = this.state;
     if (!isConnected) {
       return (
         <p className="alert alert-warning">
-        Connection to Aircloak lost. The system might be down or you might have lost your network connection.
+          Connection to Aircloak lost. The system might be down or you might
+          have lost your network connection.
         </p>
       );
     } else {
       return null;
     }
-  }
+  };
 }

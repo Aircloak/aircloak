@@ -3,37 +3,37 @@
 import React from "react";
 
 import ImmutableSingleQuery from "./immutable_single_query";
-import type {Result} from "./result";
+import type { Result } from "./result";
 import FrontendSocket from "../frontend_socket";
-import type {NumberFormat} from "../number_format";
-import {AuthContext} from "../authentication_provider";
+import type { NumberFormat } from "../number_format";
+import { AuthContext } from "../authentication_provider";
 
 type Props = {
   result: Result,
   insertedAt: string,
-  user: {name: string},
+  user: { name: string },
   frontendSocket: FrontendSocket,
   numberFormat: NumberFormat,
-  debugModeEnabled: boolean,
+  debugModeEnabled: boolean
 };
 
 type State = {
   result: Result
-}
+};
 
 export default class QueryView extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
     this.state = {
-      result: props.result,
+      result: props.result
     };
 
     this.resultReceived = this.resultReceived.bind(this);
-    const {frontendSocket, result} = this.props;
+    const { frontendSocket, result } = this.props;
 
     frontendSocket.joinUpdatesForQuery(result.id, {
-      handleEvent: this.resultReceived,
+      handleEvent: this.resultReceived
     });
   }
 
@@ -41,15 +41,13 @@ export default class QueryView extends React.Component<Props, State> {
   static contextType = AuthContext;
 
   resultReceived = (result: Result) => {
-    this.setState({result});
-  }
+    this.setState({ result });
+  };
 
   render = () => {
-    const {
-      numberFormat, user, insertedAt, debugModeEnabled,
-    } = this.props;
-    const {result} = this.state;
-    const {authentication} = this.context;
+    const { numberFormat, user, insertedAt, debugModeEnabled } = this.props;
+    const { result } = this.state;
+    const { authentication } = this.context;
     return (
       <ImmutableSingleQuery
         numberFormat={numberFormat}
@@ -60,5 +58,5 @@ export default class QueryView extends React.Component<Props, State> {
         authentication={authentication}
       />
     );
-  }
+  };
 }

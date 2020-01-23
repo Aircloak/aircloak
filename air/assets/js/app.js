@@ -29,10 +29,9 @@ import EditorView from "./view/editor";
 import ActivityMonitorView from "./activity_monitor/root";
 import AuthenticationProvider from "./authentication_provider";
 import FrontendSocket from "./frontend_socket";
-import {NumberFormatExampleView} from "./number_format";
+import { NumberFormatExampleView } from "./number_format";
 import AuditLogView from "./audit_log/root";
 import PasswordField from "./password_field";
-
 
 require("core-js");
 require("codemirror/mode/markdown/markdown");
@@ -40,37 +39,42 @@ require("codemirror/mode/markdown/markdown");
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
   queryShowPage: (props, elem) => App.render("query_show", props, elem),
-  immutableQueryShowPage: (props, elem) => App.render("immutable_query_show", props, elem),
+  immutableQueryShowPage: (props, elem) =>
+    App.render("immutable_query_show", props, elem),
   selectableInfo: (props, elem) => App.render("selectable_info", props, elem),
   viewEditor: (props, elem) => App.render("view_editor", props, elem),
   activityMonitor: (props, elem) => App.render("activity_monitor", props, elem),
-  numberFormatExample: (props, elem) => App.render("number_format_example", props, elem),
+  numberFormatExample: (props, elem) =>
+    App.render("number_format_example", props, elem),
   auditLog: (props, elem) => App.render("audit_log", props, elem),
   passwordField: (props, elem) => App.render("password_field", props, elem),
 
   attachCodeMirrorToTextArea: (textArea, targetElement) => {
-    const elementEditor = codeMirror((elt) => {
-      textArea.parentNode.replaceChild(elt, textArea);
-    }, {
-      value: textArea.value,
-      indentWithTabs: false,
-      tabSize: 2,
-      mode: "markdown",
-      lineNumbers: true,
-    });
-    elementEditor.on("change", (editor) => {
+    const elementEditor = codeMirror(
+      elt => {
+        textArea.parentNode.replaceChild(elt, textArea);
+      },
+      {
+        value: textArea.value,
+        indentWithTabs: false,
+        tabSize: 2,
+        mode: "markdown",
+        lineNumbers: true
+      }
+    );
+    elementEditor.on("change", editor => {
       targetElement.value = editor.getValue(); // eslint-disable-line no-param-reassign
     });
   },
 
   render: (page, props, elem) => {
-    const authentication = {CSRFToken: props.CSRFToken};
+    const authentication = { CSRFToken: props.CSRFToken };
 
     ReactDOM.render(
       <AuthenticationProvider authentication={authentication}>
         {App.renderPage(page, props)}
       </AuthenticationProvider>,
-      elem,
+      elem
     );
   },
 
@@ -79,7 +83,7 @@ const App = {
       allowInputToggle: true,
       showTodayButton: true,
       showClose: true,
-      format: "YYYY-MM-DD HH:mm:ss",
+      format: "YYYY-MM-DD HH:mm:ss"
     });
   },
 
@@ -108,7 +112,7 @@ const App = {
       statement,
       supportsCreateTable,
       userId,
-      value,
+      value
     } = props;
     switch (page) {
       case "queries":
@@ -167,12 +171,7 @@ const App = {
           />
         );
       case "view_editor":
-        return (
-          <EditorView
-            statement={statement}
-            selectables={selectables}
-          />
-        );
+        return <EditorView statement={statement} selectables={selectables} />;
       case "activity_monitor":
         return (
           <ActivityMonitorView
@@ -184,29 +183,18 @@ const App = {
           />
         );
       case "number_format_example":
-        return (
-          <NumberFormatExampleView
-            numberFormat={numberFormat}
-          />
-        );
+        return <NumberFormatExampleView numberFormat={numberFormat} />;
       case "audit_log":
-        return (
-          <AuditLogView
-            auditLogs={auditLogs}
-          />
-        );
+        return <AuditLogView auditLogs={auditLogs} />;
       case "password_field":
-        return (
-          <PasswordField
-            value={value}
-            score={score}
-          />
-        );
-      default: throw new Error("Unknown page");
+        return <PasswordField value={value} score={score} />;
+      default:
+        throw new Error("Unknown page");
     }
   },
 
-  buildSocket: (props) => new FrontendSocket(props.browserSocketTransport, props.socketToken),
+  buildSocket: props =>
+    new FrontendSocket(props.browserSocketTransport, props.socketToken)
 };
 
 if (window.pageConfig !== undefined) {

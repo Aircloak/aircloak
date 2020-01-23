@@ -1,7 +1,7 @@
 // @flow
 
 import React from "react";
-import {UnControlled as Codemirror} from "react-codemirror2";
+import { UnControlled as Codemirror } from "react-codemirror2";
 import _ from "lodash";
 import Editor from "codemirror";
 
@@ -14,11 +14,11 @@ require("./code_editor/mode");
 
 type Props = {
   onRun: () => void,
-  onChange: (string) => void,
+  onChange: string => void,
   tableNames: string[],
   columnNames: string[],
-  statement: string,
-}
+  statement: string
+};
 
 export default class CodeEditor extends React.Component<Props> {
   constructor(props: Props) {
@@ -39,53 +39,57 @@ export default class CodeEditor extends React.Component<Props> {
   errorMarker: ?any;
 
   run = () => {
-    const {onRun} = this.props;
+    const { onRun } = this.props;
     onRun();
-  }
+  };
 
   showHint = (editor: Editor) => {
-    editor.showHint({hint: this.completionList});
-  }
+    editor.showHint({ hint: this.completionList });
+  };
 
   onChange = (editor: Editor) => {
-    const {onChange} = this.props;
+    const { onChange } = this.props;
     onChange(editor.getValue());
-  }
+  };
 
   editorDidMount = (editor: Editor) => {
     this.editor = editor;
-  }
+  };
 
   completionList = (cm: Editor) => {
-    const {tableNames, columnNames, statement} = this.props;
+    const { tableNames, columnNames, statement } = this.props;
     return completions(
       cm.getLine(cm.getCursor().line),
       cm.getCursor().ch,
-      (pos) => _.merge({}, cm.getCursor(), {ch: pos}),
+      pos => _.merge({}, cm.getCursor(), { ch: pos }),
       tableNames,
       columnNames,
-      statement,
+      statement
     );
-  }
+  };
 
   insertWordInEditor = (word: String) => {
     const doc = this.editor.getDoc();
     doc.replaceSelection(word);
     this.editor.focus();
-  }
+  };
 
   clearErrorLocation = () => {
     if (this.errorMarker) {
       this.errorMarker.clear();
       this.errorMarker = null;
     }
-  }
+  };
 
   showErrorLocation = (line: number, ch: number) => {
     this.clearErrorLocation();
     const doc = this.editor.getDoc();
-    this.errorMarker = doc.markText({line, ch}, {line, ch: ch + 1}, {className: "error-location"});
-  }
+    this.errorMarker = doc.markText(
+      { line, ch },
+      { line, ch: ch + 1 },
+      { className: "error-location" }
+    );
+  };
 
   render = () => {
     const options = {
@@ -105,11 +109,11 @@ export default class CodeEditor extends React.Component<Props> {
         "Ctrl-Enter": this.run,
         "Cmd-Enter": this.run,
         "Ctrl-Space": this.showHint,
-        "Cmd-Space": this.showHint,
-      },
+        "Cmd-Space": this.showHint
+      }
     };
 
-    const {statement} = this.props;
+    const { statement } = this.props;
     return (
       <Codemirror
         value={statement}
@@ -118,5 +122,5 @@ export default class CodeEditor extends React.Component<Props> {
         options={options}
       />
     );
-  }
+  };
 }

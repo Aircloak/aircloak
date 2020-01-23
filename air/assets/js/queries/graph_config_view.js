@@ -2,8 +2,8 @@
 
 import React from "react";
 
-import type {GraphInfoT} from "./graph_data";
-import {GraphConfig} from "./graph_data";
+import type { GraphInfoT } from "./graph_data";
+import { GraphConfig } from "./graph_data";
 
 type ColumnAction = (columnIndex: number) => () => void;
 
@@ -15,17 +15,21 @@ type Props = {
   remove: ColumnAction
 };
 
-const activeClass = (active) => (active ? "btn btn-info" : "btn btn-default");
+const activeClass = active => (active ? "btn btn-info" : "btn btn-default");
 
-const noneClass = (graphConfig, column) => (
-  activeClass(!graphConfig.xColumns().includes(column) && !graphConfig.yColumns().includes(column))
-);
+const noneClass = (graphConfig, column) =>
+  activeClass(
+    !graphConfig.xColumns().includes(column) &&
+      !graphConfig.yColumns().includes(column)
+  );
 
-const xClass = (graphConfig, column) => activeClass(graphConfig.xColumns().includes(column));
+const xClass = (graphConfig, column) =>
+  activeClass(graphConfig.xColumns().includes(column));
 
-const yClass = (graphConfig, column) => activeClass(graphConfig.yColumns().includes(column));
+const yClass = (graphConfig, column) =>
+  activeClass(graphConfig.yColumns().includes(column));
 
-export default ({graphInfo, graphConfig, remove, addX, addY}: Props) => {
+export default ({ graphInfo, graphConfig, remove, addX, addY }: Props) => {
   return (
     <form className="form-horizontal">
       {graphInfo.xColumns().map((column, columnIndex) => (

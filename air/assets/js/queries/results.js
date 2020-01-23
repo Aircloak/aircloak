@@ -2,13 +2,13 @@
 
 import React from "react";
 
-import {ResultView} from "./result";
-import type {Result} from "./result";
-import type {Authentication} from "../authentication_provider";
+import { ResultView } from "./result";
+import type { Result } from "./result";
+import type { Authentication } from "../authentication_provider";
 import PendingResultView from "./pending_result_view";
 import ErrorView from "./error_view";
 import Cancelled from "./cancelled";
-import type {NumberFormat} from "../number_format";
+import type { NumberFormat } from "../number_format";
 
 type Props = {
   results: Result[],
@@ -17,10 +17,15 @@ type Props = {
   authentication: Authentication
 };
 
-export default ({results, numberFormat, debugModeEnabled, authentication}: Props) => {
+export default ({
+  results,
+  numberFormat,
+  debugModeEnabled,
+  authentication
+}: Props) => {
   return (
     <div>
-      {results.map((result) => {
+      {results.map(result => {
         switch (result.query_state) {
           case "completed":
             return (
@@ -48,7 +53,13 @@ export default ({results, numberFormat, debugModeEnabled, authentication}: Props
               />
             );
           default:
-            return <PendingResultView key={result.id} authentication={authentication} result={result} />;
+            return (
+              <PendingResultView
+                key={result.id}
+                authentication={authentication}
+                result={result}
+              />
+            );
         }
       })}
     </div>

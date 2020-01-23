@@ -9,11 +9,19 @@ import InfoView from "./info_view";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
 
-import type {ErrorResult} from "./result";
+import type { ErrorResult } from "./result";
 
-const mdToHtml = (text: string) => ({__html: pagedown.getSanitizingConverter().makeHtml(text)});
+const mdToHtml = (text: string) => ({
+  __html: pagedown.getSanitizingConverter().makeHtml(text)
+});
 
-export default ({result, debugModeEnabled}: {result: ErrorResult, debugModeEnabled: boolean}) => {
+export default ({
+  result,
+  debugModeEnabled
+}: {
+  result: ErrorResult,
+  debugModeEnabled: boolean
+}) => {
   return (
     <div className="panel panel-danger">
       <div className="panel-heading" />

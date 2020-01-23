@@ -2,17 +2,17 @@
 
 import React from "react";
 
-import type {PendingResult} from "./result";
-import type {Authentication} from "../authentication_provider";
+import type { PendingResult } from "./result";
+import type { Authentication } from "../authentication_provider";
 
 import CodeViewer from "../code_viewer";
-import {pendingStates, later, format} from "./state";
-import {cancel} from "../request";
+import { pendingStates, later, format } from "./state";
+import { cancel } from "../request";
 
 type Props = {
   result: PendingResult,
   authentication: Authentication
-}
+};
 
 const stateItem = (state, currentState) => {
   if (later(currentState, state)) {
@@ -24,7 +24,7 @@ const stateItem = (state, currentState) => {
   }
 };
 
-export default ({result, authentication}: Props) => {
+export default ({ result, authentication }: Props) => {
   return (
     <div className="panel panel-info">
       <div className="panel-heading" />
@@ -33,11 +33,15 @@ export default ({result, authentication}: Props) => {
 
         <p className="text-center spinner">
           {" "}
-          <img src="/images/loader.gif" alt="indicating the result is being computed" />
-          {" "}
+          <img
+            src="/images/loader.gif"
+            alt="indicating the result is being computed"
+          />{" "}
         </p>
         <ul>
-          {pendingStates.map((state) => <li key={state}>{stateItem(state, result.query_state)}</li>)}
+          {pendingStates.map(state => (
+            <li key={state}>{stateItem(state, result.query_state)}</li>
+          ))}
         </ul>
 
         <div className="right-align">

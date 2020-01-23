@@ -8,19 +8,34 @@ import aircloakFunctionCompletions from "./function_completion_keywords.json";
 /* eslint-enable */
 
 const SQL_KEYWORDS = [
-  "SELECT", "FROM",
+  "SELECT",
+  "FROM",
   "SHOW TABLES",
-  "INNER JOIN", "LEFT JOIN", "LEFT INNER JOIN", "RIGHT INNER JOIN",
-  "OUTER JOIN", "LEFT OUTER JOIN", "RIGHT OUTER JOIN",
-  "WHERE", "AND",
-  "GROUP BY", "ORDER BY",
-  "ASC", "DESC", "NOT",
-  "IS NULL", "IS NOT NULL",
-  "LIKE ''", "ILIKE ''", "NOT LIKE ''", "NOT ILIKE ''",
-  "IN ()", "NOT IN ()",
+  "INNER JOIN",
+  "LEFT JOIN",
+  "LEFT INNER JOIN",
+  "RIGHT INNER JOIN",
+  "OUTER JOIN",
+  "LEFT OUTER JOIN",
+  "RIGHT OUTER JOIN",
+  "WHERE",
+  "AND",
+  "GROUP BY",
+  "ORDER BY",
+  "ASC",
+  "DESC",
+  "NOT",
+  "IS NULL",
+  "IS NOT NULL",
+  "LIKE ''",
+  "ILIKE ''",
+  "NOT LIKE ''",
+  "NOT ILIKE ''",
+  "IN ()",
+  "NOT IN ()"
 ];
 
-const longestFirst = (candidate) => -candidate.text.length;
+const longestFirst = candidate => -candidate.text.length;
 
 const wordCharRegex = /(\w|\.)/;
 
@@ -34,7 +49,7 @@ const wordEnd = (string, start) => {
   return end;
 };
 
-const escapeWord = (word) => word.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&");
+const escapeWord = word => word.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&");
 
 export default function completionList(
   curLine: string,
@@ -42,7 +57,7 @@ export default function completionList(
   posBuilder: (x: number) => any,
   tableNames: string[],
   columnNames: string[],
-  statement: string,
+  statement: string
 ) {
   const end = wordEnd(curLine, curPos);
 
@@ -74,15 +89,18 @@ export default function completionList(
 
   const keywordsFromStatement = _.chain(statement)
     .split(/[\s(),]/)
-    .reject((word) => word.length < 3)
-    .reject((word) => _.last(rawCodeWords) === word)
+    .reject(word => word.length < 3)
+    .reject(word => _.last(rawCodeWords) === word)
     .value();
 
   const matcher = new RegExp(finalClause, "i");
 
-  const showColumnsFromTables = _.map(tableNames, (tableName) => `SHOW COLUMNS FROM ${tableName}`);
+  const showColumnsFromTables = _.map(
+    tableNames,
+    tableName => `SHOW COLUMNS FROM ${tableName}`
+  );
 
-  const fromWithTables = _.map(tableNames, (tableName) => `FROM ${tableName}`);
+  const fromWithTables = _.map(tableNames, tableName => `FROM ${tableName}`);
 
   const aircloakSQLFunctions = _.chain(aircloakFunctionCompletions)
     .values()
@@ -96,7 +114,7 @@ export default function completionList(
     .concat(fromWithTables)
     .concat(columnNames)
     .concat(keywordsFromStatement)
-    .map((candidate) => {
+    .map(candidate => {
       const bestMatch = candidate.match(matcher).shift();
       if (bestMatch === "") {
         return null;
@@ -104,12 +122,12 @@ export default function completionList(
         return {
           text: candidate,
           from: posBuilder(end - bestMatch.length),
-          to: posBuilder(end),
+          to: posBuilder(end)
         };
       }
     })
-    .reject((candidate) => candidate === null)
-    .uniqBy((candidate) => _.upperCase(candidate.text))
+    .reject(candidate => candidate === null)
+    .uniqBy(candidate => _.upperCase(candidate.text))
     .sortBy(longestFirst)
     .value();
 
@@ -117,8 +135,8 @@ export default function completionList(
     // CodeMirror expects there being a global from/to pair, despite these being
     // declared as part of the suggestion itself. We take this from the first
     // provided suggestion for lack of better alternatives.
-    return {list, from: list[0].from, to: list[0].to};
+    return { list, from: list[0].from, to: list[0].to };
   } else {
-    return {list, from: posBuilder(0), to: posBuilder(0)};
+    return { list, from: posBuilder(0), to: posBuilder(0) };
   }
 }

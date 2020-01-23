@@ -3,9 +3,9 @@
 import React from "react";
 
 import StateView from "./state_view";
-import {cancel} from "../request";
-import {isFinished} from "../queries/state";
-import {AuthContext} from "../authentication_provider";
+import { cancel } from "../request";
+import { isFinished } from "../queries/state";
+import { AuthContext } from "../authentication_provider";
 
 export type Query = {
   id: string,
@@ -13,18 +13,19 @@ export type Query = {
   analyst_name: string,
   data_source_name: string,
   cloak_name: string,
-  statement: string,
+  statement: string
 };
 
 type Props = {
   query: Query
-}
+};
 
 const maxExcerptLength = 40;
 
 const queryExcerpt = (statement: string) => {
   if (statement.length > maxExcerptLength + 3) {
-    const shortenedForm = statement.replace(/[\s\n]/g, " ")
+    const shortenedForm = statement
+      .replace(/[\s\n]/g, " ")
       .replace(/ +/, " ")
       .slice(0, maxExcerptLength);
     return `${shortenedForm}...`;
@@ -40,13 +41,13 @@ export class QueryView extends React.Component<Props> {
   static contextType = AuthContext;
 
   shouldComponentUpdate(nextProps: Props) {
-    const {query} = this.props;
+    const { query } = this.props;
     return nextProps.query.state !== query.state;
   }
 
   render() {
-    const {query} = this.props;
-    const {authentication} = this.context;
+    const { query } = this.props;
+    const { authentication } = this.context;
     return (
       <tr>
         <td>{query.data_source_name}</td>
@@ -55,7 +56,9 @@ export class QueryView extends React.Component<Props> {
         <td>
           <code>{queryExcerpt(query.statement)}</code>
         </td>
-        <td><StateView queryState={query.state} /></td>
+        <td>
+          <StateView queryState={query.state} />
+        </td>
         <td>
           <button
             type="button"
@@ -66,7 +69,9 @@ export class QueryView extends React.Component<Props> {
             cancel
           </button>
         </td>
-        <td><a href={queryViewUrl(query)}>view</a></td>
+        <td>
+          <a href={queryViewUrl(query)}>view</a>
+        </td>
       </tr>
     );
   }

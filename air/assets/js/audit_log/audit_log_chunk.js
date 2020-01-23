@@ -6,11 +6,11 @@ import _ from "lodash";
 
 import AuditLogEntry from "./audit_log_entry";
 
-import type {AuditLog} from "./audit_log_entry";
+import type { AuditLog } from "./audit_log_entry";
 
-type Props = {auditLogs: Array<AuditLog>};
+type Props = { auditLogs: Array<AuditLog> };
 
-type State = {collapsed: boolean};
+type State = { collapsed: boolean };
 
 const formatTime = (isoTime: string) => {
   const time = moment.tz(isoTime, "UTC");
@@ -21,7 +21,7 @@ export default class AuditLogChunk extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    this.state = {collapsed: true};
+    this.state = { collapsed: true };
 
     this.numberOfEvents = this.numberOfEvents.bind(this);
     this.eventName = this.eventName.bind(this);
@@ -31,37 +31,37 @@ export default class AuditLogChunk extends React.Component<Props, State> {
   }
 
   numberOfEvents = () => {
-    const {auditLogs} = this.props;
+    const { auditLogs } = this.props;
     return auditLogs.length;
-  }
+  };
 
   eventName = () => {
-    const {auditLogs} = this.props;
+    const { auditLogs } = this.props;
     return auditLogs[0].event;
-  }
+  };
 
   user = () => {
-    const {auditLogs} = this.props;
+    const { auditLogs } = this.props;
     return auditLogs[0].user;
-  }
+  };
 
   times = () => {
-    const {auditLogs} = this.props;
-    return auditLogs.map<AuditLog>((auditLog) => formatTime(auditLog.time));
-  }
+    const { auditLogs } = this.props;
+    return auditLogs.map<AuditLog>(auditLog => formatTime(auditLog.time));
+  };
 
   toggleCollapsed = (event: Event) => {
     event.preventDefault();
-    const {collapsed} = this.state;
-    this.setState({collapsed: !collapsed});
-  }
+    const { collapsed } = this.state;
+    this.setState({ collapsed: !collapsed });
+  };
 
   renderEvents = (): React$Node => {
-    const {collapsed} = this.state;
+    const { collapsed } = this.state;
     if (collapsed) {
       return null;
     } else {
-      const {auditLogs} = this.props;
+      const { auditLogs } = this.props;
       return (
         <tr>
           <td colSpan="5">
@@ -69,19 +69,21 @@ export default class AuditLogChunk extends React.Component<Props, State> {
               <thead>
                 <tr>
                   <th>Time</th>
-                  <th>{" "}</th>
+                  <th> </th>
                 </tr>
               </thead>
-              {auditLogs.map<React$Element<typeof AuditLogEntry>>((auditLog, i) => (
-                // eslint-disable-next-line react/no-array-index-key
-                <AuditLogEntry key={i} auditLog={auditLog} />
-              ))}
+              {auditLogs.map<React$Element<typeof AuditLogEntry>>(
+                (auditLog, i) => (
+                  // eslint-disable-next-line react/no-array-index-key
+                  <AuditLogEntry key={i} auditLog={auditLog} />
+                )
+              )}
             </table>
           </td>
         </tr>
       );
     }
-  }
+  };
 
   render = () => (
     <tbody className="panel panel-default">
@@ -94,9 +96,13 @@ export default class AuditLogChunk extends React.Component<Props, State> {
           {" - "}
           {_.max(this.times())}
         </td>
-        <td><button type="button" onClick={this.toggleCollapsed}>Events</button></td>
+        <td>
+          <button type="button" onClick={this.toggleCollapsed}>
+            Events
+          </button>
+        </td>
       </tr>
       {this.renderEvents()}
     </tbody>
-  )
+  );
 }

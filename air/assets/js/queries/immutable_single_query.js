@@ -4,20 +4,27 @@ import React from "react";
 
 import Results from "./results";
 import PropertiesView from "./properties";
-import type {Authentication} from "../authentication_provider";
-import type {Result} from "./result";
-import type {NumberFormat} from "../number_format";
+import type { Authentication } from "../authentication_provider";
+import type { Result } from "./result";
+import type { NumberFormat } from "../number_format";
 
 type Props = {
   result: Result,
-  user: {name: string},
+  user: { name: string },
   insertedAt: string,
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
-  authentication: Authentication,
+  authentication: Authentication
 };
 
-export default ({result, user, insertedAt, numberFormat, debugModeEnabled, authentication}: Props) => {
+export default ({
+  result,
+  user,
+  insertedAt,
+  numberFormat,
+  debugModeEnabled,
+  authentication
+}: Props) => {
   return (
     <div>
       <h3>Properties</h3>

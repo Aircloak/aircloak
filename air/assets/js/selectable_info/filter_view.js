@@ -2,10 +2,10 @@
 
 import React from "react";
 
-import {Filter} from "./filter";
+import { Filter } from "./filter";
 
 type Props = {
-  onFilterChange: (Filter) => void
+  onFilterChange: Filter => void
 };
 
 type State = {
@@ -17,34 +17,34 @@ export default class FilterView extends React.Component<Props, State> {
     super(props);
 
     this.state = {
-      filterText: "",
+      filterText: ""
     };
 
     this.filterTextChange = this.filterTextChange.bind(this);
   }
 
   filterTextChange = (filterText: string) => {
-    this.setState({filterText});
+    this.setState({ filterText });
 
     try {
       const caseInsensitive = "i";
       const regex = new RegExp(filterText, caseInsensitive);
-      const {onFilterChange} = this.props;
+      const { onFilterChange } = this.props;
       onFilterChange(new Filter(regex));
     } catch (SyntaxError) {
       // If the regular expression doesn't compile, it's
       // probably due to it not being finished yet, hence we
       // ignore the error, and leave the old filter in place.
     }
-  }
+  };
 
   render = () => {
-    const {filterText} = this.state;
+    const { filterText } = this.state;
     return (
       <div className="column-filter">
         <div className="input-group">
           <input
-            onChange={(event) => this.filterTextChange(event.target.value)}
+            onChange={event => this.filterTextChange(event.target.value)}
             type="text"
             className="form-control"
             placeholder="Filter columns"
@@ -62,5 +62,5 @@ export default class FilterView extends React.Component<Props, State> {
         </div>
       </div>
     );
-  }
+  };
 }

@@ -3,15 +3,15 @@
 import React from "react";
 import _ from "lodash";
 
-import type {Query} from "./query";
+import type { Query } from "./query";
 import StateView from "./state_view";
 
 type Props = {
   queries: Query[]
-}
+};
 
-const queryStats = (queries) =>
-  queries.forEach((query) => {
+const queryStats = queries =>
+  queries.forEach(query => {
     if (queryStats[query.state]) {
       queryStats[query.state] += 1;
     } else {
@@ -19,7 +19,7 @@ const queryStats = (queries) =>
     }
   });
 
-export default ({queries}: Props) => {
+export default ({ queries }: Props) => {
   return (
     <div>
       <h4>Snapshot of current query states</h4>
@@ -34,7 +34,9 @@ export default ({queries}: Props) => {
         <tbody>
           {_.map(queryStats(queries), (count, queryState) => (
             <tr key={queryState}>
-              <td><StateView queryState={queryState} /></td>
+              <td>
+                <StateView queryState={queryState} />
+              </td>
               <td>{count}</td>
             </tr>
           ))}
