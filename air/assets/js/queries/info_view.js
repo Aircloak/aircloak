@@ -6,8 +6,7 @@ import pagedown from "pagedown";
 
 const mdToHtml = (text: string) => ({__html: pagedown.getSanitizingConverter().makeHtml(text)});
 
-export default (props: {info: string[]}) => {
-  const {info} = props;
+export default ({info}: {info: string[]}) => {
   if (info && info.length > 0) {
     return (
       <div>

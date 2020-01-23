@@ -19,8 +19,7 @@ export const formatNumber = (value: number, format: NumberFormat): string => {
   return string;
 };
 
-export const NumberFormatExampleView = (props: {numberFormat: NumberFormat}) => {
-  const {numberFormat} = props;
+export const NumberFormatExampleView = ({numberFormat}: {numberFormat: NumberFormat}) => {
   return (
     <div>
       Format example with the current settings:

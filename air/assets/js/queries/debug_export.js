@@ -2,8 +2,7 @@
 
 import React from "react";
 
-export default (props: {id: string, debugModeEnabled: boolean}) => {
-  const {debugModeEnabled, id} = props;
+export default ({id, debugModeEnabled}: {id: string, debugModeEnabled: boolean}) => {
   if (debugModeEnabled) {
     return (
       <a className="btn btn-default btn-xs" href={`/queries/${id}/debug_export`}>

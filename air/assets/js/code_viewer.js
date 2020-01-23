@@ -5,7 +5,7 @@ import {UnControlled as Codemirror} from "react-codemirror2";
 
 require("./code_editor/mode");
 
-export default (props: {statement: string}) => {
+export default ({statement}: {statement: string}) => {
   const options = {
     indentUnit: 2,
     indentWithTabs: false,
@@ -19,7 +19,6 @@ export default (props: {statement: string}) => {
     cursorBlinkRate: -1,
   };
 
-  const {statement} = props;
   return (
     <Codemirror
       value={statement}

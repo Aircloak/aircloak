@@ -14,8 +14,7 @@ type Props = {
   handleLoadHistory: () => void
 };
 
-export const HistoryLoader = (props: Props) => {
-  const {history, handleLoadHistory} = props;
+export const HistoryLoader = ({history, handleLoadHistory}: Props) => {
   if (history.error) {
     return (
       <div>

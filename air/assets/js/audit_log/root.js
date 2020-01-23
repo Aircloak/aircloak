@@ -11,7 +11,7 @@ type Props = {auditLogs: Array<AuditLog>};
 
 const auditLogKey = (auditLog) => [auditLog.event, auditLog.user];
 
-export default (props: Props) => (
+export default ({auditLogs}: Props) => (
   <table className="table table-condensed">
     <thead>
       <tr>
@@ -23,7 +23,7 @@ export default (props: Props) => (
       </tr>
     </thead>
     {(() => {
-      if (_.isEmpty(props.auditLogs)) {
+      if (_.isEmpty(auditLogs)) {
         return (
           <tbody>
             <tr>
@@ -32,7 +32,7 @@ export default (props: Props) => (
           </tbody>
         );
       } else {
-        return chunkBy(props.auditLogs, auditLogKey).map(
+        return chunkBy(auditLogs, auditLogKey).map(
           // eslint-disable-next-line react/no-array-index-key
           (auditLogs, id) => <AuditLogChunk key={id} auditLogs={auditLogs} />,
         );

@@ -109,8 +109,7 @@ class BarWrapper extends React.Component<Props, State> {
   }
 }
 
-export default (props: {graphData: GraphDataT}) => {
-  const {graphData} = props;
+export default ({graphData}: {graphData: GraphDataT}) => {
   if (graphData.ready()) {
     return <BarWrapper data={genData(graphData)} options={genOptions(graphData)} />;
   } else {

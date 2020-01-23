@@ -10,9 +10,7 @@ type Props = {
   queries: Query[]
 }
 
-export default (props: Props) => {
-  const queryStats = {};
-  const {queries} = props;
+const queryStats = (queries) =>
   queries.forEach((query) => {
     if (queryStats[query.state]) {
       queryStats[query.state] += 1;
@@ -20,6 +18,8 @@ export default (props: Props) => {
       queryStats[query.state] = 1;
     }
   });
+
+export default ({queries}: Props) => {
   return (
     <div>
       <h4>Snapshot of current query states</h4>
@@ -32,7 +32,7 @@ export default (props: Props) => {
           </tr>
         </thead>
         <tbody>
-          {_.map(queryStats, (count, queryState) => (
+          {_.map(queryStats(queries), (count, queryState) => (
             <tr key={queryState}>
               <td><StateView queryState={queryState} /></td>
               <td>{count}</td>

@@ -17,10 +17,7 @@ type Props = {
   authentication: Authentication
 };
 
-export default (props: Props) => {
-  const {
-    results, numberFormat, debugModeEnabled, authentication,
-  } = props;
+export default ({results, numberFormat, debugModeEnabled, authentication}: Props) => {
   return (
     <div>
       {results.map((result) => {

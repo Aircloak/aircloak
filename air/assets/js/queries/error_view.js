@@ -13,8 +13,7 @@ import type {ErrorResult} from "./result";
 
 const mdToHtml = (text: string) => ({__html: pagedown.getSanitizingConverter().makeHtml(text)});
 
-export default (props: {result: ErrorResult, debugModeEnabled: boolean}) => {
-  const {result, debugModeEnabled} = props;
+export default ({result, debugModeEnabled}: {result: ErrorResult, debugModeEnabled: boolean}) => {
   return (
     <div className="panel panel-danger">
       <div className="panel-heading" />

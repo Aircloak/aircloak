@@ -31,8 +31,7 @@ const columnClassName = (column: Column) => {
   }
 };
 
-export const ColumnsView = (props: {filter: Filter, columns: Column[]}) => {
-  const {filter, columns} = props;
+export const ColumnsView = ({filter, columns}: {filter: Filter, columns: Column[]}) => {
   return (
     <table className="table table-condensed">
       <thead>

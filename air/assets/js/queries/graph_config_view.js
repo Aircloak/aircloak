@@ -25,10 +25,7 @@ const xClass = (graphConfig, column) => activeClass(graphConfig.xColumns().inclu
 
 const yClass = (graphConfig, column) => activeClass(graphConfig.yColumns().includes(column));
 
-export default (props: Props) => {
-  const {
-    graphInfo, graphConfig, remove, addX, addY,
-  } = props;
+export default ({graphInfo, graphConfig, remove, addX, addY}: Props) => {
   return (
     <form className="form-horizontal">
       {graphInfo.xColumns().map((column, columnIndex) => (

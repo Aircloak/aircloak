@@ -17,10 +17,7 @@ const formatTime = (isoTime) => {
   return `${time.format("YYYY-MM-DD HH:mm:ss z")} (${time.fromNow()})`;
 };
 
-export default (props: Props) => {
-  const {
-    user, dataSource, insertedAt, queryState,
-  } = props;
+export default ({user, dataSource, insertedAt, queryState}: Props) => {
   return (
     <table className="table table-condensed">
       <tbody>

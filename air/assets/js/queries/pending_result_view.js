@@ -24,8 +24,7 @@ const stateItem = (state, currentState) => {
   }
 };
 
-export default (props: Props) => {
-  const {result, authentication} = props;
+export default ({result, authentication}: Props) => {
   return (
     <div className="panel panel-info">
       <div className="panel-heading" />

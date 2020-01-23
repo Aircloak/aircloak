@@ -17,10 +17,7 @@ type Props = {
   authentication: Authentication,
 };
 
-export default (props: Props) => {
-  const {
-    result, user, insertedAt, numberFormat, debugModeEnabled, authentication,
-  } = props;
+export default ({result, user, insertedAt, numberFormat, debugModeEnabled, authentication}: Props) => {
   return (
     <div>
       <h3>Properties</h3>

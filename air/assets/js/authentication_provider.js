@@ -14,8 +14,7 @@ type Props = {
   authentication: Authentication,
 }
 
-export default (props: Props) => {
-  const {authentication, children} = props;
+export default ({authentication, children}: Props) => {
   const authContextValue = {
     authentication,
   };

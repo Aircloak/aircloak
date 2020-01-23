@@ -8,8 +8,7 @@ import ShareButton from "./share_button";
 
 import type {CancelledResult} from "./result";
 
-export default (props: {result: CancelledResult, debugModeEnabled: boolean}) => {
-  const {result, debugModeEnabled} = props;
+export default ({result, debugModeEnabled}: {result: CancelledResult, debugModeEnabled: boolean}) => {
   return (
     <div className="panel panel-warning">
       <div className="panel-heading" />
