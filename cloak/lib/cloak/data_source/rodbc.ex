@@ -265,5 +265,7 @@ defmodule Cloak.DataSource.RODBC do
   defp parse_type("datetime2"), do: :datetime
   defp parse_type("datetimeoffset"), do: :datetime
   defp parse_type("timestamp" <> _), do: :datetime
+  defp parse_type("rowid"), do: :text
+  defp parse_type("urowid" <> _), do: :text
   defp parse_type(type), do: {:unsupported, type}
 end

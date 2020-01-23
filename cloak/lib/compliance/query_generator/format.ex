@@ -150,7 +150,6 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:star, _, _}), do: "*"
   defp to_doc({:empty, _, _}), do: empty()
 
-  defp to_doc({:sample_users, size, []}), do: concat(["SAMPLE_USERS ", to_string(size), "%"])
   defp to_doc({:limit, size, []}), do: concat("LIMIT ", to_string(size))
   defp to_doc({:offset, size, []}), do: concat("OFFSET ", to_string(size))
 

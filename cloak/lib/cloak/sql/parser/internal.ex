@@ -72,8 +72,7 @@ defmodule Cloak.Sql.Parser.Internal do
       optional_having(),
       optional_order_by(),
       optional_limit(),
-      optional_offset(),
-      optional_sample_users()
+      optional_offset()
     ])
   end
 
@@ -204,6 +203,7 @@ defmodule Cloak.Sql.Parser.Internal do
       function_expression(),
       extract_expression(),
       trim_expression(),
+      case_expression(),
       substring_expression(),
       null_expression(),
       constant_column(),
@@ -340,7 +340,7 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp function_expression() do
     switch([
-      {next_position() |> function_name() |> keyword(:"("), lazy(fn -> function_arguments() end) |> keyword(:")")},
+      {next_position() |> function_name() |> keyword(:"("), function_arguments() |> keyword(:")")},
       {:else, error_message(fail(""), "Expected an argument list")}
     ])
     |> map(fn {[location, function, :"("], [arguments, :")"]} ->
@@ -381,7 +381,7 @@ defmodule Cloak.Sql.Parser.Internal do
         keyword(:"("),
         date_part(),
         keyword(:from),
-        lazy(fn -> map(column(), &[&1]) end),
+        map(column(), &[&1]),
         keyword(:")")
       ],
       fn [location, :extract, :"(", part, :from, column, :")"] ->
@@ -421,6 +421,31 @@ defmodule Cloak.Sql.Parser.Internal do
   defp trim_function(:both), do: "btrim"
   defp trim_function(:leading), do: "ltrim"
   defp trim_function(:trailing), do: "rtrim"
+
+  defp case_expression() do
+    pipe(
+      [
+        next_position(),
+        keyword(:case),
+        many1(sequence([keyword(:when), column(), keyword(:then), column()])),
+        option(sequence([keyword(:else), column()])),
+        keyword(:end)
+      ],
+      fn
+        [location, :case, when_branches, else_branch, :end] ->
+          when_args =
+            Enum.flat_map(when_branches, fn [:when, condition, :then, expression] -> [condition, expression] end)
+
+          else_arg =
+            case else_branch do
+              [:else, expression] -> expression
+              nil -> :null
+            end
+
+          {:function, "case", when_args ++ [else_arg], location}
+      end
+    )
+  end
 
   defp substring_expression() do
     pipe(
@@ -961,14 +986,6 @@ defmodule Cloak.Sql.Parser.Internal do
     token(:parameter)
     |> map(&{:parameter, &1.value})
     |> label("expected parameter")
-  end
-
-  defp optional_sample_users() do
-    switch([
-      {keyword(:sample_users), pair_both(numeric_constant(), keyword(:%))},
-      {:else, noop()}
-    ])
-    |> map(fn {[:sample_users], [{{:constant, _, amount, _}, :%}]} -> {:sample_rate, amount} end)
   end
 
   defp next_position(),

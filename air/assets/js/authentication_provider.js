@@ -9,7 +9,7 @@ export class AuthenticationProvider extends React.Component {
   }
 
   render() {
-    return <div>{this.props.children}</div>;
+    return <React.Fragment>{this.props.children}</React.Fragment>;
   }
 }
 

@@ -112,6 +112,65 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  describe "conditions usage" do
+    test "rejects conditions in anonymizing select" do
+      assert {:error, error} = compile("select numeric = 0 from table", data_source())
+
+      assert error ==
+               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+    end
+
+    test "rejects conditions in anonymizing group by" do
+      assert {:error, error} = compile("select 1 from table group by numeric in (0, 1)", data_source())
+
+      assert error ==
+               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+    end
+
+    test "rejects conditions in anonymizing order by" do
+      assert {:error, error} = compile("select 1 from table order by string like '%aaa'", data_source())
+
+      assert error ==
+               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+    end
+
+    test "rejects conditions in function calls" do
+      assert {:error, error} =
+               compile("select count(*) from table where cast(numeric > 0 as integer) = 0", data_source())
+
+      assert error ==
+               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+    end
+
+    test "allow conditions in non-filtering clauses in standard queries" do
+      assert {:ok, _} = compile_standard("select numeric = 0 from table", data_source())
+    end
+  end
+
+  describe "boolean expressions" do
+    test "allow conjunctions in anonymizing select" do
+      assert {:ok, _} = compile("select bool and not bool from table", data_source())
+    end
+
+    test "allow disjunctions in standard select" do
+      assert {:ok, _} = compile_standard("select bool or not bool from table", data_source())
+    end
+
+    test "allow disjunctions in standard where" do
+      assert {:ok, _} = compile_standard("select count(*) from table where bool or not bool", data_source())
+    end
+
+    test "reject disjunction in anonymizing select" do
+      assert {:error, "Combining boolean expressions with `OR` is not allowed in anonymizing queries" <> _} =
+               compile("select bool or not bool from table", data_source())
+    end
+
+    test "rejects disjunction in anonymizing where" do
+      {:error, "Combining boolean expressions with `OR` is not allowed in anonymizing queries" <> _} =
+        compile("select * from table where numeric = 1 or numeric = 2", data_source())
+    end
+  end
+
   test "select NULL" do
     assert {:ok, _} = compile("select null from table", data_source())
   end
@@ -1114,12 +1173,6 @@ defmodule Cloak.Sql.Compiler.Test do
            ]
   end
 
-  test "rejects `or` conditions" do
-    {:error, error} = compile("select * from table where numeric = 1 or numeric = 2", data_source())
-
-    assert error =~ ~r/Combining conditions with `OR` is not allowed./
-  end
-
   test "rejects `FULL OUTER JOINs`" do
     {:error, error} =
       compile(
@@ -1241,24 +1294,6 @@ defmodule Cloak.Sql.Compiler.Test do
     assert reason == "Expression `count` is not valid in the `WHERE` clause."
   end
 
-  describe "sample amount" do
-    test "validation" do
-      assert {:error, error} = compile("select count(*) from table sample_users 101%", data_source())
-
-      assert error =~ ~r/The `SAMPLE` clause expects an integer value between 1 and 100./
-    end
-
-    test "needs alignment" do
-      result = compile!("select count(*) from table sample_users 0.4%", data_source())
-      assert ["Sample rate adjusted from 0.4% to 0.5%"] = result.info
-    end
-
-    test "does not need alignment" do
-      result = compile!("select count(*) from table sample_users 0.5%", data_source())
-      assert [] = result.info
-    end
-  end
-
   describe "key columns" do
     test "marking key columns" do
       result = compile!("SELECT key, stddev(uid) FROM table group by 1", data_source())
@@ -1308,23 +1343,38 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ "Function `dec_b64` can only be used in non-anonymizing queries."
   end
 
-  test "`case` requires a default branch" do
-    assert {:error, "`case` expression requires a default branch."} =
-             compile("select case(true, string) from table", data_source())
-  end
+  describe "`case` statements" do
+    test "allowed in standard queries" do
+      assert {:ok, _} = compile_standard("select case when true then string end from table", data_source())
+    end
 
-  test "`case` with default branch only works" do
-    assert {:ok, _} = compile("select case(string) from table", data_source())
-  end
+    test "rejected in standard queries" do
+      assert {:error, "Function `case` can only be used in non-anonymizing queries."} =
+               compile("select case when true then string end from table", data_source())
+    end
 
-  test "`case` test conditions have to be booleans" do
-    assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
-             compile("select case(true, 1, string, 0, 2) from table", data_source())
-  end
+    test "test conditions have to be booleans" do
+      assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
+               compile_standard("select case when true then 1 when string then 0 else 2 end from table", data_source())
+    end
 
-  test "`case` return values have to be identical" do
-    assert {:error, "`case` expression requires that all branches return the same type."} =
-             compile("select case(false, string, 2) from table", data_source())
+    test "return values have to be identical" do
+      assert {:error, "`case` expression requires that all branches return the same type."} =
+               compile_standard("select case when false then string else 2 end from table", data_source())
+    end
+
+    test "null return values are ignored from type checking" do
+      assert {:ok, _} = compile_standard("select case when true then null else string end from table", data_source())
+    end
+
+    test "all null return values" do
+      assert {:ok, _} = compile_standard("select case when string = '' then null end from table", data_source())
+    end
+
+    test "return type is properly set" do
+      assert {:ok, query} = compile_standard("select case when bool then null else 1 end from table", data_source())
+      assert [%{type: :integer}] = query.columns
+    end
   end
 
   test "rejects usage of distinct in non-aggregates" do
@@ -1371,7 +1421,7 @@ defmodule Cloak.Sql.Compiler.Test do
     {:error, error} = compile("select count(date '1801-01-01' - interval 'P10Y') from table", data_source())
 
     assert error =~
-             "Constant expression is out of valid range: date values have to be inside the interval [`1800-01-01`, `2999-12-31`]."
+             "Constant expression is out of valid range: date values have to be inside the interval [`1900-01-01`, `9999-12-31`]."
   end
 
   test "rejects interval constant values out of range" do
@@ -1390,14 +1440,14 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casting date parameter" do
     assert {:error, "Constant expression is out of valid range" <> _} =
              compile("SELECT COUNT(*) FROM table WHERE column = $1::datetime", data_source(),
-               parameters: [%{type: :date, value: "4000-01-01"}]
+               parameters: [%{type: :date, value: "1800-01-01"}]
              )
   end
 
   test "casting datetime parameter" do
     assert {:error, "Constant expression is out of valid range" <> _} =
              compile("SELECT COUNT(*) FROM table WHERE column = $1", data_source(),
-               parameters: [%{type: :datetime, value: "4000-01-01 10:20:30"}]
+               parameters: [%{type: :datetime, value: "1800-01-01 10:20:30"}]
              )
   end
 
@@ -1422,11 +1472,22 @@ defmodule Cloak.Sql.Compiler.Test do
              )
   end
 
+  test "NOT IN is not rewritten in standard queries" do
+    {:ok, result} = compile_standard("select count(*) from table where numeric not in (1, 2, 3)", data_source())
+
+    assert [function("not", [function("in", [column("table", "numeric"), value1, value2, value3])])] =
+             conditions_list(result.where)
+
+    assert value1 = Expression.constant(:integer, 1)
+    assert value2 = Expression.constant(:integer, 2)
+    assert value3 = Expression.constant(:integer, 3)
+  end
+
   defp compile_standard(query_string, data_source) do
     {:ok, parsed_query} = Parser.parse(query_string)
 
     try do
-      Compiler.compile_standard!(parsed_query, nil, data_source)
+      {:ok, Compiler.compile_standard!(parsed_query, nil, data_source)}
     rescue
       error in Cloak.Sql.CompilationError -> {:error, error.message}
     end

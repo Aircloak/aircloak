@@ -4,6 +4,8 @@
 
 - Support for `median` was removed.
 - Support for `distinct` modifier was removed for all aggregate functions except `count` and `count_noise`.
+- Support for `SAMPLE_USERS` was removed. 
+- Support for the `hash` function was removed.
 
 ### Enhancements
 
@@ -14,12 +16,15 @@
 - The Oracle Instant Client version 18.3 is bundled with the container and no longer needs to be
   provided separately.
 - The timeout for idle connections can now be adjusted in the Cloak config file, under the `connection_keep_time` field.
+- Improved support for boolean expressions.
+- Added support for `case` statements in standard queries.
 
 ### Bugfixes
 ### Changes
 
 - Support for some obsolete cloak features and config fields (decoders, projections, user_id) was removed.
 - The set of query restrictions was simplified and clarified.
+- Allow date ranges from `1900-01-01` to `9999-12-31`.
 
 ### Known issues
 

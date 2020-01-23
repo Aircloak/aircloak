@@ -4,7 +4,7 @@ defmodule Cloak.Sql.FixAlign do
   @type interval(x) :: {x, x}
 
   @default_size_factors [1, 2, 5]
-  @epoch ~N[1970-01-01 00:00:00]
+  @epoch ~N[1900-01-01 00:00:00]
   @midnight ~T[00:00:00]
   @just_before_midnight ~T[23:59:59.999999]
   @full_day {@midnight, @just_before_midnight}

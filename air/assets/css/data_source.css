@@ -10,7 +10,11 @@
 
 .data-source .column .content-wrapper {
   position: relative;
-  min-height: 100%;
+  min-height: calc(100vh - 70px);
   /* Footer */
   padding-bottom: 100px;
+}
+
+.data-source .quarter-width {
+  width: calc(25% - 20px);
 }

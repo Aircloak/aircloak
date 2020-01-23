@@ -636,7 +636,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> verify_function_exists()
     |> Function.return_type()
     |> case do
-      nil ->
+      :unknown ->
         raise CompilationError,
           source_location: location,
           message: function_argument_error_message(function)

@@ -154,9 +154,6 @@ defmodule Aircloak.Functions do
                },
                ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
                ~w(hex) => %{type_specs: %{[:text] => :text}},
-               ~w(hash) => %{
-                 type_specs: %{[{:or, [:text, :integer, :real]}] => :text}
-               },
                [{:cast, :integer}] => %{
                  type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer},
                  attributes: [:restricted, :cast]
@@ -191,7 +188,7 @@ defmodule Aircloak.Functions do
                },
                ~w(dec_b64) => %{type_specs: %{[:text] => :text}, attributes: [:unsafe]},
                ~w(coalesce) => %{
-                 type_specs: %{{:many1, :any} => :any},
+                 type_specs: %{[{:many1, :any}] => :any},
                  attributes: [:unsafe]
                },
                ~w(current_datetime) => %{

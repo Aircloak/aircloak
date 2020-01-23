@@ -42,8 +42,9 @@ defmodule Cloak.Sql.Compiler.Validation do
   def verify_anonymization_restrictions(%Query{command: :select} = query) do
     verify_user_id_usage(query, nil)
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
+    Helpers.each_subquery(query, &verify_conditions_usage/1)
+    Helpers.each_subquery(query, &verify_or_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
-    Helpers.each_subquery(query, &verify_sample_rate/1)
     Helpers.each_subquery(query, &verify_grouping_sets_uid/1)
     query
   end
@@ -91,14 +92,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_case_arguments(source_location, args) do
-    if rem(length(args), 2) == 0 do
-      raise(
-        CompilationError,
-        source_location: source_location,
-        message: "`case` expression requires a default branch."
-      )
-    end
-
     args
     |> Enum.take_every(2)
     |> Enum.reverse()
@@ -116,22 +109,21 @@ defmodule Cloak.Sql.Compiler.Validation do
         :ok
     end
 
-    default_arg = args |> Enum.reverse() |> Enum.at(0)
-    then_args = args |> Enum.drop(1) |> Enum.take_every(2)
-
-    [default_arg | then_args]
+    args
+    |> Function.case_branches()
     |> Enum.map(& &1.type)
     |> Enum.uniq()
+    |> Enum.reject(&is_nil/1)
     |> case do
-      [_type] ->
-        :ok
-
-      _ ->
+      types when length(types) > 1 ->
         raise(
           CompilationError,
           source_location: source_location,
           message: "`case` expression requires that all branches return the same type."
         )
+
+      _ ->
+        :ok
     end
   end
 
@@ -254,8 +246,8 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  @date_constant_min_year 1800
-  @date_constant_max_year 2999
+  @date_constant_min_year 1900
+  @date_constant_max_year 9999
   defp verify_constant(%Expression{value: value, type: type} = expression) when type in [:date, :datetime] do
     if value.year < @date_constant_min_year or value.year > @date_constant_max_year do
       raise CompilationError,
@@ -488,31 +480,12 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   # -------------------------------------------------------------------
-  # Where, having, limit, offset, sample
+  # Where, having, limit, offset
   # -------------------------------------------------------------------
 
   defp verify_where(query), do: verify_where_clauses(query.where)
 
-  defp verify_condition_tree(%Expression{kind: :function, name: "or", source_location: location}),
-    do:
-      raise(
-        CompilationError,
-        source_location: location,
-        message:
-          "Combining conditions with `OR` is not allowed. Note that an `OR` condition may " <>
-            "arise when negating an `AND` condition. For example `NOT (x = 1 AND y = 2)` is equivalent to " <>
-            "`x <> 1 OR y <> 2`."
-      )
-
-  defp verify_condition_tree(%Expression{kind: :function, name: "and", args: [lhs, rhs]}) do
-    verify_condition_tree(lhs)
-    verify_condition_tree(rhs)
-  end
-
-  defp verify_condition_tree(_), do: :ok
-
   defp verify_where_clauses(clauses) do
-    verify_condition_tree(clauses)
     verify_conditions(clauses)
 
     Lenses.conditions_terminals()
@@ -574,7 +547,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_condition(_), do: :ok
 
   defp verify_having(query) do
-    verify_condition_tree(query.having)
     verify_conditions(query.having)
 
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
@@ -612,16 +584,6 @@ defmodule Cloak.Sql.Compiler.Validation do
       )
 
   defp verify_offset(_query), do: :ok
-
-  defp verify_sample_rate(%Query{sample_rate: amount})
-       when is_integer(amount) and (amount < 0 or amount > 100),
-       do:
-         raise(
-           CompilationError,
-           message: "The `SAMPLE` clause expects an integer value between 1 and 100."
-         )
-
-  defp verify_sample_rate(_query), do: :ok
 
   # -------------------------------------------------------------------
   # IN verification
@@ -738,6 +700,52 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   # -------------------------------------------------------------------
+  # Conditions usage verification
+  # -------------------------------------------------------------------
+
+  defp verify_conditions_usage(%Query{type: :standard}), do: :ok
+
+  defp verify_conditions_usage(query) do
+    non_filtering_expressions_lens()
+    |> Lens.filter(&Function.condition?/1)
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [condition | _rest] ->
+        raise CompilationError,
+          message: "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries.",
+          source_location: condition.source_location
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # OR usage verification
+  # -------------------------------------------------------------------
+
+  defp verify_or_usage(%Query{type: :standard}), do: :ok
+
+  defp verify_or_usage(query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name == "or"))
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [condition | _rest] ->
+        raise CompilationError,
+          message:
+            "Combining boolean expressions with `OR` is not allowed in anonymizing queries. " <>
+              "Note that an `OR` expression may arise when negating an `AND` expression. " <>
+              "For example `NOT (x = 1 AND y = 2)` is equivalent to `x <> 1 OR y <> 2`.",
+          source_location: condition.source_location
+    end
+  end
+
+  # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
 
@@ -748,4 +756,13 @@ defmodule Cloak.Sql.Compiler.Validation do
       Query.Lenses.all_expressions()
       |> Lens.filter(&Function.aggregator?/1)
       |> Lens.to_list(expression)
+
+  defp non_filtering_expressions_lens() do
+    Lens.multiple([
+      Lens.keys?([:columns, :group_by]) |> Lens.all(),
+      Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
+      Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions() |> Query.Lenses.operands()
+    ])
+    |> Lenses.all_expressions()
+  end
 end
