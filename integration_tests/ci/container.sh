@@ -37,7 +37,6 @@ function start_mongo_container {
 
 
 function prepare_for_test {
-  #  start_postgres_container $1 "9.4"
   start_postgres_container $1 "9.5"
   start_postgres_container $1 "9.6"
   start_postgres_container $1 "11.2"
