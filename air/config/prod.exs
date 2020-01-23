@@ -60,4 +60,3 @@ config :air, :central,
   min_reconnect_interval: :timer.seconds(10),
   max_reconnect_interval: :timer.minutes(5)
 
-config :air, :auto_aircloak_export, true

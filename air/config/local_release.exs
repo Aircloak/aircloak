@@ -15,4 +15,3 @@ config :air, Air.BOM,
 
 config :air, Air.PsqlServer, port: 8432
 
-config :air, :auto_aircloak_export, true

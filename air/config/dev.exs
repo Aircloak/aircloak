@@ -56,5 +56,3 @@ config :air, AirWeb.MonitoringEndpoint, http: [acceptors: 2]
 config :air, Air.Repo,
   pool_size: 2,
   loggers: []
-
-config :air, :auto_aircloak_export, true
