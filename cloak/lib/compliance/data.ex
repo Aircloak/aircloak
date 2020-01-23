@@ -250,10 +250,10 @@ defmodule Compliance.Data do
       for address <- user.addresses do
         %{
           user_fk: user.id,
-          "home.city": address.home[:city],
-          "home.postal_code": address.home[:postal_code],
-          "work.city": address.work[:city],
-          "work.postal_code": address.work[:postal_code]
+          home_city: address.home[:city],
+          home_postal_code: address.home[:postal_code],
+          work_city: address.work[:city],
+          work_postal_code: address.work[:postal_code]
         }
       end
     end)

@@ -125,8 +125,8 @@ defmodule ComplianceCase do
       {"age", "users_public"},
       {"n.id", @notes_user_id_chain},
       {"user_fk", @addresses_user_id_chain},
-      {"work.postal_code", @addresses_user_id_chain},
-      {"home.postal_code", @addresses_user_id_chain},
+      {"work_postal_code", @addresses_user_id_chain},
+      {"home_postal_code", @addresses_user_id_chain},
       {"user_fk", @notes_user_id_chain},
       {"note_id", @notes_changes_user_id_chain}
     ]
@@ -160,8 +160,8 @@ defmodule ComplianceCase do
       {"name", "users_public"},
       {"column_with_a_very_long_name", "users"},
       {"column_with_a_very_long_name", "users_public"},
-      {"home.city", @addresses_user_id_chain},
-      {"work.city", @addresses_user_id_chain},
+      {"home_city", @addresses_user_id_chain},
+      {"work_city", @addresses_user_id_chain},
       {"title", @notes_user_id_chain},
       {"content", @notes_user_id_chain},
       {"change", @notes_changes_user_id_chain}

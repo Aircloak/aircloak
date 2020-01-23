@@ -71,10 +71,10 @@ defmodule Compliance.TableDefinitions do
       addresses: %{
         columns: %{
           user_fk: %{type: :integer},
-          "home.city": %{type: :text, decoder: :base64},
-          "work.city": %{type: :text, decoder: :base64},
-          "home.postal_code": %{type: :integer, decoder: :text_to_integer},
-          "work.postal_code": %{type: :integer, decoder: :text_to_integer}
+          home_city: %{type: :text, decoder: :base64},
+          work_city: %{type: :text, decoder: :base64},
+          home_postal_code: %{type: :integer, decoder: :text_to_integer},
+          work_postal_code: %{type: :integer, decoder: :text_to_integer}
         },
         keys: %{
           "user_fk" => :user_fk
