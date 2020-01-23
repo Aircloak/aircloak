@@ -181,8 +181,6 @@ defmodule IntegrationTest.Manager do
 
     load_valid_license()
     Air.Service.PrivacyPolicy.set("Privacy policy content")
-
-    Repo.delete_all(ExportForAircloak)
   end
 
   defp insert_rows(user_id_range, table, columns, values) do
@@ -195,8 +193,6 @@ defmodule IntegrationTest.Manager do
 
   defp setup_central() do
     Central.Repo.delete_all(Central.Schemas.License)
-    Central.Repo.delete_all(Central.Schemas.AirRPC)
-    Central.Repo.delete_all(Central.Schemas.CustomerExport)
     Central.Repo.delete_all(Central.Schemas.Customer)
     {:ok, _} = Central.Service.Customer.create(%{name: "integration tests customer"})
   end

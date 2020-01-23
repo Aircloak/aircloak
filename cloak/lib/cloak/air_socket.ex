@@ -271,7 +271,7 @@ defmodule Cloak.AirSocket do
 
   defp handle_air_call("describe_query", serialized_query, from, state) do
     with {:ok, data_source} <- fetch_data_source(serialized_query.data_source),
-         {:ok, columns, features} <-
+         {:ok, columns, metadata} <-
            Cloak.Sql.Query.describe_query(
              serialized_query.analyst_id,
              data_source,
@@ -279,7 +279,12 @@ defmodule Cloak.AirSocket do
              decode_params(serialized_query.parameters),
              serialized_query.views
            ),
-         do: respond_to_air(from, :ok, %{columns: columns, features: features}),
+         do:
+           respond_to_air(from, :ok, %{
+             columns: columns,
+             selected_types: metadata.selected_types,
+             parameter_types: metadata.parameter_types
+           }),
          else: ({:error, reason} -> respond_to_air(from, :ok, %{error: reason}))
 
     {:ok, state}

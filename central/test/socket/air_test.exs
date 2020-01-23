@@ -63,8 +63,6 @@ defmodule CentralWeb.Socket.AirTest do
           })
 
         assert_push("central_response", %{request_id: ^request_id, status: :ok})
-
-        assert query_count(test_id) == 0
       end
     end
   end
@@ -79,7 +77,6 @@ defmodule CentralWeb.Socket.AirTest do
 
       test "query_execution", %{socket: socket} do
         test_id = random_string()
-        assert query_count(test_id) == 0
 
         request_id =
           push_air_call(socket, "query_execution", %{
@@ -90,8 +87,6 @@ defmodule CentralWeb.Socket.AirTest do
           })
 
         assert_push("central_response", %{request_id: ^request_id, status: :ok})
-
-        assert query_count(test_id) == 1
       end
 
       test "a duplicate message", %{socket: socket} do
@@ -109,8 +104,6 @@ defmodule CentralWeb.Socket.AirTest do
         push_air_call(socket, "query_execution", message, message_id, request_id)
         push_air_call(socket, "query_execution", message, message_id, request_id)
         push_air_call(socket, "query_execution", message, message_id, request_id)
-
-        assert query_count(test_id) == 1
       end
     end
   end
@@ -164,6 +157,4 @@ defmodule CentralWeb.Socket.AirTest do
   end
 
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
-
-  defp query_count(id), do: Mongo.count!(:mongo, "queries", test_id: id)
 end

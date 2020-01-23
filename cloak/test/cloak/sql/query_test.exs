@@ -34,354 +34,17 @@ defmodule Cloak.Sql.QueryTest do
     :ok
   end
 
-  describe "top level selected" do
-    test "simple case" do
-      assert %{num_top_level_dimensions: 1, num_top_level_aggregates: 0} =
-               features_from("SELECT height FROM feat_users")
-
-      assert %{num_top_level_dimensions: 3, num_top_level_aggregates: 0} =
-               features_from("SELECT height, name, male FROM feat_users")
-    end
-
-    test "duplicates" do
-      assert %{num_top_level_dimensions: 3, num_top_level_aggregates: 0} =
-               features_from("SELECT name, name, name FROM feat_users")
-    end
-
-    test "constants" do
-      assert %{num_top_level_dimensions: 1, num_top_level_aggregates: 0} = features_from("SELECT '1' FROM feat_users")
-    end
-
-    test "aggregates" do
-      assert %{num_top_level_dimensions: 1, num_top_level_aggregates: 3} =
-               features_from("SELECT name, avg(height), avg(height), sum(height) FROM feat_users GROUP BY name")
-    end
-  end
-
-  describe "num_db_columns" do
-    test "simple query" do
-      assert %{num_db_columns: 5, num_distinct_db_columns: 2} = features_from("SELECT height FROM feat_users")
-    end
-
-    test "deduplication" do
-      assert %{num_db_columns: 4, num_distinct_db_columns: 2} =
-               features_from("""
-                 SELECT count(*) FROM
-                   (SELECT user_id FROM feat_users WHERE height = 0) x
-                 INNER JOIN
-                   (SELECT user_id FROM feat_users WHERE height = 0) y
-                 ON x.user_id = y.user_id
-               """)
-    end
-
-    test "constants don't count" do
-      assert %{num_db_columns: 3, num_distinct_db_columns: 1} = features_from("SELECT '1' FROM feat_users")
-    end
-
-    test "subqueries" do
-      assert %{num_db_columns: 7, num_distinct_db_columns: 3} =
-               features_from("""
-                 SELECT COUNT(*) FROM (
-                   SELECT user_id FROM feat_users GROUP BY user_id, name HAVING sum(height) = 0
-                 ) foo
-               """)
-    end
-  end
-
-  describe "num_tables" do
-    test "simple query" do
-      assert %{num_distinct_tables: 1, num_tables: 1} = features_from("SELECT height FROM feat_users")
-    end
-
-    test "implicit join" do
-      assert %{num_distinct_tables: 2, num_tables: 2} =
-               features_from("""
-                 SELECT height FROM feat_users, feat_purchases
-                 WHERE feat_users.user_id = feat_purchases.user_id
-               """)
-    end
-
-    test "explicit join" do
-      assert %{num_distinct_tables: 2, num_tables: 2} =
-               features_from("""
-                 SELECT height
-                 FROM feat_users INNER JOIN feat_purchases ON feat_users.user_id = feat_purchases.user_id
-               """)
-    end
-
-    test "subquery" do
-      assert %{num_distinct_tables: 2, num_tables: 2} =
-               features_from("""
-                 SELECT COUNT(*)
-                 FROM (
-                   SELECT *
-                   FROM feat_users INNER JOIN feat_purchases
-                     ON feat_users.user_id = feat_purchases.user_id
-                 ) foo
-               """)
-    end
-
-    test "distinct tables" do
-      assert %{num_distinct_tables: 2, num_tables: 3} =
-               features_from("""
-                 SELECT COUNT(*)
-                 FROM feat_users AS a, feat_purchases AS b, feat_purchases AS c
-                 WHERE a.user_id = b.user_id AND a.user_id = c.user_id
-               """)
-    end
-  end
-
-  describe "functions" do
-    test "no function" do
-      assert %{functions: [], top_level_functions: [], subquery_functions: []} =
-               features_from("SELECT height FROM feat_users")
-    end
-
-    @tag pending: "Needs #3265"
-    test "function used" do
-      result = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
-
-      assert Enum.sort(result.functions) == ["abs", "cast", "max", "min", "sum"]
-      assert result.top_level_functions == []
-      assert Enum.sort(result.subquery_functions) == ["abs", "cast", "max", "min", "sum"]
-    end
-
-    test "function used in WHERE" do
-      assert %{functions: ["sqrt"], top_level_functions: [], subquery_functions: ["sqrt"]} =
-               features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
-    end
-
-    test "nested functions used" do
-      assert %{functions: ["min"], top_level_functions: ["min"], subquery_functions: []} =
-               features_from("SELECT min(sqrt(height)) FROM feat_users")
-    end
-
-    test "subqueries" do
-      assert %{functions: ["variance", "sqrt"], top_level_functions: ["variance"], subquery_functions: ["sqrt"]} =
-               features_from("SELECT variance(h) FROM (SELECT sqrt(height) as h FROM feat_users) x")
-    end
-
-    test "deduplicates functions used" do
-      assert %{functions: ["min"], top_level_functions: ["min"], subquery_functions: ["min"]} =
-               features_from("SELECT min(height) FROM (SELECT min(height) AS height FROM feat_users) foo")
-    end
-  end
-
-  describe "select_functions" do
-    test "no function" do
-      assert %{top_level_select_functions: [], subquery_select_functions: [], select_functions: []} =
-               features_from("SELECT height FROM feat_users")
-    end
-
-    @tag pending: "Needs #3265"
-    test "function used" do
-      assert %{
-               top_level_select_functions: [],
-               subquery_select_functions: ["sqrt", "abs", "min", "max"],
-               select_functions: ["sqrt", "abs", "min", "max"]
-             } = features_from("SELECT abs(foo) FROM (SELECT sqrt(height) AS foo FROM feat_users) x")
-    end
-
-    test "deduplicates" do
-      assert %{
-               top_level_select_functions: [],
-               subquery_select_functions: ["sqrt", "min", "max"],
-               select_functions: ["sqrt", "min", "max"]
-             } = features_from("SELECT sqrt(x) FROM (SELECT sqrt(height) AS x FROM feat_users) foo")
-    end
-
-    test "function used in WHERE" do
-      assert %{top_level_select_functions: [], subquery_select_functions: [], select_functions: []} =
-               features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
-    end
-  end
-
-  describe "filters" do
-    test "no filters" do
-      assert %{filters: [], top_level_filters: [], subquery_filters: []} =
-               features_from("SELECT count(*) FROM feat_users")
-    end
-
-    test "filter in HAVING" do
-      assert %{
-               filters: ["(= (variance col) const)"],
-               top_level_filters: ["(= (variance col) const)"],
-               subquery_filters: []
-             } = features_from("SELECT COUNT(*) FROM feat_users GROUP BY name HAVING VARIANCE(height) = 0")
-    end
-
-    test "subqueries" do
-      assert %{
-               filters: ["(= (variance col) const)", "(<> col const)"],
-               top_level_filters: ["(= (variance col) const)"],
-               subquery_filters: ["(<> col const)"]
-             } =
-               features_from("""
-                 SELECT COUNT(*) FROM (
-                   SELECT user_id, height
-                   FROM feat_users
-                   WHERE height <> 0
-                 ) foo
-                 GROUP BY foo.height
-                 HAVING VARIANCE(foo.height) = 0
-               """)
-    end
-
-    test "extracts filter structure" do
-      assert MapSet.new(["(< col const)", "(>= col const)"]) ==
-               features_from("""
-                 SELECT height
-                 FROM feat_users
-                 WHERE height > 10 and height < 20
-               """).filters
-               |> Enum.into(MapSet.new())
-
-      assert MapSet.new(["(<> col const)", "(= col const)"]) ==
-               features_from("""
-                 SELECT height
-                 FROM feat_users
-                 WHERE height <> 10 and male = true
-               """).filters
-               |> Enum.into(MapSet.new())
-
-      assert MapSet.new(["(in col const const)", "(<> col const)"]) ==
-               features_from("""
-                 SELECT height
-                 FROM feat_users
-                 WHERE
-                   height IN (10, 11) and height NOT IN (12, 13) and
-                   name IN ('bob', 'alice')
-               """).filters
-               |> Enum.into(MapSet.new())
-
-      assert MapSet.new(["(is_null col)", "(not (is_null col))"]) ==
-               features_from("""
-                 SELECT height
-                 FROM feat_users
-                 WHERE height IS NULL and name IS NOT NULL
-               """).filters
-               |> Enum.into(MapSet.new())
-
-      assert MapSet.new([
-               "(like col const)",
-               "(ilike col const)",
-               "(not (like col const))",
-               "(not (ilike col const))"
-             ]) ==
-               features_from("""
-                 SELECT height
-                 FROM feat_users
-                 WHERE name LIKE '%' and name ILIKE '%foo%' and name NOT LIKE '_' and name NOT ILIKE '%bar%'
-               """).filters
-               |> Enum.into(MapSet.new())
-    end
-  end
-
-  describe "number of group by clauses" do
-    test "no group by" do
-      assert %{num_top_level_group_by: 0, num_subquery_group_by: 0, num_group_by: 0} =
-               features_from("SELECT stddev(height) FROM feat_users")
-    end
-
-    test "top-level group by" do
-      assert %{num_top_level_group_by: 1, num_subquery_group_by: 0, num_group_by: 1} =
-               features_from("SELECT stddev(height) FROM feat_users GROUP BY height")
-    end
-
-    test "subquery group by" do
-      assert %{num_top_level_group_by: 0, num_subquery_group_by: 1, num_group_by: 1} =
-               features_from("SELECT stddev(m) FROM (SELECT stddev(height) as m FROM feat_users GROUP BY height) foo")
-    end
-  end
-
-  describe "column types" do
-    @uid_type "text"
-
-    test "simple case" do
-      assert %{db_column_types: [@uid_type, @uid_type, "integer", "text", "text", "integer", "text"]} =
-               features_from("SELECT height, name FROM feat_users")
-    end
-
-    test "works across tables" do
-      assert %{
-               db_column_types: [
-                 @uid_type,
-                 @uid_type,
-                 @uid_type,
-                 @uid_type,
-                 "integer",
-                 "datetime",
-                 "text",
-                 "integer",
-                 "datetime"
-               ]
-             } =
-               features_from("""
-                 SELECT height, datetime
-                 FROM feat_users, feat_purchases
-                 WHERE feat_users.user_id = feat_purchases.user_id
-               """)
-    end
-
-    test "constants are not DB columns" do
-      assert %{db_column_types: [@uid_type, @uid_type, @uid_type]} =
-               features_from("SELECT 'string', date '2018-01-01' FROM feat_users")
-    end
-
-    test "count noise type" do
-      assert %{selected_types: ["real"]} = features_from("SELECT count_noise(*) FROM feat_users")
-    end
-  end
-
   describe "selected_types" do
     test "when constant" do
-      assert %{selected_types: ["integer"]} = features_from("SELECT 1 FROM feat_users")
+      assert %{selected_types: ["integer"]} = metadata_from("SELECT 1 FROM feat_users")
     end
 
     test "when column" do
-      assert %{selected_types: ["integer"]} = features_from("SELECT height FROM feat_users")
+      assert %{selected_types: ["integer"]} = metadata_from("SELECT height FROM feat_users")
     end
 
     test "when function" do
-      assert %{selected_types: ["integer"]} = features_from("SELECT length(name) FROM feat_users")
-    end
-  end
-
-  describe "features->expressions" do
-    test "includes representations of expressions used" do
-      assert ["(variance (+ const (sqrt col)))", "col", "const", "(+ col const)", "const"] =
-               features_from("SELECT variance(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
-    end
-
-    test "resolves references into subqueries" do
-      assert ["(variance (+ col const))"] =
-               features_from("SELECT variance(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
-    end
-
-    @tag pending: "Needs #3265"
-    test "distinct" do
-      assert ["(count (distinct col))"] = features_from("SELECT count(distinct height) FROM feat_users").expressions
-    end
-
-    test "*" do
-      assert ["(count *)", "(variance col)"] =
-               features_from("SELECT count(*), variance(height) FROM feat_users").expressions
-    end
-  end
-
-  describe "features->shadow_tables_used" do
-    test "false if there are less than max_rare_negative_conditions" do
-      refute features_from("SELECT COUNT(*) FROM feat_users WHERE name <> 'Albus'").shadow_tables_used
-    end
-
-    test "true if there are more than max_rare_negative_conditions" do
-      for data_source <- Cloak.DataSource.all() do
-        Cloak.TestShadowCache.safe(data_source, "feat_users", "name", ["Alice"])
-      end
-
-      assert features_from("""
-               SELECT COUNT(*) FROM feat_users WHERE name NOT IN ('Alice', 'Bob') AND name NOT LIKE 'Charl%'
-             """).shadow_tables_used
+      assert %{selected_types: ["integer"]} = metadata_from("SELECT length(name) FROM feat_users")
     end
   end
 
@@ -392,16 +55,6 @@ defmodule Cloak.Sql.QueryTest do
 
     test "accepts max rare conditions number configured for the data source" do
       assert 0 == Query.max_rare_negative_conditions(%Query{data_source: %{max_rare_negative_conditions: 0}})
-    end
-  end
-
-  describe "features->isolators_used" do
-    test "false if conditions don't require isolator checks" do
-      refute features_from("SELECT STDDEV(height) FROM feat_users WHERE name <> 'Albus'").isolators_used
-    end
-
-    test "true if at least one condition requires an isolator check" do
-      assert features_from("SELECT STDDEV(price) FROM feat_purchases WHERE price IN (1, 2, 3)").isolators_used
     end
   end
 
@@ -546,7 +199,7 @@ defmodule Cloak.Sql.QueryTest do
   end
 
   test "[Issue #2815] bucket type" do
-    assert ["real"] = features_from("SELECT BUCKET(height BY 10) FROM feat_users").selected_types
+    assert ["real"] = metadata_from("SELECT BUCKET(height BY 10) FROM feat_users").selected_types
   end
 
   defp describe_query(statement, parameters \\ nil),
@@ -559,30 +212,30 @@ defmodule Cloak.Sql.QueryTest do
     result
   end
 
-  defp features_from(statement) do
+  defp metadata_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
-    {query, features} = compile_with_features(first_ds, statement)
-    query = query |> Map.drop([:features]) |> scrub_data_sources()
+    {query, metadata} = compile_with_metadata(first_ds, statement)
+    query = query |> scrub_data_sources()
 
     for data_source <- rest_ds do
-      {other_query, other_features} = compile_with_features(data_source, statement)
-      other_query = other_query |> Map.drop([:features]) |> scrub_data_sources()
+      {other_query, other_metadata} = compile_with_metadata(data_source, statement)
+      other_query = other_query |> scrub_data_sources()
 
       assert query == other_query
 
-      assert Map.drop(features, [:driver, :driver_dialect]) == Map.drop(other_features, [:driver, :driver_dialect])
+      assert metadata == other_metadata
     end
 
-    features
+    metadata
   end
 
-  defp compile_with_features(data_source, statement) do
+  defp compile_with_metadata(data_source, statement) do
     {:ok, parsed_query} = Parser.parse(statement)
 
     {:ok, query} = Compiler.compile(parsed_query, nil, data_source, _parameters = [], _views = %{})
 
-    features = Query.features(query)
+    metadata = Query.metadata(query)
 
-    {scrub_data_sources(query), features}
+    {scrub_data_sources(query), metadata}
   end
 end

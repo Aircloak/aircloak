@@ -260,7 +260,7 @@ defmodule Air.Service.QueryTest do
         %{
           columns: ["col1", "col2"],
           info: ["some info"],
-          features: %{selected_types: ["some types"]},
+          selected_types: ["some types"],
           execution_time: 123
         },
         [%{occurrences: 10, row: [1, 1]}]
@@ -271,7 +271,7 @@ defmodule Air.Service.QueryTest do
       assert %{
                query_state: :completed,
                execution_time: 123,
-               features: %{"selected_types" => ["some types"]}
+               selected_types: ["some types"]
              } = query
 
       assert query.result == %{
@@ -290,7 +290,7 @@ defmodule Air.Service.QueryTest do
       query = create_query!(create_user!(), %{query_state: :started})
 
       :timer.sleep(100)
-      send_query_result(query.id, %{columns: [], info: [], features: %{}, execution_time: 123}, _rows = [])
+      send_query_result(query.id, %{columns: [], info: [], execution_time: 123}, _rows = [])
 
       assert {:ok, %{time_spent: %{"started" => time}}} = get_query(query.id)
       assert time >= 100
@@ -302,7 +302,7 @@ defmodule Air.Service.QueryTest do
       log =
         ExUnit.CaptureLog.capture_log(fn ->
           send_query_result(query.id, %{
-            features: %{"selected_types" => ["some types"]},
+            selected_types: ["some types"],
             execution_time: 123,
             error: "some reason"
           })
@@ -315,7 +315,7 @@ defmodule Air.Service.QueryTest do
       assert %{
                query_state: :error,
                execution_time: 123,
-               features: %{"selected_types" => ["some types"]},
+               selected_types: ["some types"],
                result: %{"error" => "some reason"}
              } = query
     end
@@ -324,7 +324,7 @@ defmodule Air.Service.QueryTest do
       query = create_query!(create_user!(), %{query_state: :started})
 
       send_query_result(query.id, %{
-        features: %{"selected_types" => ["some types"]},
+        selected_types: ["some types"],
         execution_time: 123,
         cancelled: true
       })
@@ -334,7 +334,7 @@ defmodule Air.Service.QueryTest do
       assert %{
                query_state: :cancelled,
                execution_time: 123,
-               features: %{"selected_types" => ["some types"]},
+               selected_types: ["some types"],
                result: %{"error" => "Cancelled."}
              } = query
     end
@@ -343,7 +343,7 @@ defmodule Air.Service.QueryTest do
       query = create_query!(create_user!(), %{query_state: :error})
 
       send_query_result(query.id, %{
-        features: %{"selected_types" => ["some types"]},
+        selected_types: ["some types"],
         execution_time: 123,
         cancelled: true
       })

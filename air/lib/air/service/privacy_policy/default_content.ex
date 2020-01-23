@@ -49,7 +49,6 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     - the data source the query was run against
     - how long the query took to execute
     - how many columns were requested and how many columns had to be loaded out of the database
-    - what query features and capabilities were used (such as function names)
 
     ### Audit log
     Aircloak Insights provides audit logging capabilities. In addition to the queries being executed the audit log records
@@ -58,56 +57,12 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     For users with administrative privileges, additional information is recorded, namely such actions as the creation of
     user accounts or groups, altering data sources, or changing the general system settings.
 
-    ## Information collected for Aircloak GmbH (limited collection)
-
-    Aircloak GmbH collects pseudonymised statistics about the queries being executed. Each analyst is identified by a pseudonym.
-    The pseudonym is an abstract identifier that only gives Aircloak GmbH the ability to correlate multiple actions taken by a
-    single individual. It does not provide Aircloak GmbH with knowledge of the user's name or other personal details.
-    For each query the same metadata recorded by Aircloak Insights is also sent to Aircloak GmbH. This includes information such as:
-
-    - the data source the query was run against
-    - how long the query took to execute
-    - how many columns were requested and how many columns had to be loaded out of the database
-    - what query features and capabilities were used (such as function names)
-
-    Aircloak GmbH does not record the queries themselves nor the query results.
-
-    The information is analysed through an instance of Aircloak Insights. The fully anonymised statistical information of
-    such analyses is subsequently used to assess how well different aspects of the system perform and help prioritise
-    future improvements.
-
-    ## Information collected for Aircloak GmbH (expanded collection)
-
-    Aircloak GmbH collects statistics about the queries being executed. Each analyst is identified by a pseudonym.
-    The pseudonym is an abstract identifier that only gives Aircloak GmbH the ability to correlate multiple actions taken by a
-    single individual. It does not provide Aircloak GmbH with knowledge of the user's name or other personal details.
-    For each query the same metadata recorded by Aircloak Insights is also sent to Aircloak GmbH. This includes information such as:
-
-    - the query itself
-    - detailed information about the data source queried
-    - query execution logs and telemetrics data
-    - stats on what query features and capabilities were used (such as function names)
-
-    Aircloak GmbH does not see or record the query results unless they are explicitly sent to them for troubleshooting purposes.
-
-    The information is analysed through an instance of Aircloak Insights, manually inspected and might be incorporated into
-    automatic test suites and used to guide decision making about the future of the product.
-
     ## Storage period
 
     ### Data collected by Aircloak Insights on behalf of the Data Controller
 
     The data collected by an Aircloak Insights installation is stored indefinitely or until a user account is deleted.
 
-    ### Data collected by Aircloak GmbH (limited collection)
-
-    The information collected by Aircloak GmbH is stored in pseudonymised form for a period of up to 6 months.
-    The anonymous usage statistics generated based on the pseudonymised information is stored indefinitely.
-
-    ### Data collected by Aircloak GmbH (expanded collection)
-
-    The pseudonymized information collected by Aircloak GmbH might be stored indefinitely. This information includes
-    the query being executed, as well as data source and query metadata.
 
     ## Who has access to your personal information
 
@@ -116,10 +71,6 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     In addition to the Data Controller, all Aircloak Insights users with administrative privileges have full insight
     into the personal information stored about a user.
 
-    ### Aircloak GmbH
-
-    The information collected by Aircloak Insights on behalf of Aircloak GmbH might be accessed by Aircloak GmbH engineers,
-    administrators, and affiliated personnel for debugging purposes.
 
     # Rights
 
@@ -149,9 +100,6 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
 
     You might have the right to request that your data protection officer, controller or administrator delete your account.
     This will in turn delete all the information Aircloak Insights stores about you.
-
-    If you want Aircloak GmbH to erase the information it stores about you, please contact compliance@aircloak.com, providing your
-    Aircloak Identifier. You can find this identifier in the profile section of the Aircloak Insights user interface.
 
     ## Right to restrict or object to the processing
 

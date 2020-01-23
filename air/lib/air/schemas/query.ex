@@ -36,9 +36,10 @@ defmodule Air.Schemas.Query do
     field(:tables, {:array, :string})
     field(:execution_time, :integer)
     field(:users_count, :integer)
-    field(:features, :map)
+    field(:selected_types, {:array, :string})
     field(:session_id, Ecto.UUID)
     field(:parameters, :map)
+    field(:parameter_types, {:array, :string})
     field(:cloak_id, :string)
     field(:query_state, __MODULE__.QueryState)
     field(:context, Context)
@@ -56,8 +57,8 @@ defmodule Air.Schemas.Query do
 
   @required_fields ~w()a
   @optional_fields ~w(
-    cloak_id statement data_source_id tables execution_time users_count features session_id parameters query_state
-    context result last_state_change_at time_spent audit_meta
+    cloak_id statement data_source_id tables execution_time users_count selected_types parameter_types session_id
+    parameters query_state context result last_state_change_at time_spent audit_meta
   )a
 
   # -------------------------------------------------------------------

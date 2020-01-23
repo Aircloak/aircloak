@@ -5,11 +5,6 @@ defmodule AirWeb.QueryView do
   @banner_length 80
   @banner_initial 20
 
-  defp format_map({name, value}), do: "#{name}: #{format_value(value)}"
-
-  defp format_value(values) when is_list(values), do: Enum.join(values, ", ")
-  defp format_value(value), do: to_string(value)
-
   defp banner(word, delimeter) do
     [
       "\n",

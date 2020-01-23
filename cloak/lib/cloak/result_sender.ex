@@ -89,7 +89,8 @@ defmodule Cloak.ResultSender do
      |> Map.take([
        :query_id,
        :columns,
-       :features,
+       :selected_types,
+       :parameter_types,
        :error,
        :cancelled,
        :info,

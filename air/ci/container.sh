@@ -15,9 +15,9 @@ function prepare_for_test {
   docker run \
     --detach --name "$postgres_container_name" \
     --tmpfs=/ramdisk:rw,size=1G -e PGDATA=/ramdisk \
-    postgres:9.4 > /dev/null
+    postgres:11.2 > /dev/null
 
-  docker network connect --alias postgres9.4 $container_name $postgres_container_name
+  docker network connect --alias postgres11.2 $container_name $postgres_container_name
 
   air/ldap/build-image.sh
   ldap_container_name="${container_name}_ldap"

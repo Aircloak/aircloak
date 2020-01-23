@@ -14,5 +14,3 @@ config :air, Air.BOM,
   dependencies: "priv/dependencies.zip.example"
 
 config :air, Air.PsqlServer, port: 8432
-
-config :air, :auto_aircloak_export, true
