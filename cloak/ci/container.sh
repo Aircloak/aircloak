@@ -24,7 +24,7 @@ function prepare_for_compliance {
   container_name=$1
   ensure_database_containers
 
-  for db_container in postgres9.6 mongo3.6 mysql5.7 sqlserver2017 oracle11g; do
+  for db_container in postgres9.6 mongo3.6 mysql5.7 sqlserver2017 oracle11g quickstart.cloudera; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container
   done
@@ -45,9 +45,15 @@ function ensure_database_containers {
     --mount type=bind,src=$(pwd)/cloak/ci/oracle_udfs.sql,dst=/mnt/cloak/oracle_udfs.sql \
     quay.io/aircloak/oracle-xe-11g
 
+  ensure_supporting_container quickstart.cloudera -it \
+    --hostname quickstart.cloudera -p 21050:21050 \
+    quay.io/aircloak/cloudera-quickstart-vm-5.13.0-0-beta \
+    /usr/bin/docker-quickstart
+
   sleep 60 # wait for containers to finish initializing
 }
 
+mount $(pwd)/cloak/priv/odbc/drivers/cloudera /opt/cloudera
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo
 mount_to_aircloak VERSION common/elixir bom
 mount_to_component \
