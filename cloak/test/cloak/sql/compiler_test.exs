@@ -304,7 +304,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "reports malformed datetimes" do
-    assert {:error, "Cannot cast `something stupid` to datetime."} =
+    assert {:error, "Invalid input value supplied for type `datetime`: `something stupid`."} =
              compile("select * from table where column > 'something stupid'", data_source())
   end
 
