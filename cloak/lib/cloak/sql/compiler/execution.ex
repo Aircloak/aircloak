@@ -190,14 +190,12 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp align_where(query), do: align_ranges(query, Lens.key(:where))
 
   defp align_ranges(query, lens) do
-    clause = Lens.one!(lens, query)
-    grouped_inequalities = range_inequalities_by_column(clause)
+    grouped_inequalities = lens |> Lens.one!(query) |> range_inequalities_by_column()
 
     verify_ranges(grouped_inequalities)
 
-    non_range_conditions = Condition.reject(clause, &Range.range_inequality?/1)
+    query = Lens.map(lens, query, fn clause -> Condition.reject(clause, &Range.range_inequality?/1) end)
 
-    query = put_in(query, [lens], non_range_conditions)
     Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens))
   end
 
