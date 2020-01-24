@@ -50,7 +50,7 @@ function ensure_database_containers {
     quay.io/aircloak/cloudera-quickstart-vm-5.13.0-0-beta \
     /usr/bin/docker-quickstart
 
-  sleep 60 # wait for containers to finish initializing
+  sleep 180 # wait for containers to finish initializing
 }
 
 mount $(pwd)/cloak/priv/odbc/drivers/cloudera /opt/cloudera
