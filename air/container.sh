@@ -20,7 +20,7 @@ DOCKER_START_ARGS="
   -p 8080:8080
   -p 8443:8443
   -p 8432:8432
-  --link air_db_dev:air_db
+  --link aircloak_dev_db:air_db
 "
 
 CONTAINER_NAME="air"

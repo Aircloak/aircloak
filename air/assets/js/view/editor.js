@@ -3,50 +3,44 @@
 import React from "react";
 import $ from "jquery";
 import _ from "lodash";
-import {CodeEditor} from "../code_editor";
-import type {Selectable} from "../selectable_info/selectable";
+import CodeEditor from "../code_editor";
+import type { Selectable } from "../selectable_info/selectable";
 
 type Props = {
   statement: string,
-  selectables: Selectable[],
-}
+  selectables: Selectable[]
+};
 
-export default class ViewEditor extends React.Component {
-  constructor(props: Props) {
-    super(props);
-    this.setStatement = this.setStatement.bind(this);
-  }
-  props: Props;
-  setStatement: () => void;
-
-  setStatement(statement: string) {
+export default class ViewEditor extends React.Component<Props> {
+  static setStatement(statement: string) {
     $("#sql").val(statement);
   }
 
   tableNames() {
-    return this.props.selectables.map((table) => table.id);
+    const { selectables } = this.props;
+    return selectables.map<string>(table => table.id);
   }
 
   columnNames() {
-    return _.flatMap(this.props.selectables, (table) =>
-      table.columns.map((column) => column.name)
+    const { selectables } = this.props;
+    return _.flatMap(selectables, table =>
+      table.columns.map<string>(column => column.name)
     );
   }
 
-  save() {
+  static save() {
     $("#viewForm").submit();
   }
 
   render() {
+    const { statement } = this.props;
     return (
       <CodeEditor
-        columnNames={[]}
-        tableNames={[]}
-        statement={this.props.statement}
+        statement={statement}
         tableNames={this.tableNames()}
         columnNames={this.columnNames()}
-        onChange={this.setStatement}
-        onRun={this.save}
+        onChange={ViewEditor.setStatement}
+        onRun={ViewEditor.save}
       />
     );
   }

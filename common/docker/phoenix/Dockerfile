@@ -2,7 +2,9 @@ FROM aircloak/elixir:$ELIXIR_VERSION
 MAINTAINER Aircloak
 
 # Installs the node version specified in the .tool-versions in addition to
-# yarn as a replacement for npm. The brunch node package needed for building
+# yarn as a replacement for npm. 
+# The brunch node package is needed for building central, whereas
+# the webpack node package is needed for building air.
 # our app requires python to be installed to build cleanly, hence the python
 # dependency too.
 # For the nodejs installation to work, we also need to bootstrap the trust
@@ -25,4 +27,4 @@ RUN \
 
 CONFIG_YARN_PROXY
 
-RUN bash -c ". ~/.bashrc && yarn global add brunch"
+RUN bash -c ". ~/.bashrc && yarn global add brunch webpack"

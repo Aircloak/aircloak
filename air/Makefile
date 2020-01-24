@@ -46,10 +46,14 @@ docs:
 
 release:
 	MIX_ENV=prod mix compile.app --force
+	cd assets && NODE_ENV=production yarn deploy
+	MIX_ENV=prod mix phx.digest
 	NODE_ENV=production MIX_ENV=prod mix distillery.release
 
 release-local:
 	MIX_ENV=prod mix compile.app --force
+	cd assets && NODE_ENV=production yarn deploy
+	MIX_ENV=prod mix phx.digest
 	NODE_ENV=production MIX_ENV=prod mix do compile, distillery.release --env=local --no-tar
 
 lint: eslint flow

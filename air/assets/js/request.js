@@ -2,40 +2,38 @@
 
 import $ from "jquery";
 
-export type Authentication = {CSRFToken: string};
+import type { Authentication } from "./authentication_provider";
 
 type Callback = (result: any) => void;
-type Callbacks = {success?: Callback, error?: Callback};
+type Callbacks = { success?: Callback, error?: Callback };
 
-export type QueryData = {
-  statement: string,
-  data_source_id: number,
-  session_id: string,
-};
-
-const headers = ({CSRFToken}) => ({
+const headers = ({ CSRFToken }) => ({
   "X-CSRF-TOKEN": CSRFToken,
-  "Content-Type": "application/json",
+  "Content-Type": "application/json"
 });
 
 export const cancel = (queryId: string, authentication: Authentication) =>
   $.ajax(`/queries/${queryId}/cancel`, {
     method: "POST",
-    headers: headers(authentication),
+    headers: headers(authentication)
   });
 
-export const startQuery = (queryData: QueryData, authentication: Authentication, callbacks: Callbacks) => {
+export const startQuery = (
+  queryData: string,
+  authentication: Authentication,
+  callbacks: Callbacks
+) => {
   $.ajax("/queries", {
     method: "POST",
     headers: headers(authentication),
     data: queryData,
     success: callbacks.success,
-    error: callbacks.error,
+    error: callbacks.error
   });
 };
 
 export const loadHistory = (
-  dataSourceName: number,
+  dataSourceName: string,
   before: string,
   authentication: Authentication,
   callbacks: Callbacks
@@ -44,7 +42,7 @@ export const loadHistory = (
     method: "GET",
     headers: headers(authentication),
     success: callbacks.success,
-    error: callbacks.error,
+    error: callbacks.error
   });
 };
 
@@ -54,11 +52,11 @@ export const loadBuckets = (
   authentication: Authentication,
   callbacks: Callbacks
 ) => {
-  const desiredChunk = (chunk >= 0) ? chunk : "all";
+  const desiredChunk = chunk >= 0 ? chunk : "all";
   $.ajax(`${bucketsLink}?chunk=${desiredChunk}`, {
     method: "GET",
     headers: headers(authentication),
     success: callbacks.success,
-    error: callbacks.error,
+    error: callbacks.error
   });
 };

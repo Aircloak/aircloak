@@ -1,11 +1,11 @@
 // @flow
 
 import React from "react";
-import PropTypes from "prop-types";
 
-import {StateView} from "./state_view";
-import {cancel} from "../request";
-import {isFinished} from "../queries/state";
+import StateView from "./state_view";
+import { cancel } from "../request";
+import { isFinished } from "../queries/state";
+import { AuthContext } from "../authentication_provider";
 
 export type Query = {
   id: string,
@@ -13,20 +13,21 @@ export type Query = {
   analyst_name: string,
   data_source_name: string,
   cloak_name: string,
-  statement: string,
+  statement: string
 };
 
 type Props = {
   query: Query
-}
+};
 
 const maxExcerptLength = 40;
 
 const queryExcerpt = (statement: string) => {
   if (statement.length > maxExcerptLength + 3) {
-    const shortenedForm = statement.replace(/[\s\n]/g, " ").
-      replace(/ +/, " ").
-      slice(0, maxExcerptLength);
+    const shortenedForm = statement
+      .replace(/[\s\n]/g, " ")
+      .replace(/ +/, " ")
+      .slice(0, maxExcerptLength);
     return `${shortenedForm}...`;
   } else {
     return statement;
@@ -35,45 +36,43 @@ const queryExcerpt = (statement: string) => {
 
 const queryViewUrl = (query: Query) => `/admin/queries/${query.id}`;
 
-export class QueryView extends React.Component {
+export class QueryView extends React.Component<Props> {
+  // eslint-disable-next-line react/static-property-placement
+  static contextType = AuthContext;
+
   shouldComponentUpdate(nextProps: Props) {
-    return nextProps.query.state !== this.props.query.state;
+    const { query } = this.props;
+    return nextProps.query.state !== query.state;
   }
 
   render() {
+    const { query } = this.props;
+    const { authentication } = this.context;
     return (
       <tr>
-        <td>{this.props.query.data_source_name}</td>
-        <td>{this.props.query.cloak_name}</td>
-        <td>{this.props.query.analyst_name}</td>
+        <td>{query.data_source_name}</td>
+        <td>{query.cloak_name}</td>
+        <td>{query.analyst_name}</td>
         <td>
-          <code>{queryExcerpt(this.props.query.statement)}</code>
+          <code>{queryExcerpt(query.statement)}</code>
         </td>
-        <td><StateView state={this.props.query.state} /></td>
+        <td>
+          <StateView queryState={query.state} />
+        </td>
         <td>
           <button
+            type="button"
             className="btn btn-warning btn-xs"
-            onClick={() => cancel(this.props.query.id, this.context.authentication)}
-            disabled={isFinished(this.props.query.state)}
-          > cancel </button>
+            onClick={() => cancel(query.id, authentication)}
+            disabled={isFinished(query.state)}
+          >
+            cancel
+          </button>
         </td>
-        <td><a href={queryViewUrl(this.props.query)}>view</a></td>
+        <td>
+          <a href={queryViewUrl(query)}>view</a>
+        </td>
       </tr>
     );
   }
 }
-
-QueryView.contextTypes = {
-  authentication: PropTypes.object.isRequired,
-};
-
-QueryView.propTypes = {
-  query: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    state: PropTypes.string.isRequired,
-    analyst_name: PropTypes.string.isRequired,
-    data_source_name: PropTypes.string.isRequired,
-    cloak_name: PropTypes.string.isRequired,
-    statement: PropTypes.string.isRequired,
-  }).isRequired,
-};

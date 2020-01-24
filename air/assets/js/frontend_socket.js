@@ -1,37 +1,45 @@
 // @flow
 
-import {Socket, LongPoll} from "phoenix";
+import { Socket, WebSocket, LongPoll } from "phoenix";
 
 type Callback = (event: any) => void;
-type Callbacks = {joined?: Callback, failedJoin?: Callback, handleEvent?: Callback};
+type Callbacks = {
+  joined?: Callback,
+  failedJoin?: Callback,
+  handleEvent?: Callback
+};
 
-export class FrontendSocket {
+export default class FrontendSocket {
   constructor(transportName: string, userToken: string) {
-    this.socket = new Socket(
-      "/frontend/socket",
-      {
-        params: {token: userToken},
-        transport: FrontendSocket.transport(transportName),
-      }
-    );
+    this.socket = new Socket("/frontend/socket", {
+      params: { token: userToken },
+      transport: FrontendSocket.transport(transportName)
+    });
 
     this.socket.connect();
   }
 
   static transport(transportName: string) {
     switch (transportName) {
-      case "websocket": return WebSocket;
-      case "long_polling": return LongPoll;
-      default: return WebSocket;
+      case "websocket":
+        return WebSocket;
+      case "long_polling":
+        return LongPoll;
+      default:
+        return WebSocket;
     }
   }
 
   socket: Socket;
 
-  isConnected() { return this.socket.isConnected(); }
+  isConnected() {
+    return this.socket.isConnected();
+  }
 
   joinUserQueriesChannel(userId: number, callbacks: Callbacks) {
-    return this.joinChannel(callbacks, `user_queries:${userId}`, ["state_change"]);
+    return this.joinChannel(callbacks, `user_queries:${userId}`, [
+      "state_change"
+    ]);
   }
 
   joinUpdatesForQuery(queryId: string, callbacks: Callbacks) {
@@ -43,31 +51,39 @@ export class FrontendSocket {
   }
 
   joinDataSourceChannel(dataSourceName: string, callbacks: Callbacks) {
-    return this.joinChannel(callbacks, `data_source:${dataSourceName}`, ["status"]);
+    return this.joinChannel(callbacks, `data_source:${dataSourceName}`, [
+      "status"
+    ]);
   }
 
   joinCloakStatsChannel(callbacks: Callbacks) {
     return this.joinChannel(callbacks, "cloak_stats", ["updated_cloak_infos"]);
   }
 
-  joinSelectablesChannel(dataSourceName: string, userId: number, callbacks: Callbacks) {
-    return this.joinChannel(callbacks, `selectables:${dataSourceName}:${userId}`,
-      ["selectables_change"]);
+  joinSelectablesChannel(
+    dataSourceName: string,
+    userId: number,
+    callbacks: Callbacks
+  ) {
+    return this.joinChannel(
+      callbacks,
+      `selectables:${dataSourceName}:${userId}`,
+      ["selectables_change"]
+    );
   }
 
   joinChannel(callbacks: Callbacks, channelName: string, eventNames: string[]) {
     const channel = this.socket.channel(channelName, {});
     const noop = () => {};
-    const {
-      joined = noop,
-      failedJoin = noop,
-      handleEvent = noop,
-    } = callbacks;
+    const { joined = noop, failedJoin = noop, handleEvent = noop } = callbacks;
 
-    channel.join()
+    channel
+      .join()
       .receive("ok", joined)
       .receive("error", failedJoin);
-    eventNames.forEach((name) => { channel.on(name, handleEvent); });
+    eventNames.forEach(name => {
+      channel.on(name, handleEvent);
+    });
 
     return channel;
   }

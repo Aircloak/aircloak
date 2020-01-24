@@ -1,21 +1,17 @@
 module.exports = {
-  "extends": [
-    "airbnb",
+  extends: [
+    "react-app",
     "plugin:flowtype/recommended",
     "plugin:import/errors",
-    "plugin:import/warnings",
+    "plugin:import/warnings"
   ],
-  "parser": "babel-eslint",
-  "plugins": [
-    "react",
-    "flowtype"
-  ],
-  "rules": {
+  parser: "babel-eslint",
+  plugins: ["react", "flowtype"],
+  rules: {
     "allow-unused-underscore-vars": ["error"],
     "no-else-return": ["off"],
-    "quotes": ["error", "double"],
-    "object-curly-spacing": ["error", "never"],
-    "max-len": ["error", {"code": 120}],
+    quotes: ["error", "double"],
+    "max-len": ["error", { code: 120 }],
     /* FIXME break out all components to separate files and turn this on */
     "react/no-multi-comp": ["off"],
     "flowtype/require-valid-file-annotation": [2, "always"],
@@ -24,10 +20,14 @@ module.exports = {
     /* Handled by plugin-import */
     "no-duplicate-imports": ["off"],
     "no-underscore-dangle": ["off"],
+    "react/jsx-filename-extension": [0]
   },
-  "settings": {
-    "flowtype": {
-      "onlyFilesWithFlowAnnotation": false
+  settings: {
+    flowtype: {
+      onlyFilesWithFlowAnnotation: false
     }
+  },
+  globals: {
+    window: true
   }
 };

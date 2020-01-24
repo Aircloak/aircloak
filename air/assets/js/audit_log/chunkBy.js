@@ -7,7 +7,7 @@ export default <T>(items: Array<T>, key: (item: T) => any): Array<Array<T>> => {
   let chunk = [];
   let lastKey = null;
 
-  items.forEach((item) => {
+  items.forEach(item => {
     const nextKey = key(item);
     if (_.isNull(lastKey) || _.isEqual(nextKey, lastKey)) {
       chunk.push(item);

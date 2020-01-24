@@ -2,12 +2,12 @@
 
 import React from "react";
 
-import {Filter} from "./filter";
+import { Filter } from "./filter";
 
 export type Column = {
   name: string,
   type: string,
-  key_type: string,
+  key_type: string
 };
 
 const potentiallyRenderColumnIcon = (column: Column) => {
@@ -31,30 +31,47 @@ const columnClassName = (column: Column) => {
   }
 };
 
-export const ColumnsView = (props: {filter: Filter, columns: Column[]}) =>
-  <table className="table table-condensed">
-    <thead>
-      <tr>
-        <th>Column</th>
-        <th>Type</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {props.filter.filterColumns(props.columns).map((column, i) =>
-        <tr key={i}>
-          <td
-            onClick={(event) => {
-              event.preventDefault();
-              window.insertWordInEditor(column.name);
-            }}
-            className={columnClassName(column)}
-          >
-            {potentiallyRenderColumnIcon(column)}
-            {column.name}
-          </td>
-          <td>{column.key_type ? `${column.key_type} (${column.type})` : column.type}</td>
+export const ColumnsView = ({
+  filter,
+  columns
+}: {
+  filter: Filter,
+  columns: Column[]
+}) => {
+  return (
+    <table className="table table-condensed">
+      <thead>
+        <tr>
+          <th>Column</th>
+          <th>Type</th>
         </tr>
-      )}
-    </tbody>
-  </table>;
+      </thead>
+
+      <tbody>
+        {filter.filterColumns(columns).map(column => (
+          <tr key={column.name}>
+            {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions,
+                               jsx-a11y/click-events-have-key-events */}
+            <td
+              onClick={event => {
+                event.preventDefault();
+                window.insertWordInEditor(column.name);
+              }}
+              className={columnClassName(column)}
+            >
+              {potentiallyRenderColumnIcon(column)}
+              {column.name}
+            </td>
+            {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions,
+                               jsx-a11y/click-events-have-key-events */}
+            <td>
+              {column.key_type
+                ? `${column.key_type} (${column.type})`
+                : column.type}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+};

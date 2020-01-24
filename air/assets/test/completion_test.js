@@ -13,7 +13,7 @@ it("completes keywords", () => {
       ],
       from: 6,
       to: 9,
-    }
+    },
   );
 });
 
@@ -24,7 +24,7 @@ it("completes expressions", () => {
       list: [{text: "SHOW TABLES", from: 0, to: 8}],
       from: 0,
       to: 8,
-    }
+    },
   );
 });
 
@@ -38,7 +38,7 @@ it("completes 'show columns from <table>'", () => {
       ],
       from: 0,
       to: 8,
-    }
+    },
   );
 });
 
@@ -53,7 +53,7 @@ it("completes 'from <table>'", () => {
       ],
       from: 0,
       to: 2,
-    }
+    },
   );
 });
 
@@ -68,7 +68,7 @@ it("completes table names", () => {
       ],
       from: 0,
       to: 8,
-    }
+    },
   );
 });
 
@@ -82,7 +82,7 @@ it("completes column names", () => {
       ],
       from: 0,
       to: 3,
-    }
+    },
   );
 });
 
@@ -93,7 +93,7 @@ it("deduplicates suggestions", () => {
       list: [{text: "column", from: 0, to: 3}],
       from: 0,
       to: 3,
-    }
+    },
   );
 });
 
@@ -107,7 +107,7 @@ it("completes mid-word", () => {
       ],
       from: 0,
       to: 3,
-    }
+    },
   );
 });
 
@@ -118,7 +118,7 @@ it("escapes escape sequences", () => {
       list: [],
       from: 0,
       to: 0,
-    }
+    },
   );
 });
 
@@ -132,7 +132,7 @@ it("completes after parens", () => {
       ],
       from: 6,
       to: 10,
-    }
+    },
   );
 });
 
@@ -143,7 +143,7 @@ it("completes based on what else has been written in query", () => {
       list: [{text: "aliased_name", from: 0, to: 5}],
       from: 0,
       to: 5,
-    }
+    },
   );
 });
 
@@ -154,7 +154,7 @@ it("completes based on what else has been written in query but excludes the curr
       list: [{text: "aliased_name", from: 0, to: 5}],
       from: 0,
       to: 5,
-    }
+    },
   );
 });
 
@@ -165,6 +165,6 @@ it("completions based on written query do not contain trailing comman", () => {
       list: [{text: "aliased_name", from: 0, to: 5}],
       from: 0,
       to: 5,
-    }
+    },
   );
 });

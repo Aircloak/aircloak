@@ -2,23 +2,25 @@
 
 import React from "react";
 
-import {QueryView} from "./query";
-import {QueryStatsSummaryView} from "./query_stats_summary";
-import type {Query} from "./query";
+import { QueryView } from "./query";
+import QueryStatsSummaryView from "./query_stats_summary";
+import type { Query } from "./query";
+
+type Props = {
+  queries: Query[]
+};
 
 const MAX_QUERIES_TO_SHOW = 20;
 
 const renderQueries = (queries: Query[]) => {
   if (queries.length > 0) {
-    return queries.slice(0, MAX_QUERIES_TO_SHOW).map((query) =>
-      <QueryView key={query.id} query={query} />
-    );
+    return queries
+      .slice(0, MAX_QUERIES_TO_SHOW)
+      .map(query => <QueryView key={query.id} query={query} />);
   } else {
     return (
       <tr>
-        <td colSpan="5">
-          Currently there are no queries running.
-        </td>
+        <td colSpan="5">Currently there are no queries running.</td>
       </tr>
     );
   }
@@ -32,8 +34,11 @@ const renderNumActiveQueriesShown = (queries: Query[]) => {
         <QueryStatsSummaryView queries={queries} />
 
         <p>
-          Showing the <strong>{MAX_QUERIES_TO_SHOW}</strong> most recent
-          of the <strong>{numQueries}</strong> currently active queries.
+          {"Showing the "}
+          <strong>{MAX_QUERIES_TO_SHOW}</strong>
+          {" most recent of the "}
+          <strong>{numQueries}</strong>
+          {" currently active queries."}
         </p>
       </div>
     );
@@ -42,12 +47,13 @@ const renderNumActiveQueriesShown = (queries: Query[]) => {
   }
 };
 
-export class QueriesView extends React.PureComponent {
+export default class QueriesView extends React.PureComponent<Props> {
   render() {
+    const { queries } = this.props;
     return (
       <div>
         <h3>Queries</h3>
-        {renderNumActiveQueriesShown(this.props.queries)}
+        {renderNumActiveQueriesShown(queries)}
         <table className="table">
           <thead>
             <tr>
@@ -56,13 +62,11 @@ export class QueriesView extends React.PureComponent {
               <th>Analyst</th>
               <th>Query</th>
               <th>State</th>
-              <th></th>
-              <th></th>
+              <th> </th>
+              <th> </th>
             </tr>
           </thead>
-          <tbody>
-            {renderQueries(this.props.queries)}
-          </tbody>
+          <tbody>{renderQueries(queries)}</tbody>
         </table>
       </div>
     );

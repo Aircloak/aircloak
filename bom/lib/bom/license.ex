@@ -57,6 +57,8 @@ defmodule BOM.License do
   # -------------------------------------------------------------------
 
   defp do_name_to_type("mit"), do: :mit
+  defp do_name_to_type("creative commons attribution 4.0 international"), do: :cca4i
+  defp do_name_to_type("creative commons attribution 3.0 unported"), do: :cca3u
   defp do_name_to_type("mit/x11"), do: :mit
   defp do_name_to_type("isc"), do: :isc
   defp do_name_to_type("freebsd"), do: :bsd_3_clause
