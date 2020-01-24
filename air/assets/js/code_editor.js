@@ -42,10 +42,7 @@ export default class CodeEditor extends React.Component<Props> {
     editor.showHint({ hint: this.completionList });
   };
 
-  onChange = (editor: Editor) => {
-    const { onChange } = this.props;
-    onChange(editor.getValue());
-  };
+  onChange = (editor: Editor) => this.props.onChange(editor.getValue());
 
   editorDidMount = (editor: Editor) => {
     this.editor = editor;
