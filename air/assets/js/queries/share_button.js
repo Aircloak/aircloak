@@ -1,5 +1,4 @@
 // @flow
-/* eslint-disable jsx-a11y/label-has-associated-control */
 
 import React from "react";
 import { Modal, Button } from "react-bootstrap";
@@ -67,12 +66,13 @@ export default class ShareButton extends React.Component<Props, State> {
 
             <Modal.Body>
               <div className="form-group">
-                <label>Public link</label>
+                <label for="public-permalink">Public link</label>
                 <p className="help-block">
                   Anyone with this link will be able to view the query and its
                   results.
                 </p>
                 <input
+                  id="public-permalink"
                   className="form-control"
                   readOnly
                   value={this.publicPermalink()}
@@ -80,12 +80,13 @@ export default class ShareButton extends React.Component<Props, State> {
               </div>
 
               <div className="form-group">
-                <label>Private link</label>
+                <label for="private-permalink">Private link</label>
                 <p className="help-block">
                   This link requires logging in with an Insights Air account
                   that is allowed to access this data source.
                 </p>
                 <input
+                  id="private-permalink"
                   className="form-control"
                   readOnly
                   value={this.privatePermalink()}
