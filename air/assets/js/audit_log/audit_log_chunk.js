@@ -23,45 +23,22 @@ export default class AuditLogChunk extends React.Component<Props, State> {
 
     this.state = { collapsed: true };
 
-    this.numberOfEvents = this.numberOfEvents.bind(this);
-    this.eventName = this.eventName.bind(this);
-    this.user = this.user.bind(this);
     this.toggleCollapsed = this.toggleCollapsed.bind(this);
     this.renderEvents = this.renderEvents.bind(this);
   }
 
-  numberOfEvents = () => {
-    const { auditLogs } = this.props;
-    return auditLogs.length;
-  };
-
-  eventName = () => {
-    const { auditLogs } = this.props;
-    return auditLogs[0].event;
-  };
-
-  user = () => {
-    const { auditLogs } = this.props;
-    return auditLogs[0].user;
-  };
-
-  times = () => {
-    const { auditLogs } = this.props;
-    return auditLogs.map<AuditLog>(auditLog => formatTime(auditLog.time));
-  };
+  times = () =>
+    this.props.auditLogs.map<AuditLog>(auditLog => formatTime(auditLog.time));
 
   toggleCollapsed = (event: Event) => {
     event.preventDefault();
-    const { collapsed } = this.state;
-    this.setState({ collapsed: !collapsed });
+    this.setState({ collapsed: !this.state.collapsed });
   };
 
   renderEvents = (): React$Node => {
-    const { collapsed } = this.state;
-    if (collapsed) {
+    if (this.state.collapsed) {
       return null;
     } else {
-      const { auditLogs } = this.props;
       return (
         <tr>
           <td colSpan="5">
@@ -72,7 +49,7 @@ export default class AuditLogChunk extends React.Component<Props, State> {
                   <th> </th>
                 </tr>
               </thead>
-              {auditLogs.map<React$Element<typeof AuditLogEntry>>(
+              {this.props.auditLogs.map<React$Element<typeof AuditLogEntry>>(
                 (auditLog, i) => (
                   // eslint-disable-next-line react/no-array-index-key
                   <AuditLogEntry key={i} auditLog={auditLog} />
@@ -88,9 +65,9 @@ export default class AuditLogChunk extends React.Component<Props, State> {
   render = () => (
     <tbody className="panel panel-default">
       <tr className="panel-heading">
-        <td>{this.eventName()}</td>
-        <td>{this.numberOfEvents()}</td>
-        <td>{this.user()}</td>
+        <td>{this.props.auditLogs[0].event}</td>
+        <td>{this.props.auditLogs.length}</td>
+        <td>{this.props.auditLogs[0].user}</td>
         <td>
           {_.min(this.times())}
           {" - "}
