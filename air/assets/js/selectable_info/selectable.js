@@ -38,22 +38,6 @@ const TABLE_INVALID_MESSAGE =
   "More information may be available in Insights Cloak logs - contact your administrator for access.";
 
 export class SelectableView extends React.Component<Props> {
-  constructor(props: Props) {
-    super(props);
-
-    this.handleToggleClick = this.handleToggleClick.bind(this);
-    this.isAnalystCreatedSelectable = this.isAnalystCreatedSelectable.bind(
-      this
-    );
-    this.hasRenderableContent = this.hasRenderableContent.bind(this);
-    this.renderSelectableActionMenu = this.renderSelectableActionMenu.bind(
-      this
-    );
-    this.renderSelectableView = this.renderSelectableView.bind(this);
-    this.triggerDelete = this.triggerDelete.bind(this);
-    this.brokenErrorMessage = this.brokenErrorMessage.bind(this);
-  }
-
   handleToggleClick = (event: {
     target: Element,
     preventDefault: () => void

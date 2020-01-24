@@ -23,11 +23,6 @@ type Props = {
 export default class CodeEditor extends React.Component<Props> {
   constructor(props: Props) {
     super(props);
-    this.completionList = this.completionList.bind(this);
-    this.run = this.run.bind(this);
-    this.showHint = this.showHint.bind(this);
-    this.onChange = this.onChange.bind(this);
-    this.editorDidMount = this.editorDidMount.bind(this);
     this.editor = null;
     window.insertWordInEditor = this.insertWordInEditor.bind(this);
     window.showErrorLocation = this.showErrorLocation.bind(this);
