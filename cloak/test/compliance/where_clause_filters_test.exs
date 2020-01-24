@@ -272,6 +272,8 @@ defmodule Compliance.WhereClauseFilters.Text do
     test "input #{column} with a WHERE-clause range on #{table}", context do
       context
       |> disable_for(Cloak.DataSource.MongoDB, true)
+      # Impala maps dates to datetime (TIMESTAMP). The returned results will be equivalent,
+      # but tests will fail because other databases return results as date only.
       |> disable_for(Cloak.DataSource.ClouderaImpala, true)
       |> assert_consistent_and_not_failing("""
         SELECT count(*)

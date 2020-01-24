@@ -83,6 +83,7 @@ defmodule Compliance.DataSource.ClouderaImpala do
       |> Stream.concat()
       |> Stream.map(fn _ -> "?" end)
       |> Stream.chunk_every(length(hd(rows)))
+      # credo:disable-for-next-line Credo.Check.Readability.SpaceAfterCommas
       |> Stream.map(&"(#{Enum.join(&1, ",")})")
       |> Enum.join(", ")
 

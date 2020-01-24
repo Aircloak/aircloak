@@ -69,6 +69,8 @@ defmodule Compliance.GroupByTest do
       context
       |> disable_unicode(unquote(table), unquote(column))
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
+      # Impala maps dates to datetime (TIMESTAMP). The returned results will be equivalent,
+      # but tests will fail because other databases return results as date only.
       |> disable_for(Cloak.DataSource.ClouderaImpala, unquote(column) == "birthday")
       # MySQL and SQL Server order NULLs differently by default
       |> disable_for(Cloak.DataSource.MySQL, unquote(column) == "nullable")
