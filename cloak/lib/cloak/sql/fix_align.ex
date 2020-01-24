@@ -40,35 +40,19 @@ defmodule Cloak.Sql.FixAlign do
   @doc """
   Returns an interval that has been aligned to a fixed grid. The density of the grid depends on the size of
   the input interval. Both ends of the input will be contained inside the output.
-
-  Options:
-  :allow_fractions - allow intervals smaller than 1 unit, defaults to true
-  :allow_half - allow intervals to be aligned by half their size (for example {2.5, 7.5}), defaults to true
-  :size_factors - the sizes of intervals to use, defaults to [1, 2, 5] (money-aligned), will be extended both ways
-    (for example to [..., 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, ...])
   """
-  @spec align_interval(interval(x), Keyword.t()) :: interval(x) when x: var
-  def align_interval(interval, opts \\ [])
-  def align_interval({x, y}, _) when is_boolean(x) and is_boolean(y), do: {x, y}
+  @spec align_interval(interval(x)) :: interval(x) when x: var
+  def align_interval({x, y}) when is_boolean(x) and is_boolean(y), do: {x, y}
 
-  def align_interval({x, y}, _) when is_number(x) and is_number(y) and x > y, do: raise("Invalid interval")
+  def align_interval({x, y}) when is_number(x) and is_number(y) and x > y, do: raise("Invalid interval")
 
-  def align_interval(interval = {x, y}, opts) when is_number(x) and is_number(y) do
-    allow_fractions = Keyword.get(opts, :allow_fractions, true)
-    allow_half = Keyword.get(opts, :allow_half, true)
-    size_factors = Keyword.get(opts, :size_factors, @default_size_factors)
+  def align_interval(interval = {x, y}) when is_number(x) and is_number(y), do: align_numeric_interval(interval)
 
-    interval
-    |> sizes(size_factors, allow_fractions)
-    |> Stream.map(&snap(&1, interval, allow_half))
-    |> Enum.find(& &1)
-  end
+  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}), do: align_date_time({x, y}) |> max_precision()
 
-  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _), do: align_date_time({x, y}) |> max_precision()
+  def align_interval({%Date{} = x, %Date{} = y}), do: {x, y} |> align_date_time() |> to_date()
 
-  def align_interval({%Date{} = x, %Date{} = y}, _), do: {x, y} |> align_date_time() |> to_date()
-
-  def align_interval({%Time{} = x, %Time{} = y}, _),
+  def align_interval({%Time{} = x, %Time{} = y}),
     do:
       {x, y}
       |> time_to_datetime()
@@ -132,10 +116,10 @@ defmodule Cloak.Sql.FixAlign do
   defp align_date_time_once({x, y}, unit) do
     {x, y}
     |> units_since_epoch(unit)
-    |> align_interval(
-      size_factors: size_factors(unit),
-      allow_fractions: false,
-      allow_half: allow_half?(x, unit)
+    |> align_numeric_interval(
+      _allow_fractions? = false,
+      _allow_half? = allow_half?(x, unit),
+      _size_factors = size_factors(unit)
     )
     |> datetime_from_units(unit)
   end
@@ -253,10 +237,22 @@ defmodule Cloak.Sql.FixAlign do
   # Internal functions for numeric intervals
   # -------------------------------------------------------------------
 
-  defp snap(size, {x, y}, allow_half) do
+  defp align_numeric_interval(
+         interval,
+         allow_fractions? \\ true,
+         allow_half? \\ true,
+         size_factors \\ @default_size_factors
+       ) do
+    interval
+    |> sizes(size_factors, allow_fractions?)
+    |> Stream.map(&snap(&1, interval, allow_half?))
+    |> Enum.find(& &1)
+  end
+
+  defp snap(size, {x, y}, allow_half?) do
     require Integer
 
-    can_halve = allow_half || (is_integer(size) && Integer.is_even(size))
+    can_halve = allow_half? || (is_integer(size) && Integer.is_even(size))
     left = if can_halve, do: floor_to(x, size / 2), else: floor_to(x, size)
     right = left + size
 
@@ -278,14 +274,14 @@ defmodule Cloak.Sql.FixAlign do
     end
   end
 
-  defp sizes(interval, size_factors, allow_fractions) do
-    Stream.concat(small_sizes(interval, allow_fractions), large_sizes())
+  defp sizes(interval, size_factors, allow_fractions?) do
+    Stream.concat(small_sizes(interval, allow_fractions?), large_sizes())
     |> Stream.flat_map(&for factor <- size_factors, do: &1 * factor)
   end
 
-  defp small_sizes(_, _allow_fractions = false), do: []
+  defp small_sizes(_, _allow_fractions? = false), do: []
 
-  defp small_sizes({x, y}, _allow_fractions = true) do
+  defp small_sizes({x, y}, _allow_fractions? = true) do
     start =
       ((y - x) / 2)
       |> :math.log10()
