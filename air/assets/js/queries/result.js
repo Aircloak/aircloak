@@ -187,12 +187,13 @@ export class ResultView extends React.Component<Props, State> {
   };
 
   handleClickLessRows = () => {
-    const { rowsToShowCount } = this.state;
-    const updatedRowsToShowCount = Math.max(
-      Math.round(rowsToShowCount / 2),
-      this.minRowsToShow
-    );
-    this.setState({ rowsToShowCount: updatedRowsToShowCount });
+    this.setState(state => {
+      const updatedRowsToShowCount = Math.max(
+        Math.round(state.rowsToShowCount / 2),
+        this.minRowsToShow
+      );
+      return { rowsToShowCount: updatedRowsToShowCount };
+    });
   };
 
   showChart = () => {
@@ -278,20 +279,14 @@ export class ResultView extends React.Component<Props, State> {
     );
   };
 
-  addX = (col: number) => () => {
-    const { graphConfig } = this.state;
-    this.setState({ graphConfig: graphConfig.addX(col) });
-  };
+  addX = (col: number) => () =>
+    this.setState(state => ({ graphConfig: state.graphConfig.addX(col) }));
 
-  addY = (col: number) => () => {
-    const { graphConfig } = this.state;
-    this.setState({ graphConfig: graphConfig.addY(col) });
-  };
+  addY = (col: number) => () =>
+    this.setState(state => ({ graphConfig: state.graphConfig.addY(col) }));
 
-  removeColumn = (col: number) => () => {
-    const { graphConfig } = this.state;
-    this.setState({ graphConfig: graphConfig.remove(col) });
-  };
+  removeColumn = (col: number) => () =>
+    this.setState(state => ({ graphConfig: state.graphConfig.remove(col) }));
 
   formatValue = (value: any, columnIndex: number): string => {
     const { result, numberFormat } = this.props;

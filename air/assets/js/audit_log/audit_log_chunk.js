@@ -32,7 +32,7 @@ export default class AuditLogChunk extends React.Component<Props, State> {
 
   toggleCollapsed = (event: Event) => {
     event.preventDefault();
-    this.setState({ collapsed: !this.state.collapsed });
+    this.setState(state => ({ collapsed: !state.collapsed }));
   };
 
   renderEvents = (): React$Node => {

@@ -74,41 +74,36 @@ export default class SelectableInfo extends React.Component<Props, State> {
   };
 
   toggleExpand = (selectable: Selectable) => () => {
-    const { expanded } = this.state;
-    if (this.expanded(selectable)) {
-      expanded.delete(selectable.id);
-    } else {
-      expanded.add(selectable.id);
-    }
-    this.setState({ expanded });
+    this.setState(state => {
+      const expanded = state.expanded;
+      if (this.expanded(selectable)) {
+        expanded.delete(selectable.id);
+      } else {
+        expanded.add(selectable.id);
+      }
+      return { expanded };
+    });
   };
 
   updateSelectables = (event: { selectables: Selectable[] }) => {
     this.setState({ selectables: event.selectables });
   };
 
-  expanded = (selectable: Selectable) => {
-    const { expanded } = this.state;
-    return expanded.has(selectable.id);
-  };
+  expanded = (selectable: Selectable) => this.state.expanded.has(selectable.id);
 
-  selectables = () => {
-    const { selectableToExclude } = this.props;
-    const { selectables } = this.state;
-    return _.reject(
-      selectables,
+  selectables = () =>
+    _.reject(
+      this.state.selectables,
       selectable =>
-        selectable.internal_id === (selectableToExclude || "don't exclude any")
+        selectable.internal_id ===
+        (this.props.selectableToExclude || "don't exclude any")
     );
-  };
 
-  dataSourceStatusReceived = (event: { status: string }) => {
+  dataSourceStatusReceived = (event: { status: string }) =>
     this.setState({ dataSourceStatus: event.status });
-  };
 
   renderAvailabilityLabel = () => {
-    const { dataSourceStatus } = this.state;
-    switch (dataSourceStatus) {
+    switch (this.state.dataSourceStatus) {
       case "online":
         return <span className="label label-success pull-right">Online</span>;
       case "offline":

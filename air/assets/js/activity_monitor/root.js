@@ -60,9 +60,9 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
   queryRemovalTime: number;
 
   handleRemoveQuery = (queryId: string) => {
-    const { queries } = this.state;
-    const filteredQueries = _.reject(queries, query => query.id === queryId);
-    this.setState({ queries: filteredQueries });
+    this.setState(state => ({
+      queries: _.reject(state.queries, query => query.id === queryId)
+    }));
   };
 
   conditionallyScheduleQueryRemoval = (queryEvent: QueryEvent) => {
@@ -76,14 +76,13 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
 
   handleQueryEvent = (queryEvent: QueryEvent) => {
     this.conditionallyScheduleQueryRemoval(queryEvent);
-    const { queries } = this.state;
 
     if (queryEvent.event === "started") {
       const newQuery = queryEvent.query;
-      this.setState({ queries: [newQuery, ...queries] });
+      this.setState(state => ({ queries: [newQuery, ...state.queries] }));
     } else {
-      this.setState({
-        queries: _.map(queries, existingQuery => {
+      this.setState(state => ({
+        queries: _.map(state.queries, existingQuery => {
           if (existingQuery.id === queryEvent.query_id) {
             const alteredQuery = _.clone(existingQuery);
             alteredQuery.state = queryEvent.event;
@@ -92,7 +91,7 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
             return existingQuery;
           }
         })
-      });
+      }));
     }
   };
 

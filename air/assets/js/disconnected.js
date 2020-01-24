@@ -34,8 +34,9 @@ export default class Disconnected extends React.Component<Props, State> {
   };
 
   updateConnected = () => {
-    const { channel } = this.props;
-    this.setState({ isConnected: channel.isJoined() });
+    this.setState((_state, props) => ({
+      isConnected: props.channel.isJoined()
+    }));
   };
 
   render = () => {

@@ -299,18 +299,13 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   };
 
   handleLoadHistory = () => {
-    const { history, sessionResults } = this.state;
-    const { before } = history;
-    const updatedHistory = {
-      before,
-      loaded: false,
-      loading: true
-    };
-    this.setState({ history: updatedHistory });
+    this.setState(state => ({
+      history: { before: state.history.before, loaded: false, loading: true }
+    }));
 
     const { dataSourceName } = this.props;
     const { authentication } = this.context;
-    loadHistory(dataSourceName, before, authentication, {
+    loadHistory(dataSourceName, this.state.history.before, authentication, {
       success: response => {
         const successHistory =
           response.length < historyPageSize
@@ -324,14 +319,10 @@ export default class QueriesView extends React.PureComponent<Props, State> {
                 loaded: false,
                 loading: false
               };
-        const ammendedSessionResults = _.uniqBy(
-          sessionResults.concat(response),
-          "id"
-        );
-        this.setState({
-          sessionResults: ammendedSessionResults,
+        this.setState(state => ({
+          sessionResults: _.uniqBy(state.sessionResults.concat(response), "id"),
           history: successHistory
-        });
+        }));
       },
 
       // eslint-disable-next-line no-unused-vars
