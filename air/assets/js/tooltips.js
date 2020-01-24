@@ -2,6 +2,6 @@
 
 import _ from "lodash";
 import $ from "jquery";
-import "./vendor/bootstrap";
+import "bootstrap";
 
 export default () => _.defer(() => $("[data-toggle='tooltip']").tooltip());
