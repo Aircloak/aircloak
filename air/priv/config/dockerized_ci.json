@@ -21,7 +21,7 @@
     "name": "air_test"
   },
   "shadow_database": {
-    "host": "postgres9.4",
+    "host": "postgres11.2",
     "port": 5432,
     "ssl": false,
     "user": "postgres",
