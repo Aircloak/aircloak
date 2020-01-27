@@ -53,17 +53,6 @@ defmodule Compliance.Data do
     }
   end
 
-  @doc "Regroups a dataset into set of collections. No flattening occurs. Useful for document stores."
-  @spec to_collections(Map.t()) :: Map.t()
-  def to_collections(users) do
-    %{
-      users: users_to_collection(users),
-      addresses: addresses_to_collection(users),
-      notes: notes_to_collection(users),
-      notes_changes: notes_changes_to_collection(users)
-    }
-  end
-
   # -------------------------------------------------------------------
   # Internal functions - data generation
   # -------------------------------------------------------------------
@@ -205,28 +194,6 @@ defmodule Compliance.Data do
   # -------------------------------------------------------------------
   # Internal functions - flattening to tables
   # -------------------------------------------------------------------
-
-  defp users_to_collection(users), do: flatten_users(users)
-
-  defp addresses_to_collection(users) do
-    Enum.flat_map(users, fn user ->
-      for address <- user.addresses, do: Map.put(address, :user_fk, user.id)
-    end)
-  end
-
-  defp notes_to_collection(users) do
-    Enum.flat_map(users, fn user ->
-      for note <- user.notes, do: Map.put(note, :user_fk, user.id)
-    end)
-  end
-
-  defp notes_changes_to_collection(users) do
-    Enum.flat_map(users, fn user ->
-      Enum.flat_map(user.notes, fn note ->
-        for change <- note.changes, do: Map.put(change, :note_id, change.note_id)
-      end)
-    end)
-  end
 
   defp flatten_users(users),
     do:
