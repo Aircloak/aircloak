@@ -164,6 +164,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp floated_noise_layers(query),
     do:
       Query.Lenses.direct_subqueries()
+      |> Lens.filter(&(&1.ast.type == :restricted))
       |> Lens.to_list(query)
       |> Enum.flat_map(fn %{ast: subquery, alias: alias} ->
         subquery_table = Enum.find(query.selected_tables, &(&1.name == alias))
