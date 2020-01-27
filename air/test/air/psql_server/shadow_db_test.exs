@@ -24,10 +24,10 @@ defmodule Air.PsqlServer.ShadowDbTest do
   end
 
   setup do
-    Air.PsqlServer.enable_shadowdb_synchronization()
+    enable_shadowdb_synchronization()
 
     on_exit(fn ->
-      Air.PsqlServer.disable_shadowdb_synchronization()
+      disable_shadowdb_synchronization()
     end)
   end
 
@@ -434,6 +434,11 @@ defmodule Air.PsqlServer.ShadowDbTest do
     socket
   end
 
+  defp revalidation_success(names) do
+    columns = [%{name: "foo", type: "integer", key_type: "user_id"}, %{name: "bar", type: "text", key_type: nil}]
+    Enum.map(names, &%{name: &1, columns: columns, valid: true})
+  end
+
   defp wait_for_synchronization(user, data_source) do
     # Async activities may linger after tests, which results in confusing Ecto errors.
     # We wait for ShadowDb servers to handle all messages before concluding tests.
@@ -441,8 +446,15 @@ defmodule Air.PsqlServer.ShadowDbTest do
     Air.PsqlServer.ShadowDb.Manager.wait_until_initialized(user, data_source.name)
   end
 
-  defp revalidation_success(names) do
-    columns = [%{name: "foo", type: "integer", key_type: "user_id"}, %{name: "bar", type: "text", key_type: nil}]
-    Enum.map(names, &%{name: &1, columns: columns, valid: true})
+  defp enable_shadowdb_synchronization() do
+    Supervisor.start_child(Air.PsqlServer, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
+    :ok
+  end
+
+  defp disable_shadowdb_synchronization() do
+    Air.PsqlServer.ShadowDb.SchemaSynchronizer.wait_for_synchronization()
+    Supervisor.terminate_child(Air.PsqlServer, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
+    Supervisor.delete_child(Air.PsqlServer, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
+    :ok
   end
 end

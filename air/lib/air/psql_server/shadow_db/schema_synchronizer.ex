@@ -30,8 +30,7 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
   def handle_info({:user_deleted, data}, state) do
     %{user: user, previous_data_sources: data_sources} = data
 
-    data_sources
-    |> Enum.each(&ShadowDb.drop(user, &1))
+    Enum.each(data_sources, &ShadowDb.drop(user, &1))
 
     {:noreply, state}
   end
@@ -74,8 +73,7 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
   def handle_info({:data_source_deleted, data}, state) do
     %{data_source_name: data_source_name, previous_users: previous_users} = data
 
-    previous_users
-    |> Enum.each(&ShadowDb.drop(&1, data_source_name))
+    Enum.each(previous_users, &ShadowDb.drop(&1, data_source_name))
 
     {:noreply, state}
   end
@@ -92,11 +90,8 @@ defmodule Air.PsqlServer.ShadowDb.SchemaSynchronizer do
 
     revoked_users = MapSet.difference(previous_users, new_users)
 
-    new_users
-    |> Enum.each(&ShadowDb.update(&1, data_source_name))
-
-    revoked_users
-    |> Enum.each(&ShadowDb.drop(&1, data_source_name))
+    Enum.each(new_users, &ShadowDb.update(&1, data_source_name))
+    Enum.each(revoked_users, &ShadowDb.drop(&1, data_source_name))
 
     {:noreply, state}
   end

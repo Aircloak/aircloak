@@ -50,22 +50,6 @@ defmodule Air.PsqlServer do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Enables ShadowDb synchronization by starting the synchronizer process."
-  @spec enable_shadowdb_synchronization() :: :ok
-  def enable_shadowdb_synchronization() do
-    Supervisor.start_child(__MODULE__, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
-    :ok
-  end
-
-  @doc "Disables ShadowDb synchronization by stopping the synchronizer process."
-  @spec disable_shadowdb_synchronization() :: :ok
-  def disable_shadowdb_synchronization() do
-    Air.PsqlServer.ShadowDb.SchemaSynchronizer.wait_for_synchronization()
-    Supervisor.terminate_child(__MODULE__, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
-    Supervisor.delete_child(__MODULE__, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
-    :ok
-  end
-
   @doc "Returns the postgresql server configuration."
   @spec configuration() :: configuration
   def configuration() do

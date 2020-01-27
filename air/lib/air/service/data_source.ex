@@ -71,7 +71,7 @@ defmodule Air.Service.DataSource do
     :ok
   end
 
-  @doc "Subscribes to notifications about activities."
+  @doc "Unsubscribes from notifications about asynchronous activities."
   @spec unsubscribe_from(data_source_notification) :: :ok
   def unsubscribe_from(notification) do
     Registry.unregister(@notifications_registry, notification)
