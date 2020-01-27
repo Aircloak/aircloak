@@ -6,6 +6,7 @@
 - Support for `distinct` modifier was removed for all aggregate functions except `count` and `count_noise`.
 - Support for `SAMPLE_USERS` was removed. 
 - Support for the `hash` function was removed.
+- Minimum Oracle version supported is now 12c.
 
 ### Enhancements
 

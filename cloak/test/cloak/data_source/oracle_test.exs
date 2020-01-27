@@ -15,9 +15,9 @@ defmodule Cloak.DataSource.Oracle.Test do
     assert Oracle.supports_query?(%Query{query | type: :standard})
   end
 
-  test "offset is not supported" do
+  test "offset is supported" do
     query = compile!("SELECT * FROM table ORDER BY uid OFFSET 10", data_source())
-    refute Oracle.supports_query?(%Query{query | type: :standard})
+    assert Oracle.supports_query?(%Query{query | type: :standard})
   end
 
   describe "interval_mapper/1" do
