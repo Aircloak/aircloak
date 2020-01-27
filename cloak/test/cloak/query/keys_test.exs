@@ -192,4 +192,27 @@ defmodule Cloak.Query.KeysTest do
                [{"id", :keys_transactions, "product_id"}, {"account_id", :keys_accounts, "id"}]
     end
   end
+
+  test "anonymizing query over join with anonymizing query" do
+    assert_query(
+      """
+        select
+          count(*)
+        from
+          keys_accounts as ka
+          join (
+            select
+              account_id
+            from
+              keys_transactions as kt
+              join
+              keys_accounts as ka
+              on id = account_id
+            group by account_id, product_id
+          ) as kt
+          on id = account_id
+      """,
+      %{rows: [%{row: [0]}]}
+    )
+  end
 end
