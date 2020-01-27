@@ -261,11 +261,12 @@ defmodule Cloak.Sql.Query do
     Logger.debug(fn ->
       try do
         statement =
-          DataSource.SqlBuilder.build(%__MODULE__{
-            query
-            | subquery?: true,
-              data_source: %{query.data_source | driver: Cloak.DataSource.PostgreSQL}
-          })
+          Lenses.all_queries()
+          |> Lens.map(
+            query,
+            &%__MODULE__{&1 | subquery?: true, data_source: %{&1.data_source | driver: Cloak.DataSource.PostgreSQL}}
+          )
+          |> DataSource.SqlBuilder.build()
 
         "#{message}: `#{statement}` ..."
       rescue
