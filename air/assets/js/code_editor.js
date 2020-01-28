@@ -46,6 +46,7 @@ export default class CodeEditor extends React.Component<Props> {
 
   editorDidMount = (editor: Editor) => {
     this.editor = editor;
+    editor.focus();
   };
 
   completionList = (cm: Editor) => {
@@ -112,6 +113,7 @@ export default class CodeEditor extends React.Component<Props> {
         editorDidMount={this.editorDidMount}
         onChange={this.onChange}
         options={options}
+        className="editable"
       />
     );
   };

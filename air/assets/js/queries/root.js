@@ -372,7 +372,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       onClick={this.runQuery}
       disabled={!this.runEnabled()}
       data-toggle="tooltip"
-      data-placement="bottom"
+      data-placement="left"
       title="or press Ctrl + Enter"
       type="button"
     >
@@ -390,8 +390,10 @@ export default class QueriesView extends React.PureComponent<Props, State> {
         <Disconnected channel={this.channel} />
 
         <div id="sql-editor">
-          {this.renderCodeEditorOrViewer()}
-          {this.renderButton()}
+          <div class="scroller">
+            {this.renderCodeEditorOrViewer()}
+            {this.renderButton()}
+          </div>
         </div>
 
         <Results
