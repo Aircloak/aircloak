@@ -390,7 +390,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
         <Disconnected channel={this.channel} />
 
         <div id="sql-editor">
-          <div class="scroller">
+          <div className="scroller">
             {this.renderCodeEditorOrViewer()}
             {this.renderButton()}
           </div>
