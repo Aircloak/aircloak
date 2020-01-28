@@ -87,13 +87,9 @@ export class SelectableView extends React.Component<Props> {
       return (
         <span className="pull-right">
           &nbsp;
-          <button
-            type="button"
-            className="btn btn-xs btn-default"
-            href={this.editLinkUrl()}
-          >
+          <a className="btn btn-xs btn-default" href={this.editLinkUrl()}>
             Edit
-          </button>
+          </a>
           &nbsp;
           <button
             type="button"
