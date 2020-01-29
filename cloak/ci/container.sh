@@ -30,29 +30,6 @@ function prepare_for_compliance {
   done
 }
 
-function checkOracleStatus {
-  docker exec oracle-db12ee "/opt/oracle/product/12.2.0.1/dbhome_1/bin/lsnrctl" status
-}
-
-function isOracleReady {
-  [[ $(docker inspect --format '{{json .State.Health.Status }}' oracle-db12ee) == *"healthy"* && $(checkOracleStatus) == *"Instance \"ORCLCDB\", status READY"*  ]]
-}
-
-function waitForOracle {
-  COUNTER=0
-  until isOracleReady;
-  do
-    COUNTER=`expr $COUNTER + 1`
-    if [ $COUNTER -gt 30 ]; then
-      echo "Oracle wait timed out:"
-      checkOracleStatus
-      exit 1
-    fi
-    echo "Still waiting for Oracle to be responsive..."
-    sleep 10
-  done
-}
-
 function ensure_database_containers {
   ensure_supporting_container oracle-db12ee \
     -e ORACLE_PWD=oracle \
@@ -67,8 +44,6 @@ function ensure_database_containers {
 
   ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Sql{}server1' \
     microsoft/mssql-server-linux:2017-latest
-
-  waitForOracle
 }
 
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo
