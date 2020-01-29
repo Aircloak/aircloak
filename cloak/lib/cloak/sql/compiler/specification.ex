@@ -810,6 +810,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Implicit casts
   # -------------------------------------------------------------------
 
+  @castable_types [:date, :text, :integer]
+
   defp perform_implicit_casts(query) do
     Lenses.query_expressions()
     |> Lens.filter(&Function.condition?/1)
@@ -823,8 +825,8 @@ defmodule Cloak.Sql.Compiler.Specification do
       %Expression{kind: :function, args: [arg1, arg2]} = expression ->
         args =
           cond do
-            arg1.kind == :constant and arg1.type in [:text, :integer] -> [perform_implicit_cast(arg1, arg2.type), arg2]
-            arg2.kind == :constant and arg2.type in [:text, :integer] -> [arg1, perform_implicit_cast(arg2, arg1.type)]
+            arg1.kind == :constant and arg1.type in @castable_types -> [perform_implicit_cast(arg1, arg2.type), arg2]
+            arg2.kind == :constant and arg2.type in @castable_types -> [arg1, perform_implicit_cast(arg2, arg1.type)]
             true -> [arg1, arg2]
           end
 
@@ -848,14 +850,17 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp perform_implicit_cast(expression = %Expression{kind: :constant, type: :integer}, :real),
     do: %Expression{expression | type: :real}
 
+  defp perform_implicit_cast(expression = %Expression{kind: :constant, type: :date}, :datetime) do
+    casted_value = expression.value |> Timex.to_naive_datetime() |> Cloak.Time.max_precision()
+    %Expression{expression | type: :datetime, value: casted_value}
+  end
+
   defp perform_implicit_cast(expression, _type), do: expression
 
   defp parse_time(string, :date) when is_binary(string), do: Cloak.Time.parse_date(string)
   defp parse_time(string, :time) when is_binary(string), do: Cloak.Time.parse_time(string)
 
   defp parse_time(string, :datetime) when is_binary(string), do: Cloak.Time.parse_datetime(string)
-
-  defp parse_time(_, _), do: {:error, :invalid_cast}
 
   # -------------------------------------------------------------------
   # UID selection in a subquery

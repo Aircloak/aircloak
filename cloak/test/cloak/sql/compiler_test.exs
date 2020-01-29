@@ -202,7 +202,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ ~r/unspecified type/
   end
 
-  test "casts datetime where conditions" do
+  test "casts datetime - text conditions" do
     result =
       compile!(
         "select stddev(uid) from table where column > '2015-01-01' and column < '2016-01-01'",
@@ -211,6 +211,18 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert [_is_not_null_id, function(">=", [column("table", "column"), value]), _lt_date] =
              conditions_list(result.where)
+
+    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+  end
+
+  test "casts datetime - date conditions" do
+    result =
+      compile!(
+        "select stddev(uid) from table where column <> date '2015-01-01'",
+        data_source()
+      )
+
+    assert [_is_not_null_id, function("<>", [column("table", "column"), value])] = conditions_list(result.where)
 
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
