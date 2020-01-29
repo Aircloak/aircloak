@@ -18,10 +18,8 @@ defmodule Mix.Tasks.Cloak.PingDb do
 
   @default_options [
     attempts: 10,
-    interval: 3
+    interval: 3000
   ]
-
-  @connect_timeout 5000
 
   # -------------------------------------------------------------------
   # Mix task interface
@@ -71,11 +69,14 @@ defmodule Mix.Tasks.Cloak.PingDb do
   def ping(data_source, options \\ @default_options) do
     options = Keyword.merge(@default_options, options)
 
-    load_dependencies(data_source.driver)
+    driver = data_source.driver
+    load_dependencies(driver)
+
+    parameters = update_parameters(data_source.parameters, driver)
 
     ping_attempt(
-      data_source.driver,
-      data_source.parameters,
+      driver,
+      parameters,
       data_source.name || data_source.driver,
       options[:attempts],
       options[:interval]
@@ -87,20 +88,20 @@ defmodule Mix.Tasks.Cloak.PingDb do
   # -------------------------------------------------------------------
 
   defp ping_attempt(driver, parameters, name, attempts, interval, attempt \\ 1) do
-    IO.write("Connecting to #{name} (#{attempt}) ... ")
+    IO.puts("Connecting to #{name} (#{attempt})...")
 
     case try_ping(driver, parameters) do
       :ok ->
-        IO.puts("OK.")
+        IO.puts("Connection OK: #{name}")
         :ok
 
       {:error, _} when attempt >= attempts ->
-        IO.puts("failed after #{attempts} attempts.")
+        IO.puts("Connection failed after #{attempts} attempts: #{name}")
         :error
 
       {:error, _} ->
-        IO.puts("error, retrying...")
-        Process.sleep(1000 * interval)
+        IO.puts("Connection failed: #{name}, retrying...")
+        Process.sleep(interval)
         ping_attempt(driver, parameters, name, attempts, interval, attempt + 1)
     end
   end
@@ -127,7 +128,7 @@ defmodule Mix.Tasks.Cloak.PingDb do
         :exit, reason -> {:error, reason}
       end
     end)
-    |> Task.await(@connect_timeout)
+    |> Task.await(:infinity)
   end
 
   defp map_driver!(driver) when is_atom(driver), do: driver
@@ -153,8 +154,32 @@ defmodule Mix.Tasks.Cloak.PingDb do
       Cloak.DataSource.PostgreSQL -> %{port: 5432}
       Cloak.DataSource.SQLServer -> %{port: 1433}
       Cloak.DataSource.MySQL -> %{port: 3306}
-      Cloak.DataSource.MongoDB -> %{port: 27_017}
+      Cloak.DataSource.MongoDB -> %{port: 27017}
       _ -> %{}
+    end
+  end
+
+  defp update_parameters(parameters, driver) do
+    # Sometimes custom databases may not yet exist,
+    # therefore we target default system databases.
+    case driver do
+      Cloak.DataSource.Oracle ->
+        Map.put_new(parameters, :database, "ORCLPDB1")
+
+      Cloak.DataSource.PostgreSQL ->
+        Map.put(parameters, :database, "postgres")
+
+      Cloak.DataSource.SQLServer ->
+        Map.put(parameters, :database, "master")
+
+      Cloak.DataSource.MySQL ->
+        Map.put(parameters, :database, "mysql")
+
+      Cloak.DataSource.MongoDB ->
+        parameters
+
+      _ ->
+        parameters
     end
   end
 
@@ -164,7 +189,7 @@ defmodule Mix.Tasks.Cloak.PingDb do
       Cloak.DataSource.PostgreSQL -> [:postgrex]
       Cloak.DataSource.SQLServer -> [:odbc]
       Cloak.DataSource.MySQL -> [:mariaex]
-      Cloak.DataSource.MongoDB -> [:mongo]
+      Cloak.DataSource.MongoDB -> [:mongodb]
       _ -> []
     end
   end
