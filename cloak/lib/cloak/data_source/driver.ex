@@ -37,6 +37,9 @@ defmodule Cloak.DataSource.Driver do
   @doc "Closes the connection to the data store."
   @callback disconnect(connection) :: :ok
 
+  @doc "Checks if the connection is available for querying."
+  @callback health_check(connection) :: :ok | {:error, any}
+
   @doc "Loads one or more table definitions from the data store."
   @callback load_tables(connection, Table.t()) :: [Table.t()]
 
