@@ -61,8 +61,10 @@ defmodule Mix.Tasks.Cloak.PingDb do
 
   @spec ping!(Cloak.DataSource.t(), keyword) :: :ok
   def ping!(data_source, options \\ @default_options) do
-    :ok = ping(data_source, options)
-    :ok
+    case ping(data_source, options) do
+      :ok -> :ok
+      :error -> raise "Connection to data source failed."
+    end
   end
 
   @spec ping(Cloak.DataSource.t(), keyword) :: :ok | :error

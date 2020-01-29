@@ -11,9 +11,8 @@ defmodule Compliance.DataSource.MongoDB do
   alias Compliance.DataSource.Connector
 
   @impl Connector
-  def setup(%{parameters: params}) do
-    Application.ensure_all_started(:mongodb)
-    Connector.await_port(params.hostname, Map.get(params, :port, 27_017))
+  def setup(data_source) do
+    Mix.Tasks.Cloak.PingDb.ping!(data_source)
   end
 
   @impl Connector
