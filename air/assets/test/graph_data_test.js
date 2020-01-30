@@ -25,7 +25,7 @@ describe("GraphData", () => {
       const data = new GraphData(
         ["col1", "col2"],
         [{row: [null, "foo"]}, {row: [null, "bar"]}],
-        {xColumns: () => [1], yColumns: () => []}
+        {xColumns: () => [1], yColumns: () => []},
       );
       assert.deepEqual(data.x(), ["foo", "bar"]);
     });
@@ -34,7 +34,7 @@ describe("GraphData", () => {
       const data = new GraphData(
         ["col1", "col2", "col3"],
         [{row: [null, "foo", 2]}, {row: [null, "bar", 3]}],
-        {xColumns: () => [1, 2], yColumns: () => []}
+        {xColumns: () => [1, 2], yColumns: () => []},
       );
       assert.deepEqual(data.x(), ["foo, 2", "bar, 3"]);
     });
@@ -44,7 +44,7 @@ describe("GraphData", () => {
         ["col1", "col2"],
         [{row: [1, 2]}, {row: [3, 4]}],
         {xColumns: () => [0, 1], yColumns: () => []},
-        (value) => `formatted-${value}`
+        (value) => `formatted-${value}`,
       );
       assert.deepEqual(data.x(), ["formatted-1, formatted-2", "formatted-3, formatted-4"]);
     });
@@ -67,7 +67,7 @@ describe("GraphData", () => {
       const data = new GraphData(
         ["col1", "col2", "col3"],
         [{row: [null, "foo", 2]}, {row: [null, "bar", 3]}],
-        {xColumns: () => [], yColumns: () => [2]}
+        {xColumns: () => [], yColumns: () => [2]},
       );
       assert.deepEqual(data.series(), [{label: "col3", data: [2, 3], indexInResult: 2}]);
     });
@@ -76,7 +76,7 @@ describe("GraphData", () => {
       const data = new GraphData(
         ["col1", "col2", "col3"],
         [{row: [null, "foo", 2]}, {row: [null, "bar", 3]}],
-        {xColumns: () => [], yColumns: () => [0, 2]}
+        {xColumns: () => [], yColumns: () => [0, 2]},
       );
       assert.deepEqual(data.series(), [{label: "col1", data: [null, null], indexInResult: 0},
         {label: "col3", data: [2, 3], indexInResult: 2}]);
@@ -107,7 +107,7 @@ describe("GraphInfo", () => {
     it("is true if there's at least one possible x and y axis", () => {
       const info = new GraphInfo(
         ["col1", "col2", "col3"],
-        [{row: [0, "something", 1.1]}, {row: [null, null, null]}]
+        [{row: [0, "something", 1.1]}, {row: [null, null, null]}],
       );
       assert.equal(info.chartable(), true);
     });
@@ -115,7 +115,7 @@ describe("GraphInfo", () => {
     it("is false otherwise", () => {
       const info = new GraphInfo(
         ["col1", "col2", "col3"],
-        [{row: ["a", "b", "c"]}, {row: [null, null, null]}]
+        [{row: ["a", "b", "c"]}, {row: [null, null, null]}],
       );
       assert.equal(info.chartable(), false);
     });
@@ -148,16 +148,16 @@ describe("GraphConfig", () => {
   });
 
   it("doesn't matter in what order you add columns", () => {
-    const config1 = new GraphConfig().
-      addX("col1").
-      addX("col2").
-      addY("col3").
-      addY("col4");
-    const config2 = new GraphConfig().
-      addX("col2").
-      addX("col1").
-      addY("col4").
-      addY("col3");
+    const config1 = new GraphConfig()
+      .addX("col1")
+      .addX("col2")
+      .addY("col3")
+      .addY("col4");
+    const config2 = new GraphConfig()
+      .addX("col2")
+      .addX("col1")
+      .addY("col4")
+      .addY("col3");
 
     assert.deepEqual(config1.xColumns(), config2.xColumns());
     assert.deepEqual(config1.yColumns(), config2.yColumns());
@@ -200,12 +200,12 @@ describe("GraphConfig", () => {
   it("returns this from mutators", () => {
     const config = new GraphConfig();
     assert.deepEqual(
-      config.
-        addX("col1").
-        addY("col2").
-        remove("col2").
-        xColumns(),
-      ["col1"]
+      config
+        .addX("col1")
+        .addY("col2")
+        .remove("col2")
+        .xColumns(),
+      ["col1"],
     );
   });
 });

@@ -268,7 +268,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp from_clause({:subquery, subquery}, query) do
     sql_dialect_module(query).alias_sql(
       ["(", build_fragments(subquery.ast), add_join_timing_protection(subquery), ")"],
-      quote_name(subquery.alias, sql_dialect_module(query).quote_char)
+      quote_name(subquery.alias, sql_dialect_module(query).quote_char())
     )
   end
 

@@ -68,6 +68,9 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   @impl Driver
+  def health_check(_connection), do: :ok
+
+  @impl Driver
   def disconnect(connection), do: GenServer.stop(connection, :normal, :timer.seconds(5))
 
   @impl Driver

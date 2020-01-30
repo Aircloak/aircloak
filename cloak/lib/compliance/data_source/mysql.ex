@@ -9,9 +9,8 @@ defmodule Compliance.DataSource.MySQL do
   alias Compliance.DataSource.Connector
 
   @impl Connector
-  def setup(%{parameters: params}) do
-    Application.ensure_all_started(:mariaex)
-    Connector.await_port(params.hostname, Map.get(params, :port, 3306))
+  def setup(%{parameters: params} = data_source) do
+    Mix.Tasks.Cloak.PingDb.ping!(data_source)
     setup_database(params)
     :ok
   end

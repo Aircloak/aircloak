@@ -13,9 +13,7 @@ defmodule Central.Supervisor do
     do: [
       Central.Repo,
       Central.Repo.Migrator,
-      Central.Service.Customer,
       Central.Service.License,
-      Central.Service.StatsDB,
       CentralWeb.Endpoint
     ]
 

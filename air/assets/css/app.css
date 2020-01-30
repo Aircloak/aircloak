@@ -1,3 +1,5 @@
+@import "./vendor.css";
+
 html, body {
   margin: 0;
   padding: 0;
@@ -213,3 +215,16 @@ h2 {
   padding: 0;
   margin: 1em 0 0.2em 0;
 }
+
+@import "./activity-monitor.css";
+@import "./admin.css";
+@import "./audit_log.css";
+@import "./changelog.css";
+@import "./data_source.css";
+@import "./login.css";
+@import "./navbar.css";
+@import "./privacy-policy.css";
+@import "./queries.css";
+@import "./selectable_info.css";
+@import "./tasks.css";
+@import "./users.css";

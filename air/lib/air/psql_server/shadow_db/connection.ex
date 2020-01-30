@@ -117,8 +117,8 @@ defmodule Air.PsqlServer.ShadowDb.Connection do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp connect(data_source_name, attempts \\ 10) do
-    {:ok, _} = open(Air.PsqlServer.ShadowDb.db_name(data_source_name))
+  defp connect(%{user: user, data_source_name: data_source_name}, attempts \\ 10) do
+    {:ok, _} = open(Air.PsqlServer.ShadowDb.db_name(user, data_source_name))
   catch
     _, _ ->
       if attempts == 1 do

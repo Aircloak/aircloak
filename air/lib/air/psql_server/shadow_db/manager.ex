@@ -4,6 +4,8 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   use GenServer, restart: :transient
   require Logger
   alias Air.PsqlServer.ShadowDb.Connection
+  alias Air.Schemas.User
+  import Ecto.Query
 
   # -------------------------------------------------------------------
   # API functions
@@ -18,37 +20,35 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   end
 
   @doc "Returns the pid of the server related to the given data source, or `nil` if such server doesn't exist."
-  @spec whereis(String.t()) :: pid | nil
-  def whereis(data_source_name), do: GenServer.whereis(name(data_source_name))
+  @spec whereis(User.t(), String.t()) :: pid | nil
+  def whereis(user, data_source_name), do: GenServer.whereis(name(user, data_source_name))
 
   @doc "Updates the data source definition."
-  @spec update_definition(String.t()) :: :ok
-  def update_definition(data_source_name), do: GenServer.cast(name(data_source_name), :update_definition)
+  @spec update_definition(User.t(), String.t()) :: :ok
+  def update_definition(user, data_source_name), do: GenServer.cast(name(user, data_source_name), :update_definition)
 
   @doc "Drops the given shadow database."
-  @spec drop_database(String.t()) :: :ok
-  def drop_database(data_source_name) do
-    if Application.get_env(:air, :shadow_db?, true) do
-      exec_queued(fn ->
-        Connection.execute!(
-          Air.PsqlServer.ShadowDb.connection_params().name,
-          fn conn ->
-            # force close all existing connections to the database
-            Connection.query(
-              conn,
-              """
-              SELECT pg_terminate_backend(pg_stat_activity.pid)
-              FROM pg_stat_activity
-              WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
-              """,
-              [db_name(data_source_name)]
-            )
+  @spec drop_database(User.t(), String.t()) :: :ok
+  def drop_database(user, data_source_name) do
+    exec_queued(fn ->
+      Connection.execute!(
+        Air.PsqlServer.ShadowDb.connection_params().name,
+        fn conn ->
+          # force close all existing connections to the database
+          Connection.query(
+            conn,
+            """
+            SELECT pg_terminate_backend(pg_stat_activity.pid)
+            FROM pg_stat_activity
+            WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+            """,
+            [db_name(user, data_source_name)]
+          )
 
-            Connection.query(conn, ~s/DROP DATABASE IF EXISTS "#{sanitize_name(db_name(data_source_name))}"/, [])
-          end
-        )
-      end)
-    end
+          Connection.query(conn, ~s/DROP DATABASE IF EXISTS "#{sanitize_name(db_name(user, data_source_name))}"/, [])
+        end
+      )
+    end)
 
     :ok
   end
@@ -65,34 +65,37 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   end
 
   @doc "Returns the name of the shadow database for the given data source."
-  @spec db_name(String.t()) :: String.t()
-  def db_name(data_source_name), do: "aircloak_shadow_#{data_source_name}"
+  @spec db_name(User.t(), String.t()) :: String.t()
+  def db_name(user, data_source_name), do: "aircloak_shadow_#{user.id}_#{data_source_name}"
 
   @doc "Wait until the database for the given data source has been initialized."
-  @spec wait_until_initialized(String.t()) :: :ok
-  def wait_until_initialized(data_source_name),
-    do: GenServer.call(whereis(data_source_name), :wait_until_initialized, :timer.minutes(1))
+  @spec wait_until_initialized(User.t(), String.t()) :: :ok
+  def wait_until_initialized(user, data_source_name),
+    do: GenServer.call(whereis(user, data_source_name), :wait_until_initialized, :timer.minutes(1))
 
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(data_source_name) do
+  def init({user, data_source_name}) do
     Process.flag(:trap_exit, true)
-    update_definition(data_source_name)
-    {:ok, %{data_source_name: data_source_name, tables: []}}
+    GenServer.cast(name(user, data_source_name), :ensure_exists)
+    update_definition(user, data_source_name)
+    {:ok, %{user: user, data_source_name: data_source_name, tables: []}}
+  end
+
+  @impl GenServer
+  def handle_cast(:ensure_exists, state) do
+    exec_queued(fn -> ensure_db!(state.user, state.data_source_name) end)
+    {:noreply, state}
   end
 
   @impl GenServer
   def handle_cast(:update_definition, state) do
-    if Application.get_env(:air, :shadow_db?, true) do
-      tables = data_source_tables(state.data_source_name)
-      if state.tables != tables, do: exec_queued(fn -> update_shadow_db(state, tables) end)
-      {:noreply, %{state | tables: tables}}
-    else
-      {:noreply, state}
-    end
+    tables = data_source_tables(state.user, state.data_source_name)
+    if state.tables != tables, do: exec_queued(fn -> update_shadow_db(state, tables) end)
+    {:noreply, %{state | tables: tables}}
   end
 
   @impl GenServer
@@ -112,12 +115,38 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
     end
   end
 
-  defp name(data_source_name), do: Air.PsqlServer.ShadowDb.registered_name(data_source_name, __MODULE__)
+  defp name(user, data_source_name), do: Air.PsqlServer.ShadowDb.registered_name(user, data_source_name, __MODULE__)
 
-  defp data_source_tables(data_source_name) do
+  defp data_source_tables(user, data_source_name) do
     case Air.Service.DataSource.by_name(data_source_name) do
-      nil -> []
-      data_source -> data_source |> Air.Schemas.DataSource.tables() |> normalize_tables()
+      nil ->
+        []
+
+      data_source ->
+        regular_tables =
+          data_source
+          |> Air.Schemas.DataSource.tables()
+          |> normalize_tables()
+
+        views =
+          from(
+            view in Air.Schemas.View,
+            where: view.user_id == ^user.id and view.data_source_id == ^data_source.id,
+            select: view
+          )
+          |> Air.Repo.all()
+          |> Enum.map(&normalize_selectable/1)
+
+        analyst_tables =
+          from(
+            analyst_table in Air.Schemas.AnalystTable,
+            where: analyst_table.user_id == ^user.id and analyst_table.data_source_id == ^data_source.id,
+            select: analyst_table
+          )
+          |> Air.Repo.all()
+          |> Enum.map(&normalize_selectable/1)
+
+        Enum.concat([regular_tables, views, analyst_tables])
     end
   end
 
@@ -130,7 +159,16 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   defp normalize_table(table) do
     %{
       id: Map.fetch!(table, "id"),
-      columns: table |> Map.get("columns", []) |> Enum.map(&normalize_column/1)
+      columns: table |> Map.get("columns", []) |> Enum.map(&normalize_column/1),
+      broken: false
+    }
+  end
+
+  defp normalize_selectable(selectable) do
+    %{
+      id: selectable.name,
+      columns: selectable.columns,
+      broken: selectable.broken or Enum.empty?(selectable.columns)
     }
   end
 
@@ -138,20 +176,22 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
 
   defp update_shadow_db(state, tables) do
     Logger.info("data source definition changed for #{state.data_source_name}, updating shadow database")
-    ensure_db!(state.data_source_name)
+    ensure_db!(state.user, state.data_source_name)
     update_tables_definition(state, tables)
     Logger.info("shadow database for #{state.data_source_name} updated")
   end
 
-  defp ensure_db!(data_source_name) do
+  defp ensure_db!(user, data_source_name) do
     Connection.execute!(
       Air.PsqlServer.ShadowDb.connection_params().name,
       fn conn ->
         if match?(
              {_columns, [[0]]},
-             Connection.query!(conn, "SELECT count(*) FROM pg_database where datname = $1", [db_name(data_source_name)])
+             Connection.query!(conn, "SELECT count(*) FROM pg_database where datname = $1", [
+               db_name(user, data_source_name)
+             ])
            ) do
-          Connection.query!(conn, ~s/CREATE DATABASE "#{sanitize_name(db_name(data_source_name))}"/, [])
+          Connection.query!(conn, ~s/CREATE DATABASE "#{sanitize_name(db_name(user, data_source_name))}"/, [])
         end
       end
     )
@@ -159,7 +199,7 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
 
   defp update_tables_definition(state, tables) do
     Connection.execute!(
-      db_name(state.data_source_name),
+      db_name(state.user, state.data_source_name),
       fn conn ->
         delete_obsolete_tables(conn, tables)
 
@@ -194,11 +234,13 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   defp update_table_definition(conn, table) do
     Connection.query(conn, ~s/DROP TABLE IF EXISTS "#{sanitize_name(table.id)}"/, [])
 
-    Connection.query(
-      conn,
-      ~s/CREATE TABLE "#{sanitize_name(table.id)}" (#{columns_sql(table.columns)})/,
-      []
-    )
+    unless table.broken do
+      Connection.query(
+        conn,
+        ~s/CREATE TABLE "#{sanitize_name(table.id)}" (#{columns_sql(table.columns)})/,
+        []
+      )
+    end
   end
 
   defp report_error({table, {:error, error}}),
@@ -224,5 +266,6 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(data_source_name), do: GenServer.start_link(__MODULE__, data_source_name, name: name(data_source_name))
+  def start_link({user, data_source_name}),
+    do: GenServer.start_link(__MODULE__, {user, data_source_name}, name: name(user, data_source_name))
 end

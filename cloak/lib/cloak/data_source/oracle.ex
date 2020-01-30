@@ -1,6 +1,6 @@
 defmodule Cloak.DataSource.Oracle do
   @moduledoc """
-  Implements the DataSource.Driver behaviour for the Oracle Database, targeting version g11 R2.
+  Implements the DataSource.Driver behaviour for the Oracle Database, targeting version 12c.
   For more information, see `DataSource`.
   """
 
@@ -8,7 +8,7 @@ defmodule Cloak.DataSource.Oracle do
   use Cloak.DataSource.Driver.SQL.AnalystTables
   require Logger
   alias Cloak.DataSource.{RODBC, Table, SqlBuilder}
-  alias Cloak.Sql.{Expression, Query, Compiler.Helpers, Function}
+  alias Cloak.Sql.Expression
   alias Cloak.Query.ExecutionError
 
   @mathematical_operators ~w(+ - * / ^)
@@ -19,6 +19,14 @@ defmodule Cloak.DataSource.Oracle do
 
   @impl Driver
   def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
+
+  @impl Driver
+  def health_check(connection) do
+    case select(connection, "SELECT 1 FROM DUAL") do
+      {:ok, _} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
   @impl Driver
   def load_tables(connection, table) do
@@ -40,13 +48,10 @@ defmodule Cloak.DataSource.Oracle do
 
   @impl Driver
   def select(connection, query, result_processor) do
-    query = query |> map_selected_expressions() |> Helpers.apply_bottom_up(&wrap_limit/1)
+    query = map_selected_expressions(query)
     statement = query |> SqlBuilder.build() |> insert_select_hints(query.data_source.parameters[:select_hints])
     RODBC.select(connection, statement, query.db_columns, custom_mappers(), result_processor)
   end
-
-  @impl Driver
-  def supports_query?(query), do: query.type == :anonymized or query.offset == 0
 
   @impl Driver
   def supports_function?(expression = %Expression{kind: :function, name: name}, data_source) do
@@ -179,35 +184,7 @@ defmodule Cloak.DataSource.Oracle do
     end
   end
 
-  # Thee semantics of `ROWNUM` are pretty weird and not compatible at all with the semantics
-  # of the standard `LIMIT` clause: this variable gets incremented after all predicates have passed and
-  # before any sorting or aggregation starts. So any filters over it need to be applied in a simple
-  # query to ensure we get the proper behavior.
-  defp wrap_limit(%Query{subquery?: true, limit: limit} = query) when limit != nil do
-    table_columns =
-      Enum.zip(query.column_titles, query.columns)
-      |> Enum.map(fn {alias, column} ->
-        Table.column(alias, Function.type(column))
-      end)
-
-    inner_table = Table.new("__ac_limit_wrapper", nil, columns: table_columns)
-
-    outer_columns = Enum.map(query.column_titles, &Helpers.column_from_table(inner_table, &1))
-
-    %Query{
-      command: :select,
-      data_source: query.data_source,
-      columns: outer_columns,
-      db_columns: outer_columns,
-      from: {:subquery, %{ast: %Query{query | limit: nil}, alias: "__ac_limit_wrapper"}},
-      selected_tables: [inner_table],
-      subquery?: true,
-      limit: limit
-    }
-  end
-
-  defp wrap_limit(query), do: query
-
   defp insert_select_hints(statement, select_hints) when select_hints in [nil, ""], do: statement
+
   defp insert_select_hints("SELECT " <> statement_body, select_hints), do: "SELECT #{select_hints} #{statement_body}"
 end

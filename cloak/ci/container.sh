@@ -24,15 +24,23 @@ function prepare_for_compliance {
   container_name=$1
   ensure_database_containers
 
-  for db_container in postgres9.6 mongo3.6 mysql5.7 sqlserver2017 oracle11g quickstart.cloudera; do
+  for db_container in oracle-db12ee postgres9.6 mongo3.6 mysql5.7 sqlserver2017 quickstart.cloudera; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container
   done
 }
 
 function ensure_database_containers {
+  ensure_supporting_container oracle-db12ee \
+    -e ORACLE_PWD=oracle \
+    --mount type=bind,src=$(pwd)/cloak/ci/init_oracle.sql,dst=/docker-entrypoint-initdb.d/setup/init_oracle.sql \
+    --mount type=bind,src=$(pwd)/cloak/ci/oracle_udfs.sql,dst=/mnt/cloak/oracle_udfs.sql \
+    quay.io/aircloak/oracle-database:12.2.0.1-ee
+
   ensure_supporting_container postgres9.6 --tmpfs=/ramdisk:rw,size=2G -e PGDATA=/ramdisk postgres:9.6
+
   ensure_supporting_container mongo3.6 --tmpfs=/data/db:rw,size=4G mongo:3.6
+
   ensure_supporting_container mysql5.7 --tmpfs=/var/lib/mysql:rw,size=2G \
     -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 \
     --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
@@ -40,17 +48,10 @@ function ensure_database_containers {
   ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Sql{}server1' \
     microsoft/mssql-server-linux:2017-latest
 
-  ensure_supporting_container oracle11g -e ORACLE_DISABLE_ASYNCH_IO=true \
-    --mount type=bind,src=$(pwd)/cloak/ci/init_oracle.sql,dst=/docker-entrypoint-initdb.d/init_oracle.sql \
-    --mount type=bind,src=$(pwd)/cloak/ci/oracle_udfs.sql,dst=/mnt/cloak/oracle_udfs.sql \
-    quay.io/aircloak/oracle-xe-11g
-
   ensure_supporting_container quickstart.cloudera -it \
     --hostname quickstart.cloudera -p 21050:21050 \
     quay.io/aircloak/cloudera-quickstart-vm-5.13.0-0-beta \
     /usr/bin/docker-quickstart
-
-  sleep 180 # wait for containers to finish initializing
 }
 
 mount $(pwd)/cloak/priv/odbc/drivers/cloudera /opt/cloudera

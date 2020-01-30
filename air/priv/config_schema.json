@@ -2,7 +2,6 @@
   "type": "object",
   "properties": {
     "name": {"type": "string", "minLength": 1},
-    "auto_aircloak_export": {"type": "boolean"},
     "use_staging_license_key": {"type": "boolean"},
 
     "database": {

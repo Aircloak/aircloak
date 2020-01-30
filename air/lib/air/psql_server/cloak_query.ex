@@ -109,14 +109,14 @@ defmodule Air.PsqlServer.CloakQuery do
   defp do_decode_cloak_query_result({:ok, query_result}),
     do: [
       columns:
-        Enum.zip(query_result.columns, query_result.features.selected_types)
+        Enum.zip(query_result.columns, query_result.selected_types)
         |> Enum.map(fn {name, sql_type} -> %{name: name, type: psql_type(sql_type)} end),
       rows:
         query_result
         |> Map.get(:buckets, [])
-        |> Enum.map(&normalize_anonymized(&1, query_result.features.selected_types))
+        |> Enum.map(&normalize_anonymized(&1, query_result.selected_types))
         |> Air.Schemas.ResultChunk.rows(),
-      param_types: Enum.map(query_result.features.parameter_types, &psql_type/1),
+      param_types: Enum.map(query_result.parameter_types, &psql_type/1),
       info_messages: Map.get(query_result, :info, [])
     ]
 

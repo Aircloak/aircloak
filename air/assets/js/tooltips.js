@@ -2,5 +2,6 @@
 
 import _ from "lodash";
 import $ from "jquery";
+import "bootstrap";
 
-export const activateTooltips = () => _.defer(() => $("[data-toggle='tooltip']").tooltip());
+export default () => _.defer(() => $("[data-toggle='tooltip']").tooltip());

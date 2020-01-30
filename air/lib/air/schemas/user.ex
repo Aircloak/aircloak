@@ -14,7 +14,6 @@ defmodule Air.Schemas.User do
   schema "users" do
     field(:login, :string, virtual: true)
     field(:name, :string)
-    field(:pseudonym, :string)
     field(:ldap_dn, :string)
     field(:source, Air.Schemas.Source)
     field(:enabled, :boolean)

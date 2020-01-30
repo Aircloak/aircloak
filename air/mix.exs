@@ -35,7 +35,7 @@ defmodule Air.Mixfile do
         dialyze: :dev,
         docs: :dev,
         release: :prod,
-        "phoenix.digest": :prod,
+        "phx.digest": :prod,
         "test.standard": :test,
         dialyze_retry: :dev,
         version: :prod

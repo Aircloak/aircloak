@@ -1,11 +1,11 @@
 // @flow
 
 import React from "react";
-import {UnControlled as Codemirror} from "react-codemirror2";
+import { UnControlled as Codemirror } from "react-codemirror2";
 
 require("./code_editor/mode");
 
-export const CodeViewer = (props: {statement: string}) => {
+export default ({ statement }: { statement: string }) => {
   const options = {
     indentUnit: 2,
     indentWithTabs: false,
@@ -16,13 +16,8 @@ export const CodeViewer = (props: {statement: string}) => {
     showCursorWhenSelecting: true,
     smartIndent: true,
     viewportMargin: Infinity,
-    cursorBlinkRate: -1,
+    cursorBlinkRate: -1
   };
 
-  return (
-    <Codemirror
-      value={props.statement}
-      options={options}
-    />
-  );
+  return <Codemirror value={statement} options={options} />;
 };

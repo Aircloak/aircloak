@@ -2,8 +2,8 @@
 
 import React from "react";
 
-import type {GraphInfoT} from "./graph_data";
-import {GraphConfig} from "./graph_data";
+import type { GraphInfoT } from "./graph_data";
+import { GraphConfig } from "./graph_data";
 
 type ColumnAction = (columnIndex: number) => () => void;
 
@@ -15,40 +15,54 @@ type Props = {
   remove: ColumnAction
 };
 
-const activeClass = (active) => (active ? "btn btn-info" : "btn btn-default");
+const activeClass = active => (active ? "btn btn-info" : "btn btn-default");
 
 const noneClass = (graphConfig, column) =>
-  activeClass(!graphConfig.xColumns().includes(column) && !graphConfig.yColumns().includes(column));
+  activeClass(
+    !graphConfig.xColumns().includes(column) &&
+      !graphConfig.yColumns().includes(column)
+  );
 
-const xClass = (graphConfig, column) => activeClass(graphConfig.xColumns().includes(column));
+const xClass = (graphConfig, column) =>
+  activeClass(graphConfig.xColumns().includes(column));
 
-const yClass = (graphConfig, column) => activeClass(graphConfig.yColumns().includes(column));
+const yClass = (graphConfig, column) =>
+  activeClass(graphConfig.yColumns().includes(column));
 
-export const GraphConfigView = (props: Props) =>
-  <form className="form-horizontal">
-    {props.graphInfo.xColumns().map((column, columnIndex) =>
-      <div key={columnIndex} className="form-group">
-        <label className="col-sm-3 control-label">{column}</label>
-        <div className="col-sm-9 btn-group" role="group">
-          <button
-            type="button"
-            className={noneClass(props.graphConfig, columnIndex)}
-            onClick={props.remove(columnIndex)}
-          > None </button>
+export default ({ graphInfo, graphConfig, remove, addX, addY }: Props) => {
+  return (
+    <form className="form-horizontal">
+      {graphInfo.xColumns().map((column, columnIndex) => (
+        <div key={column} className="form-group">
+          <span className="col-sm-3 control-label">{column}</span>
+          <div className="col-sm-9 btn-group" role="group">
+            <button
+              type="button"
+              className={noneClass(graphConfig, columnIndex)}
+              onClick={remove(columnIndex)}
+            >
+              None
+            </button>
 
-          <button
-            type="button"
-            className={xClass(props.graphConfig, columnIndex)}
-            onClick={props.addX(columnIndex)}
-          >X</button>
+            <button
+              type="button"
+              className={xClass(graphConfig, columnIndex)}
+              onClick={addX(columnIndex)}
+            >
+              X
+            </button>
 
-          <button
-            type="button"
-            className={yClass(props.graphConfig, columnIndex)}
-            onClick={props.addY(columnIndex)}
-            disabled={!props.graphInfo.usableAsY(columnIndex)}
-          > Y </button>
+            <button
+              type="button"
+              className={yClass(graphConfig, columnIndex)}
+              onClick={addY(columnIndex)}
+              disabled={!graphInfo.usableAsY(columnIndex)}
+            >
+              Y
+            </button>
+          </div>
         </div>
-      </div>
-    )}
-  </form>;
+      ))}
+    </form>
+  );
+};

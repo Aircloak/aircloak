@@ -108,6 +108,17 @@ defmodule Air.Service.Group.Test do
   end
 
   describe ".update_data_sources" do
+    test "can remove all data sources from group" do
+      data_source = TestRepoHelper.create_data_source!()
+      group = TestRepoHelper.create_group!(%{data_sources: [data_source.id]})
+      assert [%{id: data_source_id}] = Group.load(group.id).data_sources
+      assert data_source_id == data_source.id
+
+      Group.update_data_sources(group, %{data_sources: []})
+
+      assert [] == Group.load(group.id).data_sources
+    end
+
     test "can change data source assignments" do
       group = TestRepoHelper.create_group!() |> Air.Repo.preload(:data_sources)
       data_source = TestRepoHelper.create_data_source!()
@@ -124,6 +135,35 @@ defmodule Air.Service.Group.Test do
       Group.update_data_sources(group, %{name: "new name"})
 
       refute Group.load(group.id).name == "new name"
+    end
+  end
+
+  describe "group events" do
+    test "publishes delete event" do
+      Group.subscribe_to(:group_deleted)
+      group = TestRepoHelper.create_group!()
+
+      Group.delete!(group)
+
+      assert_receive {:group_deleted, %{group: _, previous_users_and_data_sources: _}}
+      Group.unsubscribe_from(:group_deleted)
+    end
+
+    test "publishes update event" do
+      Group.subscribe_to(:group_updated)
+      data_source1 = TestRepoHelper.create_data_source!()
+      data_source2 = TestRepoHelper.create_data_source!()
+      user = TestRepoHelper.create_user!()
+      group = TestRepoHelper.create_group!(%{data_sources: [data_source1.id]})
+
+      {:ok, group} = Group.update_data_sources(group, %{data_sources: [data_source2.id]})
+      assert_receive {:group_updated, %{group: _, previous_users_and_data_sources: _}}
+
+      group = group |> Repo.preload(:users)
+      Group.update!(group, %{users: [user.id]})
+      assert_receive {:group_updated, %{group: _, previous_users_and_data_sources: _}}
+
+      Group.unsubscribe_from(:group_updated)
     end
   end
 

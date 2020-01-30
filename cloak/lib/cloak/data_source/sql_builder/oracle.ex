@@ -7,7 +7,6 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   use Cloak.DataSource.SqlBuilder.Dialect
   alias Cloak.DataSource.SqlBuilder.Dialect
-  alias Cloak.Query.ExecutionError
 
   @safe_aliases %{
     "+" => "plus",
@@ -41,7 +40,12 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def function_sql("checked_div", [arg1, arg2, epsilon]),
     do: ["CASE WHEN ", function_sql("abs", [arg2]), " < ", epsilon, " THEN NULL ELSE ", arg1, " / ", arg2, " END"]
 
-  for {function, operator} <- %{"unsafe_add" => "+", "unsafe_sub" => "-", "unsafe_mul" => "*", "unsafe_div" => "/"} do
+  for {function, operator} <- %{
+        "unsafe_add" => "+",
+        "unsafe_sub" => "-",
+        "unsafe_mul" => "*",
+        "unsafe_div" => "/"
+      } do
     def function_sql(unquote(function), [arg1, arg2]), do: ["(", arg1, unquote(operator), arg2, ")"]
   end
 
@@ -50,7 +54,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def function_sql("checked_pow", [arg1, arg2]),
     do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POWER(", arg1, ", ", arg2, ") END"]
 
-  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
+  def function_sql("sqrt", [arg]),
+    do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
 
   # left of a negative value should return all but the last n characters.
   # left("aircloak", -2) --> "airclo"
@@ -175,18 +180,20 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def alias_sql(object, alias), do: [object, " ", alias]
 
   @impl Dialect
-  def limit_sql(nil, 0), do: []
-  def limit_sql(limit, 0), do: [" WHERE ROWNUM <= ", to_string(limit)]
+  def limit_sql(nil, offset), do: [" OFFSET ", to_string(offset), " ROWS"]
 
-  def limit_sql(_, _),
-    do: raise(ExecutionError, message: "Non-zero OFFSET is not natively supported on this data source")
+  def limit_sql(limit, offset), do: [" OFFSET ", to_string(offset), " ROWS FETCH NEXT ", to_string(limit), " ROWS ONLY"]
 
   @impl Dialect
   def literal(true), do: "1"
   def literal(false), do: "0"
 
   def literal(%Timex.Duration{} = duration),
-    do: ["NUMTODSINTERVAL(", duration |> Timex.Duration.to_seconds() |> to_string(), ", 'SECOND')"]
+    do: [
+      "NUMTODSINTERVAL(",
+      duration |> Timex.Duration.to_seconds() |> to_string(),
+      ", 'SECOND')"
+    ]
 
   def literal(value), do: super(value)
 

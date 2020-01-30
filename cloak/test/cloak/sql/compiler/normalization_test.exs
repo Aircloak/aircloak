@@ -434,6 +434,13 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     )
   end
 
+  test "redundant case" do
+    assert_equivalent(
+      "SELECT CASE WHEN c > 0 THEN c ELSE c END AS c FROM (SELECT COUNT(*) AS c FROM table) t",
+      "SELECT c FROM (SELECT COUNT(*) AS c FROM table) t"
+    )
+  end
+
   defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
 
   defp data_source() do

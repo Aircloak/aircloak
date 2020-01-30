@@ -76,34 +76,9 @@ defmodule Cloak.Sql.Query do
 
   @type analyst_id :: pos_integer | nil
 
-  @type features :: %{
-          num_top_level_dimensions: non_neg_integer,
-          num_top_level_aggregates: non_neg_integer,
-          num_db_columns: non_neg_integer,
-          num_distinct_db_columns: non_neg_integer,
-          num_tables: non_neg_integer,
-          num_distinct_tables: non_neg_integer,
-          num_top_level_group_by: non_neg_integer,
-          num_subquery_group_by: non_neg_integer,
-          num_group_by: non_neg_integer,
-          top_level_select_functions: [String.t()],
-          subquery_select_functions: [String.t()],
-          select_functions: [String.t()],
-          top_level_functions: [String.t()],
-          subquery_functions: [String.t()],
-          functions: [String.t()],
-          expressions: [String.t()],
-          top_level_filters: [String.t()],
-          subquery_filters: [String.t()],
-          filters: [String.t()],
-          db_column_types: [String.t()],
+  @type metadata :: %{
           selected_types: [String.t()],
-          parameter_types: [String.t()],
-          driver: String.t(),
-          driver_dialect: String.t(),
-          shadow_tables_used: boolean,
-          isolators_used: boolean,
-          anonymization_type: String.t()
+          parameter_types: [String.t()]
         }
 
   @type described_columns :: [%{name: String.t(), type: String.t(), key_type: String.t()}]
@@ -155,12 +130,12 @@ defmodule Cloak.Sql.Query do
   and types, without executing the query.
   """
   @spec describe_query(analyst_id, DataSource.t(), String.t(), [parameter] | nil, view_map) ::
-          {:ok, [String.t()], features} | {:error, String.t()}
+          {:ok, [String.t()], metadata} | {:error, String.t()}
   def describe_query(analyst_id, data_source, statement, parameters, views),
     do:
       with(
         {:ok, query} <- make_query(analyst_id, data_source, statement, parameters, views),
-        do: {:ok, query.column_titles, features(query)}
+        do: {:ok, query.column_titles, metadata(query)}
       )
 
   @doc "Validates a user-defined view."
@@ -286,11 +261,12 @@ defmodule Cloak.Sql.Query do
     Logger.debug(fn ->
       try do
         statement =
-          DataSource.SqlBuilder.build(%__MODULE__{
-            query
-            | subquery?: true,
-              data_source: %{query.data_source | driver: Cloak.DataSource.PostgreSQL}
-          })
+          Lenses.all_queries()
+          |> Lens.map(
+            query,
+            &%__MODULE__{&1 | subquery?: true, data_source: %{&1.data_source | driver: Cloak.DataSource.PostgreSQL}}
+          )
+          |> DataSource.SqlBuilder.build()
 
         "#{message}: `#{statement}` ..."
       rescue
@@ -323,9 +299,9 @@ defmodule Cloak.Sql.Query do
   def set_emulation_flag(query),
     do: Compiler.Helpers.apply_bottom_up(query, &%__MODULE__{&1 | emulated?: needs_emulation?(&1)})
 
-  @doc "Retrieves the query features."
-  @spec features(Query.t()) :: features
-  defdelegate features(query), to: __MODULE__.Features
+  @doc "Retrieves the query metadata."
+  @spec metadata(Query.t()) :: metadata
+  defdelegate metadata(query), to: __MODULE__.Metadata
 
   @doc "Replaces all occurrences of one expression with another expression."
   @spec replace_expression(t, Expression.t(), Expression.t()) :: t

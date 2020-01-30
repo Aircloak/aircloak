@@ -27,10 +27,6 @@ defmodule Air.CentralClient.Socket do
     end
   end
 
-  @doc "Makes a synchronous rpc call to the central."
-  @spec rpc(map) :: {:ok, any} | {:error, any}
-  def rpc(rpc), do: call_central(__MODULE__, "call_with_retry", rpc)
-
   @doc "Asks central for a newer version of the given license text."
   @spec renew_license(String.t()) :: {:ok, String.t()} | :error
   def renew_license(text), do: call_central(__MODULE__, "renew_license", text)

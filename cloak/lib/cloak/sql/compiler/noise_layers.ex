@@ -164,6 +164,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp floated_noise_layers(query),
     do:
       Query.Lenses.direct_subqueries()
+      |> Lens.filter(&(&1.ast.type == :restricted))
       |> Lens.to_list(query)
       |> Enum.flat_map(fn %{ast: subquery, alias: alias} ->
         subquery_table = Enum.find(query.selected_tables, &(&1.name == alias))
@@ -177,14 +178,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         )
       end)
 
-  defp aggregate_potential_count_expression([]), do: []
-  defp aggregate_potential_count_expression([count | rest]), do: [sum_of_count(count) | rest]
-
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max | rest]}, query) do
     if Helpers.aggregates?(query) or Helpers.group_by?(query) do
       min = if grouped_by?(query, min), do: min, else: min_of_min(min)
       max = if grouped_by?(query, max), do: max, else: max_of_max(max)
-      %{noise_layer | expressions: [min, max | aggregate_potential_count_expression(rest)]}
+      %{noise_layer | expressions: [min, max | rest]}
     else
       noise_layer
     end
@@ -207,9 +205,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp max_of_max(%Expression{kind: :constant} = constant), do: constant
   defp max_of_max(%Expression{type: :boolean} = max), do: max |> cast(:integer) |> max_of_max() |> cast(:boolean)
   defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type)
-
-  defp sum_of_count(%Expression{value: 1}), do: Expression.function("count", [:*], :integer)
-  defp sum_of_count(count), do: Expression.function("sum", [Expression.unalias(count)], :integer)
 
   # -------------------------------------------------------------------
   # Computing base noise layers
@@ -295,7 +290,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Lens.reject(&needs_aggregation?(query, &1))
       |> non_synthetic_expressions()
       |> raw_columns(query)
-      |> Enum.flat_map(&[static_noise_layer(query.anonymization_type, &1, &1), uid_noise_layer(&1, &1, top_level_uid)])
+      |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
   defp select_noise_layers(_query, _top_level_uid), do: []
 
@@ -310,7 +305,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Lens.to_list(query)
       |> Enum.flat_map(fn %Expression{kind: :function, name: "=", args: [column, constant]} ->
         [
-          static_noise_layer(query.anonymization_type, column, constant),
+          static_noise_layer(column, constant),
           uid_noise_layer(column, constant, top_level_uid)
         ]
       end)
@@ -321,7 +316,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Query.Lenses.operands()
     |> non_synthetic_expressions()
     |> raw_columns(query)
-    |> Enum.flat_map(&[static_noise_layer(query.anonymization_type, &1, &1), uid_noise_layer(&1, &1, top_level_uid)])
+    |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
   end
 
   defp group_by_noise_layers(%Query{type: :anonymized, grouping_sets: grouping_sets} = query, top_level_uid)
@@ -337,7 +332,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> raw_columns(group)
       |> Enum.flat_map(
         &[
-          static_noise_layer(query.anonymization_type, &1, &1, nil, index),
+          static_noise_layer(&1, &1, nil, index),
           uid_noise_layer(&1, &1, top_level_uid, nil, index)
         ]
       )
@@ -349,7 +344,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> non_uid_expressions()
     |> non_synthetic_expressions()
     |> raw_columns(query.group_by)
-    |> Enum.flat_map(&[static_noise_layer(query.anonymization_type, &1, &1), uid_noise_layer(&1, &1, top_level_uid)])
+    |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
   end
 
   defp in_noise_layers(query, top_level_uid),
@@ -361,7 +356,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         |> raw_columns(column)
         |> Enum.flat_map(fn column ->
           [
-            static_noise_layer(query.anonymization_type, column, column)
+            static_noise_layer(column, column)
             | Enum.map(constants, &uid_noise_layer(column, &1, top_level_uid))
           ]
         end)
@@ -376,7 +371,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         |> raw_columns(column)
         |> Enum.flat_map(
           &[
-            static_noise_layer(query.anonymization_type, &1, &1, range)
+            static_noise_layer(&1, &1, range)
           ]
         )
       end)
@@ -389,10 +384,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     do:
       conditions_satisfying(&Condition.not_equals?/1)
       |> Lens.to_list(query)
-      |> Enum.flat_map(&do_not_equals_noise_layers(query, &1, top_level_uid))
+      |> Enum.flat_map(&do_not_equals_noise_layers(&1, top_level_uid))
 
   defp do_not_equals_noise_layers(
-         query,
          %Expression{kind: :function, name: "<>", args: [column, %Expression{kind: :constant, type: :text} = constant]},
          top_level_uid
        ),
@@ -401,14 +395,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
          |> raw_columns(column)
          |> Enum.flat_map(
            &[
-             static_noise_layer(query.anonymization_type, &1, constant, :<>),
+             static_noise_layer(&1, constant, :<>),
              uid_noise_layer(&1, constant, top_level_uid, :<>),
-             static_noise_layer(query.anonymization_type, &1, lower(constant), {:<>, :lower})
+             static_noise_layer(&1, lower(constant), {:<>, :lower})
            ]
          )
 
   defp do_not_equals_noise_layers(
-         query,
          %Expression{kind: :function, name: "<>", args: [column, %Expression{kind: :constant} = constant]},
          top_level_uid
        ),
@@ -417,12 +410,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
          |> raw_columns(column)
          |> Enum.flat_map(
            &[
-             static_noise_layer(query.anonymization_type, &1, constant, :<>),
+             static_noise_layer(&1, constant, :<>),
              uid_noise_layer(&1, constant, top_level_uid, :<>)
            ]
          )
 
-  defp do_not_equals_noise_layers(_query, %Expression{kind: :function, name: "<>"}, _top_level_uid), do: []
+  defp do_not_equals_noise_layers(%Expression{kind: :function, name: "<>"}, _top_level_uid), do: []
 
   defp lower(%Expression{kind: :constant, type: :text, value: value}),
     do: Expression.constant(:text, String.downcase(value))
@@ -444,7 +437,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> raw_columns(column)
       |> Enum.flat_map(
         &[
-          static_noise_layer(query.anonymization_type, &1, &1, :<>),
+          static_noise_layer(&1, &1, :<>),
           uid_noise_layer(&1, &1, top_level_uid, :<>)
         ]
       )
@@ -531,28 +524,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     expressions = [
       _min = layer_expression,
       _max = layer_expression,
-      count_of_one(),
       top_level_uid
     ]
 
     build_noise_layer(base_column, extras, expressions, grouping_set_index)
   end
 
-  defp expressions_for_static_noise_layer(:user_id, layer_expression),
-    do: [_min = layer_expression, _max = layer_expression, count_of_one()]
-
-  defp expressions_for_static_noise_layer(:statistics, layer_expression),
-    do: [_min = layer_expression, _max = layer_expression]
-
-  defp static_noise_layer(anonymization_type, base_column, layer_expression, extras \\ nil, grouping_set_index \\ nil) do
-    expressions = expressions_for_static_noise_layer(anonymization_type, layer_expression)
-    build_noise_layer(base_column, extras, expressions, grouping_set_index)
+  defp static_noise_layer(base_column, layer_expression, extras \\ nil, grouping_set_index \\ nil) do
+    build_noise_layer(base_column, extras, [_min = layer_expression, _max = layer_expression], grouping_set_index)
   end
 
   defp build_noise_layer(base_column, extras, expressions, grouping_set_index),
     do: NoiseLayer.new({table_name(base_column.table), base_column.name, extras}, expressions, grouping_set_index)
-
-  defp count_of_one(), do: Expression.constant(:integer, 1)
 
   defp conditions_satisfying(predicate), do: db_conditions() |> Lens.filter(predicate)
 

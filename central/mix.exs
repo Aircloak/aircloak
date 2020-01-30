@@ -80,7 +80,6 @@ defmodule Central.Mixfile do
       {:inflex, "~> 1.5.0"},
       {:httpoison, "~> 0.12.0"},
       {:quantum, "~> 2.2.7"},
-      {:mongodb, "~> 0.5.1"},
       {:poolboy, ">= 0.0.0"},
       {:phoenix_gen_socket_client, "~> 2.0", only: :test},
       {:websocket_client, "~> 1.2.4", only: :test}

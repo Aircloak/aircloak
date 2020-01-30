@@ -3,10 +3,10 @@
 import React from "react";
 import Channel from "phoenix";
 
-import {ColumnsView} from "./columns";
-import {Filter} from "./filter";
-import type {Column} from "./columns";
-import {activateTooltips} from "../tooltips";
+import { ColumnsView } from "./columns";
+import { Filter } from "./filter";
+import type { Column } from "./columns";
+import activateTooltips from "../tooltips";
 
 export type Selectable = {
   id: string,
@@ -15,7 +15,7 @@ export type Selectable = {
   columns: Column[],
   delete_html: string,
   broken: boolean,
-  creation_status: string,
+  creation_status: string
 };
 
 type Props = {
@@ -28,151 +28,178 @@ type Props = {
 };
 
 const ERROR_REASON_MESSAGE =
-  "This might be caused by a change in the underlying data source, a dependent analyst table, or a view.";
+  "This might be caused by a change in the underlying data source, " +
+  "a dependent analyst table, or a view.";
 
-const VIEW_INVALID_MESSAGE =
-  `This view is no longer valid. ${ERROR_REASON_MESSAGE}`;
+const VIEW_INVALID_MESSAGE = `This view is no longer valid. ${ERROR_REASON_MESSAGE}`;
 
 const TABLE_INVALID_MESSAGE =
   `This table creation failed or the table is no longer valid. ${ERROR_REASON_MESSAGE}. ` +
-    "More information may be available in Insights Cloak logs - contact your administrator for access.";
+  "More information may be available in Insights Cloak logs - contact your administrator for access.";
 
-export class SelectableView extends React.Component {
-  handleToggleClick: () => void;
-  isAnalystCreatedSelectable: () => boolean;
-  renderSelectableActionMenu: () => void;
-  renderSelectableView: () => void;
-  hasRenderableContent: () => boolean;
-  triggerDelete: (event: {preventDefault: () => void}) => void;
-  brokenErrorMessage: () => string;
-
-  constructor(props: Props) {
-    super(props);
-
-    this.handleToggleClick = this.handleToggleClick.bind(this);
-    this.isAnalystCreatedSelectable = this.isAnalystCreatedSelectable.bind(this);
-    this.hasRenderableContent = this.hasRenderableContent.bind(this);
-    this.renderSelectableActionMenu = this.renderSelectableActionMenu.bind(this);
-    this.renderSelectableView = this.renderSelectableView.bind(this);
-    this.triggerDelete = this.triggerDelete.bind(this);
-    this.brokenErrorMessage = this.brokenErrorMessage.bind(this);
-  }
-
-  handleToggleClick(event: {target: Element, preventDefault: () => void}) {
+export class SelectableView extends React.Component<Props> {
+  handleToggleClick = (event: {
+    target: Element,
+    preventDefault: () => void
+  }) => {
     // Hacky solution to prevent bubbling from `<a>` elements. Normally, we'd use stopPropagation.
     // However, the problem here is that we're injecting some html provided by the server, which
     // internally generates A elements. Therefore, we don't have such option, so we're doing it
     // here.
-    if (event.target.tagName !== "A" && ! this.pending()) {
+    if (event.target.tagName !== "A" && !this.pending()) {
       event.preventDefault();
-      this.props.onClick();
+      const { onClick } = this.props;
+      onClick();
     }
-  }
+  };
 
-  isAnalystCreatedSelectable() {
-    const kind = this.props.selectable.kind;
-    return kind === "view" || kind === "analyst_table";
-  }
+  isAnalystCreatedSelectable = () => {
+    const { selectable } = this.props;
+    return selectable.kind === "view" || selectable.kind === "analyst_table";
+  };
 
-  hasRenderableContent() {
-    return this.props.filter.anyColumnMatches(this.props.selectable.columns);
-  }
+  hasRenderableContent = () => {
+    const { filter, selectable } = this.props;
+    return filter.anyColumnMatches(selectable.columns);
+  };
 
-  editLinkUrl() {
-    const selectable = this.props.selectable;
-    return `${this.props.selectablesEditUrl}?kind=${selectable.kind}&id=${selectable.internal_id}`;
-  }
+  editLinkUrl = () => {
+    const { selectable, selectablesEditUrl } = this.props;
+    return `${selectablesEditUrl}?kind=${selectable.kind}&id=${selectable.internal_id}`;
+  };
 
-  triggerDelete(event: {preventDefault: () => void}) {
-    if (confirm(`Do you want to permanently delete ${this.props.selectable.id}?`)) { // eslint-disable-line no-alert
-      this.props.channel.push("delete_selectable", {
-        internal_id: this.props.selectable.internal_id,
-        kind: this.props.selectable.kind,
+  triggerDelete = (event: { preventDefault: () => void }) => {
+    const { selectable, channel } = this.props;
+    if (window.confirm(`Do you want to permanently delete ${selectable.id}?`)) {
+      // eslint-disable-line no-alert
+      channel.push("delete_selectable", {
+        internal_id: selectable.internal_id,
+        kind: selectable.kind
       });
     }
     event.preventDefault();
-  }
+  };
 
-  renderSelectableActionMenu() {
+  renderSelectableActionMenu = () => {
     if (this.pending()) {
       return null;
     } else {
       return (
         <span className="pull-right">
           &nbsp;
-          <a className="btn btn-xs btn-default" href={this.editLinkUrl()}>Edit</a>
+          <a className="btn btn-xs btn-default" href={this.editLinkUrl()}>
+            Edit
+          </a>
           &nbsp;
-          <a className="btn btn-xs btn-danger" onClick={this.triggerDelete}>Delete</a>
+          <button
+            type="button"
+            className="btn btn-xs btn-danger"
+            onClick={this.triggerDelete}
+          >
+            Delete
+          </button>
         </span>
       );
     }
-  }
+  };
 
-  brokenErrorMessage() {
-    if (this.props.selectable.kind === "view") {
+  brokenErrorMessage = () => {
+    const { selectable } = this.props;
+    if (selectable.kind === "view") {
       return VIEW_INVALID_MESSAGE;
     } else {
       return TABLE_INVALID_MESSAGE;
     }
-  }
+  };
 
-  broken() {
-    const selectable = this.props.selectable;
+  brokenMetaData = () => {
+    const { selectable } = this.props;
     if (selectable.broken || selectable.creation_status === "failed") {
       return {
         title: this.brokenErrorMessage(),
-        "data-toggle": "tooltip",
-        "data-container": "body",
-        className: "list-group-item-heading alert-danger",
+        dataToggle: "tooltip",
+        dataContainer: "body",
+        className: "list-group-item-heading alert-danger"
       };
     } else {
       return {
-        className: "list-group-item-heading",
+        title: null,
+        dataToggle: null,
+        dataContainer: null,
+        className: "list-group-item-heading"
       };
     }
-  }
+  };
 
-  pending() {
-    return this.props.selectable.creation_status === "pending";
-  }
+  pending = () => {
+    const { selectable } = this.props;
+    return selectable.creation_status === "pending";
+  };
 
-  renderIcon() {
+  renderIcon = () => {
+    const { expanded } = this.props;
     if (this.pending()) {
-      return <img src="/images/loader.gif" role="presentation" height="12" width="12" />;
+      return (
+        <img
+          src="/images/loader.gif"
+          alt="indicated analyst table is being created"
+          height="12"
+          width="12"
+        />
+      );
     } else {
-      const glyphType = this.props.expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
+      const glyphType = expanded
+        ? "glyphicon glyphicon-minus"
+        : "glyphicon glyphicon-plus";
       return <span className={glyphType} />;
     }
-  }
+  };
 
-  renderSelectableView() {
+  renderSelectableView = () => {
+    const { selectable, expanded, filter } = this.props;
+    const {
+      title,
+      dataToggle,
+      dataContainer,
+      className
+    } = this.brokenMetaData();
     return (
       <div className="list-group-item">
-        <div onClick={this.handleToggleClick} {...this.broken()}>
+        <div
+          role="button"
+          tabIndex={0}
+          onKeyDown={this.handleToggleClick}
+          onClick={this.handleToggleClick}
+          title={title}
+          data-container={dataContainer}
+          data-toggle={dataToggle}
+          className={className}
+        >
           {this.renderIcon()}
           &nbsp;
-          {this.props.selectable.id}
-
-          {this.isAnalystCreatedSelectable() ? this.renderSelectableActionMenu() : null}
+          {selectable.id}
+          {this.isAnalystCreatedSelectable()
+            ? this.renderSelectableActionMenu()
+            : null}
         </div>
 
         {(() => {
-          if (this.props.expanded) {
-            return <ColumnsView columns={this.props.selectable.columns} filter={this.props.filter} />;
+          if (expanded) {
+            return <ColumnsView columns={selectable.columns} filter={filter} />;
           } else {
             return null;
           }
         })()}
       </div>
     );
-  }
+  };
 
-  render() {
+  render = () => {
     if (this.hasRenderableContent()) {
       activateTooltips();
       return this.renderSelectableView();
     } else {
       return null;
     }
-  }
+  };
 }

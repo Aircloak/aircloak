@@ -9,9 +9,8 @@ defmodule Compliance.DataSource.SQLServer do
   alias Compliance.DataSource.Connector
 
   @impl Connector
-  def setup(%{parameters: params}) do
-    {:ok, _} = Application.ensure_all_started(:odbc)
-    Connector.await_port(params.hostname, Map.get(params, :port, 1433))
+  def setup(%{parameters: params} = data_source) do
+    Mix.Tasks.Cloak.PingDb.ping!(data_source)
     setup_database(params)
     :ok
   end

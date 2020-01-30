@@ -92,14 +92,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_case_arguments(source_location, args) do
-    if rem(length(args), 2) == 0 do
-      raise(
-        CompilationError,
-        source_location: source_location,
-        message: "`case` expression requires a default branch."
-      )
-    end
-
     args
     |> Enum.take_every(2)
     |> Enum.reverse()
@@ -117,22 +109,21 @@ defmodule Cloak.Sql.Compiler.Validation do
         :ok
     end
 
-    default_arg = args |> Enum.reverse() |> Enum.at(0)
-    then_args = args |> Enum.drop(1) |> Enum.take_every(2)
-
-    [default_arg | then_args]
+    args
+    |> Function.case_branches()
     |> Enum.map(& &1.type)
     |> Enum.uniq()
+    |> Enum.reject(&is_nil/1)
     |> case do
-      [_type] ->
-        :ok
-
-      _ ->
+      types when length(types) > 1 ->
         raise(
           CompilationError,
           source_location: source_location,
           message: "`case` expression requires that all branches return the same type."
         )
+
+      _ ->
+        :ok
     end
   end
 
@@ -255,8 +246,8 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  @date_constant_min_year 1800
-  @date_constant_max_year 2999
+  @date_constant_min_year 1900
+  @date_constant_max_year 9999
   defp verify_constant(%Expression{value: value, type: type} = expression) when type in [:date, :datetime] do
     if value.year < @date_constant_min_year or value.year > @date_constant_max_year do
       raise CompilationError,

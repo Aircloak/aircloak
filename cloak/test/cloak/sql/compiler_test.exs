@@ -1343,23 +1343,38 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ "Function `dec_b64` can only be used in non-anonymizing queries."
   end
 
-  test "`case` requires a default branch" do
-    assert {:error, "`case` expression requires a default branch."} =
-             compile("select case(true, string) from table", data_source())
-  end
+  describe "`case` statements" do
+    test "allowed in standard queries" do
+      assert {:ok, _} = compile_standard("select case when true then string end from table", data_source())
+    end
 
-  test "`case` with default branch only works" do
-    assert {:ok, _} = compile("select case(string) from table", data_source())
-  end
+    test "rejected in standard queries" do
+      assert {:error, "Function `case` can only be used in non-anonymizing queries."} =
+               compile("select case when true then string end from table", data_source())
+    end
 
-  test "`case` test conditions have to be booleans" do
-    assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
-             compile("select case(true, 1, string, 0, 2) from table", data_source())
-  end
+    test "test conditions have to be booleans" do
+      assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
+               compile_standard("select case when true then 1 when string then 0 else 2 end from table", data_source())
+    end
 
-  test "`case` return values have to be identical" do
-    assert {:error, "`case` expression requires that all branches return the same type."} =
-             compile("select case(false, string, 2) from table", data_source())
+    test "return values have to be identical" do
+      assert {:error, "`case` expression requires that all branches return the same type."} =
+               compile_standard("select case when false then string else 2 end from table", data_source())
+    end
+
+    test "null return values are ignored from type checking" do
+      assert {:ok, _} = compile_standard("select case when true then null else string end from table", data_source())
+    end
+
+    test "all null return values" do
+      assert {:ok, _} = compile_standard("select case when string = '' then null end from table", data_source())
+    end
+
+    test "return type is properly set" do
+      assert {:ok, query} = compile_standard("select case when bool then null else 1 end from table", data_source())
+      assert [%{type: :integer}] = query.columns
+    end
   end
 
   test "rejects usage of distinct in non-aggregates" do
@@ -1406,7 +1421,7 @@ defmodule Cloak.Sql.Compiler.Test do
     {:error, error} = compile("select count(date '1801-01-01' - interval 'P10Y') from table", data_source())
 
     assert error =~
-             "Constant expression is out of valid range: date values have to be inside the interval [`1800-01-01`, `2999-12-31`]."
+             "Constant expression is out of valid range: date values have to be inside the interval [`1900-01-01`, `9999-12-31`]."
   end
 
   test "rejects interval constant values out of range" do
@@ -1425,14 +1440,14 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casting date parameter" do
     assert {:error, "Constant expression is out of valid range" <> _} =
              compile("SELECT COUNT(*) FROM table WHERE column = $1::datetime", data_source(),
-               parameters: [%{type: :date, value: "4000-01-01"}]
+               parameters: [%{type: :date, value: "1800-01-01"}]
              )
   end
 
   test "casting datetime parameter" do
     assert {:error, "Constant expression is out of valid range" <> _} =
              compile("SELECT COUNT(*) FROM table WHERE column = $1", data_source(),
-               parameters: [%{type: :datetime, value: "4000-01-01 10:20:30"}]
+               parameters: [%{type: :datetime, value: "1800-01-01 10:20:30"}]
              )
   end
 

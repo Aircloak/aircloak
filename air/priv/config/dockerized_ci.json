@@ -7,22 +7,27 @@
     "certfile": "ssl_cert.pem",
     "keyfile": "ssl_key.pem"
   },
-
   "psql_server": {
     "require_ssl": false,
     "certfile": "ssl_cert.pem",
     "keyfile": "ssl_key.pem"
   },
-
   "database": {
-    "host": "postgres9.4",
+    "host": "postgres11.2",
     "port": 5432,
     "ssl": false,
     "user": "postgres",
     "password": "",
     "name": "air_test"
   },
-
+  "shadow_database": {
+    "host": "postgres11.2",
+    "port": 5432,
+    "ssl": false,
+    "user": "postgres",
+    "password": "",
+    "name": "air_test"
+  },
   "ldap": {
     "host": "ldap.aircloak",
     "port": 389,

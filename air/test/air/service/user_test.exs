@@ -435,30 +435,6 @@ defmodule Air.Service.UserTest do
     end
   end
 
-  describe "pseudonym" do
-    # credo:disable-for-lines:2
-    test "if no user is provided, a random pseudonym is generated",
-      do: refute(User.pseudonym(nil) == User.pseudonym(nil))
-
-    test "a users pseudonym does not change over time" do
-      user_initial = TestRepoHelper.create_user!()
-      pseudonym1 = User.pseudonym(user_initial)
-
-      user_loaded = User.load!(user_initial.id)
-      pseudonym2 = User.pseudonym(user_loaded)
-
-      assert pseudonym1 == pseudonym2
-    end
-
-    test "a stale user record does still get the same pseudonym" do
-      user = TestRepoHelper.create_user!()
-      pseudonym1 = User.pseudonym(user)
-      pseudonym2 = User.pseudonym(user)
-
-      assert pseudonym1 == pseudonym2
-    end
-  end
-
   describe ".logins" do
     test "returns main login" do
       user = TestRepoHelper.create_user!()
@@ -655,6 +631,30 @@ defmodule Air.Service.UserTest do
 
     test "does not find nonexistent users" do
       assert {:error, :not_found} = User.load_enabled(123_456_789)
+    end
+  end
+
+  describe "user events" do
+    test "publishes delete event" do
+      User.subscribe_to(:user_deleted)
+      user = TestRepoHelper.create_user!()
+
+      User.delete!(user)
+
+      assert_receive {:user_deleted, %{user: _, previous_data_sources: _}}
+      User.unsubscribe_from(:user_deleted)
+    end
+
+    test "publishes update event" do
+      User.subscribe_to(:user_updated)
+      group1 = TestRepoHelper.create_group!()
+      group2 = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{groups: [group1.id]})
+
+      User.update!(user, %{groups: [group2.id]})
+
+      assert_receive {:user_updated, %{user: _, previous_data_sources: _}}
+      User.unsubscribe_from(:user_updated)
     end
   end
 

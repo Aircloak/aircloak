@@ -18,10 +18,10 @@ defmodule Cloak.Query.Runner.Engine do
       |> compile!(runner_args)
       |> Query.DbEmulator.compile()
 
-    features = Sql.Query.features(query)
+    metadata = Sql.Query.metadata(query)
 
-    runner_args.feature_updater.(features)
-    result = query |> run_statement(runner_args.state_updater) |> Query.Result.new(query.column_titles, features)
+    runner_args.metadata_updater.(metadata)
+    result = query |> run_statement(runner_args.state_updater) |> Query.Result.new(query.column_titles, metadata)
 
     runtime = :erlang.monotonic_time(:milli_seconds) - start_time
 

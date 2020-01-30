@@ -14,4 +14,9 @@ defmodule Compliance.MiscTest do
       """)
     end
   end)
+
+  @tag compliance: "case"
+  test "case in standard query", context do
+    assert_consistent_and_not_failing(context, "SELECT SUM(CASE WHEN age >= 0 THEN 1 ELSE -1 END) FROM users_public")
+  end
 end

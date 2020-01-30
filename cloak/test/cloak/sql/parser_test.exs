@@ -1856,9 +1856,12 @@ defmodule Cloak.Sql.Parser.Test do
       {"invalid extract part", "select extract(invalid from date) from table", "Expected `date part`", {1, 16}},
       {"invalid input after end of query", "select * from table where condition where some random stuff",
        "Unexpected input after end of valid query", {1, 37}},
-      {"invalid input after end of subqquery",
+      {"invalid input after end of subquery",
        "select * from (select * from table where condition where some random stuff) foo",
-       "Unexpected input after end of valid subquery, expected `)`", {1, 52}}
+       "Unexpected input after end of valid subquery, expected `)`", {1, 52}},
+      {"case statement with missing branches", "select case end from bar", "Expected `when`", {1, 13}},
+      {"case statement with invalid when branch", "select case when true then end from bar",
+       "Expected `column definition`", {1, 28}}
     ],
     fn {description, statement, expected_error, {line, column}} ->
       create_test.(description, statement, expected_error, line, column)
@@ -2028,6 +2031,36 @@ defmodule Cloak.Sql.Parser.Test do
           )
         )
       end
+    end
+  end
+
+  describe "case" do
+    test "with else" do
+      assert_parse(
+        "select case when foo then 1 else 0 end from bar",
+        select(
+          columns: [
+            function("case", [identifier("foo"), constant(1), constant(0)])
+          ]
+        )
+      )
+    end
+
+    test "without else" do
+      assert_parse(
+        "select case when foo = 1 then 1 when true then 0 end from bar",
+        select(
+          columns: [
+            function("case", [
+              function("=", [identifier("foo"), constant(1)]),
+              constant(1),
+              constant(:boolean, true),
+              constant(0),
+              :null
+            ])
+          ]
+        )
+      )
     end
   end
 end
