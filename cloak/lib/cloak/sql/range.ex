@@ -5,7 +5,7 @@ defmodule Cloak.Sql.Range do
 
   @type t :: %__MODULE__{
           column: Expression.t(),
-          interval: FixAlign.interval(any) | :invalid | :implicit
+          interval: FixAlign.interval(any) | :implicit
         }
 
   defstruct [:column, :interval]
@@ -67,8 +67,11 @@ defmodule Cloak.Sql.Range do
 
         %__MODULE__{column: column, interval: {Condition.value(bottom), Condition.value(top)}}
 
-      {column, _other} ->
-        %__MODULE__{column: column, interval: :invalid}
+      {column, [inequality]} ->
+        %__MODULE__{
+          column: column,
+          interval: {String.to_atom(inequality.name), Condition.value(inequality)}
+        }
     end)
   end
 

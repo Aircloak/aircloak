@@ -199,6 +199,21 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.reduce(stripped_query, &add_aligned_range(&1, &2, lens))
   end
 
+  defp add_aligned_range({column, [condition]}, query, lens) do
+    target = Condition.value(condition)
+    truncated_target = truncate_datetime(target)
+
+    if target == truncated_target do
+      update_in(query, [lens], &Condition.both(condition, &1))
+    else
+      query
+      |> add_clause(lens, %Expression{condition | args: [column, Expression.constant(column.type, truncated_target)]})
+      |> Query.add_info(
+        "The inequality target for column #{Expression.display_name(column)} has been adjusted to `#{truncated_target}`."
+      )
+    end
+  end
+
   defp add_aligned_range({column, conditions}, query, lens) do
     {left, right} =
       conditions
@@ -261,6 +276,19 @@ defmodule Cloak.Sql.Compiler.Execution do
       _ ->
         false
     end
+  end
+
+  defp current_date?(%Date{} = value), do: value == Date.utc_today()
+
+  defp current_date?(%NaiveDateTime{} = value), do: value |> NaiveDateTime.to_date() |> current_date?()
+
+  defp current_date?(_), do: false
+
+  defp truncate_datetime(%Date{} = value), do: value
+
+  defp truncate_datetime(%NaiveDateTime{} = value) do
+    {date, _time} = NaiveDateTime.to_erl(value)
+    NaiveDateTime.from_erl!({date, {0, 0, 0}}) |> Cloak.Time.max_precision()
   end
 
   defp extract_columns(columns), do: Query.Lenses.leaf_expressions() |> Lens.to_list(columns)

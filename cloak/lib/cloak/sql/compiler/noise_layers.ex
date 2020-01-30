@@ -104,22 +104,29 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Lens.reject(&(&1.type == :standard))
 
   defp push_noise_layer(query, %NoiseLayer{
-         base: {_table, column, extras},
-         expressions: [min, max | rest],
+         base: {_table, top_column, extras},
+         expressions: top_expressions,
          grouping_set_index: grouping_set_index
        }) do
-    {:ok, expression} = find_column(column, query)
+    expression = find_selected_expression_by_name(top_column, query)
 
     layers =
       raw_columns(expression)
       |> Enum.map(fn column ->
-        min = if(Expression.column?(expression) and Expression.constant?(min), do: min, else: column)
-        max = if(Expression.column?(expression) and Expression.constant?(max), do: max, else: column)
-        build_noise_layer(column, extras, [min, max | rest], grouping_set_index)
+        expressions = push_noise_layer_expressions(expression, column, top_expressions)
+        build_noise_layer(column, extras, expressions, grouping_set_index)
       end)
       |> finalize(query)
 
     update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
+  end
+
+  defp push_noise_layer_expressions(_expression, _column, []), do: []
+
+  defp push_noise_layer_expressions(expression, column, [min, max | rest]) do
+    min = if Expression.column?(expression) and Expression.constant?(min), do: min, else: column
+    max = if Expression.column?(expression) and Expression.constant?(max), do: max, else: column
+    [min, max | rest]
   end
 
   # -------------------------------------------------------------------
@@ -177,8 +184,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         )
       end)
 
-  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max | rest]}, query) do
-    if Helpers.aggregates?(query) or Helpers.group_by?(query) do
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: expressions}, query) do
+    if length(expressions) >= 2 and (Helpers.aggregates?(query) or Helpers.group_by?(query)) do
+      [min, max | rest] = expressions
       min = if grouped_by?(query, min), do: min, else: min_of_min(min)
       max = if grouped_by?(query, max), do: max, else: max_of_max(max)
       %{noise_layer | expressions: [min, max | rest]}
@@ -365,14 +373,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     do:
       query
       |> Range.find_ranges()
-      |> Enum.flat_map(fn %{column: column, interval: range} ->
-        non_synthetic_expressions()
-        |> raw_columns(column)
-        |> Enum.flat_map(
-          &[
-            static_noise_layer(&1, &1, range)
-          ]
-        )
+      |> Enum.flat_map(fn
+        %{column: column, interval: {operator, _value}} when is_atom(operator) ->
+          non_synthetic_expressions()
+          |> raw_columns(column)
+          |> Enum.flat_map(&[build_noise_layer(&1, operator, [])])
+
+        %{column: column, interval: range} ->
+          non_synthetic_expressions()
+          |> raw_columns(column)
+          |> Enum.flat_map(&[static_noise_layer(&1, &1, range)])
       end)
 
   # -------------------------------------------------------------------
@@ -500,15 +510,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # Helpers
   # -------------------------------------------------------------------
 
-  defp find_column(name, query) do
-    case Enum.find_index(query.column_titles, &(&1 == name)) do
-      nil ->
-        :error
-
-      index ->
-        true = index < length(query.columns)
-        {:ok, Enum.at(query.columns, index)}
-    end
+  defp find_selected_expression_by_name(name, query) do
+    index = Enum.find_index(query.column_titles, &(&1 == name))
+    true = index != nil
+    true = index < length(query.columns)
+    Enum.at(query.columns, index)
   end
 
   defp raw_columns(lens \\ Lens.root(), data),
@@ -533,7 +539,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     build_noise_layer(base_column, extras, [_min = layer_expression, _max = layer_expression], grouping_set_index)
   end
 
-  defp build_noise_layer(base_column, extras, expressions, grouping_set_index),
+  defp build_noise_layer(base_column, extras, expressions, grouping_set_index \\ nil),
     do: NoiseLayer.new({table_name(base_column.table), base_column.name, extras}, expressions, grouping_set_index)
 
   defp conditions_satisfying(predicate), do: db_conditions() |> Lens.filter(predicate)

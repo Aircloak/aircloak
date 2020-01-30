@@ -921,19 +921,19 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "fixes alignment of ranges" do
-    assert compile!("select * from table where numeric > 1 and numeric < 9", data_source()).where ==
-             compile!("select * from table where numeric > 0 and numeric < 10", data_source()).where
+    assert compile!("select stddev(0) from table where numeric > 1 and numeric < 9", data_source()).where ==
+             compile!("select stddev(0) from table where numeric > 0 and numeric < 10", data_source()).where
   end
 
   test "fixes alignment of datetime ranges" do
     aligned =
       compile!(
-        "select * from table where column > '2015-01-02' and column < '2016-07-01'",
+        "select stddev(0) from table where column > '2015-01-02' and column < '2016-07-01'",
         data_source()
       )
 
     assert compile!(
-             "select * from table where column > '2015-01-01' and column < '2016-08-02'",
+             "select stddev(0) from table where column > '2015-01-01' and column < '2016-08-02'",
              data_source()
            ).where == aligned.where
 
@@ -945,7 +945,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "no message when datetime alignment does not require fixing" do
     assert compile!(
-             "select * from table where column >= '2006-05-31' and column < '2006-06-01'",
+             "select stddev(0) from table where column >= '2006-05-31' and column < '2006-06-01'",
              data_source()
            ).info == []
   end
@@ -953,12 +953,12 @@ defmodule Cloak.Sql.Compiler.Test do
   test "fixes alignment of date ranges" do
     aligned =
       compile!(
-        "select * from table where column > '2015-01-02' and column < '2016-07-01'",
+        "select stddev(0) from table where column > '2015-01-02' and column < '2016-07-01'",
         date_data_source()
       )
 
     assert compile!(
-             "select * from table where column > '2015-01-01' and column < '2016-08-02'",
+             "select stddev(0) from table where column > '2015-01-01' and column < '2016-08-02'",
              date_data_source()
            ).where == aligned.where
 
@@ -971,13 +971,13 @@ defmodule Cloak.Sql.Compiler.Test do
   test "fixes alignment of time ranges" do
     aligned =
       compile!(
-        "select * from table where column > '00:00:01' and column < '00:00:04'",
+        "select stddev(0) from table where column > '00:00:01' and column < '00:00:04'",
         time_data_source()
       )
 
     unaligned =
       compile!(
-        "select * from table where column >= '00:00:00' and column < '00:00:05'",
+        "select stddev(0) from table where column >= '00:00:00' and column < '00:00:05'",
         time_data_source()
       )
 
@@ -1004,6 +1004,32 @@ defmodule Cloak.Sql.Compiler.Test do
              ).info
 
     assert msg == "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` < 2.0."
+  end
+
+  test "allows inequality between current date and clear column" do
+    assert {:ok, _} = compile("select stddev(0) from table where current_date() > cast(column as date)", data_source())
+  end
+
+  test "rejects inequality between current date and non-clear column" do
+    assert {:error, "Only clear expressions can be used in range conditions." <> _} =
+             compile("select stddev(0) from table where current_date() > cast(string || 'x' as date)", data_source())
+  end
+
+  test "no message for current date inequality" do
+    assert compile!("select stddev(0) from table where current_date() > column", data_source()).info == []
+  end
+
+  test "fixes alignment of current datetime inequalities" do
+    assert non_aligned =
+             compile!("select stddev(0) from table where cast(current_date() as datetime) <= column", data_source())
+
+    assert aligned = compile!("select stddev(0) from table where current_datetime() <= column", data_source())
+
+    assert aligned.where == non_aligned.where
+
+    assert non_aligned.info == []
+
+    assert ["The inequality target for column `column` from table `table` has been adjusted to " <> _] = aligned.info
   end
 
   test "columns for fetching are not duplicated" do
