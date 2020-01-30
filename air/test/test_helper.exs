@@ -16,3 +16,27 @@ Air.Repo.delete_all(Air.Schemas.License)
 :ok = "priv/dev_license.lic" |> File.read!() |> Air.Service.License.load()
 
 Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, :manual)
+
+# delete all shadow dbs
+params = Air.PsqlServer.ShadowDb.connection_params()
+
+{:ok, pid} =
+  Postgrex.start_link(
+    hostname: params.host,
+    database: params.name,
+    username: params.user,
+    port: params.port,
+    ssl: params.ssl,
+    password: params.password
+  )
+
+result =
+  Postgrex.query!(
+    pid,
+    "SELECT distinct datname FROM pg_catalog.pg_database WHERE datname LIKE 'aircloak_shadow%'",
+    []
+  )
+
+result.rows
+|> List.flatten()
+|> Enum.each(&Postgrex.query!(pid, "DROP DATABASE \"#{&1}\"", []))

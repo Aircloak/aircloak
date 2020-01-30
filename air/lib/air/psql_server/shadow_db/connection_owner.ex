@@ -44,21 +44,22 @@ defmodule Air.PsqlServer.ShadowDb.ConnectionOwner do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(data_source_name), do: {:ok, data_source_name}
+  def init({user, data_source_name}),
+    do: {:ok, %{user: user, data_source_name: data_source_name}}
 
   @impl GenServer
-  def handle_call(:connection, _from, data_source_name) do
+  def handle_call(:connection, _from, state) do
     conn_pid =
       case Parent.GenServer.child_pid(Connection) do
         {:ok, pid} ->
           pid
 
         :error ->
-          {:ok, pid} = Parent.GenServer.start_child({Connection, data_source_name})
+          {:ok, pid} = Parent.GenServer.start_child({Connection, state})
           pid
       end
 
-    {:reply, conn_pid, data_source_name}
+    {:reply, conn_pid, state}
   end
 
   @impl GenServer
@@ -75,5 +76,9 @@ defmodule Air.PsqlServer.ShadowDb.ConnectionOwner do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link([{:data_source_name, data_source_name}]), do: Parent.GenServer.start_link(__MODULE__, data_source_name)
+  def start_link(keywords) do
+    user = Keyword.get(keywords, :user)
+    data_source_name = Keyword.get(keywords, :data_source_name)
+    Parent.GenServer.start_link(__MODULE__, {user, data_source_name})
+  end
 end

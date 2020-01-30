@@ -634,6 +634,30 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe "user events" do
+    test "publishes delete event" do
+      User.subscribe_to(:user_deleted)
+      user = TestRepoHelper.create_user!()
+
+      User.delete!(user)
+
+      assert_receive {:user_deleted, %{user: _, previous_data_sources: _}}
+      User.unsubscribe_from(:user_deleted)
+    end
+
+    test "publishes update event" do
+      User.subscribe_to(:user_updated)
+      group1 = TestRepoHelper.create_group!()
+      group2 = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{groups: [group1.id]})
+
+      User.update!(user, %{groups: [group2.id]})
+
+      assert_receive {:user_updated, %{user: _, previous_data_sources: _}}
+      User.unsubscribe_from(:user_updated)
+    end
+  end
+
   defp error_on(fun, field, value), do: errors_on(fun, %{field => value})[field]
 
   defp errors_on(fun, changes) do
