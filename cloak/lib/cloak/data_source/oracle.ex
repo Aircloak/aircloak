@@ -21,6 +21,14 @@ defmodule Cloak.DataSource.Oracle do
   def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
 
   @impl Driver
+  def health_check(connection) do
+    case select(connection, "SELECT 1 FROM DUAL") do
+      {:ok, _} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @impl Driver
   def load_tables(connection, table) do
     connection
     |> select!("""

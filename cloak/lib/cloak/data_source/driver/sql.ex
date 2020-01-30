@@ -31,6 +31,14 @@ defmodule Cloak.DataSource.Driver.SQL do
       def supports_query?(_query), do: true
 
       @impl Driver
+      def health_check(connection) do
+        case select(connection, "SELECT 1") do
+          {:ok, _} -> :ok
+          {:error, reason} -> {:error, reason}
+        end
+      end
+
+      @impl Driver
       defdelegate supports_function?(expression, data_source), to: SqlBuilder.Support
 
       @doc false
