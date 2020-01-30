@@ -117,7 +117,7 @@ cdp-impala_drivers: priv/odbc/drivers/cloudera/impalaodbc
 
 priv/odbc/drivers/cloudera/impalaodbc:
 	mkdir -p priv/odbc/drivers/cloudera/impalaodbc
-	wget -O priv/odbc/drivers/cloudera/clouderaimpalaodbc_2.6.5.1005-2_amd64.zip https://www.dropbox.com/s/85l70vhx3y9751d/clouderaimpalaodbc_2.6.5.1005-2_amd64.zip?dl=0
+	wget -O priv/odbc/drivers/cloudera/clouderaimpalaodbc_2.6.5.1005-2_amd64.zip https://www.dropbox.com/s/sqxdzovckj1avwz/clouderaimpalaodbc_2.6.5.1005-2_amd64.zip?dl=0
 	unzip priv/odbc/drivers/cloudera/clouderaimpalaodbc_2.6.5.1005-2_amd64.zip -d priv/odbc/drivers/cloudera/impalaodbc
 	rm priv/odbc/drivers/cloudera/clouderaimpalaodbc_2.6.5.1005-2_amd64.zip
 
