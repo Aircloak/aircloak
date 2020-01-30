@@ -190,13 +190,13 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp align_where(query), do: align_ranges(query, Lens.key(:where))
 
   defp align_ranges(query, lens) do
-    grouped_inequalities = lens |> Lens.one!(query) |> range_inequalities_by_column()
+    strip_inequalities = fn clause -> Condition.reject(clause, &Range.constant_inequality?/1) end
+    stripped_query = Lens.map(lens, query, strip_inequalities)
 
-    verify_ranges(grouped_inequalities)
-
-    query = Lens.map(lens, query, fn clause -> Condition.reject(clause, &Range.range_inequality?/1) end)
-
-    Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens))
+    lens
+    |> Range.inequalities_by_column(query)
+    |> verify_ranges()
+    |> Enum.reduce(stripped_query, &add_aligned_range(&1, &2, lens))
   end
 
   defp add_aligned_range({column, conditions}, query, lens) do
@@ -245,43 +245,21 @@ defmodule Cloak.Sql.Compiler.Execution do
           message: "Column #{Expression.display_name(column)} must be limited to a finite, nonempty range."
 
       _ ->
-        :ok
+        grouped_inequalities
     end
   end
 
   defp valid_range?(comparisons) do
     case Enum.sort_by(comparisons, &Condition.direction/1, &Kernel.>/2) do
       [cmp1, cmp2] ->
-        Condition.direction(cmp1) != Condition.direction(cmp2) &&
+        Condition.direction(cmp1) != Condition.direction(cmp2) and
           Cloak.Data.lt(Condition.value(cmp1), Condition.value(cmp2))
+
+      [cmp] ->
+        cmp |> Condition.value() |> current_date?()
 
       _ ->
         false
-    end
-  end
-
-  defp range_inequalities_by_column(where_clause) do
-    Lenses.conditions()
-    |> Lens.to_list(where_clause)
-    |> Enum.filter(&Range.range_inequality?/1)
-    |> Enum.group_by(&(&1 |> Condition.subject() |> Expression.semantic()))
-    |> Enum.map(&discard_redundant_inequalities/1)
-    |> Enum.into(%{})
-  end
-
-  defp discard_redundant_inequalities({column, inequalities}) do
-    case {bottom, top} = Enum.split_with(inequalities, &(Condition.direction(&1) == :>)) do
-      {[], []} ->
-        {column, []}
-
-      {_, []} ->
-        {column, [Enum.max_by(bottom, &Condition.value/1)]}
-
-      {[], _} ->
-        {column, [Enum.min_by(top, &Condition.value/1)]}
-
-      {_, _} ->
-        {column, [Enum.max_by(bottom, &Condition.value/1), Enum.min_by(top, &Condition.value/1)]}
     end
   end
 

@@ -32,23 +32,35 @@ defmodule Cloak.Sql.Range do
   @spec range?(Condition.t(), Query.t()) :: boolean
   def range?(condition, query) do
     cond do
-      range_inequality?(condition) -> true
+      constant_inequality?(condition) -> true
       condition |> Condition.targets() |> Enum.any?(&implicit_range?(&1, query)) -> true
       true -> false
     end
   end
 
-  @doc "Returns true if the condition is part of an explicit range, false otherwise."
-  @spec range_inequality?(Condition.t()) :: boolean
-  def range_inequality?(condition),
+  @doc "Returns true if the condition is a column-constant inequality condition."
+  @spec constant_inequality?(Condition.t()) :: boolean
+  def constant_inequality?(condition),
     do: Condition.inequality?(condition) and Enum.any?(Condition.targets(condition), &Expression.constant?/1)
+
+  @doc "Groups column-constant inequality conditions in the given clause by column."
+  @spec inequalities_by_column(Lens.t(), Query.t()) :: [{Expression.t(), [Expression.t()]}]
+  def inequalities_by_column(clause_lens, query) do
+    clause_lens
+    |> Query.Lenses.conditions()
+    |> Lens.filter(&constant_inequality?/1)
+    |> Lens.to_list(query)
+    |> Enum.group_by(&(&1 |> Condition.subject() |> Expression.semantic()))
+    |> Enum.map(&discard_redundant_inequalities/1)
+  end
 
   # -------------------------------------------------------------------
   # Inequality ranges
   # -------------------------------------------------------------------
 
   defp inequality_ranges(query) do
-    inequalities_by_column(query)
+    Query.Lenses.db_filter_clauses()
+    |> inequalities_by_column(query)
     |> Enum.map(fn
       {column, inequalities} when length(inequalities) == 2 ->
         [bottom, top] = Enum.sort_by(inequalities, &Condition.direction/1, &Kernel.>/2)
@@ -60,19 +72,27 @@ defmodule Cloak.Sql.Range do
     end)
   end
 
-  defp inequalities_by_column(query) do
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.filter(&range_inequality?/1)
-    |> Lens.to_list(query)
-    |> Enum.group_by(&(&1 |> Condition.subject() |> Expression.semantic()))
+  defp discard_redundant_inequalities({column, inequalities}) do
+    case {bottom, top} = Enum.split_with(inequalities, &(Condition.direction(&1) == :>)) do
+      {[], []} ->
+        {column, []}
+
+      {_, []} ->
+        {column, [Enum.max_by(bottom, &Condition.value/1)]}
+
+      {[], _} ->
+        {column, [Enum.min_by(top, &Condition.value/1)]}
+
+      {_, _} ->
+        {column, [Enum.max_by(bottom, &Condition.value/1), Enum.min_by(top, &Condition.value/1)]}
+    end
   end
 
   # -------------------------------------------------------------------
   # Function ranges
   # -------------------------------------------------------------------
 
-  defp function_ranges(query), do: equality_ranges(query) ++ top_level_select_ranges(query)
+  defp function_ranges(query), do: equality_ranges(query) ++ select_ranges(query)
 
   defp equality_ranges(query) do
     Query.Lenses.db_filter_clauses()
@@ -84,17 +104,14 @@ defmodule Cloak.Sql.Range do
     |> Enum.map(&function_range/1)
   end
 
-  defp top_level_select_ranges(query) do
-    top_level_select(query)
+  defp select_ranges(query) do
+    Lens.key(:columns)
     |> Lens.all()
     |> Lens.reject(&aggregate?(&1))
     |> Lens.to_list(query)
     |> Enum.filter(&implicit_range?(&1, query))
     |> Enum.map(&function_range/1)
   end
-
-  defp top_level_select(%{subquery: true}), do: Lens.empty()
-  defp top_level_select(_), do: Lens.key(:columns)
 
   defp implicit_range?(:*, _query), do: false
   defp implicit_range?({:distinct, expression}, query), do: implicit_range?(expression, query)
