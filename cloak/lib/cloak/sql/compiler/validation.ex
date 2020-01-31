@@ -246,15 +246,13 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  @date_constant_min_year 1900
-  @date_constant_max_year 9999
   defp verify_constant(%Expression{value: value, type: type} = expression) when type in [:date, :datetime] do
-    if value.year < @date_constant_min_year or value.year > @date_constant_max_year do
+    if value.year < Cloak.Time.year_lower_bound() or value.year > Cloak.Time.year_upper_bound() do
       raise CompilationError,
         source_location: expression.source_location,
         message:
           "Constant expression is out of valid range: date values have to be inside the interval " <>
-            "[`#{@date_constant_min_year}-01-01`, `#{@date_constant_max_year}-12-31`]."
+            "[`#{Cloak.Time.year_lower_bound()}-01-01`, `#{Cloak.Time.year_upper_bound()}-12-31`]."
     end
   end
 

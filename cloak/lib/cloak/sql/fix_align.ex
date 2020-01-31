@@ -4,7 +4,6 @@ defmodule Cloak.Sql.FixAlign do
   @type interval(x) :: {x, x}
 
   @default_size_factors [1, 2, 5]
-  @epoch ~N[1900-01-01 00:00:00]
   @midnight ~T[00:00:00]
   @just_before_midnight ~T[23:59:59.999999]
   @full_day {@midnight, @just_before_midnight}
@@ -73,7 +72,8 @@ defmodule Cloak.Sql.FixAlign do
     end
   end
 
-  defp time_to_datetime(%Time{hour: h, minute: m, second: s}), do: %{@epoch | hour: h, minute: m, second: s}
+  defp time_to_datetime(%Time{hour: h, minute: m, second: s}),
+    do: %NaiveDateTime{epoch_start() | hour: h, minute: m, second: s}
 
   defp datetime_to_time({x, y}) do
     if Timex.diff(x, y, :seconds) |> abs() >= @seconds_in_day do
@@ -98,12 +98,16 @@ defmodule Cloak.Sql.FixAlign do
   defp to_date({x, y}), do: {NaiveDateTime.to_date(x), NaiveDateTime.to_date(y)}
 
   defp align_date_time({x, y}) do
+    x = apply_datetime_bounds(x)
+    y = apply_datetime_bounds(y)
+
     if Timex.diff(y, x) <= 0 do
       raise "Invalid interval"
     else
-      aligned = align_date_time_once({x, y}, largest_changed_unit({x, y}))
+      largest_unit = largest_changed_unit({x, y})
+      aligned = align_date_time_once({x, y}, largest_unit)
 
-      if largest_changed_unit(aligned) == largest_changed_unit({x, y}) do
+      if largest_changed_unit(aligned) == largest_unit do
         aligned
       else
         align_date_time_once({x, y}, largest_changed_unit(aligned))
@@ -149,22 +153,27 @@ defmodule Cloak.Sql.FixAlign do
     do: {units_since_epoch(x, unit), y |> datetime_ceil(lower_unit(unit)) |> units_since_epoch(unit)}
 
   defp units_since_epoch(%{year: year, month: month}, :years),
-    do: year - @epoch.year + (month - @epoch.month) / @months_in_year
+    do: year - Cloak.Time.year_lower_bound() + (month - 1) / @months_in_year
 
   defp units_since_epoch(datetime = %{year: year, month: month, day: day}, :months),
     do:
-      (year - @epoch.year) * @months_in_year + (month - @epoch.month) +
-        (day - @epoch.day) / Timex.days_in_month(datetime)
+      (year - Cloak.Time.year_lower_bound()) * @months_in_year + (month - 1) +
+        (day - 1) / Timex.days_in_month(datetime)
 
-  defp units_since_epoch(datetime = %Date{}, :days), do: Timex.diff(datetime, @epoch, :days)
+  defp units_since_epoch(datetime = %Date{}, :days),
+    do: Timex.diff(datetime, epoch_start(), :days)
 
-  defp units_since_epoch(datetime, :days), do: Timex.diff(datetime, @epoch, :seconds) / @seconds_in_day
+  defp units_since_epoch(datetime, :days),
+    do: Timex.diff(datetime, epoch_start(), :seconds) / @seconds_in_day
 
-  defp units_since_epoch(datetime, :hours), do: Timex.diff(datetime, @epoch, :seconds) / @seconds_in_hour
+  defp units_since_epoch(datetime, :hours),
+    do: Timex.diff(datetime, epoch_start(), :seconds) / @seconds_in_hour
 
-  defp units_since_epoch(datetime, :minutes), do: Timex.diff(datetime, @epoch, :seconds) / @seconds_in_minute
+  defp units_since_epoch(datetime, :minutes),
+    do: Timex.diff(datetime, epoch_start(), :seconds) / @seconds_in_minute
 
-  defp units_since_epoch(datetime, :seconds), do: Timex.diff(datetime, @epoch, :seconds)
+  defp units_since_epoch(datetime, :seconds),
+    do: Timex.diff(datetime, epoch_start(), :seconds)
 
   defp datetime_ceil(datetime, :months) do
     if Timex.diff(datetime, Timex.beginning_of_month(datetime), :microseconds) == 0,
@@ -191,18 +200,18 @@ defmodule Cloak.Sql.FixAlign do
 
   defp datetime_from_units(x, unit) do
     cond do
-      unit == :years and @epoch.year + x < Cloak.Time.datetime_lower_bound().year ->
-        Cloak.Time.datetime_lower_bound()
+      unit == :years and x < 0 ->
+        epoch_start()
 
-      unit == :years and @epoch.year + x > Cloak.Time.datetime_upper_bound().year ->
-        Cloak.Time.datetime_upper_bound()
+      unit == :years and Cloak.Time.year_lower_bound() + x > Cloak.Time.year_upper_bound() ->
+        epoch_end()
 
       true ->
         less_significant = ((x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit))) |> round()
 
         more_significant = x |> Float.floor() |> round()
 
-        @epoch
+        epoch_start()
         |> Timex.shift([{unit, more_significant}, {lower_unit(unit), less_significant}])
         |> apply_datetime_bounds()
     end
@@ -210,8 +219,8 @@ defmodule Cloak.Sql.FixAlign do
 
   defp apply_datetime_bounds(datetime) do
     cond do
-      datetime.year < Cloak.Time.datetime_lower_bound().year -> Cloak.Time.datetime_lower_bound()
-      datetime.year > Cloak.Time.datetime_upper_bound().year -> Cloak.Time.datetime_upper_bound()
+      datetime.year < Cloak.Time.year_lower_bound() -> epoch_start()
+      datetime.year > Cloak.Time.year_upper_bound() -> epoch_end()
       true -> datetime
     end
   end
@@ -297,4 +306,7 @@ defmodule Cloak.Sql.FixAlign do
     floor_log = x |> :math.log10() |> Float.floor()
     :math.pow(10, floor_log)
   end
+
+  defp epoch_start(), do: NaiveDateTime.from_erl!({{Cloak.Time.year_lower_bound(), 1, 1}, {0, 0, 0}})
+  defp epoch_end(), do: NaiveDateTime.from_erl!({{Cloak.Time.year_upper_bound(), 12, 31}, {23, 59, 59}}, {999_999, 6})
 end
