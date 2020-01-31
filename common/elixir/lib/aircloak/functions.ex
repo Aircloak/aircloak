@@ -223,6 +223,8 @@ defmodule Aircloak.Functions do
                    [:datetime, :datetime] => :boolean,
                    [:datetime, :text] => :boolean,
                    [:text, :datetime] => :boolean,
+                   [:datetime, :date] => :boolean,
+                   [:date, :datetime] => :boolean,
                    [:interval, :interval] => :boolean,
                    [:boolean, :boolean] => :boolean
                  },

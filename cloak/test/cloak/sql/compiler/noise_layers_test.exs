@@ -340,6 +340,30 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  test "noise layer for inequality with current date" do
+    result = compile!("SELECT STDDEV(uid) FROM table WHERE cast(dt as date) > current_date()")
+
+    assert [%{base: {"table", "dt", :>}, expressions: []}] = result.noise_layers
+  end
+
+  test "noise layer for inequality with current date from subquery" do
+    result =
+      compile!("""
+      SELECT STDDEV(uid) FROM (
+        SELECT uid, dt AS x FROM table
+        WHERE dt <= current_date()
+        GROUP BY 1, 2
+      ) t WHERE t.x >= current_date()
+      """)
+
+    assert [
+             %{base: {"table", "dt", nil}, expressions: [_, _]},
+             %{base: {"table", "dt", nil}, expressions: [_, _, %Expression{user_id?: true}]},
+             %{base: {"table", "dt", :<=}, expressions: []},
+             %{base: {"table", "dt", :>=}, expressions: []}
+           ] = result.noise_layers
+  end
+
   describe "negative conditions" do
     test "noise layer from negative conditions" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 10")
@@ -1163,6 +1187,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
               Table.column("dummy2", :boolean),
               Table.column("name", :text),
               Table.column("name2", :text),
+              Table.column("dt", :datetime),
               Table.column("id", :integer)
             ],
             keys: %{"id" => :unknown}

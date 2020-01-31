@@ -810,53 +810,57 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Implicit casts
   # -------------------------------------------------------------------
 
+  @castable_types [:date, :text, :integer]
+
   defp perform_implicit_casts(query) do
     Lenses.query_expressions()
     |> Lens.filter(&Function.condition?/1)
+    |> Lens.reject(&(&1.name == "not"))
     |> Lens.filter(&(Condition.verb(&1) in [:comparison, :in]))
-    |> Lens.map(query, fn %Expression{kind: :function, args: [subject | values]} = expression ->
-      values = Enum.map(values, &perform_implicit_cast(&1, subject.type))
-      %Expression{expression | args: [subject | values]}
+    |> Lens.map(query, fn
+      %Expression{kind: :function, name: "in", args: [subject | values]} = expression ->
+        values = Enum.map(values, &perform_implicit_cast(&1, subject.type))
+        %Expression{expression | args: [subject | values]}
+
+      %Expression{kind: :function, args: [arg1, arg2]} = expression ->
+        args =
+          cond do
+            arg1.kind == :constant and arg1.type in @castable_types -> [perform_implicit_cast(arg1, arg2.type), arg2]
+            arg2.kind == :constant and arg2.type in @castable_types -> [arg1, perform_implicit_cast(arg2, arg1.type)]
+            true -> [arg1, arg2]
+          end
+
+        %Expression{expression | args: args}
     end)
   end
 
-  @castable_conditions [:datetime, :time, :date, :real]
-
-  defp perform_implicit_cast(expression, type) do
-    if Expression.constant?(expression) and type in @castable_conditions do
-      do_perform_implicit_cast(expression, type)
-    else
-      expression
-    end
-  end
-
-  defp do_perform_implicit_cast(expression = %Expression{type: type}, type), do: expression
-
-  defp do_perform_implicit_cast(expression = %Expression{type: nil}, _type), do: expression
-
-  defp do_perform_implicit_cast(expression = %Expression{type: :integer}, :real),
-    do: %Expression{expression | type: :real}
-
-  defp do_perform_implicit_cast(expression, type) do
-    value = Expression.value(expression)
-
-    case do_parse_time(value, type) do
+  defp perform_implicit_cast(expression = %Expression{kind: :constant, type: :text}, type)
+       when type in [:datetime, :time, :date] do
+    case parse_time(expression.value, type) do
       {:ok, result} ->
         Expression.constant(type, result)
 
       _ ->
         raise CompilationError,
           source_location: expression.source_location,
-          message: "Cannot cast `#{value}` to #{type}."
+          message: "Invalid input value supplied for type `#{type}`: `#{expression.value}`."
     end
   end
 
-  defp do_parse_time(string, :date) when is_binary(string), do: Cloak.Time.parse_date(string)
-  defp do_parse_time(string, :time) when is_binary(string), do: Cloak.Time.parse_time(string)
+  defp perform_implicit_cast(expression = %Expression{kind: :constant, type: :integer}, :real),
+    do: %Expression{expression | type: :real}
 
-  defp do_parse_time(string, :datetime) when is_binary(string), do: Cloak.Time.parse_datetime(string)
+  defp perform_implicit_cast(expression = %Expression{kind: :constant, type: :date}, :datetime) do
+    casted_value = expression.value |> Timex.to_naive_datetime() |> Cloak.Time.max_precision()
+    %Expression{expression | type: :datetime, value: casted_value}
+  end
 
-  defp do_parse_time(_, _), do: {:error, :invalid_cast}
+  defp perform_implicit_cast(expression, _type), do: expression
+
+  defp parse_time(string, :date) when is_binary(string), do: Cloak.Time.parse_date(string)
+  defp parse_time(string, :time) when is_binary(string), do: Cloak.Time.parse_time(string)
+
+  defp parse_time(string, :datetime) when is_binary(string), do: Cloak.Time.parse_datetime(string)
 
   # -------------------------------------------------------------------
   # UID selection in a subquery
