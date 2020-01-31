@@ -252,7 +252,7 @@ defmodule Cloak.Sql.FixAlign do
   defp snap(size, {x, y}, allow_half?) do
     require Integer
 
-    can_halve? = allow_half? || (is_integer(size) && Integer.is_even(size))
+    can_halve? = allow_half? or (is_integer(size) and Integer.is_even(size))
     left = if can_halve?, do: floor_to(x, size / 2), else: floor_to(x, size)
     right = left + size
 
