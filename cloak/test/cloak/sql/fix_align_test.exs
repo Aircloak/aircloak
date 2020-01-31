@@ -66,7 +66,7 @@ defmodule Cloak.Sql.FixAlign.Test do
 
   for interval_type <- [:datetime, :date] do
     property "aligned #{interval_type} interval contains both ends of the input" do
-      check all({x, y} <- interval(unquote(interval_type))) do
+      check all({x, y} <- interval(unquote(interval_type)), legal_datetime?(x) and legal_datetime?(y)) do
         {left, right} = FixAlign.align_interval({x, y})
         assert Timex.diff(x, left) >= 0 && Timex.diff(right, y) >= 0
       end
@@ -306,4 +306,7 @@ defmodule Cloak.Sql.FixAlign.Test do
   defp lt_eq(%Time{} = x, %Time{} = y), do: Cloak.Time.to_integer(x) <= Cloak.Time.to_integer(y)
 
   defp weak_lt_eq(x, y), do: x <= y or abs(x - y) < 0.0000005 * (x + y)
+
+  defp legal_datetime?(value),
+    do: value.year >= Cloak.Time.year_lower_bound() and value.year <= Cloak.Time.year_upper_bound()
 end

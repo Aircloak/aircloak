@@ -309,7 +309,7 @@ defmodule Cloak.Query.Runner do
           state.log_format,
           level,
           message,
-          Cloak.Time.truncate(timestamp, :second),
+          truncate_to_seconds(timestamp),
           metadata
         )
       ]
@@ -395,6 +395,8 @@ defmodule Cloak.Query.Runner do
     Logger.error("Unknown query error: #{inspect(reason)}")
     format_result({:error, "Unknown cloak error."})
   end
+
+  defp truncate_to_seconds({date, {hour, minute, second, _ms}}), do: {date, {hour, minute, second, 0}}
 
   # -------------------------------------------------------------------
   # Supervision tree
