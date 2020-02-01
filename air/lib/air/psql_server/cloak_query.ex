@@ -153,7 +153,8 @@ defmodule Air.PsqlServer.CloakQuery do
         time: :time,
         timestamp: :datetime,
         text: :text,
-        varchar: :text
+        varchar: :text,
+        interval: :interval
       } do
     defp sql_type(unquote(psql_type), _value), do: unquote(sql_type)
   end
@@ -167,6 +168,7 @@ defmodule Air.PsqlServer.CloakQuery do
   defp sql_type_from_value(%Date{}), do: :date
   defp sql_type_from_value(%Time{}), do: :time
   defp sql_type_from_value(%NaiveDateTime{}), do: :datetime
+  defp sql_type_from_value(%Postgrex.Interval{}), do: :interval
 
   defp psql_type(type_string), do: psql_type_impl(type_string)
 
@@ -177,7 +179,8 @@ defmodule Air.PsqlServer.CloakQuery do
         "text" => :text,
         "date" => :date,
         "time" => :time,
-        "datetime" => :timestamp
+        "datetime" => :timestamp,
+        "interval" => :interval
       } do
     defp psql_type_impl(unquote(sql_type)), do: unquote(psql_type)
   end

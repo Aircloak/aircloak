@@ -22,6 +22,7 @@ defmodule Air.PsqlServer.Protocol.Value do
     time: %{oid: 1083, len: 8, postgrex_extension: {Time, :elixir}},
     timestamp: %{oid: 1114, len: 8, postgrex_extension: {Timestamp, :elixir}},
     timestamptz: %{oid: 1184, len: 8, postgrex_extension: {TimestampTZ, :elixir}},
+    interval: %{oid: 1186, len: 16, postgrex_extension: {Interval, nil}},
     timetz: %{oid: 1266, len: 12, postgrex_extension: {TimeTZ, :elixir}},
     numeric: %{oid: 1700, len: -1, postgrex_extension: {Numeric, nil}},
     regclass: %{oid: 2205, len: 4}
@@ -98,6 +99,7 @@ defmodule Air.PsqlServer.Protocol.Value do
   defp text_encode(byte, :char), do: <<byte>>
   defp text_encode(values, :int2vector), do: "{#{values |> Stream.map(&to_string/1) |> Enum.join(",")}}"
   defp text_encode(oids, :oidarray), do: "{#{oids |> Stream.map(&to_string/1) |> Enum.join(",")}}"
+  defp text_encode(interval, :interval), do: "<interval>"
   defp text_encode(value, _), do: to_string(value)
 
   defp text_decode(param, :int2), do: String.to_integer(param)
