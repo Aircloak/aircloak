@@ -32,18 +32,29 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
     test "prioritizing on demand" do
       known_columns = ~w(col1 col2 col3)
 
+      {:ok, state} = Agent.start_link(fn -> %{col1: false, col2: false} end)
+
       provider =
         new_cache_provider(
           known_columns,
           property_fun:
             property_fun(%{
-              "col1" => fn -> Process.sleep(200) end,
-              "col2" => fn -> Process.sleep(:infinity) end
+              "col1" => fn ->
+                Agent.update(state, fn state -> %{state | col1: true} end)
+                Process.sleep(150)
+              end,
+              "col2" => fn ->
+                Agent.update(state, fn state -> %{state | col2: true} end)
+                Process.sleep(150)
+              end
             })
         )
 
       {:ok, cache} = Cache.start_link(provider.cache_opts)
       assert Cache.value(cache, provider.data_source, provider.table_name, "col3") == {:isolated, "col3"}
+      # Assert that the computation for col3 happened before col1 or col2
+      # since the cache will start precomputing columns on startup non-deterministically
+      assert Agent.get(state, fn state -> state.col1 && state.col2 end) == false
     end
 
     test "returns default for columns which failed to load" do
@@ -151,9 +162,9 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
   end
 
   defp new_cache_provider(column_names, opts \\ []) do
-    data_source = %{name: inspect(make_ref())}
+    data_source = %{name: inspect(make_ref()), parameters: %{host: inspect(make_ref())}}
     table_name = inspect(make_ref())
-    columns = Enum.map(column_names, &{data_source.name, table_name, &1})
+    columns = Enum.map(column_names, &{data_source, table_name, &1})
 
     {:ok, provider} = Agent.start_link(fn -> columns end)
 
