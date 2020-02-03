@@ -134,7 +134,7 @@ A clear expression is a simple expression that:
   - only uses the following allowed functions:
     - string functions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `hex`, `left`, `right`;
     - date/time functions: `year`, `quarter`, `month`, `weekday`, `day`, `hour`, `minute`, `second`, `date_trunc`;
-    - numerical functions: `trunc`, `floor`, `ceil`, `round`, `+`, `-`, `bucket`;
+    - numerical functions: `trunc`, `floor`, `ceil`, `round`, `bucket`;
     - any aggregator (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`).
 
 Such expressions are considered to be safe in general and are exempt from many of the following restrictions.
