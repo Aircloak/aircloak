@@ -10,7 +10,7 @@ defmodule Compliance.DataSource.Oracle do
 
   @impl Connector
   def setup(data_source) do
-    Mix.Tasks.Cloak.PingDb.ping!(data_source, attempts: 20)
+    Mix.Tasks.Cloak.PingDb.ping!(data_source, attempts: 60)
     :ok
   end
 
