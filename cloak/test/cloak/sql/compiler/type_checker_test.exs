@@ -58,9 +58,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows column <> column",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric"))
 
-    test "allows column - constant <> column + constant",
-      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric - 1 <> numeric2 + 10"))
-
     test "allows column <> clear expression",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)"))
 
@@ -216,10 +213,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} numeric2")
       end
 
-      test "allows col1 + constant #{operator} col2 - constant" do
-        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 #{unquote(operator)} numeric2 - 2")
-      end
-
       test "allows col1 #{operator} round(col2)" do
         assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} round(numeric2)")
       end
@@ -228,9 +221,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE round(numeric) #{unquote(operator)} numeric2")
       end
 
-      test "allows round(col1) #{operator} round(col2)" do
+      test "allows round(col1, constant) #{operator} round(col2, constant)" do
         assert {:ok, _} =
-                 compile("SELECT COUNT(*) FROM table WHERE round(numeric) #{unquote(operator)} round(numeric2)")
+                 compile("SELECT COUNT(*) FROM table WHERE round(numeric, -1) #{unquote(operator)} round(numeric2, -1)")
       end
 
       test "forbids unclear expression #{operator} column" do

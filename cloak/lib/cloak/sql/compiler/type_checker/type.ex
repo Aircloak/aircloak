@@ -50,7 +50,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   @allowed_functions ~w(
     lower upper substring trim ltrim rtrim btrim hex left right
     hour minute second year quarter month day weekday date_trunc
-    trunc floor ceil round + - bucket
+    trunc floor ceil round bucket
   )
 
   # -------------------------------------------------------------------

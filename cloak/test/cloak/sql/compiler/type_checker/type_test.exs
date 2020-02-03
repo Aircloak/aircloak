@@ -214,7 +214,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     test "ignores nested allowed functions",
       do:
         assert(
-          type_first_column("SELECT round(numeric + 1) FROM table")
+          type_first_column("SELECT round(floor(numeric)) FROM table")
           |> Type.clear_expression?()
         )
 
