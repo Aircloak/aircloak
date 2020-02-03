@@ -145,10 +145,12 @@ Whenever a comparison (`>`, `>=`, `<`, or `<=`) with a constant is used in a `WH
 that clause needs to contain two comparisons. These should form a constant range on a single clear expression.
 That is, one `>` or `>=` comparison and one `<` or `<=` comparison, limiting the expression from bottom and top.
 
-Comparisons with clear expressions on both sides are excluded from this restriction.
+The following special cases are excluded from this restriction:
+  - comparisons with clear expressions on both sides;
+  - datetime comparisons between a clear expression and the current date.
 
 ```sql
--- Correct - a constant range is used
+-- Correct - a constant range is used:
 SELECT COUNT(*) FROM table WHERE column > 10 AND column < 20
 
 -- Correct - comparison between clear expressions:
@@ -156,17 +158,20 @@ SELECT COUNT(*) FROM table WHERE column1 > column2
 SELECT COUNT(*) FROM table WHERE column1 < round(column2)
 SELECT COUNT(*) FROM table WHERE column1 + 1 >= column2 - 1
 
--- Incorrect - only one side of the constant range provided
+-- Incorrect - only one side of the constant range provided:
 SELECT COUNT(*) FROM table WHERE column > 10
 
--- Incorrect - the lower end of the constant range is bigger than the upper end
+-- Incorrect - the lower end of the constant range is bigger than the upper end:
 SELECT COUNT(*) FROM table WHERE column > 10 AND column < 0
 
--- Incorrect - the comparisons are over different expressions
+-- Incorrect - the comparisons are over different expressions:
 SELECT COUNT(*) FROM table WHERE column + 1 > 10 AND column - 1 < 20
 
 -- Incorrect - multiple columns are referenced on one side of the comparison:
 SELECT COUNT(*) FROM table WHERE column1 - column1 < column2
+
+-- Correct - comparison between a clear expression and the current date:
+SELECT COUNT(*) FROM table WHERE column <= current_date()
 ```
 
 Note that a condition using the `BETWEEN` operator automatically forms a constant range:
