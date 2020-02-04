@@ -13,6 +13,7 @@ Aircloak Insights ships with Insights Datasource Connectors for the following da
 - MySQL, version 5 and newer, and MariaDB, version 10.1 and newer
 - PostgreSQL, version 9.1 and newer
 - Oracle 12c
+- Cloudera Impala, version 2.10 (CDH 5.13.x) and newer
 
 If your preferred datastore is not in the list, please contact Aircloak.
 
@@ -146,6 +147,11 @@ The following constructs are not natively supported on this data source and will
   - `btrim`
   - `date_trunc`
   - `trim`
+
+#### Cloudera Impala
+
+- `ltrim` when a custom string is specified as its second argument.
+- `rtrim` when a custom string is specified as its second argument.
 
 
 ## Database-specific notes

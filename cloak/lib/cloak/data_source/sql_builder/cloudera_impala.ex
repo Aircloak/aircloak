@@ -1,5 +1,8 @@
 defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
-  @moduledoc "Helper module for converting a query to Cloudera Data Platform (CDP) Impala specific SQL."
+  @moduledoc """
+  Helper module for converting a query to Cloudera Impala specific SQL.
+  This implementation targets Impala 2.10 of CDH 5.13.x Enterprise Edition.
+  """
 
   # -------------------------------------------------------------------
   # SqlBuilder.Dialect callbacks
@@ -15,8 +18,6 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
     "unsafe_div" => "/",
     "unsafe_mod" => "%"
   }
-
-  # ILIKE requires CDH 5.7 / Impala 2.5 and higher
 
   @impl Dialect
   def supported_functions(), do: ~w(
@@ -35,7 +36,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", args, ", '", unquote(datepart), "')"]
   end
 
-  # quarter is not supported natively in CDP 5.13
+  # quarter is not supported natively in versions below Cloudera Impala 2.12 (shipped with CDH 5.15.x)
   def function_sql("quarter", args), do: ["CAST((FLOOR((EXTRACT(", args, ", 'month') - 1) / 3) + 1) AS INT)"]
   def function_sql("weekday", args), do: ["DAYOFWEEK(", args, ")"]
 

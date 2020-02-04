@@ -56,7 +56,7 @@ defmodule Cloak.DataSource.Utility do
     {"postgresql", Cloak.DataSource.PostgreSQL},
     {"sqlserver", Cloak.DataSource.SQLServer},
     {"oracle", Cloak.DataSource.Oracle},
-    {"cdp-impala", Cloak.DataSource.ClouderaImpala}
+    {"cloudera-impala", Cloak.DataSource.ClouderaImpala}
   ]
 
   @doc "Returns the data source driver module given a data source type name"

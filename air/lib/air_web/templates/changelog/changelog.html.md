@@ -8,6 +8,10 @@
 - Support for the `hash` function was removed.
 - Minimum Oracle version supported is now 12c.
 
+### New features
+
+- Added beta support for Cloudera Impala data sources.
+
 ### Enhancements
 
 - When a user changes their password all their other sessions are automatically revoked.

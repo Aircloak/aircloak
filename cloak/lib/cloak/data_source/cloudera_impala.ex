@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.ClouderaImpala do
   @moduledoc """
   Implements the DataSource.Driver behaviour for Cloudera Data Platform (CDP) Impala.
-  This targets version 5.13.0 of CDP.
+  This implementation targets Impala 2.10 of CDH 5.13.x Enterprise Edition.
   For more information, see `DataSource`.
   """
 

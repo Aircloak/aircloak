@@ -1,5 +1,5 @@
 {
-  "driver": "cdp-impala",
+  "driver": "cloudera-impala",
   "name": "impala",
   "parameters": {
     "hostname": "quickstart.cloudera",
