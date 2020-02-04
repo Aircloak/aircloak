@@ -16,7 +16,7 @@ DOCKER_START_ARGS="
   -v $(pwd)/local_docker_config:/runtime_config
   -v $(pwd)/priv/odbc/drivers/:/odbc_drivers
   --link air:air
-  --link air_db_dev:air_db
+  --link aircloak_dev_db:air_db
 "
 REMOTE_CONSOLE_COMMAND="bin/cloak remote_console"
 
