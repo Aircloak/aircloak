@@ -11,12 +11,18 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   use Cloak.DataSource.SqlBuilder.Dialect
   alias Cloak.DataSource.SqlBuilder.Dialect
 
-  @unsafe_operators %{
+  @aliases %{
     "unsafe_add" => "+",
     "unsafe_sub" => "-",
     "unsafe_mul" => "*",
     "unsafe_div" => "/",
-    "unsafe_mod" => "%"
+    "checked_div" => "/",
+    "checked_mod" => "mod",
+    "unsafe_mod" => "mod",
+    "%" => "mod",
+    "checked_pow" => "pow",
+    "unsafe_pow" => "pow",
+    "^" => "pow"
   }
 
   @impl Dialect
@@ -24,8 +30,8 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
       count sum min max avg stddev count_distinct variance
       < > <= >= = <> and or not in is_null like ilike
       year month day hour minute second quarter weekday date_trunc
-      sqrt floor ceil abs round trunc
-      unsafe_pow unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod
+      sqrt floor ceil abs round trunc mod ^ * / + - %
+      unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod unsafe_pow
       checked_mod checked_div checked_pow
       length lower upper btrim ltrim/1 rtrim/1 left right substring concat
       hex cast coalesce case
@@ -34,6 +40,10 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   @impl Dialect
   for datepart <- ~w(year month day hour minute second) do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", args, ", '", unquote(datepart), "')"]
+  end
+
+  for {function, alias} <- @aliases do
+    def function_sql(unquote(function), args), do: function_sql("#{unquote(alias)}", args)
   end
 
   # quarter is not supported natively in versions below Cloudera Impala 2.12 (shipped with CDH 5.15.x)
@@ -49,22 +59,6 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
 
   def function_sql("date_trunc", [[?', "second", ?'], arg2]),
     do: ["SECONDS_ADD(TRUNC(", arg2, ", 'MI'), EXTRACT(", arg2, ", 'second'))"]
-
-  def function_sql("unsafe_pow", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
-
-  for {function, operator} <- @unsafe_operators do
-    def function_sql(unquote(function), [arg1, arg2]), do: ["(", arg1, unquote(operator), arg2, ")"]
-  end
-
-  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
-
-  def function_sql("checked_mod", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
-
-  def function_sql("checked_div", [arg1, arg2, epsilon]),
-    do: ["CASE WHEN ABS(", arg2, ") < ", epsilon, " THEN NULL ELSE (", arg1, " / ", arg2, ") END"]
-
-  def function_sql("checked_pow", [arg1, arg2]),
-    do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
 
   def function_sql("trunc", [arg1, arg2]), do: ["TRUNCATE(CAST(", arg1, " AS DECIMAL(18, 6)), ", arg2, ")"]
   def function_sql("trunc", args), do: super("TRUNCATE", args)
