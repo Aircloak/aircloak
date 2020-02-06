@@ -11,6 +11,11 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   use Cloak.DataSource.SqlBuilder.Dialect
   alias Cloak.DataSource.SqlBuilder.Dialect
 
+  # Instead of throwing, Impala usually returns NaN and +-Infinity from functions
+  # or arithmetic operations in which arguments or results exceed valid bounds.
+  #
+  # Because these operators/functions and inherently safe (non-crashing),
+  # we forward all variants to their native implementation.
   @aliases %{
     "unsafe_add" => "+",
     "unsafe_sub" => "-",
