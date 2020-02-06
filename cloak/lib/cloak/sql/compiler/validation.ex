@@ -752,6 +752,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_case_usage(%Query{type: :anonymized} = query) do
     verify_case_usage_in_filtering_clauses(query)
+    verify_post_processing_of_case_expressions(query)
   end
 
   defp verify_case_usage(%Query{type: :restricted} = query) do
@@ -767,6 +768,25 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           message: "`case` expressions can not be used in restricted queries.",
           source_location: case_expression.source_location
+    end
+  end
+
+  defp verify_post_processing_of_case_expressions(%Query{type: :anonymized} = query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.reject(&Function.aggregator?/1)
+    |> Lens.filter(fn expression ->
+      Enum.any?(expression.args, &match?(%Expression{kind: :function, name: "case"}, &1))
+    end)
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [post_processing_expression | _rest] ->
+        raise CompilationError,
+          message: "Post-processing a `case` expression in an anonymizing query is not allowed.",
+          source_location: post_processing_expression.source_location
     end
   end
 

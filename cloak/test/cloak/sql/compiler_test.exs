@@ -1407,6 +1407,26 @@ defmodule Cloak.Sql.Compiler.Test do
                compile("select stddev(numeric) from table where case when string = 'xxx' then true end", data_source())
     end
 
+    test "reject post processing in select" do
+      assert {:error, "Post-processing a `case` expression in an anonymizing query is not allowed."} =
+               compile("select length(case when string = 'xxx' then 'aaa' end) from table", data_source())
+    end
+
+    test "reject post processing in group by" do
+      assert {:error, "Post-processing a `case` expression in an anonymizing query is not allowed."} =
+               compile("select 1 from table group by length(case when string = 'xxx' then 'aaa' end)", data_source())
+    end
+
+    test "reject post processing in order by" do
+      assert {:error, "Post-processing a `case` expression in an anonymizing query is not allowed."} =
+               compile("select 1 from table order by length(case when string = 'xxx' then 'aaa' end)", data_source())
+    end
+
+    test "reject post processing in aggregator" do
+      assert {:error, "Post-processing a `case` expression in an anonymizing query is not allowed."} =
+               compile("select sum(length(case when string = 'xxx' then 'aaa' end)) from table", data_source())
+    end
+
     test "test conditions have to be booleans" do
       assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
                compile_standard("select case when true then 1 when string then 0 else 2 end from table", data_source())
