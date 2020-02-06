@@ -1394,6 +1394,14 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:ok, _} = compile("select case when string = 'xxx' then 1 end from table group by 1", data_source())
     end
 
+    test "rejected in restricted queries" do
+      assert {:error, "`case` expressions can not be used in restricted queries."} =
+               compile(
+                 "select stddev(x) from (select case when string = 'xxx' then 1 end as x from table) t",
+                 data_source()
+               )
+    end
+
     test "test conditions have to be booleans" do
       assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
                compile_standard("select case when true then 1 when string then 0 else 2 end from table", data_source())

@@ -42,6 +42,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   def verify_anonymization_restrictions(%Query{command: :select} = query) do
     verify_user_id_usage(query, nil)
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
+    Helpers.each_subquery(query, &verify_case_usage/1)
     Helpers.each_subquery(query, &verify_conditions_usage/1)
     Helpers.each_subquery(query, &verify_or_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
@@ -740,6 +741,29 @@ defmodule Cloak.Sql.Compiler.Validation do
               "Note that an `OR` expression may arise when negating an `AND` expression. " <>
               "For example `NOT (x = 1 AND y = 2)` is equivalent to `x <> 1 OR y <> 2`.",
           source_location: condition.source_location
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # CASE usage verification
+  # -------------------------------------------------------------------
+
+  defp verify_case_usage(%Query{type: :standard}), do: :ok
+  defp verify_case_usage(%Query{type: :anonymized}), do: :ok
+
+  defp verify_case_usage(%Query{type: :restricted} = query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name == "case"))
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [case_expression | _rest] ->
+        raise CompilationError,
+          message: "`case` expressions can not be used in restricted queries.",
+          source_location: case_expression.source_location
     end
   end
 
