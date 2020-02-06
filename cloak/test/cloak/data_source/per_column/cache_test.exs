@@ -32,29 +32,20 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
     test "prioritizing on demand" do
       known_columns = ~w(col1 col2 col3)
 
-      {:ok, state} = Agent.start_link(fn -> %{col1: false, col2: false} end)
+      {:ok, counter} = Agent.start_link(fn -> 0 end)
 
       provider =
         new_cache_provider(
           known_columns,
           property_fun:
             property_fun(%{
-              "col1" => fn ->
-                Agent.update(state, fn state -> %{state | col1: true} end)
-                Process.sleep(150)
-              end,
-              "col2" => fn ->
-                Agent.update(state, fn state -> %{state | col2: true} end)
-                Process.sleep(150)
-              end
+              "col1" => fn -> sleep_a_little_or_forever(counter) end,
+              "col2" => fn -> sleep_a_little_or_forever(counter) end
             })
         )
 
       {:ok, cache} = Cache.start_link(provider.cache_opts)
       assert Cache.value(cache, provider.data_source, provider.table_name, "col3") == {:isolated, "col3"}
-      # Assert that the computation for col3 happened before col1 or col2
-      # since the cache will start precomputing columns on startup non-deterministically
-      assert Agent.get(state, fn state -> state.col1 && state.col2 end) == false
     end
 
     test "returns default for columns which failed to load" do
@@ -196,6 +187,13 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
     fn {_data_source_name, _table_name, column_name} ->
       with {:ok, fun} <- Map.fetch(map, column_name), do: fun.()
       {:isolated, column_name}
+    end
+  end
+
+  defp sleep_a_little_or_forever(counter) do
+    case Agent.get_and_update(counter, fn state -> {state, state + 1} end) do
+      0 -> Process.sleep(200)
+      1 -> Process.sleep(:infinity)
     end
   end
 end

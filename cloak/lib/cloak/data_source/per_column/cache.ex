@@ -96,10 +96,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
     PersistentKeyValue.remove_unknown_columns(state.cache_owner, known_column_descriptors)
 
-    state = %{
-      state
-      | descriptor_to_column_map: descriptor_to_column_map
-    }
+    state = %{state | descriptor_to_column_map: descriptor_to_column_map}
 
     state = update_in(state.queue, &Queue.update_known_columns(&1, known_column_descriptors))
     state = respond_error_on_missing_columns(state)
