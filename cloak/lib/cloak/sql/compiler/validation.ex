@@ -704,16 +704,16 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_conditions_usage(%Query{type: :standard}), do: :ok
 
   defp verify_conditions_usage(query) do
-    non_filtering_expressions_lens()
+    Query.Lenses.query_expressions()
     |> Lens.filter(&Function.condition?/1)
-    |> Lens.to_list(query)
+    |> Lens.to_list(query |> drop_case_conditions() |> drop_filtering_conditions())
     |> case do
       [] ->
         :ok
 
       [condition | _rest] ->
         raise CompilationError,
-          message: "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries.",
+          message: "Illegal usage of a condition in an anonymizing or restricted query.",
           source_location: condition.source_location
     end
   end
@@ -755,12 +755,32 @@ defmodule Cloak.Sql.Compiler.Validation do
       |> Lens.filter(&Function.aggregator?/1)
       |> Lens.to_list(expression)
 
-  defp non_filtering_expressions_lens() do
-    Lens.multiple([
-      Lens.keys?([:columns, :group_by]) |> Lens.all(),
-      Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
-      Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions() |> Query.Lenses.operands()
-    ])
-    |> Lenses.all_expressions()
+  defp drop_case_conditions(query) do
+    Query.Lenses.query_expressions()
+    |> case_conditions_lens()
+    |> Lens.map(query, &drop_condition/1)
   end
+
+  defp drop_filtering_conditions(query) do
+    Query.Lenses.filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.map(query, &drop_condition/1)
+  end
+
+  defp case_conditions_lens(previous_lens) do
+    Lens.match(previous_lens, fn
+      %Expression{kind: :function, name: "case", args: args} ->
+        branch_count = args |> length() |> div(2)
+        when_branches = for i <- 0..(branch_count - 1), do: 2 * i
+        Lens.key(:args) |> Lens.indices(when_branches) |> Query.Lenses.conditions()
+
+      _ ->
+        Lens.empty()
+    end)
+  end
+
+  # We can't remove the condition completely, as we still want to verify its arguments later,
+  # so we change the function name to an invalid value, making it not a condition anymore.
+  defp drop_condition(%Expression{kind: :function, name: "not", args: [expression]}), do: drop_condition(expression)
+  defp drop_condition(%Expression{kind: :function} = expression), do: %Expression{expression | name: "__dropped"}
 end

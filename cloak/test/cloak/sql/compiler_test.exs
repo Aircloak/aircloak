@@ -114,32 +114,28 @@ defmodule Cloak.Sql.Compiler.Test do
 
   describe "conditions usage" do
     test "rejects conditions in anonymizing select" do
-      assert {:error, error} = compile("select numeric = 0 from table", data_source())
-
-      assert error ==
-               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+      assert {:error, "Illegal usage of a condition in an anonymizing or restricted query."} =
+               compile("select numeric = 0 from table", data_source())
     end
 
     test "rejects conditions in anonymizing group by" do
-      assert {:error, error} = compile("select 1 from table group by numeric in (0, 1)", data_source())
-
-      assert error ==
-               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+      assert {:error, "Illegal usage of a condition in an anonymizing or restricted query."} =
+               compile("select 1 from table group by numeric in (0, 1)", data_source())
     end
 
     test "rejects conditions in anonymizing order by" do
-      assert {:error, error} = compile("select 1 from table order by string like '%aaa'", data_source())
+      assert {:error, "Illegal usage of a condition in an anonymizing or restricted query."} =
+               compile("select 1 from table order by string like '%aaa'", data_source())
+    end
 
-      assert error ==
-               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+    test "rejects condition inside case condition" do
+      assert {:error, "Illegal usage of a condition in an anonymizing or restricted query."} =
+               compile("select case when cast(numeric = 1 as boolean) = true then 0 end from table", data_source())
     end
 
     test "rejects conditions in function calls" do
-      assert {:error, error} =
+      assert {:error, "Illegal usage of a condition in an anonymizing or restricted query."} =
                compile("select count(*) from table where cast(numeric > 0 as integer) = 0", data_source())
-
-      assert error ==
-               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
     end
 
     test "allow conditions in non-filtering clauses in standard queries" do
@@ -1383,12 +1379,19 @@ defmodule Cloak.Sql.Compiler.Test do
 
   describe "`case` statements" do
     test "allowed in standard queries" do
-      assert {:ok, _} = compile_standard("select case when true then string end from table", data_source())
+      assert {:ok, _} = compile_standard("select case when string = 'aa' then string end from table", data_source())
     end
 
-    test "rejected in standard queries" do
-      assert {:error, "Function `case` can only be used in non-anonymizing queries."} =
-               compile("select case when true then string end from table", data_source())
+    test "allowed in anonymizing select" do
+      assert {:ok, _} = compile("select case when string = 'xxx' then 'xxx' end from table", data_source())
+    end
+
+    test "allowed in anonymizing aggregate" do
+      assert {:ok, _} = compile("select sum(case when string = 'xxx' then 1 end) from table", data_source())
+    end
+
+    test "allowed in anonymizing group by" do
+      assert {:ok, _} = compile("select case when string = 'xxx' then 1 end from table group by 1", data_source())
     end
 
     test "test conditions have to be booleans" do

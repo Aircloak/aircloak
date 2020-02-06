@@ -207,8 +207,7 @@ defmodule Aircloak.Functions do
                  type_specs: %{[{:many1, :any}] => :integer}
                },
                ~w(case) => %{
-                 type_specs: %{[{:many1, :any}] => :any},
-                 attributes: [:unsafe]
+                 type_specs: %{[{:many1, :any}] => :any}
                },
                ~w(< > = <> >= <=) => %{
                  type_specs: %{
