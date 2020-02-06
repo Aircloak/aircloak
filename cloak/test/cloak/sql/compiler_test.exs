@@ -1402,6 +1402,11 @@ defmodule Cloak.Sql.Compiler.Test do
                )
     end
 
+    test "rejected in filtering clauses" do
+      assert {:error, "`case` expressions can not be used in filtering clauses in an anonymizing query."} =
+               compile("select stddev(numeric) from table where case when string = 'xxx' then true end", data_source())
+    end
+
     test "test conditions have to be booleans" do
       assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
                compile_standard("select case when true then 1 when string then 0 else 2 end from table", data_source())
