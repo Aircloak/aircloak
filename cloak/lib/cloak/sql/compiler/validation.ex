@@ -753,8 +753,8 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_case_usage(%Query{type: :anonymized} = query) do
     verify_case_usage_in_filtering_clauses(query)
     verify_post_processing_of_case_expressions(query)
-    verify_aggregated_case_expressions(query)
-    verify_bucketed_case_expressions(query)
+    verify_aggregated_case_expressions_values(query)
+    verify_bucketed_case_expressions_values(query)
   end
 
   defp verify_case_usage(%Query{type: :restricted} = query) do
@@ -809,7 +809,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_aggregated_case_expressions(%Query{type: :anonymized} = query) do
+  defp verify_aggregated_case_expressions_values(%Query{type: :anonymized} = query) do
     Query.Lenses.query_expressions()
     |> Lens.filter(&Expression.function?/1)
     |> Lens.filter(&Function.aggregator?/1)
@@ -829,7 +829,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_bucketed_case_expressions(%Query{type: :anonymized} = query) do
+  defp verify_bucketed_case_expressions_values(%Query{type: :anonymized} = query) do
     Query.Lenses.query_expressions()
     |> case_then_else_lens()
     |> Lens.reject(&Expression.constant?/1)
