@@ -15,19 +15,15 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   # or arithmetic operations in which arguments or results exceed valid bounds.
   #
   # Because these operators/functions and inherently safe (non-crashing),
-  # we forward all variants to their native implementation.
+  # we forward some variants to their native implementation.
   @aliases %{
     "unsafe_add" => "+",
     "unsafe_sub" => "-",
     "unsafe_mul" => "*",
-    "unsafe_div" => "/",
-    "checked_div" => "/",
-    "checked_mod" => "mod",
-    "unsafe_mod" => "mod",
-    "%" => "mod",
-    "checked_pow" => "pow",
-    "unsafe_pow" => "pow",
-    "^" => "pow"
+    "checked_mod" => "%",
+    "unsafe_mod" => "%",
+    "^" => "pow",
+    "checked_pow" => "pow"
   }
 
   @impl Dialect
@@ -43,12 +39,34 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   )
 
   @impl Dialect
-  for datepart <- ~w(year month day hour minute second) do
-    def function_sql(unquote(datepart), args), do: ["EXTRACT(", args, ", '", unquote(datepart), "')"]
+  for {function, alias} <- @aliases do
+    def function_sql(unquote(function), args), do: function_sql(unquote(alias), args)
   end
 
-  for {function, alias} <- @aliases do
-    def function_sql(unquote(function), args), do: function_sql("#{unquote(alias)}", args)
+  for binary_operator <- ~w(+ - * %) do
+    def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
+  end
+
+  def function_sql("/", [arg1, arg2]),
+    do: ["CASE WHEN ", arg2, " = 0 THEN NULL ELSE (", arg1, " / ", arg2, ") END"]
+
+  def function_sql("unsafe_div", [arg1, arg2]), do: ["(", arg1, "/", arg2, ")"]
+
+  def function_sql("checked_div", [arg1, arg2, epsilon]),
+    do: ["CASE WHEN ABS(", arg2, ") < ", epsilon, " THEN NULL ELSE (", arg1, " / ", arg2, ") END"]
+
+  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
+
+  def function_sql("unsafe_pow", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ") END"]
+
+  def function_sql("pow", [arg1, arg2]),
+    do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
+
+  def function_sql("trunc", [arg1, arg2]), do: ["TRUNCATE(CAST(", arg1, " AS DECIMAL(18, 6)), ", arg2, ")"]
+  def function_sql("trunc", args), do: super("TRUNCATE", args)
+
+  for datepart <- ~w(year month day hour minute second) do
+    def function_sql(unquote(datepart), args), do: ["EXTRACT(", args, ", '", unquote(datepart), "')"]
   end
 
   # quarter is not supported natively in versions below Cloudera Impala 2.12 (shipped with CDH 5.15.x)
@@ -64,9 +82,6 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
 
   def function_sql("date_trunc", [[?', "second", ?'], arg2]),
     do: ["SECONDS_ADD(TRUNC(", arg2, ", 'MI'), EXTRACT(", arg2, ", 'second'))"]
-
-  def function_sql("trunc", [arg1, arg2]), do: ["TRUNCATE(CAST(", arg1, " AS DECIMAL(18, 6)), ", arg2, ")"]
-  def function_sql("trunc", args), do: super("TRUNCATE", args)
 
   # left of a negative value should return all but the last n characters.
   # left("aircloak", -2) --> "airclo"
