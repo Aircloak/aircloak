@@ -815,7 +815,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Lens.filter(&Function.aggregator?/1)
     |> Lens.key(:args)
     |> Lens.all()
-    |> case_values_lens()
+    |> case_then_else_lens()
     |> Lens.reject(&(Expression.constant?(&1) and &1.value in [0, 1, nil]))
     |> Lens.to_list(query)
     |> case do
@@ -831,7 +831,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_bucketed_case_expressions(%Query{type: :anonymized} = query) do
     Query.Lenses.query_expressions()
-    |> case_values_lens()
+    |> case_then_else_lens()
     |> Lens.reject(&Expression.constant?/1)
     |> Lens.to_list(query)
     |> case do
@@ -859,7 +859,8 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp drop_case_conditions(query) do
     Query.Lenses.query_expressions()
-    |> case_conditions_lens()
+    |> case_when_lens()
+    |> Query.Lenses.conditions()
     |> Lens.map(query, &drop_condition/1)
   end
 
@@ -869,19 +870,19 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Lens.map(query, &drop_condition/1)
   end
 
-  defp case_conditions_lens(previous_lens) do
+  defp case_when_lens(previous_lens) do
     Lens.match(previous_lens, fn
       %Expression{kind: :function, name: "case", args: args} ->
         branch_count = args |> length() |> div(2)
         when_branches = for i <- 0..(branch_count - 1), do: 2 * i
-        Lens.key(:args) |> Lens.indices(when_branches) |> Query.Lenses.conditions()
+        Lens.key(:args) |> Lens.indices(when_branches)
 
       _ ->
         Lens.empty()
     end)
   end
 
-  defp case_values_lens(previous_lens) do
+  defp case_then_else_lens(previous_lens) do
     Lens.match(previous_lens, fn
       %Expression{kind: :function, name: "case", args: args} ->
         branch_count = args |> length() |> div(2)
