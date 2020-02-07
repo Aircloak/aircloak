@@ -32,13 +32,15 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
     test "prioritizing on demand" do
       known_columns = ~w(col1 col2 col3)
 
+      {:ok, counter} = Agent.start_link(fn -> 0 end)
+
       provider =
         new_cache_provider(
           known_columns,
           property_fun:
             property_fun(%{
-              "col1" => fn -> Process.sleep(200) end,
-              "col2" => fn -> Process.sleep(:infinity) end
+              "col1" => fn -> sleep_a_little_or_forever(counter) end,
+              "col2" => fn -> sleep_a_little_or_forever(counter) end
             })
         )
 
@@ -151,9 +153,9 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
   end
 
   defp new_cache_provider(column_names, opts \\ []) do
-    data_source = %{name: inspect(make_ref())}
+    data_source = %{name: inspect(make_ref()), parameters: %{host: inspect(make_ref())}}
     table_name = inspect(make_ref())
-    columns = Enum.map(column_names, &{data_source.name, table_name, &1})
+    columns = Enum.map(column_names, &{data_source, table_name, &1})
 
     {:ok, provider} = Agent.start_link(fn -> columns end)
 
@@ -185,6 +187,13 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
     fn {_data_source_name, _table_name, column_name} ->
       with {:ok, fun} <- Map.fetch(map, column_name), do: fun.()
       {:isolated, column_name}
+    end
+  end
+
+  defp sleep_a_little_or_forever(counter) do
+    case Agent.get_and_update(counter, fn state -> {state, state + 1} end) do
+      0 -> Process.sleep(200)
+      1 -> Process.sleep(:infinity)
     end
   end
 end

@@ -25,8 +25,7 @@ defmodule Cloak.DataSource.Shadows.Cache do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp compute_shadow_table({data_source_name, table_name, column_name}) do
-    {:ok, data_source} = Cloak.DataSource.fetch(data_source_name)
+  defp compute_shadow_table({data_source, table_name, column_name}) do
     Cloak.DataSource.Shadows.Query.build_shadow(data_source, table_name, column_name)
   end
 
@@ -34,7 +33,7 @@ defmodule Cloak.DataSource.Shadows.Cache do
     for data_source <- data_sources,
         {_id, table} <- data_source.tables,
         column <- table.columns do
-      {data_source.name, table.name, column.name}
+      {data_source, table.name, column.name}
     end
   end
 
