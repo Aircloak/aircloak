@@ -753,6 +753,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_case_usage(%Query{type: :anonymized} = query) do
     verify_case_usage_in_filtering_clauses(query)
     verify_post_processing_of_case_expressions(query)
+    verify_aggregated_case_expressions(query)
   end
 
   defp verify_case_usage(%Query{type: :restricted} = query) do
@@ -807,6 +808,26 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
+  defp verify_aggregated_case_expressions(%Query{type: :anonymized} = query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&Function.aggregator?/1)
+    |> Lens.key(:args)
+    |> Lens.all()
+    |> case_values_lens()
+    |> Lens.reject(&(Expression.constant?(&1) and &1.value in [0, 1, nil]))
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [invalid_value | _rest] ->
+        raise CompilationError,
+          message: "Aggregated `case` expressions can only return the constants `0`, `1` or `NULL`.",
+          source_location: invalid_value.source_location
+    end
+  end
+
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
@@ -837,6 +858,18 @@ defmodule Cloak.Sql.Compiler.Validation do
         branch_count = args |> length() |> div(2)
         when_branches = for i <- 0..(branch_count - 1), do: 2 * i
         Lens.key(:args) |> Lens.indices(when_branches) |> Query.Lenses.conditions()
+
+      _ ->
+        Lens.empty()
+    end)
+  end
+
+  defp case_values_lens(previous_lens) do
+    Lens.match(previous_lens, fn
+      %Expression{kind: :function, name: "case", args: args} ->
+        branch_count = args |> length() |> div(2)
+        then_branches = for i <- 0..(branch_count - 1), do: 2 * i + 1
+        Lens.key(:args) |> Lens.indices(then_branches ++ [branch_count * 2])
 
       _ ->
         Lens.empty()

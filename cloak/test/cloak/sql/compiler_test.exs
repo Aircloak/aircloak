@@ -1427,6 +1427,11 @@ defmodule Cloak.Sql.Compiler.Test do
                compile("select sum(length(case when string = 'xxx' then 'aaa' end)) from table", data_source())
     end
 
+    test "reject invalid return values when aggregated" do
+      assert {:error, "Aggregated `case` expressions can only return the constants `0`, `1` or `NULL`."} =
+               compile("select sum(case when string = 'xxx' then 1 else 3 end) from table", data_source())
+    end
+
     test "test conditions have to be booleans" do
       assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
                compile_standard("select case when true then 1 when string then 0 else 2 end from table", data_source())
