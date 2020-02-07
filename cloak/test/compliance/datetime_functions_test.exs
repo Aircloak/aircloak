@@ -87,6 +87,8 @@ Enum.each(
         @tag compliance: "#{condition} in where #{column} #{table} query"
         test "#{condition} on input #{column} in where in query on table #{table}", context do
           context
+          # Impala does not support intervals as standalone expressions such as x - y = interval 2 days
+          |> disable_for(Cloak.DataSource.ClouderaImpala)
           |> assert_consistent_and_not_failing("""
             SELECT COUNT(*)
             FROM #{unquote(table)}
@@ -97,6 +99,7 @@ Enum.each(
         @tag compliance: "#{condition} in where #{column} #{table} subquery"
         test "#{condition} on input #{column} in where in subquery on table #{table}", context do
           context
+          |> disable_for(Cloak.DataSource.ClouderaImpala)
           |> assert_consistent_and_not_failing("""
             SELECT COUNT(*)
             FROM (
