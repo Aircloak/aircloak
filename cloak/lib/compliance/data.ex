@@ -13,7 +13,7 @@ defmodule Compliance.Data do
   """
 
   @external_resource "lib/compliance/words.txt"
-  @external_resource "lib/compliance/names.txt"
+  @external_resource "lib/compliance/names_unicode.txt"
   @external_resource "lib/compliance/cities.txt"
 
   @min_addresses 0
@@ -63,7 +63,7 @@ defmodule Compliance.Data do
     user = %{
       id: user_num,
       user_id: :erlang.unique_integer([:positive]),
-      name: generate_name(samples.names),
+      name_unicode: sample_one(samples.names_unicode),
       age: sample_one(samples.ages),
       height: sample_one(samples.heights),
       active: :rand.uniform() < 0.80,
@@ -71,7 +71,9 @@ defmodule Compliance.Data do
       notes: generate_notes(samples),
       nullable: samples.floats |> sample_one() |> nullable(),
       birthday: samples.dates |> sample_one() |> NaiveDateTime.to_date(),
-      column_with_a_very_long_name: sample_one(samples.cities)
+      column_with_a_very_long_name: sample_one(samples.cities),
+      signed_integer: sample_one(samples.signed_integers),
+      signed_float: sample_one(samples.signed_floats)
     }
 
     {user, encode_user(user)}
@@ -119,8 +121,6 @@ defmodule Compliance.Data do
 
   defp rand_range(min, max) when max >= min, do: min..(:rand.uniform(max - min + 1) + min - 1)
 
-  defp generate_name(names), do: sample_one(names)
-
   defp sample_randomly(samples, min, max),
     do:
       rand_range(min, max)
@@ -138,13 +138,15 @@ defmodule Compliance.Data do
   defp samples() do
     %{
       words: words(),
-      names: names(),
+      names_unicode: names_unicode(),
       cities: cities(),
       ages: ages(),
       heights: heights(),
       postcodes: postcodes(),
       dates: dates(),
-      floats: floats()
+      floats: floats(),
+      signed_integers: signed_integers(),
+      signed_floats: signed_floats()
     }
   end
 
@@ -163,7 +165,7 @@ defmodule Compliance.Data do
 
   defp words(), do: unquote(lines_from_file.("lib/compliance/words.txt"))
 
-  defp names(), do: unquote(lines_from_file.("lib/compliance/names.txt"))
+  defp names_unicode(), do: unquote(lines_from_file.("lib/compliance/names_unicode.txt"))
 
   defp cities(), do: unquote(lines_from_file.("lib/compliance/cities.txt"))
 
@@ -172,6 +174,18 @@ defmodule Compliance.Data do
   defp heights(), do: sample(fn -> 170 + :rand.uniform(30) + random_float(2) end)
 
   defp floats(), do: sample(fn -> random_sign() * random_float(6) end)
+
+  defp signed_integers() do
+    %{0 => 0}
+    |> Map.merge(sample(fn -> :rand.uniform(1000) end, 1..5))
+    |> Map.merge(sample(fn -> -:rand.uniform(1000) end, 6..10))
+  end
+
+  defp signed_floats() do
+    %{0 => 0.0}
+    |> Map.merge(sample(fn -> random_float(6) end, 1..5))
+    |> Map.merge(sample(fn -> -random_float(6) end, 6..10))
+  end
 
   defp random_float(num_digits) do
     # Generates random float with desired number of digits. No digit will have the value of 0, 5, or 9, to reduce the
@@ -189,7 +203,7 @@ defmodule Compliance.Data do
     sample(fn -> (1_500_000_000 + :rand.uniform(100_026_704)) |> DateTime.from_unix!() |> DateTime.to_naive() end)
   end
 
-  defp sample(fun), do: 0..9 |> Enum.map(&{&1, fun.()}) |> Map.new()
+  defp sample(fun, range \\ 0..9), do: range |> Enum.map(&{&1, fun.()}) |> Map.new()
 
   # -------------------------------------------------------------------
   # Internal functions - flattening to tables
@@ -202,13 +216,15 @@ defmodule Compliance.Data do
         &Map.take(&1, [
           :id,
           :user_id,
-          :name,
+          :name_unicode,
           :age,
           :height,
           :active,
           :nullable,
           :birthday,
-          :column_with_a_very_long_name
+          :column_with_a_very_long_name,
+          :signed_integer,
+          :signed_float
         ])
       )
 
@@ -274,8 +290,16 @@ defmodule Compliance.Data do
 
   defp encode_user(user) do
     user
-    |> encode_keys([:name])
-    |> stringify_keys([:age, :height, :active, :nullable, :column_with_a_very_long_name])
+    |> encode_keys([:name_unicode])
+    |> stringify_keys([
+      :age,
+      :height,
+      :active,
+      :nullable,
+      :column_with_a_very_long_name,
+      :signed_integer,
+      :signed_float
+    ])
     |> Map.put(:addresses, encode_addresses(user[:addresses]))
     |> Map.put(:notes, encode_notes(user[:notes]))
   end

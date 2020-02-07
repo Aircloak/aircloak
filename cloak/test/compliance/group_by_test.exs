@@ -8,7 +8,7 @@ defmodule Compliance.GroupByTest do
       |> disable_unicode(unquote(table), unquote(column))
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
       |> disable_for(Cloak.DataSource.ClouderaImpala, unquote(column) == "birthday")
-      |> disable_for(:all, unquote(table) == "users_public" and unquote(column) == "name")
+      |> disable_for(:all, unquote(table) == "users_public" and unquote(column) == "name_unicode")
       |> assert_consistent_and_not_failing("""
         SELECT #{unquote(column)}, COUNT(DISTINCT user_id)
         FROM #{unquote(table)} GROUP BY 1 ORDER BY 1 ASC NULLS FIRST
@@ -88,9 +88,9 @@ defmodule Compliance.GroupByTest do
 
   defp disable_unicode(context, table, column) do
     context
-    |> disable_for(Cloak.DataSource.SQLServer, column == "name")
-    |> disable_for(Cloak.DataSource.MySQL, column == "name")
-    |> disable_for(Cloak.DataSource.ClouderaImpala, column == "name")
-    |> disable_for(:all, table == "users_public" and column == "name")
+    |> disable_for(Cloak.DataSource.SQLServer, column == "name_unicode")
+    |> disable_for(Cloak.DataSource.MySQL, column == "name_unicode")
+    |> disable_for(Cloak.DataSource.ClouderaImpala, column == "name_unicode")
+    |> disable_for(:all, table == "users_public" and column == "name_unicode")
   end
 end

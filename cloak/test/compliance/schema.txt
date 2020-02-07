@@ -6,7 +6,10 @@ users                                           addresses
 - age (integer)                                 - home_city (string)
 - height (float)                                - home_postal_code (integer)
 - active (boolean)                              - work_city (string)
-- name (string)                                 - work_postal_code (integer)
+- name_unicode (string)                         - work_postal_code (integer)
+- column_with_a_very_long_name(string)
+- signed_integer (integer)
+- signed_float (float)
 
 notes                                           notes_changes
 - uid (integer - projected uid column)          - uid (uid column - integer)

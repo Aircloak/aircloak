@@ -57,10 +57,12 @@ defmodule Compliance.TableDefinitions do
           age: %{type: :integer, decoder: :text_to_integer},
           height: %{type: :real, decoder: :text_to_real},
           active: %{type: :boolean, decoder: :text_to_boolean},
-          name: %{type: :text, decoder: :base64},
+          name_unicode: %{type: :text, decoder: :base64},
           nullable: %{type: :real, decoder: :text_to_real},
           birthday: %{type: :date},
-          column_with_a_very_long_name: %{type: :text}
+          column_with_a_very_long_name: %{type: :text},
+          signed_integer: %{type: :integer, decoder: :text_to_integer},
+          signed_float: %{type: :real, decoder: :text_to_real}
         },
         keys: %{
           "user_id" => :user_id,
@@ -114,10 +116,12 @@ defmodule Compliance.TableDefinitions do
           age: %{type: :integer, decoder: :text_to_integer},
           height: %{type: :real, decoder: :text_to_real},
           active: %{type: :boolean, decoder: :text_to_boolean},
-          name: %{type: :text, decoder: :base64},
+          name_unicode: %{type: :text, decoder: :base64},
           nullable: %{type: :real, decoder: :text_to_real},
           birthday: %{type: :date},
-          column_with_a_very_long_name: %{type: :text}
+          column_with_a_very_long_name: %{type: :text},
+          signed_integer: %{type: :integer, decoder: :text_to_integer},
+          signed_float: %{type: :real, decoder: :text_to_real}
         }
       }
     }
