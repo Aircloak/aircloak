@@ -203,6 +203,32 @@ defmodule Cloak.Sql.Query.Lenses do
   @spec subquery_lenses(Query.t()) :: [Lens.t()]
   def subquery_lenses(query), do: [Lens.root() | do_subquery_lenses(Lens.key(:from), query.from)]
 
+  @doc "Lens focusing on the `WHEN` clauses in `CASE` statements."
+  deflens case_when_clauses() do
+    Lens.match(fn
+      %Expression{kind: :function, name: "case", args: args} ->
+        branch_count = args |> length() |> div(2)
+        when_branches = for i <- 0..(branch_count - 1), do: 2 * i
+        Lens.key(:args) |> Lens.indices(when_branches)
+
+      _ ->
+        Lens.empty()
+    end)
+  end
+
+  @doc "Lens focusing on the `THEN` and `ELSE` clauses in `CASE` statements."
+  deflens case_then_else_clauses() do
+    Lens.match(fn
+      %Expression{kind: :function, name: "case", args: args} ->
+        branch_count = args |> length() |> div(2)
+        then_branches = for i <- 0..(branch_count - 1), do: 2 * i + 1
+        Lens.key(:args) |> Lens.indices(then_branches ++ [branch_count * 2])
+
+      _ ->
+        Lens.empty()
+    end)
+  end
+
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------

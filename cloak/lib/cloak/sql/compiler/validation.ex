@@ -816,7 +816,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Lens.filter(&Function.aggregator?/1)
     |> Lens.key(:args)
     |> Lens.all()
-    |> case_then_else_lens()
+    |> Query.Lenses.case_then_else_clauses()
     |> Lens.reject(&(Expression.constant?(&1) and &1.value in [0, 1, nil]))
     |> Lens.to_list(query)
     |> case do
@@ -832,7 +832,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_bucketed_case_expressions_values(%Query{type: :anonymized} = query) do
     Query.Lenses.query_expressions()
-    |> case_then_else_lens()
+    |> Query.Lenses.case_then_else_clauses()
     |> Lens.reject(&Expression.constant?/1)
     |> Lens.to_list(query)
     |> case do
@@ -848,7 +848,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_case_expressions_conditions(%Query{type: :anonymized} = query) do
     Query.Lenses.query_expressions()
-    |> case_when_lens()
+    |> Query.Lenses.case_when_clauses()
     |> Lens.reject(&valid_when_clause?/1)
     |> Lens.to_list(query)
     |> case do
@@ -887,7 +887,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp drop_case_conditions(query) do
     Query.Lenses.query_expressions()
-    |> case_when_lens()
+    |> Query.Lenses.case_when_clauses()
     |> Query.Lenses.conditions()
     |> Lens.map(query, &drop_condition/1)
   end
@@ -896,30 +896,6 @@ defmodule Cloak.Sql.Compiler.Validation do
     Query.Lenses.filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.map(query, &drop_condition/1)
-  end
-
-  defp case_when_lens(previous_lens) do
-    Lens.match(previous_lens, fn
-      %Expression{kind: :function, name: "case", args: args} ->
-        branch_count = args |> length() |> div(2)
-        when_branches = for i <- 0..(branch_count - 1), do: 2 * i
-        Lens.key(:args) |> Lens.indices(when_branches)
-
-      _ ->
-        Lens.empty()
-    end)
-  end
-
-  defp case_then_else_lens(previous_lens) do
-    Lens.match(previous_lens, fn
-      %Expression{kind: :function, name: "case", args: args} ->
-        branch_count = args |> length() |> div(2)
-        then_branches = for i <- 0..(branch_count - 1), do: 2 * i + 1
-        Lens.key(:args) |> Lens.indices(then_branches ++ [branch_count * 2])
-
-      _ ->
-        Lens.empty()
-    end)
   end
 
   # We can't remove the condition completely, as we still want to verify its arguments later,
