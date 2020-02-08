@@ -1437,6 +1437,20 @@ defmodule Cloak.Sql.Compiler.Test do
                compile("select case when string = 'xxx' then numeric end from table", data_source())
     end
 
+    test "reject using multiple conditions" do
+      assert {:error,
+              "`when` clauses from `case` expressions in anonymizing queries can only use a simple " <>
+                "equality condition of the form `column = constant`."} =
+               compile("select case when string = 'xxx' and numeric = 0 then 1 end from table", data_source())
+    end
+
+    test "reject using unclear conditions" do
+      assert {:error,
+              "`when` clauses from `case` expressions in anonymizing queries can only use a simple " <>
+                "equality condition of the form `column = constant`."} =
+               compile("select case when numeric <> 0 then 1 end from table", data_source())
+    end
+
     test "test conditions have to be booleans" do
       assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
                compile_standard("select case when true then 1 when string then 0 else 2 end from table", data_source())

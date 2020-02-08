@@ -42,9 +42,9 @@ defmodule Cloak.Sql.Compiler.Validation do
   def verify_anonymization_restrictions(%Query{command: :select} = query) do
     verify_user_id_usage(query, nil)
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
-    Helpers.each_subquery(query, &verify_case_usage/1)
     Helpers.each_subquery(query, &verify_conditions_usage/1)
     Helpers.each_subquery(query, &verify_or_usage/1)
+    Helpers.each_subquery(query, &verify_case_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
     Helpers.each_subquery(query, &verify_grouping_sets_uid/1)
     query
@@ -755,6 +755,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     verify_post_processing_of_case_expressions(query)
     verify_aggregated_case_expressions_values(query)
     verify_bucketed_case_expressions_values(query)
+    verify_case_expressions_conditions(query)
   end
 
   defp verify_case_usage(%Query{type: :restricted} = query) do
@@ -844,6 +845,33 @@ defmodule Cloak.Sql.Compiler.Validation do
           source_location: invalid_value.source_location
     end
   end
+
+  defp verify_case_expressions_conditions(%Query{type: :anonymized} = query) do
+    Query.Lenses.query_expressions()
+    |> case_when_lens()
+    |> Lens.reject(&valid_when_clause?/1)
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [invalid_when_clause | _rest] ->
+        raise CompilationError,
+          message:
+            "`when` clauses from `case` expressions in anonymizing queries can only use a simple " <>
+              "equality condition of the form `column = constant`.",
+          source_location: invalid_when_clause.source_location
+    end
+  end
+
+  defp valid_when_clause?(%Expression{
+         kind: :function,
+         name: "=",
+         args: [%Expression{kind: :column}, %Expression{kind: :constant}]
+       }),
+       do: true
+
+  defp valid_when_clause?(_), do: false
 
   # -------------------------------------------------------------------
   # Helpers
