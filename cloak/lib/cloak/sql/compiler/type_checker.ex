@@ -343,10 +343,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   end
 
   defp restricted_expressions() do
-    Lens.both(
+    Lens.multiple([
       Lens.keys([:columns, :group_by]) |> Lens.all(),
+      Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
       Query.Lenses.pre_anonymization_filter_clauses() |> Query.Lenses.conditions() |> Query.Lenses.operands()
-    )
+    ])
     |> Query.Lenses.all_expressions()
     |> Lens.reject(& &1.synthetic?)
   end
