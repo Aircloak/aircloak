@@ -111,22 +111,22 @@ defmodule Cloak.Sql.Query.Lenses do
 
   @doc "Lens focusing on all sources in a query where row filters can be found."
   deflens filter_clauses() do
-    Lens.multiple([
+    Lens.both(
       Lens.keys([:where, :having]),
       join_conditions()
-    ])
+    )
   end
 
   @doc "Lens focusing on all sources in a query where row filters on sensitive data can be found."
   deflens pre_anonymization_filter_clauses() do
-    Lens.multiple([
+    Lens.both(
       Lens.match(fn
         %Query{type: :restricted} -> Lens.keys([:where, :having])
         %Query{type: :anonymized} -> Lens.key(:where)
         _ -> Lens.empty()
       end),
       join_conditions()
-    ])
+    )
   end
 
   @doc "Returns a list of lenses focusing on sets of join conditions of the given query."
