@@ -14,15 +14,6 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on all terminal elements in a query, including intermediate function invocations."
   deflens terminals(), do: query_fields() |> bottom_up_elements()
 
-  @doc "Lens focusing on all outermost analyst provided elements in the top-level query."
-  deflens analyst_provided_expressions() do
-    Lens.both(
-      Lens.keys([:columns, :group_by]) |> Lens.all(),
-      pre_anonymization_filter_clauses() |> conditions_terminals() |> expressions()
-    )
-    |> Lens.reject(& &1.synthetic?)
-  end
-
   @doc "Lens focusing on all terminal elements in a list of conditions."
   deflens conditions_terminals(), do: conditions() |> operands() |> bottom_up_elements()
 

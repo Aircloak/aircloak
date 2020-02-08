@@ -44,7 +44,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   def verify_allowed_usage_of_math(query),
     do:
-      Query.Lenses.analyst_provided_expressions()
+      restricted_expressions()
       |> Lens.to_list(query)
       |> Enum.each(fn expression ->
         type = Type.establish_type(expression, query)
@@ -109,7 +109,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp verify_string_based_expressions_are_clear(query),
     do:
-      Query.Lenses.analyst_provided_expressions()
+      restricted_expressions()
       |> Lens.to_list(query)
       |> Enum.each(fn expression ->
         if expression |> Type.establish_type(query) |> Type.unclear_string_manipulation?(),
@@ -333,5 +333,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       _ ->
         :ok
     end
+  end
+
+  defp restricted_expressions() do
+    Lens.both(
+      Lens.keys([:columns, :group_by]) |> Lens.all(),
+      Query.Lenses.pre_anonymization_filter_clauses() |> Query.Lenses.conditions() |> Query.Lenses.operands()
+    )
+    |> Query.Lenses.all_expressions()
+    |> Lens.reject(& &1.synthetic?)
   end
 end
