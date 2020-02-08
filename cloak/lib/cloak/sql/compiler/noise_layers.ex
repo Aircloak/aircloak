@@ -571,7 +571,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
 
   deflensp pre_anonymization_conditions(),
-    do: Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions()
+    do: Query.Lenses.pre_anonymization_filter_clauses() |> Query.Lenses.conditions()
 
   deflensp non_uid_expressions(), do: Lens.filter(&(not &1.user_id?))
 

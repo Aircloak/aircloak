@@ -18,7 +18,7 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens analyst_provided_expressions() do
     Lens.both(
       Lens.keys([:columns, :group_by]) |> Lens.all(),
-      db_filter_clauses() |> conditions_terminals() |> expressions()
+      pre_anonymization_filter_clauses() |> conditions_terminals() |> expressions()
     )
     |> Lens.reject(& &1.synthetic?)
   end
@@ -41,7 +41,7 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on function expressions in the query that are sent to the database (subqueries are not included)."
   deflens db_needed_functions() do
     Lens.match(fn
-      %Query{type: :anonymized} -> db_filter_clauses() |> conditions_terminals() |> expressions()
+      %Query{type: :anonymized} -> Lens.key(:where) |> bottom_up_elements() |> expressions()
       _ -> query_expressions()
     end)
     |> Lens.filter(&Expression.function?/1)
@@ -118,7 +118,7 @@ defmodule Cloak.Sql.Query.Lenses do
     join_conditions() |> conditions_terminals()
   end
 
-  @doc "Lens focusing on all sources in a query where conditions can be found."
+  @doc "Lens focusing on all sources in a query where row filters can be found."
   deflens filter_clauses() do
     Lens.multiple([
       Lens.keys([:where, :having]),
@@ -126,12 +126,12 @@ defmodule Cloak.Sql.Query.Lenses do
     ])
   end
 
-  @doc "Lens focusing on all sources in a query where database conditions can be found."
-  deflens db_filter_clauses() do
+  @doc "Lens focusing on all sources in a query where row filters on sensitive data can be found."
+  deflens pre_anonymization_filter_clauses() do
     Lens.multiple([
       Lens.match(fn
-        %Query{subquery?: true} -> Lens.keys([:where, :having])
-        %Query{subquery?: false} -> Lens.key(:where)
+        %Query{type: :restricted} -> Lens.keys([:where, :having])
+        %Query{type: :anonymized} -> Lens.key(:where)
         _ -> Lens.empty()
       end),
       join_conditions()

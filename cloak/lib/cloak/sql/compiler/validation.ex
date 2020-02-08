@@ -589,7 +589,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   # -------------------------------------------------------------------
 
   defp verify_in(query) do
-    Query.Lenses.db_filter_clauses()
+    Query.Lenses.filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.filter(&Condition.in?/1)
     |> Lens.to_list(query)
@@ -794,7 +794,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_case_usage_in_filtering_clauses(%Query{type: :anonymized} = query) do
-    Query.Lenses.db_filter_clauses()
+    Query.Lenses.pre_anonymization_filter_clauses()
     |> Query.Lenses.all_expressions()
     |> Lens.filter(&Expression.function?/1)
     |> Lens.filter(&(&1.name == "case"))

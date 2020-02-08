@@ -92,6 +92,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error == "Arguments of type (`integer`, `datetime`) are incorrect for `=`."
   end
 
+  test "rejects having conditions on non grouped by columns" do
+    {:error, "`HAVING` clause can not be applied over column `numeric` from table `table`."} =
+      compile("select count(*) from table group by column having numeric = 1", data_source())
+  end
+
   describe "rejects non-boolean filtering clauses" do
     test "where" do
       assert {:error, error} = compile("select count(*) from table where 1", data_source())
