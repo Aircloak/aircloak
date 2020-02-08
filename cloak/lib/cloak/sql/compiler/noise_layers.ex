@@ -543,7 +543,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp build_noise_layer(base_column, extras, expressions, grouping_set_index \\ nil),
     do: NoiseLayer.new({table_name(base_column.table), base_column.name, extras}, expressions, grouping_set_index)
 
-  defp conditions_satisfying(predicate), do: db_conditions() |> Lens.filter(predicate)
+  defp conditions_satisfying(predicate), do: pre_anonymization_conditions() |> Lens.filter(predicate)
 
   defp normalize_datasource_case(query) do
     Lens.key(:noise_layers)
@@ -556,10 +556,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   deflensp non_synthetic_expressions(), do: Lens.filter(&(not &1.synthetic?))
 
-  deflensp clear_conditions(), do: db_conditions() |> Lens.filter(&clear_condition?/1)
+  deflensp clear_conditions(), do: pre_anonymization_conditions() |> Lens.filter(&clear_condition?/1)
 
   deflensp basic_conditions(query) do
-    db_conditions()
+    pre_anonymization_conditions()
     |> Lens.reject(&Range.range?(&1, query))
     |> Lens.reject(&Condition.inequality?/1)
     |> Lens.reject(&Condition.not_equals?/1)
@@ -570,8 +570,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.reject(&clear_condition?/1)
   end
 
-  deflensp db_conditions(),
-    do: Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions() |> Lens.reject(&Expression.constant?/1)
+  deflensp pre_anonymization_conditions(),
+    do: Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions()
 
   deflensp non_uid_expressions(), do: Lens.filter(&(not &1.user_id?))
 
