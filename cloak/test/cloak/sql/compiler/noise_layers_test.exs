@@ -1198,6 +1198,30 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                }
              ] = result.noise_layers
     end
+
+    test "uid-anon for identical conditions in bucket over case and where filter" do
+      result = compile!("SELECT CASE WHEN numeric = 1 THEN 1 END, STDDEV(0) FROM table WHERE numeric = 1 GROUP BY 1")
+
+      assert [
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 1}, %Expression{value: 1}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}]
+               }
+             ] = result.noise_layers
+    end
+
+    test "stats-anon for identical conditions in bucket over case and where filter" do
+      result = compile!("SELECT CASE WHEN numeric = 1 THEN 1 END FROM table WHERE numeric = 1 GROUP BY 1")
+
+      assert [
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 1}, %Expression{value: 1}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}]
+               }
+             ] = result.noise_layers
+    end
   end
 
   defp compile!(query, opts \\ []),
