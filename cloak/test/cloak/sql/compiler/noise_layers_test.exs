@@ -1186,7 +1186,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   defp compile!(query, opts \\ []),
     do:
       Cloak.Test.QueryHelpers.compile!(query, data_source(), opts)
-      |> Cloak.Sql.Compiler.NoiseLayers.compile()
       |> Cloak.Sql.Query.resolve_db_columns()
 
   defp data_source() do
