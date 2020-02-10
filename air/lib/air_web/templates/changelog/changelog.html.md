@@ -10,7 +10,7 @@
 
 ### New features
 
-- Added beta support for Cloudera Impala data sources.
+- Added beta support for Apache Impala (Cloudera Distribution) data sources.
 
 ### Enhancements
 

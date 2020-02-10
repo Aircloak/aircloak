@@ -148,7 +148,7 @@ The following constructs are not natively supported on this data source and will
   - `date_trunc`
   - `trim`
 
-#### Cloudera Impala
+#### Apache Impala
 
 - `ltrim` when a custom string is specified as its second argument.
 - `rtrim` when a custom string is specified as its second argument.
