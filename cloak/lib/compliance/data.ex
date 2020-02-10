@@ -176,26 +176,15 @@ defmodule Compliance.Data do
   defp floats(), do: sample(fn -> random_sign() * random_float(6) end)
 
   defp signed_integers() do
-    %{0 => 0}
-    |> Map.merge(sample(fn -> random_int() end, 1..5))
-    |> Map.merge(sample(fn -> -random_int() end, 6..10))
-  end
-
-  defp random_int() do
-    x = :rand.uniform(1000)
-
-    # Prevent ending with 5 because of inconsistent rounding.
-    if rem(x, 5) == 0 do
-      random_int()
-    else
-      x
-    end
+    %{0 => 0, 1 => 905, 2 => -905}
+    |> Map.merge(sample(fn -> :rand.uniform(100) end, 3..6))
+    |> Map.merge(sample(fn -> -:rand.uniform(100) end, 7..10))
   end
 
   defp signed_floats() do
-    %{0 => 0.0}
-    |> Map.merge(sample(fn -> random_float(6) end, 1..5))
-    |> Map.merge(sample(fn -> -random_float(6) end, 6..10))
+    %{0 => 0.0, 1 => 1.5, 2 => -1.5}
+    |> Map.merge(sample(fn -> random_float(6) end, 3..6))
+    |> Map.merge(sample(fn -> -random_float(6) end, 7..10))
   end
 
   defp random_float(num_digits) do
