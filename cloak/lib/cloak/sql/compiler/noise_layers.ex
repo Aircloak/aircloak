@@ -111,7 +111,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     expression = find_selected_expression_by_name(top_column, query)
 
     layers =
-      raw_columns(expression)
+      non_case_expressions()
+      |> raw_columns(expression)
       |> Enum.map(fn column ->
         expressions = push_noise_layer_expressions(expression, column, top_expressions)
         build_noise_layer(column, extras, expressions, grouping_set_index)
@@ -494,7 +495,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Enum.at(query.columns, index)
   end
 
-  defp raw_columns(lens \\ Lens.root(), data),
+  defp raw_columns(lens, data),
     do:
       lens
       |> Query.Lenses.leaf_expressions()

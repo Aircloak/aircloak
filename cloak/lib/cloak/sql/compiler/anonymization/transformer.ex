@@ -296,7 +296,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
       Function.aggregator?(expression) ->
         []
 
-      Helpers.aggregated_column?(expression) or uses_multiple_columns?(expression) ->
+      Helpers.aggregated_column?(expression) ->
         Enum.flat_map(expression.args, &extract_groups/1)
 
       true ->
@@ -398,13 +398,6 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
   defp global_aggregator("count"), do: "sum"
   defp global_aggregator("count_noise"), do: "sum_noise"
   defp global_aggregator(function_name), do: function_name
-
-  defp uses_multiple_columns?(expression) do
-    Lenses.leaf_expressions()
-    |> Lens.filter(&Expression.column?/1)
-    |> Lens.to_list(expression)
-    |> Enum.count() > 1
-  end
 
   # -------------------------------------------------------------------
   # Offload grouping sets

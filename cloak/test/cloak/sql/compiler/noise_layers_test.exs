@@ -1172,12 +1172,29 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 1}, %Expression{value: 1}]},
                %{
                  base: {"table", "numeric", nil},
-                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{name: "uid"}]
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}]
                },
                %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 0}, %Expression{value: 0}]},
                %{
                  base: {"table", "numeric", nil},
-                 expressions: [%Expression{value: 0}, %Expression{value: 0}, %Expression{name: "uid"}]
+                 expressions: [%Expression{value: 0}, %Expression{value: 0}, %Expression{user_id?: true}]
+               }
+             ] = result.noise_layers
+    end
+
+    test "stats-anon select over case" do
+      result = compile!("SELECT CASE WHEN numeric = 1 THEN 1 WHEN numeric = 0 THEN 0 END FROM table")
+
+      assert [
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 1}, %Expression{value: 1}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}]
+               },
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 0}, %Expression{value: 0}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 0}, %Expression{value: 0}, %Expression{user_id?: true}]
                }
              ] = result.noise_layers
     end
