@@ -220,6 +220,22 @@ defmodule Cloak.Sql.Query.Lenses do
     end)
   end
 
+  @doc "Lens focusing on all expressions in a query used to form the groups for aggregation and anonymization."
+  deflens group_expressions() do
+    Lens.match(fn
+      %Query{type: :anonymized, group_by: [], implicit_count?: true} ->
+        # Group by is not provided, and no selected expression is an aggregation function ->
+        #   we're grouping on all selected columns + non selected order by expressions.
+        Lens.both(
+          Lens.key(:columns) |> Lens.all(),
+          Lens.key(:order_by) |> Lens.all() |> Lens.at(0)
+        )
+
+      _ ->
+        Lens.key(:group_by) |> Lens.all()
+    end)
+  end
+
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------

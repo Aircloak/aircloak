@@ -214,10 +214,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp calculate_base_noise_layers(query, top_level_uid) do
     noise_layers =
-      select_noise_layers(query, top_level_uid) ++
-        clear_noise_layers(query, top_level_uid) ++
+      clear_noise_layers(query, top_level_uid) ++
         basic_noise_layers(query, top_level_uid) ++
-        group_by_noise_layers(query, top_level_uid) ++
+        group_noise_layers(query, top_level_uid) ++
         in_noise_layers(query, top_level_uid) ++
         range_noise_layers(query) ++
         not_equals_noise_layers(query, top_level_uid) ++ not_like_noise_layers(query, top_level_uid)
@@ -283,22 +282,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end
   end
 
-  defp select_noise_layers(%Query{type: :anonymized} = query, top_level_uid),
-    do:
-      Lens.key(:columns)
-      |> Lens.all()
-      |> Lens.reject(&needs_aggregation?(query, &1))
-      |> non_synthetic_expressions()
-      |> raw_columns(query)
-      |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
-
-  defp select_noise_layers(_query, _top_level_uid), do: []
-
-  defp needs_aggregation?(_query, %Expression{kind: :constant}), do: true
-
-  defp needs_aggregation?(query, expression),
-    do: Helpers.aggregated_column?(expression) or Helpers.grouped_by?(query, expression)
-
   defp clear_noise_layers(query, top_level_uid),
     do:
       clear_conditions()
@@ -319,7 +302,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
   end
 
-  defp group_by_noise_layers(%Query{type: :anonymized, grouping_sets: grouping_sets} = query, top_level_uid)
+  defp group_noise_layers(%Query{type: :anonymized, grouping_sets: grouping_sets} = query, top_level_uid)
        when length(grouping_sets) > 1 do
     grouping_sets
     |> Enum.with_index()
@@ -339,11 +322,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
   end
 
-  defp group_by_noise_layers(query, top_level_uid) do
-    Lens.all()
+  defp group_noise_layers(query, top_level_uid) do
+    Query.Lenses.group_expressions()
     |> non_uid_expressions()
     |> non_synthetic_expressions()
-    |> raw_columns(query.group_by)
+    |> raw_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
   end
 
