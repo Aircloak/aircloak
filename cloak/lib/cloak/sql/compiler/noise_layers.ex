@@ -326,6 +326,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Query.Lenses.group_expressions()
     |> non_uid_expressions()
     |> non_synthetic_expressions()
+    |> non_case_expressions()
     |> raw_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
   end
@@ -531,6 +532,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   deflensp non_synthetic_expressions(), do: Lens.filter(&(not &1.synthetic?))
 
+  deflensp non_case_expressions(), do: Lens.filter(&(not match?(%Expression{kind: :function, name: "case"}, &1)))
+
   deflensp clear_conditions(), do: pre_anonymization_conditions() |> Lens.filter(&clear_condition?/1)
 
   deflensp basic_conditions(query) do
@@ -545,8 +548,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.reject(&clear_condition?/1)
   end
 
-  deflensp pre_anonymization_conditions(),
-    do: Query.Lenses.pre_anonymization_filter_clauses() |> Query.Lenses.conditions()
+  deflensp pre_anonymization_conditions() do
+    Lens.both(
+      Query.Lenses.pre_anonymization_filter_clauses(),
+      Query.Lenses.group_expressions() |> Query.Lenses.case_when_clauses()
+    )
+    |> Query.Lenses.conditions()
+  end
 
   deflensp non_uid_expressions(), do: Lens.filter(&(not &1.user_id?))
 

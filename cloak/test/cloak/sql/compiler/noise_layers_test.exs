@@ -1163,6 +1163,26 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     assert result1.noise_layers == result2.noise_layers
   end
 
+  describe "case conditions noise layers" do
+    test "uid-anon select over case" do
+      result =
+        compile!("SELECT CASE WHEN numeric = 1 THEN 1 WHEN numeric = 0 THEN 0 END, STDDEV(0) FROM table GROUP BY 1")
+
+      assert [
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 1}, %Expression{value: 1}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{name: "uid"}]
+               },
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 0}, %Expression{value: 0}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 0}, %Expression{value: 0}, %Expression{name: "uid"}]
+               }
+             ] = result.noise_layers
+    end
+  end
+
   defp compile!(query, opts \\ []),
     do:
       Cloak.Test.QueryHelpers.compile!(query, data_source(), opts)
