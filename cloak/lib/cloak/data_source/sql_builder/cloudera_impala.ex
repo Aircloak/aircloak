@@ -62,6 +62,25 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   def function_sql("pow", [arg1, arg2]),
     do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
 
+  # Impala rounds positive and negative numbers assymetrically.
+  # Therefore we ensure consistency by rounding negative numbers' absolute value.
+  def function_sql("round", [arg1, arg2]),
+    do: [
+      "CASE WHEN ",
+      arg2,
+      " < 0 THEN TRUNCATE(SIGN(",
+      arg1,
+      ") * ROUND(ABS(",
+      arg1,
+      "), ",
+      arg2,
+      ")) ELSE ROUND(",
+      arg1,
+      ", ",
+      arg2,
+      ") END"
+    ]
+
   def function_sql("trunc", [arg1, arg2]), do: ["TRUNCATE(CAST(", arg1, " AS DECIMAL(18, 6)), ", arg2, ")"]
   def function_sql("trunc", args), do: super("TRUNCATE", args)
 
