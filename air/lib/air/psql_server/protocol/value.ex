@@ -99,7 +99,10 @@ defmodule Air.PsqlServer.Protocol.Value do
   defp text_encode(byte, :char), do: <<byte>>
   defp text_encode(values, :int2vector), do: "{#{values |> Stream.map(&to_string/1) |> Enum.join(",")}}"
   defp text_encode(oids, :oidarray), do: "{#{oids |> Stream.map(&to_string/1) |> Enum.join(",")}}"
-  defp text_encode(interval, :interval), do: "<interval>"
+
+  defp text_encode(%Postgrex.Interval{} = interval, :interval),
+    do: "P#{abs(interval.months)}M#{abs(interval.days)}DT#{abs(interval.secs)}S"
+
   defp text_encode(value, _), do: to_string(value)
 
   defp text_decode(param, :int2), do: String.to_integer(param)
