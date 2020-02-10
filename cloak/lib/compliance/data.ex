@@ -177,8 +177,19 @@ defmodule Compliance.Data do
 
   defp signed_integers() do
     %{0 => 0}
-    |> Map.merge(sample(fn -> :rand.uniform(1000) end, 1..5))
-    |> Map.merge(sample(fn -> -:rand.uniform(1000) end, 6..10))
+    |> Map.merge(sample(fn -> random_int() end, 1..5))
+    |> Map.merge(sample(fn -> -random_int() end, 6..10))
+  end
+
+  defp random_int() do
+    x = :rand.uniform(1000)
+
+    # Prevent ending with 5 because of inconsistent rounding.
+    if rem(x, 5) == 0 do
+      random_int()
+    else
+      x
+    end
   end
 
   defp signed_floats() do
