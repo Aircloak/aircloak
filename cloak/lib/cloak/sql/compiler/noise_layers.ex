@@ -25,7 +25,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
     |> Helpers.apply_top_down(&normalize_datasource_case/1)
     |> remove_meaningless_negative_noise_layers()
-    |> add_generic_uid_layer_if_needed(top_level_uid)
     |> replace_uid(top_level_uid)
     |> strip_analyst_table_columns()
   end
@@ -430,35 +429,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       )
     end)
   end
-
-  # -------------------------------------------------------------------
-  # UID handling
-  # -------------------------------------------------------------------
-
-  defp add_generic_uid_layer_for_grouping_set(noise_layers, grouping_set_index, top_level_uid) do
-    noise_layers
-    |> NoiseLayer.filter_layers_for_grouping_set(grouping_set_index)
-    |> case do
-      [] -> [NoiseLayer.new(nil, [top_level_uid], grouping_set_index) | noise_layers]
-      _ -> noise_layers
-    end
-  end
-
-  defp add_generic_uid_layer_if_needed(query = %{noise_layers: [], grouping_sets: []}, top_level_uid),
-    do: %{query | noise_layers: [NoiseLayer.new(nil, [top_level_uid])]}
-
-  defp add_generic_uid_layer_if_needed(query = %{grouping_sets: [_ | _]}, top_level_uid) do
-    noise_layers =
-      Enum.reduce(
-        0..(Enum.count(query.grouping_sets) - 1),
-        query.noise_layers,
-        &add_generic_uid_layer_for_grouping_set(&2, &1, top_level_uid)
-      )
-
-    %{query | noise_layers: noise_layers}
-  end
-
-  defp add_generic_uid_layer_if_needed(query, _top_level_uid), do: query
 
   # -------------------------------------------------------------------
   # Meaningless noise layers

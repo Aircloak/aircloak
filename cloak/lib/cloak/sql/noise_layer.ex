@@ -83,6 +83,11 @@ defmodule Cloak.Sql.NoiseLayer do
     # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
     do: Enum.reduce(hash_set, compute_hash(salt), &bxor/2)
 
+  @doc "Generates a noise layer accumulator from the given values."
+  @spec accumulator_from_values([Cloak.Data.t()]) :: MapSet.t()
+  def accumulator_from_values(values),
+    do: values |> Enum.map(&normalize/1) |> Enum.map(&compute_hash/1) |> MapSet.new()
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

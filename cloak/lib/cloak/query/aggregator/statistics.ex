@@ -110,6 +110,10 @@ defmodule Cloak.Query.Aggregator.Statistics do
   @spec group_aggregator([Expression.t()]) :: ({values, Anonymizer.t(), t} -> {pos_integer, values})
   def group_aggregator(aggregators), do: &aggregate_group(&1, aggregators)
 
+  @doc "Returns the user id values in a bucket."
+  @spec user_id_values(t) :: [pos_integer()]
+  def user_id_values(aggregation_data), do: [users_count(aggregation_data)]
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

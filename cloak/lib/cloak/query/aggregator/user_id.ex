@@ -83,6 +83,10 @@ defmodule Cloak.Query.Aggregator.UserId do
     &aggregate_group(&1, indexed_aggregators)
   end
 
+  @doc "Returns the user id values in a bucket."
+  @spec user_id_values(t) :: [user_id]
+  def user_id_values(user_rows), do: Map.keys(user_rows)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

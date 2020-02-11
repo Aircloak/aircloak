@@ -42,7 +42,7 @@ defmodule Cloak.Query.Aggregator do
     query = aggregation_sub_module(query).pre_process(query)
 
     groups
-    |> init_anonymizer()
+    |> init_anonymizers(query)
     |> process_low_count_users(query)
     |> aggregate_groups(query)
     |> make_buckets(query)
@@ -109,13 +109,24 @@ defmodule Cloak.Query.Aggregator do
   defp aggregation_sub_module(%Query{anonymization_type: :statistics}), do: Statistics
   defp aggregation_sub_module(_query), do: UserId
 
-  defp init_anonymizer(grouped_rows) do
-    Logger.debug("Initializing anonymizer ...")
+  defp init_anonymizers(grouped_rows, query) do
+    Logger.debug("Initializing anonymizers ...")
 
     Enum.map(grouped_rows, fn {property, {aggregation_data, noise_layers}} ->
-      {property, Anonymizer.new(noise_layers), aggregation_data}
+      anonymizer = init_anonymizer(noise_layers, aggregation_data, query)
+      {property, anonymizer, aggregation_data}
     end)
   end
+
+  defp init_anonymizer([], aggregation_data, query) do
+    # We don't have any noise layers, so we generate a generic layer composed of the user ids in the bucket.
+    user_id_values = aggregation_sub_module(query).user_id_values(aggregation_data)
+    generic_accumulator = NoiseLayer.accumulator_from_values(user_id_values)
+    Anonymizer.new([generic_accumulator])
+  end
+
+  defp init_anonymizer(accumulated_noise_layers, _aggregation_data, _query),
+    do: Anonymizer.new(accumulated_noise_layers)
 
   defp low_users_count?({_property, anonymizer, aggregation_data}, aggregator_sub_module),
     do: not Anonymizer.sufficiently_large?(anonymizer, aggregator_sub_module.users_count(aggregation_data))
