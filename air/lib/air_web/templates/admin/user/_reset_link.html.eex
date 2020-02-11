@@ -11,15 +11,15 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      $("#reset-link").text(window.location.protocol + "//" + window.location.host + "<%= reset_path(@conn, @token) %>");
-      $("#copy-reset-link").click(function () {
+      document.getElementById("reset-link").textContent = window.location.protocol + "//" + window.location.host + "<%= reset_path(@conn, @token) %>";
+      document.getElementById("copy-reset-link").onclick = function () {
         var range = document.createRange();
         range.selectNode(document.getElementById("reset-link"));
         window.getSelection().removeAllRanges();
         window.getSelection().addRange(range);
         document.execCommand("copy");
         window.getSelection().removeAllRanges();
-      });
+      };
     }
   };
 </script>
