@@ -39,10 +39,6 @@
                   <%= navbar_link(@conn, "Settings", profile_path(@conn, :edit)) %>
                 <% end %>
 
-                <%= if AirWeb.SharedView.licensed_feature?(:email_support) do %>
-                  <%= navbar_link(@conn, "Support", support_path(@conn, :index)) %>
-                <% end %>
-
                 <%= if admin?(@conn) do %>
                   <li role="separator" class="divider"></li>
                   <%= navbar_link(@conn, "Admin", "/admin") %>
