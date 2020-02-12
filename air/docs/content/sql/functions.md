@@ -244,7 +244,7 @@ FLOOR(3.22)
 
 ### pow
 
-`POW(a, b)` computes `a` to the `b`-th power.
+`POW(a, b)` computes `a` to the `b`-th power. Returns NULL if `a` is negative.
 
 ```sql
 POW(2, 3)
@@ -260,6 +260,7 @@ POW(2, 3.5)
 ### round
 
 Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
+Halves are rounded away from zero (towards the larger absolute value).
 
 ```sql
 ROUND(3.22)

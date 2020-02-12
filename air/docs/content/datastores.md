@@ -255,3 +255,10 @@ user defined functions (UDFs), perform the following steps:
 ### PostgreSQL
 
 -  Data source user must have the `USAGE` privilege.
+
+### Apache Impala
+
+- Complex types (structs and arrays) are not supported.
+- Because there is no native data type for intervals in Impala,
+  using them as standalone expressions (in `SELECT`, `WHERE`, etc.) results in an error.
+  Intervals may only appear when adding or subtracting timestamps.
