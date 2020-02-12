@@ -13,6 +13,7 @@ Aircloak Insights ships with Insights Datasource Connectors for the following da
 - MySQL, version 5 and newer, and MariaDB, version 10.1 and newer
 - PostgreSQL, version 9.1 and newer
 - Oracle 12c
+- Apache Impala, version 2.10 and newer, as included in Cloudera's Apache Hadoop Distribution (CDH) version 5.13.X and newer
 
 If your preferred datastore is not in the list, please contact Aircloak.
 
@@ -147,6 +148,11 @@ The following constructs are not natively supported on this data source and will
   - `date_trunc`
   - `trim`
 
+#### Apache Impala
+
+- `ltrim` when a custom string is specified as its second argument.
+- `rtrim` when a custom string is specified as its second argument.
+
 
 ## Database-specific notes
 
@@ -249,3 +255,10 @@ user defined functions (UDFs), perform the following steps:
 ### PostgreSQL
 
 -  Data source user must have the `USAGE` privilege.
+
+### Apache Impala
+
+- Complex types (structs and arrays) are not supported.
+- Because there is no native data type for intervals in Impala,
+  interval literals may only appear when adding or subtracting timestamps.
+  Using intervals as standalone expressions (in `SELECT`, `WHERE`, etc.) results in an error.

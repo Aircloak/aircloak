@@ -10,6 +10,7 @@ defmodule Compliance.DataSource.PostgreSQL do
 
   @impl Connector
   def setup(%{parameters: params} = data_source) do
+    data_source = %{data_source | parameters: %{params | username: "postgres"}}
     Mix.Tasks.Cloak.PingDb.ping!(data_source)
     setup_database(params)
     :ok

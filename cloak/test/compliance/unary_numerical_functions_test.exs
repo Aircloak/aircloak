@@ -55,7 +55,7 @@ Enum.each(
                 #{on_column(unquote(function), unquote(column))} as output
               FROM #{unquote(table)}
             ) table_alias
-            ORDER BY output
+            ORDER BY output NULLS LAST
           """)
         end
 
@@ -65,7 +65,7 @@ Enum.each(
           |> assert_consistent_and_not_failing("""
             SELECT #{on_column(unquote(function), unquote(column))} as output
             FROM #{unquote(table)}
-            ORDER BY output
+            ORDER BY output NULLS LAST
           """)
         end
       end)
