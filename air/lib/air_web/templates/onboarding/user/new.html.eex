@@ -72,7 +72,9 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      var props = {className: "form-control", id: "user_password", name: "user[password]"};
+      var props = {
+        passwordProps: {className: "form-control", id: "user_password", name: "user[password]"}
+      };
       App.passwordField(props, document.getElementById("password-field"));
     }
   };
