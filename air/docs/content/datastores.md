@@ -11,7 +11,7 @@ Aircloak Insights ships with Insights Datasource Connectors for the following da
 - Microsoft SQL Server, versions 2012 R2 and newer
 - MongoDB, versions 3.4 and newer
 - MySQL, version 5 and newer, and MariaDB, version 10.1 and newer
-- PostgreSQL, version 9.1 and newer
+- PostgreSQL, version 9.6 and newer
 - Oracle 12c
 
 If your preferred datastore is not in the list, please contact Aircloak.

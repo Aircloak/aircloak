@@ -7,6 +7,7 @@
 - Support for `SAMPLE_USERS` was removed.
 - Support for the `hash` function was removed.
 - Minimum Oracle version supported is now 12c.
+- The minimum supported version of Postgres is now 9.6 (dropping support for version 9.1 through 9.5).
 
 ### Enhancements
 
