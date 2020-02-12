@@ -95,7 +95,6 @@ const App = {
       newTableURL,
       newViewURL,
       numberFormat,
-      passwordProps,
       pendingQueries,
       queries,
       result,
@@ -181,7 +180,7 @@ const App = {
       case "audit_log":
         return <AuditLogView auditLogs={auditLogs} />;
       case "password_field":
-        return <PasswordField passwordProps={passwordProps} />;
+        return <PasswordField />;
       default:
         throw new Error("Unknown page");
     }

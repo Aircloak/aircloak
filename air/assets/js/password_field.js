@@ -3,9 +3,7 @@
 import React from "react";
 import zxcvbn from "zxcvbn";
 
-type Props = {
-  passwordProps?: { [key: string]: any }
-};
+type Props = {};
 
 type State = {
   value: string,
@@ -60,12 +58,13 @@ export default class PasswordField extends React.Component<Props, State> {
 
   render = () => {
     const { value } = this.state;
-    const { passwordProps = {} } = this.props
     return (
       <div className={this.highlightClass()}>
         <input
-          {...passwordProps}
           type="password"
+          id="user_password"
+          name="user[password]"
+          className="form-control"
           value={value}
           onChange={this.updateValue}
         />
