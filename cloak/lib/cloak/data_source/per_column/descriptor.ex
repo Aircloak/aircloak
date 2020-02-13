@@ -18,6 +18,7 @@ defmodule Cloak.DataSource.PerColumn.Descriptor do
       :sha256,
       :erlang.term_to_binary({
         extract_parameters(data_source),
+        extract_anonymizing_info(data_source, table_name),
         table_name,
         column_name,
         Cloak.Query.Anonymizer.config(:salt)
@@ -27,5 +28,10 @@ defmodule Cloak.DataSource.PerColumn.Descriptor do
 
   defp extract_parameters(data_source) do
     Map.drop(data_source.parameters, @ignored_parameters)
+  end
+
+  defp extract_anonymizing_info(data_source, table_name) do
+    data_source.tables[String.to_atom(table_name)]
+    |> Map.take([:content_type, :user_id, :user_id_join_chain])
   end
 end
