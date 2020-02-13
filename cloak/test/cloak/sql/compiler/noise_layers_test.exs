@@ -746,7 +746,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                    %Expression{name: "__ac_group_0"},
                    %Expression{name: "__ac_group_0"}
                  ],
-                 grouping_set_index: 0
+                 tag: {:grouping_set, 0}
                },
                %{
                  base: {"table", "numeric", nil},
@@ -755,7 +755,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                    %Expression{name: "__ac_group_0"},
                    %Expression{user_id?: true}
                  ],
-                 grouping_set_index: 0
+                 tag: {grouping_set, 0}
                },
                %{
                  base: {"table", "numeric2", nil},
@@ -763,7 +763,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                    %Expression{name: "__ac_group_1"},
                    %Expression{name: "__ac_group_1"}
                  ],
-                 grouping_set_index: 1
+                 tag: {grouping_set, 1}
                },
                %{
                  base: {"table", "numeric2", nil},
@@ -772,7 +772,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                    %Expression{name: "__ac_group_1"},
                    %Expression{user_id?: true}
                  ],
-                 grouping_set_index: 1
+                 tag: {grouping_set, 1}
                }
              ] = result.noise_layers
 
@@ -1208,6 +1208,40 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{
                  base: {"table", "numeric", nil},
                  expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}]
+               }
+             ] = result.noise_layers
+    end
+
+    test "uid-anon count over case" do
+      result = compile!("SELECT COUNT(CASE WHEN numeric = 1 THEN 1 END), STDDEV(0) FROM table")
+
+      assert [
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}],
+                 tag: {:aggregator, 0}
+               },
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}],
+                 tag: {:aggregator, 0}
+               }
+             ] = result.noise_layers
+    end
+
+    test "stats-anon count over case" do
+      result = compile!("SELECT COUNT(CASE WHEN numeric = 1 THEN 1 END) FROM table")
+
+      assert [
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}],
+                 tag: {:aggregator, 0}
+               },
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}],
+                 tag: {:aggregator, 0}
                }
              ] = result.noise_layers
     end

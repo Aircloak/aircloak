@@ -105,7 +105,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp push_noise_layer(query, %NoiseLayer{
          base: {_table, top_column, extras},
          expressions: top_expressions,
-         grouping_set_index: grouping_set_index
+         tag: tag
        }) do
     expression = find_selected_expression_by_name(top_column, query)
 
@@ -114,7 +114,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> raw_columns(expression)
       |> Enum.map(fn column ->
         expressions = push_noise_layer_expressions(expression, column, top_expressions)
-        build_noise_layer(column, extras, expressions, grouping_set_index)
+        build_noise_layer(column, extras, expressions, tag)
       end)
       |> finalize(query)
 
@@ -219,7 +219,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         group_noise_layers(query, top_level_uid) ++
         in_noise_layers(query, top_level_uid) ++
         range_noise_layers(query) ++
-        not_equals_noise_layers(query, top_level_uid) ++ not_like_noise_layers(query, top_level_uid)
+        not_equals_noise_layers(query, top_level_uid) ++
+        not_like_noise_layers(query, top_level_uid) ++
+        aggregator_noise_layers(query, top_level_uid)
 
     %Query{query | noise_layers: finalize(noise_layers, query)}
   end
@@ -315,8 +317,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> raw_columns(group)
       |> Enum.flat_map(
         &[
-          static_noise_layer(&1, &1, nil, index),
-          uid_noise_layer(&1, &1, top_level_uid, nil, index)
+          static_noise_layer(&1, &1, nil, {:grouping_set, index}),
+          uid_noise_layer(&1, &1, top_level_uid, nil, {:grouping_set, index})
         ]
       )
     end)
@@ -361,6 +363,23 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
           |> raw_columns(column)
           |> Enum.flat_map(&[static_noise_layer(&1, &1, range)])
       end)
+
+  defp aggregator_noise_layers(query, top_level_uid) do
+    query.aggregators
+    |> Enum.with_index()
+    |> Enum.flat_map(fn {aggregator, index} ->
+      Lens.key(:args)
+      |> Lens.all()
+      |> Query.Lenses.case_when_clauses()
+      |> Lens.to_list(aggregator)
+      |> Enum.flat_map(fn %Expression{kind: :function, name: "=", args: [column, constant]} ->
+        [
+          static_noise_layer(column, constant, nil, {:aggregator, index}),
+          uid_noise_layer(column, constant, top_level_uid, nil, {:aggregator, index})
+        ]
+      end)
+    end)
+  end
 
   # -------------------------------------------------------------------
   # <> noise layers
@@ -473,22 +492,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Lens.to_list(data)
       |> Enum.map(&%Expression{&1 | user_id?: false})
 
-  defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil, grouping_set_index \\ nil) do
+  defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil, tag \\ nil) do
     expressions = [
       _min = layer_expression,
       _max = layer_expression,
       top_level_uid
     ]
 
-    build_noise_layer(base_column, extras, expressions, grouping_set_index)
+    build_noise_layer(base_column, extras, expressions, tag)
   end
 
-  defp static_noise_layer(base_column, layer_expression, extras \\ nil, grouping_set_index \\ nil) do
-    build_noise_layer(base_column, extras, [_min = layer_expression, _max = layer_expression], grouping_set_index)
+  defp static_noise_layer(base_column, layer_expression, extras \\ nil, tag \\ nil) do
+    build_noise_layer(base_column, extras, [_min = layer_expression, _max = layer_expression], tag)
   end
 
-  defp build_noise_layer(base_column, extras, expressions, grouping_set_index \\ nil),
-    do: NoiseLayer.new({table_name(base_column.table), base_column.name, extras}, expressions, grouping_set_index)
+  defp build_noise_layer(base_column, extras, expressions, tag \\ nil),
+    do: NoiseLayer.new({table_name(base_column.table), base_column.name, extras}, expressions, tag)
 
   defp conditions_satisfying(predicate), do: pre_anonymization_conditions() |> Lens.filter(predicate)
 

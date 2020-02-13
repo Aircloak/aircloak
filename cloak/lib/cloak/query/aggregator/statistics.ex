@@ -107,7 +107,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
   end
 
   @doc "Returns the anonymizing aggregator for a group."
-  @spec group_aggregator([Expression.t()]) :: ({values, Anonymizer.t(), t} -> {pos_integer, values})
+  @spec group_aggregator([Expression.t()]) :: ({values, %{any => Anonymizer.t()}, t} -> {pos_integer, values})
   def group_aggregator(aggregators), do: &aggregate_group(&1, aggregators)
 
   @doc "Returns the user id values in a bucket."
@@ -155,33 +155,35 @@ defmodule Cloak.Query.Aggregator.Statistics do
     [count, sum, min, max, stddev]
   end
 
-  defp aggregate_group({property, anonymizer, statistics}, aggregators) do
+  defp aggregate_group({property, anonymizers, statistics}, aggregators) do
     [bucket_statistics | aggregation_statistics] = statistics
     [count_duid | _] = bucket_statistics
 
-    users_count = Anonymizer.noisy_count(anonymizer, count_duid)
+    users_count = Anonymizer.noisy_count(anonymizers.default, count_duid)
 
     aggregation_results =
       Enum.zip(aggregators, aggregation_statistics)
+      |> Enum.with_index()
+      |> Enum.map(fn {{aggregator, statistics}, index} -> {aggregator, statistics, anonymizers[index]} end)
       |> Enum.map(fn
-        {%Expression{name: "count", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
+        {%Expression{name: "count", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid], _anonymizer} ->
           users_count
 
-        {%Expression{name: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
+        {%Expression{name: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid], anonymizer} ->
           Anonymizer.noise_amount(1, anonymizer)
 
-        {%Expression{name: "count", args: [{:distinct, _}]}, [real_count, noise_factor]} ->
+        {%Expression{name: "count", args: [{:distinct, _}]}, [real_count, noise_factor], anonymizer} ->
           {noisy_count, _noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, {real_count, noise_factor})
           noisy_count
 
-        {%Expression{name: "count_noise", args: [{:distinct, _}]}, [real_count, noise_factor]} ->
+        {%Expression{name: "count_noise", args: [{:distinct, _}]}, [real_count, noise_factor], anonymizer} ->
           {_noisy_count, noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, {real_count, noise_factor})
           noise_amount
 
-        {_aggregator, [_count, nil, nil, nil, nil]} ->
+        {_aggregator, [_count, nil, nil, nil, nil], _anonymizer} ->
           nil
 
-        {aggregator, [count, sum, min, max, stddev]} ->
+        {aggregator, [count, sum, min, max, stddev], anonymizer} ->
           avg = sum / count
           statistics = {count, sum, min, max, avg, stddev}
 

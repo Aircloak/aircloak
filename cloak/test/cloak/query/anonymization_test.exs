@@ -544,4 +544,60 @@ defmodule Cloak.Query.AnonymizationTest do
       )
     end
   end
+
+  describe "case" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..9, "anonymizations", ["number"], [1])
+      :ok = insert_rows(_user_ids = 10..19, "anonymizations", ["number"], [2])
+      :ok = insert_rows(_user_ids = 20..29, "anonymizations", ["number"], [3])
+    end
+
+    test "uid bucketed" do
+      # using `stddev` forces uid-based anonymization
+      assert_query(
+        """
+          select case when number = 1 then 1 when number = 2 then 2 end, count(*), stddev(0)
+          from anonymizations group by 1 order by 1
+        """,
+        %{
+          rows: [
+            %{row: [1, 10, _]},
+            %{row: [2, 10, _]},
+            %{row: [nil, 10, _]}
+          ]
+        }
+      )
+    end
+
+    test "stats bucketed" do
+      assert_query(
+        """
+          select case when number = 1 then 1 when number = 2 then 2 end, count(*)
+          from anonymizations group by 1 order by 1
+        """,
+        %{
+          rows: [
+            %{row: [1, 10]},
+            %{row: [2, 10]},
+            %{row: [nil, 10]}
+          ]
+        }
+      )
+    end
+
+    test "uid aggregated" do
+      # using `stddev` forces uid-based anonymization
+      assert_query(
+        "select sum(case when number = 1 then 1 end), stddev(0) from anonymizations",
+        %{rows: [%{row: [10, _]}]}
+      )
+    end
+
+    test "stats aggregated" do
+      assert_query(
+        "select sum(case when number = 1 then 1 end) from anonymizations",
+        %{rows: [%{row: [10]}]}
+      )
+    end
+  end
 end
