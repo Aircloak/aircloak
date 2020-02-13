@@ -93,4 +93,5 @@
   - [Analysis status](ops/administration.md#analysis-status)
 
 ## Diffix
-- [Diffix description](diffix.md)
+- [Diffix Cedar description](diffix.md)
+- [Attacks on Diffix](attacks.md)
