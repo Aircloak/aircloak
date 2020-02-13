@@ -91,3 +91,6 @@
   - [User sessions](ops/administration.md#user-sessions)
   - [Forgotten password](ops/administration.md#forgotten-password)
   - [Analysis status](ops/administration.md#analysis-status)
+
+## Diffix
+- [Diffix description](diffix.md)
