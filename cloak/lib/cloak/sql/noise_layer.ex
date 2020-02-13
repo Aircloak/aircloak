@@ -8,7 +8,7 @@ defmodule Cloak.Sql.NoiseLayer do
   @type t :: %__MODULE__{base: any, expressions: [Expression.t()], tag: tag}
   @type hash_set :: MapSet.t()
   @type accumulator :: [{tag, hash_set}]
-  @type processed :: {[Expression.t()], [[integer()]]}
+  @type processed :: {[Expression.t()], [any], [[integer()]]}
 
   defstruct [:base, :expressions, :tag]
 
@@ -44,8 +44,11 @@ defmodule Cloak.Sql.NoiseLayer do
   @spec pre_process_layers([t]) :: processed
   def pre_process_layers(layers) do
     unique_expressions = layers |> Enum.flat_map(& &1.expressions) |> Enum.uniq()
+    {constant_expressions, dynamic_expressions} = Enum.split_with(unique_expressions, &Expression.constant?/1)
+    unique_expressions = dynamic_expressions ++ constant_expressions
     indices_list = Enum.map(layers, &expressions_to_indices(&1.expressions, unique_expressions))
-    {unique_expressions, indices_list}
+    constants = constant_expressions |> Enum.map(&Expression.const_value/1) |> Enum.map(&normalize/1)
+    {dynamic_expressions, constants, indices_list}
   end
 
   @doc "Returns only the noise layers that apply to the specified grouping set."
@@ -75,8 +78,8 @@ defmodule Cloak.Sql.NoiseLayer do
 
   @doc "Adds the values from the given row to the noise layer accumulator."
   @spec accumulate(processed, accumulator, Row.t()) :: accumulator
-  def accumulate({unique_expressions, indices_list}, accumulator, row) do
-    values = Enum.map(unique_expressions, &normalize(Expression.value(&1, row)))
+  def accumulate({dynamic_expressions, constants, indices_list}, accumulator, row) do
+    values = Enum.map(dynamic_expressions, &normalize(Expression.value(&1, row))) ++ constants
 
     for {indices, {tag, set}} <- Enum.zip(indices_list, accumulator) do
       hash =
