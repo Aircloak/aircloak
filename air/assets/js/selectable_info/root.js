@@ -118,17 +118,15 @@ export default class SelectableInfo extends React.Component<Props, State> {
   analyzing = () => (
     <span className="label label-success pull-right">
       Online
-      <sup>
-        <a
-          href="/docs/sql/restrictions.html#column-analysis"
-          target="blank"
-          data-toggle="tooltip"
-          data-placement="right"
-          title="Some features unavailable pending analysis"
-        >
-          *
-        </a>
-      </sup>
+      <a
+        href="/docs/sql/restrictions.html#column-analysis"
+        target="blank"
+        data-toggle="tooltip"
+        data-placement="bottom"
+        title="Some features unavailable pending analysis"
+      >
+        *
+      </a>
     </span>
   );
 
