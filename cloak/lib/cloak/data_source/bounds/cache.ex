@@ -12,13 +12,13 @@ defmodule Cloak.DataSource.Bounds.Cache do
   # -------------------------------------------------------------------
 
   @doc "Performs a cache lookup."
-  @spec lookup(Cloak.DataSource.t(), String.t(), String.t()) ::
+  @spec lookup(Cloak.DataSource.t(), String.t() | Cloak.DataSource.Table.t(), String.t()) ::
           {:ok, Expression.bounds()} | {:error, :pending | :failed | :unknown_column}
   def lookup(cache_ref \\ __MODULE__, data_source, table_name, column_name),
     do: Cache.lookup(cache_ref, data_source, table_name, column_name)
 
   @doc "Returns the cached bound value, waiting until it's computed if it's not yet in the cache."
-  @spec value(Cloak.DataSource.t(), String.t(), String.t()) :: Expression.bounds()
+  @spec value(Cloak.DataSource.t(), String.t() | Cloak.DataSource.Table.t(), String.t()) :: Expression.bounds()
   def value(cache_ref \\ __MODULE__, data_source, table_name, column_name),
     do: Cache.value(cache_ref, data_source, table_name, column_name)
 

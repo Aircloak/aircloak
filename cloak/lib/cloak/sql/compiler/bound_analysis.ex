@@ -59,6 +59,8 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     |> check_functions()
   end
 
+  @spec as_table(DataSource.Table.t()) :: DataSource.Table.t()
+  def as_table(a), do: a
   # -------------------------------------------------------------------
   # Bound computation
   # -------------------------------------------------------------------
@@ -67,7 +69,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     update_in(query, [leaf_expressions()], fn expression ->
       case Query.resolve_subquery_column(expression, query) do
         :database_column ->
-          %{expression | bounds: Bounds.bounds(query.data_source, expression.table, expression.name)}
+          %{expression | bounds: Bounds.bounds(query.data_source, as_table(expression.table), expression.name)}
 
         {column, _subquery} ->
           %{expression | bounds: column.bounds}
