@@ -368,8 +368,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     query.aggregators
     |> Enum.with_index()
     |> Enum.flat_map(fn {aggregator, index} ->
-      Lens.key(:args)
-      |> Lens.all()
+      Query.Lenses.all_expressions()
+      |> non_synthetic_expressions()
       |> Query.Lenses.case_when_clauses()
       |> Lens.to_list(aggregator)
       |> Enum.flat_map(fn %Expression{kind: :function, name: "=", args: [column, constant]} ->

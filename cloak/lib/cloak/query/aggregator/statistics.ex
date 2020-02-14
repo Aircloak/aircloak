@@ -180,8 +180,8 @@ defmodule Cloak.Query.Aggregator.Statistics do
           {_noisy_count, noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, {real_count, noise_factor})
           noise_amount
 
-        {_aggregator, [_count, nil, nil, nil, nil], _anonymizer} ->
-          nil
+        {aggregator, [_count, nil, nil, nil, nil], _anonymizer} ->
+          if aggregator.alias == "count", do: Anonymizer.config(:low_count_absolute_lower_bound), else: nil
 
         {aggregator, [count, sum, min, max, stddev], anonymizer} ->
           avg = sum / count

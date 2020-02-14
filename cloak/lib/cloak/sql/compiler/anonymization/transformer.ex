@@ -368,10 +368,22 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
   # -------------------------------------------------------------------
 
   defp uid_aggregator(%Expression{kind: :function, name: "count_noise"} = expression),
-    do: uid_aggregator(%Expression{expression | name: "count", type: :integer})
+    do: %Expression{expression | name: "count", type: :integer}
 
   defp uid_aggregator(%Expression{kind: :function, name: "sum_noise", args: [arg]} = expression),
-    do: uid_aggregator(%Expression{expression | name: "sum", type: Function.type(arg)})
+    do: %Expression{expression | name: "sum", type: Function.type(arg)}
+
+  defp uid_aggregator(%Expression{kind: :function, name: "count", args: [%Expression{kind: kind} = arg]} = expression)
+       when kind != :constant do
+    arg_is_null = Expression.function("is_null", [arg], :boolean)
+    constant_one = Expression.constant(:integer, 1)
+    constant_null = Expression.constant(nil, nil)
+
+    one_if_arg_is_not_null =
+      Expression.function("case", [arg_is_null, constant_null, constant_one], :integer) |> set_fields(synthetic?: true)
+
+    %Expression{expression | name: "sum", args: [one_if_arg_is_not_null]}
+  end
 
   defp uid_aggregator(aggregator), do: aggregator
 
