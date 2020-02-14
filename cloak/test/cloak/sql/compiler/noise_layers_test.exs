@@ -1223,7 +1223,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                },
                %{
                  base: {"table", "numeric", nil},
-                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}],
+                 expressions: [
+                   %Expression{value: 1},
+                   %Expression{value: 1},
+                   %Expression{
+                     name: "case",
+                     args: [%Expression{name: "="}, %Expression{user_id?: true}, %Expression{value: nil}]
+                   }
+                 ],
                  tag: {:aggregator, 0}
                }
              ] = result.noise_layers
@@ -1240,7 +1247,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                },
                %{
                  base: {"table", "numeric", nil},
-                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}],
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{name: "__ac_nlc__0"}],
                  tag: {:aggregator, 0}
                }
              ] = result.noise_layers

@@ -187,10 +187,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: expressions}, query) do
     if length(expressions) >= 2 and (Helpers.aggregates?(query) or Helpers.group_by?(query)) do
-      [min, max | rest] = expressions
+      [min, max | potential_uid_expression] = expressions
+
+      potential_uid_expression = float_potential_uid_expression(query, potential_uid_expression)
       min = if Helpers.grouped_by?(query, min), do: min, else: min_of_min(min)
       max = if Helpers.grouped_by?(query, max), do: max, else: max_of_max(max)
-      %{noise_layer | expressions: [min, max | rest]}
+
+      %{noise_layer | expressions: [min, max | potential_uid_expression]}
     else
       noise_layer
     end
@@ -205,6 +208,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp max_of_max(%Expression{kind: :constant} = constant), do: constant
   defp max_of_max(%Expression{type: :boolean} = max), do: max |> cast(:integer) |> max_of_max() |> cast(:boolean)
   defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type)
+
+  defp float_potential_uid_expression(%Query{anonymization_type: :statistics}, [
+         %Expression{kind: :function, name: "case", args: [condition, uid, _null]}
+       ]) do
+    casted_condition = Expression.function({:cast, :integer}, [condition], :integer)
+    condition_max = Expression.function("max", [casted_condition], :integer)
+    aggregated_condition = Expression.function("=", [condition_max, Expression.constant(:integer, 1)], :boolean)
+    [Expression.function("case", [aggregated_condition, uid, Expression.constant(nil, nil)], uid.type)]
+  end
+
+  defp float_potential_uid_expression(%Query{anonymization_type: :statistics}, [
+         %Expression{kind: :column, user_id?: false} = conditional_uid
+       ]),
+       do: [Expression.function("count", [{:distinct, Expression.unalias(conditional_uid)}], :integer)]
+
+  defp float_potential_uid_expression(_query, potential_uid_expression), do: potential_uid_expression
 
   # -------------------------------------------------------------------
   # Computing base noise layers
@@ -221,7 +240,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         range_noise_layers(query) ++
         not_equals_noise_layers(query, top_level_uid) ++
         not_like_noise_layers(query, top_level_uid) ++
-        aggregator_noise_layers(query, top_level_uid)
+        aggregator_noise_layers(query)
 
     %Query{query | noise_layers: finalize(noise_layers, query)}
   end
@@ -364,7 +383,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
           |> Enum.flat_map(&[static_noise_layer(&1, &1, range)])
       end)
 
-  defp aggregator_noise_layers(query, top_level_uid) do
+  defp aggregator_noise_layers(query) do
     query.aggregators
     |> Enum.with_index()
     |> Enum.flat_map(fn {aggregator, index} ->
@@ -372,10 +391,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> non_synthetic_expressions()
       |> Query.Lenses.case_when_clauses()
       |> Lens.to_list(aggregator)
-      |> Enum.flat_map(fn %Expression{kind: :function, name: "=", args: [column, constant]} ->
+      |> Enum.flat_map(fn condition ->
+        %Expression{kind: :function, name: "=", args: [column, constant]} = condition
+        uid = Helpers.id_column(query)
+
+        conditional_uid = Expression.function("case", [condition, uid, Expression.constant(nil, nil)], uid.type)
+
         [
           static_noise_layer(column, constant, nil, {:aggregator, index}),
-          uid_noise_layer(column, constant, top_level_uid, nil, {:aggregator, index})
+          uid_noise_layer(column, constant, conditional_uid, nil, {:aggregator, index})
         ]
       end)
     end)
@@ -502,9 +526,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     build_noise_layer(base_column, extras, expressions, tag)
   end
 
-  defp static_noise_layer(base_column, layer_expression, extras \\ nil, tag \\ nil) do
-    build_noise_layer(base_column, extras, [_min = layer_expression, _max = layer_expression], tag)
-  end
+  defp static_noise_layer(base_column, layer_expression, extras \\ nil, tag \\ nil),
+    do: build_noise_layer(base_column, extras, [_min = layer_expression, _max = layer_expression], tag)
 
   defp build_noise_layer(base_column, extras, expressions, tag \\ nil),
     do: NoiseLayer.new({table_name(base_column.table), base_column.name, extras}, expressions, tag)

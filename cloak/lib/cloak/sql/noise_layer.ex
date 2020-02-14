@@ -82,12 +82,12 @@ defmodule Cloak.Sql.NoiseLayer do
     values = Enum.map(dynamic_expressions, &normalize(Expression.value(&1, row))) ++ constants
 
     for {indices, {tag, set}} <- Enum.zip(indices_list, accumulator) do
-      hash =
-        indices
-        |> Enum.map(&Enum.at(values, &1))
-        |> compute_hash()
-
-      {tag, MapSet.put(set, hash)}
+      indices
+      |> Enum.map(&Enum.at(values, &1))
+      |> case do
+        [_, _, <<?N>>] -> {tag, set}
+        values -> {tag, MapSet.put(set, compute_hash(values))}
+      end
     end
   end
 
