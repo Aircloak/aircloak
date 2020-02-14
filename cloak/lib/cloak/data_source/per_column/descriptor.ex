@@ -31,7 +31,15 @@ defmodule Cloak.DataSource.PerColumn.Descriptor do
   end
 
   defp extract_anonymizing_info(data_source, table_name) do
-    data_source.tables[String.to_atom(table_name)]
-    |> Map.take([:content_type, :user_id, :user_id_join_chain])
+    table_key = String.to_atom(table_name)
+
+    if Map.has_key?(data_source.tables, table_key) do
+      data_source.tables[table_key]
+      |> Map.take([:content_type, :user_id, :user_id_join_chain])
+    else
+      # In some situations data_source.tables will not have the table_name
+      # This happens when creating a new analyst table for example.
+      nil
+    end
   end
 end
