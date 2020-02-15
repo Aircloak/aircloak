@@ -66,10 +66,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   @uid_offloaded_aggregators ~w(count sum min max count_noise sum_noise)
   defp can_be_uid_grouped?(aggregator),
-    do: aggregator.name in @uid_offloaded_aggregators and not distinct_input?(aggregator.args)
-
-  defp distinct_input?([{:distinct, %Expression{user_id?: false}}]), do: true
-  defp distinct_input?([_]), do: false
+    do: aggregator.name in @uid_offloaded_aggregators and not distinct_column_count?(aggregator)
 
   # -------------------------------------------------------------------
   # Statistics computation
