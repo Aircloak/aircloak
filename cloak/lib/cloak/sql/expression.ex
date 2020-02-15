@@ -189,7 +189,7 @@ defmodule Cloak.Sql.Expression do
       do: "#{display(arg1)} #{function} #{display(arg2)}"
 
   def display(%__MODULE__{kind: :function, name: function, args: args}),
-    do: "#{function}(#{args |> Enum.map(&display/1) |> Enum.join(", ")})"
+    do: "#{function}(#{display(args)})"
 
   def display(%__MODULE__{kind: :constant, type: :text, value: value}), do: "'#{value}'"
 
@@ -205,6 +205,7 @@ defmodule Cloak.Sql.Expression do
   def display(%__MODULE__{kind: :constant, value: nil}), do: "NULL"
   def display(%__MODULE__{kind: :constant, value: value}), do: to_string(value)
   def display({:distinct, expression}), do: "distinct #{display(expression)}"
+  def display(values) when is_list(values), do: "#{values |> Enum.map(&display/1) |> Enum.join(", ")}"
   def display(value), do: to_string(value)
 
   @doc "Returns the column value of a database row."
