@@ -25,7 +25,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
     |> Helpers.apply_top_down(&normalize_datasource_case/1)
     |> remove_meaningless_negative_noise_layers()
-    |> replace_uid(top_level_uid)
     |> strip_analyst_table_columns()
   end
 
@@ -62,17 +61,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp strip_analyst_table_columns(query),
     do: update_in(query, [Query.Lenses.all_queries() |> Lens.key(:analyst_table) |> Lens.filter(& &1)], &elem(&1, 0))
-
-  # -------------------------------------------------------------------
-  # Cleanup
-  # -------------------------------------------------------------------
-
-  # Because UIDs have special handling in many places it's somewhat difficult to instruct the query engine to select
-  # them. This makes it so that noise layers are built using the top-level UID in place of any other UID that might
-  # appear in expressions.
-  defp replace_uid(query, top_level_uid) do
-    put_in(query, [Lens.key(:noise_layers) |> all_expressions() |> uid_expressions()], top_level_uid)
-  end
 
   # -------------------------------------------------------------------
   # Pushing layers into subqueries
@@ -570,8 +558,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
 
   deflensp non_uid_expressions(), do: Lens.filter(&(not &1.user_id?))
-
-  deflensp uid_expressions(), do: Lens.filter(& &1.user_id?)
 
   deflensp all_expressions() do
     Lens.all()
