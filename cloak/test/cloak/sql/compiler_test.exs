@@ -1437,6 +1437,11 @@ defmodule Cloak.Sql.Compiler.Test do
                compile("select sum(case when string = 'xxx' then 1 else 3 end) from table", data_source())
     end
 
+    test "reject usage inside count(distinct)" do
+      assert {:error, "Counting the distinct values of a `case` expression is not allowed."} =
+               compile("select count(distinct case when string = 'xxx' then 1 end) from table", data_source())
+    end
+
     test "reject invalid return values when selected" do
       assert {:error, "`case` expressions in anonymizing queries can only return constant values."} =
                compile("select case when string = 'xxx' then numeric end from table", data_source())

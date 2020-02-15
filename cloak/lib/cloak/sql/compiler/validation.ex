@@ -753,6 +753,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_case_usage(%Query{type: :anonymized} = query) do
     verify_case_usage_in_filtering_clauses(query)
     verify_post_processing_of_case_expressions(query)
+    verify_count_distinct_case_expressions(query)
     verify_aggregated_case_expressions_values(query)
     verify_bucketed_case_expressions_values(query)
     verify_case_expressions_conditions(query)
@@ -807,6 +808,28 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           message: "`case` expressions can not be used in filtering clauses in an anonymizing query.",
           source_location: case_expression.source_location
+    end
+  end
+
+  defp verify_count_distinct_case_expressions(%Query{type: :anonymized} = query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name == "count"))
+    |> Lens.key(:args)
+    |> Lens.all()
+    |> Lens.filter(&match?({:distinct, _}, &1))
+    |> Lens.at(1)
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name == "case"))
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [invalid_value | _rest] ->
+        raise CompilationError,
+          message: "Counting the distinct values of a `case` expression is not allowed.",
+          source_location: invalid_value.source_location
     end
   end
 
