@@ -3,10 +3,13 @@ The schema available to you for writing queries is as follows:
 users                                           addresses
 - id (integer)                                  - uid (uid column - integer)
 - user_id (user-id column - integer)            - user_fk (integer - foreign key for users.id)
-- age (integer)                                 - home.city (string)
-- height (float)                                - home.postal_code (integer)
-- active (boolean)                              - work.city (string)
-- name (string)                                 - work.postal_code (integer)
+- age (integer)                                 - home_city (string)
+- height (float)                                - home_postal_code (integer)
+- active (boolean)                              - work_city (string)
+- name_unicode (string)                         - work_postal_code (integer)
+- column_with_a_very_long_name(string)
+- signed_integer (integer)
+- signed_float (float)
 
 notes                                           notes_changes
 - uid (integer - projected uid column)          - uid (uid column - integer)

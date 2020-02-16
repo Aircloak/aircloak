@@ -27,8 +27,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp compute_column_isolation({data_source_name, table_name, column_name}) do
-    {:ok, data_source} = Cloak.DataSource.fetch(data_source_name)
+  defp compute_column_isolation({data_source, table_name, column_name}) do
     Cloak.DataSource.Isolators.Query.isolates_users?(data_source, table_name, column_name)
   end
 
@@ -45,7 +44,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
   defp table_columns(data_source, table) do
     table.columns
     |> Enum.reject(&Map.has_key?(table.isolating_columns, &1.name))
-    |> Enum.map(&{data_source.name, table.name, &1.name})
+    |> Enum.map(&{data_source, table.name, &1.name})
   end
 
   # -------------------------------------------------------------------

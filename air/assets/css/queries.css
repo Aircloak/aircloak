@@ -1,3 +1,7 @@
+.CodeMirror {
+  height: auto;
+}
+
 .query-menu {
   padding-bottom: 10px;
   padding-top: 10px;
@@ -99,7 +103,7 @@
 }
 
 .right-align {
-  align-self: flex-end;
+  text-align: right;
 }
 
 .options-menu {

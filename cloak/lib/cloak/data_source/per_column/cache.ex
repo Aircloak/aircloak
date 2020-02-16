@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   use Parent.GenServer
   require Logger
-  alias Cloak.DataSource.PerColumn.{PersistentKeyValue, Queue}
+  alias Cloak.DataSource.PerColumn.{PersistentKeyValue, Queue, Descriptor}
 
   # -------------------------------------------------------------------
   # API functions
@@ -12,7 +12,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   @doc "Returns the value of the property for the given column."
   @spec value(GenServer.server(), Cloak.DataSource.t(), String.t(), String.t()) :: any
   def value(server, data_source, table_name, column_name) do
-    column = {data_source.name, table_name, column_name}
+    column = {data_source, table_name, column_name}
 
     with {:error, :failed, name, default} <- GenServer.call(server, {:compute_value, column}, :infinity) do
       Logger.error("#{inspect(name)} failed for `#{table_name}`.`#{column_name}`")
@@ -27,7 +27,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   @spec lookup(GenServer.server(), Cloak.DataSource.t(), String.t(), String.t()) ::
           {:ok, any} | {:error, :pending | :failed | :unknown_column}
   def lookup(server, data_source, table_name, column_name) do
-    case GenServer.call(server, {:column_status, {data_source.name, table_name, column_name}}) do
+    case GenServer.call(server, {:column_status, Descriptor.hash(data_source, table_name, column_name)}) do
       {:error, :failed, _, _} -> {:error, :failed}
       other -> other
     end
@@ -41,14 +41,18 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   def init(opts) do
     if opts.auto_refresh?, do: Cloak.DataSource.subscribe_to_changes()
     :timer.send_interval(:timer.hours(1), :refresh)
-    known_columns = opts.columns_provider.(Cloak.DataSource.all())
 
-    queue = Queue.new(known_columns, PersistentKeyValue.cached_columns(opts.cache_owner))
+    descriptor_to_column_map =
+      Cloak.DataSource.all()
+      |> opts.columns_provider.()
+      |> descriptor_map()
+
+    queue = Queue.new(Map.keys(descriptor_to_column_map), PersistentKeyValue.cached_columns(opts.cache_owner))
 
     state = %{
       default: opts.default,
       cache_owner: opts.cache_owner,
-      known_columns: MapSet.new(known_columns),
+      descriptor_to_column_map: descriptor_to_column_map,
       queue: queue,
       waiting: %{},
       opts: opts
@@ -59,9 +63,11 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   @impl GenServer
   def handle_call({:compute_value, column}, from, state) do
-    case column_status(column, state) do
+    descriptor = Descriptor.hash(column)
+
+    case column_status(descriptor, state) do
       {:ok, result} -> {:reply, {:ok, result}, state}
-      {:error, :pending} -> {:noreply, add_waiting_request(state, column, from)}
+      {:error, :pending} -> {:noreply, add_waiting_request(state, descriptor, from)}
       error -> {:reply, error, state}
     end
   end
@@ -81,10 +87,18 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   end
 
   def handle_info({:data_sources_changed, new_data_sources}, state) do
-    known_columns = state.opts.columns_provider.(new_data_sources)
-    PersistentKeyValue.remove_unknown_columns(state.cache_owner, known_columns)
-    state = %{state | known_columns: MapSet.new(known_columns)}
-    state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns))
+    descriptor_to_column_map =
+      new_data_sources
+      |> state.opts.columns_provider.()
+      |> descriptor_map()
+
+    known_column_descriptors = Map.keys(descriptor_to_column_map)
+
+    PersistentKeyValue.remove_unknown_columns(state.cache_owner, known_column_descriptors)
+
+    state = %{state | descriptor_to_column_map: descriptor_to_column_map}
+
+    state = update_in(state.queue, &Queue.update_known_columns(&1, known_column_descriptors))
     state = respond_error_on_missing_columns(state)
     {:noreply, maybe_start_next_computation(state)}
   end
@@ -92,12 +106,12 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   @impl Parent.GenServer
   def handle_child_terminated(:compute_job, meta, _pid, _reason, state) do
     result =
-      case PersistentKeyValue.lookup(state.cache_owner, meta.column) do
+      case PersistentKeyValue.lookup(state.cache_owner, meta.descriptor) do
         :error -> failed(state)
         {:ok, result} -> {:ok, result}
       end
 
-    state.waiting |> Map.get(meta.column, []) |> Enum.each(&GenServer.reply(&1, result))
+    state.waiting |> Map.get(meta.descriptor, []) |> Enum.each(&GenServer.reply(&1, result))
     {:noreply, start_next_computation(state)}
   end
 
@@ -105,15 +119,15 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp column_status(column, state) do
+  defp column_status(descriptor, state) do
     cond do
-      not MapSet.member?(state.known_columns, column) ->
+      not Map.has_key?(state.descriptor_to_column_map, descriptor) ->
         {:error, :unknown_column}
 
-      match?({:ok, _}, PersistentKeyValue.lookup(state.cache_owner, column)) ->
-        PersistentKeyValue.lookup(state.cache_owner, column)
+      match?({:ok, _}, PersistentKeyValue.lookup(state.cache_owner, descriptor)) ->
+        PersistentKeyValue.lookup(state.cache_owner, descriptor)
 
-      computing?(column) or not Queue.processed?(state.queue, column) ->
+      computing?(descriptor) or not Queue.processed?(state.queue, descriptor) ->
         {:error, :pending}
 
       true ->
@@ -128,18 +142,17 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   end
 
   defp start_next_computation(state) do
-    case Queue.next_column(state.queue, expiry(state)) do
-      {column, queue} ->
-        Parent.GenServer.start_child(%{
-          id: :compute_job,
-          start: fn -> start_compute(column, state) end,
-          meta: %{column: column}
-        })
+    with {descriptor, queue} <- Queue.next_column(state.queue, expiry(state)),
+         {:ok, column} <- Map.fetch(state.descriptor_to_column_map, descriptor) do
+      Parent.GenServer.start_child(%{
+        id: :compute_job,
+        start: fn -> start_compute(column, state) end,
+        meta: %{descriptor: descriptor}
+      })
 
-        %{state | queue: queue}
-
-      :error ->
-        state
+      %{state | queue: queue}
+    else
+      _ -> state
     end
   end
 
@@ -147,7 +160,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     Task.start_link(fn ->
       Logger.debug(fn -> "#{inspect(state.opts.name)} computing for #{inspect(column)}" end)
       property = state.opts.property_fun.(column)
-      PersistentKeyValue.store(state.cache_owner, column, property, expiry(state))
+      PersistentKeyValue.store(state.cache_owner, Descriptor.hash(column), property, expiry(state))
     end)
   end
 
@@ -157,18 +170,23 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     %{state | waiting: waiting, queue: queue}
   end
 
-  defp computing?(column),
-    do: match?({:ok, %{column: ^column}}, Parent.GenServer.child_meta(:compute_job))
+  defp computing?(column), do: match?({:ok, %{descriptor: ^column}}, Parent.GenServer.child_meta(:compute_job))
 
   defp respond_error_on_missing_columns(state) do
     {good, missing} =
-      Enum.split_with(state.waiting, fn {column, _clients} -> MapSet.member?(state.known_columns, column) end)
+      Enum.split_with(state.waiting, fn {column, _clients} -> Map.has_key?(state.descriptor_to_column_map, column) end)
 
     Enum.each(missing, fn {_column, clients} -> Enum.each(clients, &GenServer.reply(&1, {:error, :unknown_column})) end)
     %{state | waiting: Map.new(good)}
   end
 
   defp expiry(state), do: NaiveDateTime.utc_now() |> NaiveDateTime.add(state.opts.refresh_interval, :millisecond)
+
+  defp descriptor_map(columns) do
+    columns
+    |> Enum.map(&{Descriptor.hash(&1), &1})
+    |> Enum.into(%{})
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree

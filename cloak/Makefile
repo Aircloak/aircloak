@@ -2,7 +2,7 @@ SHELL=/bin/bash -o pipefail
 
 .PHONY: deps docs proper proper-std proper-extended test clean all compile
 .PHONY: recreate-db recreate-perf-db dialyze lint release release-local perftest
-.PHONY: odbc_drivers odbc_drivers_folder oracle_drivers oracle_drivers_folder
+.PHONY: odbc_drivers odbc_drivers_folder oracle_drivers oracle_drivers_folder cloudera-impala_drivers
 .PHONY: sql-server-container sql-server-database
 .PHONY: mysql-server-container mysql-server-database
 .PHONY: mongo-server-container
@@ -95,7 +95,7 @@ mysql-server-database:
 mongo-server-container:
 	$(call start_container, aircloak_mongodb_server, -p 27017:27017 -d mongo)
 
-odbc_drivers: odbc_drivers_folder oracle_drivers
+odbc_drivers: odbc_drivers_folder oracle_drivers cloudera-impala_drivers
 
 odbc_drivers_folder:
 	mkdir -p priv/odbc/drivers
@@ -112,6 +112,14 @@ priv/odbc/drivers/oracle/instantclient_18_3:
 	unzip priv/odbc/drivers/oracle/instantclient-odbc-linux.zip -d priv/odbc/drivers/oracle
 	rm priv/odbc/drivers/oracle/instantclient-basic-linux.zip
 	rm priv/odbc/drivers/oracle/instantclient-odbc-linux.zip
+
+cloudera-impala_drivers: priv/odbc/drivers/cloudera/impalaodbc
+
+priv/odbc/drivers/cloudera/impalaodbc:
+	mkdir -p priv/odbc/drivers/cloudera/impalaodbc
+	wget -O priv/odbc/drivers/cloudera/clouderaimpalaodbc_2.6.5.1005-2_amd64.zip https://www.dropbox.com/s/sqxdzovckj1avwz/clouderaimpalaodbc_2.6.5.1005-2_amd64.zip?dl=0
+	unzip priv/odbc/drivers/cloudera/clouderaimpalaodbc_2.6.5.1005-2_amd64.zip -d priv/odbc/drivers/cloudera/impalaodbc
+	rm priv/odbc/drivers/cloudera/clouderaimpalaodbc_2.6.5.1005-2_amd64.zip
 
 ci.compliance:
 	ci/compliance.sh compliance

@@ -18,6 +18,7 @@ RUN /aircloak/sqlserver_setup.sh
 WORKDIR /aircloak/cloak
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/aircloak/cloak/priv/odbc/drivers/oracle/instantclient_18_3
+ENV LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libodbcinst.so
 
 # Oracle locale
 ENV NLS_LANG=.AL32UTF8

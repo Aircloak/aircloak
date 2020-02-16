@@ -46,7 +46,7 @@ defmodule Compliance.DataSource.MongoDB do
   end
 
   @impl Connector
-  def prepare_data(data), do: data |> Compliance.Data.to_collections() |> convert_data()
+  def prepare_data(data), do: data |> Compliance.Data.flatten() |> convert_data()
 
   @impl Connector
   def terminate(_conn), do: :ok

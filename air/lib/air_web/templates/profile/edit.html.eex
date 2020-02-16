@@ -203,8 +203,7 @@
       var props = <%= to_json(%{numberFormat: number_format_settings(@conn)}) %>;
       App.numberFormatExample(props, document.getElementById("example"));
 
-      var passwordProps = {className: "form-control", id: "user_password", name: "user[password]"};
-      App.passwordField(passwordProps, document.getElementById("password-field"));
+      App.passwordField({}, document.getElementById("password-field"));
     }
   };
 </script>

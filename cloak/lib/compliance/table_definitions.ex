@@ -57,10 +57,12 @@ defmodule Compliance.TableDefinitions do
           age: %{type: :integer, decoder: :text_to_integer},
           height: %{type: :real, decoder: :text_to_real},
           active: %{type: :boolean, decoder: :text_to_boolean},
-          name: %{type: :text, decoder: :base64},
+          name_unicode: %{type: :text, decoder: :base64},
           nullable: %{type: :real, decoder: :text_to_real},
           birthday: %{type: :date},
-          column_with_a_very_long_name: %{type: :text}
+          column_with_a_very_long_name: %{type: :text},
+          signed_integer: %{type: :integer, decoder: :text_to_integer},
+          signed_float: %{type: :real, decoder: :text_to_real}
         },
         keys: %{
           "user_id" => :user_id,
@@ -71,10 +73,10 @@ defmodule Compliance.TableDefinitions do
       addresses: %{
         columns: %{
           user_fk: %{type: :integer},
-          "home.city": %{type: :text, decoder: :base64},
-          "work.city": %{type: :text, decoder: :base64},
-          "home.postal_code": %{type: :integer, decoder: :text_to_integer},
-          "work.postal_code": %{type: :integer, decoder: :text_to_integer}
+          home_city: %{type: :text, decoder: :base64},
+          work_city: %{type: :text, decoder: :base64},
+          home_postal_code: %{type: :integer, decoder: :text_to_integer},
+          work_postal_code: %{type: :integer, decoder: :text_to_integer}
         },
         keys: %{
           "user_fk" => :user_fk
@@ -114,10 +116,12 @@ defmodule Compliance.TableDefinitions do
           age: %{type: :integer, decoder: :text_to_integer},
           height: %{type: :real, decoder: :text_to_real},
           active: %{type: :boolean, decoder: :text_to_boolean},
-          name: %{type: :text, decoder: :base64},
+          name_unicode: %{type: :text, decoder: :base64},
           nullable: %{type: :real, decoder: :text_to_real},
           birthday: %{type: :date},
-          column_with_a_very_long_name: %{type: :text}
+          column_with_a_very_long_name: %{type: :text},
+          signed_integer: %{type: :integer, decoder: :text_to_integer},
+          signed_float: %{type: :real, decoder: :text_to_real}
         }
       }
     }

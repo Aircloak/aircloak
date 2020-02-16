@@ -85,6 +85,11 @@
           If you <strong>revoke</strong> a license it will behave like non-auto-renew, but will retain all of its
           attributes if you want to <strong>restore</strong> it later.
         </li>
+        <li>
+          <strong>Email support</strong> requires that you add the 
+          <a href="https://aircloak.atlassian.net/jira/servicedesk/projects/SUP/customers">customer to Jira</a>.
+          Otherwise they won't be able to access the support portal.
+        </li>
       </ul>
     </div>
   </div>

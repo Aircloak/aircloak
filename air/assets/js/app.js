@@ -98,7 +98,6 @@ const App = {
       pendingQueries,
       queries,
       result,
-      score,
       selectables,
       selectablesEditUrl,
       selectableToExclude,
@@ -106,8 +105,7 @@ const App = {
       socketToken,
       statement,
       supportsCreateTable,
-      userId,
-      value
+      userId
     } = props;
     switch (page) {
       case "queries":
@@ -182,7 +180,7 @@ const App = {
       case "audit_log":
         return <AuditLogView auditLogs={auditLogs} />;
       case "password_field":
-        return <PasswordField value={value} score={score} />;
+        return <PasswordField />;
       default:
         throw new Error("Unknown page");
     }

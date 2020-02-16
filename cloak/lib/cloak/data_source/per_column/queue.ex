@@ -7,7 +7,7 @@ defmodule Cloak.DataSource.PerColumn.Queue do
             priority_queue: :queue.t(column)
           }
   @type processed_columns :: %{column => NaiveDateTime.t()}
-  @type column :: {datasource_name :: String.t(), table_name :: String.t(), column_name :: String.t()}
+  @type column :: binary
 
   # -------------------------------------------------------------------
   # API functions

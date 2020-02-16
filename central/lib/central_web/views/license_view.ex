@@ -21,7 +21,7 @@ defmodule CentralWeb.LicenseView do
       "LDAP" => "ldap",
       "Offline deployment" => "offline_deployment",
       "Analyst tables" => "analyst_tables",
-      "Email support" => "email_support"
+      "[Jira] email support" => "email_support"
     }
   end
 
