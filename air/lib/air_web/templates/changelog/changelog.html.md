@@ -27,6 +27,7 @@
 - Improved support for boolean expressions.
 - Added support for `case` statements in standard queries.
 - Allowed inequalities between datetime columns and the current date.
+- Added experimental support for `case` expressions.
 
 ### Bugfixes
 ### Changes
