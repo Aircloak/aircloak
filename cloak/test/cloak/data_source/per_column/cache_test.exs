@@ -153,8 +153,20 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
   end
 
   defp new_cache_provider(column_names, opts \\ []) do
-    data_source = %{name: inspect(make_ref()), parameters: %{host: inspect(make_ref())}}
     table_name = inspect(make_ref())
+
+    data_source = %{
+      name: inspect(make_ref()),
+      parameters: %{host: inspect(make_ref())},
+      tables: %{
+        String.to_atom(table_name) => %{
+          content_type: :private,
+          user_id: :user_id,
+          user_id_join_chain: nil
+        }
+      }
+    }
+
     columns = Enum.map(column_names, &{data_source, table_name, &1})
 
     {:ok, provider} = Agent.start_link(fn -> columns end)
