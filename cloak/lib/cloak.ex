@@ -27,6 +27,9 @@ defmodule Cloak do
       _ -> Application.put_env(:cloak, :connection_keep_time, Cloak.DataSource.Driver.connection_keep_time())
     end
 
+    with {:ok, true} <- Aircloak.DeployConfig.fetch("enable_case_support"),
+         do: Application.put_env(:cloak, :enable_case_support, true)
+
     with {:ok, _} = result <- Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do
       log_startup()
       result

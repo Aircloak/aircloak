@@ -2,5 +2,6 @@
   "air_site": "wss://localhost:8443",
   "salt": "perf salt which doesn't need to be safe",
   "data_sources": "perf",
+  "enable_case_support": true,
   "sanitize_otp_errors": false
 }

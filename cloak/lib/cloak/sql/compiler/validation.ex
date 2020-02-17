@@ -751,6 +751,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_case_usage(%Query{type: :standard}), do: :ok
 
   defp verify_case_usage(%Query{type: :anonymized} = query) do
+    verify_case_usage_is_allowed(query)
     verify_case_usage_in_filtering_clauses(query)
     verify_post_processing_of_case_expressions(query)
     verify_count_distinct_case_expressions(query)
@@ -772,6 +773,27 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           message: "`case` expressions can not be used in restricted queries.",
           source_location: case_expression.source_location
+    end
+  end
+
+  defp verify_case_usage_is_allowed(query) do
+    unless Application.get_env(:cloak, :enable_case_support) == true do
+      Query.Lenses.query_expressions()
+      |> Lens.filter(&Expression.function?/1)
+      |> Lens.filter(&(&1.name == "case"))
+      |> Lens.to_list(query)
+      |> case do
+        [] ->
+          :ok
+
+        [case_expression | _rest] ->
+          raise CompilationError,
+            message: """
+            Support for anonymizing `case` expressions is experimental and has to be manually enabled by the
+            system administrator. For more information, see the "Configuring the system" section of the user guides.
+            """,
+            source_location: case_expression.source_location
+      end
     end
   end
 
