@@ -59,9 +59,10 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     |> check_functions()
   end
 
-  # This is here mostly to satisfy the dialyzer
+  # This is here to satisfy the dialyzer in `set_leaf_bounds/1`
   @spec as_table(DataSource.Table.t()) :: DataSource.Table.t()
   def as_table(a), do: a
+
   # -------------------------------------------------------------------
   # Bound computation
   # -------------------------------------------------------------------
