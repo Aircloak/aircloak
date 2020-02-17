@@ -15,6 +15,7 @@ function prepare_for_test {
   docker run \
     --detach --name "$postgres_container_name" \
     --tmpfs=/ramdisk:rw,size=1G -e PGDATA=/ramdisk \
+    -e POSTGRES_HOST_AUTH_METHOD=trust \
     postgres:9.6 > /dev/null
 
   docker network connect --alias postgres9.6 $container_name $postgres_container_name
@@ -37,7 +38,7 @@ function ensure_database_containers {
     --mount type=bind,src=$(pwd)/cloak/ci/oracle_udfs.sql,dst=/mnt/cloak/oracle_udfs.sql \
     quay.io/aircloak/oracle-database:12.2.0.1-ee
 
-  ensure_supporting_container postgres9.6 --tmpfs=/ramdisk:rw,size=2G -e PGDATA=/ramdisk postgres:9.6
+  ensure_supporting_container postgres9.6 --tmpfs=/ramdisk:rw,size=2G -e PGDATA=/ramdisk -e POSTGRES_HOST_AUTH_METHOD=trust postgres:9.6
 
   ensure_supporting_container mongo3.6 --tmpfs=/data/db:rw,size=4G mongo:3.6
 

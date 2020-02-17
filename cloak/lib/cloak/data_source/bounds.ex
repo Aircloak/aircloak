@@ -11,7 +11,8 @@ defmodule Cloak.DataSource.Bounds do
   # -------------------------------------------------------------------
 
   @doc "Returns the bounds of the given column."
-  @spec bounds(Cloak.DataSource.t(), String.t(), String.t()) :: Expression.bounds()
+  @spec bounds(Cloak.DataSource.t(), String.t() | Cloak.DataSource.Table.t(), String.t()) ::
+          Expression.bounds()
   def bounds(data_source, table, column) do
     case cache_lookup(data_source, table, column) do
       {:ok, result} -> result
