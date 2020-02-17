@@ -17,7 +17,8 @@ function start_postgres_container {
   docker run \
     --detach --name "$postgres_container_name" \
     --tmpfs=/ramdisk:rw,size=1G -e PGDATA=/ramdisk \
-    postgres:$postgres_version > /dev/null
+    -e POSTGRES_HOST_AUTH_METHOD=trust \
+    postgres:$postgres_version -c "listen_addresses='*'" > /dev/null
 
   docker network connect --alias "postgres${postgres_version}" $owner_container_name $postgres_container_name
 }
