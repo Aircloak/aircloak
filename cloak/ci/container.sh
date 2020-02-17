@@ -15,6 +15,7 @@ function prepare_for_test {
   docker run \
     --detach --name "$postgres_container_name" \
     --tmpfs=/ramdisk:rw,size=1G -e PGDATA=/ramdisk \
+    -e POSTGRES_HOST_AUTH_METHOD=trust \
     postgres:9.6 > /dev/null
 
   docker network connect --alias postgres9.6 $container_name $postgres_container_name
