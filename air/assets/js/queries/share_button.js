@@ -66,7 +66,7 @@ export default class ShareButton extends React.Component<Props, State> {
 
             <Modal.Body>
               <div className="form-group">
-                <label for="public-permalink">Public link</label>
+                <label htmlFor="public-permalink">Public link</label>
                 <p className="help-block">
                   Anyone with this link will be able to view the query and its
                   results.
@@ -80,7 +80,7 @@ export default class ShareButton extends React.Component<Props, State> {
               </div>
 
               <div className="form-group">
-                <label for="private-permalink">Private link</label>
+                <label htmlFor="private-permalink">Private link</label>
                 <p className="help-block">
                   This link requires logging in with an Insights Air account
                   that is allowed to access this data source.
