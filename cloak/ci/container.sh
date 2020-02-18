@@ -39,8 +39,8 @@ function ensure_database_containers {
     quay.io/aircloak/oracle-database:12.2.0.1-ee
 
   ensure_supporting_container postgres9.6 --tmpfs=/ramdisk:rw,size=2G -e PGDATA=/ramdisk \
-    -e POSTGRES_HOST_AUTH_METHOD=trust -c "listen_addresses=*" \
-    postgres:9.6
+    -e POSTGRES_HOST_AUTH_METHOD=trust \
+    postgres:9.6 -c "listen_addresses=*"
 
   ensure_supporting_container mongo3.6 --tmpfs=/data/db:rw,size=4G mongo:3.6
 
