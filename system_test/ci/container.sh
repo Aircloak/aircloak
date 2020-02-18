@@ -53,8 +53,8 @@ function start_cloak_dbs {
 
   start_supporting_container $container_name cloak_postgres \
     --tmpfs=/ramdisk:rw,size=1G -e PGDATA=/ramdisk \
-    -e POSTGRES_HOST_AUTH_METHOD=trust -c listen_addresses=\'*\' \
-    postgres:9.4 > /dev/null
+    -e POSTGRES_HOST_AUTH_METHOD=trust \
+    postgres:9.4 -c listen_addresses=\'*\' > /dev/null
 }
 
 function start_cloak_container {
