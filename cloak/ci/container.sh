@@ -16,7 +16,7 @@ function prepare_for_test {
     --detach --name "$postgres_container_name" \
     --tmpfs=/ramdisk:rw,size=1G -e PGDATA=/ramdisk \
     -e POSTGRES_HOST_AUTH_METHOD=trust \
-    postgres:9.6 -c "listen_addresses='*'" > /dev/null
+    postgres:9.6 -c listen_addresses=\'*\' > /dev/null
 
   docker network connect --alias postgres9.6 $container_name $postgres_container_name
 }
@@ -39,7 +39,7 @@ function ensure_database_containers {
     quay.io/aircloak/oracle-database:12.2.0.1-ee
 
   ensure_supporting_container postgres9.6 --tmpfs=/ramdisk:rw,size=2G -e PGDATA=/ramdisk \
-    -e POSTGRES_HOST_AUTH_METHOD=trust -c "listen_addresses='*'" \
+    -e POSTGRES_HOST_AUTH_METHOD=trust -c listen_addresses=\'*\' \
     postgres:9.6
 
   ensure_supporting_container mongo3.6 --tmpfs=/data/db:rw,size=4G mongo:3.6
