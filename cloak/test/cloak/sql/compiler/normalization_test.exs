@@ -353,6 +353,13 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
         "SELECT STDDEV(uid) FROM table HAVING NULL = false"
       )
     end
+
+    test "date constants comparison" do
+      assert_equivalent(
+        "SELECT STDDEV(uid) FROM table WHERE date '2020-02-18' < date '2099-01-01'",
+        "SELECT STDDEV(uid) FROM table"
+      )
+    end
   end
 
   test "join normalization" do

@@ -4,7 +4,7 @@ defmodule Cloak.Sql.Expression do
   function calls with their arguments which are expressions themselves.
   """
 
-  alias Cloak.DataSource
+  alias Cloak.{DataSource, Data}
   alias Cloak.Sql.{LikePattern, Query, Function}
   alias Timex.Duration
 
@@ -419,12 +419,12 @@ defmodule Cloak.Sql.Expression do
 
   defp do_apply(operator, [arg1, arg2]) when operator in ~w(= <> > < >= <=) and (arg1 == nil or arg2 == nil), do: nil
 
-  defp do_apply("=", [arg1, arg2]), do: arg1 == arg2
-  defp do_apply("<>", [arg1, arg2]), do: arg1 != arg2
-  defp do_apply(">", [arg1, arg2]), do: arg1 > arg2
-  defp do_apply("<", [arg1, arg2]), do: arg1 < arg2
-  defp do_apply(">=", [arg1, arg2]), do: arg1 >= arg2
-  defp do_apply("<=", [arg1, arg2]), do: arg1 <= arg2
+  defp do_apply("=", [arg1, arg2]), do: Data.eq(arg1, arg2)
+  defp do_apply("<>", [arg1, arg2]), do: not Data.eq(arg1, arg2)
+  defp do_apply(">", [arg1, arg2]), do: Data.gt(arg1, arg2)
+  defp do_apply("<", [arg1, arg2]), do: Data.lt(arg1, arg2)
+  defp do_apply(">=", [arg1, arg2]), do: Data.gt_eq(arg1, arg2)
+  defp do_apply("<=", [arg1, arg2]), do: Data.lt_eq(arg1, arg2)
 
   defp do_apply("in", [nil | _values]), do: nil
   defp do_apply("in", [arg | values]), do: arg in values
