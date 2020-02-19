@@ -58,7 +58,7 @@ defmodule Cloak.Query.Aggregator.UserId do
       end)
 
   @doc "Returns the anonymizing aggregator for a group."
-  @spec group_aggregator([Expression.t()]) :: ({values, Anonymizer.t(), t} -> {pos_integer, values})
+  @spec group_aggregator([Expression.t()]) :: ({values, %{any => Anonymizer.t()}, t} -> {pos_integer, values})
   def group_aggregator(aggregators) do
     # Only unique per-user aggregators are computed, so we need to compute the index
     # of the aggregator into the per-user aggregated value list.
@@ -68,20 +68,22 @@ defmodule Cloak.Query.Aggregator.UserId do
       |> Enum.uniq()
 
     indexed_aggregators =
-      Enum.map(aggregators, fn aggregator ->
+      aggregators
+      |> Enum.with_index()
+      |> Enum.map(fn {aggregator, aggregator_index} ->
         per_user_aggregator_and_column = per_user_aggregator_and_column(aggregator)
 
-        values_index =
-          Enum.find_index(
-            per_user_aggregators_and_columns,
-            &(&1 == per_user_aggregator_and_column)
-          )
+        values_index = Enum.find_index(per_user_aggregators_and_columns, &(&1 == per_user_aggregator_and_column))
 
-        {values_index, aggregator}
+        {values_index, aggregator, aggregator_index}
       end)
 
     &aggregate_group(&1, indexed_aggregators)
   end
+
+  @doc "Returns the user id values in a bucket."
+  @spec user_id_values(t) :: [user_id]
+  def user_id_values(user_rows), do: Map.keys(user_rows)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -186,23 +188,24 @@ defmodule Cloak.Query.Aggregator.UserId do
 
   defp per_user_aggregator_and_column(aggregator), do: {per_user_aggregator(aggregator), aggregated_column(aggregator)}
 
-  defp aggregate_group({property, anonymizer, users_rows}, indexed_aggregators) do
-    users_count = Anonymizer.noisy_count(anonymizer, Enum.count(users_rows))
+  defp aggregate_group({property, anonymizers, users_rows}, indexed_aggregators) do
+    users_count = Anonymizer.noisy_count(anonymizers.default, Enum.count(users_rows))
 
     aggregation_results =
       Enum.map(indexed_aggregators, fn
-        {_values_index, %Expression{name: "count", args: [{:distinct, %Expression{user_id?: true}}]}} ->
+        {_values_index, %Expression{name: "count", args: [{:distinct, %Expression{user_id?: true}}]}, _aggregator_index} ->
           users_count
 
-        {_values_index, %Expression{name: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]}} ->
-          Anonymizer.noise_amount(1, anonymizer)
+        {_values_index, %Expression{name: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]},
+         aggregator_index} ->
+          Anonymizer.noise_amount(1, anonymizers[aggregator_index])
 
-        {values_index, aggregator} ->
+        {values_index, aggregator, aggregator_index} ->
           users_rows
           |> Stream.map(fn {_user, row_values} -> Enum.at(row_values, values_index) end)
           |> Enum.reject(&(&1 in [nil, :NaN]))
           |> preprocess_for_aggregation(aggregator)
-          |> aggregate_by(aggregator.alias || aggregator.name, aggregator.type, anonymizer)
+          |> aggregate_by(aggregator.alias || aggregator.name, aggregator.type, anonymizers[aggregator_index])
       end)
 
     {users_count, property ++ aggregation_results}

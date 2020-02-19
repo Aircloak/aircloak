@@ -31,7 +31,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   @doc "Returns a list of conditions from `query` satisfying `predicate`."
   @spec conditions(Query.t(), (Query.where_clause() -> boolean)) :: [Query.where_clause()]
   def conditions(query, predicate) do
-    Query.Lenses.db_filter_clauses()
+    Query.Lenses.pre_anonymization_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.filter(predicate)
     |> Lens.to_list(query)
@@ -49,7 +49,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   # -------------------------------------------------------------------
 
   deflensp do_negative_conditions() do
-    Query.Lenses.db_filter_clauses()
+    Query.Lenses.pre_anonymization_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.filter(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
   end

@@ -14,15 +14,6 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on all terminal elements in a query, including intermediate function invocations."
   deflens terminals(), do: query_fields() |> bottom_up_elements()
 
-  @doc "Lens focusing on all outermost analyst provided elements in the top-level query."
-  deflens analyst_provided_expressions() do
-    Lens.both(
-      Lens.keys([:columns, :group_by]) |> Lens.all(),
-      db_filter_clauses() |> conditions_terminals() |> expressions()
-    )
-    |> Lens.reject(& &1.synthetic?)
-  end
-
   @doc "Lens focusing on all terminal elements in a list of conditions."
   deflens conditions_terminals(), do: conditions() |> operands() |> bottom_up_elements()
 
@@ -41,7 +32,7 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on function expressions in the query that are sent to the database (subqueries are not included)."
   deflens db_needed_functions() do
     Lens.match(fn
-      %Query{type: :anonymized} -> db_filter_clauses() |> conditions_terminals() |> expressions()
+      %Query{type: :anonymized} -> Lens.key(:where) |> bottom_up_elements() |> expressions()
       _ -> query_expressions()
     end)
     |> Lens.filter(&Expression.function?/1)
@@ -118,24 +109,24 @@ defmodule Cloak.Sql.Query.Lenses do
     join_conditions() |> conditions_terminals()
   end
 
-  @doc "Lens focusing on all sources in a query where conditions can be found."
+  @doc "Lens focusing on all sources in a query where row filters can be found."
   deflens filter_clauses() do
-    Lens.multiple([
+    Lens.both(
       Lens.keys([:where, :having]),
       join_conditions()
-    ])
+    )
   end
 
-  @doc "Lens focusing on all sources in a query where database conditions can be found."
-  deflens db_filter_clauses() do
-    Lens.multiple([
+  @doc "Lens focusing on all sources in a query where row filters on sensitive data can be found."
+  deflens pre_anonymization_filter_clauses() do
+    Lens.both(
       Lens.match(fn
-        %Query{subquery?: true} -> Lens.keys([:where, :having])
-        %Query{subquery?: false} -> Lens.key(:where)
+        %Query{type: :restricted} -> Lens.keys([:where, :having])
+        %Query{type: :anonymized} -> Lens.key(:where)
         _ -> Lens.empty()
       end),
       join_conditions()
-    ])
+    )
   end
 
   @doc "Returns a list of lenses focusing on sets of join conditions of the given query."
@@ -202,6 +193,48 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Returns a list of lenses focusing on all subqueries of the given query."
   @spec subquery_lenses(Query.t()) :: [Lens.t()]
   def subquery_lenses(query), do: [Lens.root() | do_subquery_lenses(Lens.key(:from), query.from)]
+
+  @doc "Lens focusing on the `WHEN` clauses in `CASE` statements."
+  deflens case_when_clauses() do
+    Lens.match(fn
+      %Expression{kind: :function, name: "case", args: args} ->
+        branch_count = args |> length() |> div(2)
+        when_branches = for i <- 0..(branch_count - 1), do: 2 * i
+        Lens.key(:args) |> Lens.indices(when_branches)
+
+      _ ->
+        Lens.empty()
+    end)
+  end
+
+  @doc "Lens focusing on the `THEN` and `ELSE` clauses in `CASE` statements."
+  deflens case_then_else_clauses() do
+    Lens.match(fn
+      %Expression{kind: :function, name: "case", args: args} ->
+        branch_count = args |> length() |> div(2)
+        then_branches = for i <- 0..(branch_count - 1), do: 2 * i + 1
+        Lens.key(:args) |> Lens.indices(then_branches ++ [branch_count * 2])
+
+      _ ->
+        Lens.empty()
+    end)
+  end
+
+  @doc "Lens focusing on all expressions in a query used to form the groups for aggregation and anonymization."
+  deflens group_expressions() do
+    Lens.match(fn
+      %Query{type: :anonymized, group_by: [], implicit_count?: true} ->
+        # Group by is not provided, and no selected expression is an aggregation function ->
+        #   we're grouping on all selected columns + non selected order by expressions.
+        Lens.both(
+          Lens.key(:columns) |> Lens.all(),
+          Lens.key(:order_by) |> Lens.all() |> Lens.at(0)
+        )
+
+      _ ->
+        Lens.key(:group_by) |> Lens.all()
+    end)
+  end
 
   # -------------------------------------------------------------------
   # Internal lenses

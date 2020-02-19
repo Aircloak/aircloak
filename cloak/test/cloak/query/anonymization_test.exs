@@ -14,6 +14,24 @@ defmodule Cloak.Query.AnonymizationTest do
     :ok
   end
 
+  defp set_anon_params() do
+    anonymizer_config = Application.get_env(:cloak, :anonymizer)
+
+    Application.put_env(
+      :cloak,
+      :anonymizer,
+      anonymizer_config
+      |> Keyword.put(:outliers_count, {2, 4, 0.5})
+      |> Keyword.put(:low_count_soft_lower_bound, {5, 1})
+      |> Keyword.put(:sum_noise_sigma, 3)
+      |> Keyword.put(:sum_noise_sigma_scale_params, {1, 0.5})
+    )
+
+    on_exit(fn -> Application.put_env(:cloak, :anonymizer, anonymizer_config) end)
+
+    :ok
+  end
+
   describe "count(distinct)" do
     setup do
       :ok = insert_rows(_user_ids = 0..19, "anonymizations", ["number"], [180])
@@ -111,21 +129,7 @@ defmodule Cloak.Query.AnonymizationTest do
 
   describe "noisy counts are always positive" do
     setup do
-      anonymizer_config = Application.get_env(:cloak, :anonymizer)
-
-      Application.put_env(
-        :cloak,
-        :anonymizer,
-        anonymizer_config
-        |> Keyword.put(:outliers_count, {2, 4, 0.5})
-        |> Keyword.put(:low_count_soft_lower_bound, {5, 1})
-        |> Keyword.put(:sum_noise_sigma, 3)
-        |> Keyword.put(:sum_noise_sigma_scale_params, {1, 0.5})
-      )
-
-      on_exit(fn -> Application.put_env(:cloak, :anonymizer, anonymizer_config) end)
-
-      :ok
+      set_anon_params()
     end
 
     test "no-uid" do
@@ -380,21 +384,7 @@ defmodule Cloak.Query.AnonymizationTest do
       :ok = insert_rows(_user_ids = 5..15, "anonymizations", ["number", "string"], [1, "ba"])
       :ok = insert_rows(_user_ids = 15..25, "anonymizations", ["number", "string"], [1, "bb"])
 
-      anonymizer_config = Application.get_env(:cloak, :anonymizer)
-
-      Application.put_env(
-        :cloak,
-        :anonymizer,
-        anonymizer_config
-        |> Keyword.put(:outliers_count, {2, 4, 0.5})
-        |> Keyword.put(:low_count_soft_lower_bound, {5, 1})
-        |> Keyword.put(:sum_noise_sigma, 3)
-        |> Keyword.put(:sum_noise_sigma_scale_params, {1, 0.5})
-      )
-
-      on_exit(fn -> Application.put_env(:cloak, :anonymizer, anonymizer_config) end)
-
-      :ok
+      set_anon_params()
     end
 
     test "simple uid anon" do
@@ -541,6 +531,123 @@ defmodule Cloak.Query.AnonymizationTest do
             %{row: [nil, ^count]}
           ]
         }
+      )
+    end
+  end
+
+  describe "case" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..9, "anonymizations", ["number"], [1])
+      :ok = insert_rows(_user_ids = 10..19, "anonymizations", ["number"], [2])
+      :ok = insert_rows(_user_ids = 20..29, "anonymizations", ["number"], [3])
+    end
+
+    test "uid bucketed" do
+      # using `stddev` forces uid-based anonymization
+      assert_query(
+        """
+          select case when number = 1 then 1 when number = 2 then 2 end, count(*), stddev(0)
+          from anonymizations group by 1 order by 1
+        """,
+        %{
+          rows: [
+            %{row: [1, 10, _]},
+            %{row: [2, 10, _]},
+            %{row: [nil, 10, _]}
+          ]
+        }
+      )
+    end
+
+    test "stats bucketed" do
+      assert_query(
+        """
+          select case when number = 1 then 1 when number = 2 then 2 end, count(*)
+          from anonymizations group by 1 order by 1
+        """,
+        %{
+          rows: [
+            %{row: [1, 10]},
+            %{row: [2, 10]},
+            %{row: [nil, 10]}
+          ]
+        }
+      )
+    end
+
+    test "uid aggregated" do
+      # using `stddev` forces uid-based anonymization
+      assert_query(
+        "select sum(case when number = 1 then 1 end), stddev(0) from anonymizations",
+        %{rows: [%{row: [10, _]}]}
+      )
+    end
+
+    test "stats aggregated" do
+      assert_query(
+        "select sum(case when number = 1 then 1 end) from anonymizations",
+        %{rows: [%{row: [10]}]}
+      )
+    end
+  end
+
+  describe "case noise" do
+    setup do
+      :ok = insert_rows(_user_ids = 1..20, "anonymizations", ["number"], [1])
+      :ok = insert_rows(_user_ids = 15..25, "anonymizations", ["number"], [2])
+
+      set_anon_params()
+    end
+
+    test "uid" do
+      # using `stddev` forces uid-based anonymization
+
+      assert_query(
+        "select count(1), stddev(0) from anonymizations where number = 1",
+        %{rows: [%{row: [count, _]}]}
+      )
+
+      assert_query(
+        "select case when number = 1 then 1 end, count(*), stddev(0) from anonymizations group by 1 order by 1",
+        %{rows: [%{row: [1, ^count, _]}, %{row: [nil, _, _]}]}
+      )
+
+      assert_query(
+        "select count(case when number = 1 then 1 end), stddev(0) from anonymizations",
+        %{rows: [%{row: [^count, _]}]}
+      )
+
+      assert_query(
+        """
+          select number, count(case when number = 1 then 1 end), stddev(0)
+          from anonymizations group by grouping sets ((), number)
+        """,
+        %{rows: [%{row: [nil, ^count, _]}, %{row: [1.0, ^count, _]}, %{row: [2.0, _, _]}]}
+      )
+    end
+
+    test "stats" do
+      assert_query(
+        "select count(case when number = 1 then 1 end) from anonymizations",
+        %{rows: [%{row: [count]}]}
+      )
+
+      assert_query(
+        "select count(1) from anonymizations where number = 1",
+        %{rows: [%{row: [^count]}]}
+      )
+
+      assert_query(
+        "select case when number = 1 then 1 end, count(*) from anonymizations group by 1 order by 1",
+        %{rows: [%{row: [1, ^count]}, %{row: [nil, _]}]}
+      )
+
+      assert_query(
+        """
+          select number, count(case when number = 1 then 1 end)
+          from anonymizations group by grouping sets ((), number)
+        """,
+        %{rows: [%{row: [nil, ^count]}, %{row: [1.0, ^count]}, %{row: [2.0, _]}]}
       )
     end
   end
