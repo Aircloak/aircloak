@@ -1983,4 +1983,12 @@ defmodule Cloak.Query.BasicTest do
     assert_query("SELECT date2 - date, COUNT(*) FROM dates GROUP BY 1", %{rows: rows})
     assert_query("SELECT date - date2, COUNT(*) FROM dates GROUP BY 1", %{rows: ^rows})
   end
+
+  test "[Issue #4121] recursive aggregators in HAVING clause" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [180])
+
+    assert_query("SELECT COUNT(*) AS c FROM heights HAVING MIN(c) = 180", %{
+      error: "Expression `min(count(*))` recursively calls multiple aggregators." <> _
+    })
+  end
 end

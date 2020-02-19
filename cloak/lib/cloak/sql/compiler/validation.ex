@@ -211,9 +211,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_aggregators(query) do
-    query
-    |> Query.bucket_columns()
-    |> Enum.flat_map(&aggregate_subexpressions/1)
+    Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&Function.aggregator?/1)
+    |> Lens.to_list(query)
     |> Enum.filter(&(&1 |> aggregate_subexpressions() |> Enum.count() > 1))
     |> case do
       [] ->

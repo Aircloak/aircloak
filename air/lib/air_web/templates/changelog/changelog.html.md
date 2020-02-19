@@ -29,6 +29,9 @@
 - Allowed inequalities between datetime columns and the current date.
 
 ### Bugfixes
+
+- Fixed detection of recursive aggregators usage inside the `HAVING` clause.
+
 ### Changes
 
 - Support for some obsolete cloak features and config fields (decoders, projections, user_id) was removed.
