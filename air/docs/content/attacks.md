@@ -1,22 +1,22 @@
 
-<!----
-This document contains links to associated issues. Each link has the label [ghiXXXX](url), where XXXX is the issue number. These links should always be on a separate line. This way, we can easily filter them out when we make public versions of this document.
----->
+# Attacks on Diffix Cedar
 
-# Attacks on Diffix
-
-This section describes the major known attacks against [Diffix anonymization](diffix.md).
+This section describes a variety of attacks against anonymization mechanisms. Some of the attacks are general in nature (can be used against multiple mechanisms). Some are specific to Diffix overall, and others specific to [Diffix Cedar](diffix.md). In what follows, the *cloak* is the device that implements Diffix.
 
 ## Table Of Contents
 
+  - [Attack criteria](#attack-criteria)
+  - [Trackers](#trackers)
   - [Attribute value inspection attacks](#attribute-value-inspection-attacks)
   - [Suppression signal attacks](#suppression-signal-attacks)
   - [Noise averaging attacks](#noise-averaging-attacks)
     - [Naive averaging](#naive-averaging)
     - [Different syntax but same semantics, with floating](#different-syntax-but-same-semantics-with-floating)
     - [Different syntax but same semantics, without floating](#different-syntax-but-same-semantics-without-floating)
+    - [Different syntax and semantics, but same result](#different-syntax-and-semantics-but-same-result)
     - [Split averaging attack](#split-averaging-attack)
     - [Linear program reconstruction](#linear-program-reconstruction)
+    - [JOINs with non-personal tables](#joins-with-non-personal-tables)
   - [Difference attacks](#difference-attacks)
     - [First derivative difference attack](#first-derivative-difference-attack)
     - [Difference attack with counting NULL](#difference-attack-with-counting-null)
@@ -33,6 +33,113 @@ This section describes the major known attacks against [Diffix anonymization](di
     - [Timing attacks](#timing-attacks)
       - [JOIN timing attack](#join-timing-attack)
 
+## Attack criteria
+
+In the following attacks, our criteria for what determines a successful attack are the same as those used by the [EU Article 29 Data Protection Working Party Opinion 05/2014 on Anonymisation Techniques](https://cnpd.public.lu/fr/publications/groupe-art29/wp216_en.pdf), namely *singling-out*, *linkability*, and *inference*. We regard an attack as more effective when the attacker is able to make statements of the following sort with high confidence:
+
+* *Singling-out:* "There is a single user with the following attributes."
+* *Inference:* "All rows with attributes A, B, and C also have attribute D"
+* *Linkability:* "The users with these attributes in the table protected by Diffix are also in a table not protected by Diffix."
+
+A description of how these criteria are used can be found in the [Diffix Birch paper](https://arxiv.org/pdf/1806.02075.pdf)
+
+## Trackers
+
+A powerful class of attack, called trackers, was discovered in the late 1970s. This attack targets anonymization mechanisms where answers to queries that pertain to fewer than K individuals or more than all-but-K individuals are suppressed, but otherwise exact answers are given.
+
+A tracker attack requires two things:
+1. A pseudo-identifier: A column value or set of column values that uniquely identifies an individual.
+2. A tracker: a column value that includes more than K individuals.
+
+A pseudo-identifier can be an expression with multiple terms, like `(zip = 12345 AND bday = '1975-03-11' AND univ = 'MIT')`. The attacker does not need to know in advance that a given expression is a pseudo-identifier. This can be validated in the attack.
+
+An example of a tracker would be `gender = 'M'` (because there are more than K males in the dataset). The victim of the attack doesn't have to be male. The tracker `gender = 'F'` would work just as well.
+
+In the following example, the pseudo-identifier for the victim is `(zip = 12345 AND bday = '1975-03-11' AND univ = 'MIT')` and the tracker is `gender = 'M'`.
+
+First, the attacker verifies that the pseudo-identifier indeed identifies a single individual with four queries. The first two are used to compute the total number of users in the database (here column `uid` contains a distinct value for each individual):
+
+*Query 1*: compute *N1* as:
+
+```
+SELECT count(DISTINCT uid)
+FROM database
+WHERE gender = 'M'
+```
+
+*Query 2*: compute *N2* as:
+
+```
+SELECT count(DISTINCT uid)
+FROM database
+WHERE gender <> 'M'
+```
+
+The number of users *N* is *N = (N1 + N2)*
+
+*Query 3*: Compute *N3*:
+
+```
+SELECT count(DISTINCT uid)
+FROM database
+WHERE gender = 'M' OR
+      (zip = 12345 AND bday = '1975-03-11' AND univ = 'MIT')
+```
+
+*Query 4*: Compute *N4*:
+
+```
+SELECT count(DISTINCT uid)
+FROM database
+WHERE gender <> 'M' OR
+      (zip = 12345 AND bday = '1975-03-11' AND univ = 'MIT')
+```
+
+Both counts *N3* and *N4* include all users with the pseudo-identifier. *N3* also includes all males, and *N4* includes everyone else. The sum *N3 + N4* therefore counts all users with the pseudo-identifier twice, and counts everybody else once. As such, if *(N3 + N4) - N = 1*, then this validates for the attacker that there is only one user with the pseudo-identifier.
+
+Knowing this, the attacker can learn virtually anything about the victim. For instance, the attacker can learn the victim's salary with four queries (here assuming that each user is represented only once in the database):
+
+*Query 1*: compute *S1* as:
+
+```
+SELECT sum(salary)
+FROM database
+WHERE gender = 'M'
+```
+
+*Query 2*: compute *S2* as:
+
+```
+SELECT sum(salary)
+FROM database
+WHERE gender <> 'M'
+```
+
+The sum of all salaries *S* is *S = (S1 + S2)*.
+
+*Query 3*: Compute *S3*:
+
+```
+SELECT sum(salary)
+FROM database
+WHERE gender = 'M' OR
+      (zip = 12345 AND bday = '1975-03-11' AND univ = 'MIT')
+```
+
+*Query 4*: Compute *S4*:
+
+```
+SELECT sum(salary)
+FROM database
+WHERE gender <> 'M' OR
+      (zip = 12345 AND bday = '1975-03-11' AND univ = 'MIT')
+```
+
+Again, *S3* and *S4* include the victim, while *S3* also includes males, and *S4* also includes all other users. The salary if the victim is counted twice in *S3 + S4*, and so the victim's salary is *(S3 + S4) - S*.
+
+Diffix defends against tracker attacks by disallowing `OR`. It does allow a limited form of union logic with `IN`, but this is not enough to execute a tracker attack.
+
+Of course, `OR` can be emulated with multiple `AND` conditions. For instance `A OR B` is equivalent to `A` + `B` - `A AND B`. This would not work with the cloak both because queries with only the pseudo-identifier would be suppressed because of a low count, as well as because of the noise.
 
 ## Attribute value inspection attacks
 
@@ -60,7 +167,7 @@ This attack is prevented through the use of *low-count suppression*.  Any column
 
 An attacker may be able to learn about individual users from whether a given bucket was suppressed or not. For instance, if a constant threshold were used for the suppress decision (i.e. suppress when 2 or fewer distinct users), then if the attacker happened to know that there is either 2 or 3 users with a certain set of attribute values, then if the bucket is not suppressed then the attacker knows that there must be three users, and potentially learns something about the third user.
 
-To prevent this, the cloak uses a noisy threshold using sticky layered noise. Because the threshold itself can vary, in the previous example the attacker would be uncertain as to whether there were 2 or 3 users.
+To prevent this, Diffix uses a noisy threshold using sticky layered noise. Because the threshold itself can vary, in the previous example the attacker would be uncertain as to whether there were 2 or 3 users.
 
 ## Noise averaging attacks
 
@@ -108,6 +215,19 @@ In many other cases, however, the cloak does seed properly.
 
 Text datatypes for instance are all converted to lower case for the purpose of seeding, so that the `lower()` and `upper()` functions can't be used to derive additional noise samples. 
 
+### Different syntax and semantics, but same result
+
+In Diffix Cedar, an analyst can obtain multiple samples for `<>` text conditions using `substring()`. For instance, suppose that a text column contains two values, 'ABCDE' and 'FGHIJ'. Each of the following conditions would generate a different seed even though the underlying answers are the same:
+
+```
+WHERE substring(col for 1) <> 'A'
+WHERE substring(col for 2) <> 'AB'
+WHERE substring(col for 2) <> 'ABC'
+...
+```
+
+While this is certainly unfortunate, there are no known attacks that can successfully exploit this weakness.
+
 ### Split averaging attack
 
 This attack creates pairs of queries where the sum of the queries in each pair have the same underlying value (i.e. before noise), but where each pair uses semantically different conditions from all other pairs, thus producing different noise values that can be averaged. This can be done with `WHERE` clauses of the following sort:
@@ -154,6 +274,25 @@ WHERE floor(5 * pow((client_id * 2),0.5) + 0.5) = floor(5 * pow((client_id * 2),
 where different constants were used to effectly select different users.
 
 The current defense is to force `clear` conditions (no math) on columns that have a substantial fraction of user-unique values.
+
+### JOINs with non-personal tables
+
+The cloak does not anonymize non-personal tables. Therefore, analysts are allowed to see the complete tables. The cloak allows JOIN, but with strict limitations. Without these limitations, an analyst could potentially exploit knowledge of non-personal tables to generate multiple samples and average away noise.
+
+A typical non-personal table might contain a numeric identifier and a text field. For instance, a `product_name` table might have columns `product_id` and `name`. This table is non-personal because it contains no user information. It may be linked to for instance a `purchases` table with the `product_id` as key.
+
+Suppose an analyst wished to remove noise associated with the condition `age = 20`, and there are multiple non-personal tables of various sorts. The analyst could then build a set of queries with different `JOIN` conditions as follows:
+
+```
+JOIN (...) ON users.age = product_name.id - 28788 WHERE product_name.value = 'Juice Squeezer'
+JOIN (...) ON users.age = error_codes.id - 232 WHERE error_codes.value = 'Bad Input'
+JOIN (...) ON users.age = cc_types.id + 16 WHERE cc_types.value = 'VISA'
+etc.
+```
+
+The ID of the non-personal table, after arithmetic, matches the target age (20). Because the table name is included in the seed material for the condition, each of the noise layers associated with the `ON` condition could be averaged away.
+
+The fix is to limit `ON` conditions to simple `col1 = col2` expressions, and limit which columns can be keys through configuration. With these limitations, any meaningful attack is so unlikely that no noise layers for `ON` conditions are necessary.
 
 ## Difference attacks
 
@@ -244,6 +383,8 @@ To prevent this, the cloak removes a small number of the most extreme values in 
 In this difference attack, the attacker exploits the uid-based noise by intentionally adding conditions that have no impact on the true underlying answer, but increase the cumulative amount of noise. The bucket pair that differs the most is most likely the one containing the user.
 
 A simple way to do this is to add conditions like `age <> 1000`, `age <> 1001` and so on. These are called chaff conditions. In pairs where the underlying set of users is the same, the uid-based noise values are the same for each query of the pair. In pairs where the underlying set of users is different, the uid-based noise value is different.
+
+Alternatively, a range condition such as `age BETWEEN 0 and 1000` can also be a chaff condition. Likewise the implicit ranges `round()` and `trunc()` can be chaff conditions. This is because these functions can span the entire number range of a column with one bucket.
 
 The chaff conditions can either all be added to the same query, or added one at a time to multiple pairs, and then summing the results across the first queries of each pair and separately the second queries.
 

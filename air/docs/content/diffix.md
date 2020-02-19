@@ -13,7 +13,7 @@ This section describes the operation of Aircloak's underlying anonymization algo
   - [Key concepts](#key-concepts)
   - [Deployment](#deployment)
   - [Main Pipeline](#main-pipeline)
-  - [Database](#database)
+  - [Database configuration](#database-configuration)
 - [Initialization of internal state](#initialization-of-internal-state)
     - [Shadow table](#shadow-table)
     - [Isolating column label](#isolating-column-label)
@@ -32,6 +32,7 @@ This section describes the operation of Aircloak's underlying anonymization algo
     - [Other limitations of isolating columns](#other-limitations-of-isolating-columns)
     - [Limitations due to shadow table](#limitations-due-to-shadow-table)
     - [Conditions with two columns](#conditions-with-two-columns)
+    - [Illegal JOINs](#illegal-joins)
   - [Modifying queries](#modifying-queries)
     - [Snapped Ranges](#snapped-ranges)
 - [Aggregation functions sum, min, max, count](#aggregation-functions-sum-min-max-count)
@@ -100,11 +101,15 @@ __At query time:__
 - [Generate DB query](#generate-db-query) (Answer perturbation prep)
 - [Handle DB answer](#handle-db-answer) (Answer perturbation)
 
-## Database
+## Database configuration
 
-The database consists of tables. Tables have *columns* and *rows*. Tables may be *personal* or *non-personal*. Personal tables contain user data that must be anonymized, whereas non-personal tables contain other data. Whether a table is personal or non-personal is determined by configuration.
+The database consists of tables. Tables have *columns* and *rows*.
 
-One column in each personal table must be configured as the `uid` column. This identifies the entity that must be protected (typically but not necessarily a natural person).
+Each table must be configured as being *personal* or *non-personal*. Personal tables contain user data that must be anonymized, whereas non-personal tables contain other data.
+
+One and only one column in each personal table must be configured as the `user_id` column (often referred to as the `uid` in this document). This identifies the entity that must be protected (typically but not necessarily a natural person).
+
+By default, the `user_id` column of any table can be used as the key for the `JOIN (...) ON` criteria for joining two tables. Any other `JOIN (...) ON` criteria must be explicitly configured. The cloak will only allow joins using configured columns (see [Illegal JOINs](#illegal-joins)).
 
 # Initialization of internal state
 
@@ -115,6 +120,7 @@ The cloak establishes cached internal state that it uses to determine which SQL 
 Holds a list of the X values that occur most frequently in the column (X=200), so long as the value has at least 10 distinct users. Values in this list may be used in negands (negative AND conditions) and posors (positive OR conditions) without limitations.
 [ghi2486](https://github.com/Aircloak/aircloak/issues/2486)
 [ghi2972](https://github.com/Aircloak/aircloak/issues/2972)
+[ghi3322](https://github.com/Aircloak/aircloak/issues/3322)
 
 This table is refreshed every 30 days.
 [ghi3357](https://github.com/Aircloak/aircloak/issues/3357)
@@ -122,6 +128,7 @@ This table is refreshed every 30 days.
 ### Isolating column label
 
 The cloak labels columns as isolating if 80% or more of the values in the column are associated with only a single user.
+[ghi2485](https://github.com/Aircloak/aircloak/issues/2485)
 [ghi2738](https://github.com/Aircloak/aircloak/issues/2738)
 [ghi3396](https://github.com/Aircloak/aircloak/issues/3396)
 
@@ -132,13 +139,14 @@ This table is refreshed every 60 days.
 
 There are a variety of functions that can throw an error in some databases, for instance divide-by-zero, numeric overflow, and taking the square root of a negative number. In these database, the error manifests itself as a error message transmitted to the analyst, which can be exploited by an attacker (see [Error generation attacks](./attacks.md#error-generation-attacks)).
 
-For these databases, an exception handler for each such function is installed in the database, either by the cloak when it connects, or through configuration of the database prior to cloak connection. These exception handlers prevent an error from being transmitted to the analyst. See [Determine if safe math functions needed](#determine-if-safe-math-functions-needed).
+If the database allows user-defined exception handlers, then these are installed in the database, either by the cloak when it connects, through configuration of the database prior to cloak connection. If not, then the cloak modifies SQL to prevent exceptions. In both cases, errors are prevented from being transmitted to the analyst. See [Determine if safe math functions needed](#determine-if-safe-math-functions-needed).
 
 ### Per column min and max values
 
 The [safe math functions](#safe-math-functions) unfortunately slow down query execution. To mitigate this, the cloak conservatively estimates when a math function *might* result in an exception, and only executes the safe functions in these cases.
 
 In order to make this estimate for numeric [overflow](./attacks.md#overflow) exceptions, the cloak records a minimum and maximum value for each numeric column. These recorded values are not the true minimum and maximum values, because an attacker could then detect these values through a series of queries that detect when a safe function was executed through a timing attack.
+[ghi3780](https://github.com/Aircloak/aircloak/issues/3780)
 
 To prevent this, the recorded min and max are not the true min and max, but rather an approximated min and max that with high (but not 100%) probability exceed the true min and max. The approximated min and max are computed as follows:
 
@@ -177,23 +185,34 @@ In addition to the ranges that can be specified with `BETWEEN` and inequality op
 
 ### Clear conditions (IN, range, negative conditions)
 
-The cloak may require that certain conditions are *clear*. The primary purpose of clear conditions is so that the cloak can [seed noise layers](#determine-seeds) through [SQL inspection](#sql-inspection) rather than by [floating the column value](#floating-columns-values). This is necessary for the following operators, which cannot be easily floated:
+The cloak may require that certain conditions are *clear*. The primary purpose of clear conditions is so that the cloak can [seed noise layers](#determine-seeds) through [SQL inspection](#sql-inspection) rather than by [floating the column value](#floating-columns-values). The following operators must be clear:
 
-* negative conditions (`col <> val`) including `NOT IN`
-* `IN` (`col IN (val1,val2)`)
+* negative conditions (`col <> val`) including `NOT IN`.
+* `IN` (`col IN (val1,val2)`), though note that the column is floated for the purpose of seeding the static noise layer (not the per-element UID-noise layers).
 * range (`col BETWEEN val1 and val2`), including implicit ranges.
+
+Negative conditions are clear because it would not be efficient to float a value that is being excluded by the condition.
+
+The column in a range can be floated. However, by generating the seed materials through inspection of the constants `val1` and `val2`, the intent of the condition is captured, and a given condition will always produce the same static seed.
 
 The term "clear" implies that it is clear from SQL inspection alone what the semantics of the conditions are, and therefore how to seed.
 
-Clear conditions also have the effect of reducing the attack surface since it gives an attacker fewer mechanisms to work with. For isolating columns, the cloak forces clear conditions for all operators. In this sense, the notion of clear is overloaded. 
+Clear conditions also have the effect of reducing the attack surface since it gives an attacker fewer mechanisms to work with. For isolating columns, the cloak forces clear conditions for all operators.
 
-`IN` and range are limited to only constants on the right hand side (rhs). Negative conditions may additionally have columns on the rhs.
+In earlier versions of Diffix, clear conditions had no left-hand-side operators. This restriction was subsequently relaxed to allow operators that are one one hand frequently useful to analysts, but on the other hand do not give analysts an adequately large attack surface.
+[ghi2982](https://github.com/Aircloak/aircloak/issues/2982)
 
-The left hand side (lhs) can have either the native column (no transformations), or the native column with a single instance of the following functions:
+`IN` and range are limited to only constants on the right-hand-side. Negative conditions may additionally have columns on the right-hand-side.
+
+The left-hand-side can have either the native column (no transformations), or the native column with a single instance of the following functions:
 
 For text columns, or columns that have been cast as text: `lower`, `upper`, `trim`, `ltrim`, `btrim`, and `substring`.
+[ghi2039](https://github.com/Aircloak/aircloak/issues/2039)
+[ghi2091](https://github.com/Aircloak/aircloak/issues/2091)
 
 For date, datetime, and time columns: `hour`, `minute`, `second`, `year`, `quarter`, `month`, `day`, `weekday`, and `dow`.
+[ghi2881](https://github.com/Aircloak/aircloak/issues/2881)
+[ghi2982](https://github.com/Aircloak/aircloak/issues/2982)
 
 A column in a clear condition cannot have undergone transformations prior to the condition. For instance, in the following query, the `IN` condition must be clear, but since there is a prior transformation (`numeric + 1` in the sub-query), the condition is unclear and the query rejected.
 
@@ -204,6 +223,8 @@ FROM (
     FROM table) x
 WHERE number IN (1, 2, 3)
 ```
+
+Note that the condition `substring(col from X for Y) <> val` will generate different seeds for the same result by selecting different values of X and Y that nevertheless match the same column values.
 
 ### Too much math
 
@@ -219,7 +240,9 @@ The restricted functions and operators include `+`, `-`, `/`, `*`, `^`, `%`, `ab
 
 In order to prevent [Linear program reconstruction](./attacks.md#linear-program-restruction) attacks, the cloak places even more restrictions on expressions associated with [isolating columns](#isolating-column-label). An isolating column is one where 80% or more of the values in the column are associated with only a single user. These columns are susceptible to linear program reconstruction attacks because they may be used to select groups of individual users.
 
-The cloak requires *all conditions*, including `=`, that operate on isolating columns to be [`clear`](#clear-conditions).
+The operators `IN` (with more than one element) and `<>` are disallowed for isolating columns. This prevents easily isolating individual users, or controling which individual users comprise an answer.
+
+For the remaining operators, the cloak requires that *all conditions* that operate on isolating columns to be [`clear`](#clear-conditions).
 
 ### String functions
 
@@ -233,17 +256,20 @@ In order to generally reduce the attack surface available with string functions 
 
 `[NOT] [I]LIKE` have similar restrictions as string functions. The first two restrictions that apply to [String functions](#string-functions) apply to `[NOT] [I]LIKE` as well (cannot be combined with other transformations, cannot be used with columns that have mutiple casts).
 
-The regex associated with `[NOT] [I]LIKE` is limited to using only the `%` wildcard (`_` is not allowed), and only in the first or last position of the regex. For example, `col LIKE '%stuff%'` is allowed, but not `col LIKE 'stu%ff'`.
+For isolating columns, the regex associated with `[NOT] [I]LIKE` is limited to using only the `%` wildcard (`_` is not allowed), and only in the first or last position of the regex. For example, `col LIKE '%stuff%'` is allowed, but not `col LIKE 'stu%ff'`. Non-isolating columns have no limitation on the `[NOT] [I]LIKE` regex.
+[ghi2973](https://github.com/Aircloak/aircloak/issues/2973)
 
 ### Other limitations of isolating columns
 
-Besides requiring that all conditions operating on isolating columns are clear, `IN` with more than one element on the rhs is not allowed. (`IN` with one element is equivalent to `=`).
+Besides requiring that all conditions operating on isolating columns are clear, `IN` with more than one element on the right-hand-side is not allowed. (`IN` with one element is equivalent to `=`).
 
 This is disallowed to prevent [noise exploitation attacks through chaff conditions](./attacks.md#through-chaff-conditions).
 
 ### Limitations due to shadow table
 
-To mitigate [noise exploitation attacks through chaff conditions](./attacks.md#through-chaff-conditions), negative conditions and `IN` rhs elements are disallowed if the corresponding constant does not appear in the shadow table.
+To mitigate [noise exploitation attacks through chaff conditions](./attacks.md#through-chaff-conditions), negative conditions and `IN` right-hand-side elements are disallowed if the corresponding constant does not appear in the shadow table.
+[ghi2273](https://github.com/Aircloak/aircloak/issues/2273)
+[ghi3557](https://github.com/Aircloak/aircloak/issues/3557)
 
 Note that this mechanism is not effective in all cases. The shadow table is based on the complete column. Any given query, however, may have conditions that cover only part of the column.  A constant may therefore appear in the shadow table and still not have any matching rows in the context of a given query. For instance, the condition `gender <> 'F'` may not be chaff in the `pro_football_players` table, but may be chaff when combined with `tournament = 'fifa world cup'`.
 
@@ -252,6 +278,12 @@ Note that this mechanism is not effective in all cases. The shadow table is base
 The cloak allows conditions with two columns. However, each column may appear only once in the condition.  Conditions with more than two columns are not allowed.
 
 Two-column conditions with inequalities do not require that the condition be a range (i.e. have both a lower and upper boundary). For instance, the condition `WHERE col1 < col2` is allowed.
+
+### Illegal JOINs
+
+The cloak rejects any queries that has `JOIN (...) ON` conditions that are not explicitly allowed (see [Database configuration](#database-configuration)). All `JOIN (...) ON` conditions must be simple `column1 = column2` expressions. This prevents attacks that would otherwise try to exploit known relationships between columns to generate extra noise samples.
+[ghi898](https://github.com/Aircloak/aircloak/issues/898)
+[ghi2704](https://github.com/Aircloak/aircloak/issues/2704)
 
 ## Modifying queries
 
@@ -279,6 +311,9 @@ In the case of datetime types, the widths must correspond to natural datetime bo
 * `[1, 2, 6, 12, 24]` hours
 * `[1, 2, 5, 15, 30, 60]` minutes
 * `[1, 2, 5, 15, 30, 60]` seconds
+
+In addition, the cloak allows the conditions `now() < col` and `now() between col1 and col2`. In these cases, `now()` is snapped by truncating to the current day (i.e. time `00:00:00`).
+[ghi3474](https://github.com/Aircloak/aircloak/issues/3474)
 
 # Aggregation functions sum, min, max, count
 
@@ -360,6 +395,7 @@ The uid-noise is seeded by (among other things):
 ### Determine if safe math functions needed
 
 A conservative analysis is run to determine if a given math expression in the query might result in an exception. Examples would be determining if a column in a divisor could be zero, or determining whether a `pow()` function on a column could lead to overflow. The analysis makes the assumption that the column value from the database does not exceed the approximated min and max (see [Per column min and max values](#per-column-min-and-max-values)). 
+[ghi3689](https://github.com/Aircloak/aircloak/issues/3689)
 
 If a math function might lead to an exception, then the function in the query is replaced with a safe version (see [Safe math functions](#safe-math-functions)).
 
@@ -379,6 +415,7 @@ For simplicity, these substitutions are not shown in the [example database query
 ### Add protection against JOIN timing attack
 
 As described in the [JOIN timing attack](./attacks.md#join-timing-attack), an analyst can strongly influence query execution time in the database by including `JOIN` expressions that may return an empty table.
+https://github.com/Aircloak/aircloak/issues/3691
 
 To prevent this, the cloak modifies all but the last JOIN expression so that at least one row is always returned. This is done with a `UNION` operation:
 
@@ -462,7 +499,15 @@ In addition, there is a generic noise layer for queries that otherwise have no n
 
 The aggregation function `count(col)` is given an additional UID noise layer. The purpose of this noise layer is to defend against the [Difference attack with counting NULL](./attacks.md#difference-attack-with-counting-null).
 
-Finally, conditions comparing two columns (`col1 <>|<|<=|>|>= col2`) have no noise layers
+The range WHERE clauses `bucket()`, `round()`, and `trunc()` do not have a UID noise layer, only a static noise layer. This is to defend against noise exploitation attacks [through chaff conditions](attacks.md#through-chaff-conditions).
+[ghi3931](https://github.com/Aircloak/aircloak/issues/3931)
+[ghi4110](https://github.com/Aircloak/aircloak/issues/4110)
+
+Conditions comparing two columns (`col1 <>|<|<=|>|>= col2`) have no noise layers.  `JOIN (...) ON` conditions have also no noise layers. In both cases, the conditions are constrained to the point where there are no known attacks that can effectively exploit these conditions.
+[ghi3930](https://github.com/Aircloak/aircloak/issues/3930)
+[ghi2704](https://github.com/Aircloak/aircloak/issues/2704)
+
+The `IN` operator (with more than one element) has a single static noise layer for the entire expression, and a UID noise layer for each element.
 
 ### Determine seeds
 
@@ -472,6 +517,7 @@ I'm not sure about how implicit ranges are seeded, for instance.
 ---->
 
 Upon receiving the database answer, for each one-column condition, the cloak knows the following information:
+[ghi4018](https://github.com/Aircloak/aircloak/issues/4018)
 
 1. column name
 2. table name
@@ -485,14 +531,14 @@ For each bucket, the cloak additionally knows:
 7. count of distinct UIDs
 8. count of rows
 
-The min and max column values are obtained either by floating (see [Gather seed materials](#gather-seed-materials)), or by inspection of the condition itself in the query, as follows:
+The min and max column values are obtained either by floating (see [Gather seed materials](#gather-seed-materials)), or by inspection of the condition itself in the query. The following cases use inspection:
 
-* If `col = val` or `col <> val`, then both the min and max are set to `val`.
+* If `col = val`, `col <> val`, or `clear_function(col) <> val`, then both the min and max are set to `val`.
 * If `col BETWEEN val1 AND val2`, then min is set to `val1`, and max to `val2`.
-* If `col IN (val1, val2, ...)`, this is transformed into multiple individual conditions `col = val1`, `col = val2`, ..., and min and max values are set accordingly.
+* If `col IN (val1, ..., valN), then for each of the N per-element UID-noise layers, both min and max are set to `valN`. (Note that for the static noise layer, floating is used.)
 * If a selected column (`SELECT col FROM ...`), then min and max are set to the value returned by the database.
 * If an implicit range, then min is set to the left edge of the range, and max is set to the right edge of the range.
-* In cast of text datatypes, `val` is converted to lower case (i.e. `lower(val)`) for the purpose of seeding.
+* In case of text datatypes, `val` is converted to lower case (i.e. `lower(val)`) for the purpose of seeding.
 
 Most noise layers are seeded with at least the following:
 
@@ -525,6 +571,8 @@ If the number of distinct UIDs is less than the threshold value, then the bucket
 ### Value flattening and noise addition
 
 The cloak perturbs aggregate function values. This section describes how the `sum(col)`, `count(*)`, `count(col)`, `count(DISTINCT uid)`, `min(col)`, and `max(col)` aggregates are perturbed.
+[ghi2561](https://github.com/Aircloak/aircloak/issues/2561)
+[ghi2807](https://github.com/Aircloak/aircloak/issues/2807)
 
 The magnitude of perturbation is related to how much individual users contribute to the aggregate. The magnitude depends on two types of users, *heavy contributors*, and *extreme contributors*.
 
@@ -657,6 +705,9 @@ The average aggregator is computed as the `sum(col)`/`count(col)`.
 #### Operation of min and max
 
 The aggregators `min(col)` and `max(col)` are set to the `edge_below` and `edge_above` values from [Operation of Sum](#operation-of-sum), with the exception that `min(col)` may never be greater than `avg(col)`, `max(col)` may never be less than `avg(col)`, and `min(col)` may never be greater than `max(col)`. 
+[ghi3642](https://github.com/Aircloak/aircloak/issues/3642)
+[ghi3643](https://github.com/Aircloak/aircloak/issues/3643)
+[ghi3392](https://github.com/Aircloak/aircloak/issues/3392)
 
 ### Reporting suppression
 
@@ -750,6 +801,7 @@ Although this example used the star symbol for both the text and integer column,
 #### Bucket merging
 
 Merged buckets are processed like any other bucket: they are [checked for suppression](#low-count-suppression) and [aggregate answers are perturbed](#value-flattening-and-noise-addition). As such, the information needed for this processing must be preserved when buckets are merged (i.e. lines 2-9 in the [example query](#generate-db-query)).
+[ghi3368](https://github.com/Aircloak/aircloak/issues/3368)
 
 It is not possible to preserve this information perfectly. Merging is essentially an `OR` operation, and as such any users that happen to be in both buckets cannot be accounted for. Therefore the merge is designed to produce approximate values.
 
@@ -832,3 +884,9 @@ Low-count suppression is done as with `sum()` ([Low count suppression](#low-coun
 
 Currently `stddev(col)` is computed with per-UID information as done in Diffix Birch. See prior documentation for more information (https://arxiv.org/pdf/1806.02075.pdf).
 
+
+
+<!----
+TODO:
+https://github.com/Aircloak/aircloak/issues/3431   (joins with userless data)
+---->
