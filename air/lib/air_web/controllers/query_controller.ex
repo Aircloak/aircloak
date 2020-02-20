@@ -100,7 +100,7 @@ defmodule AirWeb.QueryController do
   def permalink_show(conn, params) do
     with {:ok, query} <- Air.Service.Token.query_from_token(conn.assigns.current_user, params["token"]) do
       query_for_display =
-        query_for_external_display(query,
+        AirWeb.Query.for_external_display(query,
           authenticated?: false,
           permalink_token: params["token"],
           buckets: Air.Service.Query.buckets(query, 0)
@@ -170,7 +170,7 @@ defmodule AirWeb.QueryController do
     # new style result -> compute json in streaming fashion and send chunked response
     json_without_rows =
       query
-      |> query_for_external_display(authenticated?: true)
+      |> AirWeb.Query.for_external_display(authenticated?: true)
       |> Jason.encode!()
 
     prefix_size = byte_size(json_without_rows) - 1
@@ -268,13 +268,5 @@ defmodule AirWeb.QueryController do
       session_id: Map.get(params, "session_id"),
       audit_meta: audit_log_meta(conn)
     )
-  end
-
-  @query_external_display_blacklist [:session_id, :data_source_id]
-
-  defp query_for_external_display(query, opts) do
-    query
-    |> AirWeb.Query.for_display(opts)
-    |> Map.drop(@query_external_display_blacklist)
   end
 end

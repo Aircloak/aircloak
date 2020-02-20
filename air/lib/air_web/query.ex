@@ -10,9 +10,36 @@ defmodule AirWeb.Query do
           permalink_token: String.t()
         ]
 
+  @for_external_display_keys [
+    :buckets_link,
+    :completed,
+    :data_source,
+    :id,
+    :inserted_at,
+    :private_permalink,
+    :public_permalink,
+    :query_state,
+    :rows,
+    :statement,
+    :user,
+    "columns",
+    "error",
+    "info",
+    "row_count",
+    "types"
+  ]
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Produces a JSON blob of the query for external sharing"
+  @spec for_external_display(Air.Schemas.Query.t(), for_display_options) :: map
+  def for_external_display(query, opts \\ []) do
+    query
+    |> for_display(opts)
+    |> Map.take(@for_external_display_keys)
+  end
 
   @doc "Produces a JSON blob of the query and its result for rendering"
   @spec for_display(Air.Schemas.Query.t(), for_display_options) :: map
@@ -27,7 +54,6 @@ defmodule AirWeb.Query do
     |> Map.merge(user_info(query))
     |> Map.put(:completed, completed?(query))
     |> Map.merge(links(query, opts))
-    |> Map.drop(["log"])
   end
 
   # -------------------------------------------------------------------
