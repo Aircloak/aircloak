@@ -1,7 +1,7 @@
 defmodule Compliance.WhereClauseFilters.Text do
   use ComplianceCase, async: true
 
-  Enum.each(numerical_columns() |> raw_columns(), fn {column, table} ->
+  Enum.each(numerical_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} WHERE-clause equality in subquery"
     test "input #{column} with a WHERE-clause equality in a sub-query on #{table}", context do
       context
