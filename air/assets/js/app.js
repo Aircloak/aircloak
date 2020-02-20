@@ -141,7 +141,7 @@ const App = {
           <ImmutableSingleQueryView
             result={result}
             user={result.user}
-            insertedAt={result.insertedAt}
+            insertedAt={result.inserted_at}
             numberFormat={numberFormat}
             debugModeEnabled={debugModeEnabled}
             authentication={authentication}
