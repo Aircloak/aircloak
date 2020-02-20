@@ -91,5 +91,5 @@ defmodule Cloak.DataSource.ClouderaImpala do
   end
 
   defp distinct_aggregators_count(query),
-    do: query.aggregators |> Enum.filter(&match?(%Cloak.Sql.Expression{args: [{:distinct_}]}, &1)) |> Enum.count()
+    do: query.aggregators |> Enum.filter(&match?(%Cloak.Sql.Expression{args: [{:distinct, _}]}, &1)) |> Enum.count()
 end
