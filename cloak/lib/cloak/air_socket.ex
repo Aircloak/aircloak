@@ -128,6 +128,7 @@ defmodule Cloak.AirSocket do
     if topic == "main" do
       Cloak.Air.register_air(payload.air_name)
       Cloak.AnalystTable.refresh()
+      update_known_analyses(payload.available_analyses)
     end
 
     initial_interval = config(:min_reconnect_interval)
@@ -220,9 +221,9 @@ defmodule Cloak.AirSocket do
     {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
   end
 
-  def handle_info({:data_sources_changed, new_data_sources}, transport, state) do
+  def handle_info({:data_sources_changed, new_data_sources, analyses_computed}, transport, state) do
     Logger.info("Data sources changed, sending new configurations to air ...")
-    GenSocketClient.push(transport, "main", "update_config", join_info(new_data_sources))
+    GenSocketClient.push(transport, "main", "update_config", join_info(new_data_sources, analyses_computed))
     {:ok, state}
   end
 
@@ -358,6 +359,11 @@ defmodule Cloak.AirSocket do
     {:ok, state}
   end
 
+  defp handle_air_cast("analysis_results", data, _transport, state) do
+    update_known_analyses(data)
+    {:ok, state}
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -437,9 +443,10 @@ defmodule Cloak.AirSocket do
     "#{vm_short_name}@#{hostname}"
   end
 
-  defp join_info(data_sources) do
+  defp join_info(data_sources, analyses_computed \\ []) do
     %{
       data_sources: data_sources,
+      analyses_computed: analyses_computed,
       salt_hash: get_salt_hash(),
       secret_proof: Aircloak.DeployConfig.get("cloak_secret", "") |> Aircloak.SharedSecret.proof()
     }
@@ -466,6 +473,24 @@ defmodule Cloak.AirSocket do
   end
 
   defp get_salt_hash(), do: :crypto.hash(:sha256, Cloak.Query.Anonymizer.config(:salt)) |> Base.encode16()
+
+  defp update_known_analyses(analyses) do
+    Enum.each(analyses, fn analysis ->
+      case analysis.type do
+        Cloak.DataSource.Bounds.Cache ->
+          Cloak.DataSource.Bounds.Cache.update_with_remote_result(analysis)
+
+        Cloak.DataSource.Isolators.Cache ->
+          Cloak.DataSource.Isolators.Cache.update_with_remote_result(analysis)
+
+        Cloak.DataSource.Shadows.Cache ->
+          Cloak.DataSource.Shadows.Cache.update_with_remote_result(analysis)
+
+        other ->
+          Logger.error("Attempted to process unknown analysis type: #{inspect(other)}")
+      end
+    end)
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree

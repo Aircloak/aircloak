@@ -22,6 +22,8 @@ defmodule Cloak.DataSource.Bounds.Cache do
   def value(cache_ref \\ __MODULE__, data_source, table_name, column_name),
     do: Cache.value(cache_ref, data_source, table_name, column_name)
 
+  def update_with_remote_result(cache_ref \\ __MODULE__, result), do: Cache.update_with_remote_result(cache_ref, result)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

@@ -37,13 +37,31 @@ defmodule Cloak.DataSource.PerColumn.Queue do
     end
   end
 
+  @doc "Moves the column into the processed storage"
+  @spec make_processed(t, column, NaiveDateTime.t()) :: t
+  def make_processed(queue, column, expires_at \\ NaiveDateTime.utc_now()) do
+    %{
+      processed_columns: Map.put(queue.processed_columns, column, expires_at),
+      regular_queue: :queue.filter(&(&1 != column), queue.regular_queue),
+      priority_queue: :queue.filter(&(&1 != column), queue.priority_queue)
+    }
+  end
+
+  @doc "Does the queue know about this column?"
+  @spec member?(t, column) :: bool
+  def member?(queue, column) do
+    Map.has_key?(queue.processed_columns, column) ||
+      :queue.member(column, queue.regular_queue) ||
+      :queue.member(column, queue.priority_queue)
+  end
+
   @doc """
   Updates the collection of known columns.
 
   This function takes an enumerable of all known columns, and updates the queue structure:
 
     - Pending columns which are not known anymore are removed.
-    - New columns which have not yet been processed are added to the queue.
+    - New columns which have not yet been processed are added to the queue in random order.
   """
   @spec update_known_columns(t, Enumerable.t()) :: t
   def update_known_columns(queue, known_columns) do

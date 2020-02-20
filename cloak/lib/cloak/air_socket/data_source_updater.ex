@@ -7,6 +7,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   """
   use GenServer
   import Aircloak, only: [in_env: 1]
+  alias Cloak.DataSource.PerColumn.Result
 
   # -------------------------------------------------------------------
   # API functions
@@ -16,6 +17,9 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   @spec register_socket() :: map
   def register_socket(), do: GenServer.call(__MODULE__, :register_socket)
 
+  @doc "Records a computed analysis result to be eventually shared with other cloaks"
+  def register_analysis_completed(result), do: GenServer.call(__MODULE__, {:register_analysis_completed, result})
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -23,7 +27,9 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   @impl GenServer
   def init(nil) do
     Cloak.DataSource.subscribe_to_changes()
-    {:ok, %{data_sources: data_sources_info(Cloak.DataSource.all()), socket_pid: nil}, :hibernate}
+
+    {:ok, %{data_sources: data_sources_info(Cloak.DataSource.all()), socket_pid: nil, analyses_computed: []},
+     :hibernate}
   end
 
   @impl GenServer
@@ -32,6 +38,9 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
 
   def handle_call(:force_refresh, _from, state),
     do: {:reply, :ok, update_data_sources(state, data_sources_info(Cloak.DataSource.all())), :hibernate}
+
+  def handle_call({:register_analysis_completed, result}, _from, state),
+    do: {:reply, :ok, update_in(state.analyses_computed, &[Result.encrypt(result) | &1])}
 
   @impl GenServer
   def handle_info({:data_sources_changed, new_data_sources}, state),
@@ -99,8 +108,12 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   defp update_data_sources(%{data_sources: data_sources} = state, data_sources), do: state
 
   defp update_data_sources(state, data_sources) do
-    if state.socket_pid != nil, do: send(state.socket_pid, {:data_sources_changed, data_sources})
-    %{state | data_sources: data_sources}
+    if state.socket_pid != nil do
+      send(state.socket_pid, {:data_sources_changed, data_sources, state.analyses_computed})
+      %{state | data_sources: data_sources, analyses_computed: []}
+    else
+      %{state | data_sources: data_sources}
+    end
   end
 
   # -------------------------------------------------------------------

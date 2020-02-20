@@ -23,6 +23,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
   def lookup(cache_ref \\ __MODULE__, data_source, table_name, column_name),
     do: Cache.lookup(cache_ref, data_source, table_name, column_name)
 
+  def update_with_remote_result(cache_ref \\ __MODULE__, result), do: Cache.update_with_remote_result(cache_ref, result)
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

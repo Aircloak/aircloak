@@ -1,6 +1,6 @@
 defmodule Cloak.DataSource.PerColumn.Cache.Test do
   use ExUnit.Case, async: true
-  alias Cloak.DataSource.PerColumn.{Cache, PersistentKeyValue}
+  alias Cloak.DataSource.PerColumn.{Cache, PersistentKeyValue, Descriptor, Result}
 
   setup_all do
     {:ok, _} = PersistentKeyValue.start_link(%{name: __MODULE__, persisted_cache_version: 1})
@@ -149,6 +149,51 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
       {:ok, cache} = Cache.start_link(provider.cache_opts)
       assert Cache.value(cache, provider.data_source, provider.table_name, "col2") == {:isolated, "col2"}
       refute_receive {:computing, "col1"}
+    end
+  end
+
+  describe ".update_with_remote_result" do
+    test "columns updated from remote will not be recomputed" do
+      known_columns = ~w(col1 col2 col3)
+
+      {:ok, counter} = Agent.start_link(fn -> 0 end)
+
+      compute = fn ->
+        Agent.update(counter, fn i -> i + 1 end)
+        Process.sleep(100)
+      end
+
+      provider =
+        new_cache_provider(
+          known_columns,
+          property_fun:
+            property_fun(%{
+              "col1" => compute,
+              "col2" => compute,
+              "col3" => compute
+            })
+        )
+
+      {:ok, cache} = Cache.start_link(provider.cache_opts)
+
+      for col <- known_columns do
+        Cache.update_with_remote_result(
+          cache,
+          Result.encrypt(
+            Result.new(
+              Descriptor.hash(provider.data_source, provider.table_name, col),
+              Cloak.DataSource.Isolators.Cache,
+              {:isolated, col},
+              NaiveDateTime.utc_now()
+            )
+          )
+        )
+      end
+
+      assert Cache.value(cache, provider.data_source, provider.table_name, "col1") == {:isolated, "col1"}
+      assert Cache.value(cache, provider.data_source, provider.table_name, "col2") == {:isolated, "col2"}
+      assert Cache.value(cache, provider.data_source, provider.table_name, "col2") == {:isolated, "col2"}
+      assert Agent.get(counter, & &1) <= 1
     end
   end
 

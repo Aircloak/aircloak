@@ -3,7 +3,8 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   use Parent.GenServer
   require Logger
-  alias Cloak.DataSource.PerColumn.{PersistentKeyValue, Queue, Descriptor}
+  alias Cloak.DataSource.PerColumn.{PersistentKeyValue, Queue, Descriptor, Result}
+  import Aircloak, only: [in_env: 1]
 
   # -------------------------------------------------------------------
   # API functions
@@ -33,6 +34,11 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     end
   end
 
+  @doc "Updates the cache with a result computed elsewhere"
+  def update_with_remote_result(server, result) do
+    GenServer.cast(server, {:update_with_remote_result, Result.decrypt(result)})
+  end
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -47,7 +53,8 @@ defmodule Cloak.DataSource.PerColumn.Cache do
       |> opts.columns_provider.()
       |> descriptor_map()
 
-    queue = Queue.new(Map.keys(descriptor_to_column_map), PersistentKeyValue.cached_columns(opts.cache_owner))
+    queue =
+      Queue.new(Enum.shuffle(Map.keys(descriptor_to_column_map)), PersistentKeyValue.cached_columns(opts.cache_owner))
 
     state = %{
       default: opts.default,
@@ -74,6 +81,16 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   def handle_call({:column_status, column}, _from, state) do
     {:reply, column_status(column, state), state}
+  end
+
+  @impl GenServer
+  def handle_cast({:update_with_remote_result, result}, state) do
+    if Queue.member?(state.queue, result.descriptor) do
+      PersistentKeyValue.store(state.cache_owner, result.descriptor, result.result, result.expires)
+      {:noreply, update_in(state.queue, &Queue.make_processed(&1, result.descriptor, result.expires))}
+    else
+      {:noreply, state}
+    end
   end
 
   @impl GenServer
@@ -160,7 +177,17 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     Task.start_link(fn ->
       Logger.debug(fn -> "#{inspect(state.opts.name)} computing for #{inspect(column)}" end)
       property = state.opts.property_fun.(column)
-      PersistentKeyValue.store(state.cache_owner, Descriptor.hash(column), property, expiry(state))
+      expires = expiry(state)
+      descriptor = Descriptor.hash(column)
+      PersistentKeyValue.store(state.cache_owner, descriptor, property, expires)
+
+      in_env(
+        test: nil,
+        else:
+          Cloak.AirSocket.DataSourceUpdater.register_analysis_completed(
+            Result.new(descriptor, state.opts.name, property, expires)
+          )
+      )
     end)
   end
 

@@ -10,7 +10,7 @@ defmodule Air.Service.Cloak do
 
   alias Aircloak.ChildSpec
   alias Air.Service.DataSource
-  alias Air.Service.Cloak.Stats
+  alias Air.Service.Cloak.{Stats, Analysis}
 
   @serializer_name __MODULE__.Serializer
   @stats_name Stats
@@ -256,7 +256,8 @@ defmodule Air.Service.Cloak do
         ChildSpec.registry(:duplicate, @data_source_registry_name),
         ChildSpec.registry(:duplicate, @all_cloak_registry_name),
         ChildSpec.registry(:duplicate, @notifications_registry),
-        {Periodic, run: {Stats, :aggregate_and_report, []}, every: :timer.seconds(10)}
+        {Periodic, run: {Stats, :aggregate_and_report, []}, every: :timer.seconds(10)},
+        Analysis
       ],
       strategy: :one_for_one,
       name: __MODULE__

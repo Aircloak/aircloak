@@ -9,6 +9,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   alias Air.CentralClient.Socket
   alias Air.Service.AnalystTable
+  alias Air.Service.Cloak.Analysis
 
   @type views :: %{String.t() => String.t()}
   @type parameters :: nil | [map]
@@ -163,7 +164,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       |> Air.Service.Cloak.register(cloak_info.data_sources)
       |> revalidate_views()
 
-      {:ok, %{air_name: Air.name()}, socket}
+      {:ok, %{air_name: Air.name(), available_analyses: Analysis.available(cloak_info.data_sources)}, socket}
     else
       _ -> {:error, :cloak_secret_invalid}
     end
@@ -249,6 +250,8 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     |> Air.Service.Cloak.update(cloak_info.data_sources)
     |> revalidate_views()
 
+    process_analysis_results(cloak_info.analyses_computed, socket)
+
     {:noreply, socket}
   end
 
@@ -325,6 +328,11 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp process_analysis_results(result, socket) do
+    Analysis.complete(result)
+    broadcast_from(socket, "air_cast", %{event: "analysis_results", payload: result})
+  end
 
   defp validate_shared_secret(proof, shared_secret \\ Aircloak.DeployConfig.fetch!("site")["cloak_secret"])
   defp validate_shared_secret(_, nil), do: :ok
