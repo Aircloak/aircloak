@@ -70,20 +70,7 @@ defmodule Cloak.Query.Rows do
 
   @doc "Returns the list of expressions used to form the groups for aggregation and anonymization."
   @spec group_expressions(Query.t()) :: [Expression.t()]
-  def group_expressions(%Query{group_by: [_ | _] = group_by}),
-    # There are group by clauses -> we're grouping on these clauses
-    do: group_by
-
-  def group_expressions(%Query{group_by: [], implicit_count?: true} = query) do
-    # Group by is not provided, and no selected expression is an aggregation function ->
-    #   we're grouping on all selected columns + non selected order by expressions.
-    Expression.unique(query.columns ++ non_selected_order_by_expressions(query))
-  end
-
-  def group_expressions(%Query{group_by: [], implicit_count?: false}),
-    # Group by is not provided, and all expressions are aggregate functions
-    #   -> all rows fall in the same group
-    do: []
+  def group_expressions(query), do: Query.Lenses.group_expressions() |> Lens.to_list(query)
 
   @doc "Returns the fields from a row or bucket element."
   @spec fields(Cloak.DataSource.row() | Cloak.Query.Result.bucket()) :: Cloak.DataSource.row()
@@ -124,9 +111,6 @@ defmodule Cloak.Query.Rows do
         %Expression{column | row_index: index}
     end
   end
-
-  defp non_selected_order_by_expressions(query),
-    do: query |> Query.order_by_expressions() |> Enum.reject(&(&1 in query.columns))
 
   defp select_values(row, expressions) when is_list(row), do: Enum.map(expressions, &Expression.value(&1, row))
 

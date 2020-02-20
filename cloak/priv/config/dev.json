@@ -3,5 +3,6 @@
   "salt": "Salt for local dev cloak",
   "data_sources": "dev",
   "debug": true,
+  "enable_case_support": true,
   "sanitize_otp_errors": false
 }

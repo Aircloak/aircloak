@@ -44,6 +44,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
     Helpers.each_subquery(query, &verify_conditions_usage/1)
     Helpers.each_subquery(query, &verify_or_usage/1)
+    Helpers.each_subquery(query, &verify_case_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
     Helpers.each_subquery(query, &verify_grouping_sets_uid/1)
     query
@@ -211,9 +212,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_aggregators(query) do
-    query
-    |> Query.bucket_columns()
-    |> Enum.flat_map(&aggregate_subexpressions/1)
+    Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&Function.aggregator?/1)
+    |> Lens.to_list(query)
     |> Enum.filter(&(&1 |> aggregate_subexpressions() |> Enum.count() > 1))
     |> case do
       [] ->
@@ -588,7 +590,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   # -------------------------------------------------------------------
 
   defp verify_in(query) do
-    Query.Lenses.db_filter_clauses()
+    Query.Lenses.filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.filter(&Condition.in?/1)
     |> Lens.to_list(query)
@@ -704,16 +706,16 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_conditions_usage(%Query{type: :standard}), do: :ok
 
   defp verify_conditions_usage(query) do
-    non_filtering_expressions_lens()
+    Query.Lenses.query_expressions()
     |> Lens.filter(&Function.condition?/1)
-    |> Lens.to_list(query)
+    |> Lens.to_list(query |> drop_case_conditions() |> drop_filtering_conditions())
     |> case do
       [] ->
         :ok
 
       [condition | _rest] ->
         raise CompilationError,
-          message: "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries.",
+          message: "Illegal usage of a condition in an anonymizing or restricted query.",
           source_location: condition.source_location
     end
   end
@@ -744,6 +746,180 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   # -------------------------------------------------------------------
+  # CASE usage verification
+  # -------------------------------------------------------------------
+
+  defp verify_case_usage(%Query{type: :standard}), do: :ok
+
+  defp verify_case_usage(%Query{type: :anonymized} = query) do
+    verify_case_usage_is_allowed(query)
+    verify_case_usage_in_filtering_clauses(query)
+    verify_post_processing_of_case_expressions(query)
+    verify_count_distinct_case_expressions(query)
+    verify_aggregated_case_expressions_values(query)
+    verify_bucketed_case_expressions_values(query)
+    verify_case_expressions_conditions(query)
+  end
+
+  defp verify_case_usage(%Query{type: :restricted} = query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name == "case"))
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [case_expression | _rest] ->
+        raise CompilationError,
+          message: "`case` expressions can not be used in restricted queries.",
+          source_location: case_expression.source_location
+    end
+  end
+
+  defp verify_case_usage_is_allowed(query) do
+    unless Application.get_env(:cloak, :enable_case_support) == true do
+      Query.Lenses.query_expressions()
+      |> Lens.filter(&Expression.function?/1)
+      |> Lens.filter(&(&1.name == "case"))
+      |> Lens.to_list(query)
+      |> case do
+        [] ->
+          :ok
+
+        [case_expression | _rest] ->
+          raise CompilationError,
+            message: """
+            Support for anonymizing `case` expressions is experimental and has to be manually enabled by the
+            system administrator. For more information, see the "Configuring the system" section of the user guides.
+            """,
+            source_location: case_expression.source_location
+      end
+    end
+  end
+
+  defp verify_post_processing_of_case_expressions(%Query{type: :anonymized} = query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.reject(&Function.aggregator?/1)
+    |> Lens.filter(fn expression ->
+      Enum.any?(expression.args, &match?(%Expression{kind: :function, name: "case"}, &1))
+    end)
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [post_processing_expression | _rest] ->
+        raise CompilationError,
+          message: "Post-processing a `case` expression in an anonymizing query is not allowed.",
+          source_location: post_processing_expression.source_location
+    end
+  end
+
+  defp verify_case_usage_in_filtering_clauses(%Query{type: :anonymized} = query) do
+    Query.Lenses.pre_anonymization_filter_clauses()
+    |> Query.Lenses.all_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name == "case"))
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [case_expression | _rest] ->
+        raise CompilationError,
+          message: "`case` expressions can not be used in filtering clauses in an anonymizing query.",
+          source_location: case_expression.source_location
+    end
+  end
+
+  defp verify_count_distinct_case_expressions(%Query{type: :anonymized} = query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name == "count"))
+    |> Lens.key(:args)
+    |> Lens.all()
+    |> Lens.filter(&match?({:distinct, _}, &1))
+    |> Lens.at(1)
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(&1.name == "case"))
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [invalid_value | _rest] ->
+        raise CompilationError,
+          message: "Counting the distinct values of a `case` expression is not allowed.",
+          source_location: invalid_value.source_location
+    end
+  end
+
+  defp verify_aggregated_case_expressions_values(%Query{type: :anonymized} = query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&Function.aggregator?/1)
+    |> Lens.key(:args)
+    |> Lens.all()
+    |> Query.Lenses.case_then_else_clauses()
+    |> Lens.reject(&(Expression.constant?(&1) and &1.value in [0, 1, nil]))
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [invalid_value | _rest] ->
+        raise CompilationError,
+          message: "Aggregated `case` expressions can only return the constants `0`, `1` or `NULL`.",
+          source_location: invalid_value.source_location
+    end
+  end
+
+  defp verify_bucketed_case_expressions_values(%Query{type: :anonymized} = query) do
+    Query.Lenses.query_expressions()
+    |> Query.Lenses.case_then_else_clauses()
+    |> Lens.reject(&Expression.constant?/1)
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [invalid_value | _rest] ->
+        raise CompilationError,
+          message: "`case` expressions in anonymizing queries can only return constant values.",
+          source_location: invalid_value.source_location
+    end
+  end
+
+  defp verify_case_expressions_conditions(%Query{type: :anonymized} = query) do
+    Query.Lenses.query_expressions()
+    |> Query.Lenses.case_when_clauses()
+    |> Lens.reject(&valid_when_clause?/1)
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [invalid_when_clause | _rest] ->
+        raise CompilationError,
+          message:
+            "`when` clauses from `case` expressions in anonymizing queries can only use a simple " <>
+              "equality condition of the form `column = constant`.",
+          source_location: invalid_when_clause.source_location
+    end
+  end
+
+  defp valid_when_clause?(%Expression{
+         kind: :function,
+         name: "=",
+         args: [%Expression{kind: :column}, %Expression{kind: :constant}]
+       }),
+       do: true
+
+  defp valid_when_clause?(_), do: false
+
+  # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
 
@@ -755,12 +931,21 @@ defmodule Cloak.Sql.Compiler.Validation do
       |> Lens.filter(&Function.aggregator?/1)
       |> Lens.to_list(expression)
 
-  defp non_filtering_expressions_lens() do
-    Lens.multiple([
-      Lens.keys?([:columns, :group_by]) |> Lens.all(),
-      Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
-      Query.Lenses.db_filter_clauses() |> Query.Lenses.conditions() |> Query.Lenses.operands()
-    ])
-    |> Lenses.all_expressions()
+  defp drop_case_conditions(query) do
+    Query.Lenses.query_expressions()
+    |> Query.Lenses.case_when_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.map(query, &drop_condition/1)
   end
+
+  defp drop_filtering_conditions(query) do
+    Query.Lenses.filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.map(query, &drop_condition/1)
+  end
+
+  # We can't remove the condition completely, as we still want to verify its arguments later,
+  # so we change the function name to an invalid value, making it not a condition anymore.
+  defp drop_condition(%Expression{kind: :function, name: "not", args: [expression]}), do: drop_condition(expression)
+  defp drop_condition(%Expression{kind: :function} = expression), do: %Expression{expression | name: "__dropped"}
 end

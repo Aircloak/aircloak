@@ -19,7 +19,7 @@ const createModeDefinition = () => {
   const basicSqlKeywords =
     "align all and as asc between both bucket by cast columns cross cube desc distinct escape" +
     " extract for from full group grouping having ilike in inner is join leading left like limit not nulls offset on" +
-    " or order outer right rollup select sets show substring tables trailing trim where";
+    " or order outer right rollup select sets show substring tables trailing trim where case when then else end";
 
   const aircloakFunctionsList = _.chain(aircloakFunctionCompletions)
     .keys()

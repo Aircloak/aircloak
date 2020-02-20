@@ -12,6 +12,7 @@
     "connection_keep_time": {"type": "integer", "minimum": 1, "maximum": 86400},
     "lcf_buckets_aggregation_limit": {"type": "integer", "minimum": 0},
     "sanitize_otp_errors": {"type": "boolean"},
+    "enable_case_support": {"type": "boolean"},
     "max_parallel_queries": {"type": "integer", "minimum": 1},
     "liveness_check_interval": {"type": "integer", "minimum": 1},
     "memory_limits": {

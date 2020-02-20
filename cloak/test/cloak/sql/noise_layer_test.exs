@@ -3,7 +3,7 @@ defmodule Cloak.Sql.NoiseLayer.Test do
 
   alias Cloak.Sql.{NoiseLayer, Expression}
 
-  defp sum(accumulator), do: Enum.map(accumulator, &NoiseLayer.sum(&1, "salt"))
+  defp sum(accumulator), do: Enum.map(accumulator, &NoiseLayer.sum_hashes(&1, "salt"))
 
   defp new_accumulator(layers, rows) do
     processed_layers = NoiseLayer.pre_process_layers(layers)

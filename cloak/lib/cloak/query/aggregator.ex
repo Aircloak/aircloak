@@ -9,7 +9,7 @@ defmodule Cloak.Query.Aggregator do
   alias __MODULE__.{UserId, Statistics}
 
   @typep group_values :: [DataSource.field() | :*]
-  @typep group :: {group_values, Anonymizer.t(), UserId.t() | Statistics.t()}
+  @typep group :: {group_values, %{any => Anonymizer.t()}, UserId.t() | Statistics.t()}
 
   # -------------------------------------------------------------------
   # API
@@ -42,7 +42,7 @@ defmodule Cloak.Query.Aggregator do
     query = aggregation_sub_module(query).pre_process(query)
 
     groups
-    |> init_anonymizer()
+    |> init_anonymizers(query)
     |> process_low_count_users(query)
     |> aggregate_groups(query)
     |> make_buckets(query)
@@ -109,16 +109,45 @@ defmodule Cloak.Query.Aggregator do
   defp aggregation_sub_module(%Query{anonymization_type: :statistics}), do: Statistics
   defp aggregation_sub_module(_query), do: UserId
 
-  defp init_anonymizer(grouped_rows) do
-    Logger.debug("Initializing anonymizer ...")
+  defp init_anonymizers(grouped_rows, query) do
+    Logger.debug("Initializing anonymizers ...")
 
     Enum.map(grouped_rows, fn {property, {aggregation_data, noise_layers}} ->
-      {property, Anonymizer.new(noise_layers), aggregation_data}
+      anonymizers = init_bucket_anonymizers(noise_layers, aggregation_data, query)
+      {property, anonymizers, aggregation_data}
     end)
   end
 
-  defp low_users_count?({_property, anonymizer, aggregation_data}, aggregator_sub_module),
-    do: not Anonymizer.sufficiently_large?(anonymizer, aggregator_sub_module.users_count(aggregation_data))
+  defp init_bucket_anonymizers(accumulated_noise_layers, aggregation_data, query) do
+    default_anonymizer =
+      accumulated_noise_layers
+      |> NoiseLayer.filter_accumulator_for_aggregator(nil)
+      |> case do
+        [] ->
+          # We don't have any noise layers, so we generate a generic layer composed of the user ids in the bucket.
+          user_id_values = aggregation_sub_module(query).user_id_values(aggregation_data)
+          NoiseLayer.accumulator_from_values(user_id_values)
+
+        accumulated_noise_layers ->
+          accumulated_noise_layers
+      end
+      |> Anonymizer.new()
+
+    query.aggregators
+    |> Enum.with_index()
+    |> Enum.map(fn {_aggregator, index} ->
+      anonymizer =
+        if NoiseLayer.accumulator_references_aggregator?(accumulated_noise_layers, index),
+          do: accumulated_noise_layers |> NoiseLayer.filter_accumulator_for_aggregator(index) |> Anonymizer.new(),
+          else: default_anonymizer
+
+      {index, anonymizer}
+    end)
+    |> Enum.into(%{default: default_anonymizer})
+  end
+
+  defp low_users_count?({_property, anonymizers, aggregation_data}, aggregator_sub_module),
+    do: not Anonymizer.sufficiently_large?(anonymizers.default, aggregator_sub_module.users_count(aggregation_data))
 
   @spec process_low_count_users([group], Query.t()) :: [group]
   defp process_low_count_users(rows, query) do
@@ -155,9 +184,9 @@ defmodule Cloak.Query.Aggregator do
        when lcf_aggregation_limit < bucket_size do
     # censor property values from lcf partial aggregation limit until max label count
     low_count_rows =
-      Enum.map(low_count_rows, fn {[group_index | property], anonymizer, users_rows} ->
+      Enum.map(low_count_rows, fn {[group_index | property], anonymizers, users_rows} ->
         property = Enum.reduce(lcf_aggregation_limit..bucket_size, property, &List.replace_at(&2, &1, :*))
-        {[group_index | property], anonymizer, users_rows}
+        {[group_index | property], anonymizers, users_rows}
       end)
 
     Enum.reduce(
@@ -170,7 +199,7 @@ defmodule Cloak.Query.Aggregator do
   defp group_low_count_rows(column_index, {low_count_rows, high_count_rows}, aggregator_sub_module) do
     {low_count_grouped_rows, high_count_grouped_rows} =
       low_count_rows
-      |> Enum.group_by(fn {[group_index | property], _anonymizer, _users_rows} ->
+      |> Enum.group_by(fn {[group_index | property], _anonymizers, _users_rows} ->
         [group_index | List.replace_at(property, column_index, :*)]
       end)
       |> Enum.map(&collapse_grouped_rows(&1, aggregator_sub_module))
@@ -182,16 +211,22 @@ defmodule Cloak.Query.Aggregator do
   defp collapse_grouped_rows({group, grouped_rows}, aggregator_sub_module) do
     user_rows =
       grouped_rows
-      |> Enum.map(fn {_group, _anonymizer, aggregation_data} -> aggregation_data end)
+      |> Enum.map(fn {_group, _anonymizers, aggregation_data} -> aggregation_data end)
       |> collapse_aggregation_data(&aggregator_sub_module.merge_aggregation_data/2)
 
-    anonymizer =
+    anonymizers =
       grouped_rows
-      |> Enum.map(fn {_group, anonymizer, _users_rows} -> anonymizer.noise_layers end)
-      |> Enum.reduce(&NoiseLayer.merge_accumulators/2)
-      |> Anonymizer.new()
+      |> Enum.map(fn {_group, anonymizers, _users_rows} -> anonymizers end)
+      |> Enum.reduce(fn anonymizers1, anonymizers2 ->
+        Enum.zip(anonymizers1, anonymizers2)
+        |> Enum.map(fn {{tag, anonymizer1}, {tag, anonymizer2}} ->
+          merged_noise_layers = NoiseLayer.merge_accumulators(anonymizer1.noise_layers, anonymizer2.noise_layers)
+          {tag, Anonymizer.new(merged_noise_layers)}
+        end)
+        |> Enum.into(%{})
+      end)
 
-    {group, anonymizer, user_rows}
+    {group, anonymizers, user_rows}
   end
 
   defp collapse_aggregation_data([data], _data_merger), do: data

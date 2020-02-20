@@ -4,7 +4,7 @@ defmodule Cloak.Sql.Expression do
   function calls with their arguments which are expressions themselves.
   """
 
-  alias Cloak.DataSource
+  alias Cloak.{DataSource, Data}
   alias Cloak.Sql.{LikePattern, Query, Function}
   alias Timex.Duration
 
@@ -189,7 +189,7 @@ defmodule Cloak.Sql.Expression do
       do: "#{display(arg1)} #{function} #{display(arg2)}"
 
   def display(%__MODULE__{kind: :function, name: function, args: args}),
-    do: "#{function}(#{args |> Enum.map(&display/1) |> Enum.join(", ")})"
+    do: "#{function}(#{display(args)})"
 
   def display(%__MODULE__{kind: :constant, type: :text, value: value}), do: "'#{value}'"
 
@@ -205,6 +205,7 @@ defmodule Cloak.Sql.Expression do
   def display(%__MODULE__{kind: :constant, value: nil}), do: "NULL"
   def display(%__MODULE__{kind: :constant, value: value}), do: to_string(value)
   def display({:distinct, expression}), do: "distinct #{display(expression)}"
+  def display(values) when is_list(values), do: "#{values |> Enum.map(&display/1) |> Enum.join(", ")}"
   def display(value), do: to_string(value)
 
   @doc "Returns the column value of a database row."
@@ -419,12 +420,12 @@ defmodule Cloak.Sql.Expression do
 
   defp do_apply(operator, [arg1, arg2]) when operator in ~w(= <> > < >= <=) and (arg1 == nil or arg2 == nil), do: nil
 
-  defp do_apply("=", [arg1, arg2]), do: arg1 == arg2
-  defp do_apply("<>", [arg1, arg2]), do: arg1 != arg2
-  defp do_apply(">", [arg1, arg2]), do: arg1 > arg2
-  defp do_apply("<", [arg1, arg2]), do: arg1 < arg2
-  defp do_apply(">=", [arg1, arg2]), do: arg1 >= arg2
-  defp do_apply("<=", [arg1, arg2]), do: arg1 <= arg2
+  defp do_apply("=", [arg1, arg2]), do: Data.eq(arg1, arg2)
+  defp do_apply("<>", [arg1, arg2]), do: not Data.eq(arg1, arg2)
+  defp do_apply(">", [arg1, arg2]), do: Data.gt(arg1, arg2)
+  defp do_apply("<", [arg1, arg2]), do: Data.lt(arg1, arg2)
+  defp do_apply(">=", [arg1, arg2]), do: Data.gt_eq(arg1, arg2)
+  defp do_apply("<=", [arg1, arg2]), do: Data.lt_eq(arg1, arg2)
 
   defp do_apply("in", [nil | _values]), do: nil
   defp do_apply("in", [arg | values]), do: arg in values

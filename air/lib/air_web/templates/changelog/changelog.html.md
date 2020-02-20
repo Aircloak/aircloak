@@ -27,8 +27,12 @@
 - Improved support for boolean expressions.
 - Added support for `case` statements in standard queries.
 - Allowed inequalities between datetime columns and the current date.
+- Added experimental support for `case` expressions.
 
 ### Bugfixes
+
+- Fixed detection of recursive aggregators usage inside the `HAVING` clause.
+
 ### Changes
 
 - Support for some obsolete cloak features and config fields (decoders, projections, user_id) was removed.
