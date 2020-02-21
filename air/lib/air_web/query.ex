@@ -54,6 +54,7 @@ defmodule AirWeb.Query do
     |> Map.merge(user_info(query))
     |> Map.put(:completed, completed?(query))
     |> Map.merge(links(query, opts))
+    |> Map.drop(["log"])
   end
 
   # -------------------------------------------------------------------
