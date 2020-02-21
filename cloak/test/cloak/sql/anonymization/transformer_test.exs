@@ -98,7 +98,7 @@ defmodule Cloak.Sql.TransformerTest do
                FROM (
                 SELECT
                   table.uid AS uid,
-                  COUNT(table.col1) AS agg_0
+                  SUM(CASE WHEN table.col1 IS NULL THEN NULL ELSE 1 END) AS agg_0
                 FROM table
                 WHERE table.uid IS NOT NULL
                 GROUP BY table.uid
@@ -292,7 +292,7 @@ defmodule Cloak.Sql.TransformerTest do
                 SELECT
                   table.uid AS uid,
                   table.col2 AS group_0,
-                  COUNT(table.col1) AS agg_0,
+                  SUM(CASE WHEN table.col1 IS NULL THEN NULL ELSE 1 END) AS agg_0,
                   0 AS grouping_id
                 FROM table
                 WHERE table.uid IS NOT NULL

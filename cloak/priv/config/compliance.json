@@ -3,5 +3,6 @@
   "salt": "test salt which doesn't matter since tests have SD=0",
   "data_sources": "compliance_local",
   "sanitize_otp_errors": false,
-  "secret_key": "Secret key for compiance cloak: fb3uyqfg347uifh3ugighfw4ueigh24w5iuf4fn425ooi4ufw5j5u4"
+  "secret_key": "Secret key for compiance cloak: fb3uyqfg347uifh3ugighfw4ueigh24w5iuf4fn425ooi4ufw5j5u4",
+  "enable_case_support": true
 }

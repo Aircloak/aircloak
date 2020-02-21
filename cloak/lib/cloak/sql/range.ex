@@ -59,7 +59,7 @@ defmodule Cloak.Sql.Range do
   # -------------------------------------------------------------------
 
   defp inequality_ranges(query) do
-    Query.Lenses.db_filter_clauses()
+    Query.Lenses.pre_anonymization_filter_clauses()
     |> inequalities_by_column(query)
     |> Enum.map(fn
       {column, inequalities} when length(inequalities) == 2 ->
@@ -98,7 +98,7 @@ defmodule Cloak.Sql.Range do
   defp function_ranges(query), do: equality_ranges(query) ++ select_ranges(query)
 
   defp equality_ranges(query) do
-    Query.Lenses.db_filter_clauses()
+    Query.Lenses.pre_anonymization_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.filter(&Condition.equals?/1)
     |> Lens.to_list(query)

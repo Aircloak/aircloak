@@ -1,3 +1,12 @@
+# Version 20.1.0
+
+## Insights Air
+
+The `auto_aircloak_export` parameter has been deprecated.
+Insights Air will refuse to start if the parameter is present.
+Please remove the parameter from your `config.json`-configuration file
+before upgrading to this latest version.
+
 # Version 19.2.0
 
 ## Insights Cloak

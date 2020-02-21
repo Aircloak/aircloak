@@ -288,7 +288,7 @@ defmodule Cloak.Query.Anonymizer do
   defp build_rngs(noise_layers),
     do:
       noise_layers
-      |> Enum.map(&NoiseLayer.sum(&1, config(:salt)))
+      |> Enum.map(&NoiseLayer.sum_hashes(&1, config(:salt)))
       |> Enum.uniq()
       |> Enum.map(&build_rng/1)
 

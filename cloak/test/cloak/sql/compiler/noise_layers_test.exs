@@ -16,12 +16,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
-  defmacrop generic_layer() do
-    quote do
-      %{base: nil}
-    end
-  end
-
   test "overwrites any existing noise layers" do
     compiled = Cloak.Test.QueryHelpers.compile!("SELECT COUNT(*) FROM table", data_source())
 
@@ -29,12 +23,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       %{compiled | noise_layers: [%{base: :to_be_overwritten, expressions: []}]}
       |> Cloak.Sql.Compiler.NoiseLayers.compile()
 
-    assert [%{base: nil}] = query.noise_layers
-  end
-
-  test "adds a uid noise layer if no other layers are present" do
-    assert [%{base: nil, expressions: [%Expression{user_id?: true}]}] =
-             compile!("SELECT COUNT(*) FROM table").noise_layers
+    assert [] = query.noise_layers
   end
 
   describe "basic noise layers" do
@@ -64,7 +53,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "column < column coditions" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric < numeric")
-      assert [generic_layer()] = result.noise_layers
+      assert [] = result.noise_layers
     end
 
     test "noise layers for clear condition don't depend on equality order" do
@@ -229,13 +218,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "aggregated columns in top-level select are ignored" do
       result = compile!("SELECT COUNT(*) FROM table")
 
-      assert [generic_layer()] = result.noise_layers
+      assert [] = result.noise_layers
     end
 
     test "having in top-level query" do
       result = compile!("SELECT COUNT(*) FROM table HAVING COUNT(numeric) = 10")
 
-      assert [generic_layer()] = result.noise_layers
+      assert [] = result.noise_layers
     end
 
     test "having in subquery" do
@@ -291,7 +280,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           ON table.uid = key_table.uid AND key_table.table_id = table.id
         """)
 
-      assert [generic_layer()] = result.noise_layers
+      assert [] = result.noise_layers
     end
 
     test "pk = fk" do
@@ -301,7 +290,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           ON table.uid = key_table.uid AND table.id = key_table.table_id
         """)
 
-      assert [generic_layer()] = result.noise_layers
+      assert [] = result.noise_layers
     end
   end
 
@@ -379,7 +368,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "column <> column negative condition" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
-      assert [generic_layer()] = result.noise_layers
+      assert [] = result.noise_layers
     end
 
     test "clear numeric negative condition" do
@@ -457,7 +446,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "having of COUNT(*)" do
       result = compile!("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(*) <> 10) x")
 
-      assert [generic_layer()] = result.noise_layers
+      assert [] = result.noise_layers
     end
 
     test "having of count(distinct)" do
@@ -557,10 +546,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "no noise for IS NULL on uids",
-      do: assert([generic_layer()] = compile!("SELECT COUNT(*) FROM table WHERE uid IS NULL").noise_layers)
+      do: assert([] = compile!("SELECT COUNT(*) FROM table WHERE uid IS NULL").noise_layers)
 
     test "no noise for IS NOT NULL on uids",
-      do: assert([generic_layer()] = compile!("SELECT COUNT(*) FROM table WHERE uid IS NOT NULL").noise_layers)
+      do: assert([] = compile!("SELECT COUNT(*) FROM table WHERE uid IS NOT NULL").noise_layers)
   end
 
   describe "noise layers for LIKE" do
@@ -757,7 +746,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                    %Expression{name: "__ac_group_0"},
                    %Expression{name: "__ac_group_0"}
                  ],
-                 grouping_set_index: 0
+                 tag: {:grouping_set, 0}
                },
                %{
                  base: {"table", "numeric", nil},
@@ -766,7 +755,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                    %Expression{name: "__ac_group_0"},
                    %Expression{user_id?: true}
                  ],
-                 grouping_set_index: 0
+                 tag: {grouping_set, 0}
                },
                %{
                  base: {"table", "numeric2", nil},
@@ -774,7 +763,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                    %Expression{name: "__ac_group_1"},
                    %Expression{name: "__ac_group_1"}
                  ],
-                 grouping_set_index: 1
+                 tag: {grouping_set, 1}
                },
                %{
                  base: {"table", "numeric2", nil},
@@ -783,7 +772,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                    %Expression{name: "__ac_group_1"},
                    %Expression{user_id?: true}
                  ],
-                 grouping_set_index: 1
+                 tag: {grouping_set, 1}
                }
              ] = result.noise_layers
 
@@ -1163,10 +1152,111 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     assert result1.noise_layers == result2.noise_layers
   end
 
+  describe "case conditions noise layers" do
+    test "uid-anon select over case" do
+      result =
+        compile!("SELECT CASE WHEN numeric = 1 THEN 1 WHEN numeric = 0 THEN 0 END, STDDEV(0) FROM table GROUP BY 1")
+
+      assert [
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 1}, %Expression{value: 1}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}]
+               },
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 0}, %Expression{value: 0}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 0}, %Expression{value: 0}, %Expression{user_id?: true}]
+               }
+             ] = result.noise_layers
+    end
+
+    test "stats-anon select over case" do
+      result = compile!("SELECT CASE WHEN numeric = 1 THEN 1 WHEN numeric = 0 THEN 0 END FROM table")
+
+      assert [
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 1}, %Expression{value: 1}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}]
+               },
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 0}, %Expression{value: 0}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 0}, %Expression{value: 0}, %Expression{user_id?: true}]
+               }
+             ] = result.noise_layers
+    end
+
+    test "uid-anon for identical conditions in bucket over case and where filter" do
+      result = compile!("SELECT CASE WHEN numeric = 1 THEN 1 END, STDDEV(0) FROM table WHERE numeric = 1 GROUP BY 1")
+
+      assert [
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 1}, %Expression{value: 1}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}]
+               }
+             ] = result.noise_layers
+    end
+
+    test "stats-anon for identical conditions in bucket over case and where filter" do
+      result = compile!("SELECT CASE WHEN numeric = 1 THEN 1 END FROM table WHERE numeric = 1 GROUP BY 1")
+
+      assert [
+               %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 1}, %Expression{value: 1}]},
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}]
+               }
+             ] = result.noise_layers
+    end
+
+    test "uid-anon count over case" do
+      result = compile!("SELECT COUNT(CASE WHEN numeric = 1 THEN 1 END), STDDEV(0) FROM table")
+
+      assert [
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}],
+                 tag: {:aggregator, 0}
+               },
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [
+                   %Expression{value: 1},
+                   %Expression{value: 1},
+                   %Expression{
+                     name: "case",
+                     args: [%Expression{name: "="}, %Expression{user_id?: true}, %Expression{value: nil}]
+                   }
+                 ],
+                 tag: {:aggregator, 0}
+               }
+             ] = result.noise_layers
+    end
+
+    test "stats-anon count over case" do
+      result = compile!("SELECT COUNT(CASE WHEN numeric = 1 THEN 1 END) FROM table")
+
+      assert [
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}],
+                 tag: {:aggregator, 0}
+               },
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{name: "__ac_nlc__0"}],
+                 tag: {:aggregator, 0}
+               }
+             ] = result.noise_layers
+    end
+  end
+
   defp compile!(query, opts \\ []),
     do:
       Cloak.Test.QueryHelpers.compile!(query, data_source(), opts)
-      |> Cloak.Sql.Compiler.NoiseLayers.compile()
       |> Cloak.Sql.Query.resolve_db_columns()
 
   defp data_source() do

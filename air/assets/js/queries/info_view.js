@@ -13,8 +13,9 @@ export default ({ info }: { info: string[] }) => {
     return (
       <div>
         <h4>Info</h4>
-        {info.map(infoMessage => (
-          <p dangerouslySetInnerHTML={mdToHtml(infoMessage)} />
+        {info.map((infoMessage, i) => (
+          // eslint-disable-next-line react/no-array-index-key
+          <p key={i} dangerouslySetInnerHTML={mdToHtml(infoMessage)} />
         ))}
       </div>
     );

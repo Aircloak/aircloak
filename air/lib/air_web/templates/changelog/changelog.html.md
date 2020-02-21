@@ -18,6 +18,13 @@
 - Support for `SAMPLE_USERS` was removed.
 - Support for the `hash` function was removed.
 - Minimum Oracle version supported is now 12c.
+- The minimum supported version of Postgres is now 9.6 (dropping support for version 9.1 through 9.5).
+- Support for the `auto_aircloak_export` configuration parameter in the Insights Air config was removed.
+  Consult the [Upgrade guide](docs/ops/upgrading.html) for additional information.
+
+### New features
+
+- Added beta support for Apache Impala (Cloudera Distribution) data sources.
 
 ### Enhancements
 
@@ -31,8 +38,11 @@
 - Improved support for boolean expressions.
 - Added support for `case` statements in standard queries.
 - Allowed inequalities between datetime columns and the current date.
+- Added experimental support for `case` expressions.
 
 ### Bugfixes
+
+- Fixed detection of recursive aggregators usage inside the `HAVING` clause.
 
 ### Changes
 

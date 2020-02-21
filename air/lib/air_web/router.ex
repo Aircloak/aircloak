@@ -105,7 +105,6 @@ defmodule AirWeb.Router do
     post("/profile/toggle_debug_mode", ProfileController, :toggle_debug_mode)
 
     get("/changelog", ChangelogController, :index)
-    get("/support", SupportController, :index)
   end
 
   scope "/admin", AirWeb.Admin, as: :admin do

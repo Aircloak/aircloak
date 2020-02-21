@@ -62,6 +62,8 @@ export default class PasswordField extends React.Component<Props, State> {
       <div className={this.highlightClass()}>
         <input
           type="password"
+          id="user_password"
+          name="user[password]"
           className="form-control"
           value={value}
           onChange={this.updateValue}

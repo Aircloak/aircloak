@@ -42,7 +42,7 @@ binary_operator :=
   + | - | * | / | ^
 
 data_type :=
-  integer | real | text | boolean | datetime | date | time
+  integer | real | text | boolean | datetime | date | time | interval
 
 from_expression :=
   table | join

@@ -1,0 +1,13 @@
+{
+  "driver": "cloudera-impala",
+  "name": "impala",
+  "parameters": {
+    "hostname": "quickstart.cloudera",
+    "port": 21050,
+    "username": "cloudera",
+    "password": "cloudera",
+    "database": "default"
+  },
+  "tables": {},
+  "analyst_tables_enabled": false
+}

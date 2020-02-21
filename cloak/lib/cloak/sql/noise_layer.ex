@@ -4,13 +4,13 @@ defmodule Cloak.Sql.NoiseLayer do
   alias Cloak.Sql.{Expression, NoiseLayer.Normalizer}
   use Bitwise
 
-  @type grouping_set_index :: integer() | nil
-  @type t :: %__MODULE__{base: any, expressions: [Expression.t()], grouping_set_index: grouping_set_index}
+  @type tag :: {:grouping_set | :aggregator, pos_integer()} | nil
+  @type t :: %__MODULE__{base: any, expressions: [Expression.t()], tag: tag}
   @type hash_set :: MapSet.t()
-  @type accumulator :: [hash_set]
-  @type processed :: {[Expression.t()], [[integer()]]}
+  @type accumulator :: [{tag, hash_set}]
+  @type processed :: {[Expression.t()], [any], [[integer()]]}
 
-  defstruct [:base, :expressions, :grouping_set_index]
+  defstruct [:base, :expressions, :tag]
 
   defimpl Inspect do
     import Inspect.Algebra
@@ -19,7 +19,7 @@ defmodule Cloak.Sql.NoiseLayer do
       data = %{
         base: noise_layer.base,
         expressions: Enum.map(noise_layer.expressions, &Expression.display/1),
-        grouping_set_index: noise_layer.grouping_set_index
+        tag: noise_layer.tag
       }
 
       concat(["#NoiseLayer<", to_doc(data, opts), ">"])
@@ -31,40 +31,63 @@ defmodule Cloak.Sql.NoiseLayer do
   # -------------------------------------------------------------------
 
   @doc "Returns a noise layer with the given base data, based on the given list of expressions."
-  @spec new(any, [Expression.t()], grouping_set_index) :: t
-  def new(base, expressions, grouping_set_index \\ nil),
-    do: %__MODULE__{base: base, expressions: expressions, grouping_set_index: grouping_set_index}
+  @spec new(any, [Expression.t()], tag) :: t
+  def new(base, expressions, tag \\ nil),
+    do: %__MODULE__{base: base, expressions: expressions, tag: tag}
 
   @doc "Returns an intial accumulator for gathering the values of a list of noise layers over a set of rows."
   @spec new_accumulator([t]) :: accumulator
   def new_accumulator(layers),
-    do: Enum.map(layers, &MapSet.new([&1.base |> :erlang.term_to_binary() |> compute_hash()]))
+    do: Enum.map(layers, &{&1.tag, MapSet.new([&1.base |> :erlang.term_to_binary() |> compute_hash()])})
 
   @doc "Pre-processes the noise layers so that expressions are computed only once during accumulation."
   @spec pre_process_layers([t]) :: processed
   def pre_process_layers(layers) do
     unique_expressions = layers |> Enum.flat_map(& &1.expressions) |> Enum.uniq()
+    {constant_expressions, dynamic_expressions} = Enum.split_with(unique_expressions, &Expression.constant?/1)
+    unique_expressions = dynamic_expressions ++ constant_expressions
     indices_list = Enum.map(layers, &expressions_to_indices(&1.expressions, unique_expressions))
-    {unique_expressions, indices_list}
+    constants = constant_expressions |> Enum.map(&Expression.const_value/1) |> Enum.map(&normalize/1)
+    {dynamic_expressions, constants, indices_list}
   end
 
-  @doc "Filters the noise layers that apply to the specified grouping set."
-  @spec filter_layers_for_grouping_set([t], integer()) :: [t]
-  def filter_layers_for_grouping_set(layers, grouping_set_index),
-    do: Enum.filter(layers, &(&1.grouping_set_index in [nil, grouping_set_index]))
+  @doc "Returns only the noise layers that apply to the specified grouping set."
+  @spec filter_layers_for_grouping_set([t], pos_integer() | nil) :: [t]
+  def filter_layers_for_grouping_set(layers, index) do
+    Enum.filter(layers, fn
+      %__MODULE__{tag: {:grouping_set, ^index}} -> true
+      %__MODULE__{tag: {:grouping_set, _}} -> false
+      _ -> true
+    end)
+  end
+
+  @doc "Returns only the accumulated noise layers that apply to the specified aggregator."
+  @spec filter_accumulator_for_aggregator(accumulator, pos_integer() | nil) :: accumulator
+  def filter_accumulator_for_aggregator(accumulator, index) do
+    Enum.filter(accumulator, fn
+      {{:aggregator, ^index}, _hash_set} -> true
+      {{:aggregator, _}, _hash_set} -> false
+      _ -> true
+    end)
+  end
+
+  @doc "Returns true if there are custom accumulated noise layers for the specified aggregator."
+  @spec accumulator_references_aggregator?(accumulator, pos_integer()) :: boolean
+  def accumulator_references_aggregator?(accumulator, index),
+    do: Enum.any?(accumulator, fn {tag, _hahs_set} -> tag == {:aggregator, index} end)
 
   @doc "Adds the values from the given row to the noise layer accumulator."
   @spec accumulate(processed, accumulator, Row.t()) :: accumulator
-  def accumulate({unique_expressions, indices_list}, accumulator, row) do
-    values = Enum.map(unique_expressions, &normalize(Expression.value(&1, row)))
+  def accumulate({dynamic_expressions, constants, indices_list}, accumulator, row) do
+    values = Enum.map(dynamic_expressions, &normalize(Expression.value(&1, row))) ++ constants
 
-    for {indices, set} <- Enum.zip(indices_list, accumulator) do
-      hash =
-        indices
-        |> Enum.map(&Enum.at(values, &1))
-        |> compute_hash()
-
-      MapSet.put(set, hash)
+    for {indices, {tag, set}} <- Enum.zip(indices_list, accumulator) do
+      indices
+      |> Enum.map(&Enum.at(values, &1))
+      |> case do
+        [_, _, <<?N>>] -> {tag, set}
+        values -> {tag, MapSet.put(set, compute_hash(values))}
+      end
     end
   end
 
@@ -73,15 +96,20 @@ defmodule Cloak.Sql.NoiseLayer do
   def merge_accumulators(accumulator1, accumulator2),
     do:
       Stream.zip(accumulator1, accumulator2)
-      |> Enum.map(fn {hash_set1, hash_set2} ->
-        MapSet.union(hash_set1, hash_set2)
+      |> Enum.map(fn {{tag, hash_set1}, {tag, hash_set2}} ->
+        {tag, MapSet.union(hash_set1, hash_set2)}
       end)
 
   @doc "Computes a cryptographic sum of the previously accumulated values, starting from the given salt."
-  @spec sum(MapSet.t(), String.t()) :: integer()
-  def sum(hash_set, salt),
+  @spec sum_hashes({tag, MapSet.t()}, String.t()) :: integer()
+  def sum_hashes({_tag, hash_set}, salt),
     # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
     do: Enum.reduce(hash_set, compute_hash(salt), &bxor/2)
+
+  @doc "Generates a noise layer accumulator from the given values."
+  @spec accumulator_from_values([Cloak.Data.t()]) :: accumulator
+  def accumulator_from_values(values),
+    do: [{nil, values |> Enum.map(&normalize/1) |> Enum.map(&compute_hash/1) |> MapSet.new()}]
 
   # -------------------------------------------------------------------
   # Internal functions
