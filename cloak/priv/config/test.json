@@ -1,5 +1,6 @@
 {
   "air_site": "wss://localhost:8443",
   "salt": "test salt which doesn't matter since tests have SD=0",
-  "data_sources": "test"
+  "data_sources": "test",
+  "secret_key": "test secret: fb3uyqfg347uifh3ugighfw4ueigh24w5iuf4fn425ooi4ufw5j5u4"
 }

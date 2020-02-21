@@ -3,5 +3,6 @@
   "salt": "Salt for local dev cloak",
   "data_sources": "dev",
   "debug": true,
-  "sanitize_otp_errors": false
+  "sanitize_otp_errors": false,
+  "secret_key": "Secret key for local dev cloak: fb3uyqfg347uifh3ugighfw4ueigh24w5iuf4fn425ooi4ufw5j5u4"
 }

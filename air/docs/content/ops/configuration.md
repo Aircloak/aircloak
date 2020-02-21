@@ -338,6 +338,7 @@ The general shape of `config.json` is:
   "air_site": string,
   "salt": string,
   "cloak_secret": string,
+  "secret_key": string,
   "data_sources": string,
   "concurrency": integer,
   "lcf_buckets_aggregation_limit": integer,
@@ -360,6 +361,9 @@ cat /dev/urandom |
 The `cloak_secret` setting is used to authenticate the Insights Cloak instance when connecting to Insights Air. It is
 required only if `cloak_secret` was configured in Insights Air (see [Web site configuration](#web-site-configuration)),
 and in that case it needs to be set to the same value.
+
+Similarly, the `secret_key` setting is used for Insights Cloak instances communicating with each other and should be set
+up similarly to `cloak_secret`. Make sure that all Cloak instances have the same setting.
 
 The `concurrency` field is optional and controls the amount of additional threads used for processing the selected data.
 The default setting is 0, which means a single thread processes the data coming in from the database server. For small

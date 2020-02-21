@@ -1,4 +1,7 @@
 defmodule Air.Service.Cloak.Analysis do
+  @moduledoc """
+  Holds and processes Analysis results that are dispatched between Cloak instances.
+  """
   use GenServer
 
   def start_link(_) do
