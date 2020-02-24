@@ -37,7 +37,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   @spec noise_layer_columns(Query.t()) :: [Expression.t()]
   def noise_layer_columns(%{noise_layers: noise_layers}),
     do:
-      all_expressions()
+      noise_layer_expressions()
       |> non_uid_expressions()
       |> Lens.to_list(noise_layers)
       |> Enum.uniq_by(&Expression.unalias/1)
@@ -140,7 +140,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp float_noise_layers_columns(query = %Query{type: :restricted}) do
     noise_columns =
-      all_expressions()
+      noise_layer_expressions()
       |> non_uid_expressions()
       |> Lens.to_list(query.noise_layers)
       |> Enum.reject(&Expression.member?(query.columns, &1))
@@ -165,7 +165,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         subquery_table = Enum.find(query.selected_tables, &(&1.name == alias))
         true = subquery_table != nil
 
-        all_expressions()
+        noise_layer_expressions()
         |> non_uid_expressions()
         |> Lens.map(
           subquery.noise_layers,
@@ -240,7 +240,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
 
   defp adjust_for_analyst_tables(noise_layers, %{analyst_table: {_, table, columns}}),
-    do: update_in(noise_layers, [all_expressions()], &do_adjust_for_analyst_tables(&1, table, columns))
+    do: update_in(noise_layers, [noise_layer_expressions()], &do_adjust_for_analyst_tables(&1, table, columns))
 
   defp adjust_for_analyst_tables(noise_layers, _query), do: noise_layers
 
@@ -261,7 +261,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.map(&Expression.unalias/1)
       |> Enum.uniq()
 
-    update_in(noise_layers, [all_expressions()], &set_noise_layer_expression_alias(&1, all_expressions, query))
+    update_in(noise_layers, [noise_layer_expressions()], &set_noise_layer_expression_alias(&1, all_expressions, query))
   end
 
   defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: {_, table, _}}) do
@@ -559,7 +559,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   deflensp non_uid_expressions(), do: Lens.filter(&(not &1.user_id?))
 
-  deflensp all_expressions() do
+  deflensp noise_layer_expressions() do
     Lens.all()
     |> Lens.key(:expressions)
     |> Lens.all()
