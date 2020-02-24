@@ -198,7 +198,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp max_of_max(%Expression{type: :boolean} = max), do: max |> cast(:integer) |> max_of_max() |> cast(:boolean)
   defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type)
 
-  defp float_potential_uid_expression(%Query{anonymization_type: :statistics}, [
+  defp float_potential_uid_expression(%Query{anonymization_type: :statistics, type: :restricted}, [
          %Expression{kind: :function, name: "case", args: [condition, uid, _null]}
        ]) do
     casted_condition = Expression.function({:cast, :integer}, [condition], :integer)
@@ -207,10 +207,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     [Expression.function("case", [aggregated_condition, uid, Expression.constant(nil, nil)], uid.type)]
   end
 
-  defp float_potential_uid_expression(%Query{anonymization_type: :statistics}, [
-         %Expression{kind: :column, user_id?: false} = conditional_uid
-       ]),
-       do: [Expression.function("count", [{:distinct, Expression.unalias(conditional_uid)}], :integer)]
+  defp float_potential_uid_expression(%Query{anonymization_type: :statistics, type: :restricted}, [
+         %Expression{user_id?: false} = conditional_uid
+       ]) do
+    [
+      Expression.function("count", [{:distinct, conditional_uid}], :integer),
+      Expression.function("min", [conditional_uid], conditional_uid.type),
+      Expression.function("max", [conditional_uid], conditional_uid.type)
+    ]
+  end
+
+  defp float_potential_uid_expression(%Query{anonymization_type: :statistics, type: :anonymized} = query, [
+         %Expression{user_id?: true}
+       ]) do
+    [_grouping_id, min_uid, max_uid | _rest] = query.aggregators
+    [Helpers.id_column(query), min_uid, max_uid]
+  end
 
   defp float_potential_uid_expression(query, [%Expression{user_id?: true}]), do: [Helpers.id_column(query)]
 
