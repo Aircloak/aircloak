@@ -16,11 +16,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   """
   @spec compile(Query.t()) :: Query.t()
   def compile(query = %{command: :select, type: :anonymized}) do
-    top_level_uid = Helpers.id_column(query)
-
     query
     |> compile_analyst_table_columns()
-    |> Helpers.apply_bottom_up(&calculate_base_noise_layers(&1, top_level_uid))
+    |> Helpers.apply_bottom_up(&calculate_base_noise_layers/1)
     |> Helpers.apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
     |> Helpers.apply_top_down(&normalize_datasource_case/1)
@@ -211,23 +209,25 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
        ]),
        do: [Expression.function("count", [{:distinct, Expression.unalias(conditional_uid)}], :integer)]
 
-  defp float_potential_uid_expression(_query, potential_uid_expression), do: potential_uid_expression
+  defp float_potential_uid_expression(query, [%Expression{user_id?: true}]), do: [Helpers.id_column(query)]
+
+  defp float_potential_uid_expression(_query, []), do: []
 
   # -------------------------------------------------------------------
   # Computing base noise layers
   # -------------------------------------------------------------------
 
-  defp calculate_base_noise_layers(query = %{type: :standard}, _top_level_uid), do: query
+  defp calculate_base_noise_layers(query = %{type: :standard}), do: query
 
-  defp calculate_base_noise_layers(query, top_level_uid) do
+  defp calculate_base_noise_layers(query) do
     noise_layers =
-      clear_noise_layers(query, top_level_uid) ++
-        basic_noise_layers(query, top_level_uid) ++
-        group_noise_layers(query, top_level_uid) ++
-        in_noise_layers(query, top_level_uid) ++
+      clear_noise_layers(query) ++
+        basic_noise_layers(query) ++
+        group_noise_layers(query) ++
+        in_noise_layers(query) ++
         range_noise_layers(query) ++
-        not_equals_noise_layers(query, top_level_uid) ++
-        not_like_noise_layers(query, top_level_uid) ++
+        not_equals_noise_layers(query) ++
+        not_like_noise_layers(query) ++
         aggregator_noise_layers(query)
 
     %Query{query | noise_layers: finalize(noise_layers, query)}
@@ -291,28 +291,34 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end
   end
 
-  defp clear_noise_layers(query, top_level_uid),
-    do:
-      clear_conditions()
-      |> Lens.to_list(query)
-      |> Enum.flat_map(fn %Expression{kind: :function, name: "=", args: [column, constant]} ->
-        [
-          static_noise_layer(column, constant),
-          uid_noise_layer(column, constant, top_level_uid)
-        ]
-      end)
+  defp clear_noise_layers(query) do
+    uid = Helpers.id_column(query)
 
-  defp basic_noise_layers(query, top_level_uid) do
+    clear_conditions()
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn %Expression{kind: :function, name: "=", args: [column, constant]} ->
+      [
+        static_noise_layer(column, constant),
+        uid_noise_layer(column, constant, uid)
+      ]
+    end)
+  end
+
+  defp basic_noise_layers(query) do
+    uid = Helpers.id_column(query)
+
     query
     |> basic_conditions()
     |> Query.Lenses.operands()
     |> non_synthetic_expressions()
     |> raw_columns(query)
-    |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
+    |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, uid)])
   end
 
-  defp group_noise_layers(%Query{type: :anonymized, grouping_sets: grouping_sets} = query, top_level_uid)
+  defp group_noise_layers(%Query{type: :anonymized, grouping_sets: grouping_sets} = query)
        when length(grouping_sets) > 1 do
+    uid = Helpers.id_column(query)
+
     grouping_sets
     |> Enum.with_index()
     |> Enum.flat_map(fn {grouping_set, index} ->
@@ -325,35 +331,39 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.flat_map(
         &[
           static_noise_layer(&1, &1, nil, {:grouping_set, index}),
-          uid_noise_layer(&1, &1, top_level_uid, nil, {:grouping_set, index})
+          uid_noise_layer(&1, &1, uid, nil, {:grouping_set, index})
         ]
       )
     end)
   end
 
-  defp group_noise_layers(query, top_level_uid) do
+  defp group_noise_layers(query) do
+    uid = Helpers.id_column(query)
+
     Query.Lenses.group_expressions()
     |> non_uid_expressions()
     |> non_synthetic_expressions()
     |> non_case_expressions()
     |> raw_columns(query)
-    |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
+    |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, uid)])
   end
 
-  defp in_noise_layers(query, top_level_uid),
-    do:
-      conditions_satisfying(&Condition.in?/1)
-      |> Lens.to_list(query)
-      |> Enum.flat_map(fn %Expression{kind: :function, name: "in", args: [column | constants]} ->
-        non_synthetic_expressions()
-        |> raw_columns(column)
-        |> Enum.flat_map(fn column ->
-          [
-            static_noise_layer(column, column)
-            | Enum.map(constants, &uid_noise_layer(column, &1, top_level_uid))
-          ]
-        end)
+  defp in_noise_layers(query) do
+    uid = Helpers.id_column(query)
+
+    conditions_satisfying(&Condition.in?/1)
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn %Expression{kind: :function, name: "in", args: [column | constants]} ->
+      non_synthetic_expressions()
+      |> raw_columns(column)
+      |> Enum.flat_map(fn column ->
+        [
+          static_noise_layer(column, column)
+          | Enum.map(constants, &uid_noise_layer(column, &1, uid))
+        ]
       end)
+    end)
+  end
 
   defp range_noise_layers(query),
     do:
@@ -397,15 +407,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # <> noise layers
   # -------------------------------------------------------------------
 
-  defp not_equals_noise_layers(query, top_level_uid),
-    do:
-      conditions_satisfying(&Condition.not_equals?/1)
-      |> Lens.to_list(query)
-      |> Enum.flat_map(&do_not_equals_noise_layers(&1, top_level_uid))
+  defp not_equals_noise_layers(query) do
+    uid = Helpers.id_column(query)
+
+    conditions_satisfying(&Condition.not_equals?/1)
+    |> Lens.to_list(query)
+    |> Enum.flat_map(&do_not_equals_noise_layers(&1, uid))
+  end
 
   defp do_not_equals_noise_layers(
          %Expression{kind: :function, name: "<>", args: [column, %Expression{kind: :constant, type: :text} = constant]},
-         top_level_uid
+         uid
        ),
        do:
          non_synthetic_expressions()
@@ -413,14 +425,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
          |> Enum.flat_map(
            &[
              static_noise_layer(&1, constant, :<>),
-             uid_noise_layer(&1, constant, top_level_uid, :<>),
+             uid_noise_layer(&1, constant, uid, :<>),
              static_noise_layer(&1, lower(constant), {:<>, :lower})
            ]
          )
 
   defp do_not_equals_noise_layers(
          %Expression{kind: :function, name: "<>", args: [column, %Expression{kind: :constant} = constant]},
-         top_level_uid
+         uid
        ),
        do:
          non_synthetic_expressions()
@@ -428,11 +440,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
          |> Enum.flat_map(
            &[
              static_noise_layer(&1, constant, :<>),
-             uid_noise_layer(&1, constant, top_level_uid, :<>)
+             uid_noise_layer(&1, constant, uid, :<>)
            ]
          )
 
-  defp do_not_equals_noise_layers(%Expression{kind: :function, name: "<>"}, _top_level_uid), do: []
+  defp do_not_equals_noise_layers(%Expression{kind: :function, name: "<>"}, _uid), do: []
 
   defp lower(%Expression{kind: :constant, type: :text, value: value}),
     do: Expression.constant(:text, String.downcase(value))
@@ -441,7 +453,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # NOT LIKE noise layers
   # -------------------------------------------------------------------
 
-  defp not_like_noise_layers(query, top_level_uid) do
+  defp not_like_noise_layers(query) do
+    uid = Helpers.id_column(query)
+
     conditions_satisfying(&Condition.not_like?/1)
     |> Lens.to_list(query)
     |> Enum.flat_map(fn %Expression{
@@ -455,7 +469,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.flat_map(
         &[
           static_noise_layer(&1, &1, :<>),
-          uid_noise_layer(&1, &1, top_level_uid, :<>)
+          uid_noise_layer(&1, &1, uid, :<>)
         ]
       )
     end)
@@ -504,12 +518,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Lens.to_list(data)
       |> Enum.map(&%Expression{&1 | user_id?: false})
 
-  defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil, tag \\ nil) do
-    expressions = [
-      _min = layer_expression,
-      _max = layer_expression,
-      top_level_uid
-    ]
+  defp uid_noise_layer(base_column, layer_expression, uid_expression, extras \\ nil, tag \\ nil) do
+    expressions = [_min = layer_expression, _max = layer_expression, uid_expression]
 
     build_noise_layer(base_column, extras, expressions, tag)
   end
