@@ -127,11 +127,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp add_floated_noise_layers(query) do
     noise_layers =
-      if query.type == :restricted && (Helpers.aggregates?(query) or Helpers.group_by?(query)),
-        do: float_noise_layers(query.noise_layers ++ floated_noise_layers(query), query),
-        else: query.noise_layers ++ floated_noise_layers(query)
+      (query.noise_layers ++ floated_noise_layers(query))
+      |> float_noise_layers(query)
+      |> finalize(query)
 
-    %{query | noise_layers: finalize(noise_layers, query)}
+    %{query | noise_layers: noise_layers}
   end
 
   defp float_noise_layers(layers, query), do: Enum.map(layers, &float_noise_layer(&1, query))
@@ -176,14 +176,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       [min, max | potential_uid_expression] = expressions
 
       potential_uid_expression = float_potential_uid_expression(query, potential_uid_expression)
-      min = if Helpers.grouped_by?(query, min), do: min, else: min_of_min(min)
-      max = if Helpers.grouped_by?(query, max), do: max, else: max_of_max(max)
+      min = if expression_needs_aggregation?(query, min), do: min_of_min(min), else: min
+      max = if expression_needs_aggregation?(query, max), do: max_of_max(max), else: max
 
       %{noise_layer | expressions: [min, max | potential_uid_expression]}
     else
       noise_layer
     end
   end
+
+  defp expression_needs_aggregation?(query, expression),
+    do: query.type == :restricted and not Helpers.grouped_by?(query, expression)
 
   defp cast(expression, type), do: Expression.function({:cast, type}, [expression], type)
 
@@ -211,7 +214,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp float_potential_uid_expression(query, [%Expression{user_id?: true}]), do: [Helpers.id_column(query)]
 
-  defp float_potential_uid_expression(_query, []), do: []
+  defp float_potential_uid_expression(_query, potential_uid_expression), do: potential_uid_expression
 
   # -------------------------------------------------------------------
   # Computing base noise layers
