@@ -434,10 +434,17 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
-  test "not in" do
+  test "not in multiple values" do
     assert_equivalent(
       "SELECT STDDEV(uid) FROM table WHERE numeric NOT IN (1, 2)",
       "SELECT STDDEV(uid) FROM table WHERE numeric <> 1 AND numeric <> 2"
+    )
+  end
+
+  test "not in single value" do
+    assert_equivalent(
+      "SELECT STDDEV(uid) FROM table WHERE numeric NOT IN (1)",
+      "SELECT STDDEV(uid) FROM table WHERE numeric <> 1"
     )
   end
 
