@@ -223,13 +223,16 @@ defmodule Cloak.Sql.Expression.Test do
     do: assert(apply_function("-", [~N[2015-01-02 10:20:00], ~N[2015-01-01 10:00:00]]) === Duration.parse!("P1DT20M"))
 
   test "date + interval",
-    do: assert(apply_function("+", [~D[2015-01-01], Duration.parse!("P10DT10M")]) === ~N[2015-01-11 00:10:00])
+    do: assert(apply_function("+", [~D[2015-01-01], Duration.parse!("P10DT10M")]) === ~N[2015-01-11 00:10:00.000000])
 
   test "time + interval",
-    do: assert(apply_function("+", [~T[10:20:30], Duration.parse!("P10DT1H10M")]) === ~T[11:30:30])
+    do: assert(apply_function("+", [~T[10:20:30], Duration.parse!("P10DT1H10M")]) === ~T[11:30:30.000000])
 
   test "datetime + interval",
-    do: assert(apply_function("+", [~N[2015-01-01 10:20:30], Duration.parse!("P10DT10M")]) === ~N[2015-01-11 10:30:30])
+    do:
+      assert(
+        apply_function("+", [~N[2015-01-01 10:20:30], Duration.parse!("P10DT10M")]) === ~N[2015-01-11 10:30:30.000000]
+      )
 
   for {type, value} <- %{
         time: ~T[10:20:30],

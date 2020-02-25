@@ -450,8 +450,11 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("/", [x = %Duration{}, y]), do: Duration.scale(x, 1 / y)
   defp do_apply("/", [x, y]), do: x / y
   defp do_apply("unsafe_add", [x, y]), do: do_apply("+", [x, y])
-  defp do_apply("+", [x = %Date{}, y = %Duration{}]), do: x |> Timex.to_naive_datetime() |> Timex.add(y)
-  defp do_apply("+", [x = %NaiveDateTime{}, y = %Duration{}]), do: Timex.add(x, y)
+
+  defp do_apply("+", [x = %Date{}, y = %Duration{}]),
+    do: x |> Timex.to_naive_datetime() |> Timex.add(y) |> Cloak.Time.max_precision()
+
+  defp do_apply("+", [x = %NaiveDateTime{}, y = %Duration{}]), do: Timex.add(x, y) |> Cloak.Time.max_precision()
   defp do_apply("+", [x = %Duration{}, y = %Duration{}]), do: Duration.add(x, y)
   defp do_apply("+", [x = %Duration{}, y]), do: do_apply("+", [y, x])
   defp do_apply("+", [x = %Time{}, y = %Duration{}]), do: add_to_time(x, y)
@@ -536,6 +539,7 @@ defmodule Cloak.Sql.Expression do
     NaiveDateTime.from_erl!({_arbitrary_date = {100, 1, 1}, Time.to_erl(time)})
     |> Timex.add(duration_time_part(duration))
     |> NaiveDateTime.to_time()
+    |> Cloak.Time.max_precision()
   end
 
   defp cast(nil, _), do: nil
