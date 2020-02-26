@@ -24,6 +24,8 @@
 - The Oracle Instant Client version 18.3 is bundled with the container and no longer needs to be
   provided separately.
 - The timeout for idle connections can now be adjusted in the Cloak config file, under the `connection_keep_time` field.
+- The timeout for connecting to a data source can now be adjusted in the Cloak config file, under the `connect_timeout`
+  field.
 - Improved support for boolean expressions.
 - Added support for `case` statements in standard queries.
 - Allowed inequalities between datetime columns and the current date.
