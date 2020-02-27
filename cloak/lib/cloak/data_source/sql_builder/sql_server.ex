@@ -148,6 +148,10 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     ]
 
   def cast_sql(value, :unknown, :text), do: ["TRY_CAST(", value, " AS varbinary)"]
+
+  def cast_sql(value, date_type, :text) when date_type in [:date, :datetime],
+    do: ["TRY_CONVERT(nvarchar, ", value, ", 20)"]
+
   def cast_sql(value, _, type), do: ["TRY_CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
