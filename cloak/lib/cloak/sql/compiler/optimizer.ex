@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.Optimizer do
   @moduledoc "Module for optimizing query execution."
 
-  alias Cloak.Sql.{Expression, Query, Condition}
+  alias Cloak.Sql.{Expression, Query, Condition, Function}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
 
@@ -141,11 +141,14 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     end)
   end
 
-  defp add_conditions_to_query(conditions, %Query{grouping_sets: []} = query),
-    do: %Query{query | where: Condition.both(query.where, conditions)}
+  defp add_conditions_to_query(conditions, query) do
+    if query.grouping_sets == [] and used_aggregators(conditions) == [],
+      do: %Query{query | where: Condition.both(query.where, conditions)},
+      else: %Query{query | having: Condition.both(query.having, conditions)}
+  end
 
-  defp add_conditions_to_query(conditions, %Query{grouping_sets: [_ | _]} = query),
-    do: %Query{query | having: Condition.both(query.having, conditions)}
+  defp used_aggregators(conditions),
+    do: Query.Lenses.conditions_terminals() |> Lens.filter(&Function.aggregator?/1) |> Lens.to_list(conditions)
 
   defp condition_from_table?(condition, table_name) do
     Query.Lenses.conditions_terminals()

@@ -113,6 +113,12 @@ defmodule Cloak.Query.UserlessTableTest do
     })
   end
 
+  test "[optimizer bug] condition over aggregator" do
+    assert_query("select * from (select x from (select count(*) as x from userless) as t) as t where x = 4", %{
+      rows: [%{row: [4]}]
+    })
+  end
+
   describe "extended group by clauses" do
     test "empty group by" do
       assert_query("select count(*) from userless group by ()", %{
