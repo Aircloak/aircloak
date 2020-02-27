@@ -172,7 +172,12 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
       ")) IN ('0', 'f', 'false', 'no', 'n') THEN 0 ELSE NULL END"
     ]
 
-  def cast_sql(value, number, :text) when number in [:integer, :real], do: ["TO_CHAR(", value, ?)]
+  def cast_sql(value, number, :text) when number in [:integer, :real], do: ["TO_CHAR(", value, ")"]
+
+  def cast_sql(value, :date, :text), do: ["TO_CHAR(", value, ", 'YYYY-MM-DD')"]
+  def cast_sql(value, :datetime, :text), do: ["TO_CHAR(", value, ", 'YYYY-MM-DD HH:MI:SS AM')"]
+  def cast_sql(value, :text, :date), do: ["TO_DATE(", value, ", 'YYYY-MM-DD')"]
+  def cast_sql(value, :text, :datetime), do: ["TO_TIMESTAMP(", value, ", 'YYYY-MM-DD HH:MI:SS AM')"]
 
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
@@ -241,7 +246,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   defp sql_type(:datetime), do: "TIMESTAMP"
   defp sql_type(:integer), do: "INTEGER"
   defp sql_type(:date), do: "DATE"
-  defp sql_type(:text), do: "VARCHAR2"
+  defp sql_type(:text), do: "VARCHAR2(4000)"
   defp sql_type(:time), do: "TIME"
   defp sql_type({:native_type, type}), do: type
 
