@@ -129,6 +129,9 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("substring", args), do: function_sql("SUBSTR", args)
 
+  def function_sql("concat", [arg]), do: arg
+  def function_sql("concat", [first | rest]), do: ["CONCAT(", first, ",", function_sql("concat", rest), ")"]
+
   def function_sql("date_trunc", [[?', "second", ?'], arg2]), do: ["CAST(", arg2, " AS TIMESTAMP(0))"]
   def function_sql("date_trunc", [[?', "minute", ?'], arg2]), do: function_sql("TRUNC", [arg2, "'mi'"])
   def function_sql("date_trunc", [[?', "hour", ?'], arg2]), do: function_sql("TRUNC", [arg2, "'hh'"])
