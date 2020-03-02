@@ -4,7 +4,7 @@
     "air_site": {"type": "string", "minLength": 1},
     "salt": {"type": "string", "minLength": 1},
     "cloak_secret": {"type": "string", "minLength": 64},
-    "secret_key": {"type": "string", "minLength": 64},
+    "encryption_key": {"type": "string", "minLength": 16, "maxLength": 16},
     "data_sources": {"type": "string", "minLength": 1},
     "debug": {"type": "boolean"},
     "features": {"$comment": "allowed for backward compatibility"},

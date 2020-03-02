@@ -148,8 +148,8 @@ The `max_connections` property can be used to configure the maximum allowed numb
 
 Insights Air can be configured to allow users to login with credentials managed in an LDAP directory service. Note that
 this feature is licensed separately. If you would like to add LDAP sync to your license, contact
-[support@aircloak.com](mailto:support@aircloak.com).  The `config.json` snippet below shows all possible configuration
-options along with their default values where applicable.  Note that the `host`, `user_base`, and `group_base` options
+[support@aircloak.com](mailto:support@aircloak.com). The `config.json` snippet below shows all possible configuration
+options along with their default values where applicable. Note that the `host`, `user_base`, and `group_base` options
 are required. Options without a default value
 are indicated with a `null`.
 
@@ -182,43 +182,43 @@ are indicated with a `null`.
 
 The options have the following meaning:
 
-* `host` - the hostname of the LDAP server.
-* `port` - the port on which to connect to the LDAP server. Defaults to 389.
-* `bind_dn` - the DN of the user used to read from the LDAP server. We recommend you set up a read-only user for this
+- `host` - the hostname of the LDAP server.
+- `port` - the port on which to connect to the LDAP server. Defaults to 389.
+- `bind_dn` - the DN of the user used to read from the LDAP server. We recommend you set up a read-only user for this
   purpose. Defaults to `""`.
-* `password` - the password of the user used to read from the LDAP server. You can set both `bind_dn` and `password` to
+- `password` - the password of the user used to read from the LDAP server. You can set both `bind_dn` and `password` to
   `""` to configure anonymous access. Defaults to `""`.
-* `encryption` - the type of encryption to use. Possible values are `"plain"` for no encryption, `"ssl"` for regular
+- `encryption` - the type of encryption to use. Possible values are `"plain"` for no encryption, `"ssl"` for regular
   SSL, and `"start_tls"` for StartTLS. Set this to the type of encryption used by your server. We recommend you use
   either `"ssl"` or `"start_tls"`. Defaults to `"plain"`.
-* `verify_server_certificate` - set this to `true` to check the certificate of the server for validity. Requires
+- `verify_server_certificate` - set this to `true` to check the certificate of the server for validity. Requires
   `ca_certfile` to be configured. Defaults to `false`.
-* `ca_certfile` - the name of the CA certificate file with which to verify the server certificate. Put the certificate
+- `ca_certfile` - the name of the CA certificate file with which to verify the server certificate. Put the certificate
   file in the same folder as `config.json`.
-* `client_certfile` - the name of the client certificate file to use when connecting to the server. Put the certificate
+- `client_certfile` - the name of the client certificate file to use when connecting to the server. Put the certificate
   file in the same folder as `config.json`. By default no client certificate is sent.
-* `client_keyfile` - the name of the file containing the key to `client_certfile`. Put the key file in the same folder
+- `client_keyfile` - the name of the file containing the key to `client_certfile`. Put the key file in the same folder
   as `config.json`.
-* `user_base` - the LDAP subtree in which to look for users.
-* `user_filter` - an LDAP filter to restrict which users to sync from `user_base`. See
+- `user_base` - the LDAP subtree in which to look for users.
+- `user_filter` - an LDAP filter to restrict which users to sync from `user_base`. See
   [the LDAP page on filters](https://ldap.com/ldap-filters/) for more on how to formulate such filters. Defaults to
   `"(objectClass=*)"`, which matches all objects.
-* `user_login` - the name of the attribute from which to take the user's login. Note that users are required to have a
+- `user_login` - the name of the attribute from which to take the user's login. Note that users are required to have a
   valid login, so if this attribute is empty for an object, it won't be synced as an Insights Air user. Defaults to
   `"cn"`.
-* `user_name` - the name of the attribute from which to take the user's name. Defaults to `"cn"`.
-* `group_base` - the LDAP subtree in which to look for groups.
-* `group_filter` - an LDAP filter to restrict which groups to sync from `group_base`. See
+- `user_name` - the name of the attribute from which to take the user's name. Defaults to `"cn"`.
+- `group_base` - the LDAP subtree in which to look for groups.
+- `group_filter` - an LDAP filter to restrict which groups to sync from `group_base`. See
   [the LDAP page on filters](https://ldap.com/ldap-filters/) for more on how to formulate such filters. Defaults to
   `"(objectClass=*)"`, which matches all objects.
-* `group_name` - the name of the attribute from which to take the group's name. Note that groups are required to have a
+- `group_name` - the name of the attribute from which to take the group's name. Note that groups are required to have a
   valid name, so if this attribute is empty for an object, it won't be synced as an Insights Air group. Defaults to
   `"dn"`.
-* `group_member` - the name of the attribute on a group object which lists the group's members. Defaults to
+- `group_member` - the name of the attribute on a group object which lists the group's members. Defaults to
   `"memberUid"`.
-* `group_member_key` - the user attribute which will be listed in group objects under `group_member`. Possible values
+- `group_member_key` - the user attribute which will be listed in group objects under `group_member`. Possible values
   are `"login"` and `"dn"`. Defaults to `"login"`.
-* `user_group` - the name of the attribute on a user object which lists the groups the user belongs to. The attribute is
+- `user_group` - the name of the attribute on a user object which lists the groups the user belongs to. The attribute is
   expected to contain the DNs of the groups.
 
 If a valid LDAP configuration is present, Insights Air will periodically sync with the LDAP server to update the list of
@@ -338,7 +338,7 @@ The general shape of `config.json` is:
   "air_site": string,
   "salt": string,
   "cloak_secret": string,
-  "secret_key": string,
+  "encryption_key": string,
   "data_sources": string,
   "concurrency": integer,
   "lcf_buckets_aggregation_limit": integer,
@@ -362,8 +362,16 @@ The `cloak_secret` setting is used to authenticate the Insights Cloak instance w
 required only if `cloak_secret` was configured in Insights Air (see [Web site configuration](#web-site-configuration)),
 and in that case it needs to be set to the same value.
 
-Similarly, the `secret_key` setting is used for Insights Cloak instances communicating with each other and should be set
-up similarly to `cloak_secret`. Make sure that all Cloak instances have the same setting.
+Similarly, the `encryption_key` setting is used for Insights Cloak instances communicating with each other and should be set
+up similarly to `encryption_key`, except that is must be 16 bytes. Make sure that all Cloak instances have the same setting.
+You can use the following command to generate one:
+
+```
+cat /dev/urandom |
+  LC_ALL=C tr -dc 'a-zA-Z0-9' |
+  fold -w 16 |
+  head -n 1
+```
 
 The `concurrency` field is optional and controls the amount of additional threads used for processing the selected data.
 The default setting is 0, which means a single thread processes the data coming in from the database server. For small
@@ -414,8 +422,8 @@ The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `my
 Some of these drivers use the ODBC protocol to talk to the database. These drivers are `sqlserver`, and `oracle`.
 Since they rely on ODBC, they accept some additional connection parameters:
 
-  - `encoding` which has possible values of "latin1", "unicode", "utf8", "utf16", "utf32", "utf16-big", "utf16-little", "utf32-big", "utf32-little".
-  - `odbc_parameters` - ODBC-specific parameters for the ODBC driver which is used to talk to the database.
+- `encoding` which has possible values of "latin1", "unicode", "utf8", "utf16", "utf32", "utf16-big", "utf16-little", "utf32-big", "utf32-little".
+- `odbc_parameters` - ODBC-specific parameters for the ODBC driver which is used to talk to the database.
 
 These parameters are optional, and are only required for particular installations, where the default values do not suffice.
 
@@ -454,8 +462,8 @@ of the following values: `personal` (default) and `non-personal`. Tables with da
 anonymity should be preserved must be marked with the content type `personal`. If any such table is included in a query, the
 query will underlie the anonymization restrictions applied by Aircloak Insights and produce anonymized results. If the
 content type field is set to `non-personal`, the table will be classified as not containing data requiring anonymisation.
-Queries over such tables are not subject to the anonymization restrictions. *No attempts will be made to anonymize the data
-they contain!*
+Queries over such tables are not subject to the anonymization restrictions. _No attempts will be made to anonymize the data
+they contain!_
 
 The database table can be declared by either using `db_name` or as an SQL view using `query`.
 These options are mutually exclusive.
@@ -501,9 +509,9 @@ pre-configured key-relationships.
 
 The following restrictions are currently in place when configuring keys:
 
-  - A column can have one key tag at the most.
-  - A `personal` table can have at most one `user_id` key.
-  - A `non-personal` table can't have any `user_id` keys.
+- A column can have one key tag at the most.
+- A `personal` table can have at most one `user_id` key.
+- A `non-personal` table can't have any `user_id` keys.
 
 An example configuration file for a database containing information about customers, accounts, transactions and bought
 products might look like this:
@@ -623,7 +631,7 @@ Where `sample_rate` is an integer between 1 and 100, representing the percentage
 
 ##### Manually classifying isolating columns
 
-Insights Cloak can automatically detect whether a column isolates users or not.  For large database tables this check
+Insights Cloak can automatically detect whether a column isolates users or not. For large database tables this check
 can be slow and resource-intensive. An administrator may choose to manually configure whether a given column isolates
 users or not, removing the need for automated classification.
 
@@ -663,7 +671,7 @@ it will treat `telephone_number` as isolating, `first_name` as not isolating, an
 columns. `manual_table` has the automatic isolating column detection turned off. All columns that have not been manually
 classified will therefore be treated as if they isolate users.
 
-__Warning__ The safest option is to treat a column as isolating. Manually classifying a column as not isolating may lead
+**Warning** The safest option is to treat a column as isolating. Manually classifying a column as not isolating may lead
 to privacy loss. It is safe to classify columns as not isolating only when sure that most values in that column appear
 for multiple users. Please contact [support@aircloak.com](mailto:support@aircloak.com) if you need help classifying your
 data.
@@ -735,14 +743,13 @@ If the air name or the datasource name is changed, duplicate copies of analyst t
 
 The administrator can use the table `__ac_analyst_tables_X` (where `X` is an integer) to list analyst tables. This table contains the list of all currently known analyst tables. The administrator can use the following columns to determine which tables are no longer needed:
 
-  - `air` - name of the air instance
-  - `data_source` - name of the data source where the table is created
-  - `analyst` - the numerical id of the table owner
-  - `name` - the table name, as seen in the air by its owner
-  - `db_name` - the name of the table in the database
+- `air` - name of the air instance
+- `data_source` - name of the data source where the table is created
+- `analyst` - the numerical id of the table owner
+- `name` - the table name, as seen in the air by its owner
+- `db_name` - the name of the table in the database
 
 If the administrator is certain that some analyst tables are no longer needed, for example if an air instance or some datasource have been renamed or decommissioned, they can drop these tables, and delete the corresponding entries from the `__ac_analyst_tables_X` table.
-
 
 #### Tips and tricks
 

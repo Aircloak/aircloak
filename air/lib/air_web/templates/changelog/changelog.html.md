@@ -1,6 +1,6 @@
-## Version 19.5.0
+## Version 20.0.2
 
-### **Breaking changes**
+### __Breaking changes__
 
 - Added a required configuration parameter `secret_key`, which should be a random string shared among all Cloaks configured
   to speak to a particular Air
@@ -11,7 +11,7 @@
 
 ## Version 19.4.0
 
-### **Breaking changes**
+### __Breaking changes__
 
 - Support for `median` was removed.
 - Support for `distinct` modifier was removed for all aggregate functions except `count` and `count_noise`.
@@ -52,7 +52,7 @@
 
 ## Version 19.3.0
 
-### **Breaking changes**
+### __Breaking changes__
 
 - `GROUP BY` clause is no longer allowed to contain constants.
 - Minimum supported MongoDB version is now `3.6`.
@@ -88,7 +88,7 @@
 
 [Upgrade guide](docs/ops/upgrading.html)
 
-### **Breaking changes**
+### __Breaking changes__
 
 - The air configuration must contain the mandatory `name` property in the Insights Air configuration.
   See [Insights Air configuration](docs/ops/configuration.html#insights-air-configuration) for details.

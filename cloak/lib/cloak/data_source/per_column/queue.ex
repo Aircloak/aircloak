@@ -37,7 +37,7 @@ defmodule Cloak.DataSource.PerColumn.Queue do
     end
   end
 
-  @doc "Moves the column into the processed storage"
+  @doc "Moves the column into the processed storage."
   @spec make_processed(t, column, NaiveDateTime.t()) :: t
   def make_processed(queue, column, expires_at \\ NaiveDateTime.utc_now()) do
     %{
@@ -50,8 +50,8 @@ defmodule Cloak.DataSource.PerColumn.Queue do
   @doc "Does the queue know about this column?"
   @spec member?(t, column) :: bool
   def member?(queue, column) do
-    Map.has_key?(queue.processed_columns, column) ||
-      :queue.member(column, queue.regular_queue) ||
+    Map.has_key?(queue.processed_columns, column) or
+      :queue.member(column, queue.regular_queue) or
       :queue.member(column, queue.priority_queue)
   end
 

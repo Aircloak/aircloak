@@ -9,7 +9,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   alias Air.CentralClient.Socket
   alias Air.Service.AnalystTable
-  alias Air.Service.Cloak.Analysis
+  alias Air.Service.Cloak.AnalysisCache
 
   @type views :: %{String.t() => String.t()}
   @type parameters :: nil | [map]
@@ -164,7 +164,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       |> Air.Service.Cloak.register(cloak_info.data_sources)
       |> revalidate_views()
 
-      {:ok, %{air_name: Air.name(), available_analyses: Analysis.available(cloak_info.data_sources)}, socket}
+      {:ok, %{air_name: Air.name(), available_analyses: AnalysisCache.all()}, socket}
     else
       _ -> {:error, :cloak_secret_invalid}
     end
@@ -330,7 +330,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
 
   defp process_analysis_results(result, socket) do
-    Analysis.complete(result)
+    AnalysisCache.insert(result)
     broadcast_from(socket, "air_cast", %{event: "analysis_results", payload: result})
   end
 

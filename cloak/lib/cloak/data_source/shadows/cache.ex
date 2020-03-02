@@ -21,6 +21,14 @@ defmodule Cloak.DataSource.Shadows.Cache do
   def lookup(cache_ref \\ __MODULE__, data_source, table_name, column_name),
     do: Cache.lookup(cache_ref, data_source, table_name, column_name)
 
+  @doc "Updates the cache with a result computed in another Cloak."
+  @spec update_with_remote_result(GenServer.server(), %{
+          descriptor: Descriptor.t(),
+          status: :ok,
+          expires: NaiveDateTime.t(),
+          result: any,
+          type: Result.result_type()
+        }) :: :ok
   def update_with_remote_result(cache_ref \\ __MODULE__, result), do: Cache.update_with_remote_result(cache_ref, result)
 
   # -------------------------------------------------------------------

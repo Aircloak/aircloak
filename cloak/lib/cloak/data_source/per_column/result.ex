@@ -1,17 +1,16 @@
 defmodule Cloak.DataSource.PerColumn.Result do
-  @moduledoc """
-  Holds a shareable analysis result.
-  """
+  @moduledoc "Holds a shareable analysis result."
+
   alias Cloak.DataSource.PerColumn.Descriptor
   require Aircloak.DeployConfig
 
-  @type type :: Cloak.DataSource.Bounds.Cache | Cloak.DataSource.Isolators.Cache | Cloak.DataSource.Shadows.Cache
+  @type source :: Cloak.DataSource.Bounds.Cache | Cloak.DataSource.Isolators.Cache | Cloak.DataSource.Shadows.Cache
   @type t :: %__MODULE__{
           descriptor: Descriptor.t(),
           status: :ok,
           expires: NaiveDateTime.t(),
           result: any,
-          type: type
+          type: source
         }
   defstruct [:descriptor, :status, :expires, :result, :type]
 
@@ -19,7 +18,7 @@ defmodule Cloak.DataSource.PerColumn.Result do
   @aad "AES256GCM"
 
   @doc "Constructs a new result"
-  @spec new(Descriptor.t(), type(), any, NaiveDateTime.t()) :: t
+  @spec new(Descriptor.t(), source(), any, NaiveDateTime.t()) :: t
   def new(descriptor, type, result, expires) do
     %__MODULE__{
       descriptor: descriptor,
@@ -31,14 +30,15 @@ defmodule Cloak.DataSource.PerColumn.Result do
   end
 
   @doc "Decrypts an encrypted Result struct"
-  @spec decrypt(%{descriptor: Descriptor.t(), status: :ok, expires: NaiveDateTime.t(), result: any, type: type}) :: t
-  def decrypt(d) do
+  @spec decrypt(%{descriptor: Descriptor.t(), status: :ok, expires: NaiveDateTime.t(), result: any, type: source}) ::
+          t
+  def decrypt(result_data) do
     %__MODULE__{
-      descriptor: d.descriptor,
-      status: d.status,
-      expires: d.expires,
-      result: decrypt_result(d.result),
-      type: d.type
+      descriptor: result_data.descriptor,
+      status: result_data.status,
+      expires: result_data.expires,
+      result: decrypt_result(result_data.result),
+      type: result_data.type
     }
   end
 
@@ -48,16 +48,26 @@ defmodule Cloak.DataSource.PerColumn.Result do
     %__MODULE__{d | result: encrypt_result(d.result)}
   end
 
-  defp decrypt_result(result) do
-    <<iv::binary-16, tag::binary-16, ciphertext::binary>> = result
-    :erlang.binary_to_term(:crypto.block_decrypt(@mode, secret_key(), iv, {@aad, ciphertext, tag}))
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp decrypt_result(<<iv::binary-16, tag::binary-16, ciphertext::binary>>) do
+    :erlang.binary_to_term(:crypto.block_decrypt(@mode, secret_key!(), iv, {@aad, ciphertext, tag}))
   end
 
   defp encrypt_result(result) do
     iv = :crypto.strong_rand_bytes(16)
-    {ciphertext, ciphertag} = :crypto.block_encrypt(@mode, secret_key(), iv, {@aad, :erlang.term_to_binary(result), 16})
+
+    {ciphertext, ciphertag} =
+      :crypto.block_encrypt(@mode, secret_key!(), iv, {@aad, :erlang.term_to_binary(result), 16})
+
     iv <> ciphertag <> ciphertext
   end
 
-  defp secret_key(), do: :crypto.hash(:sha256, Aircloak.DeployConfig.fetch!("secret_key"))
+  defp secret_key!() do
+    key = Aircloak.DeployConfig.fetch!("encryption_key")
+    unless byte_size(key) == 16, do: raise("Encryption key must be 16 bytes!")
+    key
+  end
 end

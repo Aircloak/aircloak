@@ -22,6 +22,14 @@ defmodule Cloak.DataSource.Bounds.Cache do
   def value(cache_ref \\ __MODULE__, data_source, table_or_table_name, column_name),
     do: Cache.value(cache_ref, data_source, table_or_table_name, column_name)
 
+  @doc "Updates the cache with a result computed in another Cloak."
+  @spec update_with_remote_result(%{
+          descriptor: Descriptor.t(),
+          status: :ok,
+          expires: NaiveDateTime.t(),
+          result: any,
+          type: Result.result_type()
+        }) :: :ok
   def update_with_remote_result(cache_ref \\ __MODULE__, result), do: Cache.update_with_remote_result(cache_ref, result)
 
   # -------------------------------------------------------------------

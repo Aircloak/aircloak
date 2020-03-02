@@ -34,7 +34,14 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     end
   end
 
-  @doc "Updates the cache with a result computed elsewhere"
+  @doc "Updates the cache with a result computed in another Cloak."
+  @spec update_with_remote_result(GenServer.server(), %{
+          descriptor: Descriptor.t(),
+          status: :ok,
+          expires: NaiveDateTime.t(),
+          result: any,
+          type: Result.result_type()
+        }) :: :ok
   def update_with_remote_result(server, result) do
     GenServer.cast(server, {:update_with_remote_result, Result.decrypt(result)})
   end
@@ -54,7 +61,10 @@ defmodule Cloak.DataSource.PerColumn.Cache do
       |> descriptor_map()
 
     queue =
-      Queue.new(Enum.shuffle(Map.keys(descriptor_to_column_map)), PersistentKeyValue.cached_columns(opts.cache_owner))
+      descriptor_to_column_map
+      |> Map.keys()
+      |> Enum.shuffle()
+      |> Queue.new(PersistentKeyValue.cached_columns(opts.cache_owner))
 
     state = %{
       default: opts.default,

@@ -18,6 +18,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   def register_socket(), do: GenServer.call(__MODULE__, :register_socket)
 
   @doc "Records a computed analysis result to be eventually shared with other cloaks"
+  @spec register_analysis_completed(Result.t()) :: :ok
   def register_analysis_completed(result), do: GenServer.call(__MODULE__, {:register_analysis_completed, result})
 
   # -------------------------------------------------------------------
