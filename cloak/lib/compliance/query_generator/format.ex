@@ -69,6 +69,19 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:not, nil, [expression]}),
     do: "NOT (" |> glue("", to_doc(expression)) |> nest() |> glue("", ")") |> group()
 
+  defp to_doc({:case, nil, statements}),
+    do:
+      "CASE"
+      |> glue(" ", fold_doc(Enum.map(statements, &to_doc/1), &line(&1, &2)))
+      |> nest()
+      |> glue(" ", "END")
+      |> group()
+
+  defp to_doc({:when, nil, [condition, result]}),
+    do: "WHEN" |> glue(" ", to_doc(condition)) |> glue(" ", "THEN") |> glue(" ", to_doc(result)) |> group()
+
+  defp to_doc({:else, nil, [result]}), do: "ELSE" |> glue(" ", to_doc(result)) |> group()
+
   defp to_doc({:function, name, [lhs, rhs]}) when name in ~w(+ - * / ^ %) do
     "("
     |> glue("", to_doc(lhs))
