@@ -40,6 +40,8 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     def function_sql(unquote(datepart), args), do: ["DATEPART(", unquote(datepart), ", ", args, ")"]
   end
 
+  def function_sql("weekday", [arg]), do: ["DATEPART(weekday, ", arg, ") - 1"]
+
   def function_sql("ceil", [arg]), do: ["CEILING(", arg, ")"]
   def function_sql("concat", args), do: Enum.intersperse(args, " + ")
   def function_sql("length", [arg]), do: ["(LEN(", arg, " + N'.') - 1)"]
