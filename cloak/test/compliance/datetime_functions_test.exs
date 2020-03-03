@@ -8,7 +8,7 @@ Enum.each(
     "second(<col>)",
     "year(<col>)",
     "cast(cast(<col> as text) as datetime)",
-    # "weekday(<col>)",
+    "weekday(<col>)",
     "date_trunc('year', <col>)",
     "date_trunc('quarter', <col>)",
     "date_trunc('month', <col>)",

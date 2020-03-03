@@ -36,7 +36,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     def function_sql(unquote(function), args), do: function_sql(unquote(alias), args)
   end
 
-  for datepart <- ~w(year month day hour minute second quarter) do
+  for datepart <- ~w(year month day hour minute second quarter weekday) do
     def function_sql(unquote(datepart), args), do: ["DATEPART(", unquote(datepart), ", ", args, ")"]
   end
 
