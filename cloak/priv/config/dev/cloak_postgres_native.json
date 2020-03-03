@@ -8,8 +8,48 @@
     "database": "cloak"
   },
   "tables": {
-    "users": {
-      "keys": [{ "user_id": "user_id" }]
+    "test": {
+      "db_name": "user_data",
+      "keys": [{"user_id": "user_id"}]
+    },
+    "purchases": {
+      "db_name": "purchases",
+      "keys": [{"user_id": "uid"}]
+    },
+    "demographics": {
+      "db_name": "demographics",
+      "keys": [{"user_id": "uid"}]
+    },
+    "demographics_as_query": {
+      "query": "
+        SELECT *
+        FROM demographics
+      ",
+      "keys": [{"user_id": "uid"}]
+    },
+    "customers": {
+      "db_name": "customers",
+      "keys": [{"user_id": "id"}]
+    },
+    "accounts": {
+      "db_name": "accounts",
+      "auto_isolating_column_classification": false,
+      "isolating_columns": {"swift": false, "account_number": true},
+      "keys": [
+        {"user_id": "customer_id"},
+        {"account": "id"}
+      ]
+    },
+    "transactions": {
+      "db_name": "transactions",
+      "content_type": "personal",
+      "keys": [
+        {"account": "account_id"}
+      ]
+    },
+    "integers": {
+      "db_name": "integers",
+      "keys": [{"user_id": "user_id"}]
     }
   },
   "analyst_tables_enabled": true
