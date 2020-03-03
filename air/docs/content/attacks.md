@@ -24,6 +24,7 @@ This section describes a variety of attacks against anonymization mechanisms. So
       - [Through extreme user contribution](#through-extreme-user-contribution)
       - [Through chaff conditions](#through-chaff-conditions)
     - [Range creep with averaging](#range-creep-with-averaging)
+    - [Multiple isolating negands](#multiple-isolating-negands)
   - [SQL backdoor attacks](#sql-backdoor-attacks)
   - [Side Channel attacks](#side-channel-attacks)
     - [Error generation attacks](#error-generation-attacks)
