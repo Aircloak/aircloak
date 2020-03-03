@@ -360,7 +360,7 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("hour", [value]), do: value.hour
   defp do_apply("minute", [value]), do: value.minute
   defp do_apply("second", [value]), do: value.second
-  defp do_apply("weekday", [value]), do: Timex.weekday(value) + 1
+  defp do_apply("weekday", [value]), do: 1 + rem(Timex.weekday(value), 7)
   defp do_apply("current_datetime", []), do: NaiveDateTime.utc_now()
   defp do_apply("current_date", []), do: Date.utc_today()
   defp do_apply("current_time", []), do: Time.utc_now()
