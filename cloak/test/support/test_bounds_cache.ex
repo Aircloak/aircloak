@@ -8,6 +8,7 @@ defmodule Cloak.TestBoundsCache do
     Agent.get(__MODULE__, &Map.fetch(&1, {data_source.name, if(is_binary(table), do: table, else: table.name), column}))
     |> case do
       {:ok, :forward} -> {:ok, Cloak.DataSource.Bounds.Cache.value(data_source, table, column)}
+      :error -> {:error, :failed}
       other -> other
     end
   end

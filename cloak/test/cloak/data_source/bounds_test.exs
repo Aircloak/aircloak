@@ -23,6 +23,6 @@ defmodule Cloak.DataSource.Bounds.Test do
     }
 
     assert :unknown = Bounds.bounds(data_source, "table", "other_column")
-    assert :error = Bounds.cache_lookup(data_source, "table", "other_column")
+    assert {:error, _} = Bounds.cache_lookup(data_source, "table", "other_column")
   end
 end

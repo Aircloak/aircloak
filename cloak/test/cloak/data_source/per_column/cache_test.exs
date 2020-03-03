@@ -3,6 +3,7 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
   alias Cloak.DataSource.PerColumn.{Cache, PersistentKeyValue, Descriptor, Result}
 
   setup_all do
+    {:ok, _} = Cloak.AirSocket.DataSourceUpdater.start_link({})
     {:ok, _} = PersistentKeyValue.start_link(%{name: __MODULE__, persisted_cache_version: 1})
     :ok
   end

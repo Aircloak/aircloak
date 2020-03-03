@@ -4,7 +4,6 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   use Parent.GenServer
   require Logger
   alias Cloak.DataSource.PerColumn.{PersistentKeyValue, Queue, Descriptor, Result}
-  import Aircloak, only: [in_env: 1]
 
   # -------------------------------------------------------------------
   # API functions
@@ -190,14 +189,6 @@ defmodule Cloak.DataSource.PerColumn.Cache do
       expires = expiry(state)
       descriptor = Descriptor.hash(column)
       PersistentKeyValue.store(state.cache_owner, descriptor, property, expires)
-
-      in_env(
-        test: nil,
-        else:
-          Cloak.AirSocket.DataSourceUpdater.register_analysis_completed(
-            Result.new(descriptor, state.opts.name, property, expires)
-          )
-      )
     end)
   end
 

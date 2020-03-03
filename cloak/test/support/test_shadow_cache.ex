@@ -17,7 +17,7 @@ defmodule Cloak.TestShadowCache do
 
   def lookup(data_source, table, column) do
     case Agent.get(__MODULE__, &Map.fetch(&1, {data_source.name, table, column})) do
-      :error -> if Application.get_env(:cloak, {__MODULE__, :strict?}, false), do: raise("not found"), else: []
+      :error -> if Application.get_env(:cloak, {__MODULE__, :strict?}, false), do: raise("not found"), else: {:ok, []}
       {:ok, {:safe, values}} -> {:ok, values}
       {:ok, :live} -> {:ok, Cloak.DataSource.Shadows.Query.build_shadow(data_source, table, column)}
       {:ok, :forward} -> Cloak.DataSource.Shadows.Cache.lookup(data_source, table, column)
