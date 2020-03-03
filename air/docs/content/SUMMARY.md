@@ -91,7 +91,3 @@
   - [User sessions](ops/administration.md#user-sessions)
   - [Forgotten password](ops/administration.md#forgotten-password)
   - [Analysis status](ops/administration.md#analysis-status)
-
-## Diffix
-- [Diffix Cedar description](diffix.md)
-- [Attacks on Diffix](attacks.md)
