@@ -85,11 +85,11 @@ The cloak operates the anonymization function, and is deployed between the un-an
                                     (buckets)
 ```
 
-If the SQL query requests an aggregate (i.e. `SELECT age, count(*) FROM table GROUP BY age`), then each row returned in the answer is refered to as a *bucket* in this document. In this example, the count for each age would be a separate bucket.
+If the SQL query requests an aggregate (e.g. `SELECT age, count(*) FROM table GROUP BY age`), then each row returned in the answer is refered to as a *bucket* in this document. In this example, the count for each age would be a separate bucket.
 
 ## Main Pipeline
 
-The cloak operates query-by-query: it accepts SQL queries from the analyst (or application), parses the SQL and checks to ensure that it is allowed, potentially modifies the SQL (i.e. SQL' in the figure above), requests the appropriate data from the database, determines if answers need to be suppressed, and adds noise to unsuppressed answers before returning them to the analyst.
+The cloak operates query-by-query: it accepts SQL queries from the analyst (or application), parses the SQL and checks to ensure that it is allowed, potentially modifies the SQL (SQL' in the figure above), requests the appropriate data from the database, determines if answers need to be suppressed, and adds noise to unsuppressed answers before returning them to the analyst.
 
 The cloak also maintains some internal state about data in the database. This state is used to determine when certain limitations are necessary. This state is produced by querying the data, and occurs at cloak initialization as well as periodically. 
 
@@ -230,7 +230,7 @@ Note that the condition `substring(col from X for Y) <> val` will generate diffe
 
 #### In general
 
-In order to prevent [SQL backdoor attacks](./attacks.md#sql-backdoor-attacks), the cloak limits the complexity of certain math in queries. We are particular concerned with discontinuous functions combined with constants because they can be coerced into acting as discrete logic. However, there are many ways of obtaining discontinuous functions, for instance string manipulations (e.g. `left`, `ltrim`) followed by casting to numbers, or datetime functions (e.g. `year` or `hour`). In addition, functions can be coerced into constants, as for instance `pow(col1, col2-col2)` is 1. 
+In order to prevent [SQL backdoor attacks](./attacks.md#sql-backdoor-attacks), the cloak limits the complexity of certain math in queries. We are particulary concerned with discontinuous functions combined with constants because they can be coerced into acting as discrete logic. However, there are many ways of obtaining discontinuous functions, for instance string manipulations (e.g. `left`, `ltrim`) followed by casting to numbers, or datetime functions (e.g. `year` or `hour`). In addition, functions can be coerced into constants, as for instance `pow(col1, col2-col2)` is 1. 
 
 We take a conservative approach and limit the number of expressions containing a restricted function and a constant, or more than one restricted function to a total of 5.
 
@@ -238,17 +238,17 @@ The restricted functions and operators include `+`, `-`, `/`, `*`, `^`, `%`, `ab
 
 #### With isolating columns
 
-In order to prevent [Linear program reconstruction](./attacks.md#linear-program-restruction) attacks, the cloak places even more restrictions on expressions associated with [isolating columns](#isolating-column-label). An isolating column is one where 80% or more of the values in the column are associated with only a single user. These columns are susceptible to linear program reconstruction attacks because they may be used to select groups of individual users.
+In order to prevent [Linear program reconstruction](./attacks.md#linear-program-reconstruction) attacks, the cloak places even more restrictions on expressions associated with [isolating columns](#isolating-column-label). An isolating column is one where 80% or more of the values in the column are associated with only a single user. These columns are susceptible to linear program reconstruction attacks because they may be used to select groups of individual users.
 
 The operators `IN` (with more than one element) and `<>` are disallowed for isolating columns. This prevents easily isolating individual users, or controling which individual users comprise an answer.
 
-For the remaining operators, the cloak requires that *all conditions* that operate on isolating columns to be [`clear`](#clear-conditions).
+For the remaining operators, the cloak requires that *all conditions* that operate on isolating columns to be [clear](#clear-conditions-in-range-negative-conditions)
 
 ### String functions
 
 In order to generally reduce the attack surface available with string functions (`lower`, `upper`, `trim`, `ltrim`, `btrim`, and `substring`), the following limitations apply:
 
-1. Columns which have undergone a string functions cannot be combined with other transformations.
+1. Columns which have undergone a string function cannot be combined with other transformations.
 2. String functions cannot be applied to columns that have undergone multiple casts.
 3. Results of string functions can only be compared with constants or with other columns.
 

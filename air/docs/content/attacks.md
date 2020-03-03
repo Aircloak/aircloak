@@ -137,9 +137,9 @@ WHERE gender <> 'M' OR
 
 Again, *S3* and *S4* include the victim, while *S3* also includes males, and *S4* also includes all other users. The salary if the victim is counted twice in *S3 + S4*, and so the victim's salary is *(S3 + S4) - S*.
 
-Diffix defends against tracker attacks by disallowing `OR`. It does allow a limited form of union logic with `IN`, but this is not enough to execute a tracker attack.
+Diffix defends against tracker attacks by disallowing `OR` and it's De Morgan equivalent (`NOT (A and B)` is the same as `NOT A or NOT B`). It does allow a limited form of union logic with `IN`, but this is not enough to execute a tracker attack.
 
-Of course, `OR` can be emulated with multiple `AND` conditions. For instance `A OR B` is equivalent to `A` + `B` - `A AND B`. This would not work with the cloak both because queries with only the pseudo-identifier would be suppressed because of a low count, as well as because of the noise.
+`OR` can be emulated with multiple queries and corresponding arithmetic, as in `A OR B` is equivalent to `A` + `B` - `A AND B`. This would not work with the cloak both because queries with only the pseudo-identifier would be suppressed because of a low count, as well as because of the noise.
 
 ## Attribute value inspection attacks
 
@@ -393,6 +393,12 @@ The chaff conditions can either all be added to the same query, or added one at 
 One way to do a difference attack is to grow a range (`BETWEEN`) so that one additional user is included in the modified range. The noise layers associated with the range defeat a simple version of this attack that uses two queries. However, if an attacker could incrementally modify a range so that each change does not change the underlying answer, then the different noise values could be averaged. If the attacker averaged away the noise in this fashion for both the smaller and larger ranges, then the noise could no longer defend against the attack.
 
 To defend against this, the cloak forces ranges to fall within preset range offsets and sizes. This makes it very unlikely that an attacker could get enough samples both excluding and including the victim.
+
+### Multiple isolating negands
+
+If an analyst could make multiple different negative anded conditiond (negands) isolating the same individual user, then they could be averaged out in the context of a difference attack. For instance, `account_number <> 12345`, `social_security_number <> 123-45-6789`, `login_name <> 'alex433`, `email_address <> 'alex433@gmail.com` are all values that can isolate a single user. If each were used as the single negand, then the negands could be averaged away.
+
+This negands are rejected by virtue of not being represented in the shadow table.
 
 ## SQL backdoor attacks
 
