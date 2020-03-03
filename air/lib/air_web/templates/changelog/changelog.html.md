@@ -40,6 +40,9 @@
 - Support for some obsolete cloak features and config fields (decoders, projections, user_id) was removed.
 - The set of query restrictions was simplified and clarified.
 - Allow date ranges from `1900-01-01` to `9999-12-31`.
+- Date function `weekday` is now consistent across data sources.
+  Returned values are in interval 1 (Sunday) to 7 (Saturday).
+  This behavior may change if database defaults are modified.
 
 ## Version 19.3.0
 
