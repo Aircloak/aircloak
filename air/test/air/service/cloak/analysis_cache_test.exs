@@ -11,9 +11,9 @@ defmodule Air.Service.Cloak.AnalysisCache.Test do
   test "can update the registry" do
     assert AnalysisCache.all() == []
     t = NaiveDateTime.utc_now()
-    Analysis.insert([%{result: "efqe43", descriptor: "3ef3f3qf4", type: "isolator", status: :success, expires: t}])
+    AnalysisCache.insert([%{result: "efqe43", descriptor: "3ef3f3qf4", type: "isolator", status: :success, expires: t}])
 
-    assert Analysis.all() == [
+    assert AnalysisCache.all() == [
              %{result: "efqe43", descriptor: "3ef3f3qf4", type: "isolator", status: :success, expires: t}
            ]
   end
