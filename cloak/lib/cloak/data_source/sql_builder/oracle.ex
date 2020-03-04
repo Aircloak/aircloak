@@ -32,7 +32,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
 
-  def function_sql("weekday", [arg]), do: [cast_sql(["TO_CHAR(", arg, ", 'D')"], :text, :integer), " - 1"]
+  def function_sql("weekday", [arg]), do: cast_sql(["TO_CHAR(", arg, ", 'D')"], :text, :integer)
 
   def function_sql("quarter", args), do: ["TRUNC((", function_sql("month", args), " - 1) / 3) + 1"]
 
