@@ -155,9 +155,11 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def cast_sql(value, _, type), do: ["TRY_CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
-  def time_arithmetic_expression("+", [date, interval]), do: ["DATEADD(s, ", interval, ", ", date, ")"]
+  def time_arithmetic_expression("+", [date, interval]),
+    do: ["DATEADD(s, ", interval, ", TRY_CAST(", date, " AS datetime))"]
 
-  def time_arithmetic_expression("-", [date, interval]), do: ["DATEADD(s, -(", interval, "), ", date, ")"]
+  def time_arithmetic_expression("-", [date, interval]),
+    do: ["DATEADD(s, -(", interval, "), TRY_CAST(", date, " AS datetime))"]
 
   @impl Dialect
   def date_subtraction_expression([arg1, arg2]), do: ["DATEDIFF(s, ", arg2, ", ", arg1, ")"]
