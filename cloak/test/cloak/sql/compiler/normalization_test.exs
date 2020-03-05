@@ -455,6 +455,20 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     )
   end
 
+  test "true branches in `case` statement" do
+    assert_equivalent(
+      "SELECT CASE WHEN numeric = 3 THEN 1 WHEN 2 = 2 THEN 0 ELSE NULL END FROM table",
+      "SELECT CASE WHEN numeric = 3 THEN 1 ELSE 0 END FROM table"
+    )
+  end
+
+  test "false branches in `case` statement" do
+    assert_equivalent(
+      "SELECT CASE WHEN 1 = 2 THEN 0 WHEN numeric = 3 THEN 1 ELSE NULL END FROM table",
+      "SELECT CASE WHEN numeric = 3 THEN 1 ELSE NULL END FROM table"
+    )
+  end
+
   defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
 
   defp data_source() do
