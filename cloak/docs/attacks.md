@@ -1,4 +1,3 @@
-
 # Attacks on Diffix Cedar
 
 This section describes a variety of attacks against anonymization mechanisms. Some of the attacks are general in nature (can be used against multiple mechanisms). Some are specific to Diffix overall, and others specific to [Diffix Cedar](diffix.md). In what follows, the *cloak* is the device that implements Diffix.
@@ -62,7 +61,7 @@ First, the attacker verifies that the pseudo-identifier indeed identifies a sing
 
 *Query 1*: compute *N1* as:
 
-```
+```sql
 SELECT count(DISTINCT uid)
 FROM database
 WHERE gender = 'M'
@@ -70,7 +69,7 @@ WHERE gender = 'M'
 
 *Query 2*: compute *N2* as:
 
-```
+```sql
 SELECT count(DISTINCT uid)
 FROM database
 WHERE gender <> 'M'
@@ -80,7 +79,7 @@ The number of users *N* is *N = (N1 + N2)*
 
 *Query 3*: Compute *N3*:
 
-```
+```sql
 SELECT count(DISTINCT uid)
 FROM database
 WHERE gender = 'M' OR
@@ -89,7 +88,7 @@ WHERE gender = 'M' OR
 
 *Query 4*: Compute *N4*:
 
-```
+```sql
 SELECT count(DISTINCT uid)
 FROM database
 WHERE gender <> 'M' OR
@@ -102,7 +101,7 @@ Knowing this, the attacker can learn virtually anything about the victim. For in
 
 *Query 1*: compute *S1* as:
 
-```
+```sql
 SELECT sum(salary)
 FROM database
 WHERE gender = 'M'
@@ -110,7 +109,7 @@ WHERE gender = 'M'
 
 *Query 2*: compute *S2* as:
 
-```
+```sql
 SELECT sum(salary)
 FROM database
 WHERE gender <> 'M'
@@ -120,7 +119,7 @@ The sum of all salaries *S* is *S = (S1 + S2)*.
 
 *Query 3*: Compute *S3*:
 
-```
+```sql
 SELECT sum(salary)
 FROM database
 WHERE gender = 'M' OR
@@ -129,7 +128,7 @@ WHERE gender = 'M' OR
 
 *Query 4*: Compute *S4*:
 
-```
+```sql
 SELECT sum(salary)
 FROM database
 WHERE gender <> 'M' OR
@@ -223,7 +222,7 @@ In Diffix Cedar, an analyst can obtain multiple samples for `<>` text conditions
 ```
 WHERE substring(col for 1) <> 'A'
 WHERE substring(col for 2) <> 'AB'
-WHERE substring(col for 2) <> 'ABC'
+WHERE substring(col for 3) <> 'ABC'
 ...
 ```
 
@@ -250,14 +249,14 @@ Query 1:
 ```sql
 SELECT count(DISTINCT uid)
 FROM table
-WHERE age = 20 and gender = 'F'
+WHERE age = 20 AND gender = 'F'
 ```
 
 Query 2:
 ```sql
 SELECT count(DISTINCT uid)
 FROM table
-WHERE age <> 20 and gender = 'F'
+WHERE age <> 20 AND gender = 'F'
 ```
 
 While the noise layers for `age` would indeed average out, the static noise layer for `gender = 'F'` would be the same across all queries in the attack and would result in a noisy final count.
@@ -280,12 +279,12 @@ The current defense is to force `clear` conditions (no math) on columns that hav
 
 The cloak does not anonymize non-personal tables. Therefore, analysts are allowed to see the complete tables. The cloak allows JOIN, but with strict limitations. Without these limitations, an analyst could potentially exploit knowledge of non-personal tables to generate multiple samples and average away noise.
 
-A typical non-personal table might contain a numeric identifier and a text field. For instance, a `product_name` table might have columns `product_id` and `name`. This table is non-personal because it contains no user information. It may be linked to for instance a `purchases` table with the `product_id` as key.
+A typical non-personal table might contain a numeric identifier and a text field. For instance, a `product_names` table might have columns `product_id` and `name`. This table is non-personal because it contains no user information. It may be linked to for instance a `purchases` table with the `product_id` as key.
 
 Suppose an analyst wished to remove noise associated with the condition `age = 20`, and there are multiple non-personal tables of various sorts. The analyst could then build a set of queries with different `JOIN` conditions as follows:
 
 ```
-JOIN (...) ON users.age = product_name.id - 28788 WHERE product_name.value = 'Juice Squeezer'
+JOIN (...) ON users.age = product_names.id - 28788 WHERE product_names.value = 'Juice Squeezer'
 JOIN (...) ON users.age = error_codes.id - 232 WHERE error_codes.value = 'Bad Input'
 JOIN (...) ON users.age = cc_types.id + 16 WHERE cc_types.value = 'VISA'
 etc.
@@ -305,24 +304,37 @@ Query 1:
 ```sql
 SELECT count(*)
 FROM table
-WHERE salary BETWEEN 100000 AND 110000 and
-      ssn <> '539-54-9355'
+WHERE salary BETWEEN 100000 AND 110000 AND
+      dept = 'CS' AND
+      gender = 'M'
 ```
 
 Query 2:
 ```sql
 SELECT count(*)
 FROM table
-WHERE salary BETWEEN 100000 AND 110000
+WHERE salary BETWEEN 100000 AND 110000 AND
+      dept = 'CS' AND
 ```
 
-The victim in this attack is the user with social security number (ssn) '539-54-9355'. The unknown attribute (the thing the attacker wants to learn) is whether or not the salary is in the range 100000 to 110000. Query 1 definitely excludes the victim, while Query 2 includes the victim if the victim has that salary range.
+in the case where there is only one woman in the CS department. The victim in this attack is the woman, who is excluded in the first query and included in the second. The unknown attribute (the thing the attacker wants to learn) is whether or not the victim's salary is in the range 100000 to 110000.
 
 The simplest approach for the attacker is to deduce that the victim is in query 2 so long as `count(*)` is greater in query 2. Because of the noise, however, such an approach would often produce the wrong deduction.
 
 The greater the difference between the two queries, however, the more likely the victim is indeed in that salary range. When the difference is large, the probability that the difference is due purely to the Gaussian distribution of noise is much less than the probability that the difference is due to both the noise distribution and the difference in the underlying true answer.
 
 It is relatively rare, however, that the noise value is large enough to give the attacker a high-confidence deduction (like one in 10000 attacks).
+
+Note that a simpler way to exclude the victim would be to add a negative condition that pertains to only that victim, for instance:
+
+```sql
+SELECT count(*)
+FROM table
+WHERE salary BETWEEN 100000 AND 110000 AND
+      ssn <> '539-54-9355'
+```
+
+Note however that isolating negative conditions like this are disallowed when the value is not present in the shadow table (which is the case for rare values).
 
 ### First derivative difference attack
 
@@ -332,13 +344,15 @@ Query 1:
 ```sql
 SELECT bucket(salary BY 10000), count(*)
 FROM table
-WHERE ssn <> '539-54-9355'
+WHERE dept = 'CS' AND
+      gender = 'M'
 ```
 
 Query 2:
 ```sql
 SELECT bucket(salary BY 10000), count(*)
 FROM table
+WHERE dept = 'CS'
 ```
 
 If the noise layers were only static (based purely on the conditions themselves), then the difference in the noise between each pair of buckets would be the same except for the one containing the victim. This difference in the difference would identify the victim's salary.
@@ -351,20 +365,20 @@ The effect of inserting safe math functions is that column values may be NULL. T
 
 For example, the following difference attack can be used to learn the value of the `cli_district_id` of the user that has a transaction amount of 24615.
 
-```
-select cli_district_id, count(foo)
-from (
-	select uid, cli_district_id, 1/(amount - 24615) AS foo
-	from transactions ) t
-group by 1
+```sql
+SELECT cli_district_id, count(foo)
+FROM (
+    SELECT uid, cli_district_id, 1/(amount - 24615) AS foo
+    FROM transactions ) t
+GROUP BY 1
 ```
 
-```
-select cli_district_id, count(*)
-from (
-	select uid, cli_district_id, 1/(amount - 24615) AS foo
-	from transactions ) t
-group by 1
+```sql
+SELECT cli_district_id, count(*)
+FROM (
+    SELECT uid, cli_district_id, 1/(amount - 24615) AS foo
+    FROM transactions ) t
+GROUP BY 1
 ```
 
 The cloak defends against this by adding an additional UID noise layer for `count(col)`.
@@ -389,6 +403,8 @@ Alternatively, a range condition such as `age BETWEEN 0 and 1000` can also be a 
 
 The chaff conditions can either all be added to the same query, or added one at a time to multiple pairs, and then summing the results across the first queries of each pair and separately the second queries.
 
+Chaff using negative conditions is normally prevented by disallowing negative conditions for rare values (those not found in the shadow table). The attack is prevented for chaff conditions using ranges by not including the static noise layer for ranges.
+
 ### Range creep with averaging
 
 One way to do a difference attack is to grow a range (`BETWEEN`) so that one additional user is included in the modified range. The noise layers associated with the range defeat a simple version of this attack that uses two queries. However, if an attacker could incrementally modify a range so that each change does not change the underlying answer, then the different noise values could be averaged. If the attacker averaged away the noise in this fashion for both the smaller and larger ranges, then the noise could no longer defend against the attack.
@@ -397,7 +413,7 @@ To defend against this, the cloak forces ranges to fall within preset range offs
 
 ### Multiple isolating negands
 
-If an analyst could make multiple different negative anded conditiond (negands) isolating the same individual user, then they could be averaged out in the context of a difference attack. For instance, `account_number <> 12345`, `social_security_number <> 123-45-6789`, `login_name <> 'alex433`, `email_address <> 'alex433@gmail.com` are all values that can isolate a single user. If each were used as the single negand, then the negands could be averaged away.
+If an analyst could make multiple different negative ANDed conditions (negands) isolating the same individual user, then they could be averaged out in the context of a difference attack. For instance, `account_number <> 12345`, `social_security_number <> 123-45-6789`, `login_name <> 'alex433`, `email_address <> 'alex433@gmail.com` are all values that can isolate a single user. If each were used as the single negand, then the negands could be averaged away.
 
 This negands are rejected by virtue of not being represented in the shadow table.
 
@@ -414,23 +430,23 @@ WHERE age = 30 OR age = 40
 Can be encoded in the following query without using a `WHERE` clause:
 
 ```sql
-SELECT count(*), age 30 or 40 FROM (
-    SELECT uid, (age 30 + age 40) % 2 as age 30 or 40
+SELECT count(*), age30or40 FROM (
+    SELECT uid, (age30 + age40) % 2 as age30or40
     FROM (
         SELECT uid,
-            floor((age greater 29 + age less 31) / 2) AS age 30,
-            floor((age greater 39 + age less 41) / 2) AS age 40
+            floor((agegreater29 + ageless31) / 2) AS age30,
+            floor((agegreater39 + ageless41) / 2) AS age40
         FROM (
             SELECT uid,
-                ceil((age - 29) / 100) AS age greater 29,
-                ceil(0 - (age - 31) / 100) AS age less 31,
-                ceil((age - 39) / 100) AS age greater 39,
-                ceil(0 - (age - 41) / 100) AS age less 41
+                ceil((age - 29) / 100) AS agegreater29,
+                ceil(0 - (age - 31) / 100) AS ageless31,
+                ceil((age - 39) / 100) AS agegreater39,
+                ceil(0 - (age - 41) / 100) AS ageless41
             FROM table
         ) x
     ) y
 ) z
-GROUP BY age 30 or 40;
+GROUP BY age30or40;
 ```
 
 To prevent this, the cloak limits the amount of math, particularly non-continuous functions like `ceil` and `floor`, that can appear in a query.
@@ -441,7 +457,7 @@ To prevent this, the cloak limits the amount of math, particularly non-continuou
 
 #### Divide by zero
 
-Say that the victim's birthdate is known to be 14/12/1957, and zipcode is 60036.
+Say that the victim's birthdate is known to be '1957-14-12', and zipcode is 60036.
 The following query would trigger a divide-by-zero if the victim has a salary of 100000.
 
 ```sql
@@ -457,17 +473,17 @@ SELECT count(*) FROM
   ) t2
 ```
 
-Some databases throw and exception when divide-by-zero occurs. In these cases, the exception itself signals the salary of the victim.
+Some databases throw an exception when divide-by-zero occurs. In these cases, the exception itself signals the salary of the victim. This attack is prevented by adding SQL that catches the exception or prevents it from occuring (depending on the backend database).
 
 #### Overflow
 
 In some database, a numeric overflow throws an exception. This can be exploited, at least in Postgres, with for instance with the following attack.
 
-```
-select count(*)
-from accounts
-where lastname = 'Zamora' and
-      birthdate = '1996-11-17' and
+```sql
+SELECT count(*)
+FROM accounts
+WHERE lastname = 'Zamora' AND
+      birthdate = '1996-11-17' AND
       2^(10000.01 * cli_district_id) = 123.12
 ```
 
