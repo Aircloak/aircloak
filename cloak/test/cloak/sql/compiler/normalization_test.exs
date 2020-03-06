@@ -434,10 +434,17 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
-  test "not in" do
+  test "not in multiple values" do
     assert_equivalent(
       "SELECT STDDEV(uid) FROM table WHERE numeric NOT IN (1, 2)",
       "SELECT STDDEV(uid) FROM table WHERE numeric <> 1 AND numeric <> 2"
+    )
+  end
+
+  test "not in single value" do
+    assert_equivalent(
+      "SELECT STDDEV(uid) FROM table WHERE numeric NOT IN (1)",
+      "SELECT STDDEV(uid) FROM table WHERE numeric <> 1"
     )
   end
 
@@ -445,6 +452,20 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     assert_equivalent(
       "SELECT CASE WHEN c > 0 THEN c ELSE c END AS c FROM (SELECT COUNT(*) AS c FROM table) t",
       "SELECT c FROM (SELECT COUNT(*) AS c FROM table) t"
+    )
+  end
+
+  test "true branches in `case` statement" do
+    assert_equivalent(
+      "SELECT CASE WHEN numeric = 3 THEN 1 WHEN 2 = 2 THEN 0 ELSE NULL END FROM table",
+      "SELECT CASE WHEN numeric = 3 THEN 1 ELSE 0 END FROM table"
+    )
+  end
+
+  test "false branches in `case` statement" do
+    assert_equivalent(
+      "SELECT CASE WHEN 1 = 2 THEN 0 WHEN numeric = 3 THEN 1 ELSE NULL END FROM table",
+      "SELECT CASE WHEN numeric = 3 THEN 1 ELSE NULL END FROM table"
     )
   end
 

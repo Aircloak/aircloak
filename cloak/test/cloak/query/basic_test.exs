@@ -1991,4 +1991,12 @@ defmodule Cloak.Query.BasicTest do
       error: "Expression `min(count(*))` recursively calls multiple aggregators." <> _
     })
   end
+
+  test "[Issue #4133] crash with noise layer from date arithmetic" do
+    :ok = insert_rows(_user_ids = 1..10, "dates", ["date"], [~N[2020-02-02 01:00:00]])
+
+    assert_query("SELECT COUNT(*) AS c FROM dates WHERE date = DATE '2020-02-02' + INTERVAL 'PT1H'", %{
+      rows: [%{row: [10]}]
+    })
+  end
 end

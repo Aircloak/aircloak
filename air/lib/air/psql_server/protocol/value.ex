@@ -22,6 +22,7 @@ defmodule Air.PsqlServer.Protocol.Value do
     time: %{oid: 1083, len: 8, postgrex_extension: {Time, :elixir}},
     timestamp: %{oid: 1114, len: 8, postgrex_extension: {Timestamp, :elixir}},
     timestamptz: %{oid: 1184, len: 8, postgrex_extension: {TimestampTZ, :elixir}},
+    interval: %{oid: 1186, len: 16, postgrex_extension: {Interval, nil}},
     timetz: %{oid: 1266, len: 12, postgrex_extension: {TimeTZ, :elixir}},
     numeric: %{oid: 1700, len: -1, postgrex_extension: {Numeric, nil}},
     regclass: %{oid: 2205, len: 4}
@@ -98,6 +99,12 @@ defmodule Air.PsqlServer.Protocol.Value do
   defp text_encode(byte, :char), do: <<byte>>
   defp text_encode(values, :int2vector), do: "{#{values |> Stream.map(&to_string/1) |> Enum.join(",")}}"
   defp text_encode(oids, :oidarray), do: "{#{oids |> Stream.map(&to_string/1) |> Enum.join(",")}}"
+
+  defp text_encode(%Postgrex.Interval{} = value, :interval),
+    do: value |> postgrex_interval_to_timex_duration() |> Timex.Duration.to_string()
+
+  defp text_encode(%Timex.Duration{} = value, :interval), do: Timex.Duration.to_string(value)
+
   defp text_encode(value, _), do: to_string(value)
 
   defp text_decode(param, :int2), do: String.to_integer(param)
@@ -118,9 +125,33 @@ defmodule Air.PsqlServer.Protocol.Value do
   defp normalize_for_postgrex_encoding(value, :date), do: Date.from_iso8601!(value)
   defp normalize_for_postgrex_encoding(value, :time), do: Time.from_iso8601!(value)
   defp normalize_for_postgrex_encoding(value, :timestamp), do: NaiveDateTime.from_iso8601!(value)
+
+  @seconds_in_day 24 * 3600
+  @days_in_month 30
+
+  defp normalize_for_postgrex_encoding(value, :interval) when is_binary(value) do
+    seconds =
+      value
+      |> Timex.Duration.parse!()
+      |> Timex.Duration.abs()
+      |> Timex.Duration.to_seconds(truncate: true)
+
+    days = div(seconds, @seconds_in_day)
+
+    %Postgrex.Interval{
+      months: div(days, @days_in_month),
+      days: rem(days, @days_in_month),
+      secs: rem(seconds, @seconds_in_day)
+    }
+  end
+
   defp normalize_for_postgrex_encoding(value, _), do: value
 
   defp normalize_postgrex_decoded_value(%Decimal{} = value), do: Decimal.to_float(value)
+
+  defp normalize_postgrex_decoded_value(%Postgrex.Interval{} = value),
+    do: postgrex_interval_to_timex_duration(value)
+
   defp normalize_postgrex_decoded_value(value), do: value
 
   for {type, %{postgrex_extension: {extension, extension_arg}}} <- @types do
@@ -136,4 +167,7 @@ defmodule Air.PsqlServer.Protocol.Value do
   end
 
   defp with_size(encoded), do: <<byte_size(encoded)::32, encoded::binary>>
+
+  defp postgrex_interval_to_timex_duration(%Postgrex.Interval{months: m, days: d, secs: s}),
+    do: Timex.Duration.parse!("P#{abs(m)}M#{abs(d)}DT#{abs(s)}S")
 end

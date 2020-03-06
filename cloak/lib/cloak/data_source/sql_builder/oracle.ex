@@ -32,6 +32,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
 
+  def function_sql("weekday", [arg]), do: cast_sql(["TO_CHAR(", arg, ", 'D')"], :text, :integer)
+
   def function_sql("quarter", args), do: ["TRUNC((", function_sql("month", args), " - 1) / 3) + 1"]
 
   def function_sql("unsafe_mod", [arg1, arg2]), do: ["MOD(", arg1, ", ", arg2, ")"]
@@ -129,6 +131,9 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("substring", args), do: function_sql("SUBSTR", args)
 
+  def function_sql("concat", [arg]), do: arg
+  def function_sql("concat", [first | rest]), do: ["CONCAT(", first, ",", function_sql("concat", rest), ")"]
+
   def function_sql("date_trunc", [[?', "second", ?'], arg2]), do: ["CAST(", arg2, " AS TIMESTAMP(0))"]
   def function_sql("date_trunc", [[?', "minute", ?'], arg2]), do: function_sql("TRUNC", [arg2, "'mi'"])
   def function_sql("date_trunc", [[?', "hour", ?'], arg2]), do: function_sql("TRUNC", [arg2, "'hh'"])
@@ -137,7 +142,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def function_sql("date_trunc", [arg1, arg2]), do: function_sql("TRUNC", [arg2, arg1])
 
   def function_sql("btrim", [arg]), do: ["TRIM(", arg, ")"]
-  def function_sql("btrim", [arg1, arg2]), do: ["TRIM(", arg1, " FROM ", arg2, ")"]
+  def function_sql("btrim", [arg1, arg2]), do: ["TRIM(", arg2, " FROM ", arg1, ")"]
 
   def function_sql("boolean_expression", [expression]),
     do: ["(CASE WHEN ", expression, " THEN 1 WHEN NOT (", expression, ") THEN 0 ELSE NULL END)"]
@@ -172,7 +177,12 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
       ")) IN ('0', 'f', 'false', 'no', 'n') THEN 0 ELSE NULL END"
     ]
 
-  def cast_sql(value, number, :text) when number in [:integer, :real], do: ["TO_CHAR(", value, ?)]
+  def cast_sql(value, number, :text) when number in [:integer, :real], do: ["TO_CHAR(", value, ")"]
+
+  def cast_sql(value, :date, :text), do: ["TO_CHAR(", value, ", 'YYYY-MM-DD')"]
+  def cast_sql(value, :datetime, :text), do: ["TO_CHAR(", value, ", 'YYYY-MM-DD HH:MI:SS AM')"]
+  def cast_sql(value, :text, :date), do: ["TO_DATE(", value, ", 'YYYY-MM-DD')"]
+  def cast_sql(value, :text, :datetime), do: ["TO_TIMESTAMP(", value, ", 'YYYY-MM-DD HH:MI:SS AM')"]
 
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
@@ -241,7 +251,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   defp sql_type(:datetime), do: "TIMESTAMP"
   defp sql_type(:integer), do: "INTEGER"
   defp sql_type(:date), do: "DATE"
-  defp sql_type(:text), do: "VARCHAR2"
+  defp sql_type(:text), do: "VARCHAR2(4000)"
   defp sql_type(:time), do: "TIME"
   defp sql_type({:native_type, type}), do: type
 

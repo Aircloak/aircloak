@@ -23,7 +23,8 @@ defmodule Cloak.DataSource.ClouderaImpala do
   end
 
   @impl Driver
-  def supports_query?(query), do: length(query.grouping_sets) <= 1 or query.type == :anonymized
+  def supports_query?(query),
+    do: query.type == :anonymized or (length(query.grouping_sets) <= 1 and distinct_aggregators_count(query) <= 1)
 
   @impl Driver
   def load_tables(connection, table),
@@ -88,4 +89,7 @@ defmodule Cloak.DataSource.ClouderaImpala do
       {:error, _reason} -> nil
     end
   end
+
+  defp distinct_aggregators_count(query),
+    do: query.aggregators |> Enum.filter(&match?(%Cloak.Sql.Expression{args: [{:distinct, _}]}, &1)) |> Enum.count()
 end

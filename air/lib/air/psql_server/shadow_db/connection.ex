@@ -182,6 +182,14 @@ defmodule Air.PsqlServer.ShadowDb.Connection do
     |> DateTime.to_time()
   end
 
+  defp map_value({:interval, {{hours, minutes, microseconds}, days, months}}) do
+    %Postgrex.Interval{
+      months: months,
+      days: days,
+      secs: hours * 3600 + minutes * 60 + round(microseconds / 1_000_000)
+    }
+  end
+
   defp convert_time({hours, minutes, seconds}) do
     seconds_int = (1.0 * seconds) |> Float.floor() |> round()
     microseconds = round((seconds - seconds_int) * 1_000_000)

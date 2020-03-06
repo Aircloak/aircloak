@@ -66,7 +66,7 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
       do:
         assert_equivalent(
           "SELECT * FROM table WHERE NOT x IN (1)",
-          "SELECT * FROM table WHERE NOT x = 1"
+          "SELECT * FROM table WHERE x <> 1"
         )
 
     test "NOT x NOT IN (single_value)",
