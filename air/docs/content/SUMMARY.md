@@ -1,8 +1,11 @@
 # Summary
 
----- Don't manually alter the line below. Needed as is for automated version number update
-## Aircloak Insights - version 19.4.0-dev
----- Don't alter the line above...
+---- The following line needs to start with "## Aircloak Insights - version".
+---- This way the mix task compiling the docs will be able to insert the current
+---- version number when it changes.
+---- Please check the automatically adjusted header into version control.
+## Aircloak Insights - version 20.1.0
+---- Please only cautiously edit the line above.
 
 - [Introduction](README.md)
 
