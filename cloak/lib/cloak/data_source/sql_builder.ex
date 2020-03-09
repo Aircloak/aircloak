@@ -266,9 +266,11 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
 
   defp from_clause({:subquery, subquery}, query) do
-    sql_dialect_module(query).alias_sql(
-      ["(", build_fragments(subquery.ast), add_join_timing_protection(subquery), ")"],
-      quote_name(subquery.alias, sql_dialect_module(query).quote_char())
+    dialect = sql_dialect_module(query)
+
+    dialect.alias_sql(
+      ["(", build_subquery(subquery), ")"],
+      quote_name(subquery.alias, dialect.quote_char())
     )
   end
 
@@ -410,20 +412,22 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp cast(expression, to), do: Expression.function({:cast, to}, [expression], to)
 
   # -------------------------------------------------------------------
-  # `JOIN` timing protection
+  # Build subquery with join-timing protection
   # -------------------------------------------------------------------
 
-  defp add_join_timing_protection(%{ast: query, join_timing_protection?: true}) do
+  defp build_subquery(%{ast: query, join_timing_protection?: true}) do
     [
-      " UNION ALL SELECT * FROM (",
-      build_fragments(%Query{strip_filters(query) | limit: 1, offset: 0}),
-      ") t WHERE NOT EXISTS(",
+      "(",
       build_fragments(query),
-      ")"
+      ") UNION ALL (SELECT * FROM (",
+      build_fragments(%Query{strip_filters(query) | limit: 1, offset: 0, order_by: []}),
+      ") t WHERE NOT EXISTS(",
+      build_fragments(%Query{query | order_by: []}),
+      "))"
     ]
   end
 
-  defp add_join_timing_protection(_subquery), do: []
+  defp build_subquery(subquery), do: build_fragments(subquery.ast)
 
   defp strip_filters(query) do
     Query.Lenses.all_queries()
