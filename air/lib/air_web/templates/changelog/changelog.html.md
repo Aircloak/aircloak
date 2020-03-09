@@ -29,8 +29,9 @@
   field.
 - Improved support for boolean expressions.
 - Allowed inequalities between datetime columns and the current date.
-- Added support for `case` statements in standard queries.
-- Added experimental support for `case` statements in protected queries.
+- Added support for `CASE` statements in [standard queries](sql#query-and-subquery-types). 
+  Experimental support for [restricted queries](sql#query-and-subquery-types) can be enabled 
+  in the Cloak config using the `enable_case_support` flag.
 - The HTTP REST API query result endpoint no longer returns internal logging data.
 - The number of analysis queries needed when multiple copies of a data source exist was reduced
 - The query editor and query results interface was made wider and more suitable for larger screens
