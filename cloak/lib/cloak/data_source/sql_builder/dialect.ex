@@ -151,5 +151,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   def default_function_sql(name, [arg1, arg2]) when name in ~w(and or > < = <> >= <= + - * / like ilike),
     do: [?(, arg1, " #{String.upcase(name)} ", arg2, ?)]
 
+  def default_function_sql("!<>", [arg1, arg2]),
+    do: ["(", arg1, " = ", arg2, " OR (", arg1, " IS NULL AND ", arg2, " IS NULL))"]
+
   def default_function_sql(name, args), do: [String.upcase(name), ?(, Enum.intersperse(args, ", "), ?)]
 end

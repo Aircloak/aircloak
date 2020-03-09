@@ -29,7 +29,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct variance
-      < > <= >= = <> and or not in is_null like ilike
+      < > <= >= = <> and or not in is_null like ilike !<>
       year month day hour minute second quarter weekday date_trunc
       sqrt floor ceil abs round trunc mod ^ * / + - %
       unsafe_add unsafe_sub unsafe_mul unsafe_div unsafe_mod unsafe_pow
@@ -118,6 +118,8 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
       "''"
     ])
   end
+
+  def function_sql("!<>", [arg1, arg2]), do: [arg1, " IS NOT DISTINCT FROM ", arg2]
 
   def function_sql("left", args), do: super("STRLEFT", args)
 

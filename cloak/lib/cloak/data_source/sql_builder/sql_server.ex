@@ -11,7 +11,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct variance
-      < > <= >= = <> and or not in is_null like ilike
+      < > <= >= = <> and or not in is_null like ilike !<>
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod ^ * / + - %
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
