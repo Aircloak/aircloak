@@ -33,7 +33,7 @@
 - Added experimental support for `case` statements in protected queries.
 - The HTTP REST API query result endpoint no longer returns internal logging data.
 - The number of analysis queries needed when multiple copies of a data source exist was reduced
-- The query editor wand query results interface was made wider and more suitable for larger screens
+- The query editor and query results interface was made wider and more suitable for larger screens
 
 ### Bugfixes
 
