@@ -1,4 +1,4 @@
-## Version 19.4.0
+## Version 20.1.0
 
 ### __Breaking changes__
 
@@ -10,6 +10,7 @@
 - The minimum supported version of Postgres is now 9.6 (dropping support for version 9.1 through 9.5).
 - Support for the `auto_aircloak_export` configuration parameter in the Insights Air config was removed.
   Consult the [Upgrade guide](docs/ops/upgrading.html) for additional information.
+- Support for some obsolete data source configuration features was removed: decoders, projections, explicit user_id-field.
 
 ### New features
 
@@ -27,17 +28,24 @@
 - The timeout for connecting to a data source can now be adjusted in the Cloak config file, under the `connect_timeout`
   field.
 - Improved support for boolean expressions.
-- Added support for `case` statements in standard queries.
 - Allowed inequalities between datetime columns and the current date.
-- Added experimental support for `case` expressions.
+- Added support for `CASE` statements in [standard queries](sql#query-and-subquery-types). 
+  Experimental support for [restricted queries](sql#query-and-subquery-types) can be enabled 
+  in the Cloak config using the `enable_case_support` flag.
+- The HTTP REST API query result endpoint no longer returns internal logging data.
+- The number of analysis queries needed when multiple copies of a data source exist was reduced.
+- The query editor and query results interface was made wider and more suitable for larger screens.
 
 ### Bugfixes
 
 - Fixed detection of recursive aggregators usage inside the `HAVING` clause.
+- Various fixes for Oracle data source: 
+  - the parameter order of the `trim` function in the generated SQL was fixed
+  - date/time conversion was not always correct
+- Views and analyst tables now appear in popular analytics tools such as Tableau.
 
 ### Changes
 
-- Support for some obsolete cloak features and config fields (decoders, projections, user_id) was removed.
 - The set of query restrictions was simplified and clarified.
 - Allow date ranges from `1900-01-01` to `9999-12-31`.
 - Date function `weekday` is now consistent across data sources.
