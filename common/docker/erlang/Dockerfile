@@ -5,7 +5,7 @@ RUN apt-get install -y libz-dev autoconf libncurses-dev build-essential libssl-d
 
 RUN \
   . /tmp/build_config/proxies.sh && \
-  git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.1.0 && \
+  git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.7.7 && \
   echo '. ~/.asdf/asdf.sh' >> ~/.bashrc && \
   echo 'erlang $ERLANG_VERSION' >> ~/.tool-versions && \
   bash -c ". ~/.asdf/asdf.sh && asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git" && \
