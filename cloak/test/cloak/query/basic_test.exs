@@ -1999,4 +1999,19 @@ defmodule Cloak.Query.BasicTest do
       rows: [%{row: [10]}]
     })
   end
+
+  test "[Issue #4180] join protection for queries using `order by`" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [180])
+
+    assert_query(
+      """
+        SELECT count(t2.user_id) FROM
+          (SELECT user_id FROM heights WHERE height = 180 ORDER BY 1) AS t1
+        INNER JOIN
+          heights AS t2
+        ON t1.user_id = t2.user_id
+      """,
+      %{rows: [%{row: [10]}]}
+    )
+  end
 end
