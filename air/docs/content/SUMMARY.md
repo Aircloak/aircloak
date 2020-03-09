@@ -1,6 +1,6 @@
 # Summary
 
----- The following line needs to be start with "## Aircloak Insights - version".
+---- The following line needs to start with "## Aircloak Insights - version".
 ---- This way the mix task compiling the docs will be able to insert the current
 ---- version number when it changes.
 ---- Please check the automatically adjusted header into version control.
