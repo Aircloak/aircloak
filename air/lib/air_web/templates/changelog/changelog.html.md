@@ -43,6 +43,9 @@
 - Date function `weekday` is now consistent across data sources.
   Returned values are in interval 1 (Sunday) to 7 (Saturday).
   This behavior may change if database defaults are modified.
+- Aircloak Insights no longer tracks pseudonymized usage information. The default
+  privacy policy has been simplified to reflect this change. Please consult
+  the [Upgrade guide](docs/ops/upgrading.html) for further information.
 
 ## Version 19.3.0
 

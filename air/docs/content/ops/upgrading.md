@@ -7,6 +7,19 @@ Insights Air will refuse to start if the parameter is present.
 Please remove the parameter from your `config.json`-configuration file
 before upgrading to this latest version.
 
+### Privacy policy
+
+In versions of Aircloak Insights prior to 20.1 Aircloak would track
+pseudonymized usage information for subsequent anonymized analyses. 
+With version 20.1 this is no longer the case. 
+
+The default privacy policy has been updated to reflect this change.
+You might want to alter the privacy policy of your installation to
+reflect these changes as well. 
+
+The updated and simplified language of the privacy policy can be found
+here: [20.1.0 privacy policy](upgrade/2001_privacy_policy.md).
+
 # Version 19.2.0
 
 ## Insights Cloak
