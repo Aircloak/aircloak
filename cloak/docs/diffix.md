@@ -8,7 +8,7 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
   - [Key concepts](#key-concepts)
   - [Deployment](#deployment)
   - [Main Pipeline](#main-pipeline)
-  - [Datasource configuration](#datasource-configuration)
+  - [Database configuration](#database-configuration)
 - [Initialization of internal state](#initialization-of-internal-state)
     - [Shadow table](#shadow-table)
     - [Isolating column label](#isolating-column-label)
@@ -69,26 +69,26 @@ Diffix Cedar can report how much answer suppression has taken place and how much
 
 ## Deployment
 
-Diffix Cedar is deployed as a function or device that is deployed between an analyst (or application) and an un-anonymized datasource. In the Aircloak system, this device is referred to as Cloak Insights. In this document, for readability, we refer to is simply as the cloak.
+Diffix Cedar is deployed as a function or device that sits between an analyst (or application) and an un-anonymized database. In the Aircloak system, this device is referred to as Insights Cloak. In this document, for readability, we refer to is simply as the cloak.
 
-An SQL interface is exposed to the analyst. The datasource may be an SQL database, or may be some other kind of data store. The cloak translates the analyst SQL into the appropriate query language.
+An SQL interface is exposed to the analyst. The database may be an SQL database, or may be some other kind of data store. The cloak translates the analyst SQL into the appropriate query language.
 
 ```
-    +------------+  Query   +-------+   SQL
-    |            |<---------|       |<----------
-    | Datasource |          | Cloak |            Analyst
-    |            |--------->|       |---------->
-    +------------+   Data   +-------+  Answer
-                                       (buckets)
+    +----------+  Query   +-------+   SQL
+    |          |<---------|       |<----------
+    | Database |          | Cloak |            Analyst
+    |          |--------->|       |---------->
+    +----------+   Data   +-------+  Answer
+                                     (buckets)
 ```
 
 If the SQL query requests an aggregate (e.g. `SELECT age, count(*) FROM table GROUP BY age`), then each row returned in the answer is refered to as a *bucket* in this document. In this example, each tuple `(age, count)` would be a separate bucket.
 
 ## Main Pipeline
 
-The cloak operates query-by-query: it accepts SQL queries from the analyst (or application), parses the SQL and checks to ensure that it is allowed, potentially modifies the analyst SQL to adhere to SQL constraints, requests the appropriate data from the datasource (SQL' in the figure), determines if buckets need to be suppressed, and adds noise to unsuppressed buckets before returning them to the analyst.
+The cloak operates query-by-query: it accepts SQL queries from the analyst (or application), parses the SQL and checks to ensure that it is allowed, potentially modifies the analyst SQL to adhere to SQL constraints, requests the appropriate data from the database (SQL' in the figure), determines if buckets need to be suppressed, and adds noise to unsuppressed buckets before returning them to the analyst.
 
-The cloak also maintains some internal state about data in the datasource. This state is used to determine when certain constraints are necessary. This state is produced by querying the datasource, and occurs at cloak initialization as well as periodically. 
+The cloak also maintains some internal state about data in the database. This state, produced by querying the database, is used to determine when certain constraints may be relaxed. The analysis queries producing the state are run when the system is initially setup, and are periodically repeated.
 
 __Prior to query:__
 - [Initialization of internal state](#initialization-of-internal-state) (SQL constraints)
@@ -98,11 +98,11 @@ __At query time:__
 - [Generate DB query](#generate-db-query) (Answer perturbation prep)
 - [Handle DB answer](#handle-db-answer) (Answer perturbation)
 
-## Datasource configuration
+## Database configuration
 
-The datasource consists of tables. Tables have *columns* and *rows*.
+The database consists of tables. Tables have *columns* and *rows*.
 
-Each table must be configured as being *personal* or *non-personal*. Personal tables contain user data that must be anonymized, whereas non-personal tables contain other data.
+Each table must be configured as being *personal* or *non-personal*. Personal tables contain user data that must be anonymized, whereas non-personal tables contain other data. (Note that in the Aircloak Insights product, the term "datasource" is used to refer generically to different types of databases.)
 
 When queries include one or more personal tables, the cloak must be able to associate every row of data with one distinct user. This can happen in one of two ways:
 1. The personal table is configured with one and only one `user_id` column (often referred to as the `uid` in this document). This uniquely identifies the entity that must be protected (typically but not necessarily a natural person).
@@ -136,9 +136,9 @@ This table is refreshed every 60 days.
 
 ### Safe math functions
 
-There are a variety of functions that can throw an error in some datasources, for instance divide-by-zero, numeric overflow, and taking the square root of a negative number. In such datasources, the error manifests itself as a error message transmitted to the analyst, which can be exploited by an attacker (see [Error generation attacks](./attacks.md#error-generation-attacks)).
+There are a variety of functions that can throw an error in some databases, for instance divide-by-zero, numeric overflow, and taking the square root of a negative number. In such databases, the error manifests itself as a error message transmitted to the analyst, which can be exploited by an attacker (see [Error generation attacks](./attacks.md#error-generation-attacks)).
 
-If the datasource allows user-defined exception handlers, then these are installed in the datasource, either by the cloak when it connects, through configuration of the datasource prior to cloak connection. If not, then the cloak modifies SQL to prevent exceptions. In both cases, errors are prevented from being transmitted to the analyst. See [Determine if safe math functions needed](#determine-if-safe-math-functions-needed).
+If the database allows user-defined exception handlers, then these are installed in the database, either by the cloak when it connects, through configuration of the database prior to cloak connection. If not, then the cloak modifies SQL to prevent exceptions. In both cases, errors are prevented from being transmitted to the analyst. See [Determine if safe math functions needed](#determine-if-safe-math-functions-needed).
 
 ### Per column min and max values
 
@@ -255,7 +255,7 @@ In order to generally reduce the attack surface available with string functions 
 
 `[NOT] [I]LIKE` have similar restrictions as string functions. The first two restrictions that apply to [String functions](#string-functions) apply to `[NOT] [I]LIKE` as well (cannot be combined with other transformations, cannot be used with columns that have mutiple casts).
 
-For isolating columns, the regex associated with `[NOT] [I]LIKE` is limited to using only the `%` wildcard (`_` is not allowed), and only in the first or last position of the regex. For example, `col LIKE '%stuff%'` is allowed, but not `col LIKE 'stu%ff'`. Non-isolating columns have no limitation on the `[NOT] [I]LIKE` regex.
+For isolating columns, the `%_` wildcards associated with `[NOT] [I]LIKE` is limited to using only the `%` wildcard (`_` is not allowed), and only in the first or last position of the string. For example, `col LIKE '%stuff%'` is allowed, but not `col LIKE 'stu%ff'`. Non-isolating columns have no limitation on the `[NOT] [I]LIKE` wildcards.
 [ghi2973](https://github.com/Aircloak/aircloak/issues/2973)
 
 ### Other limitations of isolating columns
@@ -280,7 +280,7 @@ Two-column conditions with inequalities do not require that the condition be a r
 
 ### Illegal JOINs
 
-The cloak rejects any queries that has `JOIN (...) ON` conditions that are not explicitly allowed (see [Datasource configuration](#datasource-configuration)). All `JOIN (...) ON` conditions must be simple `column1 = column2` expressions. This prevents attacks that would otherwise try to exploit known relationships between columns to generate extra noise samples.
+The cloak rejects any queries that has `JOIN (...) ON` conditions that are not explicitly allowed (see [Database configuration](#database-configuration)). All `JOIN (...) ON` conditions must be simple `column1 = column2` expressions. This prevents attacks that would otherwise try to exploit known relationships between columns to generate extra noise samples.
 [ghi898](https://github.com/Aircloak/aircloak/issues/898)
 [ghi2704](https://github.com/Aircloak/aircloak/issues/2704)
 
@@ -316,7 +316,7 @@ In addition, the cloak has a number of current date/time functions, including `c
 
 # Aggregation functions sum, min, max, count
 
-Different anonymization mechanisms are used for different aggregation functions. In this section, we describe anonymization for `sum(col)`, `count(*)`, `count(col)`, `count(DISTINCT uid)`, `min(col)`, and `max(col)`. A key requirement here is to minimize the amount of data that is transferred from the datasource to the cloak. The implementation of these functions limits the transfer to one row of data per bucket.
+Different anonymization mechanisms are used for different aggregation functions. In this section, we describe anonymization for `sum(col)`, `count(*)`, `count(col)`, `count(DISTINCT uid)`, `min(col)`, and `max(col)`. A key requirement here is to minimize the amount of data that is transferred from the database to the cloak. The implementation of these functions limits the transfer to one row of data per bucket.
 
 ## Generate DB query
 
@@ -329,7 +329,7 @@ WHERE abs(acct_district_id) = 1
 GROUP BY 1
 ```
 
-The query subsequently generated by the cloak for the datasource is in essence the following (simplified for readability):
+The query subsequently generated by the cloak for the database is in essence the following (simplified for readability):
 
 ```sql
      1	SELECT frequency,
@@ -378,7 +378,7 @@ Diffix adds noise samples (i.e. layers) per query filter condition. There are tw
 
 The mechanism for generating the same noise sample is to generate the same seed for the PRNG (Pseudo-Random Number Generator). Each seed is composed of several components which we call the *seed materials* (see [Determine seeds](#determine-seeds)).
 
-The seed material for both the UID-noise and the static-noise contain the values that are filtered for (in the case of positive conditions) or filtered against (in the case of negative conditions) by the condition. In some cases, it is possible to determine that value through inspection of the SQL itself. For instance, the selected value of `age = 20` is 20. In other cases, however, it is not clear from inspection, and so the selected value or values are requested from the datasource. We refer to this as "floating" the column.
+The seed material for both the UID-noise and the static-noise contain the values that are filtered for (in the case of positive conditions) or filtered against (in the case of negative conditions) by the condition. In some cases, it is possible to determine that value through inspection of the SQL itself. For instance, the selected value of `age = 20` is 20. In other cases, however, it is not clear from inspection, and so the selected value or values are requested from the database. We refer to this as "floating" the column.
 
 In our running example, there are two filter conditions. One is in the `WHERE` clause (`ABS(acct_distrit_id) = 1`, line 19), and one is the selected column `frequency` (line 1). The selected column `frequency` is a filter condition because each resulting bucket has only a single `frequency` value.  The cloak does not interpret the filtered value for the `WHERE` condition by inspection, but instead floats the column `acct_district_id`.
 
@@ -393,7 +393,7 @@ The UID-noise is seeded by (among other things):
 
 ### Determine if safe math functions needed
 
-A conservative analysis is run to determine if a given math expression in the query might result in an exception. Examples would be determining if a column in a divisor could be zero, or determining whether a `pow()` function on a column could lead to overflow. The analysis makes the assumption that the column value from the datasource does not exceed the approximated min and max (see [Per column min and max values](#per-column-min-and-max-values)). 
+A conservative analysis is run to determine if a given math expression in the query might result in an exception. Examples would be determining if a column in a divisor could be zero, or determining whether a `pow()` function on a column could lead to overflow. The analysis makes the assumption that the column value from the database does not exceed the approximated min and max (see [Per column min and max values](#per-column-min-and-max-values)). 
 [ghi3689](https://github.com/Aircloak/aircloak/issues/3689)
 
 If a math function might lead to an exception, then the function in the query is replaced with a safe version (see [Safe math functions](#safe-math-functions)).
@@ -409,11 +409,11 @@ END
 
 Here the assumed min and max for the `amount` column are 0 and 1000000. The `amount` column is replaced with this `CASE` statement, ensuring that any value from the `amount` column does not exceed these bounds.
 
-For simplicity, these substitutions are not shown in the [example datasource query](#generate-db-query).
+For simplicity, these substitutions are not shown in the [example database query](#generate-db-query).
 
 ### Add protection against JOIN timing attack
 
-As described in the [JOIN timing attack](./attacks.md#join-timing-attack), an analyst can strongly influence query execution time in the datasource by including `JOIN` expressions that may return an empty table.
+As described in the [JOIN timing attack](./attacks.md#join-timing-attack), an analyst can strongly influence query execution time in the database by including `JOIN` expressions that may return an empty table.
 [ghi3691](https://github.com/Aircloak/aircloak/issues/3691)
 
 To prevent this, the cloak modifies all but the last JOIN expression so that at least one row is always returned. This is done with a `UNION` operation:
@@ -515,7 +515,7 @@ TODO: This section is probably not quite right or complete.
 I'm not sure about how implicit ranges are seeded, for instance.
 ---->
 
-Upon receiving the datasource answer, for each one-column condition, the cloak knows the following information:
+Upon receiving the database answer, for each one-column condition, the cloak knows the following information:
 [ghi4018](https://github.com/Aircloak/aircloak/issues/4018)
 
 1. column name
@@ -535,7 +535,7 @@ The min and max column values are obtained either by floating (see [Gather seed 
 * If `col = val`, `col <> val`, or `clear_function(col) <> val`, then both the min and max are set to `val`.
 * If `col BETWEEN val1 AND val2`, then min is set to `val1`, and max to `val2`.
 * If `col IN (val1, ..., valN)`, then for each of the N per-element UID-noise layers, both min and max are set to `valN`. (Note that for the static noise layer, floating is used.)
-* If a selected column (`SELECT col FROM ...`), then min and max are set to the value returned by the datasource.
+* If a selected column (`SELECT col FROM ...`), then min and max are set to the value returned by the database.
 * If an implicit range, then min is set to the left edge of the range, and max is set to the right edge of the range.
 * In case of text datatypes, `val` is converted to lower case (i.e. `lower(val)`) for the purpose of seeding.
 
@@ -587,15 +587,15 @@ The rational for these perturbations is as follows. Assume that an analyst is ab
 
 There needs to be enough noise that the analyst's confidence in a guess as to the presence or absence of the victim in the right query is low.
 
-Alternatively, we can assume a worst-case where an analyst knows every value in a column except that of a single user (the victim), and the analyst wants to determine if the victim is included in the datasource or not. If a query taking the sum of the column is greater than the sum of all known values, then again the analyst can assume that the victim is in the datasource, and again there needs to be enough noise to keep the analyst's confidence low.
+Alternatively, we can assume a worst-case where an analyst knows every value in a column except that of a single user (the victim), and the analyst wants to determine if the victim is included in the database or not. If a query taking the sum of the column is greater than the sum of all known values, then again the analyst can assume that the victim is in the database, and again there needs to be enough noise to keep the analyst's confidence low.
 
 Since the victim may be a heavy contributor, there needs to be enough noise to obscure the presence or absence of a heavy contributor. The analyst can, however, in many cases estimate the magnitude of noise that was added. Indeed, the cloak explicitly reports this to the analyst for the purpose of better understanding the cloak's answer. If there is an extreme contributor, then merely the magnitude of noise can reveal with high confidence the presence or absence of the user.
 
 To prevent this, the cloak flattens the extreme user or users values to hide the extreme user by blending it in with the heavy users. The noise is then based on the average contributions of the heavy users. Unfortunately, the cloak cannot report how much flattening took place, since that would defeat the purpose. As a result, aggregate values can on occasion be very inaccurate, and the analyst needs to be aware of this possibility.
 
-In Diffix Birch, the perturbations for extreme and heavy contributors were done explicitly. That is, the cloak would explicitly determine the contributions of each user, identify the extreme and heavy contributors, and compute the flattening and noise accordingly. This process would sometimes incur a heavy performance penalty, as the datasource would have to convey per-user information to the cloak.
+In Diffix Birch, the perturbations for extreme and heavy contributors were done explicitly. That is, the cloak would explicitly determine the contributions of each user, identify the extreme and heavy contributors, and compute the flattening and noise accordingly. This process would sometimes incur a heavy performance penalty, as the database would have to convey per-user information to the cloak.
 
-To improve performance, Diffix Cedar uses per-bucket rather than per-user information. In most cases, this substantially reduces the amount of data transferred from the datasource to the cloak. Unfortunately, this means that the cloak can no longer explicitly determine the extreme and heavy contributors. Instead, the cloak uses aggregate statistics about the users in each bucket to *estimate* the extreme and heavy contributors.
+To improve performance, Diffix Cedar uses per-bucket rather than per-user information. In most cases, this substantially reduces the amount of data transferred from the database to the cloak. Unfortunately, this means that the cloak can no longer explicitly determine the extreme and heavy contributors. Instead, the cloak uses aggregate statistics about the users in each bucket to *estimate* the extreme and heavy contributors.
 
 The statistics are these (line numbers taken from [example query](#generate-db-query)):
 
@@ -625,7 +625,7 @@ The sum advertised to the analyst is:
 
 `noisy_sum = true_sum + perturbation_sum`
 
-where `true_sum` is the exact (non-noisy) sum from the datasource (line 2).
+where `true_sum` is the exact (non-noisy) sum from the database (line 2).
 
 If we assume for the moment that all user contributions are positive, then the intuition behind the algorithm follows from these two observations:
 1. The larger the standard deviation (`col_std`), the larger the average heavy contribution.
@@ -714,7 +714,7 @@ In order to help analysts understand query results, the cloak provides informati
 
 The following simplistic and idealized example illustrates how suppression is reported. Here `count` is a count of distinct UIDs. For simplicity, we assume here that buckets with 4 or fewer distinct UIDs are suppressed. In reality, this decision is based on a noisy threshold ([Low count suppression](#low-count-suppression)). This example also assumes that any given UID appears only once. As a result, the count resulting from merging two buckets is the sum of the two individual counts.
 
-Suppose that the data transferred from the datasource to the cloak is as follows:
+Suppose that the data transferred from the database to the cloak is as follows:
 
 |   x   |   y   | count |
 | :---: | :---: | :---: |

@@ -34,7 +34,9 @@ into **attacks.md** as defenses are implemented.
 are known vulnerabilities.  Meant for customers, but not public. This
 content will be moved into **diffix.md** as defenses are implemented.
 
-**anonymization.md:** Deprecated.
+**anonymization.md:** Deprecated. Don't update, but keep because it contains
+some information currently not in diffix.md, particularly about uid-based
+anonymization.
 
 ## Loading into online docs
 

@@ -314,7 +314,7 @@ Query 2:
 SELECT count(*)
 FROM table
 WHERE salary BETWEEN 100000 AND 110000 AND
-      dept = 'CS' AND
+      dept = 'CS'
 ```
 
 in the case where there is only one woman in the CS department. The victim in this attack is the woman, who is excluded in the first query and included in the second. The unknown attribute (the thing the attacker wants to learn) is whether or not the victim's salary is in the range 100000 to 110000.
