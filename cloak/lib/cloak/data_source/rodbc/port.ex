@@ -186,8 +186,17 @@ defmodule Cloak.DataSource.RODBC.Port do
   defp decode_values(<<@type_f32, num::float-little-32, data::binary>>, acc),
     do: decode_values(data, [num | acc])
 
+  # Special encodings for IEEE-754 floats include NaN and +-Infinity.
+  # We discard that information here and map to nil instead.
+  defp decode_values(<<@type_f32, _nan::size(32), data::binary>>, acc),
+    do: decode_values(data, [nil | acc])
+
   defp decode_values(<<@type_f64, num::float-little-64, data::binary>>, acc),
     do: decode_values(data, [num | acc])
+
+  # 64-bit NaN and +-Infinity.
+  defp decode_values(<<@type_f64, _nan::size(64), data::binary>>, acc),
+    do: decode_values(data, [nil | acc])
 
   defp decode_values(<<@type_str, len::unsigned-little-32, str::bytes-size(len), data::binary>>, acc),
     do: decode_values(data, [str | acc])

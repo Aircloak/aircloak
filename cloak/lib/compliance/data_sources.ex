@@ -45,7 +45,7 @@ defmodule Compliance.DataSources do
 
     data_sources
     |> Enum.map(&Task.async(fn -> setup_data_source(&1) end))
-    |> Enum.each(&Task.await(&1, :timer.minutes(3)))
+    |> Enum.each(&Task.await(&1, :timer.minutes(10)))
 
     insert_servers = Enum.map(data_sources, &start_insert_servers!(&1, concurrency))
 
@@ -235,6 +235,7 @@ defmodule Compliance.DataSources do
   defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServer}), do: Compliance.DataSource.SQLServer
   defp handler_for_data_source(%{driver: Cloak.DataSource.MongoDB}), do: Compliance.DataSource.MongoDB
   defp handler_for_data_source(%{driver: Cloak.DataSource.Oracle}), do: Compliance.DataSource.Oracle
+  defp handler_for_data_source(%{driver: Cloak.DataSource.ClouderaImpala}), do: Compliance.DataSource.ClouderaImpala
 
   # -------------------------------------------------------------------
   # Internal functions

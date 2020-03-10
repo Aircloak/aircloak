@@ -209,9 +209,9 @@ defmodule Cloak.Compliance.QueryGenerator do
     query
   end
 
-  defp query(scaffold) do
+  defp query(scaffold, subquery? \\ false) do
     {from, tables} = from(scaffold)
-    {select, selected_tables} = select(scaffold, tables)
+    {select, selected_tables} = select(scaffold, tables, subquery?)
     order_by = order_by(scaffold, select)
     limit = limit(scaffold, order_by)
 
@@ -231,8 +231,8 @@ defmodule Cloak.Compliance.QueryGenerator do
     }
   end
 
-  defp select(scaffold, tables) do
-    context = scaffold_to_context(scaffold, tables)
+  defp select(scaffold, tables, subquery?) do
+    context = %{scaffold_to_context(scaffold, tables) | subquery?: subquery?}
 
     {elements, tables} =
       if scaffold.select_user_id? do
@@ -305,7 +305,19 @@ defmodule Cloak.Compliance.QueryGenerator do
     ])
   end
 
-  defp do_expression(type, context = %{aggregate?: false}) do
+  defp do_expression(
+         type,
+         context = %{where?: false, function?: false, range?: false, subquery?: false}
+       ) do
+    frequency(context.complexity, [
+      {1, constant(type, context)},
+      {3, column(type, context)},
+      {2, function(type, simplify(context))},
+      {2, case_expression(type, simplify(context))}
+    ])
+  end
+
+  defp do_expression(type, context) do
     frequency(context.complexity, [
       {1, constant(type, context)},
       {3, column(type, context)},
@@ -326,6 +338,29 @@ defmodule Cloak.Compliance.QueryGenerator do
       :error -> constant(type, context)
     end
   end
+
+  defp case_expression(type, context) do
+    {:case, nil,
+     many1(context.complexity, fn complexity -> when_expression(type, %{context | complexity: complexity}) end)
+     |> make_else_expression(type, context)}
+  end
+
+  defp when_expression(type, context) do
+    {:when, nil, [when_condition(context), case_constant(type, context)]}
+  end
+
+  defp make_else_expression(list, type, context) do
+    if boolean(), do: list ++ [{:else, nil, [case_constant(type, context)]}], else: list
+  end
+
+  defp when_condition(context) do
+    type = type(context)
+    {:=, nil, [column(type, context), constant(type, context)]}
+  end
+
+  defp case_constant(:integer, context), do: {:integer, frequency(context.complexity, [{1, 1}, {1, 0}]), []}
+  defp case_constant(:real, context), do: {:real, frequency(context.complexity, [{1, 1}, {1, 0}]), []}
+  defp case_constant(type, context), do: constant(type, context)
 
   defp function(type, context) do
     case function_spec(type, context) do
@@ -521,14 +556,14 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp join_element(scaffold), do: subquery(scaffold)
 
   defp subquery(scaffold) do
-    {query, [table]} = query(scaffold)
+    {query, [table]} = query(scaffold, true)
     name = name(scaffold)
     {{:as, name, [{:subquery, nil, [query]}]}, [Map.put(table, :name, name)]}
   end
 
   defp where(scaffold, tables) do
     frequency(scaffold.complexity, [
-      {1, {:where, nil, [where_condition(%{scaffold_to_context(scaffold, tables) | aggregate?: false})]}},
+      {1, {:where, nil, [where_condition(%{scaffold_to_context(scaffold, tables) | aggregate?: false, where?: true})]}},
       {1, empty()}
     ])
   end
@@ -737,7 +772,9 @@ defmodule Cloak.Compliance.QueryGenerator do
       cast?: false,
       having?: false,
       in?: false,
+      where?: false,
       function?: false,
+      subquery?: false,
       analyst_table?: match?({:analyst_table, _}, scaffold.kind) or scaffold.kind == :analyst_table_subquery
     }
   end

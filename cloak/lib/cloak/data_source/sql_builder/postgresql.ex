@@ -23,7 +23,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct variance
-      < > <= >= = <> and or not in is_null like ilike
+      < > <= >= = <> and or not in is_null like ilike !<>
       year quarter month day hour minute second weekday date_trunc
       sqrt floor ceil abs round trunc mod ^ * / + - %
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
@@ -37,7 +37,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
 
-  def function_sql("weekday", args), do: ["EXTRACT(DOW FROM ", args, ")"]
+  def function_sql("weekday", args), do: ["(EXTRACT(DOW FROM ", args, ") + 1)"]
   def function_sql("trunc", [arg1, arg2]), do: ["TRUNC(CAST(", arg1, " AS decimal), ", arg2, ")"]
   def function_sql("round", [arg1, arg2]), do: ["ROUND(CAST(", arg1, " AS decimal), ", arg2, ")"]
   def function_sql("hex", [arg]), do: ["ENCODE(CONVERT_TO(", arg, ", 'utf8'), 'hex')"]
@@ -77,6 +77,8 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def function_sql("grouping_id", args), do: function_sql("grouping", args)
 
   def function_sql("case", args), do: Dialect.case_default(args)
+
+  def function_sql("!<>", [arg1, arg2]), do: [arg1, " IS NOT DISTINCT FROM ", arg2]
 
   def function_sql(name, args), do: super(name, args)
 

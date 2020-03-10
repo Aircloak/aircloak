@@ -2,5 +2,6 @@
   "air_site": "wss://localhost:8444",
   "salt": "test salt which doesn't matter since tests have SD=0",
   "data_sources": "integration_tests",
+  "enable_case_support": true,
   "sanitize_otp_errors": false
 }

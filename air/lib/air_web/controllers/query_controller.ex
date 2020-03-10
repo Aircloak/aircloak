@@ -100,7 +100,7 @@ defmodule AirWeb.QueryController do
   def permalink_show(conn, params) do
     with {:ok, query} <- Air.Service.Token.query_from_token(conn.assigns.current_user, params["token"]) do
       query_for_display =
-        AirWeb.Query.for_display(query,
+        AirWeb.Query.for_external_display(query,
           authenticated?: false,
           permalink_token: params["token"],
           buckets: Air.Service.Query.buckets(query, 0)
@@ -170,7 +170,7 @@ defmodule AirWeb.QueryController do
     # new style result -> compute json in streaming fashion and send chunked response
     json_without_rows =
       query
-      |> AirWeb.Query.for_display(authenticated?: true)
+      |> AirWeb.Query.for_external_display(authenticated?: true)
       |> Jason.encode!()
 
     prefix_size = byte_size(json_without_rows) - 1

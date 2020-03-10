@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   use Combine
   alias Cloak.Sql.{Query, Expression, Compiler, Function}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, Oracle}
+  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, ClouderaImpala}
   alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
@@ -266,9 +266,11 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
 
   defp from_clause({:subquery, subquery}, query) do
-    sql_dialect_module(query).alias_sql(
-      ["(", build_fragments(subquery.ast), add_join_timing_protection(subquery), ")"],
-      quote_name(subquery.alias, sql_dialect_module(query).quote_char())
+    dialect = sql_dialect_module(query)
+
+    dialect.alias_sql(
+      ["(", build_subquery(subquery), ")"],
+      quote_name(subquery.alias, dialect.quote_char())
     )
   end
 
@@ -320,8 +322,15 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp constant_to_fragment(value, dialect) when is_binary(value), do: dialect.literal(escape_string(value))
 
-  defp constant_to_fragment({pattern, _regex, _regex_ci}, dialect),
-    do: [pattern |> escape_string() |> dialect.literal(), " ESCAPE ", dialect.literal("\\")]
+  defp constant_to_fragment({pattern, _regex, _regex_ci}, dialect) do
+    escaped_pattern = pattern |> escape_string() |> dialect.literal()
+
+    if dialect.supports_overriding_pattern_escape?() do
+      [escaped_pattern, " ESCAPE ", dialect.literal("\\")]
+    else
+      escaped_pattern
+    end
+  end
 
   defp constant_to_fragment(value, dialect), do: dialect.literal(value)
 
@@ -330,10 +339,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp dot_terminate(%Expression{type: :text} = expression),
     do: Expression.function("concat", [expression, Expression.constant(:text, ".")], :text)
-
-  defp join([], _joiner), do: []
-  defp join([el], _joiner), do: [el]
-  defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
 
   defp group_by_fragments(%Query{subquery?: true, grouping_sets: [_ | _]} = query) do
     dialect = sql_dialect_module(query)
@@ -345,7 +350,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       |> Enum.intersperse(", ")
     end)
     |> case do
-      [[]] -> if dialect in [MySQL], do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
+      [[]] -> if dialect in [MySQL, ClouderaImpala], do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
       [grouping_set] -> [" GROUP BY ", grouping_set]
       grouping_sets -> [" GROUP BY GROUPING SETS ((", Enum.intersperse(grouping_sets, "), ("), "))"]
     end
@@ -407,32 +412,28 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp cast(expression, to), do: Expression.function({:cast, to}, [expression], to)
 
   # -------------------------------------------------------------------
-  # `JOIN` timing protection
+  # Build subquery with join-timing protection
   # -------------------------------------------------------------------
 
-  defp add_join_timing_protection(%{ast: query, join_timing_protection?: true}) do
-    dialect = sql_dialect_module(query)
-
-    from =
-      case dialect do
-        Oracle -> " FROM dual"
-        _ -> ""
-      end
-
+  defp build_subquery(%{ast: query, join_timing_protection?: true}) do
     [
-      " UNION ALL SELECT ",
-      query.db_columns
-      |> Enum.map(&Table.invalid_value(&1.type))
-      |> Enum.map(&constant_to_fragment(&1, dialect))
-      |> join(", "),
-      from,
-      " WHERE NOT EXISTS(",
+      "(",
       build_fragments(query),
-      ?)
+      ") UNION ALL (SELECT * FROM (",
+      build_fragments(%Query{strip_filters(query) | limit: 1, offset: 0, order_by: []}),
+      ") t WHERE NOT EXISTS(",
+      build_fragments(%Query{query | order_by: []}),
+      "))"
     ]
   end
 
-  defp add_join_timing_protection(_subquery), do: []
+  defp build_subquery(subquery), do: build_fragments(subquery.ast)
+
+  defp strip_filters(query) do
+    Query.Lenses.all_queries()
+    |> Lens.filter(&(&1.type == :restricted))
+    |> Lens.map(query, &%Query{&1 | where: nil, having: nil})
+  end
 
   # -------------------------------------------------------------------
   # Mark boolean expressions

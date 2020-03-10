@@ -46,6 +46,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the expression for representing a large string constant."
   @callback long_string(String.t()) :: String.t()
 
+  @doc "Returns whether custom escape characters can be specified in LIKE/ILIKE patterns."
+  @callback supports_overriding_pattern_escape?() :: boolean
+
   alias Cloak.Query.ExecutionError
 
   defmacro __using__(_opts) do
@@ -106,6 +109,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       @impl unquote(__MODULE__)
       def long_string(string), do: "'#{string}'"
 
+      @impl unquote(__MODULE__)
+      def supports_overriding_pattern_escape?(), do: true
+
       defoverridable unquote(__MODULE__)
     end
   end
@@ -144,6 +150,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
 
   def default_function_sql(name, [arg1, arg2]) when name in ~w(and or > < = <> >= <= + - * / like ilike),
     do: [?(, arg1, " #{String.upcase(name)} ", arg2, ?)]
+
+  def default_function_sql("!<>", [arg1, arg2]),
+    do: ["(", arg1, " = ", arg2, " OR (", arg1, " IS NULL AND ", arg2, " IS NULL))"]
 
   def default_function_sql(name, args), do: [String.upcase(name), ?(, Enum.intersperse(args, ", "), ?)]
 end

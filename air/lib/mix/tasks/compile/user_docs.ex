@@ -136,7 +136,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
       original_summary
       |> String.split("\n")
       |> Enum.map(fn line ->
-        if String.contains?(line, "## Aircloak Insights - version") and not String.ends_with?(line, current_version) do
+        if String.starts_with?(line, "## Aircloak Insights - version") and not String.ends_with?(line, current_version) do
           "## Aircloak Insights - version #{current_version}"
         else
           line

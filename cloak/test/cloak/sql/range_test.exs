@@ -48,7 +48,7 @@ defmodule Cloak.Sql.Range.Test do
     end
 
     test "no function ranges from top-level HAVING" do
-      query = compile("SELECT COUNT(*) FROM table GROUP BY number HAVING trunc(float) = 10")
+      query = compile("SELECT COUNT(*) FROM table GROUP BY float HAVING trunc(float) = 10")
       assert [] = Range.find_ranges(query)
     end
 
@@ -154,6 +154,7 @@ defmodule Cloak.Sql.Range.Test do
     query_string
     |> Parser.parse!()
     |> Compiler.Specification.compile(nil, data_source(), _parameters = [], _views = %{})
+    |> Compiler.Anonymization.set_query_type()
   end
 
   defp data_source() do

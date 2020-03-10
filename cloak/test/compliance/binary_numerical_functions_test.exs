@@ -21,20 +21,14 @@ Enum.each(
 
       @moduletag :"#{function}"
 
-      columns =
-        if function =~ ~r/bucket/ do
-          numerical_columns() |> raw_columns()
-        else
-          numerical_columns()
-        end
-
       test_reverse_parameters? = not String.starts_with?(function, "bucket")
 
-      Enum.each(columns, fn {column, table} ->
+      Enum.each(numerical_columns(), fn {column, table} ->
         @tag compliance: "#{function} #{column} #{table} parameter 1 subquery"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
           context
           |> disable_divide_by_zero(unquote(function))
+          |> disable_signed_pow(unquote(column), unquote(function))
           |> assert_consistent_and_not_failing("""
             SELECT
               output
@@ -54,6 +48,7 @@ Enum.each(
           test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
             context
             |> disable_divide_by_zero(unquote(function))
+            |> disable_signed_pow(unquote(column), unquote(function))
             |> assert_consistent_and_not_failing("""
               SELECT
                 output
@@ -73,6 +68,7 @@ Enum.each(
         test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
           context
           |> disable_divide_by_zero(unquote(function))
+          |> disable_signed_pow(unquote(column), unquote(function))
           |> assert_consistent_and_not_failing("""
             SELECT
               #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
@@ -87,6 +83,7 @@ Enum.each(
           test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
             context
             |> disable_divide_by_zero(unquote(function))
+            |> disable_signed_pow(unquote(column), unquote(function))
             |> assert_consistent_and_not_failing("""
               SELECT
                 #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
@@ -100,6 +97,15 @@ Enum.each(
 
       def disable_divide_by_zero(context, function) do
         disable_for(context, Cloak.DataSource.MongoDB, function =~ ~r/\/|%.*-/)
+      end
+
+      def disable_signed_pow(context, column, function) do
+        # SQL Server is not consistent with negative bases.
+        disable_for(
+          context,
+          Cloak.DataSource.SQLServer,
+          function in ["<col1> ^ <col2>", "pow(<col1>, <col2>)"] and column in ["signed_integer", "signed_float"]
+        )
       end
     end
   end

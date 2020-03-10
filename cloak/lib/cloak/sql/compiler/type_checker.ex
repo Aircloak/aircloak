@@ -42,23 +42,27 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Top-level checks
   # -------------------------------------------------------------------
 
-  def verify_allowed_usage_of_math(query),
-    do:
-      Query.Lenses.analyst_provided_expressions()
-      |> Lens.to_list(query)
-      |> Enum.each(fn expression ->
-        type = Type.establish_type(expression, query)
+  def verify_allowed_usage_of_math(query) do
+    restricted_expressions()
+    |> Lens.filter(fn expression ->
+      type = Type.establish_type(expression, query)
+      restricted_transformations_count(type) > @max_allowed_restricted_functions
+    end)
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
 
-        if restricted_transformations_count(type) > @max_allowed_restricted_functions do
-          raise CompilationError,
-            source_location: expression.source_location,
-            message: """
-            Queries containing expressions with a high number of functions that are used in combination
-            with constant values are prohibited. For further information about when this condition is
-            triggered, please check the "Restrictions" section of the user guides.
-            """
-        end
-      end)
+      [expression | _rest] ->
+        raise CompilationError,
+          source_location: expression.source_location,
+          message: """
+          Queries containing expressions with a high number of functions that are used in combination
+          with constant values are prohibited. For further information about when this condition is
+          triggered, please check the "Restrictions" section of the user guides.
+          """
+    end
+  end
 
   defp verify_lhs_of_in_is_clear(query),
     do:
@@ -107,23 +111,26 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       )
 
-  defp verify_string_based_expressions_are_clear(query),
-    do:
-      Query.Lenses.analyst_provided_expressions()
-      |> Lens.to_list(query)
-      |> Enum.each(fn expression ->
-        if expression |> Type.establish_type(query) |> Type.unclear_string_manipulation?(),
-          do:
-            raise(
-              CompilationError,
-              source_location: expression.source_location,
-              message: """
-              String manipulation functions cannot be combined with other transformations.
-              For more information see the "Text operations" subsection of the "Restrictions" section
-              in the user guides.
-              """
-            )
-      end)
+  defp verify_string_based_expressions_are_clear(query) do
+    restricted_expressions()
+    |> Lens.filter(&(&1 |> Type.establish_type(query) |> Type.unclear_string_manipulation?()))
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [expression | _rest] ->
+        raise(
+          CompilationError,
+          source_location: expression.source_location,
+          message: """
+          String manipulation functions cannot be combined with other transformations.
+          For more information see the "Text operations" subsection of the "Restrictions" section
+          in the user guides.
+          """
+        )
+    end
+  end
 
   @allowed_like_functions []
   defp verify_lhs_of_not_like_is_clear(query),
@@ -333,5 +340,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       _ ->
         :ok
     end
+  end
+
+  defp restricted_expressions() do
+    Lens.multiple([
+      Lens.keys([:columns, :group_by]) |> Lens.all(),
+      Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
+      Query.Lenses.pre_anonymization_filter_clauses() |> Query.Lenses.conditions() |> Query.Lenses.operands()
+    ])
+    |> Query.Lenses.all_expressions()
+    |> Lens.reject(& &1.synthetic?)
   end
 end

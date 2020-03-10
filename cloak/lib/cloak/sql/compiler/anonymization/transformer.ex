@@ -118,7 +118,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     # The user id is valid only for at-risk values in the target column.
     user_id_aggregator =
       Expression.function("case", [low_count_user_id?, min_user_id, Expression.null()], user_id.type)
-      |> set_fields(alias: "__ac_user_id", synthetic?: true)
+      |> set_fields(alias: "__ac_user_id", synthetic?: true, user_id?: true)
 
     grouped_columns = base_columns ++ [target_column]
     grouping_id = grouping_id_column(query.grouping_sets, base_columns)
@@ -296,7 +296,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
       Function.aggregator?(expression) ->
         []
 
-      Helpers.aggregated_column?(expression) or uses_multiple_columns?(expression) ->
+      Helpers.aggregated_column?(expression) ->
         Enum.flat_map(expression.args, &extract_groups/1)
 
       true ->
@@ -368,10 +368,22 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
   # -------------------------------------------------------------------
 
   defp uid_aggregator(%Expression{kind: :function, name: "count_noise"} = expression),
-    do: uid_aggregator(%Expression{expression | name: "count", type: :integer})
+    do: %Expression{expression | name: "count", type: :integer}
 
   defp uid_aggregator(%Expression{kind: :function, name: "sum_noise", args: [arg]} = expression),
-    do: uid_aggregator(%Expression{expression | name: "sum", type: Function.type(arg)})
+    do: %Expression{expression | name: "sum", type: Function.type(arg)}
+
+  defp uid_aggregator(%Expression{kind: :function, name: "count", args: [%Expression{kind: kind} = arg]} = expression)
+       when kind != :constant do
+    arg_is_null = Expression.function("is_null", [arg], :boolean)
+    constant_one = Expression.constant(:integer, 1)
+    constant_null = Expression.constant(nil, nil)
+
+    one_if_arg_is_not_null =
+      Expression.function("case", [arg_is_null, constant_null, constant_one], :integer) |> set_fields(synthetic?: true)
+
+    %Expression{expression | name: "sum", args: [one_if_arg_is_not_null]}
+  end
 
   defp uid_aggregator(aggregator), do: aggregator
 
@@ -398,13 +410,6 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
   defp global_aggregator("count"), do: "sum"
   defp global_aggregator("count_noise"), do: "sum_noise"
   defp global_aggregator(function_name), do: function_name
-
-  defp uses_multiple_columns?(expression) do
-    Lenses.leaf_expressions()
-    |> Lens.filter(&Expression.column?/1)
-    |> Lens.to_list(expression)
-    |> Enum.count() > 1
-  end
 
   # -------------------------------------------------------------------
   # Offload grouping sets

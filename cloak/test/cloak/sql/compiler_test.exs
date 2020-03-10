@@ -92,6 +92,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error == "Arguments of type (`integer`, `datetime`) are incorrect for `=`."
   end
 
+  test "rejects having conditions on non grouped by columns" do
+    {:error, "`HAVING` clause can not be applied over column `numeric` from table `table`."} =
+      compile("select count(*) from table group by column having numeric = 1", data_source())
+  end
+
   describe "rejects non-boolean filtering clauses" do
     test "where" do
       assert {:error, error} = compile("select count(*) from table where 1", data_source())
@@ -114,32 +119,28 @@ defmodule Cloak.Sql.Compiler.Test do
 
   describe "conditions usage" do
     test "rejects conditions in anonymizing select" do
-      assert {:error, error} = compile("select numeric = 0 from table", data_source())
-
-      assert error ==
-               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+      assert {:error, "Illegal usage of a condition in an anonymizing or restricted query."} =
+               compile("select numeric = 0 from table", data_source())
     end
 
     test "rejects conditions in anonymizing group by" do
-      assert {:error, error} = compile("select 1 from table group by numeric in (0, 1)", data_source())
-
-      assert error ==
-               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+      assert {:error, "Illegal usage of a condition in an anonymizing or restricted query."} =
+               compile("select 1 from table group by numeric in (0, 1)", data_source())
     end
 
     test "rejects conditions in anonymizing order by" do
-      assert {:error, error} = compile("select 1 from table order by string like '%aaa'", data_source())
+      assert {:error, "Illegal usage of a condition in an anonymizing or restricted query."} =
+               compile("select 1 from table order by string like '%aaa'", data_source())
+    end
 
-      assert error ==
-               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
+    test "rejects condition inside case condition" do
+      assert {:error, "Illegal usage of a condition in an anonymizing or restricted query."} =
+               compile("select case when cast(numeric = 1 as boolean) = true then 0 end from table", data_source())
     end
 
     test "rejects conditions in function calls" do
-      assert {:error, error} =
+      assert {:error, "Illegal usage of a condition in an anonymizing or restricted query."} =
                compile("select count(*) from table where cast(numeric > 0 as integer) = 0", data_source())
-
-      assert error ==
-               "Conditions can not be used outside the `WHERE`, `HAVING` and `ON` clauses in anonymizing queries."
     end
 
     test "allow conditions in non-filtering clauses in standard queries" do
@@ -1383,26 +1384,95 @@ defmodule Cloak.Sql.Compiler.Test do
 
   describe "`case` statements" do
     test "allowed in standard queries" do
-      assert {:ok, _} = compile_standard("select case when true then string end from table", data_source())
+      assert {:ok, _} = compile_standard("select case when string = 'aa' then string end from table", data_source())
     end
 
-    test "rejected in standard queries" do
-      assert {:error, "Function `case` can only be used in non-anonymizing queries."} =
-               compile("select case when true then string end from table", data_source())
+    test "allowed in anonymizing select" do
+      assert {:ok, _} = compile("select case when string = 'xxx' then 'xxx' end from table", data_source())
+    end
+
+    test "allowed in anonymizing aggregate" do
+      assert {:ok, _} = compile("select sum(case when string = 'xxx' then 1 end) from table", data_source())
+    end
+
+    test "allowed in anonymizing group by" do
+      assert {:ok, _} = compile("select case when string = 'xxx' then 1 end from table group by 1", data_source())
+    end
+
+    test "rejected in restricted queries" do
+      assert {:error, "`case` expressions can not be used in restricted queries."} =
+               compile(
+                 "select stddev(x) from (select case when string = 'xxx' then 1 end as x from table) t",
+                 data_source()
+               )
+    end
+
+    test "rejected in filtering clauses" do
+      assert {:error, "`case` expressions can not be used in filtering clauses in an anonymizing query."} =
+               compile("select stddev(numeric) from table where case when string = 'xxx' then true end", data_source())
+    end
+
+    test "reject post processing in select" do
+      assert {:error, "Post-processing a `case` expression in an anonymizing query is not allowed."} =
+               compile("select length(case when string = 'xxx' then 'aaa' end) from table", data_source())
+    end
+
+    test "reject post processing in group by" do
+      assert {:error, "Post-processing a `case` expression in an anonymizing query is not allowed."} =
+               compile("select 1 from table group by length(case when string = 'xxx' then 'aaa' end)", data_source())
+    end
+
+    test "reject post processing in order by" do
+      assert {:error, "Post-processing a `case` expression in an anonymizing query is not allowed."} =
+               compile("select 1 from table order by length(case when string = 'xxx' then 'aaa' end)", data_source())
+    end
+
+    test "reject post processing in aggregator" do
+      assert {:error, "Post-processing a `case` expression in an anonymizing query is not allowed."} =
+               compile("select sum(length(case when string = 'xxx' then 'aaa' end)) from table", data_source())
+    end
+
+    test "reject invalid return values when aggregated" do
+      assert {:error, "Aggregated `case` expressions can only return the constants `0`, `1` or `NULL`."} =
+               compile("select sum(case when string = 'xxx' then 1 else 3 end) from table", data_source())
+    end
+
+    test "reject usage inside count(distinct)" do
+      assert {:error, "Counting the distinct values of a `case` expression is not allowed."} =
+               compile("select count(distinct case when string = 'xxx' then 1 end) from table", data_source())
+    end
+
+    test "reject invalid return values when selected" do
+      assert {:error, "`case` expressions in anonymizing queries can only return constant values."} =
+               compile("select case when string = 'xxx' then numeric end from table", data_source())
+    end
+
+    test "reject using multiple conditions" do
+      assert {:error,
+              "`when` clauses from `case` expressions in anonymizing queries can only use a simple " <>
+                "equality condition of the form `column = constant`."} =
+               compile("select case when string = 'xxx' and numeric = 0 then 1 end from table", data_source())
+    end
+
+    test "reject using unclear conditions" do
+      assert {:error,
+              "`when` clauses from `case` expressions in anonymizing queries can only use a simple " <>
+                "equality condition of the form `column = constant`."} =
+               compile("select case when numeric <> 0 then 1 end from table", data_source())
     end
 
     test "test conditions have to be booleans" do
       assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
-               compile_standard("select case when true then 1 when string then 0 else 2 end from table", data_source())
+               compile_standard("select case when bool then 1 when string then 0 else 2 end from table", data_source())
     end
 
     test "return values have to be identical" do
       assert {:error, "`case` expression requires that all branches return the same type."} =
-               compile_standard("select case when false then string else 2 end from table", data_source())
+               compile_standard("select case when bool then string else 2 end from table", data_source())
     end
 
     test "null return values are ignored from type checking" do
-      assert {:ok, _} = compile_standard("select case when true then null else string end from table", data_source())
+      assert {:ok, _} = compile_standard("select case when bool then null else string end from table", data_source())
     end
 
     test "all null return values" do

@@ -7,7 +7,8 @@ Enum.each(
     "quarter(<col>)",
     "second(<col>)",
     "year(<col>)",
-    # "weekday(<col>)",
+    "cast(cast(<col> as text) as datetime)",
+    "weekday(<col>)",
     "date_trunc('year', <col>)",
     "date_trunc('quarter', <col>)",
     "date_trunc('month', <col>)",
@@ -60,6 +61,9 @@ Enum.each(
         context
         |> disable_for(:all, column in date_columns() and unsupported_on_dates?(function))
         |> disable_for(Cloak.DataSource.MongoDB, column in date_columns())
+        # Impala maps dates to datetime (TIMESTAMP). The returned results will be equivalent,
+        # but tests will fail because other databases return results as date only.
+        |> disable_for(Cloak.DataSource.ClouderaImpala, column in date_columns())
       end
 
       defp unsupported_on_dates?(function) do
@@ -84,6 +88,8 @@ Enum.each(
         @tag compliance: "#{condition} in where #{column} #{table} query"
         test "#{condition} on input #{column} in where in query on table #{table}", context do
           context
+          # Impala does not support intervals as standalone expressions such as x - y = interval 2 days
+          |> disable_for(Cloak.DataSource.ClouderaImpala)
           |> assert_consistent_and_not_failing("""
             SELECT COUNT(*)
             FROM #{unquote(table)}
@@ -94,6 +100,7 @@ Enum.each(
         @tag compliance: "#{condition} in where #{column} #{table} subquery"
         test "#{condition} on input #{column} in where in subquery on table #{table}", context do
           context
+          |> disable_for(Cloak.DataSource.ClouderaImpala)
           |> assert_consistent_and_not_failing("""
             SELECT COUNT(*)
             FROM (

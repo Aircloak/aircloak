@@ -24,6 +24,9 @@ current_time()
 The functions `year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`, and `dow` (a synonym for
 `weekday`) are supported. They extract the named part from a date or time column.
 
+Functions `weekday` and `dow` return values in interval 1 (Sunday) to 7 (Saturday).
+This behavior may change if database defaults are modified.
+
 ```sql
 SELECT YEAR(date_column), MONTH(date_column), DAY(date_column) FROM table;
 
@@ -244,7 +247,7 @@ FLOOR(3.22)
 
 ### pow
 
-`POW(a, b)` computes `a` to the `b`-th power.
+`POW(a, b)` computes `a` to the `b`-th power. Returns NULL if `a` is negative.
 
 ```sql
 POW(2, 3)
@@ -260,6 +263,7 @@ POW(2, 3.5)
 ### round
 
 Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
+Halves are rounded away from zero (towards the larger absolute value).
 
 ```sql
 ROUND(3.22)

@@ -46,7 +46,20 @@ defmodule IntegrationTest.PostgrexTest do
     assert param_select(context.conn, datetime, "datetime") == datetime
   end
 
-  for type <- ["text", "integer", "real", "boolean", "date", "time", "datetime"] do
+  test "select an interval", context do
+    interval = %Postgrex.Interval{months: 14, days: 12, secs: 1234}
+    assert param_select(context.conn, interval, "interval") == interval
+  end
+
+  test "select a computed interval", context do
+    result =
+      Postgrex.query!(context.conn, "select DATE '2000-01-15' - DATE '2000-01-03' + INTERVAL 'PT1H30S' from users", [])
+
+    [row | _] = result.rows
+    assert row == [%Postgrex.Interval{months: 0, days: 12, secs: 3630}]
+  end
+
+  for type <- ["text", "integer", "real", "boolean", "date", "time", "datetime", "interval"] do
     test(
       "select null as #{type}",
       context,

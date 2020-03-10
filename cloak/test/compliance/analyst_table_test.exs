@@ -375,7 +375,8 @@ defmodule Compliance.AnalystTableTest do
           names = Enum.map(rows, fn %{row: [name, _type, _isolator_status, _key]} -> name end)
 
           assert MapSet.new(names) ==
-                   MapSet.new(~w/active age birthday column_with_a_very_long_name height id name nullable user_id/s)
+                   MapSet.new(~w/active age birthday column_with_a_very_long_name height id
+                   name_unicode nullable signed_float signed_integer user_id/s)
         end
       end
 
@@ -423,7 +424,12 @@ defmodule Compliance.AnalystTableTest do
       test "noise layer columns are not reported" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, [%{name: "user_id"}, %{name: "height"}]} =
-            create_or_update(1, "table45", "select user_id, height from users where name LIKE '%Bob%'", data_source)
+            create_or_update(
+              1,
+              "table45",
+              "select user_id, height from users where name_unicode LIKE '%Bob%'",
+              data_source
+            )
         end
       end
 

@@ -22,10 +22,14 @@ defmodule Cloak do
     with {:ok, lcf_buckets_aggregation_limit} <- Aircloak.DeployConfig.fetch("lcf_buckets_aggregation_limit"),
          do: Application.put_env(:cloak, :lcf_buckets_aggregation_limit, lcf_buckets_aggregation_limit)
 
-    case Aircloak.DeployConfig.fetch("connection_keep_time") do
-      {:ok, minutes} -> Application.put_env(:cloak, :connection_keep_time, :timer.minutes(minutes))
-      _ -> Application.put_env(:cloak, :connection_keep_time, Cloak.DataSource.Driver.connection_keep_time())
-    end
+    with {:ok, minutes} <- Aircloak.DeployConfig.fetch("connection_keep_time"),
+         do: update_data_source_config!(:connection_keep_time, :timer.minutes(minutes))
+
+    with {:ok, seconds} <- Aircloak.DeployConfig.fetch("connect_timeout"),
+         do: update_data_source_config!(:connect_timeout, :timer.seconds(seconds))
+
+    with {:ok, true} <- Aircloak.DeployConfig.fetch("enable_case_support"),
+         do: Application.put_env(:cloak, :enable_case_support, true)
 
     with {:ok, _} = result <- Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do
       log_startup()
@@ -74,5 +78,10 @@ defmodule Cloak do
       {:ok, value} ->
         value
     end
+  end
+
+  defp update_data_source_config!(field, new_value) do
+    data_source_config = Application.get_env(:cloak, :data_source) |> Keyword.replace!(field, new_value)
+    Application.put_env(:cloak, :data_source, data_source_config)
   end
 end

@@ -23,14 +23,7 @@ Enum.each(
 
       @moduletag :"#{function}"
 
-      columns =
-        if function =~ ~r/round/ or function =~ ~r/trunc/ do
-          numerical_columns() |> raw_columns()
-        else
-          numerical_columns()
-        end
-
-      Enum.each(columns, fn {column, table} ->
+      Enum.each(numerical_columns(), fn {column, table} ->
         function =
           if function == "cast(<col> as text)" do
             # In this case, we're numeric a float column to text. This can lead to some strange differences, such as
@@ -55,7 +48,7 @@ Enum.each(
                 #{on_column(unquote(function), unquote(column))} as output
               FROM #{unquote(table)}
             ) table_alias
-            ORDER BY output
+            ORDER BY output NULLS LAST
           """)
         end
 
@@ -65,7 +58,7 @@ Enum.each(
           |> assert_consistent_and_not_failing("""
             SELECT #{on_column(unquote(function), unquote(column))} as output
             FROM #{unquote(table)}
-            ORDER BY output
+            ORDER BY output NULLS LAST
           """)
         end
       end)
