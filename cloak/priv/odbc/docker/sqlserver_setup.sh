@@ -7,7 +7,7 @@ locale-gen en_US.UTF-8
 
 # setup apt sources
 curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
-curl https://packages.microsoft.com/config/debian/8/prod.list > /etc/apt/sources.list.d/mssql-release.list
+curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list
 apt-get update
 
 # setup driver
