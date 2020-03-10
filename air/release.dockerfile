@@ -5,13 +5,9 @@ MAINTAINER Aircloak
 # Create user and copy in app
 # ---------------------------------------------------------------------
 
-RUN \
-  echo "deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main" >> /etc/apt/sources.list.d/pdgd.list && \
-  wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
-  apt-get update && \
-  apt-get -y install postgresql-9.6
+RUN apt-get -y install postgresql-11
 
-COPY air/docker/pg_hba.conf /etc/postgresql/9.6/main/
+COPY air/docker/pg_hba.conf /etc/postgresql/11/main/
 
 # User under which the app will run.
 RUN useradd --create-home --shell /bin/bash deployer && mkdir -p /aircloak/app
