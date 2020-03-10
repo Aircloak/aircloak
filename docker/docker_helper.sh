@@ -165,6 +165,7 @@ function build_aircloak_image {
     sed "s/\$ELIXIR_VERSION/$(elixir_version)/" |
     sed "s/\$RUST_VERSION/$(rust_version)/" |
     sed "s/\$NODEJS_VERSION/$(nodejs_version)/" |
+    sed "s/\$YARN_VERSION/$(yarn_version)/" |
     sed "s#\\\$AIR_CACHE#$(air_cache_folder)#" |
     sed "s#\\\$CLOAK_CACHE#$(cloak_cache_folder)#" > "$temp_docker_file"
 
@@ -454,6 +455,10 @@ function elixir_version {
 
 function nodejs_version {
   cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep nodejs | sed s/'nodejs '//
+}
+
+function yarn_version {
+  cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep yarn | sed s/'yarn '//
 }
 
 function rust_version {

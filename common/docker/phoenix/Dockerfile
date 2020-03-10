@@ -17,14 +17,13 @@ RUN \
   bash -c ". ~/.asdf/asdf.sh && asdf plugin-add nodejs https://github.com/asdf-vm/asdf-nodejs.git" && \
   bash -c "~/.asdf/plugins/nodejs/bin/import-release-team-keyring"
 
-
 RUN \
-  bash -c ". ~/.asdf/asdf.sh && cd ~ && asdf install" && \
-  apt-key adv --fetch-keys http://dl.yarnpkg.com/debian/pubkey.gpg && \
-  echo "deb http://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
-  apt-get update && \
-  apt-get install python yarn -y
+  . /tmp/build_config/proxies.sh && \
+  echo 'yarn $YARN_VERSION' >> ~/.tool-versions && \
+  bash -c ". ~/.asdf/asdf.sh && asdf plugin-add yarn"
+
+RUN bash -c ". ~/.asdf/asdf.sh && cd ~ && asdf install"
 
 CONFIG_YARN_PROXY
 
-RUN bash -c ". ~/.bashrc && yarn global add brunch webpack"
+RUN bash -c ". ~/.bashrc && . ~/.asdf/asdf.sh && yarn global add brunch webpack"
