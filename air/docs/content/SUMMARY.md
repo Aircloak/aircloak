@@ -54,7 +54,7 @@
   - [Changes to results](sql/best-practises.md#how-anonymisation-alters-results)
   - [Effects of column selection](sql/best-practises.md#column-selection-and-its-effect-on-anonymisation)
   - [Grouping values](sql/best-practises.md#grouping-values)
-  - [null values and counts of 2](sql/best-practises.md#null-values-and-counts-of-2)
+  - [Null values and counts of 2](sql/best-practises.md#null-values-and-counts-of-2)
   - [Implicit aggregation](sql/best-practises.md#implicit-aggregate-count)
 - [Understanding query results](sql/query-results.md)
   - [Pro Tips](sql/query-results.md#pro-tips)
