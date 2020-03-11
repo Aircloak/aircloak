@@ -2,6 +2,7 @@ defmodule Air.Service.LDAP.Client do
   @moduledoc "This module provides functions for interacting with an LDAP server."
 
   require Aircloak.DeployConfig
+  require Logger
 
   alias Air.Service.LDAP.{User, Group, FilterParser}
 
@@ -75,7 +76,12 @@ defmodule Air.Service.LDAP.Client do
   defp search(conn, options) do
     case :eldap.search(conn, options) do
       {:ok, {:eldap_search_result, results, _}} -> {:ok, results}
-      _ -> {:error, :search_failed}
+      {:ok, {:referral, _referrals}} -> 
+        Logger.warn("Unsupported LDAP referral search result.")
+        {:error, :search_failed}
+      {:error, reason} -> 
+        Logger.warn("LDAP search failed with error: #{reason}.")
+        {:error, :search_failed}
     end
   end
 
