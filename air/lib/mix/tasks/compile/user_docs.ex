@@ -9,7 +9,8 @@ defmodule Mix.Tasks.Compile.UserDocs do
 
   @impl Mix.Task
   def run(_args) do
-    unless System.get_env("INTEGRATION_TESTS") == "true" or System.get_env("COMPILE_USER_DOCS") == "false" do
+    unless System.get_env("INTEGRATION_TESTS") == "true" or
+             System.get_env("COMPILE_USER_DOCS") == "false" do
       update_version_numbers_in_guide()
       copy_and_clean_diffix_docs()
 
@@ -93,16 +94,22 @@ defmodule Mix.Tasks.Compile.UserDocs do
   end
 
   # Strips out markdown links of the type [ghiXXXX](...)
-  defp strip_github_links(content), do: String.replace(content, ~r/\[ghi\d*\]\(.*\) ?/, "", global: true)
+  defp strip_github_links(content),
+    do: String.replace(content, ~r/\[ghi\d*\]\(.*\) ?/, "", global: true)
 
-  # Stripping out the markdown links might have left an enourmous amount of empty lines. Remove these 
-  defp strip_superfluous_empty_lines(content), do: String.replace(content, ~r/\n{3,}/, "\n\n", global: true)
+  # Stripping out the markdown links might have left an enourmous amount of empty lines. Remove these
+  defp strip_superfluous_empty_lines(content),
+    do: String.replace(content, ~r/\n{3,}/, "\n\n", global: true)
 
   defp write_processed_contents(content, file_name) do
     case File.write("docs/content/#{file_name}", content) do
-      :ok -> :ok
+      :ok ->
+        :ok
+
       {:error, posix_error} ->
-        Mix.raise("Error failed to write #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}")
+        Mix.raise(
+          "Error failed to write #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}"
+        )
     end
   end
 
@@ -114,10 +121,13 @@ defmodule Mix.Tasks.Compile.UserDocs do
         |> strip_github_links()
         |> strip_superfluous_empty_lines()
         |> write_processed_contents(file_name)
-
       else
         {:error, posix_error} ->
-          Mix.raise("Error processing cloak doc #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}")
+          Mix.raise(
+            "Error processing cloak doc #{file_name}: #{
+              Aircloak.File.humanize_posix_error(posix_error)
+            }"
+          )
       end
     end)
   end
@@ -167,7 +177,8 @@ defmodule Mix.Tasks.Compile.UserDocs do
       original_summary
       |> String.split("\n")
       |> Enum.map(fn line ->
-        if String.starts_with?(line, "## Aircloak Insights - version") and not String.ends_with?(line, current_version) do
+        if String.starts_with?(line, "## Aircloak Insights - version") and
+             not String.ends_with?(line, current_version) do
           "## Aircloak Insights - version #{current_version}"
         else
           line
