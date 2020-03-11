@@ -25,7 +25,8 @@ defmodule Air.PsqlServer.Protocol.Value do
     interval: %{oid: 1186, len: 16, postgrex_extension: {Interval, nil}},
     timetz: %{oid: 1266, len: 12, postgrex_extension: {TimeTZ, :elixir}},
     numeric: %{oid: 1700, len: -1, postgrex_extension: {Numeric, nil}},
-    regclass: %{oid: 2205, len: 4}
+    regclass: %{oid: 2205, len: 4},
+    regnamespace: %{oid: 4089, len: 4}
   }
 
   @type type ::

@@ -42,7 +42,7 @@ defmodule Air.PsqlServer.Protocol.Authentication do
     protocol
     |> Protocol.send_to_client(:authentication_ok)
     |> Protocol.send_to_client({:parameter_status, "application_name", "aircloak"})
-    |> Protocol.send_to_client({:parameter_status, "server_version", "9.6.0"})
+    |> Protocol.send_to_client({:parameter_status, "server_version", "12.1"})
     |> Protocol.send_to_client({:parameter_status, "server_encoding", "UTF8"})
     |> Protocol.send_to_client({:parameter_status, "client_encoding", "UTF8"})
     |> Protocol.add_action({:register_key_data, key_data})
