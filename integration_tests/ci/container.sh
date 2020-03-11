@@ -43,7 +43,7 @@ function prepare_for_test {
   start_postgres_container $1 "11.2"
   start_mongo_container $1 "3.6.4"
   docker exec $1 su postgres -c \
-    "/usr/lib/postgresql/9.6/bin/pg_ctl -D /etc/postgresql/9.6/main -l /var/log/postgresql/postgresql.log start"
+    "/usr/lib/postgresql/11/bin/pg_ctl -D /etc/postgresql/11/main -l /var/log/postgresql/postgresql.log start"
 }
 
 mount $(ci_tmp_folder)/integration_tests/.cargo /root/.cargo
