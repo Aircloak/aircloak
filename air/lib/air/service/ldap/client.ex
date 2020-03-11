@@ -78,9 +78,11 @@ defmodule Air.Service.LDAP.Client do
       {:ok, {:eldap_search_result, results, _}} -> {:ok, results}
       {:ok, {:referral, _referrals}} -> 
         Logger.warn("Unsupported LDAP referral search result.")
+        Logger.debug("Failed LDAP search used search options #{inspect options}")
         {:error, :search_failed}
       {:error, reason} -> 
         Logger.warn("LDAP search failed with error: #{reason}.")
+        Logger.debug("Failed LDAP search used search options #{inspect options}")
         {:error, :search_failed}
     end
   end
