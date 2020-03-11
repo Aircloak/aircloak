@@ -10,6 +10,8 @@ type State = {
   score: number
 };
 
+const MIN_LENGTH = 10
+
 export default class PasswordField extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -32,6 +34,8 @@ export default class PasswordField extends React.Component<Props, State> {
     const { value, score } = this.state;
     if (value === "") {
       return null;
+    } else if (value.length < MIN_LENGTH) {
+      return "too short";
     } else if (score <= 1) {
       return "weak";
     } else if (score <= 2) {
@@ -47,7 +51,7 @@ export default class PasswordField extends React.Component<Props, State> {
     const { value, score } = this.state;
     if (value === "") {
       return null;
-    } else if (score <= 1) {
+    } else if (value.length < MIN_LENGTH || score <= 1) {
       return "has-error";
     } else if (score <= 2) {
       return "has-warning";
