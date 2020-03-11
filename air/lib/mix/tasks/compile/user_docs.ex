@@ -11,6 +11,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
   def run(_args) do
     unless System.get_env("INTEGRATION_TESTS") == "true" or System.get_env("COMPILE_USER_DOCS") == "false" do
       update_version_numbers_in_guide()
+      copy_and_clean_diffix_docs()
 
       if stale?() do
         conditionally_compile_offline_docs()
@@ -89,6 +90,36 @@ defmodule Mix.Tasks.Compile.UserDocs do
         cmd!("rm", ~w(-f content/.bookignore))
       end
     end
+  end
+
+  # Strips out markdown links of the type [ghiXXXX](...)
+  defp strip_github_links(content), do: String.replace(content, ~r/\[ghi\d*\]\(.*\) ?/, "", global: true)
+
+  # Stripping out the markdown links might have left an enourmous amount of empty lines. Remove these 
+  defp strip_superfluous_empty_lines(content), do: String.replace(content, ~r/\n{3,}/, "\n\n", global: true)
+
+  defp write_processed_contents(content, file_name) do
+    case File.write("docs/content/#{file_name}", content) do
+      :ok -> :ok
+      {:error, posix_error} ->
+        Mix.raise("Error failed to write #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}")
+    end
+  end
+
+  defp copy_and_clean_diffix_docs() do
+    ~w(diffix.md attacks.md)
+    |> Enum.each(fn file_name ->
+      with {:ok, contents} <- File.read("../cloak/docs/#{file_name}") do
+        contents
+        |> strip_github_links()
+        |> strip_superfluous_empty_lines()
+        |> write_processed_contents(file_name)
+
+      else
+        {:error, posix_error} ->
+          Mix.raise("Error processing cloak doc #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}")
+      end
+    end)
   end
 
   defp has_ebook_convert_installed() do
