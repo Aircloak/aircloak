@@ -107,9 +107,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
         :ok
 
       {:error, posix_error} ->
-        Mix.raise(
-          "Error failed to write #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}"
-        )
+        Mix.raise("Error failed to write #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}")
     end
   end
 
@@ -123,11 +121,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
         |> write_processed_contents(file_name)
       else
         {:error, posix_error} ->
-          Mix.raise(
-            "Error processing cloak doc #{file_name}: #{
-              Aircloak.File.humanize_posix_error(posix_error)
-            }"
-          )
+          Mix.raise("Error processing cloak doc #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}")
       end
     end)
   end
