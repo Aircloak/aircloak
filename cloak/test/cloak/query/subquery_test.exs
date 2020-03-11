@@ -21,8 +21,8 @@ defmodule Cloak.Query.SubqueryTest do
 
   test "selecting all from a subquery" do
     assert_query("select alias.* from (select user_id, height from heights_sq) alias", %{
-      columns: ["user_id", "height"],
-      rows: [%{row: [:*, 180], occurrences: 100}]
+      columns: ["height"],
+      rows: [%{row: [180], occurrences: 100}]
     })
   end
 

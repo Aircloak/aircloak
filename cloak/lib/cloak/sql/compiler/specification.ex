@@ -384,13 +384,18 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp expand_select_all(column, _query), do: [column]
 
-  defp all_visible_columns(query),
-    do:
-      query.selected_tables
-      |> Enum.flat_map(fn table ->
-        Enum.map(table.columns, fn column -> %{table: table, column: column} end)
-      end)
-      |> Enum.filter(& &1.column.visible?)
+  defp all_visible_columns(query) do
+    visible_column? =
+      if query.subquery?,
+        do: & &1.column.visible?,
+        else: &(&1.column.visible? and &1.column.name != &1.table.user_id)
+
+    query.selected_tables
+    |> Enum.flat_map(fn table ->
+      Enum.map(table.columns, fn column -> %{table: table, column: column} end)
+    end)
+    |> Enum.filter(visible_column?)
+  end
 
   defp columns_to_identifiers(columns, location),
     do: Enum.map(columns, &{:identifier, &1.table.name, {:unquoted, &1.column.name}, location})

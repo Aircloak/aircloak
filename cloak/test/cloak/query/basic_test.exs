@@ -145,7 +145,7 @@ defmodule Cloak.Query.BasicTest do
   test "select all query" do
     assert_query("select * from heights", %{
       query_id: "1",
-      columns: ["user_id", "height", "name", "male", "weight"],
+      columns: ["height", "name", "male", "weight"],
       rows: _
     })
   end
@@ -158,13 +158,11 @@ defmodule Cloak.Query.BasicTest do
     })
 
     assert columns == [
-             "user_id",
              "height",
              "name",
              "male",
              "weight",
              "h",
-             "user_id",
              "height",
              "name",
              "male",
@@ -175,7 +173,7 @@ defmodule Cloak.Query.BasicTest do
   test "select all from a table" do
     assert_query("select heights.* from heights", %{
       query_id: "1",
-      columns: ["user_id", "height", "name", "male", "weight"],
+      columns: ["height", "name", "male", "weight"],
       rows: _
     })
   end
@@ -215,14 +213,14 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query("select * from heights order by name", %{
       query_id: "1",
-      columns: ["user_id", "height", "name", "male", "weight"],
+      columns: ["height", "name", "male", "weight"],
       rows: rows
     })
 
     assert Enum.map(rows, & &1[:row]) == [
-             [:*, 180, "adam", true, nil],
-             [:*, 180, "john", true, nil],
-             [:*, 180, "mike", true, nil]
+             [180, "adam", true, nil],
+             [180, "john", true, nil],
+             [180, "mike", true, nil]
            ]
   end
 
@@ -1570,8 +1568,8 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query("select * from heights h", %{
-      columns: ["user_id", "height", "name", "male", "weight"],
-      rows: [%{occurrences: 100, row: [:*, 180, nil, nil, nil]}]
+      columns: ["height", "name", "male", "weight"],
+      rows: [%{occurrences: 100, row: [180, nil, nil, nil]}]
     })
   end
 
@@ -1951,24 +1949,6 @@ defmodule Cloak.Query.BasicTest do
         %{rows: [%{row: [true]}]}
       )
     end
-  end
-
-  test "group by user id" do
-    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
-
-    assert_query("select user_id, count(*) from heights group by 1", %{rows: [%{row: [:*, 20]}]})
-  end
-
-  test "order by user id" do
-    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
-
-    assert_query("select height from heights order by user_id", %{rows: [%{row: [180], occurrences: 20}]})
-  end
-
-  test "having on user id" do
-    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
-
-    assert_query("select user_id from heights group by 1 having user_id <> ''", %{rows: [%{row: [:*], occurrences: 1}]})
   end
 
   test "stddev with nulls" do

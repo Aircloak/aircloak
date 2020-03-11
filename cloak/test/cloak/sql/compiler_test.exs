@@ -725,13 +725,10 @@ defmodule Cloak.Sql.Compiler.Test do
       )
 
     assert [
-             %{value: :*},
              column("__ac_group_0"),
              column("__ac_group_1"),
-             %{value: :*},
              column("__ac_group_2"),
              column("__ac_group_3"),
-             %{value: :*},
              column("__ac_group_4")
            ] = result.columns
   end
@@ -1505,12 +1502,20 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ "Usage of `x` is ambiguous."
   end
 
-  test "output user ids are censored" do
-    assert %{
-             columns: [%Expression{value: :*}],
-             group_by: [%Expression{value: :*}],
-             order_by: [{%Expression{value: :*}, _, _}]
-           } = compile!("select uid from table group by 1 order by 1", data_source())
+  test "output user ids are rejected" do
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("select uid from table", data_source())
+
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("select numeric from table group by uid, numeric", data_source())
+
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("select numeric from table order by uid", data_source())
+  end
+
+  test "processed user ids are allowed" do
+    assert {:ok, _} = compile("select count(uid) from table", data_source())
+    assert {:ok, _} = compile("select uid % 10 from table", data_source())
   end
 
   test "internal queries are validated" do
@@ -1589,6 +1594,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert value1 = Expression.constant(:integer, 1)
     assert value2 = Expression.constant(:integer, 2)
     assert value3 = Expression.constant(:integer, 3)
+  end
+
+  test "[Issue #4181] grouping sets over the user id" do
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("SELECT uid, numeric FROM table GROUP BY CUBE(1, 2)", data_source())
   end
 
   defp compile_standard(query_string, data_source) do

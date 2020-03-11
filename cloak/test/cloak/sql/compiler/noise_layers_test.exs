@@ -907,7 +907,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "* expansion doesn't include the carry columns" do
       result = compile!("SELECT * FROM (SELECT uid, numeric as n FROM table GROUP BY uid, numeric) foo")
 
-      assert [%Expression{value: :*}, %Expression{name: "__ac_group_0"}] = result.columns
+      assert [%Expression{name: "__ac_group_0"}] = result.columns
     end
   end
 

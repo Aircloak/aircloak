@@ -41,12 +41,12 @@ defmodule Cloak.Query.JoinTest do
       "select purchases.*, height
       FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id",
       %{
-        columns: ["user_id", "price", "name", "height"],
+        columns: ["price", "name", "height"],
         rows: rows
       }
     )
 
-    assert [%{row: [:*, 200, nil, 180], occurrences: 101}] = rows
+    assert [%{row: [200, nil, 180], occurrences: 101}] = rows
   end
 
   test "selecting all from an aliased table" do
@@ -57,12 +57,12 @@ defmodule Cloak.Query.JoinTest do
       "select p.*, height
       FROM heights_join, purchases p WHERE heights_join.user_id = p.user_id",
       %{
-        columns: ["user_id", "price", "name", "height"],
+        columns: ["price", "name", "height"],
         rows: rows
       }
     )
 
-    assert [%{row: [:*, 200, nil, 180], occurrences: 101}] = rows
+    assert [%{row: [200, nil, 180], occurrences: 101}] = rows
   end
 
   test "multiple select all from a table" do
@@ -73,12 +73,12 @@ defmodule Cloak.Query.JoinTest do
       "select purchases.*, heights_join.*
       FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id",
       %{
-        columns: ["user_id", "price", "name", "user_id", "height", "name", "male"],
+        columns: ["price", "name", "height", "name", "male"],
         rows: rows
       }
     )
 
-    assert [%{row: [:*, 200, nil, :*, 180, nil, nil], occurrences: 101}] = rows
+    assert [%{row: [200, nil, 180, nil, nil], occurrences: 101}] = rows
   end
 
   test "selecting from joined aliased tables" do

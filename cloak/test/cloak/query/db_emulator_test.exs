@@ -328,7 +328,7 @@ defmodule Cloak.Query.DBEmulatorTest do
           select user_id, min(length(dec_b64(value))), max(length(dec_b64(value)))
           from #{@emulated} group by user_id
         """,
-        %{rows: [%{occurrences: 20, row: [:*, 1, 5]}]}
+        %{rows: [%{occurrences: 20, row: [1, 5]}]}
       )
     end
 
@@ -339,7 +339,7 @@ defmodule Cloak.Query.DBEmulatorTest do
           select user_id, min(dec_b64(value)), max(dec_b64(value))
             from #{@emulated} group by user_id
         """,
-        %{rows: [%{occurrences: 20, row: [:*, "1234", "xyz"]}]}
+        %{rows: [%{occurrences: 20, row: ["1234", "xyz"]}]}
       )
     end
 
@@ -351,7 +351,7 @@ defmodule Cloak.Query.DBEmulatorTest do
             max(cast(date as date)), count(dec_b64(value)) as c
           from #{@emulated} group by user_id
         """,
-        %{rows: [%{occurrences: 20, row: [:*, "2013-02-08", "2016-11-02", 5]}]}
+        %{rows: [%{occurrences: 20, row: ["2013-02-08", "2016-11-02", 5]}]}
       )
     end
 
@@ -362,7 +362,7 @@ defmodule Cloak.Query.DBEmulatorTest do
           select user_id, dec_b64(value) as v, dec_b64(value) as alias
             from #{@emulated} where v = 'x' group by user_id, v
         """,
-        %{rows: [%{occurrences: 20, row: [:*, "x", "x"]}]}
+        %{rows: [%{occurrences: 20, row: ["x", "x"]}]}
       )
     end
   end

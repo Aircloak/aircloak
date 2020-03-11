@@ -104,8 +104,8 @@ defmodule Cloak.Sql.QueryTest do
 
   test "describing select *" do
     assert {:ok, columns, capabilities} = describe_query("select * from feat_describe")
-    assert columns == ["id", "t", "f", "b", "d"]
-    assert capabilities.selected_types == ["integer", "text", "real", "boolean", "datetime"]
+    assert columns == ["t", "f", "b", "d"]
+    assert capabilities.selected_types == ["text", "real", "boolean", "datetime"]
   end
 
   test "late bound parameters must be casted" do
