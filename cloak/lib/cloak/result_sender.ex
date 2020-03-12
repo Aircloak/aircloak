@@ -76,9 +76,6 @@ defmodule Cloak.ResultSender do
           },
           query_result
         )
-
-      other ->
-        other
     end
   end
 
