@@ -41,7 +41,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   @spec potential_unclear_isolator_usages(Query.t()) :: [Query.where_clause()]
   def potential_unclear_isolator_usages(query) do
     conditions(query, &unclear_isolator_condition?(&1, query)) ++
-      group_by_expressions(query, &unclear_isolator_expression?(&1, query))
+      group_expressions(query, &unclear_isolator_expression?(&1, query))
   end
 
   # -------------------------------------------------------------------
@@ -81,12 +81,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   # Isolators
   # -------------------------------------------------------------------
 
-  defp group_by_expressions(query, predicate) do
-    Lens.key(:group_by)
-    |> Lens.all()
-    |> Lens.filter(predicate)
-    |> Lens.to_list(query)
-  end
+  defp group_expressions(query, predicate),
+    do: Query.Lenses.group_expressions() |> Lens.filter(predicate) |> Lens.to_list(query)
 
   defp unclear_isolator_condition?(%Expression{kind: :function, name: "not", args: [condition]}, query),
     do: unclear_isolator_condition?(condition, query)

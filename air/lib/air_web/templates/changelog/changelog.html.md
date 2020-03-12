@@ -43,6 +43,7 @@
   - the parameter order of the `trim` function in the generated SQL was fixed
   - date/time conversion was not always correct
 - Views and analyst tables now appear in popular analytics tools such as Tableau.
+- Fixed verification of isolated columns usage in non-clear expressions in the `SELECT` clause.
 
 ### Changes
 

@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Query.Lenses do
   @moduledoc "Lenses for traversing queries"
 
-  alias Cloak.Sql.{Expression, Function, Query}
+  alias Cloak.Sql.{Expression, Function, Query, Compiler}
 
   use Lens.Macros
 
@@ -223,13 +223,17 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on all expressions in a query used to form the groups for aggregation and anonymization."
   deflens group_expressions() do
     Lens.match(fn
-      %Query{type: :anonymized, group_by: [], implicit_count?: true} ->
-        # Group by is not provided, and no selected expression is an aggregation function ->
-        #   we're grouping on all selected columns + non selected order by expressions.
-        Lens.both(
-          Lens.key(:columns) |> Lens.all(),
-          Lens.key(:order_by) |> Lens.all() |> Lens.at(0)
-        )
+      %Query{command: :select, type: :anonymized, group_by: []} = query ->
+        if not Compiler.Helpers.aggregates?(query) do
+          # Group by is not provided, and no selected expression is an aggregation function ->
+          #   we're grouping on all selected columns + non selected order by expressions.
+          Lens.both(
+            Lens.key(:columns) |> Lens.all(),
+            Lens.key(:order_by) |> Lens.all() |> Lens.at(0)
+          )
+        else
+          Lens.empty()
+        end
 
       _ ->
         Lens.key(:group_by) |> Lens.all()
