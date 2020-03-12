@@ -10,7 +10,9 @@
 - The minimum supported version of Postgres is now 9.6 (dropping support for version 9.1 through 9.5).
 - Support for the `auto_aircloak_export` configuration parameter in the Insights Air config was removed.
   Consult the [Upgrade guide](docs/ops/upgrading.html) for additional information.
-- Support for some obsolete data source configuration features was removed: decoders, projections, explicit user_id-field.
+- Support for some obsolete data source configuration features was removed: decoders, projections, explicit
+  user_id-field.
+- Anonymizing queries using raw user_id columns are rejected instead of automatically censoring the user_id column.
 
 ### New features
 
@@ -54,6 +56,7 @@
 - Aircloak Insights no longer tracks pseudonymized usage information. The default
   privacy policy has been simplified to reflect this change. Please consult
   the [Upgrade guide](docs/ops/upgrading.html) for further information.
+- Star-select in top queries skips user_id columns.
 
 ## Version 19.3.0
 
