@@ -78,7 +78,7 @@ defmodule Compliance.AnalystTableTest do
           assert_query(
             "select * from table6",
             [analyst_id: 1, data_sources: [data_source]],
-            %{columns: ["uid", "height"]}
+            %{columns: ["height"]}
           )
         end
       end
@@ -169,7 +169,7 @@ defmodule Compliance.AnalystTableTest do
           assert_query(
             "select * from table25",
             [analyst_id: 1, data_sources: [data_source]],
-            %{columns: ["user_id", "height"]}
+            %{columns: ["height"]}
           )
         end
       end
@@ -245,7 +245,7 @@ defmodule Compliance.AnalystTableTest do
               assert_query(
                 "select * from table28",
                 [analyst_id: 1, data_sources: [data_source]],
-                %{columns: ["user_id"]}
+                %{columns: []}
               )
             end
           )
@@ -349,11 +349,11 @@ defmodule Compliance.AnalystTableTest do
           {:ok, _} = create_or_update(1, "table37", "select user_id, height from users", data_source)
 
           assert_query(
-            "select x.user_id, y.height from table37 x
+            "select y.height from table37 x
             inner join table37 y on x.user_id = y.user_id
             where x.height between 0 and 200 and y.height between 0 and 200",
             [analyst_id: 1, data_sources: [data_source]],
-            %{columns: ["user_id", "height"]}
+            %{columns: ["height"]}
           )
         end
       end
