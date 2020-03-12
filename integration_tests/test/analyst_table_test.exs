@@ -36,8 +36,8 @@ defmodule IntegrationTest.AnalystTableTest do
     name = unique_name(:table)
     {:ok, _table} = create_table(context.user, name, "select user_id, name from users")
     assert {:ok, result} = run_query(context.user, "select * from #{name}")
-    assert result.columns == ~w(user_id name)
-    assert result.buckets == [%{"occurrences" => 100, "row" => ["*", "john"], "unreliable" => false}]
+    assert result.columns == ~w(name)
+    assert result.buckets == [%{"occurrences" => 100, "row" => ["john"], "unreliable" => false}]
   end
 
   test "cloak error is reported", context do
@@ -112,8 +112,8 @@ defmodule IntegrationTest.AnalystTableTest do
     assert [%{name: "user_id", type: "text", key_type: "user_id"}] = updated_table.columns
 
     assert {:ok, result} = run_query(context.user, "select * from #{new_name}")
-    assert result.columns == ~w(user_id)
-    assert result.buckets == [%{"occurrences" => 100, "row" => ["*"], "unreliable" => false}]
+    assert result.columns == []
+    assert result.buckets == [%{"occurrences" => 100, "row" => [], "unreliable" => false}]
   end
 
   test "previous table is dropped if table is renamed on update", context do
@@ -175,8 +175,8 @@ defmodule IntegrationTest.AnalystTableTest do
 
     assert [%{name: ^table_name}] = Cloak.AnalystTable.analyst_tables(context.user.id, Manager.data_source())
     assert {:ok, result} = run_query(context.user, "select * from #{table_name}")
-    assert result.columns == ~w(user_id)
-    assert result.buckets == [%{"occurrences" => 100, "row" => ["*"], "unreliable" => false}]
+    assert result.columns == []
+    assert result.buckets == [%{"occurrences" => 100, "row" => [], "unreliable" => false}]
   end
 
   test "successful table delete", context do
@@ -200,8 +200,8 @@ defmodule IntegrationTest.AnalystTableTest do
     {:ok, _table} = create_table(context.user, name, "select * from some_view")
 
     assert {:ok, result} = run_query(context.user, "select * from #{name}")
-    assert result.columns == ~w(user_id name)
-    assert result.buckets == [%{"occurrences" => 100, "row" => ["*", "john"], "unreliable" => false}]
+    assert result.columns == ~w(name)
+    assert result.buckets == [%{"occurrences" => 100, "row" => ["john"], "unreliable" => false}]
   end
 
   test "analyst table name can't be the same as a name of an existing view", context do
