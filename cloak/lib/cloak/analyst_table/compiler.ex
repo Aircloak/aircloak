@@ -49,7 +49,7 @@ defmodule Cloak.AnalystTable.Compiler do
     # location, as well as verify the query semantics, such as uid selection.
     with {:ok, parsed_query} <- Cloak.Sql.Parser.parse(statement),
          {:ok, query} <-
-           parsed_query |> Map.put(:subquery?, true) |> Compiler.compile_direct(analyst, data_source, parameters, views),
+           Compiler.compile_direct(Map.put(parsed_query, :subquery?, true), analyst, data_source, parameters, views),
          query = query |> Query.set_emulation_flag() |> Cloak.Sql.Compiler.Anonymization.set_query_type(),
          :ok <- verify_query_type(query),
          :ok <- verify_offloading(query),
