@@ -24,7 +24,6 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
       - [With isolating columns](#with-isolating-columns)
     - [String functions](#string-functions)
     - [LIKE and NOT LIKE](#like-and-not-like)
-    - [Other limitations of isolating columns](#other-limitations-of-isolating-columns)
     - [Limitations due to shadow table](#limitations-due-to-shadow-table)
     - [Conditions with two columns](#conditions-with-two-columns)
     - [Illegal JOINs](#illegal-joins)
@@ -257,12 +256,6 @@ In order to generally reduce the attack surface available with string functions 
 
 For isolating columns, the `%_` wildcards associated with `[NOT] [I]LIKE` is limited to using only the `%` wildcard (`_` is not allowed), and only in the first or last position of the string. For example, `col LIKE '%stuff%'` is allowed, but not `col LIKE 'stu%ff'`. Non-isolating columns have no limitation on the `[NOT] [I]LIKE` wildcards.
 [ghi2973](https://github.com/Aircloak/aircloak/issues/2973)
-
-### Other limitations of isolating columns
-
-Besides requiring that all conditions operating on isolating columns are clear, `IN` with more than one element on the right-hand-side is not allowed. (`IN` with one element is equivalent to `=`).
-
-This is disallowed to prevent [noise exploitation attacks through chaff conditions](./attacks.md#through-chaff-conditions).
 
 ### Limitations due to shadow table
 
