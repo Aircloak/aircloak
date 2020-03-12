@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
     unless System.get_env("INTEGRATION_TESTS") == "true" or System.get_env("COMPILE_USER_DOCS") == "false" do
       update_version_numbers_in_guide()
 
-      if stale?() do
+      if Mix.env() == :prod or stale?() do
         conditionally_compile_offline_docs()
         cmd!("yarn", ~w(run gitbook build))
         File.mkdir_p!("priv/static")
