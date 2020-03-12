@@ -19,7 +19,7 @@ defmodule Aircloak.ChildSpec do
       )
 
   @doc "Specifies a child powered by the `Supervisor` module."
-  @spec supervisor([child_spec], [Supervisor.option()]) :: Supervisor.child_spec()
+  @spec supervisor([child_spec], Keyword.t()) :: Supervisor.child_spec()
   def supervisor(children, supervisor_options),
     do:
       supervisor(
