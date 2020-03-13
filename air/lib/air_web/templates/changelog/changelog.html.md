@@ -56,7 +56,6 @@
 - Aircloak Insights no longer tracks pseudonymized usage information. The default
   privacy policy has been simplified to reflect this change. Please consult
   the [Upgrade guide](docs/ops/upgrading.html) for further information.
-- Star-select in top queries skips user_id columns.
 
 ## Version 19.3.0
 

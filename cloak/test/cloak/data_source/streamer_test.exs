@@ -72,7 +72,7 @@ defmodule Cloak.DataSource.StreamerTest do
   test "connection failure" do
     with_short_connection_timeout(fn ->
       ExUnit.CaptureLog.capture_log(fn ->
-        assert {:error, error} = rows("select * from test_streamer", data_source(%{hostname: "invalid_host"}))
+        assert {:error, error} = rows("select intval from test_streamer", data_source(%{hostname: "invalid_host"}))
         assert error =~ ~r/Failed to establish a connection to the database/
         assert error =~ ~r/tcp connect \(invalid_host:\d+\)/
       end)
@@ -81,7 +81,7 @@ defmodule Cloak.DataSource.StreamerTest do
 
   test "connection timeout" do
     with_short_connection_timeout(0, fn ->
-      assert rows("select * from test_streamer", data_source()) == {:error, "Timeout connecting to the database."}
+      assert rows("select intval from test_streamer", data_source()) == {:error, "Timeout connecting to the database."}
     end)
   end
 
@@ -89,7 +89,7 @@ defmodule Cloak.DataSource.StreamerTest do
     Cloak.Test.DB.create_table("temp_table", "intval INTEGER")
 
     query =
-      Cloak.Sql.Parser.parse!("select * from temp_table")
+      Cloak.Sql.Parser.parse!("select intval from temp_table")
       |> Cloak.Sql.Compiler.compile!(nil, data_source(), [], %{})
       |> Cloak.Sql.Query.resolve_db_columns()
 

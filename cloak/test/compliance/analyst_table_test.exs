@@ -76,7 +76,7 @@ defmodule Compliance.AnalystTableTest do
             )
 
           assert_query(
-            "select * from table6",
+            "select height from table6",
             [analyst_id: 1, data_sources: [data_source]],
             %{columns: ["height"]}
           )
@@ -167,7 +167,7 @@ defmodule Compliance.AnalystTableTest do
           {:ok, _} = create_or_update(1, "table25", "select * from table24", data_source)
 
           assert_query(
-            "select * from table25",
+            "select height from table25",
             [analyst_id: 1, data_sources: [data_source]],
             %{columns: ["height"]}
           )
@@ -183,7 +183,7 @@ defmodule Compliance.AnalystTableTest do
                 AnalystTable.create_or_update(1, "table26", nil, "select user_id from users", data_source, nil, %{})
 
               assert_query(
-                "select * from table26",
+                "select from table26",
                 [analyst_id: 1, data_sources: [data_source]],
                 %{error: "analyst table `table26` is still being created"}
               )
@@ -212,7 +212,7 @@ defmodule Compliance.AnalystTableTest do
               assert log =~ ~r/Error creating analyst table.*some error/
 
               assert_query(
-                "select * from table27",
+                "select from table27",
                 [analyst_id: 1, data_sources: [data_source]],
                 %{error: "creation of analyst table `table27` failed"}
               )
@@ -243,7 +243,7 @@ defmodule Compliance.AnalystTableTest do
               assert_receive {:DOWN, ^mref, :process, ^pid, :killed}, :timer.seconds(1)
 
               assert_query(
-                "select * from table28",
+                "select from table28",
                 [analyst_id: 1, data_sources: [data_source]],
                 %{columns: []}
               )
@@ -485,7 +485,7 @@ defmodule Compliance.AnalystTableTest do
           refute Enum.member?(AnalystTableHelpers.stored_tables(data_source), db_name)
 
           assert_query(
-            "select * from table49",
+            "select from table49",
             [analyst_id: 1, data_sources: [data_source]],
             %{error: "Table `table49` doesn't exist."}
           )

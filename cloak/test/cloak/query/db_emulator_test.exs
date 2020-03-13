@@ -323,7 +323,7 @@ defmodule Cloak.Query.DBEmulatorTest do
 
     test "min/max with numbers" do
       assert_query(
-        "select * from #{@vt}",
+        "select min, max from #{@vt}",
         """
           select user_id, min(length(dec_b64(value))), max(length(dec_b64(value)))
           from #{@emulated} group by user_id
@@ -334,7 +334,7 @@ defmodule Cloak.Query.DBEmulatorTest do
 
     test "min/max with text" do
       assert_query(
-        "select * from #{@vt}",
+        "select min, max from #{@vt}",
         """
           select user_id, min(dec_b64(value)), max(dec_b64(value))
             from #{@emulated} group by user_id
@@ -345,10 +345,10 @@ defmodule Cloak.Query.DBEmulatorTest do
 
     test "min/max with date" do
       assert_query(
-        "select * from #{@vt}",
+        "select min, max, count from #{@vt}",
         """
           select user_id, min(cast(date as date)),
-            max(cast(date as date)), count(dec_b64(value)) as c
+            max(cast(date as date)), count(dec_b64(value))
           from #{@emulated} group by user_id
         """,
         %{rows: [%{occurrences: 20, row: ["2013-02-08", "2016-11-02", 5]}]}
@@ -357,7 +357,7 @@ defmodule Cloak.Query.DBEmulatorTest do
 
     test "selecting a grouped column under an alias" do
       assert_query(
-        "select * from #{@vt}",
+        "select v, alias from #{@vt}",
         """
           select user_id, dec_b64(value) as v, dec_b64(value) as alias
             from #{@emulated} where v = 'x' group by user_id, v
