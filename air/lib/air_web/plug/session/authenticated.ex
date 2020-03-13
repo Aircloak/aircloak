@@ -17,9 +17,8 @@ defmodule AirWeb.Plug.Session.Authenticated do
 
   @impl Plug
   def call(conn, _opts) do
-    with {:ok, user} <- AirWeb.Plug.Session.load_user(conn) do
-      Plug.Conn.assign(conn, :current_user, user)
-    else
+    case AirWeb.Plug.Session.load_user(conn) do
+      {:ok, user} -> Plug.Conn.assign(conn, :current_user, user)
       _ ->
         conn
         |> Phoenix.Controller.put_flash(:error, "You must be authenticated to view this page")

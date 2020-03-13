@@ -1,7 +1,7 @@
 defmodule Air.Service.LDAP.Normalization.Test do
   use ExUnit.Case, async: true
 
-  alias Air.Service.LDAP.{Normalization, User, Group}
+  alias Air.Service.LDAP.{Group, Normalization, User}
 
   test "moving membership information from users to groups" do
     users = [

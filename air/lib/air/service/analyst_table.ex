@@ -1,9 +1,9 @@
 defmodule Air.Service.AnalystTable do
   @moduledoc "Service module for working with analyst tables."
 
-  alias Air.Service.{DataSource, User}
-  alias Air.Schemas.AnalystTable
   alias Air.Repo
+  alias Air.Schemas.AnalystTable
+  alias Air.Service.{DataSource, User}
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query
 

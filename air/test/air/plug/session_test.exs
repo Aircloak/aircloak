@@ -1,8 +1,8 @@
 defmodule AirWeb.Plug.Session.Test do
   use AirWeb.ConnCase, async: false
 
-  alias Air.TestRepoHelper
   alias Air.Service.Token
+  alias Air.TestRepoHelper
   alias AirWeb.Plug.Session.ApiAuth
 
   describe "ApiAuth" do

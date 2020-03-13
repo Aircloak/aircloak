@@ -124,7 +124,7 @@ defmodule Air.Performance.Queries do
       ) notes
       GROUP BY 1
     ",
-      ~s{
+    ~s{
       SELECT active, "home.city", "work.postal_code", count(*)
       FROM addresses a INNER JOIN users u ON u.user_id = a.uid
       GROUP BY 1, 2, 3

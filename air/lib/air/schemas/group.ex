@@ -8,7 +8,7 @@ defmodule Air.Schemas.Group do
   """
   use Air.Schemas.Base
 
-  alias Air.{Schemas.User, Schemas.DataSource}
+  alias Air.Schemas.{DataSource, User}
 
   @type t :: %__MODULE__{}
 

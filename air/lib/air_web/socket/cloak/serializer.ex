@@ -9,9 +9,9 @@ defmodule AirWeb.Socket.Cloak.Serializer do
   """
 
   require Logger
-  alias Phoenix.Socket.Reply
-  alias Phoenix.Socket.Message
   alias Phoenix.Socket.Broadcast
+  alias Phoenix.Socket.Message
+  alias Phoenix.Socket.Reply
 
   # -------------------------------------------------------------------
   # Phoenix.Transports.Serializer callbacks

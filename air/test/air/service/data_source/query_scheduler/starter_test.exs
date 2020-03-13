@@ -1,10 +1,9 @@
 defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
   use Air.SchemaCase, async: false
 
-  import Aircloak.AssertionHelper
   alias Air.{TestRepoHelper, TestSocketHelper}
-  alias Air.Service.Query
-  alias Air.Service.DataSource.QueryScheduler.Starter
+  alias Air.Service.{DataSource.QueryScheduler.Starter, Query}
+  import Aircloak.AssertionHelper
 
   test "query starting" do
     user = create_user!()

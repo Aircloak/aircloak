@@ -1,10 +1,10 @@
 defmodule Air.Service.Group do
   @moduledoc "Service module for working with groups."
 
-  alias Aircloak.ChildSpec
   alias Air.Repo
-  alias Air.Schemas.{Group, User, DataSource}
+  alias Air.Schemas.{DataSource, Group, User}
   alias Air.Service.AdminGuard
+  alias Aircloak.ChildSpec
 
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset

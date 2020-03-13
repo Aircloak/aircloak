@@ -19,7 +19,7 @@ defmodule Air.Service.RevokableToken do
   """
 
   alias Air.Repo
-  alias Air.Schemas.{User, RevokableToken}
+  alias Air.Schemas.{RevokableToken, User}
   alias Air.Service.Salts
 
   import Ecto.Query

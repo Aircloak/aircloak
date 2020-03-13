@@ -4,8 +4,8 @@ defmodule Air.Service.UserTest do
 
   import Aircloak.AssertionHelper
 
+  alias Air.Service.{Group, User}
   alias Air.TestRepoHelper
-  alias Air.Service.{User, Group}
 
   describe ".load" do
     test "returns user if found" do

@@ -3,7 +3,7 @@ defmodule Air.Schemas.Query do
   use Air.Schemas.Base
 
   alias Air.PsqlServer.Protocol
-  alias Air.Schemas.{DataSource, User, ResultChunk}
+  alias Air.Schemas.{DataSource, ResultChunk, User}
   alias Air.Service.Query.State
 
   require EctoEnum

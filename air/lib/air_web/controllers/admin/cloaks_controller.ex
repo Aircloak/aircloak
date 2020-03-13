@@ -3,7 +3,9 @@ defmodule AirWeb.Admin.CloaksController do
   use Air.Web, :admin_controller
   use Timex
 
-  alias Air.{Service.Cloak, Repo, Schemas.DataSource}
+  alias Air.Repo
+  alias Air.Schemas.DataSource
+  alias Air.Service.Cloak
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback

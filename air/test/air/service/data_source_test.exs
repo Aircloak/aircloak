@@ -2,8 +2,8 @@ defmodule Air.Service.DataSourceTest do
   # because of shared mode
   use Air.SchemaCase, async: false
 
-  alias Air.Service.{User, DataSource}
   alias Air.Schemas
+  alias Air.Service.{DataSource, User}
   alias Air.TestRepoHelper
 
   setup do

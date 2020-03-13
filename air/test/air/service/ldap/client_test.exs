@@ -4,7 +4,7 @@ defmodule Air.Service.LDAP.Test do
   use ExUnit.Case, async: true
   require Aircloak.DeployConfig
 
-  alias Air.Service.LDAP.{Client, User, Group}
+  alias Air.Service.LDAP.{Client, Group, User}
 
   @regular_port 389
   @ssl_port 636

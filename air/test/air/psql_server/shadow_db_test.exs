@@ -3,7 +3,7 @@ defmodule Air.PsqlServer.ShadowDbTest do
   use Air.SchemaCase, async: false
 
   alias Air.{TestRepoHelper, TestSocketHelper}
-  alias Air.Service.{User, Group, DataSource, View}
+  alias Air.Service.{DataSource, Group, User, View}
   alias Air.Service.LDAP
   import Aircloak.AssertionHelper
 

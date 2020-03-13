@@ -1,11 +1,11 @@
 defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
-  alias Aircloak.ChildSpec
   alias Air.Repo
+  alias Air.Schemas.{DataSource, Group, Login, User}
   alias Air.Service
-  alias Air.Service.{AuditLog, LDAP, Password, RevokableToken, AdminGuard}
-  alias Air.Schemas.{DataSource, Group, User, Login}
+  alias Air.Service.{AdminGuard, AuditLog, LDAP, Password, RevokableToken}
+  alias Aircloak.ChildSpec
   import Ecto.Query, only: [from: 2, join: 4, where: 3, preload: 3]
   import Ecto.Changeset
 
@@ -87,15 +87,16 @@ defmodule Air.Service.User do
   @spec reset_password(String.t(), Map.t()) :: {:error, :invalid_token} | {:error, Ecto.Changeset.t()} | {:ok, User.t()}
   def reset_password(token, params) do
     in_transaction(fn ->
-      with {:ok, user_id} <- RevokableToken.verify_and_revoke(token, :password_reset) do
-        user = load!(user_id)
+      case RevokableToken.verify_and_revoke(token, :password_reset) do
+        {:ok, user_id} ->
+          user = load!(user_id)
 
-        RevokableToken.revoke_all(user, :session)
+          RevokableToken.revoke_all(user, :session)
 
-        user
-        |> change_main_login(&password_reset_changeset(&1, params))
-        |> update()
-      else
+          user
+          |> change_main_login(&password_reset_changeset(&1, params))
+          |> update()
+
         _ -> {:error, :invalid_token}
       end
     end)

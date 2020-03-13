@@ -7,8 +7,8 @@ defmodule Air.Service.Query.Lifecycle do
   while events for different queries are handled in different processes.
   """
 
-  alias Aircloak.ChildSpec
   alias Air.Service.Query
+  alias Aircloak.ChildSpec
   require Logger
   use GenServer
 

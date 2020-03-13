@@ -5,7 +5,7 @@ defmodule Air.PsqlServer.ConnectionRegistry do
   to be cancelled using out of bounds connections.
   """
 
-  alias Air.Service.{Query, User, DataSource}
+  alias Air.Service.{DataSource, Query, User}
   require Logger
 
   @type key_data :: %{process_id: integer, secret_key: integer}

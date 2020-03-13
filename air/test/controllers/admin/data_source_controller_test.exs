@@ -5,7 +5,7 @@ defmodule AirWeb.Admin.DataSourceController.Test do
 
   import Air.{TestConnHelper, TestRepoHelper}
   import Aircloak.AssertionHelper
-  alias Air.{TestSocketHelper, Schemas.DataSource, Repo}
+  alias Air.{Repo, Schemas.DataSource, TestSocketHelper}
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})

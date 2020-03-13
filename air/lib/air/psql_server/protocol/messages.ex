@@ -5,7 +5,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   Formats are described [here](https://www.postgresql.org/docs/9.6/static/protocol-message-formats.html).
   """
 
-  alias Air.PsqlServer.{Protocol, ConnectionRegistry}
+  alias Air.PsqlServer.{ConnectionRegistry, Protocol}
 
   @type server_message ::
           {:authentication_method, :cleartext}

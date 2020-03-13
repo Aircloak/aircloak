@@ -1,7 +1,12 @@
 defmodule Air.Service.Cleanup.Test do
   use ExUnit.Case, async: false
 
-  alias Air.{Settings, Repo, TestRepoHelper, TestSocketHelper, Schemas.Query, Service.Cleanup}
+  alias Air.Repo
+  alias Air.Schemas.Query
+  alias Air.Service.Cleanup
+  alias Air.Settings
+  alias Air.TestRepoHelper
+  alias Air.TestSocketHelper
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)

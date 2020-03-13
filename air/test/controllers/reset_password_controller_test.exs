@@ -1,8 +1,8 @@
 defmodule Air.ResetPasswordController.Test do
   use AirWeb.ConnCase, async: true
 
-  alias Air.TestRepoHelper
   alias Air.Service.User
+  alias Air.TestRepoHelper
 
   setup do
     user = TestRepoHelper.create_user!()

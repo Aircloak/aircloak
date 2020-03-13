@@ -4,7 +4,7 @@ defmodule AirWeb.API.DataSourceController.Test do
   use AirWeb.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.{TestSocketHelper, Schemas.DataSource, Repo}
+  alias Air.{Repo, Schemas.DataSource, TestSocketHelper}
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})

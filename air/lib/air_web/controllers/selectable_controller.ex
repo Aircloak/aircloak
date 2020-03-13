@@ -3,7 +3,7 @@ defmodule AirWeb.SelectableController do
 
   use Air.Web, :controller
 
-  alias Air.Service.{View, AnalystTable}
+  alias Air.Service.{AnalystTable, View}
   alias AirWeb.Socket.Frontend.UserChannel
 
   plug(:load_data_source)

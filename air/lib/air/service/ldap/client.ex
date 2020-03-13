@@ -3,7 +3,7 @@ defmodule Air.Service.LDAP.Client do
 
   require Aircloak.DeployConfig
 
-  alias Air.Service.LDAP.{User, Group, FilterParser}
+  alias Air.Service.LDAP.{FilterParser, Group, User}
 
   @timeout :timer.seconds(5)
 

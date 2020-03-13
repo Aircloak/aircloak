@@ -2,7 +2,7 @@ defmodule AirWeb.DataSourceView do
   @moduledoc false
   use Air.Web, :view
 
-  alias Air.{Service, Schemas}
+  alias Air.{Schemas, Service}
 
   defdelegate status(data_source), to: Service.DataSource
 

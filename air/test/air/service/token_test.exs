@@ -1,6 +1,7 @@
 defmodule Air.Service.Token.Test do
   use Air.SchemaCase, async: false
-  alias Air.{Schemas.ApiToken, Repo}
+  alias Air.Repo
+  alias Air.Schemas.ApiToken
   alias Air.Service.Token
   import Air.{TestRepoHelper}
 

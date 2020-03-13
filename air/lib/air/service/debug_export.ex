@@ -1,7 +1,7 @@
 defmodule Air.Service.DebugExport do
   @moduledoc "Service for creating an export of queries with artefacts for debugging purposes"
 
-  alias Air.Service.{Query, View, User}
+  alias Air.Service.{Query, User, View}
 
   # -------------------------------------------------------------------
   # API functions

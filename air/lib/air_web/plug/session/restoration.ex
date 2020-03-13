@@ -7,8 +7,8 @@ defmodule AirWeb.Plug.Session.Restoration do
   @behaviour Plug
 
   require Logger
-  alias AirWeb.Plug.Session
   alias Air.Service.Salts
+  alias AirWeb.Plug.Session
 
   @cookie_key "auth_remember_me"
   # 30 days in seconds (30*24*60*60) - the time before a user has to login again.

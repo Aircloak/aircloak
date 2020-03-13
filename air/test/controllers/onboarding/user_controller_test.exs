@@ -1,7 +1,7 @@
 defmodule AirWeb.Onboarding.UserController.Test do
   use AirWeb.ConnCase, async: true
 
-  alias Air.Schemas.{User, Group}
+  alias Air.Schemas.{Group, User}
 
   @valid_params %{
     user: %{

@@ -8,9 +8,9 @@ defmodule Air.Service.Cloak do
 
   use GenServer
 
-  alias Aircloak.ChildSpec
-  alias Air.Service.DataSource
   alias Air.Service.Cloak.Stats
+  alias Air.Service.DataSource
+  alias Aircloak.ChildSpec
 
   @serializer_name __MODULE__.Serializer
   @stats_name Stats

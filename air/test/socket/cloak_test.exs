@@ -3,9 +3,9 @@ defmodule AirWeb.Socket.CloakTest do
   # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
   use ExUnit.Case, async: false
 
-  alias Phoenix.Channels.GenSocketClient
+  alias Air.{Repo, TestSocketHelper}
   alias GenSocketClient.TestSocket
-  alias Air.{TestSocketHelper, Repo}
+  alias Phoenix.Channels.GenSocketClient
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)

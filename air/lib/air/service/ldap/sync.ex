@@ -7,7 +7,7 @@ defmodule Air.Service.LDAP.Sync do
 
   require Logger
   import Ecto.Query
-  alias Air.Service.LDAP.{User, Group}
+  alias Air.Service.LDAP.{Group, User}
 
   # -------------------------------------------------------------------
   # API functions

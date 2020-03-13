@@ -2,7 +2,7 @@ defmodule AirWeb.Admin.GroupController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.Service.{DataSource, User, Group, LDAP}
+  alias Air.Service.{DataSource, Group, LDAP, User}
 
   plug(:load_group when action in [:edit, :update, :delete])
 

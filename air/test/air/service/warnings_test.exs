@@ -1,9 +1,9 @@
 defmodule Air.Service.WarningsTest do
   use Air.SchemaCase, async: false
 
-  alias Air.Service.{Warnings, Cloak}
-  alias Air.Schemas.DataSource
   alias Air.{Repo, TestRepoHelper}
+  alias Air.Schemas.DataSource
+  alias Air.Service.{Cloak, Warnings}
 
   @data_source_name "name"
   @data_sources [%{name: @data_source_name, tables: []}]

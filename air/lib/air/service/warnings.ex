@@ -11,8 +11,8 @@ defmodule Air.Service.Warnings do
           severity: severity_class
         }
 
-  alias Air.Service.{DataSource, Cloak, License}
-  alias Air.{Schemas, Repo}
+  alias Air.{Repo, Schemas}
+  alias Air.Service.{Cloak, DataSource, License}
 
   # -------------------------------------------------------------------
   # API functions

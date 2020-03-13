@@ -4,7 +4,9 @@ defmodule Air.Service.Cloak.Test do
 
   import Aircloak.AssertionHelper
 
-  alias Air.{Repo, TestRepoHelper, TestSocketHelper, Schemas.DataSource, Service.Cloak}
+  alias Air.{Repo, TestRepoHelper, TestSocketHelper}
+  alias Air.Schemas.DataSource
+  alias Air.Service.Cloak
 
   @data_source_name "data_source_name"
   @data_source %{name: @data_source_name, tables: [%{columns: []}]}

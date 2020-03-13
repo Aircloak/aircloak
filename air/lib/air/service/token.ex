@@ -2,7 +2,7 @@ defmodule Air.Service.Token do
   @moduledoc "Functions for token management."
 
   alias Air.Repo
-  alias Air.Schemas.{ApiToken, User, Query}
+  alias Air.Schemas.{ApiToken, Query, User}
   alias Air.Service.Salts
   alias AirWeb.Endpoint
 

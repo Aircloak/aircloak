@@ -2,7 +2,7 @@ defmodule AirWeb.API.DataSourceController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.{Service, Schemas}
+  alias Air.{Schemas, Service}
 
   def permissions do
     %{user: :all}

@@ -8,8 +8,8 @@ defmodule AirWeb.Plug.Session do
   @session_key "_air_session_token"
   @max_session_age_seconds div(30 * :timer.hours(24), :timer.seconds(1))
 
-  alias Air.Service.RevokableToken
   alias Air.Schemas.User
+  alias Air.Service.RevokableToken
 
   @doc "Returns the session token stored in the given connection."
   @spec get(Plug.Conn.t()) :: String.t() | nil

@@ -1,8 +1,10 @@
 defmodule Air.TestRepoHelper do
   @moduledoc "Helpers for working with the repository."
 
+  alias Air.Repo
+  alias Air.Schemas.{ApiToken, Group, PrivacyPolicy}
   alias Air.Service
-  alias Air.{Service.User, Service.Query, Schemas.ApiToken, Schemas.PrivacyPolicy, Schemas.Group, Repo}
+  alias Air.Service.{Query, User}
 
   @doc "Inserts the new user with default parameters into the database."
   @spec create_user!(%{}) :: Air.Schemas.User.t()

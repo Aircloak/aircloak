@@ -5,7 +5,7 @@ defmodule AirWeb.QueryController.Test do
 
   import Aircloak.AssertionHelper
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.{TestSocketHelper, Repo}
+  alias Air.{Repo, TestSocketHelper}
   alias Phoenix.Channels.GenSocketClient.TestSocket
 
   setup do

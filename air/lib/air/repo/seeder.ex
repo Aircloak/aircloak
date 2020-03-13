@@ -1,7 +1,7 @@
 defmodule Air.Repo.Seeder do
   @moduledoc "Used in development and tests to seed the database."
 
-  alias Air.Service.{User, Group}
+  alias Air.Service.{Group, User}
 
   # -------------------------------------------------------------------
   # API

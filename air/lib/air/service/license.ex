@@ -7,7 +7,7 @@ defmodule Air.Service.License do
   use GenServer
 
   alias __MODULE__.{FSM, Key}
-  alias Air.{Repo, Schemas, CentralClient}
+  alias Air.{CentralClient, Repo, Schemas}
   import Ecto.Query
 
   @could_not_verify "Could not verify license file. This may be due to the file being corrupted. " <>

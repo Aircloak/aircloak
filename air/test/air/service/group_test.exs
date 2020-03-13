@@ -1,7 +1,7 @@
 defmodule Air.Service.Group.Test do
   use Air.SchemaCase
 
-  alias Air.Service.{User, Group}
+  alias Air.Service.{Group, User}
   alias Air.TestRepoHelper
 
   describe "basic operations" do

@@ -17,8 +17,8 @@ defmodule Air.PsqlServer.Protocol do
   """
 
   require Logger
-  alias Air.PsqlServer.Protocol.{Messages, Value}
   alias Air.PsqlServer.ConnectionRegistry
+  alias Air.PsqlServer.Protocol.{Messages, Value}
 
   @type t :: %{
           state: state,

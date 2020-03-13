@@ -3,7 +3,7 @@ defmodule Air.Service.LDAP.Sync.Test do
 
   import Air.TestRepoHelper
 
-  alias Air.Service.LDAP.{Sync, User, Group}
+  alias Air.Service.LDAP.{Group, Sync, User}
 
   describe "syncing users" do
     test "creating a user from LDAP" do

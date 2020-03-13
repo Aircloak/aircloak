@@ -1,12 +1,12 @@
 defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
-  alias Aircloak.ChildSpec
-  alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.Repo
+  alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.Service
-  alias Air.Service.{License, Cloak, View, AnalystTable}
+  alias Air.Service.{AnalystTable, Cloak, License, View}
   alias Air.Service.DataSource.QueryScheduler
+  alias Aircloak.ChildSpec
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
@@ -341,9 +341,9 @@ defmodule Air.Service.DataSource do
         ) :: result | data_source_operation_error
         when result: :ok | {:ok, any} | {:error, any}
   def with_available_cloak(data_source_or_id, user, fun) do
-    if not License.valid?(),
-      do: {:error, :license_invalid},
-      else: do_with_available_cloak(data_source_or_id, user, fun)
+    if License.valid?(),
+      do: do_with_available_cloak(data_source_or_id, user, fun),
+      else: {:error, :license_invalid}
   end
 
   # -------------------------------------------------------------------

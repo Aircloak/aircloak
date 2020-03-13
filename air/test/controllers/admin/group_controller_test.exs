@@ -2,7 +2,7 @@ defmodule AirWeb.Admin.GroupController.Test do
   use AirWeb.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
-  alias Air.{Schemas.Group, Repo}
+  alias Air.{Repo, Schemas.Group}
 
   test "regular user can't manage users", %{conn: conn} do
     user = create_user!()
