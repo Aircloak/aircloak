@@ -36,13 +36,16 @@ column_expression :=
   aggregation_function([DISTINCT | ALL] column_name) |
   function(column_expression) |
   column_expression binary_operator column_expression |
-  column_expression::data_type
+  column_expression::data_type |
+  case_statement
 
 binary_operator :=
   + | - | * | / | ^
 
 data_type :=
   integer | real | text | boolean | datetime | date | time | interval
+
+case_statement := CASE WHEN filter_expression THEN column_expression [...] [ELSE column_expression] END
 
 from_expression :=
   table | join
@@ -55,7 +58,7 @@ join :=
   table { [INNER] | { LEFT | RIGHT } [OUTER] } JOIN table ON filter_expression
 
 aggregation_function :=
-  COUNT | SUM | AVG | MIN | MAX | STDDEV | VARIANCE | MEDIAN |
+  COUNT | SUM | AVG | MIN | MAX | STDDEV | VARIANCE |
   COUNT_NOISE | SUM_NOISE | AVG_NOISE | STDDEV_NOISE | VARIANCE_NOISE
 
 filter_expression :=
@@ -90,14 +93,14 @@ inequality_operator :=
 - Conditions in the `HAVING` clause must not refer to non-aggregated fields.
 - Aliases can be used in the `WHERE`, `GROUP BY`, `ORDER BY` and `HAVING` clauses, as long as the alias doesn't conflict
   with a column name in one of the selected tables.
-- If an integer is specified in the `GROUP BY` or `ORDER BY` clause, it represents a 1-based position in the select list. The
-  corresponding expression from the select list is used as the grouping or ordering expression.
+- If an integer is specified in the `GROUP BY` or `ORDER BY` clause, it represents a 1-based position in the select
+  list. The corresponding expression from the select list is used as the grouping or ordering expression.
 - Values of type `datetime with timezone` are not supported. The timezone information will be dropped and the value will
   be exposed as a simple `datetime` in the UTC format.
 - The order of rows in subqueries is not preserved in the outer query. Add an `ORDER BY` clause in the outer query
   if you want a specific order.
 - When `NULL` handling is not specified in an `ORDER BY` in a subquery (either `NULLS FIRST` or `NULLS LAST`) the
-  default handling for the underlying datasource will be used. For postgres that means that `NULL` values will be
+  default handling for the underlying datasource will be used. For PostgreSQL that means that `NULL` values will be
   treated as larger than all other values. For MySQL, SQL Server, and MongoDB they will be treated as smaller
   than all other values. The top-level query always defaults to treating `NULL` values as larger than other values.
 - Using a `column_expression` in place of a `filter_expression` will implicitly compare the value of that

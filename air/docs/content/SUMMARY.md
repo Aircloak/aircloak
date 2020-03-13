@@ -39,6 +39,7 @@
   - [JOINs](sql/restrictions.md#join-restrictions)
   - [Subqueries](sql/restrictions.md#subquery-restrictions)
   - [Top-level HAVING clause](sql/restrictions.md#top-level-having-clause)
+  - [CASE statements](sql/restrictions.md#case-statements)
   - [Math and function application](sql/restrictions.md#math-and-function-application-restrictions)
   - [Clear expressions](sql/restrictions.md#clear-expressions)
   - [Constant ranges](sql/restrictions.md#constant-ranges)
