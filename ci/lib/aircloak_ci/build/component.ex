@@ -8,8 +8,8 @@ defmodule AircloakCI.Build.Component do
   Examples of job names are `:compile`, `:test`, `:compliance`.
   """
 
-  alias AircloakCI.{CmdRunner, Container, LocalProject}
   alias AircloakCI.Build.Job
+  alias AircloakCI.{CmdRunner, Container, LocalProject}
 
   @type job :: :compile | :test | :compliance
 

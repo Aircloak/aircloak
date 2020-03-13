@@ -3,7 +3,7 @@ defmodule AircloakCI.Build.Branch do
 
   use AircloakCI.Build.Server, restart: :temporary
   require Logger
-  alias AircloakCI.{Github, Build, LocalProject}
+  alias AircloakCI.{Build, Github, LocalProject}
 
   # -------------------------------------------------------------------
   # API functions

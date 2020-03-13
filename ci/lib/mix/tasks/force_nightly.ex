@@ -57,5 +57,5 @@ defmodule Mix.Tasks.AircloakCi.ForceNightly do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp repo_root_path(), do: :os.cmd('git rev-parse --show-toplevel') |> to_string() |> String.trim()
+  defp repo_root_path(), do: System.cmd("git", ["rev-parse", "--show-toplevel"]) |> to_string() |> String.trim()
 end

@@ -19,8 +19,8 @@ defmodule AircloakCI.Build.Server do
   """
   use GenServer
   require Logger
-  alias AircloakCI.{Github, LocalProject}
   alias AircloakCI.Build.Job
+  alias AircloakCI.{Github, LocalProject}
 
   @type state :: %{
           callback_mod: module,

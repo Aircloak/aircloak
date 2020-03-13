@@ -31,8 +31,8 @@ defmodule AircloakCI do
   end
 
   def force_build(target_type, target_id, job_name) do
-    with repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak"),
-         {:ok, _pid} <- ensure_started("branch", "master", repo_data),
+    repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak")
+    with {:ok, _pid} <- ensure_started("branch", "master", repo_data),
          {:ok, pid} <- ensure_started(target_type, target_id, repo_data),
          do: AircloakCI.Build.Server.force_build(pid, job_name)
   end

@@ -1,8 +1,8 @@
 defmodule AircloakCI.Build.Job do
   @moduledoc "Helper functions for job execution."
 
-  alias AircloakCI.{LocalProject, Queue}
   alias AircloakCI.Build
+  alias AircloakCI.{LocalProject, Queue}
 
   @type run_queued_opts :: [job_name: String.t(), log_name: String.t(), report_result: pid]
 
