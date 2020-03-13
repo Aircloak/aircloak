@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Bom do
     else
       invalid
       |> Enum.map(&"#{&1.name} #{&1.version} (#{&1.path}): #{&1.error}")
-      |> Enum.map(&IO.puts/1)
+      |> Enum.each(&IO.puts/1)
 
       Mix.raise("#{Enum.count(invalid)} invalid packages - see README.md for how to resolve this.")
     end

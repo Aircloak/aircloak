@@ -1,7 +1,7 @@
 defmodule BOM.Gather.Rust do
   @moduledoc "Logic for reading rust dependency information."
 
-  alias BOM.{Util, Package, Whitelist}
+  alias BOM.{Package, Util, Whitelist}
 
   # -------------------------------------------------------------------
   # API
