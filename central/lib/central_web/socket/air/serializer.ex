@@ -2,9 +2,9 @@ defmodule CentralWeb.Socket.Air.Serializer do
   @moduledoc "Gzip based socket serializer."
   @behaviour Phoenix.Socket.Serializer
 
-  alias Phoenix.Socket.Reply
-  alias Phoenix.Socket.Message
   alias Phoenix.Socket.Broadcast
+  alias Phoenix.Socket.Message
+  alias Phoenix.Socket.Reply
 
   # -------------------------------------------------------------------
   # Phoenix.Socket.Serializer callbacks

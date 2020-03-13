@@ -6,8 +6,8 @@ defmodule Central.TestSocketHelper do
   Using functions from this module, you can create a mock air socket, and interact with the controller
   function.
   """
-  alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
+  alias Phoenix.Channels.GenSocketClient
 
   @doc "Opens a socket and waits for the connection status."
   @spec connect!(%{}) :: {status :: any, GenServer.on_start()}

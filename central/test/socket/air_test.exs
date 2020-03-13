@@ -3,10 +3,10 @@ defmodule CentralWeb.Socket.AirTest do
   # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
   use CentralWeb.ChannelCase, async: false
 
-  alias Phoenix.Channels.GenSocketClient
-  alias GenSocketClient.TestSocket
-  alias Central.{TestSocketHelper, Repo}
+  alias Central.{Repo, TestSocketHelper}
   alias Central.Service.{Customer, License}
+  alias GenSocketClient.TestSocket
+  alias Phoenix.Channels.GenSocketClient
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)

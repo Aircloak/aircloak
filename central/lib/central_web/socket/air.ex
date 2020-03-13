@@ -27,14 +27,15 @@ defmodule CentralWeb.Socket.Air do
   def connect(params, socket) do
     Logger.info("Air connecting #{inspect(params)}")
 
-    with {:ok, customer, air_name} <- customer_from_params(params) do
-      socket =
-        socket
-        |> assign(:customer, customer)
-        |> assign(:air_name, air_name)
+    case customer_from_params(params) do
+      {:ok, customer, air_name} ->
+        socket =
+          socket
+          |> assign(:customer, customer)
+          |> assign(:air_name, air_name)
 
-      {:ok, socket}
-    else
+        {:ok, socket}
+
       _ ->
         Logger.info("Connection refused - invalid params or customer token")
         :error

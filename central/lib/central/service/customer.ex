@@ -4,9 +4,9 @@ defmodule Central.Service.Customer do
   require Logger
   require Aircloak.DeployConfig
 
-  alias Ecto.Changeset
   alias Central.Repo
   alias Central.Schemas.{Customer, License}
+  alias Ecto.Changeset
 
   # -------------------------------------------------------------------
   # API functions

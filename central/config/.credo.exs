@@ -13,20 +13,22 @@
       checks:
         [
           {Credo.Check.Consistency.ExceptionNames},
-          {Credo.Check.Consistency.SpaceInParentheses},
+          {Credo.Check.Consistency.ParameterPatternMatching, false},
           {Credo.Check.Consistency.SpaceAroundOperators},
+          {Credo.Check.Consistency.SpaceInParentheses},
           {Credo.Check.Consistency.TabsOrSpaces},
+          {Credo.Check.Readability.MaxLineLength, max_length: 120},
+          {Credo.Check.Readability.ParenthesesOnZeroArityDefs, false},
           {Credo.Check.Readability.PredicateFunctionNames},
+          {Credo.Check.Readability.RedundantBlankLines, max_blank_lines: 2},
+          {Credo.Check.Readability.Semicolons, false},
           {Credo.Check.Readability.TrailingBlankLine},
           {Credo.Check.Readability.TrailingWhiteSpace},
-          {Credo.Check.Readability.MaxLineLength, max_length: 120},
           {Credo.Check.Readability.VariableNames},
+          {Credo.Check.Refactor.MapInto, false},
           {Credo.Check.Warning.IExPry},
           {Credo.Check.Warning.IoInspect},
-          {Credo.Check.Readability.RedundantBlankLines, max_blank_lines: 2},
-          {Credo.Check.Readability.ParenthesesOnZeroArityDefs, false},
-          {Credo.Check.Consistency.ParameterPatternMatching, false},
-          {Credo.Check.Readability.Semicolons, false}
+          {Credo.Check.Warning.LazyLogging, false}
         ] ++
           case Mix.env() do
             :dev ->

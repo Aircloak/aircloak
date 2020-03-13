@@ -3,8 +3,8 @@ defmodule Central.Schemas.Customer do
 
   use Central.Web, :model
 
-  alias Ecto.Changeset
   alias Central.Schemas.License
+  alias Ecto.Changeset
 
   @type t :: %__MODULE__{}
 

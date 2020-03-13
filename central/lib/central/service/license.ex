@@ -1,7 +1,8 @@
 defmodule Central.Service.License do
   @moduledoc "Service module for working with licenses."
 
-  alias Central.{Repo, Service, Schemas.License, Schemas.Customer}
+  alias Central.{Repo, Service}
+  alias Central.Schemas.{Customer, License}
   alias Ecto.Changeset
   import Ecto.Query
 

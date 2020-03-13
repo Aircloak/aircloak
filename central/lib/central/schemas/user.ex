@@ -4,9 +4,9 @@ defmodule Central.Schemas.User do
 
   use Central.Web, :model
 
-  alias Ecto.Changeset
   alias Central.Schemas.User
   alias Comeonin.Pbkdf2, as: Hash
+  alias Ecto.Changeset
 
   @type t :: %__MODULE__{}
 
