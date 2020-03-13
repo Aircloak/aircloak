@@ -102,12 +102,6 @@ defmodule Cloak.Sql.QueryTest do
     assert capabilities.parameter_types == ["boolean"]
   end
 
-  test "describing select *" do
-    assert {:ok, columns, capabilities} = describe_query("select * from feat_describe")
-    assert columns == ["id", "t", "f", "b", "d"]
-    assert capabilities.selected_types == ["integer", "text", "real", "boolean", "datetime"]
-  end
-
   test "late bound parameters must be casted" do
     assert {:error, error} = describe_query("select $1 from feat_users")
     assert error == "The type for parameter `$1` cannot be determined."

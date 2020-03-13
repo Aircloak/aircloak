@@ -47,7 +47,7 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
       Pool.checkin(Pool.pool_server(data_source()), conn)
 
       {:ok, rows_stream} =
-        Cloak.Sql.Parser.parse!("select * from test_pool")
+        Cloak.Sql.Parser.parse!("select intval from test_pool")
         |> Cloak.Sql.Compiler.compile!(nil, data_source(), [], %{})
         |> Cloak.Sql.Query.resolve_db_columns()
         |> Cloak.DataSource.Streamer.rows()
@@ -68,7 +68,7 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
         conn = Pool.checkout(data_source())
         Pool.checkin(Pool.pool_server(data_source()), conn)
 
-        Cloak.Sql.Parser.parse!("select * from test_pool")
+        Cloak.Sql.Parser.parse!("select intval from test_pool")
         |> Cloak.Sql.Compiler.compile!(nil, data_source(), [], %{})
         |> Cloak.Sql.Query.resolve_db_columns()
         |> Cloak.DataSource.Streamer.rows()

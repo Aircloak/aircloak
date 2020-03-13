@@ -76,9 +76,9 @@ defmodule Compliance.AnalystTableTest do
             )
 
           assert_query(
-            "select * from table6",
+            "select height from table6",
             [analyst_id: 1, data_sources: [data_source]],
-            %{columns: ["uid", "height"]}
+            %{columns: ["height"]}
           )
         end
       end
@@ -167,9 +167,9 @@ defmodule Compliance.AnalystTableTest do
           {:ok, _} = create_or_update(1, "table25", "select * from table24", data_source)
 
           assert_query(
-            "select * from table25",
+            "select height from table25",
             [analyst_id: 1, data_sources: [data_source]],
-            %{columns: ["user_id", "height"]}
+            %{columns: ["height"]}
           )
         end
       end
@@ -183,7 +183,7 @@ defmodule Compliance.AnalystTableTest do
                 AnalystTable.create_or_update(1, "table26", nil, "select user_id from users", data_source, nil, %{})
 
               assert_query(
-                "select * from table26",
+                "select from table26",
                 [analyst_id: 1, data_sources: [data_source]],
                 %{error: "analyst table `table26` is still being created"}
               )
@@ -212,7 +212,7 @@ defmodule Compliance.AnalystTableTest do
               assert log =~ ~r/Error creating analyst table.*some error/
 
               assert_query(
-                "select * from table27",
+                "select from table27",
                 [analyst_id: 1, data_sources: [data_source]],
                 %{error: "creation of analyst table `table27` failed"}
               )
@@ -243,9 +243,9 @@ defmodule Compliance.AnalystTableTest do
               assert_receive {:DOWN, ^mref, :process, ^pid, :killed}, :timer.seconds(1)
 
               assert_query(
-                "select * from table28",
+                "select from table28",
                 [analyst_id: 1, data_sources: [data_source]],
-                %{columns: ["user_id"]}
+                %{columns: []}
               )
             end
           )
@@ -349,11 +349,11 @@ defmodule Compliance.AnalystTableTest do
           {:ok, _} = create_or_update(1, "table37", "select user_id, height from users", data_source)
 
           assert_query(
-            "select x.user_id, y.height from table37 x
+            "select y.height from table37 x
             inner join table37 y on x.user_id = y.user_id
             where x.height between 0 and 200 and y.height between 0 and 200",
             [analyst_id: 1, data_sources: [data_source]],
-            %{columns: ["user_id", "height"]}
+            %{columns: ["height"]}
           )
         end
       end
@@ -485,7 +485,7 @@ defmodule Compliance.AnalystTableTest do
           refute Enum.member?(AnalystTableHelpers.stored_tables(data_source), db_name)
 
           assert_query(
-            "select * from table49",
+            "select from table49",
             [analyst_id: 1, data_sources: [data_source]],
             %{error: "Table `table49` doesn't exist."}
           )

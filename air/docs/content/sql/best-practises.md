@@ -279,7 +279,7 @@ You can play similar tricks with times, dates, and datetimes by using the functi
 For example `date_trunc('hour', '12:22:44.004200')` would turn the time into one at hour resolution: `12:00:00.000000`.
 This value is more likely to pass the low count filter than the high resolution time value would be.
 
-## null values and counts of 2
+## Null values and counts of 2
 
 In most dialects of SQL all but the `count` aggregate may produce a `null` value. The `count` aggregate would, lacking
 data to produce a count, return 0 rather than `null`. Aircloak Insights behaves similarly. When there is insufficient
