@@ -1,9 +1,9 @@
 defmodule Cloak.DataSource.Shadows.Query do
   @moduledoc "Module for querying a datasource to build a shadow table."
 
-  alias Cloak.Sql.{DataSource, Parser, Compiler}
-  alias Cloak.Query.DbEmulator
   alias Cloak.DataSource.SqlBuilder
+  alias Cloak.Query.DbEmulator
+  alias Cloak.Sql.{Compiler, DataSource, Parser}
 
   # -------------------------------------------------------------------
   # API functions

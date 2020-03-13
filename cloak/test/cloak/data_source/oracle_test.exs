@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.Oracle.Test do
   use ExUnit.Case
 
-  alias Cloak.DataSource.{Oracle, Table, SqlBuilder}
+  alias Cloak.DataSource.{Oracle, SqlBuilder, Table}
   alias Cloak.Sql.Query
   import Cloak.Test.QueryHelpers
 

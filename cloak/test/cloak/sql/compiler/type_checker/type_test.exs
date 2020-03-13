@@ -4,7 +4,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser, Compiler.TypeChecker.Type}
+  alias Cloak.Sql.{Compiler, Parser}
+  alias Cloak.Sql.Compiler.TypeChecker.Type
 
   describe "records used functions" do
     test "records usage of single functions",

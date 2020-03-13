@@ -4,9 +4,10 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     validations in later steps. It also prepares the anonymized subqueries for the anonymized aggregation pipeline.
   """
 
-  alias Cloak.Sql.{Query, Expression, Query.Lenses, Condition}
-  alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Compiler.Anonymization.Transformer
+  alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.{Condition, Expression, Query}
+  alias Cloak.Sql.Query.Lenses
 
   # -------------------------------------------------------------------
   # API functions

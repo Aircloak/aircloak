@@ -36,7 +36,7 @@ defmodule Cloak.DataSource do
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
-  alias Cloak.DataSource.{Validations, Parameters, Driver, Table}
+  alias Cloak.DataSource.{Driver, Parameters, Table, Validations}
   alias Cloak.Query.ExecutionError
 
   require Logger

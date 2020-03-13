@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   @moduledoc "Methods for query validation."
 
   alias Cloak.CyclicGraph
-  alias Cloak.Sql.{CompilationError, Expression, Function, Query, Condition, Function}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Function, Query}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
 

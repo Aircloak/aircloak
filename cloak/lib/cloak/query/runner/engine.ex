@@ -1,6 +1,6 @@
 defmodule Cloak.Query.Runner.Engine do
   @moduledoc "Execution of SQL queries."
-  alias Cloak.{Sql, Query}
+  alias Cloak.{Query, Sql}
   require Logger
 
   # -------------------------------------------------------------------

@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.NoiseLayer.Test do
   use ExUnit.Case, async: true
 
-  alias Cloak.Sql.{NoiseLayer, Expression}
+  alias Cloak.Sql.{Expression, NoiseLayer}
 
   defp sum(accumulator), do: Enum.map(accumulator, &NoiseLayer.sum_hashes(&1, "salt"))
 

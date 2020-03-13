@@ -3,10 +3,10 @@ defmodule Cloak.Query.Aggregator do
 
   require Logger
 
-  alias Cloak.DataSource
-  alias Cloak.Sql.{Query, Expression, NoiseLayer}
-  alias Cloak.Query.{Anonymizer, Rows, Result}
   alias __MODULE__.{UserId, Statistics}
+  alias Cloak.DataSource
+  alias Cloak.Query.{Anonymizer, Result, Rows}
+  alias Cloak.Sql.{Expression, NoiseLayer, Query}
 
   @typep group_values :: [DataSource.field() | :*]
   @typep group :: {group_values, %{any => Anonymizer.t()}, UserId.t() | Statistics.t()}

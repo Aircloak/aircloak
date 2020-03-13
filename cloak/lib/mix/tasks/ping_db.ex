@@ -154,8 +154,8 @@ defmodule Mix.Tasks.Cloak.PingDb do
       Cloak.DataSource.PostgreSQL -> %{port: 5432}
       Cloak.DataSource.SQLServer -> %{port: 1433}
       Cloak.DataSource.MySQL -> %{port: 3306}
-      Cloak.DataSource.MongoDB -> %{port: 27017}
-      Cloak.DataSource.ClouderaImpala -> %{port: 21050}
+      Cloak.DataSource.MongoDB -> %{port: 27_017}
+      Cloak.DataSource.ClouderaImpala -> %{port: 21_050}
       _ -> %{}
     end
   end

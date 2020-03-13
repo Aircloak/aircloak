@@ -1,7 +1,7 @@
 defmodule Cloak.Test.QueryHelpers do
   @moduledoc false
 
-  alias Cloak.Sql.{Compiler, Parser, Query, Expression}
+  alias Cloak.Sql.{Compiler, Expression, Parser, Query}
 
   defmacro assert_query_not_failing(query, options \\ []) do
     quote bind_quoted: [

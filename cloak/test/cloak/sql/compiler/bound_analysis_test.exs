@@ -2,9 +2,9 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
   use ExUnit.Case
   use ExUnitProperties
 
+  alias Cloak.DataSource.Table
   alias Cloak.Sql.Compiler.BoundAnalysis
   alias Cloak.Sql.Expression
-  alias Cloak.DataSource.Table
   alias Cloak.TestBoundsCache
 
   defmacrop assert_unknown_or_within_bounds(expression, values, function) do

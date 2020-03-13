@@ -4,8 +4,8 @@ defmodule Cloak.DataSource.RODBC do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{RODBC.Port, Table, Driver, Parameters}
   alias Cloak.DataSource
+  alias Cloak.DataSource.{Driver, Parameters, RODBC.Port, Table}
   alias Cloak.Query.ExecutionError
 
   # -------------------------------------------------------------------

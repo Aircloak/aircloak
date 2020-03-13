@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.Table do
 
   alias Cloak.DataSource
   alias Cloak.Query.ExecutionError
-  alias Cloak.Sql.{Compiler, Parser, Query.Lenses, CompilationError, Expression, Query}
+  alias Cloak.Sql.{CompilationError, Compiler, Expression, Parser, Query, Query.Lenses}
 
   require Logger
 

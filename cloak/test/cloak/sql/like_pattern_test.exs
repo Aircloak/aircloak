@@ -1,5 +1,5 @@
 defmodule Cloak.Sql.LikePattern.Test do
-  alias Cloak.Sql.{LikePattern, Expression}
+  alias Cloak.Sql.{Expression, LikePattern}
 
   use ExUnit.Case, async: true
 

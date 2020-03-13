@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Range.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser, Range, Query}
+  alias Cloak.Sql.{Compiler, Parser, Query, Range}
 
   describe "find_ranges" do
     test ">/<= ranges" do

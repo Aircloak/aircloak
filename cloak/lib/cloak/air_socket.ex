@@ -10,8 +10,8 @@ defmodule Cloak.AirSocket do
 
   require Logger
   require Aircloak.DeployConfig
-  alias Phoenix.Channels.GenSocketClient
   alias Cloak.AirSocket.DataSourceUpdater
+  alias Phoenix.Channels.GenSocketClient
   import Aircloak, only: [in_env: 1, unused: 2]
 
   @behaviour GenSocketClient

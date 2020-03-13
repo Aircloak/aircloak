@@ -8,9 +8,12 @@ defmodule Cloak.Query.DbEmulator do
   """
   require Logger
 
-  alias Cloak.{DataSource, DataSource.Table}
-  alias Cloak.Sql.{Query, Expression, Function, Condition, Compiler}
-  alias Cloak.Query.{DbEmulator.Selector, Rows, Aggregator, Runner.ParallelProcessor, Runner.Engine}
+  alias Cloak.DataSource
+  alias Cloak.DataSource.Table
+  alias Cloak.Query.Aggregator
+  alias Cloak.Query.DbEmulator.Selector
+  alias Cloak.Query.Runner.{Engine, ParallelProcessor}
+  alias Cloak.Sql.{Compiler, Condition, Expression, Function, Query}
 
   # -------------------------------------------------------------------
   # API functions

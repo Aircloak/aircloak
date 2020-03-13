@@ -6,8 +6,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   """
 
   use Lens.Macros
-  alias Cloak.Sql.{Condition, Query, Expression, LikePattern}
   alias Cloak.Sql.Compiler.TypeChecker.Type
+  alias Cloak.Sql.{Condition, Expression, LikePattern, Query}
 
   # -------------------------------------------------------------------
   # API functions

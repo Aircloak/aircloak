@@ -4,8 +4,8 @@ defmodule Cloak.Sql.Expression do
   function calls with their arguments which are expressions themselves.
   """
 
-  alias Cloak.{DataSource, Data}
-  alias Cloak.Sql.{LikePattern, Query, Function}
+  alias Cloak.{Data, DataSource}
+  alias Cloak.Sql.{Function, LikePattern, Query}
   alias Timex.Duration
 
   @type column_type :: DataSource.Table.data_type() | :like_pattern | :interval | nil

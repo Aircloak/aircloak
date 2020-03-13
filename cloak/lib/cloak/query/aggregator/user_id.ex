@@ -2,8 +2,8 @@ defmodule Cloak.Query.Aggregator.UserId do
   @moduledoc "Inner module for implementing user_id-based data aggregation."
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Query, Expression, NoiseLayer}
   alias Cloak.Query.{Anonymizer, Rows}
+  alias Cloak.Sql.{Expression, NoiseLayer, Query}
 
   @type user_id :: DataSource.field()
   @type t :: %{user_id => DataSource.row()}

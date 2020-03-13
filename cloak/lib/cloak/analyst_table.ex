@@ -27,8 +27,8 @@ defmodule Cloak.AnalystTable do
   use Parent.GenServer
   require Logger
   alias Cloak.DataSource
-  alias Cloak.Sql.Query
   alias Cloak.Sql.Compiler.NoiseLayers
+  alias Cloak.Sql.Query
   alias __MODULE__.{Compiler, Jobs}
 
   @type t :: %{

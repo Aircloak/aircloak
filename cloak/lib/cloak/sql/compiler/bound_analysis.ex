@@ -16,9 +16,9 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   }
   @divisions ~w(/ %)
 
-  alias Cloak.Sql.{Expression, Query}
-  alias Cloak.Sql.Compiler.Helpers
   alias Cloak.DataSource.Bounds
+  alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.{Expression, Query}
 
   use Lens.Macros
 

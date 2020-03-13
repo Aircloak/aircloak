@@ -1,9 +1,10 @@
 defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
   @moduledoc "Helper module for rewriting queries during the Compiler.Anonymization stage."
 
-  alias Cloak.Sql.{Query, Expression, Query.Lenses, Function}
-  alias Cloak.Sql.Compiler.Helpers
   alias Cloak.DataSource.Table
+  alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.{Expression, Function, Query}
+  alias Cloak.Sql.Query.Lenses
 
   # -------------------------------------------------------------------
   # API functions

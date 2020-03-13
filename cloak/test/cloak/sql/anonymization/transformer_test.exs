@@ -1,9 +1,10 @@
 defmodule Cloak.Sql.TransformerTest do
   use ExUnit.Case, async: true
 
-  alias Cloak.DataSource.{Table, SqlBuilder}
-  alias Cloak.Sql.{Compiler, Parser, Query.Lenses}
+  alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.Sql.Compiler.Anonymization.Transformer
+  alias Cloak.Sql.{Compiler, Parser}
+  alias Cloak.Sql.Query.Lenses
 
   defp data_source() do
     %{

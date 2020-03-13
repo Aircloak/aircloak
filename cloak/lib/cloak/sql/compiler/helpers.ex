@@ -1,8 +1,8 @@
 defmodule Cloak.Sql.Compiler.Helpers do
   @moduledoc "Common helper functions used in compilation phases."
 
-  alias Cloak.Sql.{Expression, Query, Parser, Function}
   alias Cloak.DataSource.Table
+  alias Cloak.Sql.{Expression, Function, Parser, Query}
 
   @type partial_query :: %Query{}
 

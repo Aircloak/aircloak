@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @moduledoc "Deals with normalizing some expressions so that they are easier to deal with at later stages."
 
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.Sql.{Expression, Query, LikePattern, Condition, Function, CompilationError}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Function, LikePattern, Query}
 
   # -------------------------------------------------------------------
   # API functions

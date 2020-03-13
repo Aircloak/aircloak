@@ -11,7 +11,7 @@ defmodule Cloak.MemoryReader do
 
   use GenServer, start: {__MODULE__, :start_link, []}
 
-  alias Cloak.MemoryReader.{MemoryProjector, Readings, ProcMemInfo}
+  alias Cloak.MemoryReader.{MemoryProjector, PropMemInfo, Readings}
 
   require Logger
 

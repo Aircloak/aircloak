@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Range do
   @moduledoc "Represents a range the analyst applied in the query that needs to be tracked."
 
-  alias Cloak.Sql.{Expression, FixAlign, Query, Condition, Function}
+  alias Cloak.Sql.{Condition, Expression, FixAlign, Function, Query}
 
   @type t :: %__MODULE__{
           column: Expression.t(),

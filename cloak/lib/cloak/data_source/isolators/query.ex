@@ -1,10 +1,10 @@
 defmodule Cloak.DataSource.Isolators.Query do
   @moduledoc "Utility for checking if a column is isolating. See `Isolating columns` in anonymization.md for details."
 
-  alias Cloak.Sql.{Parser, Compiler}
   alias Cloak.DataSource
-  alias Cloak.DataSource.{SqlBuilder, Isolators}
+  alias Cloak.DataSource.{Isolators, SqlBuilder}
   alias Cloak.Query.DbEmulator
+  alias Cloak.Sql.{Compiler, Parser}
 
   # -------------------------------------------------------------------
   # API functions

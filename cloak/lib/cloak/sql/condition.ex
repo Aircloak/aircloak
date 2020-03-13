@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Condition do
   @moduledoc "Contains utility functions for working with conditions."
 
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.Sql.{Expression, Query}
 
   @inequalities ~w(< > <= >=)
   @comparisons ~w(= <>) ++ @inequalities

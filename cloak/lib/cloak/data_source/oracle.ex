@@ -7,9 +7,9 @@ defmodule Cloak.DataSource.Oracle do
   use Cloak.DataSource.Driver.RodbcSql
   use Cloak.DataSource.Driver.SQL.AnalystTables
   require Logger
-  alias Cloak.DataSource.{RODBC, Table, SqlBuilder}
-  alias Cloak.Sql.Expression
+  alias Cloak.DataSource.{RODBC, SqlBuilder, Table}
   alias Cloak.Query.ExecutionError
+  alias Cloak.Sql.Expression
 
   @mathematical_operators ~w(+ - * / ^)
 

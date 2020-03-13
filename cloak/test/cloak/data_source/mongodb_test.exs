@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.MongoDBTest do
   use ExUnit.Case, async: true
 
-  alias Cloak.DataSource.{Table, MongoDB}
+  alias Cloak.DataSource.{MongoDB, Table}
 
   import Cloak.Test.MongoHelpers
 

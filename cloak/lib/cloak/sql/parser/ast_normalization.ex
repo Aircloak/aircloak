@@ -1,7 +1,8 @@
 defmodule Cloak.Sql.Parser.ASTNormalization do
   @moduledoc "Deals with normalizing the query AST so that less cases must be handled downstream."
 
-  alias Cloak.Sql.{Function, Parser, Compiler.Helpers, Query}
+  alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.{Function, Parser, Query}
 
   # -------------------------------------------------------------------
   # API functions

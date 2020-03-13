@@ -12,7 +12,9 @@ defmodule Cloak.Query.Runner do
   require Aircloak
   require Aircloak.DeployConfig
   alias Aircloak.ChildSpec
-  alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine, ResultSender}
+  alias Cloak.{DataSource, ResultSender}
+  alias Cloak.Query.Runner.Engine
+  alias Cloak.Sql.Query
 
   @supervisor_name __MODULE__.Supervisor
   @runner_registry_name __MODULE__.RunnerRegistry

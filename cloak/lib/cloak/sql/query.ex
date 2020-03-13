@@ -8,7 +8,8 @@ defmodule Cloak.Sql.Query do
   """
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Expression, Compiler, Parser, Query.Lenses, NoiseLayer, Condition}
+  alias Cloak.Sql.{Compiler, Condition, Expression, NoiseLayer, Parser}
+  alias Cloak.Sql.Query.Lenses
   require Logger
 
   @type filter_clause :: nil | Expression.t()

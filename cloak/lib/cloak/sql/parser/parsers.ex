@@ -3,8 +3,8 @@ defmodule Cloak.Sql.Parser.Parsers do
   Additional parsers not supplied by the `Combine` library.
   """
   import Combine.Helpers
-  alias Combine.ParserState
   alias Combine.Parsers.Base
+  alias Combine.ParserState
 
   defmodule Token do
     @moduledoc "Defines a structure which represents tokens."
@@ -224,7 +224,8 @@ defmodule Cloak.Sql.Parser.Parsers do
   """
   @spec error_message(Combine.previous_parser(), Combine.parser(), String.t()) :: Combine.parser()
   defparser error_message(%ParserState{status: :ok} = state, parser, message) do
-    with next_state = parser.(state), %ParserState{status: :error} <- next_state do
+    next_state = parser.(state)
+    with %ParserState{status: :error} <- next_state do
       %ParserState{
         next_state
         | error: "#{message} at line #{next_state.line}, column #{next_state.column + 1}."

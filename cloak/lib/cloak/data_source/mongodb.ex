@@ -34,9 +34,9 @@ defmodule Cloak.DataSource.MongoDB do
     name of the table being the base table name suffixed with the array name, separated by `_`.
   """
 
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.DataSource.{Driver, MongoDB.Pipeline, MongoDB.Schema}
   alias Cloak.Query.ExecutionError
-  alias Cloak.DataSource.{Driver, MongoDB.Schema, MongoDB.Pipeline}
+  alias Cloak.Sql.{Expression, Query}
 
   require Logger
 
@@ -88,39 +88,39 @@ defmodule Cloak.DataSource.MongoDB do
       do: raise(ExecutionError, message: "Sample rate for schema detection has to be an integer between 1 and 100.")
 
     map_code = """
-      function() {
-        if (Math.random() * 100 > #{sample_rate}) return;
-        map_subfield = function(base, object) {
-          if (object === undefined || object == null) {
-            return;
-          } else if (object instanceof Date) {
-            emit(base, "date");
-          } else if (object instanceof ObjectId) {
-            emit(base, "object_id");
-          } else if (object instanceof BinData) {
-            emit(base, "string");
-          } else if (Array.isArray(object)) {
-            emit(base, "array");
-            map_subfield(base + "[]", object[0]);
-          } else if (typeof object == "object") {
-            emit(base, "object");
-            for(var key in object) {
-              map_subfield(base + "." + key, object[key]);
-            }
-          } else {
-            emit(base, typeof object);
+    function() {
+      if (Math.random() * 100 > #{sample_rate}) return;
+      map_subfield = function(base, object) {
+        if (object === undefined || object == null) {
+          return;
+        } else if (object instanceof Date) {
+          emit(base, "date");
+        } else if (object instanceof ObjectId) {
+          emit(base, "object_id");
+        } else if (object instanceof BinData) {
+          emit(base, "string");
+        } else if (Array.isArray(object)) {
+          emit(base, "array");
+          map_subfield(base + "[]", object[0]);
+        } else if (typeof object == "object") {
+          emit(base, "object");
+          for(var key in object) {
+            map_subfield(base + "." + key, object[key]);
           }
-        };
-        for(var key in this) {
-          map_subfield(key, this[key]);
+        } else {
+          emit(base, typeof object);
         }
+      };
+      for(var key in this) {
+        map_subfield(key, this[key]);
       }
+    }
     """
 
     reduce_code = """
-      function(key, types) {
-        return types.every(function (type) { return type === types[0]; }) ? types[0] : "mixed";
-      }
+    function(key, types) {
+      return types.every(function (type) { return type === types[0]; }) ? types[0] : "mixed";
+    }
     """
 
     connection

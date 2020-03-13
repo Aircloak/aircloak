@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   use Parent.GenServer
   require Logger
-  alias Cloak.DataSource.PerColumn.{PersistentKeyValue, Queue, Descriptor}
+  alias Cloak.DataSource.PerColumn.{Descriptor, PersistentKeyValue, Queue}
 
   # -------------------------------------------------------------------
   # API functions
@@ -14,11 +14,11 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   def value(server, data_source, table_name, column_name) do
     column = {data_source, table_name, column_name}
 
-    with {:error, :failed, name, default} <- GenServer.call(server, {:compute_value, column}, :infinity) do
-      Logger.error("#{inspect(name)} failed for `#{table_name}`.`#{column_name}`")
-      default
-    else
+    case GenServer.call(server, {:compute_value, column}, :infinity) do
       {:ok, property} -> property
+      {:error, :failed, name, default} ->
+        Logger.error("#{inspect(name)} failed for `#{table_name}`.`#{column_name}`")
+        default
       {:error, :unknown_column} -> raise "Unknown column `#{table_name}`.`#{column_name}`"
     end
   end

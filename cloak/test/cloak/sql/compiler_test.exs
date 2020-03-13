@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Expression, Compiler, Parser, Query}
+  alias Cloak.Sql.{Compiler, Expression, Parser, Query}
 
   import Cloak.Test.QueryHelpers
 

@@ -2,7 +2,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
   @moduledoc "Inner module for implementing statistics-based data aggregation."
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Query, Expression, NoiseLayer}
+  alias Cloak.Sql.{Expression, NoiseLayer, Query}
   alias Cloak.Query.{Anonymizer, Rows}
 
   @type user_id :: DataSource.field()

@@ -1,9 +1,9 @@
 defmodule Cloak.DataSource.MongoDB.Pipeline do
   @moduledoc "MongoDB helper functions for mapping a query to an aggregation pipeline."
 
-  alias Cloak.Sql.{Query, Expression, Condition, Function}
-  alias Cloak.DataSource.MongoDB.{Schema, Projector}
+  alias Cloak.DataSource.MongoDB.{Projector, Schema}
   alias Cloak.DataSource.Table
+  alias Cloak.Sql.{Condition, Expression, Function, Query}
 
   # -------------------------------------------------------------------
   # API

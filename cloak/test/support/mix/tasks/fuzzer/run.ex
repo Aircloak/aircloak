@@ -47,9 +47,8 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   @impl Mix.Task
   def run(args) do
-    with {options, [], []} <- OptionParser.parse(args, strict: @option_spec) do
-      do_run(Enum.into(options, %{}))
-    else
+    case OptionParser.parse(args, strict: @option_spec) do
+      {options, [], []} -> do_run(Enum.into(options, %{}))
       _ -> print_usage!()
     end
   end

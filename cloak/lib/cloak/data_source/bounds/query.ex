@@ -1,10 +1,10 @@
 defmodule Cloak.DataSource.Bounds.Query do
   @moduledoc "Implements querying the database to find the bounds of a column."
 
-  alias Cloak.Sql.{Parser, Compiler, Expression}
-  alias Cloak.DataSource.{SQLServer, MongoDB, SqlBuilder, Table}
   alias Cloak.DataSource.Bounds.Compute
+  alias Cloak.DataSource.{MongoDB, SqlBuilder, SQLServer, Table}
   alias Cloak.Query.DbEmulator
+  alias Cloak.Sql.{Compiler, Expression, Parser}
 
   @query_limit 1000
 
@@ -40,16 +40,15 @@ defmodule Cloak.DataSource.Bounds.Query do
   # -------------------------------------------------------------------
 
   defp public_bounds(data_source, table_name, column) do
-    with {:ok, min, max} <- min_max(data_source, table_name, column) do
-      Compute.extend({min |> :math.floor() |> round(), max |> :math.ceil() |> round()})
-    else
+    case min_max(data_source, table_name, column) do
+      {:ok, min, max} -> Compute.extend({min |> :math.floor() |> round(), max |> :math.ceil() |> round()})
       _ -> :unknown
     end
   end
 
   defp private_bounds(data_source, table_name, column) do
-    with cutoff = cutoff(table_name, column),
-         {:ok, max} <- Compute.max(maxes(data_source, table_name, column), cutoff),
+    cutoff = cutoff(table_name, column)
+    with {:ok, max} <- Compute.max(maxes(data_source, table_name, column), cutoff),
          {:ok, min} <- Compute.min(mins(data_source, table_name, column), cutoff) do
       Compute.extend({min, max})
     else

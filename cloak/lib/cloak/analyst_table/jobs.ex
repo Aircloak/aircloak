@@ -28,9 +28,11 @@ defmodule Cloak.AnalystTable.Jobs do
   def next_jobs(jobs) do
     with {job, jobs} <- pop_next_job(jobs),
          {:ok, jobs} <- mark_job_as_running(jobs, job),
-         {remaining_jobs, jobs} = next_jobs(jobs),
-         do: {[job | remaining_jobs], jobs},
-         else: (_ -> {[], jobs})
+         {remaining_jobs, jobs} <- next_jobs(jobs) do
+      {[job | remaining_jobs], jobs}
+    else
+      _ -> {[], jobs}
+    end
   end
 
   @doc "Removes the provided running job from the data structure."

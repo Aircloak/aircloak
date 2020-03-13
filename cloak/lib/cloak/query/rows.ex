@@ -1,6 +1,6 @@
 defmodule Cloak.Query.Rows do
   @moduledoc "Functions for row processing, such as filtering and grouping."
-  alias Cloak.Sql.{Expression, Query, Condition, Compiler}
+  alias Cloak.Sql.{Compiler, Condition, Expression, Query}
 
   @type groups :: %{Cloak.DataSource.row() => group_data}
   @type group_updater :: (integer(), group_data, Cloak.DataSource.row() | Cloak.Query.Result.bucket() -> group_data)

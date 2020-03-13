@@ -1,8 +1,8 @@
 defmodule Cloak.DataSource.Driver do
   @moduledoc "Specifies the interface for implementing the database specific data access operations."
 
-  alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource.Table
+  alias Cloak.Sql.{Expression, Query}
 
   @doc "Returns the configured database connection timeout."
   @spec connect_timeout() :: pos_integer

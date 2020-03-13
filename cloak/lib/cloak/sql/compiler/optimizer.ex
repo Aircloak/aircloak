@@ -1,8 +1,8 @@
 defmodule Cloak.Sql.Compiler.Optimizer do
   @moduledoc "Module for optimizing query execution."
 
-  alias Cloak.Sql.{Expression, Query, Condition}
   alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.{Condition, Expression, Query}
   alias Cloak.Sql.Query.Lenses
 
   use Lens.Macros

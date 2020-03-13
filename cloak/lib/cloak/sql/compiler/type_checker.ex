@@ -6,10 +6,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   as checks to validate that columns used in certain filter conditions haven't been altered.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
-  alias Cloak.Sql.Compiler.TypeChecker.{Access, Type}
-  alias Cloak.Sql.Compiler.Helpers
   alias Cloak.DataSource.{Isolators, Shadows}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
+  alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.Compiler.TypeChecker.{Access, Type}
 
   @max_allowed_restricted_functions 5
 

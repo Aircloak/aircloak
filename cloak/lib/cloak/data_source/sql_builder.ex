@@ -2,9 +2,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
   use Combine
-  alias Cloak.Sql.{Query, Expression, Compiler, Function}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, ClouderaImpala}
+  alias Cloak.DataSource.SqlBuilder.{ClouderaImpala, MySQL, SQLServer, Support}
   alias Cloak.DataSource.Table
+  alias Cloak.Sql.{Compiler, Expression, Function, Query}
 
   # -------------------------------------------------------------------
   # API

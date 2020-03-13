@@ -93,21 +93,22 @@ defmodule Cloak.DataSource.PostgreSQL do
     Postgrex.transaction(
       pool,
       fn connection ->
-        with {:ok, query} <- Postgrex.prepare(connection, "data select", statement, []) do
-          try do
-            Postgrex.stream(
-              connection,
-              query,
-              [],
-              decode_mapper: decode_mapper,
-              max_rows: Driver.batch_size()
-            )
-            |> Stream.map(fn %Postgrex.Result{rows: rows} -> rows end)
-            |> result_processor.()
-          after
-            safe_close(connection, query)
-          end
-        else
+        case Postgrex.prepare(connection, "data select", statement, []) do
+          {:ok, query} ->
+            try do
+              Postgrex.stream(
+                connection,
+                query,
+                [],
+                decode_mapper: decode_mapper,
+                max_rows: Driver.batch_size()
+              )
+              |> Stream.map(fn %Postgrex.Result{rows: rows} -> rows end)
+              |> result_processor.()
+            after
+              safe_close(connection, query)
+            end
+
           {:error, error} -> Postgrex.rollback(connection, Exception.message(error))
         end
       end,

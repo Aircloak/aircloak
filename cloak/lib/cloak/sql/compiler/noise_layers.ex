@@ -1,8 +1,8 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
   @moduledoc "Contains functions related to compilation of noise layers."
 
-  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, Range, Function}
   alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.{Condition, Expression, Function, NoiseLayer, Query, Range}
 
   use Lens.Macros
 

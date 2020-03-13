@@ -1,7 +1,7 @@
 defmodule Cloak.AnalystTable.Compiler do
   @moduledoc "Compilation of analyst table query."
 
-  alias Cloak.Sql.{Compiler, Query, Expression}
+  alias Cloak.Sql.{Compiler, Expression, Query}
 
   # -------------------------------------------------------------------
   # API functions

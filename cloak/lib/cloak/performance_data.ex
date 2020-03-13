@@ -16,7 +16,7 @@ defmodule Cloak.PerformanceData do
   def generate(opts \\ []) do
     opts =
       Map.merge(
-        %{hostname: "localhost", port: 20002, username: "cloak", num_users: 10_000},
+        %{hostname: "localhost", port: 20_002, username: "cloak", num_users: 10_000},
         Map.new(opts)
       )
 

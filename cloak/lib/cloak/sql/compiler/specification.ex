@@ -2,8 +2,9 @@ defmodule Cloak.Sql.Compiler.Specification do
   @moduledoc "Turns a parsed SQL AST into a `Cloak.Sql.Query` specification describing the user query."
 
   alias Cloak.DataSource
-  alias Cloak.Sql.{Condition, CompilationError, Expression, Function, Query}
-  alias Cloak.Sql.{Compiler.Helpers, Query.Lenses}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Function, Query}
+  alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.Query.Lenses
 
   # -------------------------------------------------------------------
   # API functions
