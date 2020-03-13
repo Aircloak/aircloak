@@ -1505,7 +1505,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "output user ids are rejected" do
     assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
-             compile("select uid from table", data_source())
+             compile("select * from table", data_source())
 
     assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
              compile("select numeric from table group by uid, numeric", data_source())
