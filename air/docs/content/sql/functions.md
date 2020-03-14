@@ -24,6 +24,9 @@ current_time()
 The functions `year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`, and `dow` (a synonym for
 `weekday`) are supported. They extract the named part from a date or time column.
 
+Functions `weekday` and `dow` return values in interval 1 (Sunday) to 7 (Saturday).
+This behavior may change if database defaults are modified.
+
 ```sql
 SELECT YEAR(date_column), MONTH(date_column), DAY(date_column) FROM table;
 

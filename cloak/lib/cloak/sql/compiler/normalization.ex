@@ -21,6 +21,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
       |> Helpers.apply_bottom_up(&normalize_non_anonymizing_noise/1)
       |> Helpers.apply_bottom_up(&rewrite_not_in_expressions/1)
+      |> Helpers.apply_bottom_up(&normalize_case_statements_branches/1)
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
@@ -225,6 +226,33 @@ defmodule Cloak.Sql.Compiler.Normalization do
   end
 
   defp normalize_boolean_expression(expression), do: expression
+
+  # -------------------------------------------------------------------
+  # Normalizing `case` statements branches
+  # -------------------------------------------------------------------
+
+  defp normalize_case_statements_branches(query),
+    do:
+      Query.Lenses.query_expressions()
+      |> Lens.filter(&Expression.function?/1)
+      |> Lens.filter(&(&1.name == "case"))
+      |> Lens.key(:args)
+      |> Lens.map(query, &normalize_case_statement_branches/1)
+
+  defp normalize_case_statement_branches([else_branch]), do: [else_branch]
+
+  defp normalize_case_statement_branches([when_branch, then_branch | rest]) do
+    cond do
+      Expression.constant?(when_branch) and Expression.const_value(when_branch) == true ->
+        [then_branch]
+
+      Expression.constant?(when_branch) and Expression.const_value(when_branch) in [false, nil] ->
+        normalize_case_statement_branches(rest)
+
+      true ->
+        [when_branch, then_branch | normalize_case_statement_branches(rest)]
+    end
+  end
 
   # -------------------------------------------------------------------
   # Collapsing constant expressions

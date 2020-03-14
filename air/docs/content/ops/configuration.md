@@ -342,7 +342,8 @@ The general shape of `config.json` is:
   "concurrency": integer,
   "lcf_buckets_aggregation_limit": integer,
   "max_parallel_queries": positive_integer,
-  "connection_keep_time": integer
+  "connection_keep_time": integer,
+  "connect_timeout": integer
 }
 ```
 
@@ -374,8 +375,12 @@ can be found in the [Low-count filtering](../sql/query-results.md#low-count-filt
 The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run simultaneously. The default value is 10.
 
 The `connection_keep_time` field is optional and it determines how many minutes idle database connections are kept
-before they are closed. It needs to be an integer value between 1 and 86 400 (1 day). If not set, a default
+before they are closed. It needs to be an integer value between 1 and 1 440 (1 day). If not set, a default
 timeout value of 1 minute is used.
+
+The `connect_timeout` field is optional and it determines how many seconds the Insights Cloak waits for a database
+connection to be established. It needs to be an integer value between 1 and 3 600 (1 hour). If not set, a default
+timeout value of 5 seconds is used.
 
 ### Data source configuration
 

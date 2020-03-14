@@ -234,6 +234,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         "or" => "$or",
         "not" => "$not",
         "=" => "$eq",
+        "!<>" => "$eq",
         "<>" => "$ne",
         ">" => "$gt",
         ">=" => "$gte",

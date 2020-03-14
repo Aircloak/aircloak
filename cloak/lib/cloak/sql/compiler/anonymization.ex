@@ -105,27 +105,17 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   defp statistics_anonymization_enabled?(data_source), do: data_source[:statistics_anonymization] != false
 
-  defp columns_equal_or_null_condition(
+  defp columns_not_distinct_condition(
          %Expression{name: "__ac_grouping_id"} = column1,
          %Expression{name: "__ac_grouping_id"} = column2
        ),
        do: Expression.function("=", [column1, column2], :boolean)
 
-  defp columns_equal_or_null_condition(column1, column2) do
-    columns_equal = Expression.function("=", [column1, column2], :boolean)
-
-    columns_null =
-      Condition.both(
-        Expression.function("is_null", [column1], :boolean),
-        Expression.function("is_null", [column2], :boolean)
-      )
-
-    Expression.function("or", [columns_equal, columns_null], :boolean)
-  end
+  defp columns_not_distinct_condition(column1, column2), do: Expression.function("!<>", [column1, column2], :boolean)
 
   defp groups_equal_or_null_conditions(group1, group2) do
     Enum.zip(group1, group2)
-    |> Enum.map(fn {column1, column2} -> columns_equal_or_null_condition(column1, column2) end)
+    |> Enum.map(fn {column1, column2} -> columns_not_distinct_condition(column1, column2) end)
     |> Enum.reduce(fn condition, accumulator -> Condition.both(accumulator, condition) end)
   end
 

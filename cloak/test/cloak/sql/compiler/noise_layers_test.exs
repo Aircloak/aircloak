@@ -16,6 +16,21 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  defmacrop stats_uid_layer(base) do
+    quote do
+      %NoiseLayer{
+        expressions: [
+          _,
+          _,
+          %Expression{name: "__ac_count_duid"},
+          %Expression{name: "__ac_min_uid"},
+          %Expression{name: "__ac_max_uid"}
+        ],
+        base: unquote(base)
+      }
+    end
+  end
+
   test "overwrites any existing noise layers" do
     compiled = Cloak.Test.QueryHelpers.compile!("SELECT COUNT(*) FROM table", data_source())
 
@@ -135,7 +150,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  expressions: [
                    %Expression{name: "__ac_group_0"},
                    %Expression{name: "__ac_group_0"},
-                   %Expression{user_id?: true}
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
                  ]
                }
              ] = result.noise_layers
@@ -235,7 +252,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
                static_layer({"table", "numeric", nil}),
-               uid_layer({"table", "numeric", nil})
+               stats_uid_layer({"table", "numeric", nil})
              ] = result.noise_layers
     end
 
@@ -361,7 +378,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}, _]},
                %{
                  base: {"table", "numeric", :<>},
-                 expressions: [%Expression{value: 10}, _, %Expression{user_id?: true}]
+                 expressions: [
+                   %Expression{value: 10},
+                   _,
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
+                 ]
                }
              ] = result.noise_layers
     end
@@ -378,7 +401,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 1}, _]},
                %{
                  base: {"table", "numeric", :<>},
-                 expressions: [%Expression{value: 1}, _, %Expression{user_id?: true}]
+                 expressions: [
+                   %Expression{value: 1},
+                   _,
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
+                 ]
                }
              ] = result.noise_layers
     end
@@ -390,7 +419,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "uid", :<>}, expressions: [%Expression{value: 1}, _]},
                %{
                  base: {"table", "uid", :<>},
-                 expressions: [%Expression{value: 1}, _, %Expression{user_id?: true}]
+                 expressions: [
+                   %Expression{value: 1},
+                   _,
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
+                 ]
                }
              ] = result.noise_layers
     end
@@ -402,7 +437,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "name", :<>}, expressions: [%Expression{value: "Foo"}, _]},
                %{
                  base: {"table", "name", :<>},
-                 expressions: [%Expression{value: "Foo"}, _, %Expression{user_id?: true}]
+                 expressions: [
+                   %Expression{value: "Foo"},
+                   _,
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
+                 ]
                },
                %{
                  base: {"table", "name", {:<>, :lower}},
@@ -418,7 +459,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "name", :<>}, expressions: [%Expression{value: "FOO"}, _]},
                %{
                  base: {"table", "name", :<>},
-                 expressions: [%Expression{value: "FOO"}, _, %Expression{user_id?: true}]
+                 expressions: [
+                   %Expression{value: "FOO"},
+                   _,
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
+                 ]
                },
                %{
                  base: {"table", "name", {:<>, :lower}},
@@ -434,7 +481,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "name", :<>}, expressions: [%Expression{value: "foo"}, _]},
                %{
                  base: {"table", "name", :<>},
-                 expressions: [%Expression{value: "foo"}, _, %Expression{user_id?: true}]
+                 expressions: [
+                   %Expression{value: "foo"},
+                   _,
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
+                 ]
                },
                %{
                  base: {"table", "name", {:<>, :lower}},
@@ -459,7 +512,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "numeric", :<>}, expressions: [%Expression{}, _]},
                %{
                  base: {"table", "numeric", :<>},
-                 expressions: [%Expression{}, _, %Expression{user_id?: true}]
+                 expressions: [
+                   %Expression{},
+                   _,
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
+                 ]
                }
              ] = result.noise_layers
     end
@@ -471,9 +530,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
                static_layer({"table", "numeric", nil}),
-               uid_layer({"table", "numeric", nil}),
+               stats_uid_layer({"table", "numeric", nil}),
                static_layer({"table", "numeric", {:<>, :override}}),
-               uid_layer({"table", "numeric", {:<>, :override}})
+               stats_uid_layer({"table", "numeric", {:<>, :override}})
              ] = result.noise_layers
     end
 
@@ -482,9 +541,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
                static_layer({"table", "numeric", nil}),
-               uid_layer({"table", "numeric", nil}),
+               stats_uid_layer({"table", "numeric", nil}),
                static_layer({"table", "numeric2", :<>}),
-               uid_layer({"table", "numeric2", :<>})
+               stats_uid_layer({"table", "numeric2", :<>})
              ] = result.noise_layers
     end
 
@@ -506,9 +565,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
                static_layer({"table", "numeric", nil}),
-               uid_layer({"table", "numeric", nil}),
+               stats_uid_layer({"table", "numeric", nil}),
                static_layer({"table", "numeric", {:<>, :override}}),
-               uid_layer({"table", "numeric", {:<>, :override}})
+               stats_uid_layer({"table", "numeric", {:<>, :override}})
              ] = result.noise_layers
     end
 
@@ -517,9 +576,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
                static_layer({"table", "numeric", nil}),
-               uid_layer({"table", "numeric", nil}),
+               stats_uid_layer({"table", "numeric", nil}),
                static_layer({"table", "numeric", {:<>, :override}}),
-               uid_layer({"table", "numeric", {:<>, :override}})
+               stats_uid_layer({"table", "numeric", {:<>, :override}})
              ] = result.noise_layers
     end
   end
@@ -684,7 +743,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}, _]},
                %{
                  base: {"table", "numeric", nil},
-                 expressions: [%Expression{name: name}, _, %Expression{user_id?: true}]
+                 expressions: [
+                   %Expression{name: name},
+                   _,
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
+                 ]
                }
              ] = result.noise_layers
 
@@ -753,7 +818,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  expressions: [
                    %Expression{name: "__ac_group_0"},
                    %Expression{name: "__ac_group_0"},
-                   %Expression{user_id?: true}
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
                  ],
                  tag: {grouping_set, 0}
                },
@@ -770,7 +837,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  expressions: [
                    %Expression{name: "__ac_group_1"},
                    %Expression{name: "__ac_group_1"},
-                   %Expression{user_id?: true}
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
                  ],
                  tag: {grouping_set, 1}
                }
@@ -851,7 +920,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
                %{base: {"table", "numeric", nil}},
-               %{base: {"table", "numeric", nil}, expressions: [_, _, %{user_id?: true}]}
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [
+                   _,
+                   _,
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
+                 ]
+               }
              ] = result.noise_layers
     end
 
@@ -1207,7 +1285,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 1}, %Expression{value: 1}]},
                %{
                  base: {"table", "numeric", nil},
-                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{user_id?: true}]
+                 expressions: [
+                   %Expression{value: 1},
+                   %Expression{value: 1},
+                   %Expression{name: "__ac_count_duid"},
+                   %Expression{name: "__ac_min_uid"},
+                   %Expression{name: "__ac_max_uid"}
+                 ]
                }
              ] = result.noise_layers
     end
@@ -1247,7 +1331,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                },
                %{
                  base: {"table", "numeric", nil},
-                 expressions: [%Expression{value: 1}, %Expression{value: 1}, %Expression{name: "__ac_nlc__0"}],
+                 expressions: [
+                   %Expression{value: 1},
+                   %Expression{value: 1},
+                   %Expression{name: "__ac_nlc__0"},
+                   %Expression{name: "__ac_nlc__1"},
+                   %Expression{name: "__ac_nlc__2"}
+                 ],
                  tag: {:aggregator, 0}
                }
              ] = result.noise_layers

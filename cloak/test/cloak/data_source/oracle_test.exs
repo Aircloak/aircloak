@@ -55,10 +55,10 @@ defmodule Cloak.DataSource.Oracle.Test do
   test "boolean expression (2)" do
     assert flatten("""
            SELECT
-             CAST((CASE WHEN (table.uid = 0) THEN 1 WHEN NOT ((table.uid = 0)) THEN 0 ELSE NULL END) AS VARCHAR2) x
+             CAST((CASE WHEN (table.uid = 0) THEN 1 WHEN NOT ((table.uid = 0)) THEN 0 ELSE NULL END) AS VARCHAR2(4000)) x
            FROM table
            GROUP BY
-             CAST((CASE WHEN (table.uid = 0) THEN 1 WHEN NOT ((table.uid = 0)) THEN 0 ELSE NULL END) AS VARCHAR2)
+             CAST((CASE WHEN (table.uid = 0) THEN 1 WHEN NOT ((table.uid = 0)) THEN 0 ELSE NULL END) AS VARCHAR2(4000))
            """) == translate!("SELECT CAST(uid = 0 AS text) AS x FROM table GROUP BY 1")
   end
 

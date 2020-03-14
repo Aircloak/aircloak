@@ -1,7 +1,7 @@
 defmodule Compliance.BooleanTest do
   use ComplianceCase, async: true
 
-  Enum.each(numerical_columns() |> raw_columns(), fn {column, table} ->
+  Enum.each(numerical_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} select boolean in query"
     test "input cast(#{column} as boolean) in query on #{table}", context do
       context

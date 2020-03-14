@@ -13,7 +13,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct
-      < > <= >= = <> and or not in is_null like ilike
+      < > <= >= = <> and or not in is_null like ilike !<>
       year quarter month day hour minute second weekday
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
@@ -27,7 +27,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
     def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
 
-  def function_sql("weekday", args), do: ["(WEEKDAY(", args, ") + 1)"]
+  def function_sql("weekday", args), do: ["DAYOFWEEK(", args, ")"]
   def function_sql("trunc", [arg1, arg2]), do: ["TRUNCATE(", arg1, ", ", arg2, ")"]
   def function_sql("trunc", [arg]), do: ["TRUNCATE(", arg, ", 0)"]
   def function_sql("btrim", [arg]), do: ["TRIM(", arg, ")"]
@@ -102,6 +102,8 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
       "''"
     ])
   end
+
+  def function_sql("!<>", [arg1, arg2]), do: [arg1, " <=> ", arg2]
 
   def function_sql(name, args), do: super(name, args)
 

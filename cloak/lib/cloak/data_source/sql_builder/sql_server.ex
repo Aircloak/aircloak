@@ -11,12 +11,12 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct variance
-      < > <= >= = <> and or not in is_null like ilike
+      < > <= >= = <> and or not in is_null like ilike !<>
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod ^ * / + - %
       unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
-      length lower upper ltrim rtrim left right substring concat
+      length lower upper ltrim/1 rtrim/1 left right substring concat
       hex cast coalesce grouping_id case
     )
 
@@ -36,7 +36,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     def function_sql(unquote(function), args), do: function_sql(unquote(alias), args)
   end
 
-  for datepart <- ~w(year month day hour minute second quarter) do
+  for datepart <- ~w(year month day hour minute second quarter weekday) do
     def function_sql(unquote(datepart), args), do: ["DATEPART(", unquote(datepart), ", ", args, ")"]
   end
 
@@ -148,12 +148,18 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     ]
 
   def cast_sql(value, :unknown, :text), do: ["TRY_CAST(", value, " AS varbinary)"]
+
+  def cast_sql(value, date_type, :text) when date_type in [:date, :datetime],
+    do: ["TRY_CONVERT(nvarchar, ", value, ", 20)"]
+
   def cast_sql(value, _, type), do: ["TRY_CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
-  def time_arithmetic_expression("+", [date, interval]), do: ["DATEADD(s, ", interval, ", ", date, ")"]
+  def time_arithmetic_expression("+", [date, interval]),
+    do: ["DATEADD(s, ", interval, ", TRY_CAST(", date, " AS datetime))"]
 
-  def time_arithmetic_expression("-", [date, interval]), do: ["DATEADD(s, -(", interval, "), ", date, ")"]
+  def time_arithmetic_expression("-", [date, interval]),
+    do: ["DATEADD(s, -(", interval, "), TRY_CAST(", date, " AS datetime))"]
 
   @impl Dialect
   def date_subtraction_expression([arg1, arg2]), do: ["DATEDIFF(s, ", arg2, ", ", arg1, ")"]

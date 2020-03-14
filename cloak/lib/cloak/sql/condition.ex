@@ -4,7 +4,7 @@ defmodule Cloak.Sql.Condition do
   alias Cloak.Sql.{Expression, Query}
 
   @inequalities ~w(< > <= >=)
-  @comparisons ~w(= <>) ++ @inequalities
+  @comparisons ~w(= <> !<>) ++ @inequalities
 
   @doc "Return true if the given where clause is an inequality (<, >, <=, >=), false otherwise."
   @spec inequality?(Query.where_clause()) :: boolean

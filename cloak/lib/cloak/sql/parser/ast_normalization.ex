@@ -22,8 +22,8 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   @spec normalize(Parser.parsed_query()) :: Parser.parsed_query()
   def normalize(ast) do
     ast
-    |> Helpers.apply_bottom_up(&rewrite_not_expressions/1)
     |> Helpers.apply_bottom_up(&rewrite_in/1)
+    |> Helpers.apply_bottom_up(&rewrite_not_expressions/1)
     |> Helpers.apply_bottom_up(&rewrite_date_trunc/1)
     |> Helpers.apply_bottom_up(&normalize_synonyms/1)
   end

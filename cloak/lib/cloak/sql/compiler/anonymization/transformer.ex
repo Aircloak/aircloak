@@ -119,7 +119,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     # The user id is valid only for at-risk values in the target column.
     user_id_aggregator =
       Expression.function("case", [low_count_user_id?, min_user_id, Expression.null()], user_id.type)
-      |> set_fields(alias: "__ac_user_id", synthetic?: true)
+      |> set_fields(alias: "__ac_user_id", synthetic?: true, user_id?: true)
 
     grouped_columns = base_columns ++ [target_column]
     grouping_id = grouping_id_column(query.grouping_sets, base_columns)

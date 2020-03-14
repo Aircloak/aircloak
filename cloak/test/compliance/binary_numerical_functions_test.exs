@@ -21,16 +21,9 @@ Enum.each(
 
       @moduletag :"#{function}"
 
-      columns =
-        if function =~ ~r/bucket/ do
-          numerical_columns() |> raw_columns()
-        else
-          numerical_columns()
-        end
-
       test_reverse_parameters? = not String.starts_with?(function, "bucket")
 
-      Enum.each(columns, fn {column, table} ->
+      Enum.each(numerical_columns(), fn {column, table} ->
         @tag compliance: "#{function} #{column} #{table} parameter 1 subquery"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
           context
