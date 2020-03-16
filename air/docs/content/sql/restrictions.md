@@ -174,6 +174,14 @@ Below is an example of the restrictions in action:
 SELECT age / (age + 1) FROM table
 ```
 
+## Constant values
+
+In order to prevent overflow errors, the following restrictions on constant values are in place:
+
+  - Numeric values are limited to the range `[-10^18, 10^18]`.
+  - Date and datetime years are limited to the range `[1900, 9999]`.
+  - Intervals are limited to `100` years.
+
 ## Clear expressions
 
 A clear expression is a simple expression that:

@@ -41,6 +41,7 @@
   - [Top-level HAVING clause](sql/restrictions.md#top-level-having-clause)
   - [CASE statements](sql/restrictions.md#case-statements)
   - [Math and function application](sql/restrictions.md#math-and-function-application-restrictions)
+  - [Constant values](sql/restrictions.md#constant-values)
   - [Clear expressions](sql/restrictions.md#clear-expressions)
   - [Constant ranges](sql/restrictions.md#constant-ranges)
   - [Constant range alignment](sql/restrictions.md#constant-range-alignment)
