@@ -342,6 +342,7 @@ The general shape of `config.json` is:
   "concurrency": integer,
   "lcf_buckets_aggregation_limit": integer,
   "max_parallel_queries": positive_integer,
+  "enable_case_support": boolean,
   "connection_keep_time": integer,
   "connect_timeout": integer
 }
@@ -372,7 +373,11 @@ The `lcf_buckets_aggregation_limit` is optional and controls the maximum number 
 of low-count filtered rows is done. The default value is 3. This setting can be overridden per data-source. More details
 can be found in the [Low-count filtering](../sql/query-results.md#low-count-filtering) section.
 
-The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run simultaneously. The default value is 10.
+The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run
+simultaneously. The default value is 10.
+
+The `enable_case_support` field is optional and controls whether restricted `CASE` statements are allowed or not in
+anonymizing queries. The default value is false.
 
 The `connection_keep_time` field is optional and it determines how many minutes idle database connections are kept
 before they are closed. It needs to be an integer value between 1 and 1 440 (1 day). If not set, a default
