@@ -28,6 +28,9 @@ defmodule Cloak do
     with {:ok, seconds} <- Aircloak.DeployConfig.fetch("connect_timeout"),
          do: update_data_source_config!(:connect_timeout, :timer.seconds(seconds))
 
+    with {:ok, minutes} <- Aircloak.DeployConfig.fetch("data_source_timeout"),
+         do: update_data_source_config!(:timeout, :timer.minutes(minutes))
+
     with {:ok, true} <- Aircloak.DeployConfig.fetch("enable_case_support"),
          do: Application.put_env(:cloak, :enable_case_support, true)
 

@@ -344,7 +344,8 @@ The general shape of `config.json` is:
   "max_parallel_queries": positive_integer,
   "enable_case_support": boolean,
   "connection_keep_time": integer,
-  "connect_timeout": integer
+  "connect_timeout": integer,
+  "data_source_timeout": integer
 }
 ```
 
@@ -386,6 +387,10 @@ timeout value of 1 minute is used.
 The `connect_timeout` field is optional and it determines how many seconds the Insights Cloak waits for a database
 connection to be established. It needs to be an integer value between 1 and 3 600 (1 hour). If not set, a default
 timeout value of 5 seconds is used.
+
+The `data_source_timeout` field is optional and it determines how many minutes the Insights Cloak waits for a
+database operation. It needs to be an integer value between 1 and 1 440 (1 day). If not set, a default
+timeout value of 720 minutes (12 hours) is used.
 
 ### Data source configuration
 
