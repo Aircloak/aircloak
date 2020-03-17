@@ -115,7 +115,7 @@ The cloak establishes cached internal state that it uses to determine which SQL 
 
 ### Shadow table
 
-Holds a list of the X values that occur most frequently in the column (X=200), so long as the value has at least 10 distinct users. Values in this list may be used in negands (negative AND conditions) and posors (positive OR conditions) without limitations.
+Holds a list of the X values that occur most frequently in the column (X=200), so long as the value has at least 10 distinct users. These constants are evaluated as exact (not noisy) counts. (Note it would be slightly better to use noisy counts here, but this is not an important issue.) Values in this list may be used in negands (negative AND conditions) and posors (positive OR conditions) without limitations.
 [ghi2486](https://github.com/Aircloak/aircloak/issues/2486)
 [ghi2972](https://github.com/Aircloak/aircloak/issues/2972)
 [ghi3322](https://github.com/Aircloak/aircloak/issues/3322)
