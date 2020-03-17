@@ -343,9 +343,11 @@ The general shape of `config.json` is:
   "lcf_buckets_aggregation_limit": integer,
   "max_parallel_queries": positive_integer,
   "enable_case_support": boolean,
-  "connection_keep_time": integer,
-  "connect_timeout": integer,
-  "data_source_timeout": integer
+  "connection_timeouts": {
+    "idle": integer,
+    "connect": integer,
+    "request": integer
+  }
 }
 ```
 
@@ -380,17 +382,19 @@ simultaneously. The default value is 10.
 The `enable_case_support` field is optional and controls whether restricted `CASE` statements are allowed or not in
 anonymizing queries. The default value is false.
 
-The `connection_keep_time` field is optional and it determines how many minutes idle database connections are kept
-before they are closed. It needs to be an integer value between 1 and 1 440 (1 day). If not set, a default
-timeout value of 1 minute is used.
+The `connection_timeouts` field is optional and it controls various database connection timeouts.
 
-The `connect_timeout` field is optional and it determines how many seconds the Insights Cloak waits for a database
-connection to be established. It needs to be an integer value between 1 and 3 600 (1 hour). If not set, a default
-timeout value of 5 seconds is used.
+The `connection_timeouts.idle` field is optional and it determines how many seconds idle database connections are kept
+before they are closed. It needs to be an integer value between 1 and 86_400 (1 day). If not set, a default timeout
+value of 60 seconds (1 minute) is used.
 
-The `data_source_timeout` field is optional and it determines how many minutes the Insights Cloak waits for a
-database operation. It needs to be an integer value between 1 and 1 440 (1 day). If not set, a default
-timeout value of 720 minutes (12 hours) is used.
+The `connection_timeouts.connect` field is optional and it determines how many seconds the Insights Cloak waits for a
+database connection to be established. It needs to be an integer value between 1 and 3 600 (1 hour). If not set, a
+default timeout value of 5 seconds is used.
+
+The `connection_timeouts.request` field is optional and it determines how many seconds the Insights Cloak waits for a
+database request to complete. It needs to be an integer value between 1 and 86_400 (1 day). If not set, a default
+timeout value of 43_200 seconds (12 hours) is used.
 
 ### Data source configuration
 

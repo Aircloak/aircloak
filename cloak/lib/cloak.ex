@@ -22,14 +22,15 @@ defmodule Cloak do
     with {:ok, lcf_buckets_aggregation_limit} <- Aircloak.DeployConfig.fetch("lcf_buckets_aggregation_limit"),
          do: Application.put_env(:cloak, :lcf_buckets_aggregation_limit, lcf_buckets_aggregation_limit)
 
-    with {:ok, minutes} <- Aircloak.DeployConfig.fetch("connection_keep_time"),
-         do: update_data_source_config!(:connection_keep_time, :timer.minutes(minutes))
+    with {:ok, connection_timeouts} <- Aircloak.DeployConfig.fetch("connection_timeouts") do
+      data_source_config =
+        Application.get_env(:cloak, :data_source)
+        |> update_timeout!(:connection_keep_time, connection_timeouts["idle"])
+        |> update_timeout!(:connect_timeout, connection_timeouts["connect"])
+        |> update_timeout!(:timeout, connection_timeouts["request"])
 
-    with {:ok, seconds} <- Aircloak.DeployConfig.fetch("connect_timeout"),
-         do: update_data_source_config!(:connect_timeout, :timer.seconds(seconds))
-
-    with {:ok, minutes} <- Aircloak.DeployConfig.fetch("data_source_timeout"),
-         do: update_data_source_config!(:timeout, :timer.minutes(minutes))
+      Application.put_env(:cloak, :data_source, data_source_config)
+    end
 
     with {:ok, true} <- Aircloak.DeployConfig.fetch("enable_case_support"),
          do: Application.put_env(:cloak, :enable_case_support, true)
@@ -83,8 +84,6 @@ defmodule Cloak do
     end
   end
 
-  defp update_data_source_config!(field, new_value) do
-    data_source_config = Application.get_env(:cloak, :data_source) |> Keyword.replace!(field, new_value)
-    Application.put_env(:cloak, :data_source, data_source_config)
-  end
+  defp update_timeout!(config, _field, nil), do: config
+  defp update_timeout!(config, field, new_value), do: Keyword.replace!(config, field, :timer.seconds(new_value))
 end
