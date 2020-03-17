@@ -7,10 +7,11 @@ config :air, AirWeb.Endpoint,
   code_reloader: true,
   watchers: [
     node: [
-      "node_modules/webpack/bin/webpack.js",
-      "--mode",
-      "development",
-      "--watch-stdin",
+      "node_modules/parcel-bundler/bin/cli.js",
+      "watch",
+      "js/app.js",
+      "--out-dir",
+      "../priv/static/js",
       cd: Path.expand("../assets", __DIR__)
     ]
   ]

@@ -1,13 +1,4 @@
 // @flow
-//
-// webpack automatically concatenates all files in your
-// watched paths. Those paths can be configured at
-// config.paths.watched in "webpack.config.js".
-//
-// Import dependencies
-//
-// If you no longer want to use a dependency, remember
-// to also remove its path from "config.paths.watched".
 import "../css/app.css";
 import "phoenix_html";
 import "eonasdan-bootstrap-datetimepicker";
@@ -28,8 +19,8 @@ import { NumberFormatExampleView } from "./number_format";
 import AuditLogView from "./audit_log/root";
 import PasswordField from "./password_field";
 
-require("core-js");
-require("codemirror/mode/markdown/markdown");
+import "core-js/stable";
+import "codemirror/mode/markdown/markdown";
 
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
