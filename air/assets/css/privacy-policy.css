@@ -1,6 +1,6 @@
 #privacy-policy {
   margin-bottom: 100px;
-  font-size: 1.0em;
+  font-size: 1em;
 }
 
 #privacy-policy h1 {
@@ -42,9 +42,10 @@
   font-size: 1em;
 }
 
-#privacy-policy td, #privacy-policy th {
+#privacy-policy td,
+#privacy-policy th {
   padding: 2px;
-  border-bottom: 1px solid #ccc
+  border-bottom: 1px solid #ccc;
 }
 
 #privacy-policy table {
