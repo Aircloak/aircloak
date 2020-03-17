@@ -385,16 +385,16 @@ anonymizing queries. The default value is false.
 The `connection_timeouts` field is optional and it controls various database connection timeouts.
 
 The `connection_timeouts.idle` field is optional and it determines how many seconds idle database connections are kept
-before they are closed. It needs to be an integer value between 1 and 86_400 (1 day). If not set, a default timeout
+before they are closed. It needs to be an integer value between 1 and 86400 (1 day). If not set, a default timeout
 value of 60 seconds (1 minute) is used.
 
 The `connection_timeouts.connect` field is optional and it determines how many seconds the Insights Cloak waits for a
-database connection to be established. It needs to be an integer value between 1 and 3 600 (1 hour). If not set, a
+database connection to be established. It needs to be an integer value between 1 and 3600 (1 hour). If not set, a
 default timeout value of 5 seconds is used.
 
 The `connection_timeouts.request` field is optional and it determines how many seconds the Insights Cloak waits for a
-database request to complete. It needs to be an integer value between 1 and 86_400 (1 day). If not set, a default
-timeout value of 43_200 seconds (12 hours) is used.
+database request to complete. It needs to be an integer value between 1 and 86400 (1 day). If not set, a default
+timeout value of 43200 seconds (12 hours) is used.
 
 ### Data source configuration
 
