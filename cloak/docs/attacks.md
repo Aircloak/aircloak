@@ -284,7 +284,7 @@ A typical non-personal table might contain a numeric identifier and a text field
 Suppose an analyst wished to remove noise associated with the condition `age = 20`, and there are multiple non-personal tables of various sorts. The analyst could then build a set of queries with different `JOIN` conditions as follows:
 
 ```
-JOIN (...) ON users.age = product_names.id - 28788 WHERE product_names.value = 'Juice Squeezer'
+JOIN (...) ON users.age = product_names.id - 28788 WHERE product_names.value = 'pears'
 JOIN (...) ON users.age = error_codes.id - 232 WHERE error_codes.value = 'Bad Input'
 JOIN (...) ON users.age = cc_types.id + 16 WHERE cc_types.value = 'VISA'
 etc.
