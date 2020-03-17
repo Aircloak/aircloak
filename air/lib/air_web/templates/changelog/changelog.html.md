@@ -22,7 +22,9 @@
 - The minimum supported version of Postgres is now 9.6 (dropping support for version 9.1 through 9.5).
 - Support for the `auto_aircloak_export` configuration parameter in the Insights Air config was removed.
   Consult the [Upgrade guide](docs/ops/upgrading.html) for additional information.
-- Support for some obsolete data source configuration features was removed: decoders, projections, explicit user_id-field.
+- Support for some obsolete data source configuration features was removed: decoders, projections, explicit
+  user_id-field.
+- Anonymizing queries using raw user_id columns are rejected instead of automatically censoring the user_id column.
 
 ### New features
 
@@ -36,9 +38,7 @@
   `select_hints` field in the `parameters` section.
 - The Oracle Instant Client version 18.3 is bundled with the container and no longer needs to be
   provided separately.
-- The timeout for idle connections can now be adjusted in the Cloak config file, under the `connection_keep_time` field.
-- The timeout for connecting to a data source can now be adjusted in the Cloak config file, under the `connect_timeout`
-  field.
+- Various data source connection timeouts can now be adjusted in the Cloak config file, under the `timeouts` field.
 - Improved support for boolean expressions.
 - Allowed inequalities between datetime columns and the current date.
 - Added support for `CASE` statements in [standard queries](sql#query-and-subquery-types). 
@@ -55,6 +55,7 @@
   - the parameter order of the `trim` function in the generated SQL was fixed
   - date/time conversion was not always correct
 - Views and analyst tables now appear in popular analytics tools such as Tableau.
+- Fixed verification of isolated columns usage in non-clear expressions in the `SELECT` clause.
 
 ### Changes
 

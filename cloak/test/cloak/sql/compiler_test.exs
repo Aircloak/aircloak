@@ -25,7 +25,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "adds an empty group by" do
-    assert %{group_by: []} = compile!("select * from table", data_source())
+    assert %{group_by: []} = compile!("select count(*) from table", data_source())
   end
 
   test "adds a non-nil condition on user_id for top query" do
@@ -37,18 +37,18 @@ defmodule Cloak.Sql.Compiler.Test do
 
   for operator <- [:>, :>=, :<, :<=] do
     test "rejects inequalities on strings with #{operator}" do
-      {:error, error} = compile("select * from table where string #{unquote(operator)} 'CEO'", data_source())
+      {:error, error} = compile("select count(*) from table where string #{unquote(operator)} 'CEO'", data_source())
       assert error == "Inequalities on `text` values are currently not supported."
     end
 
     test "rejects inequalities on booleans with #{operator}" do
-      {:error, error} = compile("select * from table where bool #{unquote(operator)} true", data_source())
+      {:error, error} = compile("select count(*) from table where bool #{unquote(operator)} true", data_source())
       assert error == "Inequalities on `boolean` values are currently not supported."
     end
   end
 
   test "rejects mistyped where conditions" do
-    {:error, error} = compile("select * from table where numeric = column", data_source())
+    {:error, error} = compile("select count(*) from table where numeric = column", data_source())
 
     assert error == "Arguments of type (`integer`, `datetime`) are incorrect for `=`."
   end
@@ -60,7 +60,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects mistyped like conditions" do
-    {:error, error} = compile("select * from table where numeric like 'something'", data_source())
+    {:error, error} = compile("select count(*) from table where numeric like 'something'", data_source())
 
     assert error ==
              "Function `like` requires arguments of type (`text`, `like_pattern`), " <>
@@ -168,7 +168,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     test "rejects disjunction in anonymizing where" do
       {:error, "Combining boolean expressions with `OR` is not allowed in anonymizing queries" <> _} =
-        compile("select * from table where numeric = 1 or numeric = 2", data_source())
+        compile("select count(*) from table where numeric = 1 or numeric = 2", data_source())
     end
   end
 
@@ -193,7 +193,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects escape strings longer than 1" do
-    {:error, error} = compile("select * from table where string like 'something' escape 'abc'", data_source())
+    {:error, error} = compile("select count(*) from table where string like 'something' escape 'abc'", data_source())
 
     assert error == "Escape string must be one character."
   end
@@ -232,7 +232,7 @@ defmodule Cloak.Sql.Compiler.Test do
     do:
       assert(
         {:error, "Arguments of type (`datetime`, `integer`) are incorrect for `=`."} =
-          compile("select * from table where column = 1000 - 100", data_source())
+          compile("select count(*) from table where column = 1000 - 100", data_source())
       )
 
   test "[Issue #2562] doesn't cast expressions that are already datetime" do
@@ -257,7 +257,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "allows comparing datetime columns to other datetime columns" do
-    assert {:ok, _} = compile("select * from table where column = column", data_source())
+    assert {:ok, _} = compile("select count(*) from table where column = column", data_source())
   end
 
   test "casts time where conditions" do
@@ -318,7 +318,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "reports malformed datetimes" do
     assert {:error, "Invalid input value supplied for type `datetime`: `something stupid`."} =
-             compile("select * from table where column > 'something stupid'", data_source())
+             compile("select count(*) from table where column > 'something stupid'", data_source())
   end
 
   for function <- ~w(min max sum avg stddev variance) do
@@ -338,7 +338,7 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:ok, _} =
                compile(
                  """
-                   select * from (select uid, #{unquote(function)}(string) from table group by uid) t
+                   select s from (select uid, #{unquote(function)}(string) as s from table group by uid) t
                  """,
                  data_source()
                )
@@ -348,7 +348,7 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:ok, _} =
                compile(
                  """
-                   select * from (select uid, #{unquote(function)}(column) from table group by uid) t
+                   select dt from (select uid, #{unquote(function)}(column) as dt from table group by uid) t
                  """,
                  data_source()
                )
@@ -608,7 +608,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejecting joins with only one side of a range" do
     assert {:error, "Column `numeric` from table `table` must be limited to a finite, nonempty range."} =
              compile(
-               "SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3",
+               "SELECT COUNT(*) FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3",
                data_source()
              )
   end
@@ -720,19 +720,18 @@ defmodule Cloak.Sql.Compiler.Test do
   test "expands all columns for all tables when joining" do
     result =
       compile!(
-        "SELECT * FROM t1, t2 JOIN t3 on t2.uid = t3.uid WHERE t1.uid = t2.uid",
+        """
+        SELECT * FROM
+          (SELECT COUNT(*) AS c1 FROM t1) AS t1,
+          (SELECT COUNT(*) AS c1, COUNT(c1) AS c2 FROM t2) AS t2
+        """,
         data_source()
       )
 
     assert [
-             %{value: :*},
-             column("__ac_group_0"),
-             column("__ac_group_1"),
-             %{value: :*},
-             column("__ac_group_2"),
-             column("__ac_group_3"),
-             %{value: :*},
-             column("__ac_group_4")
+             column("c1"),
+             column("c1"),
+             column("c2")
            ] = result.columns
   end
 
@@ -843,7 +842,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects inequalities on numeric columns that are not ranges" do
-    assert {:error, error} = compile("select * from table where numeric > 5", data_source())
+    assert {:error, error} = compile("select count(*) from table where numeric > 5", data_source())
 
     assert error == "Column `numeric` from table `table` must be limited to a finite, nonempty range."
   end
@@ -859,7 +858,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects inequalities on numeric columns that are negatives of ranges" do
-    assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
+    assert {:error, error} = compile("select count(*) from table where numeric < 2 and numeric > 5", data_source())
 
     assert error == "Column `numeric` from table `table` must be limited to a finite, nonempty range."
   end
@@ -867,7 +866,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects inequalities on datetime columns that are negatives of ranges" do
     assert {:error, error} =
              compile(
-               "select * from table where column < '2015-01-01' and column > '2016-01-01'",
+               "select count(*) from table where column < '2015-01-01' and column > '2016-01-01'",
                data_source()
              )
 
@@ -875,7 +874,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects inequalities on datetime columns that are not ranges" do
-    assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
+    assert {:error, error} = compile("select count(*) from table where column > '2015-01-01'", data_source())
 
     assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
   end
@@ -883,7 +882,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects inequalities on date columns that are negatives of ranges" do
     assert {:error, error} =
              compile(
-               "select * from table where column < '2015-01-01' and column > '2016-01-01'",
+               "select count(*) from table where column < '2015-01-01' and column > '2016-01-01'",
                date_data_source()
              )
 
@@ -891,7 +890,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects inequalities on date columns that are not ranges" do
-    assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
+    assert {:error, error} = compile("select count(*) from table where column > '2015-01-01'", data_source())
 
     assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
   end
@@ -900,7 +899,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:error, error} =
              compile(
                """
-                 select * from table
+                 select count(*) from table
                  where column between '2017-01-02 12:22:33.010000' and '2017-01-02 12:22:33.020000'
                """,
                data_source()
@@ -910,7 +909,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "accepts inequalities on numeric columns that are ranges" do
-    assert {:ok, _} = compile("select * from table where numeric > 5 and numeric < 8", data_source())
+    assert {:ok, _} = compile("select count(*) from table where numeric > 5 and numeric < 8", data_source())
   end
 
   test "accepts inequalities without a constant side in top-level HAVING" do
@@ -992,7 +991,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "no message when time alignment does not require fixing" do
     assert compile!(
-             "select * from table where column >= '00:00:00' and column < '00:00:05'",
+             "select count(*) from table where column >= '00:00:00' and column < '00:00:05'",
              time_data_source()
            ).info == []
   end
@@ -1215,7 +1214,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects `FULL OUTER JOINs`" do
     {:error, error} =
       compile(
-        "select * from table full join other_table ON table.uid = other_table.uid",
+        "select count(*) from table full join other_table ON table.uid = other_table.uid",
         data_source()
       )
 
@@ -1302,7 +1301,7 @@ defmodule Cloak.Sql.Compiler.Test do
     do:
       assert(
         {:error, "Table name `a` specified more than once."} ==
-          compile("SELECT a.uid from (select * from t1) a, (select * from t1) a", data_source())
+          compile("SELECT * from (select count(*) as c1 from t1) a, (select count(*) as c2 from t1) a", data_source())
       )
 
   test "real name of an aliased table can't be used as a prefix" do
@@ -1491,8 +1490,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects *-selecting duplicated columns" do
-    {:error, error} =
-      compile("select * from (select uid, count(*), count(numeric) from table group by 1) t", data_source())
+    {:error, error} = compile("select * from (select count(*), count(numeric) from table group by 1) t", data_source())
 
     assert error =~ "Selecting all from subquery `t` is not supported because the column name `count` is ambiguous."
   end
@@ -1505,12 +1503,20 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ "Usage of `x` is ambiguous."
   end
 
-  test "output user ids are censored" do
-    assert %{
-             columns: [%Expression{value: :*}],
-             group_by: [%Expression{value: :*}],
-             order_by: [{%Expression{value: :*}, _, _}]
-           } = compile!("select uid from table group by 1 order by 1", data_source())
+  test "output user ids are rejected" do
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("select * from table", data_source())
+
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("select numeric from table group by uid, numeric", data_source())
+
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("select numeric from table order by uid", data_source())
+  end
+
+  test "processed user ids are allowed" do
+    assert {:ok, _} = compile("select count(uid) from table", data_source())
+    assert {:ok, _} = compile("select uid % 10 from table", data_source())
   end
 
   test "internal queries are validated" do
@@ -1589,6 +1595,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert value1 = Expression.constant(:integer, 1)
     assert value2 = Expression.constant(:integer, 2)
     assert value3 = Expression.constant(:integer, 3)
+  end
+
+  test "[Issue #4181] grouping sets over the user id" do
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("SELECT uid, numeric FROM table GROUP BY CUBE(1, 2)", data_source())
   end
 
   defp compile_standard(query_string, data_source) do

@@ -105,12 +105,12 @@
               <td><%= conditional_positive_glyph_if_feature(:ds_mongodb) %></td>
             </tr>
             <tr>
-              <td>Apache Drill</td>
-              <td><%= conditional_positive_glyph_if_feature(:ds_apachedrill) %></td>
-            </tr>
-            <tr>
               <td>Oracle DB</td>
               <td><%= conditional_positive_glyph_if_feature(:ds_oracle) %></td>
+            </tr>
+             <tr>
+              <td>Cloudera Imapala</td>
+              <td><%= conditional_positive_glyph_if_feature(:ds_impala) %></td>
             </tr>
 
             <tr>

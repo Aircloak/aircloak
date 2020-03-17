@@ -68,7 +68,7 @@ defmodule IntegrationTest.PostgrexTest do
   end
 
   test "anonymized text value returns a *", context do
-    assert Enum.uniq(Postgrex.query!(context.conn, "select user_id from users", []).rows) == [
+    assert Enum.uniq(Postgrex.query!(context.conn, "select lower(user_id) from users", []).rows) == [
              ["*"]
            ]
   end

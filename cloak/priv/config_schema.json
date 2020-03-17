@@ -9,8 +9,15 @@
     "features": {"$comment": "allowed for backward compatibility"},
     "air_socket_url": {"$comment": "allowed for backward compatibility"},
     "concurrency": {"type": "integer", "minimum": 0},
-    "connection_keep_time": {"type": "integer", "minimum": 1, "maximum": 1440},
-    "connect_timeout": {"type": "integer", "minimum": 1, "maximum": 3600},
+    "connection_timeouts": {
+      "type": "object",
+      "properties": {
+        "idle": {"type": "integer", "minimum": 1, "maximum": 86400},
+        "connect": {"type": "integer", "minimum": 1, "maximum": 3600},
+        "request": {"type": "integer", "minimum": 1, "maximum": 86400}    
+      },
+      "additionalProperties": false
+    },
     "lcf_buckets_aggregation_limit": {"type": "integer", "minimum": 0},
     "sanitize_otp_errors": {"type": "boolean"},
     "enable_case_support": {"type": "boolean"},

@@ -340,16 +340,6 @@ CONCAT('a', 'b', 'c')
 -- 'abc'
 ```
 
-### hex
-
-Transforms all characters in the given string into hexadecimal.
-This is useful for extracting strings containing non-text characters.
-
-```sql
-HEX('air')
--- '616964'
-```
-
 ### left
 
 `LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.

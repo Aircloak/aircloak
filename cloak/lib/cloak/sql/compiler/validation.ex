@@ -631,11 +631,13 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   # -------------------------------------------------------------------
-  # UserId usage
+  # User ID usage verification
   # -------------------------------------------------------------------
 
   defp verify_user_id_usage(query, alias) do
     unless valid_user_id?(query), do: raise(CompilationError, missing_uid_error_message(query, alias))
+
+    verify_user_id_references(query)
 
     Lens.each(
       Lenses.direct_subqueries(),
@@ -682,6 +684,30 @@ defmodule Cloak.Sql.Compiler.Validation do
       Aircloak.OxfordComma.join(user_id_tables, "or")
     end
   end
+
+  defp verify_user_id_references(%Query{type: :anonymized} = query) do
+    Lens.multiple([
+      Lens.keys([:columns, :group_by]) |> Lens.all(),
+      Lens.key(:order_by) |> Lens.all() |> Lens.at(0)
+    ])
+    |> Lens.filter(& &1.user_id?)
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [uid_expression | _rest] ->
+        raise CompilationError,
+          message:
+            "Directly selecting or grouping on the user id column in an anonymizing query is not allowed, as it " <>
+              "would lead to a fully censored result.\nAnonymizing queries can reference user id columns either " <>
+              "by filtering on them, aggregating them, or processing them so that they have a chance to create " <>
+              "anonymized buckets.",
+          source_location: uid_expression.source_location
+    end
+  end
+
+  defp verify_user_id_references(_query), do: :ok
 
   # -------------------------------------------------------------------
   # Division by zero
