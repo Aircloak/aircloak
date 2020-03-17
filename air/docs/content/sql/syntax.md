@@ -5,7 +5,8 @@ SELECT [DISTINCT | ALL]
   [ WHERE filter_expression [AND ...] ]
   [ GROUP BY column_expression | position [, ...] ]
   [ HAVING filter_expression [AND ...] ]
-  [ ORDER BY column_name  | position [ASC | DESC] [NULLS FIRST | LAST] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
+  [ ORDER BY column_name  | position [ASC | DESC] [NULLS FIRST | LAST] [, ...]
+    [ LIMIT amount ] [ OFFSET amount ] ]
 
 field_expression :=
   * | table_name.* | column_expression [AS alias]
