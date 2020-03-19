@@ -440,9 +440,9 @@ If not present, the global setting is used.
 The `lcf_buckets_aggregation_limit` field is optional and controls the maximum number of columns for which partial
 aggregation of low-count filtered rows is done. If not present, the global setting is used.
 
-The `max_rare_negative_conditions` affects how many negative conditions containing rare values are allowed per anonymizing query.
-It defaults to a safe value of 1 and should under most circumstances not be altered.
-Setting it to 0 rejects all rare negative conditions.
+The `max_rare_negative_conditions` affects how many negative conditions containing rare values are allowed per
+anonymizing query. It defaults to a safe value of 0, which rejects all rare negative conditions, and should,
+under most circumstances, not be altered.
 Increasing the value above the default should only be done if it has been deemed safe.
 
 The `analyst_tables_enabled` can be set to true to enable creation of analyst tables. By default, this parameter is set to false. See the [Analyst tables](#analyst-tables) section for more details.
