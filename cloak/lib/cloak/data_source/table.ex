@@ -20,6 +20,7 @@ defmodule Cloak.DataSource.Table do
           # the SQL query for a virtual table
           :query => Query.t() | nil,
           :columns => [column],
+          :blacklisted_columns => [String.t()],
           :keys => Map.t(),
           :content_type => :private | :public,
           :auto_isolating_column_classification => boolean,
@@ -266,10 +267,16 @@ defmodule Cloak.DataSource.Table do
 
   defp parse_columns(data_source, table) do
     table.columns
+    |> Enum.reject(&blacklisted?(table, &1))
     |> Enum.reject(&supported?/1)
     |> validate_unsupported_columns(data_source, table)
 
-    columns = for column <- table.columns, do: if(supported?(column), do: column, else: %{column | type: :unknown})
+    columns =
+      table.columns
+      |> Enum.reject(&blacklisted?(table, &1))
+      |> Enum.map(fn column ->
+        if(supported?(column), do: column, else: %{column | type: :unknown})
+      end)
 
     table = %{table | columns: columns}
     verify_columns(data_source, table)
@@ -304,6 +311,8 @@ defmodule Cloak.DataSource.Table do
 
   defp supported?(%{type: {:unsupported, _db_type}}), do: false
   defp supported?(_column), do: true
+
+  defp blacklisted?(table, column), do: column.name in Map.get(table, :blacklisted_columns, [])
 
   defp validate_unsupported_columns([], _data_source, _table), do: :ok
 

@@ -26,7 +26,8 @@
         "query": {"type": "string", "minLength": 1},
         "auto_isolating_column_classification": {"type": "boolean"},
         "maintain_shadow_db": {"type": "boolean"},
-        "isolating_columns": {"type": "object", "patternProperties": {"^.*$": {"type": "boolean"}}}
+        "isolating_columns": {"type": "object", "patternProperties": {"^.*$": {"type": "boolean"}}},
+        "blacklisted_columns": {"type": "array", "items": {"type": "string"}}
       },
       "additionalProperties": false,
       "anyOf": [
