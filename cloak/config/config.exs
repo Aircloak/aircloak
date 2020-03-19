@@ -69,7 +69,7 @@ config :cloak, :bound_size_cutoff,
 
 config :cloak, :shadow_tables,
   # Number of allowed negative conditions with rare values. See `Shadow tables` in anonymization.md.
-  max_rare_negative_conditions: 1,
+  max_rare_negative_conditions: 0,
 
   # Number of popular values to keep in a shadow table
   size: 200,
