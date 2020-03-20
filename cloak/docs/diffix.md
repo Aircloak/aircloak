@@ -263,7 +263,7 @@ To mitigate [noise exploitation attacks through chaff conditions](./attacks.md#t
 [ghi2273](https://github.com/Aircloak/aircloak/issues/2273)
 [ghi3557](https://github.com/Aircloak/aircloak/issues/3557)
 
-Note that this mechanism is not effective in all cases. The shadow table is based on the complete column. Any given query, however, may have conditions that cover only part of the column.  A constant may therefore appear in the shadow table and still not have any matching rows in the context of a given query. For instance, the condition `gender <> 'F'` may not be chaff in the `pro_football_players` table, but may be chaff when combined with `tournament = 'fifa world cup'`.
+Note that this mechanism does not prevent isolation in all cases. The shadow table is based on the complete column. Any given query, however, may have conditions that cover only part of the column.  A constant may therefore appear in the shadow table and still not have any matching rows in the context of a given query. For instance, the condition `gender <> 'F'` may not be chaff in the `pro_football_players` table, but may be chaff when combined with `tournament = 'fifa world cup'`. However, executing an effective attack by exploiting this mechanism is essentially not possible (see [Shadow table exploitation attack](./attacks.md#shadow-table-exploitation-attack)).
 
 ### Conditions with two columns
 
