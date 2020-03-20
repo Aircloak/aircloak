@@ -37,6 +37,7 @@ defmodule Cloak.DataSource.Table do
   @type option ::
           {:db_name, String.t()}
           | {:columns, [column]}
+          | {:blacklisted_columns, [String.t()]}
           | {:keys, Map.t()}
           | {:query, Query.t()}
           | {:content_type, :private | :public}
@@ -67,6 +68,7 @@ defmodule Cloak.DataSource.Table do
         type: :regular
       }
       |> Map.merge(Map.new(opts))
+      |> remove_blacklisted_columns()
 
     keys = if(user_id_column_name == nil, do: table.keys, else: Map.put(table.keys, user_id_column_name, :user_id))
     %{table | keys: keys}
@@ -313,6 +315,12 @@ defmodule Cloak.DataSource.Table do
   defp supported?(_column), do: true
 
   defp blacklisted?(table, column), do: column.name in Map.get(table, :blacklisted_columns, [])
+
+  defp remove_blacklisted_columns(%{columns: columns, blacklisted_columns: blacklisted_columns} = table) do
+    %{table | columns: Enum.reject(columns, &(&1.name in blacklisted_columns))}
+  end
+
+  defp remove_blacklisted_columns(table), do: table
 
   defp validate_unsupported_columns([], _data_source, _table), do: :ok
 
