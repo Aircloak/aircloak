@@ -21,7 +21,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     )
 
   @aliases %{
-    "unsafe_pow" => "^",
+    "pow" => "^",
     "checked_pow" => "^",
     "unsafe_mul" => "*",
     "unsafe_div" => "/",
@@ -106,7 +106,11 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     ]
   end
 
-  def function_sql("^", [arg1, arg2]), do: ["POWER(", cast_sql(arg1, :numeric, :real), ", ", arg2, ")"]
+  def function_sql("^", [arg1, arg2]),
+    do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POWER(", cast_sql(arg1, :numeric, :real), ", ", arg2, ") END"]
+
+  def function_sql("unsafe_pow", [arg1, arg2]), do: ["POWER(", cast_sql(arg1, :numeric, :real), ", ", arg2, ")"]
+
   def function_sql("checked_div", [arg1, arg2, _epsilon]), do: function_sql("/", [arg1, arg2])
   def function_sql("/", [arg1, arg2]), do: ["(", cast_sql(arg1, :numeric, :real), " / ", arg2, ")"]
 
