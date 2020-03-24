@@ -21,7 +21,6 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     )
 
   @aliases %{
-    "pow" => "^",
     "checked_pow" => "^",
     "unsafe_mul" => "*",
     "unsafe_div" => "/",
