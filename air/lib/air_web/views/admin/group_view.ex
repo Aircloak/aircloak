@@ -56,10 +56,10 @@ defmodule AirWeb.Admin.GroupView do
   defp checkbox_mapper(form, field, input_opts, {name, description}, label_opts, _opts) do
     content_tag(:tr) do
       [
-        content_tag(:td, class: "col-md-1") do
+        content_tag(:td) do
           tag(:input, input_opts)
         end,
-        content_tag(:td, class: "col-md-11") do
+        content_tag(:td) do
           label(form, field, label_opts) do
             if description do
               [

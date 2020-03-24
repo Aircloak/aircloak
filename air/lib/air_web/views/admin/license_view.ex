@@ -1,6 +1,7 @@
 defmodule AirWeb.Admin.LicenseView do
   @moduledoc false
   use Air.Web, :view
+  import Phoenix.HTML.Tag
 
   alias Air.Service.{License, Warnings}
 
@@ -12,12 +13,22 @@ defmodule AirWeb.Admin.LicenseView do
 
   defp license_auto_renews?(), do: License.auto_renew?()
 
-  defp conditional_positive_glyph_if_feature(feature_name) do
-    if AirWeb.SharedView.licensed_feature?(feature_name) do
-      Phoenix.HTML.raw(
-        "<span class='glyphicon glyphicon glyphicon-ok-circle' style='color: green' aria-hidden='true'></span>"
+  def feature_row(label, feature_name) when not is_boolean(feature_name),
+    do: feature_row(label, AirWeb.SharedView.licensed_feature?(feature_name))
+
+  def feature_row(label, enabled) do
+    content_tag(:tr, [
+      content_tag(:td, label, class: if(enabled, do: '', else: 'text-muted')),
+      content_tag(
+        :td,
+        if(enabled,
+          do: [
+            tag(:i, class: "fas fa-check-circle text-success", "aria-hidden": true),
+            content_tag(:span, "Enabled", class: "sr-only")
+          ]
+        )
       )
-    end
+    ])
   end
 
   defp license_warning() do

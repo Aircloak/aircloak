@@ -6,12 +6,8 @@ config :air, AirWeb.Endpoint,
   debug_errors: true,
   code_reloader: true,
   watchers: [
-    node: [
-      "node_modules/parcel-bundler/bin/cli.js",
+    yarn: [
       "watch",
-      "js/app.js",
-      "--out-dir",
-      "../priv/static/js",
       cd: Path.expand("../assets", __DIR__)
     ]
   ]

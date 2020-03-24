@@ -18,7 +18,3 @@ label small.newline {
 .label-right {
   text-align: right;
 }
-
-.panel .table {
-  word-break: break-all;
-}

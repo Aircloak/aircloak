@@ -62,7 +62,7 @@ export class QueryView extends React.Component<Props> {
         <td>
           <button
             type="button"
-            className="btn btn-warning btn-xs"
+            className="btn btn-warning btn-sm"
             onClick={() => cancel(query.id, authentication)}
             disabled={isFinished(query.state)}
           >

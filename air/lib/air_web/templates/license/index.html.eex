@@ -5,8 +5,8 @@
   <a href="/licenses/dependencies.zip">zip-file here</a>.
 </p>
 
-<div class="panel panel-default">
-  <div class="panel-heading"><h4>License count by type</h4></div>
+<div class="card">
+  <div class="card-header"><h4>License count by type</h4></div>
 
   <table class="table table-striped">
     <thead>
@@ -37,8 +37,8 @@
 <h3>Packages</h3>
 
 <%= for {type, packages} <- group_by_type(@packages) do %>
-  <div class="panel panel-default">
-    <div class="panel-heading">
+  <div class="card">
+    <div class="card-header">
       <h4><a name="<%= type %>"></a><%= license_name(type) %></h4>
     </div>
 

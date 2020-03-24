@@ -50,14 +50,13 @@ export default class FilterView extends React.Component<Props, State> {
             placeholder="Filter columns"
             value={filterText}
           />
-          <div
-            role="button"
-            tabIndex={0}
-            className="input-group-addon"
-            onKeyDown={() => this.filterTextChange("")}
-            onClick={() => this.filterTextChange("")}
-          >
-            <span className="glyphicon glyphicon-remove" aria-hidden="true" />
+          <div className="input-group-append">
+            <button
+              className="btn btn-outline-secondary"
+              onClick={() => this.filterTextChange("")}
+            >
+              <span className="fas fa-times" aria-hidden="true" />
+            </button>
           </div>
         </div>
       </div>

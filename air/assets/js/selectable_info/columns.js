@@ -13,7 +13,7 @@ export type Column = {
 const potentiallyRenderColumnIcon = (column: Column) => {
   if (column.key_type) {
     const icon = column.key_type === "user_id" ? "user" : "link";
-    return <span className={`glyphicon glyphicon-${icon}`}>&nbsp;</span>;
+    return <span className={`fas fa-${icon}`}>&nbsp;</span>;
   } else {
     return null;
   }

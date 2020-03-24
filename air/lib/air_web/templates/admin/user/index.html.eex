@@ -1,6 +1,6 @@
 <h2>
   Users
-  <a class="btn btn-primary btn-sm pull-right" href="<%= admin_user_path(@conn, :new) %>">Add a user</a>
+  <a class="btn btn-success btn-sm float-right" href="<%= admin_user_path(@conn, :new) %>">Add a user</a>
 </h2>
 
 <%= if length(@disabled_users) > 0 do %>
@@ -17,7 +17,7 @@
   <h2>
     LDAP Users
     <%= link("Sync now", to: admin_user_path(@conn, :sync_ldap), method: :post,
-          class: "btn btn-primary btn-sm pull-right") %>
+          class: "btn btn-primary btn-sm float-right") %>
   </h2>
 
   <%= if length(@disabled_ldap_users) > 0 do %>

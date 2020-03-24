@@ -50,7 +50,7 @@ export default class ShareButton extends React.Component<Props, State> {
         <span>
           <button
             type="button"
-            className="btn btn-default btn-xs"
+            className="btn btn-outline-secondary btn-sm"
             onClick={() => this.setState({ showModal: true })}
           >
             Share

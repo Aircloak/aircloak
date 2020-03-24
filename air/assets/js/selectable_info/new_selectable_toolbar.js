@@ -13,7 +13,7 @@ export default class NewSelectableToolbarView extends React.Component<Props> {
     const { supportsCreateTable, newTableURL } = this.props;
     if (supportsCreateTable) {
       return (
-        <a href={newTableURL} className="btn btn-default">
+        <a href={newTableURL} className="btn btn-secondary">
           New table
         </a>
       );
@@ -30,7 +30,7 @@ export default class NewSelectableToolbarView extends React.Component<Props> {
         role="group"
         aria-label="Create view"
       >
-        <a href={newViewURL} className="btn btn-default">
+        <a href={newViewURL} className="btn btn-secondary">
           New view
         </a>
         {this.conditionallyRenderNewTableButton()}

@@ -1,8 +1,8 @@
 <div class="col-sm-6 col-sm-offset-3">
   <h2>Set password</h2>
 
-  <div class="panel panel-default">
-    <div class="panel-body">
+  <div class="card">
+    <div class="card-body">
       <%= form_for @changeset, reset_password_path(@conn, :update), [method: "put"], fn f -> %>
         <input type="hidden" value="<%= @token %>" name="token">
 

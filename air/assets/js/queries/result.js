@@ -106,7 +106,7 @@ export class ResultView extends React.Component<Props, State> {
       showChart: false,
       showChartConfig: true,
       graphConfig: new GraphConfig(),
-      tableAligner: new TableAligner(result.rows),
+      tableAligner: TableAligner(result.rows),
       availableRows: result.rows,
       availableChunks: 1,
       loadingChunks: false,
@@ -138,7 +138,7 @@ export class ResultView extends React.Component<Props, State> {
     );
 
     const { availableRows } = this.state;
-    this.graphInfo = new GraphInfo(result.columns, availableRows);
+    this.graphInfo = GraphInfo(result.columns, availableRows);
     this.rebuildGraphData();
 
     this.addX = this.addX.bind(this);
@@ -164,7 +164,7 @@ export class ResultView extends React.Component<Props, State> {
   rebuildGraphData = () => {
     const { result } = this.props;
     const { availableRows, graphConfig } = this.state;
-    this.graphData = new GraphData(
+    this.graphData = GraphData(
       result.columns,
       availableRows,
       graphConfig,
@@ -451,7 +451,7 @@ export class ResultView extends React.Component<Props, State> {
           {" rows. "}
           <button
             type="button"
-            className="btn btn-default btn-xs"
+            className="btn btn-outline-secondary btn-sm"
             onClick={this.handleClickLessRows}
           >
             Show fewer rows
@@ -467,7 +467,7 @@ export class ResultView extends React.Component<Props, State> {
           {" rows. "}
           <button
             type="button"
-            className="btn btn-default btn-xs"
+            className="btn btn-outline-secondary btn-sm"
             onClick={this.handleClickMoreRows}
           >
             Show more rows
@@ -483,7 +483,7 @@ export class ResultView extends React.Component<Props, State> {
           {result.row_count}
           {" rows. Show "}
           <button
-            className="btn btn-default btn-xs"
+            className="btn btn-outline-secondary btn-sm"
             type="button"
             onClick={this.handleClickLessRows}
           >
@@ -491,7 +491,7 @@ export class ResultView extends React.Component<Props, State> {
           </button>
           {", "}
           <button
-            className="btn btn-default btn-xs"
+            className="btn btn-outline-secondary btn-sm"
             type="button"
             onClick={this.handleClickMoreRows}
           >
@@ -532,7 +532,7 @@ export class ResultView extends React.Component<Props, State> {
 
   chartButtonClass = () => {
     const { loadingChunks } = this.state;
-    const baseClasses = "btn btn-default btn-xs";
+    const baseClasses = "btn btn-outline-secondary btn-sm";
     if (loadingChunks) {
       return `${baseClasses} disabled`;
     } else {
@@ -547,7 +547,7 @@ export class ResultView extends React.Component<Props, State> {
       return (
         <button
           type="button"
-          className="btn btn-default btn-xs"
+          className="btn btn-outline-secondary btn-sm"
           onClick={() => this.setState({ showChartConfig: !showChartConfig })}
         >
           {text}
@@ -564,7 +564,7 @@ export class ResultView extends React.Component<Props, State> {
       <div className="options-menu">
         <ShareButton result={result} />
         <a
-          className="btn btn-default btn-xs"
+          className="btn btn-outline-secondary btn-sm"
           href={`/queries/${result.id}.csv`}
         >
           Download as CSV
@@ -580,10 +580,11 @@ export class ResultView extends React.Component<Props, State> {
     const { result } = this.props;
     const { tableAligner } = this.state;
     return (
-      <div className="panel panel-success">
-        <div className="panel-heading" />
-        <div className="panel-body">
+      <div className="card border-success mb-3">
+        <div className="card-header border-success bg-white">
           <CodeViewer statement={result.statement} />
+        </div>
+        <div className="card-body">
           <InfoView info={this.getInfoMessages()} />
           <div className="result-table">
             <table className="table table-striped table-condensed table-hover">

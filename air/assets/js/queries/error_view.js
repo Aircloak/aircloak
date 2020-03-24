@@ -23,12 +23,12 @@ export default ({
   debugModeEnabled: boolean
 }) => {
   return (
-    <div className="panel panel-danger">
-      <div className="panel-heading" />
-      <div className="panel-body">
+    <div className="card border-danger mb-3">
+      <div className="card-header border-danger bg-white">
         <CodeViewer statement={result.statement} />
-
-        <h4>Query failed</h4>
+      </div>
+      <div className="card-body">
+        <h5 className="card-title">Query failed</h5>
         <p dangerouslySetInnerHTML={mdToHtml(result.error)} />
 
         <InfoView info={result.info} />

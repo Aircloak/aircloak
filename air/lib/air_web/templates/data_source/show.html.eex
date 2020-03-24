@@ -1,25 +1,25 @@
 <div class="data-source body-wrapper">
-  <div class="container-fluid">
-    <div class="column col-sm-9">
-      <div class="content-wrapper">
-        <%= if get_flash(@conn, :warn) do %>
-          <p class="alert alert-warning alert-dismissible" role="alert">
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-            <%= get_flash(@conn, :warn) %></p>
-          </p>
-        <% end %>
+  <div class="container-fluid mt-3">
+    <div class="row">
+      <div class="column col-sm-9">
+        <div class="content-wrapper">
+          <%= if get_flash(@conn, :warn) do %>
+            <p class="alert alert-warning alert-dismissible" role="alert">
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <%= get_flash(@conn, :warn) %></p>
+            </p>
+          <% end %>
 
-        <div id="query-view"></div>
+          <div id="query-view"></div>
 
-        <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
+          <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
+        </div>
       </div>
-    </div>
 
-    <div id="selectable-column" class="column col-sm-3">
-      <div data-spy="affix" class="quarter-width">
-        <div id="selectable-info"></div>
+      <div id="selectable-column" class="column col-sm-3">
+          <div id="selectable-info"></div>
       </div>
     </div>
   </div>

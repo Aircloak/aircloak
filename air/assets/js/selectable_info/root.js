@@ -44,7 +44,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
 
     this.state = {
       expanded: new Set(),
-      filter: new EmptyFilter(),
+      filter: EmptyFilter(),
       selectables: props.selectables,
       dataSourceStatus
     };
@@ -105,18 +105,18 @@ export default class SelectableInfo extends React.Component<Props, State> {
   renderAvailabilityLabel = () => {
     switch (this.state.dataSourceStatus) {
       case "online":
-        return <span className="label label-success pull-right">Online</span>;
+        return <span className="badge badge-success float-right">Online</span>;
       case "offline":
-        return <span className="label label-danger pull-right">Offline</span>;
+        return <span className="badge badge-danger float-right">Offline</span>;
       case "analyzing":
         return this.analyzing();
       default:
-        return <span className="label label-warning pull-right">Broken</span>;
+        return <span className="badge badge-warning float-right">Broken</span>;
     }
   };
 
   analyzing = () => (
-    <span className="label label-success pull-right">
+    <span className="badge badge-success float-right">
       Online
       <a
         href="/docs/sql/restrictions.html#column-analysis"
@@ -149,8 +149,8 @@ export default class SelectableInfo extends React.Component<Props, State> {
     } = this.props;
     const { filter } = this.state;
     return (
-      <div className="panel panel-default selectable-info">
-        <div className="panel-heading selectable-heading">
+      <div className="card selectable-info">
+        <div className="card-header selectable-heading">
           <strong>{dataSourceName}</strong>
           {this.renderAvailabilityLabel()}
           {this.renderDataSourceDescription()}
@@ -173,7 +173,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
           ))}
         </div>
 
-        <div className="panel-footer">
+        <div className="card-footer">
           <NewSelectableToolbarView
             newTableURL={newTableURL}
             newViewURL={newViewURL}

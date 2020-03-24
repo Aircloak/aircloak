@@ -85,15 +85,15 @@ export class SelectableView extends React.Component<Props> {
       return null;
     } else {
       return (
-        <span className="pull-right">
+        <span className="float-right">
           &nbsp;
-          <a className="btn btn-xs btn-default" href={this.editLinkUrl()}>
+          <a className="btn btn-sm btn-secondary" href={this.editLinkUrl()}>
             Edit
           </a>
           &nbsp;
           <button
             type="button"
-            className="btn btn-xs btn-danger"
+            className="btn btn-sm btn-danger"
             onClick={this.triggerDelete}
           >
             Delete
@@ -148,9 +148,7 @@ export class SelectableView extends React.Component<Props> {
         />
       );
     } else {
-      const glyphType = expanded
-        ? "glyphicon glyphicon-minus"
-        : "glyphicon glyphicon-plus";
+      const glyphType = expanded ? "fas fa-minus" : "fas fa-plus";
       return <span className={glyphType} />;
     }
   };

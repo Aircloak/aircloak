@@ -1,20 +1,21 @@
+
+
+<h2>API tokens</h2>
+
 <%= if get_flash(@conn, :api_token) do %>
-<div class="alert alert-success" role="alert">
+<div class="alert alert-success mt-2 mb-2" role="alert">
   <p>Your new token has been added. Please copy and paste it into your application:</p>
   <br />
   <pre><%= get_flash(@conn, :api_token) %></pre>
 </div>
 <% end %>
 
-<h2>API tokens</h2>
-
 <div class="row">
-  <div class="col-sm-6">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h3 class="panel-title">Existing tokens</h3>
-      </div>
-      <p class="panel-body">
+  <div class="col-sm-8">
+    <div class="card">
+      <h4 class="card-header">Existing tokens</h4>
+
+      <p class="card-body">
         The Aircloak API is authenticated using API tokens.  For more information about their usage, and how to
         authenticate against the API, please visit the <%=
           link "authentication section in the API documentation",
@@ -48,7 +49,7 @@
               <%= link "Revoke", to: api_token_path(@conn, :delete, api_token),
                 method: :delete, data: [
                   confirm: "Are you sure you want to revoke the token \"#{api_token.description}\"?"
-                ], class: "btn btn-danger btn-xs" %>
+                ], class: "btn btn-danger btn-sm" %>
             </td>
           </tr>
           <% end %>
@@ -57,12 +58,10 @@
     </div>
   </div>
 
-  <div class="col-sm-6">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h3 class="panel-title">Add a new token</h3>
-      </div>
-      <div class="panel-body">
+  <div class="col-sm-4">
+    <div class="card">
+      <h4 class="card-header">Add a new token</h4>
+      <div class="card-body">
         <%= form_for @changeset, api_token_path(@conn, :create), fn f -> %>
         <%= if @changeset.action do %>
           <div class="alert alert-danger">

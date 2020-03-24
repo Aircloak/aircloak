@@ -12,7 +12,7 @@ export default ({
   if (debugModeEnabled) {
     return (
       <a
-        className="btn btn-default btn-xs"
+        className="btn btn-secondary btn-sm"
         href={`/queries/${id}/debug_export`}
       >
         Download debug export

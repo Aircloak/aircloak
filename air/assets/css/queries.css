@@ -64,9 +64,11 @@
   display: flex;
   position: relative;
 }
+.react-codemirror2 {
+  font-size: 16px;
+}
 
 #sql-editor .react-codemirror2 {
-  font-size: 16px;
   flex-grow: 1;
   margin-right: 1em;
 }

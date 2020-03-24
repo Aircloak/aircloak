@@ -1,12 +1,10 @@
 // @flow
 import "../css/app.css";
 import "phoenix_html";
-import "eonasdan-bootstrap-datetimepicker";
 import React from "react";
 import ReactDOM from "react-dom";
 import codeMirror from "codemirror";
 import $ from "jquery";
-
 import QueriesView from "./queries/root";
 import SingleQueryView from "./queries/single_query_root";
 import ImmutableSingleQueryView from "./queries/immutable_single_query";
@@ -18,6 +16,7 @@ import FrontendSocket from "./frontend_socket";
 import { NumberFormatExampleView } from "./number_format";
 import AuditLogView from "./audit_log/root";
 import PasswordField from "./password_field";
+import activateDatetimePickers from "./datetimepicker";
 
 import "core-js/stable";
 import "codemirror/mode/markdown/markdown";
@@ -31,7 +30,7 @@ const App = {
   viewEditor: (props, elem) => App.render("view_editor", props, elem),
   activityMonitor: (props, elem) => App.render("activity_monitor", props, elem),
   numberFormatExample: (props, elem) =>
-    App.render("number_format_example", props, elem),
+    App.render("number_format_example", { numberFormat: props }, elem),
   auditLog: (props, elem) => App.render("audit_log", props, elem),
   passwordField: (props, elem) => App.render("password_field", props, elem),
 
@@ -64,14 +63,7 @@ const App = {
     );
   },
 
-  activateDatetimePickers: () => {
-    $(".datetimepicker").datetimepicker({
-      allowInputToggle: true,
-      showTodayButton: true,
-      showClose: true,
-      format: "YYYY-MM-DD HH:mm:ss"
-    });
-  },
+  activateDatetimePickers,
 
   renderPage: (page, props) => {
     const {

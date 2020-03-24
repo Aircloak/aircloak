@@ -42,7 +42,7 @@ export default class AuditLogChunk extends React.Component<Props, State> {
       return (
         <tr>
           <td colSpan="5">
-            <table className="table">
+            <table className="table table-sm">
               <thead>
                 <tr>
                   <th>Time</th>
@@ -63,8 +63,8 @@ export default class AuditLogChunk extends React.Component<Props, State> {
   };
 
   render = () => (
-    <tbody className="panel panel-default">
-      <tr className="panel-heading">
+    <tbody>
+      <tr>
         <td>{this.props.auditLogs[0].event}</td>
         <td>{this.props.auditLogs.length}</td>
         <td>{this.props.auditLogs[0].user}</td>

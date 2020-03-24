@@ -26,11 +26,11 @@ const stateItem = (state, currentState) => {
 
 export default ({ result, authentication }: Props) => {
   return (
-    <div className="panel panel-info">
-      <div className="panel-heading" />
-      <div className="panel-body">
+    <div className="card border-info">
+      <div className="card-header border-info">
         <CodeViewer statement={result.statement} />
-
+      </div>
+      <div className="card-body">
         <p className="text-center spinner">
           {" "}
           <img
