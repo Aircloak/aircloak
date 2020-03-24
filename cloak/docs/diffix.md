@@ -1,6 +1,6 @@
 # Specification for Diffix Cedar
 
-The anonymization algorithm underlying Aircloak Insights is Diffix. The current version of Diffix is Cedar. This section describes the operation of Diffix Cedar.  It explains how and why Diffix Cedar protects against [known attacks](attacks.md), thus providing strong anonymity. 
+The anonymization algorithm underlying Aircloak Insights is Diffix. The current version of Diffix is Cedar. This section describes the operation of Diffix Cedar.  It explains how and why Diffix Cedar protects against [known attacks](./attacks.md#attacks-on-diffix-cedar), thus providing strong anonymity. 
 
 ## Table Of Contents
 
@@ -56,12 +56,12 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
 
 Anonymization in Diffix Cedar has two main aspects, **SQL constraints** and **answer perturbation**. The goal is to allow as much SQL as possible, especially commonly used SQL, and to minimize answer perturbation while maintaining strong anonymity. Strong anonymity is achieved when an attacker's guess as to the attributes of individual users either has low confidence with high probability, or high confidence with low probability.
 
-In order to safely allow as much SQL as possible, Diffix Cedar constrains SQL in a fine-grained fashion. While some entire SQL features are prevented (i.e. window functions), more often an SQL feature is allowed but constrained in terms of what other features it may be used in combination with, how frequently it may be used, or even what constant values it may be used with.
+In order to safely allow as much SQL as possible, Diffix Cedar constrains SQL in a fine-grained fashion. While some entire SQL features are prevented (for instance window functions), more often an SQL feature is allowed but constrained in terms of what other features it may be used in combination with, how frequently it may be used, or even what constant values it may be used with.
 
 Perturbation takes the form of suppressing answers and distorting answers. The latter occurs through both adjusting extreme column values (flattening) and adding noise. Key mechanisms include:
 
 - **Answer suppression:** Answers that pertain to too few distinct users are suppressed.
-- **Sticky layered noise:** Diffix Cedar adds noise taken from a Gaussian distribution. The noise is sticky in that identical query conditions generate identical noise.  The noise is layered in that each query condition contributes a separate noise value (which are summed together to produce the final noise value).  There are in fact two types of noise layers, *UID-noise* and *static-noise*. Static-noise is sticky in the sense that the same filter condition, i.e. `age = 20`, will typically generate the same noise sample. UID-noise is sticky in the sense that the same filter condition combined with the same set of selected users will typically generate the same noise sample.
+- **Sticky layered noise:** Diffix Cedar adds noise taken from a Gaussian distribution. The noise is sticky in that identical query conditions generate identical noise.  The noise is layered in that each query condition contributes a separate noise value (which are summed together to produce the final noise value).  There are in fact two types of noise layers, *UID-noise* and *static-noise*. Static-noise is sticky in the sense that the same filter condition, for instance `age = 20`, will typically generate the same noise sample. UID-noise is sticky in the sense that the same filter condition combined with the same set of selected users will typically generate the same noise sample.
 - **Extreme value flattening:** When a few individual users contribute an extreme amount to an answer (relative to other users), then the values contributed by those users are reduced (or increased if negative) to be comparable with values contributed by other users.
 
 Diffix Cedar can report how much answer suppression has taken place and how much noise was added to an answer. Diffix Cedar cannot, however, report how much extreme value flattening has taken place.
@@ -81,7 +81,7 @@ An SQL interface is exposed to the analyst. The database may be an SQL database,
                                      (buckets)
 ```
 
-If the SQL query requests an aggregate (e.g. `SELECT age, count(*) FROM table GROUP BY age`), then each row returned in the answer is refered to as a *bucket* in this document. In this example, each tuple `(age, count)` would be a separate bucket.
+If the SQL query requests an aggregate (for instance `SELECT age, count(*) FROM table GROUP BY age`), then each row returned in the answer is refered to as a *bucket* in this document. In this example, each tuple `(age, count)` would be a separate bucket.
 
 ## Main Pipeline
 
@@ -115,7 +115,7 @@ The cloak establishes cached internal state that it uses to determine which SQL 
 
 ### Shadow table
 
-Holds a list of the X values that occur most frequently in the column (X=200), so long as the value has at least 10 distinct users. Values in this list may be used in negands (negative AND conditions) and posors (positive OR conditions) without limitations.
+Holds a list of the X values that occur most frequently in the column (X=200), so long as the value has at least 10 distinct users. These constants are evaluated as exact (not noisy) counts. (Note it would be slightly better to use noisy counts here, but this is not an important issue.) Values in this list may be used in negands (negative AND conditions) and posors (positive OR conditions) without limitations.
 [ghi2486](https://github.com/Aircloak/aircloak/issues/2486)
 [ghi2972](https://github.com/Aircloak/aircloak/issues/2972)
 [ghi3322](https://github.com/Aircloak/aircloak/issues/3322)
@@ -181,7 +181,7 @@ This document refers to all inequalities that are bounded on both sides as *rang
 
 In addition to the ranges that can be specified with `BETWEEN` and inequality operators, some functions implicitly define a range. For instance, the function `hour` defines a range of width one hour. The definition of range in this document includes implicit ranges. These are: `hour`, `minute`, `second`, `year`, `quarter`, `month`, `day`, `weekday`, `date_trunc`, `round`, `trunc`, and `bucket`.
 
-Inequalities that are not ranges (i.e. not bounded on both sides) are possible in the special case of [Conditions with two columns](#conditions-with-two-columns).
+Inequalities that are not ranges (not bounded on both sides) are possible in the special case of [Conditions with two columns](#conditions-with-two-columns).
 
 ### Clear conditions (IN, range, negative conditions)
 
@@ -199,7 +199,7 @@ The term "clear" implies that it is clear from SQL inspection alone what the sem
 
 Clear conditions also have the effect of reducing the attack surface since it gives an attacker fewer mechanisms to work with. For isolating columns, the cloak forces clear conditions for all operators.
 
-In earlier versions of Diffix, clear conditions were limited to only columns on the left-hand-side: no column functions were allowed (e.g. `col = val`). This restriction was subsequently relaxed to allow operators that are on one hand frequently useful to analysts, but on the other hand do not give analysts an adequately large attack surface (e.g. `lower(col) = val`).
+In earlier versions of Diffix, clear conditions were limited to only columns on the left-hand-side: no column functions were allowed (for instance `col = val`). This restriction was subsequently relaxed to allow operators that are on one hand frequently useful to analysts, but on the other hand do not give analysts an adequately large attack surface (for instance `lower(col) = val`).
 [ghi2982](https://github.com/Aircloak/aircloak/issues/2982)
 
 `IN` and [range](#inequalities) are limited to only constants on the right-hand-side. Negative conditions may additionally have columns on the right-hand-side.
@@ -228,7 +228,7 @@ WHERE number IN (1, 2, 3)
 
 #### In general
 
-In order to prevent [SQL backdoor attacks](./attacks.md#sql-backdoor-attacks), the cloak limits the complexity of certain math in queries. We are particulary concerned with discontinuous functions combined with constants because they can be coerced into acting as discrete logic. However, there are many ways of obtaining discontinuous functions, for instance string manipulations (e.g. `left`, `ltrim`) followed by casting to numbers, or datetime functions (e.g. `year` or `hour`). In addition, functions can be coerced into constants, as for instance `pow(col1, col2-col2)` is 1. 
+In order to prevent [SQL backdoor attacks](./attacks.md#sql-backdoor-attacks), the cloak limits the complexity of certain math in queries. We are particulary concerned with discontinuous functions combined with constants because they can be coerced into acting as discrete logic. However, there are many ways of obtaining discontinuous functions, for instance string manipulations (for instance `left`, `ltrim`) followed by casting to numbers, or datetime functions (for instance `year` or `hour`). In addition, functions can be coerced into constants, as for instance `pow(col1, col2-col2)` is 1. 
 
 We take a conservative approach and limit the number of expressions containing a restricted function and a constant, or more than one restricted function to a total of 5.
 
@@ -263,13 +263,13 @@ To mitigate [noise exploitation attacks through chaff conditions](./attacks.md#t
 [ghi2273](https://github.com/Aircloak/aircloak/issues/2273)
 [ghi3557](https://github.com/Aircloak/aircloak/issues/3557)
 
-Note that this mechanism is not effective in all cases. The shadow table is based on the complete column. Any given query, however, may have conditions that cover only part of the column.  A constant may therefore appear in the shadow table and still not have any matching rows in the context of a given query. For instance, the condition `gender <> 'F'` may not be chaff in the `pro_football_players` table, but may be chaff when combined with `tournament = 'fifa world cup'`.
+Note that this mechanism does not prevent isolation in all cases. The shadow table is based on the complete column. Any given query, however, may have conditions that cover only part of the column.  A constant may therefore appear in the shadow table and still not have any matching rows in the context of a given query. For instance, the condition `gender <> 'F'` may not be chaff in the `pro_football_players` table, but may be chaff when combined with `tournament = 'fifa world cup'`. However, executing an effective attack by exploiting this mechanism is essentially not possible (see [Shadow table exploitation attack](./attacks.md#shadow-table-exploitation-attack)).
 
 ### Conditions with two columns
 
 The cloak allows conditions with two columns. However, each column may appear only once in the condition.  Conditions with more than two columns are not allowed.
 
-Two-column conditions with inequalities do not require that the condition be a range (i.e. have both a lower and upper boundary). For instance, the condition `WHERE col1 < col2` is allowed.
+Two-column conditions with inequalities do not require that the condition be a range (have both a lower and upper boundary). For instance, the condition `WHERE col1 < col2` is allowed.
 
 ### Illegal JOINs
 
@@ -304,7 +304,7 @@ In the case of datetime types, the widths must correspond to natural datetime bo
 * `[1, 2, 5, 15, 30, 60]` minutes
 * `[1, 2, 5, 15, 30, 60]` seconds
 
-In addition, the cloak has a number of current date/time functions, including `current_date`, `current_time`, `current_datetime`, `now` and `current_timestamp`. These can be used in inequalities with columns, for instance `now() < col` and `now() between col1 and col2`. Current date/time functions are snapped by truncating to the current day (i.e. time `00:00:00`).
+In addition, the cloak has a number of current date/time functions, including `current_date`, `current_time`, `current_datetime`, `now` and `current_timestamp`. These can be used in inequalities with columns, for instance `now() < col` and `now() between col1 and col2`. Current date/time functions are snapped by truncating to the current day (time `00:00:00`).
 [ghi3474](https://github.com/Aircloak/aircloak/issues/3474)
 
 # Aggregation functions sum, min, max, count
@@ -367,7 +367,7 @@ On line 14, `sum(amount)` would be replaced with `count(*)`, `count(amount)`, or
 
 ### Gather seed materials
 
-Diffix adds noise samples (i.e. layers) per query filter condition. There are two types of noise layers, UID-noise and static-noise. Static-noise is "sticky" in the sense that the same filter condition, i.e. `age = 20`, will typically generate the same noise sample. UID-noise is sticky in the sense that the same filter condition combined with the same set of selected users will typically generate the same noise sample.
+Diffix adds noise samples (layers) per query filter condition. There are two types of noise layers, UID-noise and static-noise. Static-noise is "sticky" in the sense that the same filter condition, for instance `age = 20`, will typically generate the same noise sample. UID-noise is sticky in the sense that the same filter condition combined with the same set of selected users will typically generate the same noise sample.
 
 The mechanism for generating the same noise sample is to generate the same seed for the PRNG (Pseudo-Random Number Generator). Each seed is composed of several components which we call the *seed materials* (see [Determine seeds](#determine-seeds)).
 
@@ -484,10 +484,10 @@ Each filter condition has a static noise layer, and most filter conditions addit
 * HAVING clauses in subqueries
 * GROUP BY clauses
 * All columns in the top-level SELECT clause
-* Range WHERE clauses, i.e. a pair of `a >= x` and `a < y`, is considered one filter instead of two
+* Range WHERE clauses, for instance a pair of `a >= x` and `a < y`, is considered one filter instead of two
 * Each element of `IN (a, b, c)` is treated as one distinct filter condition, while the entire expression taken together is treated as another filter condition
 
-In addition, there is a generic noise layer for queries that otherwise have no noise layer (i.e. because no filter conditions). The query `SELECT count(*) FROM table` is such a query.
+In addition, there is a generic noise layer for queries that otherwise have no noise layer (because no filter conditions). The query `SELECT count(*) FROM table` is such a query.
 
 The aggregation function `count(col)` is given an additional UID-noise layer. The purpose of this noise layer is to defend against the [Difference attack with counting NULL](./attacks.md#difference-attack-with-counting-null).
 
@@ -530,7 +530,7 @@ The min and max column values are obtained either by floating (see [Gather seed 
 * If `col IN (val1, ..., valN)`, then for each of the N per-element UID-noise layers, both min and max are set to `valN`. (Note that for the static noise layer, floating is used.)
 * If a selected column (`SELECT col FROM ...`), then min and max are set to the value returned by the database.
 * If an implicit range, then min is set to the left edge of the range, and max is set to the right edge of the range.
-* In case of text datatypes, `val` is converted to lower case (i.e. `lower(val)`) for the purpose of seeding.
+* In case of text datatypes, `val` is converted to lower case (`lower(val)`) for the purpose of seeding.
 
 Most noise layers are seeded with at least the following:
 
@@ -574,7 +574,7 @@ Conceptually the perturbation should do the following. First, it should modify t
 
 For example, suppose a column contains user salary. Suppose that the average salary is 100K, but there are four or five users with salaries between 450K and 550K, and only one user with a salary higher than 550K. That user's salary is 2M. The group of four or five users would be regarded as heavy contributors, and the user with 2M salary would be regarded as an extreme contributor.
 
-We want to adjust the value of the extreme contribution (2M) so that it is more like those of the heavy contributors. If the aggregate is `sum()`, this effectively means reducing the reported sum by around 1.5M. We call this adjustment "flattening". We want to then add noise proportional to that of the heavy contributors, i.e. proportional to around 500K.
+We want to adjust the value of the extreme contribution (2M) so that it is more like those of the heavy contributors. If the aggregate is `sum()`, this effectively means reducing the reported sum by around 1.5M. We call this adjustment "flattening". We want to then add noise proportional to that of the heavy contributors, for instance proportional to around 500K.
 
 The rational for these perturbations is as follows. Assume that an analyst is able to forumlate two queries, one whose answer does not include the victim (the left query), and one that may include the victim (the right query). The analyst wants to compare answers to determine if the victim is present in the right query or not. If the right answer is greater than the left answer, for instance, the analyst may assume that the victim is present in the right answer. This is the basic [Difference attack](./attacks.md#difference-attacks).
 
@@ -626,7 +626,7 @@ If we assume for the moment that all user contributions are positive, then the i
 
 This is perhaps explained through several examples. Let's suppose that these examples are for `sum(salary)`.
 
-First, consider a case where `col_min=col_max=col_avg=100K` and `col_std=0`. In this case, all users have the same salary of 100K, we want a noise factor of `sum_sd=100K` (i.e. equal to the contribution of any user), and there is no flattening.
+First, consider a case where `col_min=col_max=col_avg=100K` and `col_std=0`. In this case, all users have the same salary of 100K, we want a noise factor of `sum_sd=100K` (equal to the contribution of any user), and there is no flattening.
 
 Now suppose that `col_min=95K`, `col_avg=100K`, `col_std=3K`, and `col_max=10M`. The relatively low standard deviation `col_std=3k` implies that the majority of salaries are clustered tightly around the average of `col_avg=100K`. In contrast to this, however, the maximum salary `col_max=10M` is far away from this cluster, suggesting that a great deal of flattening is needed.
 
@@ -792,7 +792,7 @@ Although this example used the star symbol for both the text and integer column,
 
 #### Bucket merging
 
-Merged buckets are processed like any other bucket: they are [checked for suppression](#low-count-suppression) and [aggregate answers are perturbed](#value-flattening-and-noise-addition). As such, the information needed for this processing must be preserved when buckets are merged (i.e. lines 2-9 in the [example query](#generate-db-query)).
+Merged buckets are processed like any other bucket: they are [checked for suppression](#low-count-suppression) and [aggregate answers are perturbed](#value-flattening-and-noise-addition). As such, the information needed for this processing must be preserved when buckets are merged (lines 2-9 in the [example query](#generate-db-query)).
 [ghi3368](https://github.com/Aircloak/aircloak/issues/3368)
 
 It is not possible to preserve this information perfectly. Merging is essentially an `OR` operation, and as such any users that happen to be in both buckets cannot be accounted for because the cloak does not have per-user information. Therefore the merge is designed to produce approximate values.

@@ -39,8 +39,8 @@ defmodule Cloak.AnalystTable.Compiler do
   # -------------------------------------------------------------------
 
   defp compile_statement(statement, analyst, data_source, parameters, views) do
-    with :ok <- naive_compilation(statement, analyst, data_source, parameters, views),
-         {:ok, query} <- compile_analyst_table(statement, analyst, data_source, parameters, views),
+    with {:ok, columns} <- naive_compilation(statement, analyst, data_source, parameters, views),
+         {:ok, query} <- compile_analyst_table(statement, columns, analyst, data_source, parameters, views),
          do: {:ok, query |> Query.set_emulation_flag() |> Cloak.Sql.Compiler.Anonymization.set_query_type()}
   end
 
@@ -48,19 +48,22 @@ defmodule Cloak.AnalystTable.Compiler do
     # For exact error reporting, we're compiling the query directly. This will help us properly report parser error
     # location, as well as verify the query semantics, such as uid selection.
     with {:ok, parsed_query} <- Cloak.Sql.Parser.parse(statement),
-         {:ok, query} <- Compiler.compile_direct(parsed_query, analyst, data_source, parameters, views),
+         {:ok, query} <-
+           Compiler.compile_direct(Map.put(parsed_query, :subquery?, true), analyst, data_source, parameters, views),
          query = query |> Query.set_emulation_flag() |> Cloak.Sql.Compiler.Anonymization.set_query_type(),
          :ok <- verify_query_type(query),
          :ok <- verify_offloading(query),
          :ok <- verify_selected_columns(query),
          :ok <- verify_pseudoconstants(parsed_query, analyst, data_source, parameters, views),
-         do: :ok
+         do: {:ok, Query.selected_columns(query)}
   end
 
-  defp compile_analyst_table(statement, analyst, data_source, parameters, views) do
+  defp compile_analyst_table(statement, columns, analyst, data_source, parameters, views) do
     # This is the real compilation of the analyst table query. Here, we're compiling the anonymized query
-    # `select * from #{analyst_query}` to enforce aircloak restrictions, such as range alignments.
-    with {:ok, parsed_query} <- Cloak.Sql.Parser.parse("select * from (#{statement}) sq") do
+    # `select non-uid-columns from #{analyst_query}` to enforce aircloak restrictions, such as range alignments.
+    columns = columns |> Enum.reject(& &1.user_id?) |> Enum.map(&"\"#{&1.alias}\"") |> Enum.join(", ")
+
+    with {:ok, parsed_query} <- Cloak.Sql.Parser.parse("select #{columns} from (#{statement}) sq") do
       query =
         Compiler.core_compile!(parsed_query, analyst, data_source, parameters, views)
         |> Compiler.NoiseLayers.compile()

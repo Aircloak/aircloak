@@ -43,6 +43,14 @@ defmodule Cloak.Query.Isolators.Test do
     assert_forbidden("SELECT COUNT(*) FROM query_isolators GROUP BY $col / 2")
   end
 
+  test "clear SELECTs are allowed for isolators" do
+    assert_allowed("SELECT $col FROM query_isolators")
+  end
+
+  test "SELECTs with math are forbidden for isolators" do
+    assert_forbidden("SELECT $col / 2 FROM query_isolators")
+  end
+
   test "IN is forbidden" do
     assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE $col IN (1, 2)")
   end

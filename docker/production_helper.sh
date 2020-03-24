@@ -45,11 +45,9 @@ function build_image {
     CONTAINER_ENV=prod MPI=true IMAGE_CATEGORY=$DEPLOYMENT_NAME PERFORM_VERSION_CHECK=$PERFORM_VERSION_CHECK $(build_folder $1)/package.sh
 
     # checkout master and remove all the obsolete branches
-    {
-      git checkout master
-      git remote prune origin
-      git branch -vv | grep 'origin/.*: gone]' | awk '{print $1}' | xargs git branch -D
-    } || true
+    git checkout master
+    git remote prune origin
+    git branch -vv | grep 'origin/.*: gone]' | awk '{print $1}' | xargs -r git branch -D
 
     # remove obsolete docker images
     . /aircloak/quay_deploy/aircloak/docker/docker_helper.sh
