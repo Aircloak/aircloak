@@ -65,6 +65,7 @@ export default class PasswordField extends React.Component<Props, State> {
           id="user_password"
           name="user[password]"
           className="form-control"
+          autoComplete="new-password"
           value={value}
           onChange={this.updateValue}
         />
