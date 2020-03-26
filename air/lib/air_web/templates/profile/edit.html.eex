@@ -58,14 +58,15 @@
       <h4 class="card-header">Change password</h4>
       <div class="card-body">
         <%= form_for @changeset, profile_path(@conn, :change_password), fn f -> %>
-          <%= validated_password_input f, :old_password, "Old Password"  %>
-          <div id="password-field"><%= validated_password_input f, :password, "New Password"  %></div>
-          <%= validated_password_input f, :password_confirmation, "Password Confirmation"  %>
+          <%= validated_password_input f, :old_password, "Old Password", autocomplete: "current-password"  %>
+          <div id="password-field"><%= validated_password_input f, :password, "New Password", autocomplete: "new-password"  %></div>
+          <%= validated_password_input f, :password_confirmation, "Password Confirmation", autocomplete: "new-password"  %>
 
           <div class="form-group">
             <%= submit "Save", class: "btn btn-primary" %>
           </div>
         <% end %>
+
       </div>
     </div>
   <% end %>

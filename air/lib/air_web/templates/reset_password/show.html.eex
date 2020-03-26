@@ -14,7 +14,7 @@
 
         <div class="form-group">
           <label>Password Confirmation</label>
-          <%= password_input f, :password_confirmation, class: "form-control" %>
+          <%= password_input f, :password_confirmation, class: "form-control", autocomplete: "new-password" %>
           <%= error_tag f, :password_confirmation %>
         </div>
 
