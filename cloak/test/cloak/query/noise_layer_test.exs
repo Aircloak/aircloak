@@ -210,7 +210,7 @@ defmodule Cloak.Query.NoiseLayerTest do
       :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
       :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [11])
 
-      query = "SELECT count(*) FROM $subquery WHERE column = 100"
+      query = "SELECT count(column) FROM $subquery WHERE column = 100"
       subquery = "SELECT user_id, number * number AS column FROM noise_layers"
 
       assert_analyst_table_consistent(query, subquery)
@@ -289,7 +289,7 @@ defmodule Cloak.Query.NoiseLayerTest do
     test "[Issue #3668] noise layer with grouping" do
       :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
 
-      query = "SELECT user_id FROM $subquery WHERE user_id <> 'thing'"
+      query = "SELECT count(user_id) FROM $subquery WHERE user_id <> 'thing'"
       subquery = "SELECT user_id FROM noise_layers GROUP BY 1"
 
       assert_analyst_table_consistent(query, subquery)
@@ -298,7 +298,7 @@ defmodule Cloak.Query.NoiseLayerTest do
     test "[Bug] two user ids selected in analyst table" do
       :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
 
-      query = "SELECT bar FROM $subquery"
+      query = "SELECT count(bar) FROM $subquery"
       subquery = "SELECT user_id, user_id AS bar FROM noise_layers GROUP BY 1"
 
       assert_analyst_table_consistent(query, subquery)
@@ -308,7 +308,7 @@ defmodule Cloak.Query.NoiseLayerTest do
       :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
       :ok = insert_rows(_user_ids = 1..10, "noise_layers_join", ["number"], [10])
 
-      query = "SELECT bar3.another_uid FROM (SELECT user_id, user_id AS another_uid FROM $subquery) AS bar3"
+      query = "SELECT count(bar3.another_uid) FROM (SELECT user_id, user_id AS another_uid FROM $subquery) AS bar3"
 
       subquery = """
         SELECT bar1.user_id

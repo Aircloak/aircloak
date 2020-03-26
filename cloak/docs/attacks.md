@@ -24,6 +24,7 @@ This section describes a variety of attacks against anonymization mechanisms. So
       - [Through chaff conditions](#through-chaff-conditions)
     - [Range creep with averaging](#range-creep-with-averaging)
     - [Multiple isolating negands](#multiple-isolating-negands)
+    - [Shadow table exploitation attack](#shadow-table-exploitation-attack)
   - [SQL backdoor attacks](#sql-backdoor-attacks)
   - [Side Channel attacks](#side-channel-attacks)
     - [Error generation attacks](#error-generation-attacks)
@@ -284,7 +285,7 @@ A typical non-personal table might contain a numeric identifier and a text field
 Suppose an analyst wished to remove noise associated with the condition `age = 20`, and there are multiple non-personal tables of various sorts. The analyst could then build a set of queries with different `JOIN` conditions as follows:
 
 ```
-JOIN (...) ON users.age = product_names.id - 28788 WHERE product_names.value = 'Juice Squeezer'
+JOIN (...) ON users.age = product_names.id - 28788 WHERE product_names.value = 'pears'
 JOIN (...) ON users.age = error_codes.id - 232 WHERE error_codes.value = 'Bad Input'
 JOIN (...) ON users.age = cc_types.id + 16 WHERE cc_types.value = 'VISA'
 etc.
@@ -395,15 +396,17 @@ To prevent this, the cloak removes a small number of the most extreme values in 
 
 #### Through chaff conditions
 
-In this difference attack, the attacker exploits the uid-based noise by intentionally adding conditions that have no impact on the true underlying answer, but increase the cumulative amount of noise. The bucket pair that differs the most is most likely the one containing the user.
+In this difference attack, the attacker tries to exploit the uid-based noise by intentionally adding conditions that have no impact on the true underlying answer, but increase the cumulative amount of noise. The bucket pair that differs the most is most likely the one containing the user.
 
-A simple way to do this is to add conditions like `age <> 1000`, `age <> 1001` and so on. These are called chaff conditions. In pairs where the underlying set of users is the same, the uid-based noise values are the same for each query of the pair. In pairs where the underlying set of users is different, the uid-based noise value is different.
+A simple way to do this would be to add conditions like `age <> 1000`, `age <> 1001` and so on. These are called chaff conditions. In pairs where the underlying set of users is the same, the uid-based noise values are the same for each query of the pair. In pairs where the underlying set of users is different, the uid-based noise value is different.
 
 Alternatively, a range condition such as `age BETWEEN 0 and 1000` can also be a chaff condition. Likewise the implicit ranges `round()` and `trunc()` can be chaff conditions. This is because these functions can span the entire number range of a column with one bucket.
 
 The chaff conditions can either all be added to the same query, or added one at a time to multiple pairs, and then summing the results across the first queries of each pair and separately the second queries.
 
-Chaff using negative conditions is normally prevented by disallowing negative conditions for rare values (those not found in the shadow table). The attack is prevented for chaff conditions using ranges by not including the static noise layer for ranges.
+The attack using range conditions is prevented by not using uid-based noise layers for range conditions.
+
+The attack using negative conditions is prevented by disallowing negative conditions for rare values (those not found in the shadow table). Specifically, any value in the shadow table has at least 10 users associated with it. If such a value is used in a negative condition, then the selected users will cause a difference in multiple bucket pairs, and the attacker cannot be sure which are associated with the victim.
 
 ### Range creep with averaging
 
@@ -416,6 +419,25 @@ To defend against this, the cloak forces ranges to fall within preset range offs
 If an analyst could make multiple different negative ANDed conditions (negands) isolating the same individual user, then they could be averaged out in the context of a difference attack. For instance, `account_number <> 12345`, `social_security_number <> 123-45-6789`, `login_name <> 'alex433`, `email_address <> 'alex433@gmail.com` are all values that can isolate a single user. If each were used as the single negand, then the negands could be averaged away.
 
 This negands are rejected by virtue of not being represented in the shadow table.
+
+### Shadow table exploitation attack
+
+For each column, the shadow table contains the up-to-200 column values assigned to the largest number of distinct users. Any value must have at least 10 distinct users to be included in the shadow table. Column values for negands (negative conditions  such as `age <> 1000`) and `IN` expressions (`age NOT IN (1000,1001,1002)`) that are not in the shadow table are disallowed.
+
+It is possible, however, for a negand from the shadow table to isolate a single user in a difference attack.  This can happen when the other query conditions reduce the number of users sufficiently so that all other users with the same value are excluded from both queries.
+
+For instance, suppose that around 30 users have a zip code of 12345. The negand `zip <> 12345` would then exclude those users. Suppose in addition that some other attribute value, say `profession = 'stylist'`, applies to a relatively small fraction of the population, for instance 1 in 500 people, but nevertheless is in the shadow table. Finally, suppose that the attacker knows that the victim is a stylist and lives in zip code 12345. Chances are then high that two queries with the following two conditions:
+
+```
+Q1: profession = 'stylist'
+Q1: profession = 'stylist' AND `zip <> 12345`
+```
+
+would differ by only one user, the victim. This is because it is statistically unlikely that another one of the 15 users in zip 12345 is a stylist.
+
+A [first derivative difference attack](#first-derivative-difference-attack) using only the above sets of conditions would fail because of the added noise. However, if the attacker could come up with 4 or 5 different pairs of conditions that have the above isolating characteristics, then the noise due to each of the negands could be averaged away.
+
+However, it is quite rare that the necessary criteria exists even once for a given user, and virtually impossible that the criteria exists 4 or 5 times (and even less likely that the attacker would know the appropriate information about the victim). Therefore, while theortically possible, this attack is in practice essentially impossible.
 
 ## SQL backdoor attacks
 

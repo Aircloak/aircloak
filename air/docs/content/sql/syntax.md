@@ -5,7 +5,8 @@ SELECT [DISTINCT | ALL]
   [ WHERE filter_expression [AND ...] ]
   [ GROUP BY column_expression | position [, ...] ]
   [ HAVING filter_expression [AND ...] ]
-  [ ORDER BY column_name  | position [ASC | DESC] [NULLS FIRST | LAST] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
+  [ ORDER BY column_name  | position [ASC | DESC] [NULLS FIRST | LAST] [, ...]
+    [ LIMIT amount ] [ OFFSET amount ] ]
 
 field_expression :=
   * | table_name.* | column_expression [AS alias]
@@ -15,13 +16,16 @@ column_expression :=
   aggregation_function([DISTINCT | ALL] column_name) |
   function(column_expression) |
   column_expression binary_operator column_expression |
-  column_expression::data_type
+  column_expression::data_type |
+  case_statement
 
 binary_operator :=
   + | - | * | / | ^
 
 data_type :=
   integer | real | text | boolean | datetime | date | time | interval
+
+case_statement := CASE WHEN filter_expression THEN column_expression [...] [ELSE column_expression] END
 
 from_expression :=
   table | join
