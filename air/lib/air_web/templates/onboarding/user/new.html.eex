@@ -57,7 +57,7 @@
   <div class="form-group">
     <%= label f, :password_confirmation, class: "col-sm-3 control-label" %>
     <div class="col-sm-9">
-      <%= password_input f, :password_confirmation, class: "form-control", autocomplete: "off" %>
+      <%= password_input f, :password_confirmation, class: "form-control", autocomplete: "new-password" %>
       <%= error_tag f, :password_confirmation %>
     </div>
   </div>
