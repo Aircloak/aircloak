@@ -7,17 +7,17 @@ type Props = {};
 
 type State = {
   value: string,
-  score: number
+  score: number,
 };
 
 export default class PasswordField extends React.Component<Props, State> {
-  zxcvbn: null | (string => { score: number });
+  zxcvbn: null | ((string) => { score: number });
   constructor(props: Props) {
     super(props);
 
     this.state = { value: "", score: 0 };
 
-    import("zxcvbn").then(mod => {
+    import("zxcvbn").then((mod) => {
       this.zxcvbn = mod;
     });
   }
@@ -26,7 +26,7 @@ export default class PasswordField extends React.Component<Props, State> {
     const value = e.target.value;
     this.setState({
       value,
-      score: this.zxcvbn ? this.zxcvbn(value).score : 0
+      score: this.zxcvbn ? this.zxcvbn(value).score : 0,
     });
   };
 
