@@ -103,7 +103,7 @@
           <%= form_for @changeset, profile_path(@conn, :change_password), fn f -> %>
             <div class="form-group">
               <label>Old Password</label>
-              <%= password_input f, :old_password, class: "form-control" %>
+              <%= password_input f, :old_password, class: "form-control", autocomplete: "current-password" %>
               <%= error_tag f, :old_password %>
             </div>
 
@@ -115,7 +115,7 @@
 
             <div class="form-group">
               <label>Password Confirmation</label>
-              <%= password_input f, :password_confirmation, class: "form-control" %>
+              <%= password_input f, :password_confirmation, class: "form-control", autocomplete: "new-password" %>
               <%= error_tag f, :password_confirmation %>
             </div>
 
