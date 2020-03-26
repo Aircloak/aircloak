@@ -2,6 +2,7 @@
 .*/jsonlint-lines-primitives/test/fails/.*
 .*/findup/test/fixture/.*
 .*/node_modules/fbjs/lib/.*
+.*/node_modules/@parcel/watcher/test/tmp/.*
 <PROJECT_ROOT>/docs/.*
 <PROJECT_ROOT>/node_modules/fbjs/.*
 <PROJECT_ROOT>/node_modules/mapbox-gl-style-spec/test/fixture/invalidjson.input.json

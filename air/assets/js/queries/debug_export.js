@@ -4,10 +4,10 @@ import React from "react";
 
 export default ({
   id,
-  debugModeEnabled
+  debugModeEnabled,
 }: {
   id: string,
-  debugModeEnabled: boolean
+  debugModeEnabled: boolean,
 }) => {
   if (debugModeEnabled) {
     return (

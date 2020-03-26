@@ -59,7 +59,7 @@
       <div class="card-body">
         <%= form_for @changeset, profile_path(@conn, :change_password), fn f -> %>
           <%= validated_password_input f, :old_password, "Old Password"  %>
-          <%= validated_password_input f, :password, "New Password"  %>
+          <div id="password-field"><%= validated_password_input f, :password, "New Password"  %></div>
           <%= validated_password_input f, :password_confirmation, "Password Confirmation"  %>
 
           <div class="form-group">
@@ -134,9 +134,9 @@
   window.pageConfig = {
     onLoad: function(App) {
       var props = <%= to_json(%{numberFormat: number_format_settings(@conn)}) %>;
-      App.numberFormatExample(props, document.getElementById("example"));
+      //App.numberFormatExample(props, document.getElementById("example"));
 
-      App.passwordField({}, document.getElementById("password-field"));
+      App.passwordField({}, document.querySelector("#password-field"));
     }
   };
 </script>

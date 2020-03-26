@@ -1,5 +1,6 @@
 import _ from "lodash";
 import assert from "assert";
+import "core-js/stable";
 
 import completions from "../js/code_editor/completion";
 
@@ -7,10 +8,10 @@ it("completes keywords", () => {
   assert.deepEqual(completions("thing cou| rest", 9, _.identity, [], [], ""), {
     list: [
       { text: "count_noise(<any>)", from: 6, to: 9 },
-      { text: "count(<any>)", from: 6, to: 9 }
+      { text: "count(<any>)", from: 6, to: 9 },
     ],
     from: 6,
-    to: 9
+    to: 9,
   });
 });
 
@@ -18,7 +19,7 @@ it("completes expressions", () => {
   assert.deepEqual(completions("show tab| rest", 8, _.identity, [], [], ""), {
     list: [{ text: "SHOW TABLES", from: 0, to: 8 }],
     from: 0,
-    to: 8
+    to: 8,
   });
 });
 
@@ -35,10 +36,10 @@ it("completes 'show columns from <table>'", () => {
     {
       list: [
         { text: "SHOW COLUMNS FROM table1", from: 0, to: 8 },
-        { text: "SHOW COLUMNS FROM table2", from: 0, to: 8 }
+        { text: "SHOW COLUMNS FROM table2", from: 0, to: 8 },
       ],
       from: 0,
-      to: 8
+      to: 8,
     }
   );
 });
@@ -50,10 +51,10 @@ it("completes 'from <table>'", () => {
       list: [
         { text: "FROM table1", from: 0, to: 2 },
         { text: "FROM table2", from: 0, to: 2 },
-        { text: "FROM", from: 0, to: 2 }
+        { text: "FROM", from: 0, to: 2 },
       ],
       from: 0,
-      to: 2
+      to: 2,
     }
   );
 });
@@ -65,10 +66,10 @@ it("completes table names", () => {
       list: [
         { text: "SHOW TABLES", from: 0, to: 8 },
         { text: "table1", from: 5, to: 8 },
-        { text: "table2", from: 5, to: 8 }
+        { text: "table2", from: 5, to: 8 },
       ],
       from: 0,
-      to: 8
+      to: 8,
     }
   );
 });
@@ -79,10 +80,10 @@ it("completes column names", () => {
     {
       list: [
         { text: "column1", from: 0, to: 3 },
-        { text: "column2", from: 0, to: 3 }
+        { text: "column2", from: 0, to: 3 },
       ],
       from: 0,
-      to: 3
+      to: 3,
     }
   );
 });
@@ -93,7 +94,7 @@ it("deduplicates suggestions", () => {
     {
       list: [{ text: "column", from: 0, to: 3 }],
       from: 0,
-      to: 3
+      to: 3,
     }
   );
 });
@@ -104,10 +105,10 @@ it("completes mid-word", () => {
     {
       list: [
         { text: "column1", from: 0, to: 3 },
-        { text: "column2", from: 0, to: 3 }
+        { text: "column2", from: 0, to: 3 },
       ],
       from: 0,
-      to: 3
+      to: 3,
     }
   );
 });
@@ -116,7 +117,7 @@ it("escapes escape sequences", () => {
   assert.deepEqual(completions("\\", 1, _.identity, [], [], ""), {
     list: [],
     from: 0,
-    to: 0
+    to: 0,
   });
 });
 
@@ -124,10 +125,10 @@ it("completes after parens", () => {
   assert.deepEqual(completions("count(coun", 10, _.identity, [], [], ""), {
     list: [
       { text: "count_noise(<any>)", from: 6, to: 10 },
-      { text: "count(<any>)", from: 6, to: 10 }
+      { text: "count(<any>)", from: 6, to: 10 },
     ],
     from: 6,
-    to: 10
+    to: 10,
   });
 });
 
@@ -144,7 +145,7 @@ it("completes based on what else has been written in query", () => {
     {
       list: [{ text: "aliased_name", from: 0, to: 5 }],
       from: 0,
-      to: 5
+      to: 5,
     }
   );
 });
@@ -155,7 +156,7 @@ it("completes based on what else has been written in query but excludes the curr
     {
       list: [{ text: "aliased_name", from: 0, to: 5 }],
       from: 0,
-      to: 5
+      to: 5,
     }
   );
 });
@@ -173,7 +174,7 @@ it("completions based on written query do not contain trailing comman", () => {
     {
       list: [{ text: "aliased_name", from: 0, to: 5 }],
       from: 0,
-      to: 5
+      to: 5,
     }
   );
 });

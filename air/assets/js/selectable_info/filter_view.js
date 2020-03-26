@@ -5,11 +5,11 @@ import React from "react";
 import { Filter } from "./filter";
 
 type Props = {
-  onFilterChange: Filter => void
+  onFilterChange: (Filter) => void,
 };
 
 type State = {
-  filterText: string
+  filterText: string,
 };
 
 export default class FilterView extends React.Component<Props, State> {
@@ -17,7 +17,7 @@ export default class FilterView extends React.Component<Props, State> {
     super(props);
 
     this.state = {
-      filterText: ""
+      filterText: "",
     };
 
     this.filterTextChange = this.filterTextChange.bind(this);
@@ -44,7 +44,7 @@ export default class FilterView extends React.Component<Props, State> {
       <div className="column-filter">
         <div className="input-group">
           <input
-            onChange={event => this.filterTextChange(event.target.value)}
+            onChange={(event) => this.filterTextChange(event.target.value)}
             type="text"
             className="form-control"
             placeholder="Filter columns"

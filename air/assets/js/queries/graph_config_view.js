@@ -12,10 +12,10 @@ type Props = {
   graphConfig: GraphConfig,
   addX: ColumnAction,
   addY: ColumnAction,
-  remove: ColumnAction
+  remove: ColumnAction,
 };
 
-const activeClass = active =>
+const activeClass = (active) =>
   active ? "btn btn-outline-info active" : "btn btn-outline-info";
 
 const noneClass = (graphConfig, column) =>

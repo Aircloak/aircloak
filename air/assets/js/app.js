@@ -4,7 +4,6 @@ import "phoenix_html";
 import React from "react";
 import ReactDOM from "react-dom";
 import codeMirror from "codemirror";
-import $ from "jquery";
 import QueriesView from "./queries/root";
 import SingleQueryView from "./queries/single_query_root";
 import ImmutableSingleQueryView from "./queries/immutable_single_query";
@@ -17,8 +16,6 @@ import { NumberFormatExampleView } from "./number_format";
 import AuditLogView from "./audit_log/root";
 import PasswordField from "./password_field";
 import activateDatetimePickers from "./datetimepicker";
-
-import "core-js/stable";
 import "codemirror/mode/markdown/markdown";
 
 const App = {
@@ -29,14 +26,17 @@ const App = {
   selectableInfo: (props, elem) => App.render("selectable_info", props, elem),
   viewEditor: (props, elem) => App.render("view_editor", props, elem),
   activityMonitor: (props, elem) => App.render("activity_monitor", props, elem),
-  numberFormatExample: (props, elem) =>
-    App.render("number_format_example", { numberFormat: props }, elem),
+  numberFormatExample: (numberFormat, elem) =>
+    ReactDOM.render(
+      <NumberFormatExampleView numberFormat={numberFormat} />,
+      elem
+    ),
   auditLog: (props, elem) => App.render("audit_log", props, elem),
   passwordField: (props, elem) => App.render("password_field", props, elem),
 
   attachCodeMirrorToTextArea: (textArea, targetElement) => {
     const elementEditor = codeMirror(
-      elt => {
+      (elt) => {
         textArea.parentNode.replaceChild(elt, textArea);
       },
       {
@@ -44,10 +44,10 @@ const App = {
         indentWithTabs: false,
         tabSize: 2,
         mode: "markdown",
-        lineNumbers: true
+        lineNumbers: true,
       }
     );
-    elementEditor.on("change", editor => {
+    elementEditor.on("change", (editor) => {
       targetElement.value = editor.getValue(); // eslint-disable-line no-param-reassign
     });
   },
@@ -88,7 +88,7 @@ const App = {
       socketToken,
       statement,
       supportsCreateTable,
-      userId
+      userId,
     } = props;
     switch (page) {
       case "queries":
@@ -158,8 +158,6 @@ const App = {
             cloakStats={cloakStats}
           />
         );
-      case "number_format_example":
-        return <NumberFormatExampleView numberFormat={numberFormat} />;
       case "audit_log":
         return <AuditLogView auditLogs={auditLogs} />;
       case "password_field":
@@ -169,8 +167,8 @@ const App = {
     }
   },
 
-  buildSocket: props =>
-    new FrontendSocket(props.browserSocketTransport, props.socketToken)
+  buildSocket: (props) =>
+    new FrontendSocket(props.browserSocketTransport, props.socketToken),
 };
 
 if (window.pageConfig !== undefined) {

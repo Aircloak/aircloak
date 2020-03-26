@@ -7,7 +7,7 @@ describe("GraphData", () => {
     it("is true when an x and y axis has been selected", () => {
       const data = GraphData([], [], {
         xColumns: () => [0],
-        yColumns: () => [1]
+        yColumns: () => [1],
       });
       assert.equal(data.ready(), true);
     });
@@ -15,7 +15,7 @@ describe("GraphData", () => {
     it("is false when no x axis selected", () => {
       const data = GraphData([], [], {
         xColumns: () => [],
-        yColumns: () => [2]
+        yColumns: () => [2],
       });
       assert.equal(data.ready(), false);
     });
@@ -23,7 +23,7 @@ describe("GraphData", () => {
     it("is false when no y axis selected", () => {
       const data = GraphData([], [], {
         xColumns: () => [0],
-        yColumns: () => []
+        yColumns: () => [],
       });
       assert.equal(data.ready(), false);
     });
@@ -53,11 +53,11 @@ describe("GraphData", () => {
         ["col1", "col2"],
         [{ row: [1, 2] }, { row: [3, 4] }],
         { xColumns: () => [0, 1], yColumns: () => [] },
-        value => `formatted-${value}`
+        (value) => `formatted-${value}`
       );
       assert.deepEqual(data.x(), [
         "formatted-1, formatted-2",
-        "formatted-3, formatted-4"
+        "formatted-3, formatted-4",
       ]);
     });
   });
@@ -66,7 +66,7 @@ describe("GraphData", () => {
     it("is the name of the column when single column selected", () => {
       const data = GraphData(["col1", "col2"], [], {
         xColumns: () => [0],
-        yColumns: () => []
+        yColumns: () => [],
       });
       assert.equal(data.xLabel(), "col1");
     });
@@ -74,7 +74,7 @@ describe("GraphData", () => {
     it("is comma-joined names of columns when multiple columns selected", () => {
       const data = GraphData(["col1", "col2", "col3"], [], {
         xColumns: () => [0, 2],
-        yColumns: () => []
+        yColumns: () => [],
       });
       assert.equal(data.xLabel(), "col1, col3");
     });
@@ -88,7 +88,7 @@ describe("GraphData", () => {
         { xColumns: () => [], yColumns: () => [2] }
       );
       assert.deepEqual(data.series(), [
-        { label: "col3", data: [2, 3], indexInResult: 2 }
+        { label: "col3", data: [2, 3], indexInResult: 2 },
       ]);
     });
 
@@ -100,7 +100,7 @@ describe("GraphData", () => {
       );
       assert.deepEqual(data.series(), [
         { label: "col1", data: [null, null], indexInResult: 0 },
-        { label: "col3", data: [2, 3], indexInResult: 2 }
+        { label: "col3", data: [2, 3], indexInResult: 2 },
       ]);
     });
   });

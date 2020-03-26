@@ -22,7 +22,7 @@ describe("TableAligner", () => {
     const data = TableAligner([
       { row: [null] },
       { row: [undefined] },
-      { row: [2] }
+      { row: [2] },
     ]);
     assert.equal(data.alignmentClass(0), "text-right");
   });
@@ -36,7 +36,7 @@ describe("TableAligner", () => {
     const data = TableAligner([
       { row: ["*"] },
       { row: [null] },
-      { row: [undefined] }
+      { row: [undefined] },
     ]);
     assert.equal(data.alignmentClass(0), "text-left");
   });

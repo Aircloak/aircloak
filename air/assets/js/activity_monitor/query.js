@@ -13,11 +13,11 @@ export type Query = {
   analyst_name: string,
   data_source_name: string,
   cloak_name: string,
-  statement: string
+  statement: string,
 };
 
 type Props = {
-  query: Query
+  query: Query,
 };
 
 const maxExcerptLength = 40;

@@ -16,7 +16,7 @@ export default ({ statement }: { statement: string }) => {
     showCursorWhenSelecting: true,
     smartIndent: true,
     viewportMargin: Infinity,
-    cursorBlinkRate: -1
+    cursorBlinkRate: -1,
   };
 
   return <Codemirror value={statement} options={options} />;

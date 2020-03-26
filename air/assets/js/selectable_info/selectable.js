@@ -15,7 +15,7 @@ export type Selectable = {
   columns: Column[],
   delete_html: string,
   broken: boolean,
-  creation_status: string
+  creation_status: string,
 };
 
 type Props = {
@@ -24,7 +24,7 @@ type Props = {
   onClick: () => void,
   expanded: boolean,
   filter: Filter,
-  channel: Channel
+  channel: Channel,
 };
 
 const ERROR_REASON_MESSAGE =
@@ -40,7 +40,7 @@ const TABLE_INVALID_MESSAGE =
 export class SelectableView extends React.Component<Props> {
   handleToggleClick = (event: {
     target: Element,
-    preventDefault: () => void
+    preventDefault: () => void,
   }) => {
     // Hacky solution to prevent bubbling from `<a>` elements. Normally, we'd use stopPropagation.
     // However, the problem here is that we're injecting some html provided by the server, which
@@ -74,7 +74,7 @@ export class SelectableView extends React.Component<Props> {
       // eslint-disable-line no-alert
       channel.push("delete_selectable", {
         internal_id: selectable.internal_id,
-        kind: selectable.kind
+        kind: selectable.kind,
       });
     }
     event.preventDefault();
@@ -119,14 +119,14 @@ export class SelectableView extends React.Component<Props> {
         title: this.brokenErrorMessage(),
         dataToggle: "tooltip",
         dataContainer: "body",
-        className: "list-group-item-heading alert-danger"
+        className: "list-group-item-heading alert-danger",
       };
     } else {
       return {
         title: null,
         dataToggle: null,
         dataContainer: null,
-        className: "list-group-item-heading"
+        className: "list-group-item-heading",
       };
     }
   };
@@ -159,7 +159,7 @@ export class SelectableView extends React.Component<Props> {
       title,
       dataToggle,
       dataContainer,
-      className
+      className,
     } = this.brokenMetaData();
     return (
       <div className="list-group-item">

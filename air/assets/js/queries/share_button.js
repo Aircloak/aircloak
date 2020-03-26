@@ -1,16 +1,18 @@
 // @flow
 
 import React from "react";
-import { Modal, Button } from "react-bootstrap";
+import Modal from "react-bootstrap/Modal";
+import Button from "react-bootstrap/Button";
+// import { Modal, Button } from "react-bootstrap";
 
 import type { Result } from "./result";
 
 type Props = {
-  result: Result
+  result: Result,
 };
 
 type State = {
-  showModal: boolean
+  showModal: boolean,
 };
 
 export default class ShareButton extends React.Component<Props, State> {

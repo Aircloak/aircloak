@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import _ from "lodash";
 import Channel from "phoenix";
 
 import { SelectableView } from "./selectable";
@@ -22,14 +21,14 @@ type Props = {
   dataSourceStatus: string,
   frontendSocket: FrontendSocket,
   supportsCreateTable: boolean,
-  selectableToExclude: number
+  selectableToExclude: number,
 };
 
 type State = {
   expanded: Set<string>,
   filter: Filter,
   selectables: Selectable[],
-  dataSourceStatus: string
+  dataSourceStatus: string,
 };
 
 export default class SelectableInfo extends React.Component<Props, State> {
@@ -39,14 +38,14 @@ export default class SelectableInfo extends React.Component<Props, State> {
       dataSourceStatus,
       frontendSocket,
       dataSourceName,
-      userId
+      userId,
     } = this.props;
 
     this.state = {
       expanded: new Set(),
       filter: EmptyFilter(),
       selectables: props.selectables,
-      dataSourceStatus
+      dataSourceStatus,
     };
 
     this.toggleExpand = this.toggleExpand.bind(this);
@@ -57,13 +56,13 @@ export default class SelectableInfo extends React.Component<Props, State> {
       dataSourceName,
       userId,
       {
-        handleEvent: event => this.updateSelectables(event),
-        joined: event => this.updateSelectables(event)
+        handleEvent: (event) => this.updateSelectables(event),
+        joined: (event) => this.updateSelectables(event),
       }
     );
 
     frontendSocket.joinDataSourceChannel(dataSourceName, {
-      handleEvent: event => this.dataSourceStatusReceived(event)
+      handleEvent: (event) => this.dataSourceStatusReceived(event),
     });
   }
 
@@ -74,7 +73,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
   };
 
   toggleExpand = (selectable: Selectable) => () => {
-    this.setState(state => {
+    this.setState((state) => {
       const expanded = state.expanded;
       if (this.expanded(selectable)) {
         expanded.delete(selectable.id);
@@ -91,11 +90,10 @@ export default class SelectableInfo extends React.Component<Props, State> {
 
   expanded = (selectable: Selectable) => this.state.expanded.has(selectable.id);
 
-  selectables = () =>
-    _.reject(
-      this.state.selectables,
-      selectable =>
-        selectable.internal_id ===
+  selectables = (): Array<Selectable> =>
+    this.state.selectables.filter(
+      (selectable) =>
+        selectable.internal_id !==
         (this.props.selectableToExclude || "don't exclude any")
     );
 
@@ -145,7 +143,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
       selectablesEditUrl,
       newTableURL,
       newViewURL,
-      supportsCreateTable
+      supportsCreateTable,
     } = this.props;
     const { filter } = this.state;
     return (

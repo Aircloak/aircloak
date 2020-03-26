@@ -5,7 +5,7 @@ import React from "react";
 type Props = {
   newTableURL: string,
   newViewURL: string,
-  supportsCreateTable: boolean
+  supportsCreateTable: boolean,
 };
 
 export default class NewSelectableToolbarView extends React.Component<Props> {

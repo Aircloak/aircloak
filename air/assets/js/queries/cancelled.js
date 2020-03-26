@@ -10,10 +10,10 @@ import type { CancelledResult } from "./result";
 
 export default ({
   result,
-  debugModeEnabled
+  debugModeEnabled,
 }: {
   result: CancelledResult,
-  debugModeEnabled: boolean
+  debugModeEnabled: boolean,
 }) => {
   return (
     <div className="card border-warning mb-3">

@@ -11,7 +11,7 @@ import { cancel } from "../request";
 
 type Props = {
   result: PendingResult,
-  authentication: Authentication
+  authentication: Authentication,
 };
 
 const stateItem = (state, currentState) => {
@@ -39,7 +39,7 @@ export default ({ result, authentication }: Props) => {
           />{" "}
         </p>
         <ul>
-          {pendingStates.map(state => (
+          {pendingStates.map((state) => (
             <li key={state}>{stateItem(state, result.query_state)}</li>
           ))}
         </ul>

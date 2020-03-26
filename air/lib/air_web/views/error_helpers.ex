@@ -49,9 +49,6 @@ defmodule AirWeb.ErrorHelpers do
     fancy_wrapper(form, field, label, tag(:input, opts), special)
   end
 
-  def validated_textarea(form, field, opts) do
-  end
-
   @doc """
   Translates an error message using gettext.
   """

@@ -28,7 +28,7 @@ describe("anyColumnMatches", () => {
   });
 
   it("is true for empty filters ", () => {
-    const filter = new EmptyFilter();
+    const filter = EmptyFilter();
     assert(filter.anyColumnMatches(columns));
   });
 });
@@ -55,7 +55,7 @@ describe("filterColumns", () => {
   });
 
   it("returns the full array when an empty filter is used", () => {
-    const filter = new EmptyFilter();
+    const filter = EmptyFilter();
     assert.deepEqual(filter.filterColumns(columns), columns);
   });
 

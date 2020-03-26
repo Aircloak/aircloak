@@ -12,15 +12,15 @@ import ShareButton from "./share_button";
 import type { ErrorResult } from "./result";
 
 const mdToHtml = (text: string) => ({
-  __html: pagedown.getSanitizingConverter().makeHtml(text)
+  __html: pagedown.getSanitizingConverter().makeHtml(text),
 });
 
 export default ({
   result,
-  debugModeEnabled
+  debugModeEnabled,
 }: {
   result: ErrorResult,
-  debugModeEnabled: boolean
+  debugModeEnabled: boolean,
 }) => {
   return (
     <div className="card border-danger mb-3">

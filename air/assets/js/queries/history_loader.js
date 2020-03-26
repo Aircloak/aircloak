@@ -7,12 +7,12 @@ export type History = {
   before: string,
   loaded: boolean,
   loading: boolean,
-  error?: boolean
+  error?: boolean,
 };
 
 type Props = {
   history: History,
-  handleLoadHistory: () => void
+  handleLoadHistory: () => void,
 };
 
 export const HistoryLoader = ({ history, handleLoadHistory }: Props) => {

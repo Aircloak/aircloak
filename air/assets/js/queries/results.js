@@ -14,18 +14,18 @@ type Props = {
   results: Result[],
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
-  authentication: Authentication
+  authentication: Authentication,
 };
 
 export default ({
   results,
   numberFormat,
   debugModeEnabled,
-  authentication
+  authentication,
 }: Props) => {
   return (
     <div>
-      {results.map(result => {
+      {results.map((result) => {
         switch (result.query_state) {
           case "completed":
             return (
