@@ -19,10 +19,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   @spec validate_allowed_usage_of_math_and_functions(Query.t()) :: Query.t()
   def validate_allowed_usage_of_math_and_functions(query) do
-    each_anonymized_subquery(query, &verify_negative_conditions!/1)
-
     Helpers.each_subquery(query, fn subquery ->
       unless subquery.type == :standard do
+        verify_negative_conditions!(subquery)
         verify_allowed_usage_of_math(subquery)
         verify_lhs_of_in_is_clear(subquery)
         verify_not_equals_is_clear(subquery)
@@ -335,8 +334,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp verify_conditions(query, predicate, action),
     do: query |> Access.conditions(predicate) |> Enum.each(action)
-
-  defp each_anonymized_subquery(query, function), do: Lens.each(Access.anonymized_queries(), query, function)
 
   defp check_columns_comparison_is_clear(lhs, rhs, query) do
     cond do
