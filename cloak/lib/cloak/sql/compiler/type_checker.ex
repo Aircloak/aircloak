@@ -21,7 +21,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   def validate_allowed_usage_of_math_and_functions(query) do
     Helpers.each_subquery(query, fn subquery ->
       unless subquery.type == :standard do
-        verify_negative_conditions!(subquery)
+        verify_negative_conditions(subquery)
         verify_allowed_usage_of_math(subquery)
         verify_lhs_of_in_is_clear(subquery)
         verify_not_equals_is_clear(subquery)
@@ -258,17 +258,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Negative conditions
   # -------------------------------------------------------------------
 
-  defp verify_negative_conditions!(query) do
+  defp verify_negative_conditions(query) do
     negative_conditions = query |> Access.negative_conditions() |> Enum.to_list()
 
     # We only verify negative conditions if there are enough of them. As a result, a potential cache bug won't
     # crash the queries with too few conditions to raise an error. Similarly, in such situations we don't need to wait
     # for cache to be primed.
     if length(negative_conditions) > Query.max_rare_negative_conditions(query),
-      do: verify_negative_conditions!(query, negative_conditions)
+      do: verify_negative_conditions(query, negative_conditions)
   end
 
-  defp verify_negative_conditions!(query, negative_conditions) do
+  defp verify_negative_conditions(query, negative_conditions) do
     negative_conditions
     |> Stream.reject(&safe_negative_condition?/1)
     |> Stream.drop(Query.max_rare_negative_conditions(query))
