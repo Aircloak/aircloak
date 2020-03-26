@@ -3,6 +3,7 @@
 ### __Breaking changes__
 
 - Default value for `max_rare_negative_conditions` is now 0.
+- `IS [NOT] NULL` operator in only allowed on clear expressions now.
 
 ### New features
 

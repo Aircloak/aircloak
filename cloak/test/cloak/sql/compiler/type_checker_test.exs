@@ -347,6 +347,30 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     end
   end
 
+  describe "IS NULL" do
+    test "allows clear IS NULL",
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE round(numeric) IS NULL"))
+
+    test "forbids unclear IS NULL" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE 1 / numeric IS NULL")
+
+      assert message =~ ~r(Only clear expressions can be used with the `IS \[NOT\] NULL` operator\.)
+    end
+
+    test "forbids unclear IS NOT NULL" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE 1 / numeric IS NOT NULL")
+
+      assert message =~ ~r(Only clear expressions can be used with the `IS \[NOT\] NULL` operator\.)
+    end
+
+    test "forbids unclear IS NULL from subqueries" do
+      assert {:error, message} =
+               compile("SELECT COUNT(*) FROM (SELECT 1 / numeric AS number FROM table) x WHERE number IS NULL")
+
+      assert message =~ ~r(Only clear expressions can be used with the `IS \[NOT\] NULL` operator\.)
+    end
+  end
+
   defp compile(query_string),
     do: query_string |> Parser.parse!() |> Compiler.compile(nil, data_source(), [], %{})
 

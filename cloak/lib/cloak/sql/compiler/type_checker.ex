@@ -32,6 +32,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         verify_ranges_are_clear(subquery)
         verify_isolator_conditions_are_clear(subquery)
         verify_inequalities_are_clear(subquery)
+        verify_is_null_is_clear(subquery)
       end
     end)
 
@@ -177,6 +178,23 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     if interval == :implicit,
       do: not (lhs |> Type.establish_type(query) |> Type.unclear_implicit_range?()),
       else: lhs |> Type.establish_type(query) |> Type.clear_expression?()
+  end
+
+  defp verify_is_null_is_clear(query) do
+    verify_conditions(
+      query,
+      &(Condition.verb(&1) == :is_null),
+      fn condition ->
+        unless condition |> Condition.subject() |> Type.establish_type(query) |> Type.clear_expression?() do
+          raise CompilationError,
+            source_location: condition.source_location,
+            message: """
+            Only clear expressions can be used with the `IS [NOT] NULL` operator.
+            For more information see the "Restrictions" section of the user guides.
+            """
+        end
+      end
+    )
   end
 
   # -------------------------------------------------------------------
