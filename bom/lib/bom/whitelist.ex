@@ -31,11 +31,10 @@ defmodule BOM.Whitelist do
       {"base64-js", "0.0.2"} => %{type: :mit, text: :provided},
       {"bcrypt-pbkdf", "1.0.0"} => %{type: :bsd_4_clause, text: :standard},
       {"bit-twiddle", "0.0.2"} => %{type: :mit, text: :provided},
+      {"boolbase", "1.0.0"} => %{type: :isc, text: :standard},
       {"browser-stdout", "1.3.0"} => %{type: :isc, text: :standard},
       {"browserify-cipher", "1.0.0"} => %{type: :mit, text: :standard},
       {"browserify-des", "1.0.0"} => %{type: :mit, text: :standard},
-      {"brunch-skeletons", "0.1.4"} => %{type: :mit, text: :standard},
-      {"brunch", "2.8.2"} => %{type: :mit, text: :provided},
       {"buffer-alloc-unsafe", "1.1.0"} => %{type: :mit, text: :provided},
       {"buffer-alloc", "1.2.0"} => %{type: :mit, text: :provided},
       {"buffer-fill", "1.0.0"} => %{type: :mit, text: :provided},
@@ -47,6 +46,7 @@ defmodule BOM.Whitelist do
       {"create-hash", "1.1.2"} => %{type: :mit, text: :standard},
       {"create-hmac", "1.1.4"} => %{type: :mit, text: :standard},
       {"csscolorparser", "1.0.3"} => %{type: :mit, text: :provided},
+      {"css-modules-loader-core", "1.1.0"} => %{type: :isc, text: :standard},
       {"damerau-levenshtein", "1.0.3"} => %{type: :bsd_2_clause, text: :standard},
       {"deppack", "0.7.0"} => %{type: :mit, text: :provided},
       {"detect-conflict", "1.0.1"} => %{type: :mit, text: :provided},
@@ -57,8 +57,11 @@ defmodule BOM.Whitelist do
       {"esprima", "1.1.1"} => %{type: :bsd_2_clause, text: :provided},
       {"esrecurse", "4.1.0"} => %{type: :bsd_2_clause, text: :standard},
       {"evp_bytestokey", "1.0.0"} => %{type: :mit, text: :standard},
+      {"fast-diff", "1.2.0"} => %{type: :apache2, text: :standard},
       {"fcache", "0.1.1"} => %{type: :isc, text: :standard},
       {"findup-sync", "0.4.2"} => %{type: :mit, text: :provided},
+      {"file-match", "1.0.2"} => %{type: :isc, text: :standard},
+      {"file-system", "2.2.2"} => %{type: :isc, text: :standard},
       {"flow-parser", "0.116.0"} => %{type: :mit, text: :provided},
       {"geojson-rewind", "0.1.0"} => %{type: :bsd_2_clause, text: :standard},
       {"gl-line2d", "1.3.0"} => %{type: :mit, text: :standard},
@@ -84,7 +87,10 @@ defmodule BOM.Whitelist do
       {"pagedown", "1.1.0"} => %{type: :mit, text: :provided},
       {"pako", "1.0.10"} => %{type: :mit, text: :provided},
       {"parse-asn1", "5.0.0"} => %{type: :isc, text: :standard},
+      {"parse5", "5.1.0"} => %{type: :mit, text: :standard},
+      {"physical-cpu-count", "2.0.0"} => %{type: :isc, text: :standard},
       {"point-geometry", "0.0.0"} => %{type: :isc, text: :provided},
+      {"popper.js", "1.16.1"} => %{type: :mit, text: :standard},
       {"public-encrypt", "4.0.0"} => %{type: :mit, text: :standard},
       {"quickselect", "1.0.0"} => %{type: :isc, text: :standard},
       {"randombytes", "2.0.3"} => %{type: :mit, text: :standard},
@@ -102,10 +108,12 @@ defmodule BOM.Whitelist do
       {"uncontrollable", "5.1.0"} => %{type: :mit, text: :provided},
       {"union-find", "0.0.4"} => %{type: :mit, text: :provided},
       {"unitbezier", "0.0.0"} => %{type: :bsd_3_clause, text: :standard},
+      {"utils-extend", "1.0.8"} => %{type: :isc, text: :standard},
       {"weak-map", "1.0.5"} => %{type: :apache2, text: :provided},
       {"webpack-addons", "1.1.5"} => %{type: :mit, text: :standard},
       {"wgs84", "0.0.0"} => %{type: :bsd_2_clause, text: :standard},
-      {"wordwrap", "0.0.2"} => %{type: :mit, text: :provided}
+      {"wordwrap", "0.0.2"} => %{type: :mit, text: :provided},
+      {"w3c-xmlserializer", "1.1.2"} => %{type: :mit, text: :standard}
     },
     :rust => %{
       {"c_vec", "1.3.2"} => %{type: :mit, text: :provided},
@@ -191,7 +199,13 @@ defmodule BOM.Whitelist do
     # elixir/idna
     "7c9b6269d40a09414db760aa524bf240" => :mit,
     # elixir/earmark
-    "1bf8028080e75e094cd7b53003c2efeb" => :apache2
+    "1bf8028080e75e094cd7b53003c2efeb" => :apache2,
+    # node/mousetrap
+    "573d6504860bb20f6f58dc76f7778c85" => :apache2,
+    # node/node-forge
+    "3468e584d830bfb0ffd2d0af6e129136" => :bsd_3_clause,
+    # node/sha.js
+    "71f5a3fe755d4bb9cb62b97bdad36e45" => :mit
   }
 
   # -------------------------------------------------------------------
