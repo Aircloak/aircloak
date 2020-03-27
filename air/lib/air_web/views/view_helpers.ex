@@ -66,7 +66,7 @@ defmodule AirWeb.ViewHelpers do
   @doc """
   Generates a dropdown link, and highlights the active one
   """
-  @spec navbar_link(Plug.Conn.t(), any, String.t(), Keyword.t()) :: {:safe, [any]}
+  @spec dropdown_link(Plug.Conn.t(), any, String.t(), Keyword.t()) :: {:safe, [any]}
   def dropdown_link(%{request_path: request_path}, name, desired_path, options \\ []) do
     active = active_class(request_path, desired_path)
     options = [{:class, "dropdown-item #{active}"} | [{:to, desired_path} | options]]
