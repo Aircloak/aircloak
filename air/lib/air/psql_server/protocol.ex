@@ -69,7 +69,7 @@ defmodule Air.PsqlServer.Protocol do
           {:error, :query_died | :query_cancelled | String.t()}
           | [command: command, intermediate: boolean, columns: [column], rows: [[db_value]]]
 
-  @type command :: :set | :begin | :select | :fetch | :"declare cursor" | :"close cursor" | :deallocate
+  @type command :: :set | :begin | :discard | :select | :fetch | :"declare cursor" | :"close cursor" | :deallocate
 
   @type prepared_statement :: %{
           name: String.t(),
