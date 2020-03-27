@@ -7,50 +7,50 @@
 <% end %>
 
 <div class="card-columns">
-    <div class="card">
-      <h4 class="card-header">Profile</h4>
-      <div class="card-body">
-        <%= form_for @changeset, profile_path(@conn, :update), fn f -> %>
-            <%= validated_text_input f, :login, "Login", disabled: not can_edit?(@changeset.data) %>
-            
-            <%= validated_text_input f, :name, "Name", disabled: not can_edit?(@changeset.data) %>
+  <div class="card">
+    <h4 class="card-header">Profile</h4>
+    <div class="card-body">
+      <%= form_for @changeset, profile_path(@conn, :update), fn f -> %>
+        <%= validated_text_input f, :login, "Login", disabled: not can_edit?(@changeset.data) %>
+        
+        <%= validated_text_input f, :name, "Name", disabled: not can_edit?(@changeset.data) %>
 
-          <div class="form-group">
-            <label>Number format</label> (applies only to the user interface)<br/>
-            If not set, global settings will apply, which are:
-            <ul>
-              <li>show <%= @global_settings.decimal_digits %> decimal digits</li>
-              <li>decimal separator is '<%= @global_settings.decimal_sep %>'</li>
-              <li>thousand separator is '<%= @global_settings.thousand_sep %>'</li>
-            </ul>
-            <div id="example"></div>
-            <br/>
-            <% inline_form_options = [class: "form-control form-control-sm col-sm-3", group_class: "form-group row", label_class: "col-sm-5 col-form-label col-form-label-sm", error_class: "col-sm-4 invalid-feedback"] %>
-            <%= validated_text_input f, :decimal_sep, "Decimal separator", inline_form_options%>
+        <div class="form-group">
+          <label>Number format</label> (applies only to the user interface)<br/>
+          If not set, global settings will apply, which are:
+          <ul>
+            <li>show <%= @global_settings.decimal_digits %> decimal digits</li>
+            <li>decimal separator is '<%= @global_settings.decimal_sep %>'</li>
+            <li>thousand separator is '<%= @global_settings.thousand_sep %>'</li>
+          </ul>
+          <div id="example"></div>
+          <br/>
+          <% inline_form_options = [class: "form-control form-control-sm col-sm-3", group_class: "form-group row", label_class: "col-sm-5 col-form-label col-form-label-sm", error_class: "col-sm-4 invalid-feedback"] %>
+          <%= validated_text_input f, :decimal_sep, "Decimal separator", inline_form_options%>
 
-            <%= validated_text_input f, :thousand_sep, "Thousand separator",inline_form_options %>
-            
-           <%= validated_number_input f, :decimal_digits, "Decimal digits",inline_form_options %>
-          </div>
-          <div class="form-group">
-            <%= submit "Save", class: "btn btn-primary" %>
-          </div>
-        <% end %>
-      </div>
+          <%= validated_text_input f, :thousand_sep, "Thousand separator",inline_form_options %>
+          
+          <%= validated_number_input f, :decimal_digits, "Decimal digits",inline_form_options %>
+        </div>
+        <div class="form-group">
+          <%= submit "Save", class: "btn btn-primary" %>
+        </div>
+      <% end %>
     </div>
+  </div>
 
-    <div class="card">
-      <h4 class="card-header">Sessions</h4>
-      <div class="card-body">
-        <p>
-          You are currently signed in on <strong><%= session_count(@conn) %></strong> devices. Press the button below,
-          to sign out from all devices except this one.
-        </p>
+  <div class="card">
+    <h4 class="card-header">Sessions</h4>
+    <div class="card-body">
+      <p>
+        You are currently signed in on <strong><%= session_count(@conn) %></strong> devices. Press the button below,
+        to sign out from all devices except this one.
+      </p>
 
-        <%= link "Sign out other sessions", class: "btn btn-danger",
-          to: profile_profile_path(@conn, :delete_sessions), method: :delete %>
-      </div>
+      <%= link "Sign out other sessions", class: "btn btn-danger",
+        to: profile_profile_path(@conn, :delete_sessions), method: :delete %>
     </div>
+  </div>
 
 
   <%= if can_edit?(@changeset.data) do %>
@@ -71,25 +71,24 @@
     </div>
   <% end %>
 
-    <div class="<%= panel_class(@conn.assigns.current_user.debug_mode_enabled) %>">
-      <h4 class="<%= header_class(@conn.assigns.current_user.debug_mode_enabled) %>">Debug mode</h4>
+  <div class="<%= panel_class(@conn.assigns.current_user.debug_mode_enabled) %>">
+    <h4 class="<%= header_class(@conn.assigns.current_user.debug_mode_enabled) %>">Debug mode</h4>
 
-      <div class="card-body">
-        <p>
-          Debug mode enables additional functionality in the user interface aiding in debugging query results.
-          This mode is usually only enabled upon request by the Aircloak support team.
-        </p>
-        <%= if @conn.assigns.current_user.debug_mode_enabled do %>
-          <p>Debug mode is currently enabled.</p>
-          <%= button "Disable debug mode", to: profile_path(@conn, :toggle_debug_mode), class: "btn btn-success" %>
-        <% else %>
-          <p>Debug mode is currently disabled.</p>
-          <%= button "Enable debug mode", to: profile_path(@conn, :toggle_debug_mode), class: "btn btn-warning" %>
-        <% end %>
-        </p>
-      </div>
+    <div class="card-body">
+      <p>
+        Debug mode enables additional functionality in the user interface aiding in debugging query results.
+        This mode is usually only enabled upon request by the Aircloak support team.
+      </p>
+      <%= if @conn.assigns.current_user.debug_mode_enabled do %>
+        <p>Debug mode is currently enabled.</p>
+        <%= button "Disable debug mode", to: profile_path(@conn, :toggle_debug_mode), class: "btn btn-success" %>
+      <% else %>
+        <p>Debug mode is currently disabled.</p>
+        <%= button "Enable debug mode", to: profile_path(@conn, :toggle_debug_mode), class: "btn btn-warning" %>
+      <% end %>
+      </p>
     </div>
-
+  </div>
 </div>
 
 <h2>Privacy settings</h2>
@@ -135,7 +134,7 @@
   window.pageConfig = {
     onLoad: function(App) {
       var props = <%= to_json(%{numberFormat: number_format_settings(@conn)}) %>;
-      //App.numberFormatExample(props, document.getElementById("example"));
+      App.numberFormatExample(props, document.getElementById("example"));
 
       App.passwordField({}, document.querySelector("#password-field"));
     }

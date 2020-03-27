@@ -64,6 +64,7 @@
   display: flex;
   position: relative;
 }
+
 .react-codemirror2 {
   font-size: 16px;
 }
@@ -77,6 +78,7 @@
   border: 1px solid #ccc;
   border-radius: 2px;
 }
+
 .react-codemirror2.editable:focus-within {
   border: 1px solid #66afe9;
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),

@@ -25,7 +25,8 @@ defmodule AirWeb.Admin.LicenseView do
           do: [
             tag(:i, class: "fas fa-check-circle text-success", "aria-hidden": true),
             content_tag(:span, "Enabled", class: "sr-only")
-          ]
+          ],
+          else: ""
         )
       )
     ])
