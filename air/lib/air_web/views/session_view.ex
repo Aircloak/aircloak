@@ -4,9 +4,9 @@ defmodule AirWeb.SessionView do
 
   defp panel_class(conn) do
     cond do
-      has_flash(conn, :error) -> "panel-danger"
-      has_flash(conn, :info) -> "panel-info"
-      true -> "panel-default"
+      has_flash(conn, :error) -> "border-danger"
+      has_flash(conn, :info) -> "border-info"
+      true -> ""
     end
   end
 

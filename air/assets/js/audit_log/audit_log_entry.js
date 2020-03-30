@@ -2,20 +2,19 @@
 
 import React from "react";
 import moment from "moment-timezone";
-import _ from "lodash";
 
 export type AuditLog = {
   event: string,
   user: string,
   time: string,
-  metadata: {}
+  metadata: {},
 };
 
 type Props = { auditLog: AuditLog };
 
 type State = { details: boolean };
 
-const formatTime = isoTime => {
+const formatTime = (isoTime) => {
   const time = moment.tz(isoTime, "UTC");
   return `${time.format("YYYY-MM-DD HH:mm:ss z")} (${time.fromNow()})`;
 };
@@ -33,7 +32,7 @@ export default class AuditLogEntry extends React.Component<Props, State> {
 
   toggleDetails = (event: Event) => {
     event.preventDefault();
-    this.setState(state => ({ details: !state.details }));
+    this.setState((state) => ({ details: !state.details }));
   };
 
   render = () => {
@@ -70,10 +69,10 @@ export default class AuditLogEntry extends React.Component<Props, State> {
     const { auditLog } = this.props;
     return (
       <dl>
-        {_.toPairs(auditLog.metadata).map(([key, value]) => (
+        {Object.entries(auditLog.metadata).map(([key, value]) => (
           <div className="row" key={key}>
-            <dt className="col-sm-3">{_.toString(key)}</dt>
-            <dd className="col-sm-9">{_.toString(value)}</dd>
+            <dt className="col-sm-3">{key}</dt>
+            <dd className="col-sm-9">{(value: any)}</dd>
           </div>
         ))}
       </dl>

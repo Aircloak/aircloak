@@ -23,7 +23,7 @@ defmodule Air.Utils.CheckboxMapper do
     [
       content_tag(:strong, html_escape(name)),
       raw("&nbsp;"),
-      content_tag(:span, class: "label label-danger") do
+      content_tag(:span, class: "badge badge-danger") do
         "Admin"
       end
     ]

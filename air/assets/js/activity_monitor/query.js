@@ -13,11 +13,11 @@ export type Query = {
   analyst_name: string,
   data_source_name: string,
   cloak_name: string,
-  statement: string
+  statement: string,
 };
 
 type Props = {
-  query: Query
+  query: Query,
 };
 
 const maxExcerptLength = 40;
@@ -62,7 +62,7 @@ export class QueryView extends React.Component<Props> {
         <td>
           <button
             type="button"
-            className="btn btn-warning btn-xs"
+            className="btn btn-warning btn-sm"
             onClick={() => cancel(query.id, authentication)}
             disabled={isFinished(query.state)}
           >

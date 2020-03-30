@@ -1,59 +1,51 @@
 <header>
-  <nav role="navigation" class="navbar navbar-default navbar-fixed-top">
-    <div class="container-fluid">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#collapsed-navbar" aria-expanded="false">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand logo" title="Back to the frontpage" href="/"></a>
-      </div>
+  <nav role="navigation" class="navbar navbar-light bg-light fixed-top navbar-expand-md">
+    <a class="navbar-brand logo" title="Back to the frontpage" href="/"></a>
+    <button type="button" class="navbar-toggler collapsed" data-toggle="collapse"
+    data-target="#collapsed-navbar" aria-expanded="false"> 
+      <span class="sr-only">Toggle navigation</span> &#x2630;
+    </button> 
+    <div class="collapse navbar-collapse"
+    id="collapsed-navbar">
+      <ul class="nav navbar-nav ml-auto">
+        <%= warning_navbar_link(@conn) %>
 
-      <div class="collapse navbar-collapse" id="collapsed-navbar">
-        <ul class="nav navbar-nav navbar-right">
-          <%= warning_navbar_link(@conn) %>
+        <%= if permitted?(@conn, AirWeb.DataSourceController, :index) do %>
+          <%= navbar_link(@conn, "Data sources", data_source_path(@conn, :index)) %>
+        <% end %>
 
-          <%= if permitted?(@conn, AirWeb.DataSourceController, :index) do %>
-            <%= navbar_link(@conn, "Data sources", data_source_path(@conn, :index)) %>
-          <% end %>
+        <%= if logged_in?(@conn) do %>
+          <%= navbar_link(@conn, "User Guide", "/docs/", rel: "help", target: "_blank") %>
+          <li class="dropdown nav-item">
+            <a href="#" id="navbar_dropdown" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+              <span class="fas fa-cog"></span>
+            </a>
 
-          <%= if logged_in?(@conn) do %>
-            <%= navbar_link(@conn, "User Guide", "/docs/", rel: "help", target: "_blank") %>
-            <li class="dropdown">
-              <a href="#" id="navbar_dropdown" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                <span class="glyphicon glyphicon-cog"></span> <span class="caret"></span>
-              </a>
+            <ul class="dropdown-menu dropdown-menu-right">
+              <%= if permitted?(@conn, AirWeb.ApiTokenController, :index) do %>
+                <%= dropdown_link(@conn, "API Tokens", api_token_path(@conn, :index)) %>
+              <% end %>
 
-              <ul class="dropdown-menu">
-                <%= if permitted?(@conn, AirWeb.ApiTokenController, :index) do %>
-                  <%= navbar_link(@conn, "API Tokens", api_token_path(@conn, :index)) %>
-                <% end %>
+              <%= if permitted?(@conn, AirWeb.AppLoginController, :index) do %>
+                <%= dropdown_link(@conn, "App logins", app_login_path(@conn, :index)) %>
+              <% end %>
 
-                <%= if permitted?(@conn, AirWeb.AppLoginController, :index) do %>
-                  <%= navbar_link(@conn, "App logins", app_login_path(@conn, :index)) %>
-                <% end %>
+              <%= if permitted?(@conn, AirWeb.ProfileController, :edit) do %>
+                <%= dropdown_link(@conn, "Settings", profile_path(@conn, :edit)) %>
+              <% end %>
 
-                <%= if permitted?(@conn, AirWeb.ProfileController, :edit) do %>
-                  <%= navbar_link(@conn, "Settings", profile_path(@conn, :edit)) %>
-                <% end %>
+              <%= if admin?(@conn) do %>
+                <li role="separator" class="dropdown-divider"></li>
+                <%= dropdown_link(@conn, "Admin", "/admin") %>
+              <% end %>
+            </ul>
+          </li>
+          <%= navbar_link(@conn, "Sign out", session_path(@conn, :delete), method: :delete) %>
 
-                <%= if admin?(@conn) do %>
-                  <li role="separator" class="divider"></li>
-                  <%= navbar_link(@conn, "Admin", "/admin") %>
-                <% end %>
-              </ul>
-            </li>
-
-            <li>
-              <%= link "Sign out", to: session_path(@conn, :delete), method: :delete %>
-            </li>
-          <% else %>
-            <%= navbar_link(@conn, "Sign in", session_path(@conn, :new)) %>
-          <% end %>
-        </ul>
-      </div>
+        <% else %>
+          <%= navbar_link(@conn, "Sign in", session_path(@conn, :new)) %>
+        <% end %>
+      </ul>
     </div>
   </nav>
 </header>

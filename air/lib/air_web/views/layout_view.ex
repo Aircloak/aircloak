@@ -6,7 +6,7 @@ defmodule AirWeb.LayoutView do
     if assigns[:full_width] do
       "container-fluid"
     else
-      "container"
+      "container-lg"
     end
   end
 

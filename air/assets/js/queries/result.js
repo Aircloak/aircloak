@@ -1,8 +1,7 @@
 // @flow
 
 import React from "react";
-import _ from "lodash";
-
+import type { Node } from "react";
 import { AuthContext } from "../authentication_provider";
 import CodeViewer from "../code_viewer";
 import InfoView from "./info_view";
@@ -22,7 +21,7 @@ import activateTooltips from "../tooltips";
 export type Row = {
   occurrences: number,
   row: any[],
-  unreliable: boolean
+  unreliable: boolean,
 };
 
 export type Column = string;
@@ -32,11 +31,11 @@ type CommonResultFeatures = {
   id: string,
   statement: string,
   data_source: {
-    name: string
+    name: string,
   },
   private_permalink: ?string,
   public_permalink: ?string,
-  session_id: ?string
+  session_id: ?string,
 };
 
 export type SuccessResult = CommonResultFeatures & {
@@ -47,24 +46,24 @@ export type SuccessResult = CommonResultFeatures & {
   row_count: number,
   info: string[],
   user: {
-    name: string
+    name: string,
   },
   inserted_at: string,
-  buckets_link: string
+  buckets_link: string,
 };
 
 export type PendingResult = CommonResultFeatures & {
-  query_state: "created"
+  query_state: "created",
 };
 
 export type CancelledResult = CommonResultFeatures & {
-  query_state: "cancelled"
+  query_state: "cancelled",
 };
 
 export type ErrorResult = CommonResultFeatures & {
   query_state: "error",
   error: string,
-  info: string[]
+  info: string[],
 };
 
 export type Result =
@@ -76,7 +75,7 @@ export type Result =
 type Props = {
   result: SuccessResult,
   numberFormat: NumberFormat,
-  debugModeEnabled: boolean
+  debugModeEnabled: boolean,
 };
 
 type State = {
@@ -88,7 +87,7 @@ type State = {
   availableRows: Row[],
   availableChunks: number,
   loadingChunks: boolean,
-  loadError: boolean
+  loadError: boolean,
 };
 
 const ZERO_WIDTH_SPACE = "\u200B";
@@ -106,11 +105,11 @@ export class ResultView extends React.Component<Props, State> {
       showChart: false,
       showChartConfig: true,
       graphConfig: new GraphConfig(),
-      tableAligner: new TableAligner(result.rows),
+      tableAligner: TableAligner(result.rows),
       availableRows: result.rows,
       availableChunks: 1,
       loadingChunks: false,
-      loadError: false
+      loadError: false,
     };
 
     this.componentDidUpdate = this.componentDidUpdate.bind(this);
@@ -138,7 +137,7 @@ export class ResultView extends React.Component<Props, State> {
     );
 
     const { availableRows } = this.state;
-    this.graphInfo = new GraphInfo(result.columns, availableRows);
+    this.graphInfo = GraphInfo(result.columns, availableRows);
     this.rebuildGraphData();
 
     this.addX = this.addX.bind(this);
@@ -164,7 +163,7 @@ export class ResultView extends React.Component<Props, State> {
   rebuildGraphData = () => {
     const { result } = this.props;
     const { availableRows, graphConfig } = this.state;
-    this.graphData = new GraphData(
+    this.graphData = GraphData(
       result.columns,
       availableRows,
       graphConfig,
@@ -187,7 +186,7 @@ export class ResultView extends React.Component<Props, State> {
   };
 
   handleClickLessRows = () => {
-    this.setState(state => {
+    this.setState((state) => {
       const updatedRowsToShowCount = Math.max(
         Math.round(state.rowsToShowCount / 2),
         this.minRowsToShow
@@ -199,11 +198,11 @@ export class ResultView extends React.Component<Props, State> {
   showChart = () => {
     const { availableChunks } = this.state;
     if (availableChunks !== ALL_CHUNKS) {
-      this.loadChunks(ALL_CHUNKS, allRows => {
+      this.loadChunks(ALL_CHUNKS, (allRows) => {
         this.setState({
           availableRows: allRows,
           availableChunks: ALL_CHUNKS,
-          showChart: true
+          showChart: true,
         });
       });
     } else {
@@ -216,23 +215,24 @@ export class ResultView extends React.Component<Props, State> {
     availableRows: Row[],
     availableChunks: number
   ) => {
-    const availableRowsCount = _.sum(
-      _.flatMap(availableRows, row => row.occurrences)
-    );
+    const availableRowsCount = availableRows
+      .flatMap((row) => row.occurrences)
+      .reduce((a, b) => a + b, 0);
+
     if (
       availableChunks === ALL_CHUNKS ||
       rowsToShowCount <= availableRowsCount
     ) {
       this.setState({ rowsToShowCount, availableRows, availableChunks });
     } else {
-      this.loadChunks(availableChunks, newRows => {
+      this.loadChunks(availableChunks, (newRows) => {
         if (newRows.length > 0) {
-          const newAvailableRows = _.concat(availableRows, newRows);
+          const newAvailableRows = availableRows.concat(newRows);
           const newAvailableChunks = availableChunks + 1;
           this.setState({
             rowsToShowCount: availableRowsCount,
             availableRows: newAvailableRows,
-            availableChunks: newAvailableChunks
+            availableChunks: newAvailableChunks,
           });
           this.loadAndShowMoreRows(
             rowsToShowCount,
@@ -249,13 +249,13 @@ export class ResultView extends React.Component<Props, State> {
     const { result } = this.props;
     const { authentication } = this.context;
     loadBuckets(result.buckets_link, desiredChunk, authentication, {
-      success: buckets => {
+      success: (buckets) => {
         this.setState({ loadingChunks: false, loadError: false });
         fun(buckets);
       },
       error: () => {
         this.setState({ loadingChunks: false, loadError: true });
-      }
+      },
     });
   };
 
@@ -280,13 +280,13 @@ export class ResultView extends React.Component<Props, State> {
   };
 
   addX = (col: number) => () =>
-    this.setState(state => ({ graphConfig: state.graphConfig.addX(col) }));
+    this.setState((state) => ({ graphConfig: state.graphConfig.addX(col) }));
 
   addY = (col: number) => () =>
-    this.setState(state => ({ graphConfig: state.graphConfig.addY(col) }));
+    this.setState((state) => ({ graphConfig: state.graphConfig.addY(col) }));
 
   removeColumn = (col: number) => () =>
-    this.setState(state => ({ graphConfig: state.graphConfig.remove(col) }));
+    this.setState((state) => ({ graphConfig: state.graphConfig.remove(col) }));
 
   formatValue = (value: any, columnIndex: number): string => {
     const { result, numberFormat } = this.props;
@@ -343,7 +343,7 @@ export class ResultView extends React.Component<Props, State> {
       loadError,
       showChart,
       showChartConfig,
-      graphConfig
+      graphConfig,
     } = this.state;
     if (loadingChunks) {
       return (
@@ -381,7 +381,7 @@ export class ResultView extends React.Component<Props, State> {
         title:
           "These values are unreliable because of the low number of users involved.",
         dataToggle: "tooltip",
-        className: "unreliable"
+        className: "unreliable",
       };
     } else {
       return {};
@@ -392,7 +392,7 @@ export class ResultView extends React.Component<Props, State> {
     const { result, debugModeEnabled } = this.props;
     const messages = result.info;
     if (!debugModeEnabled) {
-      return messages.filter(message => !message.startsWith("[Debug]"));
+      return messages.filter((message) => !message.startsWith("[Debug]"));
     } else {
       return messages;
     }
@@ -401,17 +401,22 @@ export class ResultView extends React.Component<Props, State> {
   renderRows = () => {
     const { rowsToShowCount, availableRows, tableAligner } = this.state;
     let remainingRowsToProduce = rowsToShowCount;
-    const rows = _.flatMap(availableRows, (accumulateRow, i) => {
+    const rows = availableRows.flatMap<Array<Node>>((accumulateRow, i) => {
       const occurrencesForAccumulateRow = Math.min(
         remainingRowsToProduce,
         accumulateRow.occurrences
       );
-      return _.range(occurrencesForAccumulateRow).map(occurrenceCount => {
+      const result: Array<Node> = [];
+      for (
+        let occurrenceCount = 0;
+        occurrenceCount < occurrencesForAccumulateRow;
+        occurrenceCount++
+      ) {
         remainingRowsToProduce -= 1;
         const { title, dataToggle, className } = this.getRowAttrs(
           accumulateRow
         );
-        return (
+        result.push(
           <tr
             key={`${i}-${occurrenceCount}`}
             title={title}
@@ -426,7 +431,8 @@ export class ResultView extends React.Component<Props, State> {
             ))}
           </tr>
         );
-      });
+      }
+      return result;
     });
     activateTooltips();
     return rows;
@@ -451,7 +457,7 @@ export class ResultView extends React.Component<Props, State> {
           {" rows. "}
           <button
             type="button"
-            className="btn btn-default btn-xs"
+            className="btn btn-outline-secondary btn-sm"
             onClick={this.handleClickLessRows}
           >
             Show fewer rows
@@ -467,7 +473,7 @@ export class ResultView extends React.Component<Props, State> {
           {" rows. "}
           <button
             type="button"
-            className="btn btn-default btn-xs"
+            className="btn btn-outline-secondary btn-sm"
             onClick={this.handleClickMoreRows}
           >
             Show more rows
@@ -483,7 +489,7 @@ export class ResultView extends React.Component<Props, State> {
           {result.row_count}
           {" rows. Show "}
           <button
-            className="btn btn-default btn-xs"
+            className="btn btn-outline-secondary btn-sm"
             type="button"
             onClick={this.handleClickLessRows}
           >
@@ -491,7 +497,7 @@ export class ResultView extends React.Component<Props, State> {
           </button>
           {", "}
           <button
-            className="btn btn-default btn-xs"
+            className="btn btn-outline-secondary btn-sm"
             type="button"
             onClick={this.handleClickMoreRows}
           >
@@ -532,7 +538,7 @@ export class ResultView extends React.Component<Props, State> {
 
   chartButtonClass = () => {
     const { loadingChunks } = this.state;
-    const baseClasses = "btn btn-default btn-xs";
+    const baseClasses = "btn btn-outline-secondary btn-sm";
     if (loadingChunks) {
       return `${baseClasses} disabled`;
     } else {
@@ -547,7 +553,7 @@ export class ResultView extends React.Component<Props, State> {
       return (
         <button
           type="button"
-          className="btn btn-default btn-xs"
+          className="btn btn-outline-secondary btn-sm"
           onClick={() => this.setState({ showChartConfig: !showChartConfig })}
         >
           {text}
@@ -564,7 +570,7 @@ export class ResultView extends React.Component<Props, State> {
       <div className="options-menu">
         <ShareButton result={result} />
         <a
-          className="btn btn-default btn-xs"
+          className="btn btn-outline-secondary btn-sm"
           href={`/queries/${result.id}.csv`}
         >
           Download as CSV
@@ -580,10 +586,11 @@ export class ResultView extends React.Component<Props, State> {
     const { result } = this.props;
     const { tableAligner } = this.state;
     return (
-      <div className="panel panel-success">
-        <div className="panel-heading" />
-        <div className="panel-body">
+      <div className="card border-success mb-3">
+        <div className="card-header border-success bg-white">
           <CodeViewer statement={result.statement} />
+        </div>
+        <div className="card-body">
           <InfoView info={this.getInfoMessages()} />
           <div className="result-table">
             <table className="table table-striped table-condensed table-hover">

@@ -1,10 +1,10 @@
 import assert from "assert";
 
-import {Filter, EmptyFilter} from "selectable_info/filter";
+import { Filter, EmptyFilter } from "../js/selectable_info/filter";
 
-const column1 = {name: "name1", type: "type1", key_type: null};
-const column2 = {name: "name2", type: "type2", key_type: "user_id"};
-const column3 = {name: "name3", type: "type3", key_type: "account_id"};
+const column1 = { name: "name1", type: "type1", key_type: null };
+const column2 = { name: "name2", type: "type2", key_type: "user_id" };
+const column3 = { name: "name3", type: "type3", key_type: "account_id" };
 const columns = [column1, column2, column3];
 
 it("constructs successfully", () => {
@@ -28,7 +28,7 @@ describe("anyColumnMatches", () => {
   });
 
   it("is true for empty filters ", () => {
-    const filter = new EmptyFilter();
+    const filter = EmptyFilter();
     assert(filter.anyColumnMatches(columns));
   });
 });
@@ -55,7 +55,7 @@ describe("filterColumns", () => {
   });
 
   it("returns the full array when an empty filter is used", () => {
-    const filter = new EmptyFilter();
+    const filter = EmptyFilter();
     assert.deepEqual(filter.filterColumns(columns), columns);
   });
 
