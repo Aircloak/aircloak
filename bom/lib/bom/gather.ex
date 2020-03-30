@@ -37,6 +37,12 @@ defmodule BOM.Gather do
   def public_domain_license(:public_domain), do: License.find_by_type(:public_domain)
   def public_domain_license(_type), do: nil
 
+  @doc "Returns a License from the allowed types, nil otherwise"
+  @spec public_domain_license(atom) :: License.t() | nil
+  def allowed_license(type) do
+    if License.allowed_type?(type), do: License.find_by_type(type)
+  end
+
   @doc """
   Calls `action` with the text of a file under `path` matching the glob `pattern`, returning its result.
   Returns nil if such a file cannot be found or opened.
