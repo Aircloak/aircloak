@@ -35,7 +35,7 @@ defmodule IntegrationTest.QueryTest do
            )
   end
 
-  test "show columns ignores blacklisted columns", context do
+  test "show columns ignores excluded columns", context do
     {:ok, result} = run_query(context.user, "show columns from column_access")
 
     assert [
@@ -53,7 +53,7 @@ defmodule IntegrationTest.QueryTest do
            ]
   end
 
-  test "cannot select blacklisted columns", context do
+  test "cannot select excluded columns", context do
     {:ok, result} = run_query(context.user, "select white, black from column_access")
     assert result.error =~ "Column `black` doesn't exist in table `column_access`."
   end

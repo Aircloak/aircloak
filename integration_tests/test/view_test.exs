@@ -53,7 +53,7 @@ defmodule IntegrationTest.ViewTest do
     assert [%{"occurrences" => 100, "row" => ["john"]}] = result.buckets
   end
 
-  test "select * ignores blacklisted columns", context do
+  test "select * ignores excluded columns", context do
     name = unique_name(:view)
     {:ok, view} = create_view(context.user, name, "select * from column_access")
 
@@ -61,7 +61,7 @@ defmodule IntegrationTest.ViewTest do
     assert "black" not in columns
   end
 
-  test "cannot select blacklisted columns", context do
+  test "cannot select excluded columns", context do
     name = unique_name(:view)
     {:error, changeset} = create_view(context.user, name, "select white, black from column_access")
     assert changeset.errors[:sql] == {"Column `black` doesn't exist in table `column_access`.", []}

@@ -166,7 +166,7 @@ defmodule IntegrationTest.Manager do
       "white INTEGER, grey INTEGER, black INTEGER",
       Keyword.merge(
         opts,
-        blacklisted_columns: ["black"]
+        exclude_columns: ["black"]
       )
     )
   end
