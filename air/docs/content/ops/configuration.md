@@ -543,7 +543,7 @@ products might look like this:
     ]
   },
   "products": {
-    "type": "non-personal",
+    "content_type": "non-personal",
     "keys": [
       {"product_id": "id"}
     ]
