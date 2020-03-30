@@ -38,7 +38,7 @@ defmodule BOM.Gather do
   def public_domain_license(_type), do: nil
 
   @doc "Returns a License from the allowed types, nil otherwise"
-  @spec public_domain_license(atom) :: License.t() | nil
+  @spec allowed_license(atom) :: License.t() | nil
   def allowed_license(type) do
     if License.allowed_type?(type), do: License.find_by_type(type)
   end
