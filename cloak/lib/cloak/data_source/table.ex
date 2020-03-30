@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.Table do
           # the SQL query for a virtual table
           :query => Query.t() | nil,
           :columns => [column],
-          :blacklisted_columns => [String.t()],
+          :exclude_columns => [String.t()],
           :keys => Map.t(),
           :content_type => :private | :public,
           :auto_isolating_column_classification => boolean,
@@ -37,7 +37,7 @@ defmodule Cloak.DataSource.Table do
   @type option ::
           {:db_name, String.t()}
           | {:columns, [column]}
-          | {:blacklisted_columns, [String.t()]}
+          | {:exclude_columns, [String.t()]}
           | {:keys, Map.t()}
           | {:query, Query.t()}
           | {:content_type, :private | :public}
@@ -68,7 +68,7 @@ defmodule Cloak.DataSource.Table do
         type: :regular
       }
       |> Map.merge(Map.new(opts))
-      |> remove_blacklisted_columns()
+      |> remove_excluded_columns()
 
     keys = if(user_id_column_name == nil, do: table.keys, else: Map.put(table.keys, user_id_column_name, :user_id))
     %{table | keys: keys}
@@ -269,13 +269,13 @@ defmodule Cloak.DataSource.Table do
 
   defp parse_columns(data_source, table) do
     table.columns
-    |> Enum.reject(&blacklisted?(table, &1))
+    |> Enum.reject(&exclude_column?(table, &1))
     |> Enum.reject(&supported?/1)
     |> validate_unsupported_columns(data_source, table)
 
     columns =
       table.columns
-      |> Enum.reject(&blacklisted?(table, &1))
+      |> Enum.reject(&exclude_column?(table, &1))
       |> Enum.map(fn column ->
         if(supported?(column), do: column, else: %{column | type: :unknown})
       end)
@@ -314,13 +314,13 @@ defmodule Cloak.DataSource.Table do
   defp supported?(%{type: {:unsupported, _db_type}}), do: false
   defp supported?(_column), do: true
 
-  defp blacklisted?(table, column), do: column.name in Map.get(table, :blacklisted_columns, [])
+  defp exclude_column?(table, column), do: column.name in Map.get(table, :exclude_columns, [])
 
-  defp remove_blacklisted_columns(%{columns: columns, blacklisted_columns: blacklisted_columns} = table) do
-    %{table | columns: Enum.reject(columns, &(&1.name in blacklisted_columns))}
+  defp remove_excluded_columns(%{columns: columns, exclude_columns: exclude_columns} = table) do
+    %{table | columns: Enum.reject(columns, &(&1.name in exclude_columns))}
   end
 
-  defp remove_blacklisted_columns(table), do: table
+  defp remove_excluded_columns(table), do: table
 
   defp validate_unsupported_columns([], _data_source, _table), do: :ok
 

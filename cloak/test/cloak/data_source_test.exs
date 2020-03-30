@@ -7,9 +7,7 @@ defmodule Cloak.DataSourceTest do
 
   setup_all do
     :ok =
-      Cloak.Test.DB.create_table("test", "value INTEGER, ignored_column INTEGER",
-        blacklisted_columns: ["ignored_column"]
-      )
+      Cloak.Test.DB.create_table("test", "value INTEGER, ignored_column INTEGER", exclude_columns: ["ignored_column"])
 
     :ok =
       Cloak.Test.DB.insert_data("test", ["user_id", "value", "ignored_column"], [
