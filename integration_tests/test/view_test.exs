@@ -53,6 +53,20 @@ defmodule IntegrationTest.ViewTest do
     assert [%{"occurrences" => 100, "row" => ["john"]}] = result.buckets
   end
 
+  test "select * ignores excluded columns", context do
+    name = unique_name(:view)
+    {:ok, view} = create_view(context.user, name, "select * from column_access")
+
+    columns = Enum.map(view.columns, & &1.name)
+    assert "black" not in columns
+  end
+
+  test "cannot select excluded columns", context do
+    name = unique_name(:view)
+    {:error, changeset} = create_view(context.user, name, "select white, black from column_access")
+    assert changeset.errors[:sql] == {"Column `black` doesn't exist in table `column_access`.", []}
+  end
+
   test "view name can't be the same as a name of an existing table", context do
     name = unique_name(:view)
     {:ok, _} = Air.Service.AnalystTable.create(context.user, Manager.data_source(), name, "select * from users")
