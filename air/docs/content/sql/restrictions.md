@@ -195,6 +195,18 @@ A clear expression is a simple expression that:
 
 Such expressions are considered to be safe in general and are exempt from many of the following restrictions.
 
+### Aggregated expressions
+
+All aggregated expressions have to be clear.
+
+```sql
+-- Correct - aggregated expression is clear:
+SELECT SUM(round(column)) FROM table
+
+-- Incorrect - aggregated expression is not clear:
+SELECT SUM(1 / column) FROM table
+```
+
 ### `IS [NOT] NULL` conditions
 
 The subject of an `IS [NOT] NULL` condition has to be a clear expression.

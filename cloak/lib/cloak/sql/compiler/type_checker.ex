@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   as checks to validate that columns used in certain filter conditions haven't been altered.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range, Function}
   alias Cloak.Sql.Compiler.TypeChecker.{Access, Type}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.DataSource.{Isolators, Shadows}
@@ -32,6 +32,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         verify_isolator_conditions_are_clear(subquery)
         verify_inequalities_are_clear(subquery)
         verify_is_null_is_clear(subquery)
+        verify_aggregated_expressions_are_clear(subquery)
       end
     end)
 
@@ -194,6 +195,36 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       end
     )
+  end
+
+  defp verify_aggregated_expressions_are_clear(query) do
+    restricted_expressions()
+    |> Lens.filter(&Function.aggregator?/1)
+    |> Lens.key(:args)
+    |> Lens.at(0)
+    |> Lens.reject(&match?(%Expression{kind: :function, name: "case"}, &1))
+    |> Lens.reject(&(&1 |> Type.establish_type(query) |> Type.clear_expression?()))
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [expression | _rest] ->
+        source_location =
+          case expression do
+            {:distinct, expression} -> expression.source_location
+            _ -> expression.source_location
+          end
+
+        raise(
+          CompilationError,
+          source_location: source_location,
+          message: """
+          Only clear expressions can be aggregated.
+          For more information see the "Restrictions" section of the user guides.
+          """
+        )
+    end
   end
 
   # -------------------------------------------------------------------

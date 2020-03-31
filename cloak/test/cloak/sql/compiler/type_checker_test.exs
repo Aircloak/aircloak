@@ -371,6 +371,35 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     end
   end
 
+  describe "aggregators" do
+    test "allows clear aggregator",
+      do: assert({:ok, _} = compile("SELECT SUM(round(numeric)) FROM table"))
+
+    test "forbids unclear count" do
+      assert {:error, message} = compile("SELECT COUNT(1/numeric) FROM table")
+
+      assert message =~ ~r(Only clear expressions can be aggregated\.)
+    end
+
+    test "forbids unclear sum" do
+      assert {:error, message} = compile("SELECT SUM(1/numeric) FROM table")
+
+      assert message =~ ~r(Only clear expressions can be aggregated\.)
+    end
+
+    test "forbids unclear count distinct" do
+      assert {:error, message} = compile("SELECT COUNT(DISTINCT 1/numeric) FROM table")
+
+      assert message =~ ~r(Only clear expressions can be aggregated\.)
+    end
+
+    test "forbids unclear aggregator from subquery" do
+      assert {:error, message} = compile("SELECT STDDEV(number) FROM (SELECT 1 / numeric AS number FROM table) x")
+
+      assert message =~ ~r(Only clear expressions can be aggregated\.)
+    end
+  end
+
   defp compile(query_string),
     do: query_string |> Parser.parse!() |> Compiler.compile(nil, data_source(), [], %{})
 
