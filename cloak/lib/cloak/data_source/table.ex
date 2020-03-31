@@ -268,15 +268,14 @@ defmodule Cloak.DataSource.Table do
   end
 
   defp parse_columns(data_source, table) do
-    table.columns
-    |> Enum.reject(&exclude_column?(table, &1))
+    current_columns = Enum.reject(table.columns, &exclude_column?(table, &1))
+
+    current_columns
     |> Enum.reject(&supported?/1)
     |> validate_unsupported_columns(data_source, table)
 
     columns =
-      table.columns
-      |> Enum.reject(&exclude_column?(table, &1))
-      |> Enum.map(fn column ->
+      Enum.map(current_columns, fn column ->
         if(supported?(column), do: column, else: %{column | type: :unknown})
       end)
 
