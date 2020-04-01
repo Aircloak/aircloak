@@ -10,6 +10,8 @@
 
 ### Bugfixes
 
+- Fixed filtering of censored values in standard queries.
+
 ### Changes
 
 ## Version 20.1.0
