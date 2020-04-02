@@ -219,11 +219,12 @@ defmodule Cloak.Regressions.TeamBank.Test do
 
   test "bianca 8" do
     query = """
-    SELECT avg(income)
+    SELECT avg(income) / avg(months)
     FROM(
       SELECT
         subInhaberId,
-        SUM(betrag) / count(distinct month) AS income
+        sum(betrag) as income,
+        count(distinct month) as months
       FROM (
         SELECT
           subInhaberId,
@@ -615,12 +616,12 @@ defmodule Cloak.Regressions.TeamBank.Test do
     query = """
     SELECT
       bucket(income by 200 align middle) as income_class,
-      avg(monthly_savings)
+      avg(income) + avg(expenses)
     FROM (
       SELECT
         expenses_by_month.inhaberId,
         avg(monthly_income) as income,
-        avg(monthly_income) + avg(monthly_expenses) as monthly_savings
+        avg(monthly_expenses) as expenses
       FROM (
         SELECT
           inhaberId,

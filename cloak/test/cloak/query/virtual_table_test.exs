@@ -148,7 +148,7 @@ defmodule Cloak.Query.VirtualTableTest do
       on t1.user_id = t2.user_id and t1.ival <> t2.ival
     """)
 
-    assert_query("select sum(i1+i2) from vtt_fake", %{rows: [%{row: [600]}]})
+    assert_query("select sum(i1) + sum(i2) from vtt_fake", %{rows: [%{row: [600]}]})
   end
 
   describe "data decoding tests" do

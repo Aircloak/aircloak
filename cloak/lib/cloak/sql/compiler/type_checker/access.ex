@@ -5,18 +5,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   definitions.
   """
 
-  use Lens.Macros
   alias Cloak.Sql.{Condition, Query, Expression, LikePattern}
   alias Cloak.Sql.Compiler.TypeChecker.Type
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Returns a lens focusing on all queries (sub- and root-) with the type :anonymized."
-  deflens anonymized_queries() do
-    Query.Lenses.all_queries() |> Lens.filter(&(&1.type == :anonymized))
-  end
 
   @doc "Returns a stream of `{subquery, negative_condition}` pairs that require a shadow table check."
   @spec negative_conditions(Query.t()) :: Enumerable.t({Query.t(), Query.where_clause()})
@@ -48,7 +42,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   # Negative conditions
   # -------------------------------------------------------------------
 
-  deflensp do_negative_conditions() do
+  defp do_negative_conditions() do
     Query.Lenses.pre_anonymization_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.filter(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))

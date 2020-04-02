@@ -239,8 +239,8 @@ defmodule Cloak.Query.JoinTest do
 
     assert_query(
       """
-        SELECT sum(x) FROM (
-          SELECT t1.user_id, x1 + x2 AS x FROM
+        SELECT sum(x1) + sum(x2) FROM (
+          SELECT t1.user_id, x1, x2 FROM
             (SELECT user_id, COUNT(*) AS x2 FROM heights_join GROUP BY user_id, height) AS t1
             INNER JOIN
             (SELECT user_id, COUNT(*) AS x1 FROM purchases GROUP BY user_id, price) AS t2
