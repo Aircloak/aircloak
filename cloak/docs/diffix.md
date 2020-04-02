@@ -818,7 +818,7 @@ The information that needs to be generated is: `col_sum, count_duid, min_uid, ma
 
 ### Suppress aggregate values
 
-The aggregates `min()` and `max()` often have very poor accuracy when the number of distinct users is low. To mitigate this, the cloak reports `NULL` for `min()` and `max()` when the number of distinct users is less than a noisy threshold with mean 10 and a standard deviation of `(0.5 * L)`, where `L` is the number of noise layers. Note that the bucket itself is still reported: only the `min()` or `max()` aggregate itself is set to NULL.
+The aggregates `min()` and `max()` often have very poor accuracy when the number of distinct users is low. To mitigate this, the cloak reports `NULL` for `min()` and `max()` when the number of distinct users is less than a noisy threshold with mean 10 and a standard deviation of `(0.5 * L)`, where `L` is the number of noise layers. Note that the bucket itself is still reported: only the `min()` or `max()` aggregate itself is set to `NULL`.
 
 # Aggregation function count distinct
 
