@@ -54,8 +54,8 @@ config :cloak, :anonymizer,
   sum_noise_sigma_scale_params: {1, 0.5},
 
   # The mean and standard deviation for the lower bound of the number of users that have
-  # to be in a bucket so that statistics-based min/max aggregators will compute a result.
-  stats_minmax_soft_lower_bound: {10, 0.5},
+  # to be in a bucket so that statistics-based aggregators will compute a result.
+  stats_aggregators_soft_lower_bound: {10, 0.5},
 
   # This value specifies the isolating factor threshold. See `Isolating columns` in anonymization.md.
   isolating_column_threshold: 0.8

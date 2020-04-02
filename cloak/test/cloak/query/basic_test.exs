@@ -195,7 +195,7 @@ defmodule Cloak.Query.BasicTest do
       rows: rows
     })
 
-    assert Enum.map(rows, & &1[:row]) == [[1700], [1600], [1800]]
+    assert Enum.map(rows, & &1[:row]) == [[nil], [1600], [1800]]
   end
 
   test "order by grouped but non-selected aggregate" do
@@ -209,7 +209,7 @@ defmodule Cloak.Query.BasicTest do
       rows: rows
     })
 
-    assert Enum.map(rows, & &1[:row]) == [["mike"], ["adam"], ["john"]]
+    assert Enum.map(rows, & &1[:row]) == [["adam"], ["mike"], ["john"]]
   end
 
   test "order by grouped but non-selected aggregate with selected aggregate function" do
@@ -223,7 +223,7 @@ defmodule Cloak.Query.BasicTest do
       rows: rows
     })
 
-    assert Enum.map(rows, & &1[:row]) == [[180.0, 180.0], [170.0, 170.0], [160.0, 160.0]]
+    assert Enum.map(rows, & &1[:row]) == [[180.0, 180.0], [170.0, 170.0], [160.0, nil]]
   end
 
   test "order by nulls first" do
