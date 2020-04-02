@@ -3,8 +3,8 @@
 ### __Breaking changes__
 
 - Default value for `max_rare_negative_conditions` is now 0.
-- `IS [NOT] NULL` operator in only allowed on clear expressions now.
-- Aggregators are only allowed on clear expressions now.
+- The `IS [NOT] NULL` operator is restricted to clear expressions.
+- Aggregators are restricted to clear expressions.
 
 ### New features
 
