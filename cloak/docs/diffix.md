@@ -47,6 +47,7 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
       - [Operation of min and max](#operation-of-min-and-max)
     - [Reporting suppression](#reporting-suppression)
       - [Bucket merging](#bucket-merging)
+    - [Suppress aggregate values](#suppress-aggregate-values)
 - [Aggregation function count distinct](#aggregation-function-count-distinct)
 - [Aggregation function stddev](#aggregation-function-stddev)
 
@@ -815,6 +816,9 @@ The information that needs to be generated is: `col_sum, count_duid, min_uid, ma
 - `merged_avg = merged_col_sum / merged_col_count`
 - For the standard deviation, we use the formula: `sd(v) = sqrt(sum(v^2) / count - avg(v)^2)` We first extract the sums of squared values: `sum_sqrs1 = (col_stddev1^2 + avg1^2) * col_count1` and `sum_sqrs2 = (col_stddev2^2 + avg2^2) * col_count2`, we then add them together to get the merged sum of squared values, resulting in: `merged_sd = sqrt(merged_sum_sqrs / merged_col_count - merged_avg^2)`
 
+### Suppress aggregate values
+
+The aggregates `min()` and `max()` often have very poor accuracy when the number of distinct users is low. To mitigate this, the cloak reports `NULL` for `min()` and `max()` when the number of distinct users is less than a noisy threshold with mean 10 and a standard deviation of `(0.5 * L)`, where `L` is the number of noise layers. Note that the bucket itself is still reported: only the `min()` or `max()` aggregate itself is set to NULL.
 
 # Aggregation function count distinct
 
