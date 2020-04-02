@@ -21,18 +21,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   def validate_allowed_usage_of_math_and_functions(query) do
     Helpers.each_subquery(query, fn subquery ->
       unless subquery.type == :standard do
-        verify_negative_conditions(subquery)
-        verify_allowed_usage_of_math(subquery)
-        verify_lhs_of_in_is_clear(subquery)
-        verify_not_equals_is_clear(subquery)
-        verify_lhs_of_not_like_is_clear(subquery)
-        verify_string_based_conditions_are_clear(subquery)
-        verify_string_based_expressions_are_clear(subquery)
-        verify_ranges_are_clear(subquery)
-        verify_isolator_conditions_are_clear(subquery)
-        verify_inequalities_are_clear(subquery)
-        verify_is_null_is_clear(subquery)
-        verify_aggregated_expressions_are_clear(subquery)
+        verify_negative_conditions!(subquery)
+        verify_allowed_usage_of_math!(subquery)
+        verify_lhs_of_in_is_clear!(subquery)
+        verify_not_equals_is_clear!(subquery)
+        verify_lhs_of_not_like_is_clear!(subquery)
+        verify_string_based_conditions_are_clear!(subquery)
+        verify_string_based_expressions_are_clear!(subquery)
+        verify_ranges_are_clear!(subquery)
+        verify_isolator_conditions_are_clear!(subquery)
+        verify_inequalities_are_clear!(subquery)
+        verify_is_null_is_clear!(subquery)
+        verify_aggregated_expressions_are_clear!(subquery)
       end
     end)
 
@@ -43,7 +43,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Top-level checks
   # -------------------------------------------------------------------
 
-  def verify_allowed_usage_of_math(query) do
+  def verify_allowed_usage_of_math!(query) do
     restricted_expressions()
     |> Lens.filter(fn expression ->
       type = Type.establish_type(expression, query)
@@ -65,7 +65,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     end
   end
 
-  defp verify_lhs_of_in_is_clear(query),
+  defp verify_lhs_of_in_is_clear!(query),
     do:
       verify_conditions(query, &Condition.in?/1, fn %Expression{kind: :function, name: "in", args: [lhs | _]} ->
         unless lhs |> Type.establish_type(query) |> Type.clear_expression?() do
@@ -78,17 +78,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       end)
 
-  defp verify_not_equals_is_clear(query),
+  defp verify_not_equals_is_clear!(query),
     do:
       verify_conditions(
         query,
         &Condition.not_equals?/1,
         fn %Expression{kind: :function, name: "<>", args: [lhs, rhs]} ->
-          check_columns_comparison_is_clear(lhs, rhs, query)
+          check_columns_comparison_is_clear!(lhs, rhs, query)
         end
       )
 
-  defp verify_string_based_conditions_are_clear(query),
+  defp verify_string_based_conditions_are_clear!(query),
     do:
       verify_conditions(
         query,
@@ -112,7 +112,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       )
 
-  defp verify_string_based_expressions_are_clear(query) do
+  defp verify_string_based_expressions_are_clear!(query) do
     restricted_expressions()
     |> Lens.filter(&(&1 |> Type.establish_type(query) |> Type.unclear_string_manipulation?()))
     |> Lens.to_list(query)
@@ -134,7 +134,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   end
 
   @allowed_like_functions []
-  defp verify_lhs_of_not_like_is_clear(query),
+  defp verify_lhs_of_not_like_is_clear!(query),
     do:
       verify_conditions(
         query,
@@ -158,7 +158,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       )
 
-  defp verify_ranges_are_clear(query),
+  defp verify_ranges_are_clear!(query),
     do:
       query
       |> Range.find_ranges()
@@ -180,7 +180,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       else: lhs |> Type.establish_type(query) |> Type.clear_expression?()
   end
 
-  defp verify_is_null_is_clear(query) do
+  defp verify_is_null_is_clear!(query) do
     verify_conditions(
       query,
       &(Condition.verb(&1) == :is_null),
@@ -197,7 +197,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     )
   end
 
-  defp verify_aggregated_expressions_are_clear(query) do
+  defp verify_aggregated_expressions_are_clear!(query) do
     restricted_expressions()
     |> Lens.filter(&Function.aggregator?/1)
     |> Lens.key(:args)
@@ -231,7 +231,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Isolators
   # -------------------------------------------------------------------
 
-  defp verify_isolator_conditions_are_clear(query) do
+  defp verify_isolator_conditions_are_clear!(query) do
     query
     |> Access.potential_unclear_isolator_usages()
     |> Stream.filter(&includes_isolating_column?(&1, query))
@@ -289,24 +289,24 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Negative conditions
   # -------------------------------------------------------------------
 
-  defp verify_negative_conditions(query) do
+  defp verify_negative_conditions!(query) do
     negative_conditions = query |> Access.negative_conditions() |> Enum.to_list()
 
     # We only verify negative conditions if there are enough of them. As a result, a potential cache bug won't
     # crash the queries with too few conditions to raise an error. Similarly, in such situations we don't need to wait
     # for cache to be primed.
     if length(negative_conditions) > Query.max_rare_negative_conditions(query),
-      do: verify_negative_conditions(query, negative_conditions)
+      do: verify_negative_conditions!(query, negative_conditions)
   end
 
-  defp verify_negative_conditions(query, negative_conditions) do
+  defp verify_negative_conditions!(query, negative_conditions) do
     negative_conditions
     |> Stream.reject(&safe_negative_condition?/1)
     |> Stream.drop(Query.max_rare_negative_conditions(query))
     |> Enum.take(1)
     |> case do
       [] -> :ok
-      [{_subquery, condition}] -> raise_negative_condition_error(query, condition)
+      [{_subquery, condition}] -> raise_negative_condition_error!(query, condition)
     end
   end
 
@@ -322,7 +322,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     end
   end
 
-  defp raise_negative_condition_error(query, offending_condition) do
+  defp raise_negative_condition_error!(query, offending_condition) do
     raise CompilationError,
       source_location: Condition.subject(offending_condition).source_location,
       message: """
@@ -343,10 +343,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Inequalities
   # -------------------------------------------------------------------
 
-  defp verify_inequalities_are_clear(query) do
+  defp verify_inequalities_are_clear!(query) do
     verify_conditions(query, &Condition.inequality?/1, fn condition ->
       [lhs, rhs] = Condition.targets(condition)
-      check_columns_comparison_is_clear(lhs, rhs, query)
+      check_columns_comparison_is_clear!(lhs, rhs, query)
     end)
   end
 
@@ -366,7 +366,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp verify_conditions(query, predicate, action),
     do: query |> Access.conditions(predicate) |> Enum.each(action)
 
-  defp check_columns_comparison_is_clear(lhs, rhs, query) do
+  defp check_columns_comparison_is_clear!(lhs, rhs, query) do
     cond do
       not (lhs |> Type.establish_type(query) |> Type.clear_expression?()) -> {true, lhs.source_location}
       not (rhs |> Type.establish_type(query) |> Type.clear_expression?()) -> {true, rhs.source_location}
