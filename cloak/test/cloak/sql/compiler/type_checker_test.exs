@@ -351,6 +351,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows clear IS NULL",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE round(numeric) IS NULL"))
 
+    test "allows clear IS NOT NULL",
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE round(numeric) IS NOT NULL"))
+
     test "forbids unclear IS NULL" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE 1 / numeric IS NULL")
 
