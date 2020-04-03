@@ -14,6 +14,8 @@
 
 ### Changes
 
+- Increased the minimum threshold for non-count stats-based aggregators.
+
 ## Version 20.1.0
 
 ### __Breaking changes__
