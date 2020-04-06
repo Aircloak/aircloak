@@ -1261,7 +1261,7 @@ defmodule Cloak.Query.BasicTest do
     test "sum" do
       assert_query("select sum_noise(height) from heights", %{
         columns: ["sum_noise"],
-        rows: [%{row: [180.0], occurrences: 1}]
+        rows: [%{row: [200.0], occurrences: 1}]
       })
     end
 
@@ -1272,8 +1272,8 @@ defmodule Cloak.Query.BasicTest do
     end
 
     test "avg statistics" do
-      assert_query("select avg_noise(height) from heights", %{
-        rows: [%{row: [6.0], occurrences: 1}]
+      assert_query("select trunc(avg_noise(height), 1) from heights", %{
+        rows: [%{row: [6.6], occurrences: 1}]
       })
     end
 

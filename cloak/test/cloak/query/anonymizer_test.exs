@@ -186,7 +186,7 @@ defmodule Cloak.Query.AnonimyzerTest do
   end
 
   test "insufficient statistics" do
-    statistics = {1, 100, 1, 20, 10, 5}
+    statistics = {2, 100, 1, 20, 10, 5}
     anonymizer = empty_accumulator() |> Anonymizer.new()
     assert {nil, nil, nil, nil} = Anonymizer.noisy_statistics(anonymizer, statistics)
   end
