@@ -1931,4 +1931,18 @@ defmodule Cloak.Query.BasicTest do
       %{rows: [%{row: [10]}]}
     )
   end
+
+  test "filtering censored values" do
+    :ok = insert_rows(_user_ids = 0..2, "heights", ["name"], ["Alice"])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["name"], ["Charlie"])
+    :ok = insert_rows(_user_ids = 3..6, "heights", ["name"], ["John"])
+    :ok = insert_rows(_user_ids = 7..9, "heights", ["name"], ["Bob"])
+
+    assert_query("select count(*), name from heights group by name having name = 'Charlie'", %{
+      columns: ["count", "name"],
+      rows: rows
+    })
+
+    assert [%{row: [10, "Charlie"], occurrences: 1}] = rows
+  end
 end

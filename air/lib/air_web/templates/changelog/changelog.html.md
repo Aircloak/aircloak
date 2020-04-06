@@ -12,6 +12,8 @@
 
 ### Bugfixes
 
+- Fixed filtering of censored values in standard queries.
+
 ### Changes
 
 - Increased the minimum threshold for non-count stats-based aggregators.
