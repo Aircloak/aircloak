@@ -4,6 +4,10 @@
 
 - Support for excluding columns from a data source table. This can be done using the `exclude_columns` parameter.
 
+### Bugfixes
+
+- Fixed handling of dotted table names and aliases.
+
 ## Version 20.1.0
 
 ### __Breaking changes__
