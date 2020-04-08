@@ -13,6 +13,7 @@
 ### Bugfixes
 
 - Fixed filtering of censored values in standard queries.
+- Fixed handling of dotted table names and aliases.
 
 ### Changes
 

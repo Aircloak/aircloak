@@ -249,4 +249,11 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["count"], rows: [%{row: [200], occurrences: 1}]}
     )
   end
+
+  test "aliased subquery with dots" do
+    assert_query(
+      "select count(height) from (select user_id, height from heights_sq) \"x.y\"",
+      %{columns: ["count"], rows: [%{row: [100], occurrences: 1}]}
+    )
+  end
 end

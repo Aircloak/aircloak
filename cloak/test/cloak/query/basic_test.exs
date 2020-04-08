@@ -15,6 +15,7 @@ defmodule Cloak.Query.BasicTest do
 
     :ok = Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
     :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird-things")
+    :ok = Cloak.Test.DB.create_table("dotted.table", "\"dotted.column\" INTEGER", db_name: "dotted-table")
     :ok = Cloak.Test.DB.create_table("dates", "date timestamp, date2 timestamp")
 
     :ok
@@ -24,6 +25,7 @@ defmodule Cloak.Query.BasicTest do
     Cloak.Test.DB.clear_table("heights")
     Cloak.Test.DB.clear_table("children")
     Cloak.Test.DB.clear_table("weird-things")
+    Cloak.Test.DB.clear_table("dotted-table")
     Cloak.Test.DB.clear_table("dates")
     :ok
   end
@@ -40,6 +42,7 @@ defmodule Cloak.Query.BasicTest do
       ["children", "personal"],
       ["heights", "personal"],
       ["weird things", "personal"],
+      ["dotted.table", "personal"],
       ["dates", "personal"],
       ["v1", "view"]
     ]
@@ -1130,11 +1133,24 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
-  test "quoting table and column names" do
+  test "quoting table and column names with spaces" do
     assert_query(~s/select "thing as thing" from "weird things"/, %{
       columns: ["thing as thing"],
       rows: []
     })
+  end
+
+  test "quoting table and column names with dots" do
+    assert_query(~s/select dotted.column from dotted.table/, %{
+      columns: ["dotted.column"],
+      rows: []
+    })
+  end
+
+  test "dotted table alias" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+
+    assert_query(~s/select count("a.b".height) from heights as "a.b"/, %{rows: [%{row: [100]}]})
   end
 
   test "SQL injection" do
