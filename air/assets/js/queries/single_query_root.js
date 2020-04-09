@@ -14,11 +14,11 @@ type Props = {
   user: { name: string },
   frontendSocket: FrontendSocket,
   numberFormat: NumberFormat,
-  debugModeEnabled: boolean
+  debugModeEnabled: boolean,
 };
 
 type State = {
-  result: Result
+  result: Result,
 };
 
 export default class QueryView extends React.Component<Props, State> {
@@ -26,14 +26,14 @@ export default class QueryView extends React.Component<Props, State> {
     super(props);
 
     this.state = {
-      result: props.result
+      result: props.result,
     };
 
     this.resultReceived = this.resultReceived.bind(this);
     const { frontendSocket, result } = this.props;
 
     frontendSocket.joinUpdatesForQuery(result.id, {
-      handleEvent: this.resultReceived
+      handleEvent: this.resultReceived,
     });
   }
 

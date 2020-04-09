@@ -19,11 +19,11 @@
           <div class="col-sm-6 col-sm-offset-3">
             <img src="/images/aircloak_web.png" alt="Aircloak Logo"
               style="padding-left: 50%; padding-bottom: 50px; margin-left: -80px;" />
-            <div class="panel panel-info">
-              <div class="panel-heading">
-                <h1 class="panel-title">The page could not be found</h1>
+            <div class="card text-white bg-info">
+              <div class="card-header">
+                <h1 class="card-title">The page could not be found</h1>
               </div>
-              <div class="panel-body">
+              <div class="card-body">
                 <p>
                   The resource you are trying to access might have been removed
                   or you might not be allowed to access it.

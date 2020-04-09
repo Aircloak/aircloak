@@ -31,14 +31,16 @@
       <td><%= AirWeb.Admin.GroupView.names(data_source.groups)%></td>
       <td><%= length(Air.Service.Warnings.problems_for_resource(data_source)) %></td>
       <td>
-        <%= link "Show", to: admin_data_source_path(@conn, :show, data_source.name), class: "btn btn-default btn-xs" %>
-        <%= link "Edit", to: admin_data_source_path(@conn, :edit, data_source.name), class: "btn btn-default btn-xs" %>
-        <%= unless available?(data_source) do %>
-          <%= link "Delete", to: admin_data_source_path(@conn, :delete, data_source.name),
-            method: :delete, class: "btn btn-danger btn-xs",
-            "data-confirm": ~s(Delete the data source "#{data_source.name}"?)
-          %>
+        <div class="btn-group">
+          <%= link "Show", to: admin_data_source_path(@conn, :show, data_source.name), class: "btn btn-outline-secondary btn-sm" %>
+          <%= link "Edit", to: admin_data_source_path(@conn, :edit, data_source.name), class: "btn btn-outline-secondary btn-sm" %>
+          <%= unless available?(data_source) do %>
+            <%= link "Delete", to: admin_data_source_path(@conn, :delete, data_source.name),
+              method: :delete, class: "btn btn-outline-danger btn-sm",
+              "data-confirm": ~s(Delete the data source "#{data_source.name}"?)
+            %>
         <% end %>
+        </div>
       </td>
     </tr>
   <% end %>

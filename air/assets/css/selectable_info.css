@@ -7,6 +7,11 @@
   }
 }
 
+#selectable-column {
+  position: sticky;
+  top: 70px;
+}
+
 .selectable-heading {
   width: 100%;
   display: table;
@@ -63,9 +68,4 @@
 
 .column-filter .form-group {
   display: block;
-}
-
-.column-filter .input-group {
-  display: table;
-  width: 100%;
 }

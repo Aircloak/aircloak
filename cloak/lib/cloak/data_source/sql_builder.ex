@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   use Combine
   alias Cloak.Sql.{Query, Expression, Compiler, Function}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, Oracle, ClouderaImpala}
+  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, ClouderaImpala}
   alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
@@ -338,10 +338,6 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp dot_terminate(%Expression{type: :text} = expression),
     do: Expression.function("concat", [expression, Expression.constant(:text, ".")], :text)
 
-  defp join([], _joiner), do: []
-  defp join([el], _joiner), do: [el]
-  defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
-
   defp group_by_fragments(%Query{subquery?: true, grouping_sets: [_ | _]} = query) do
     dialect = sql_dialect_module(query)
 
@@ -418,30 +414,24 @@ defmodule Cloak.DataSource.SqlBuilder do
   # -------------------------------------------------------------------
 
   defp build_subquery(%{ast: query, join_timing_protection?: true}) do
-    dialect = sql_dialect_module(query)
-
-    from =
-      case dialect do
-        Oracle -> " FROM dual"
-        _ -> ""
-      end
-
     [
       "(",
       build_fragments(query),
-      ") UNION ALL (SELECT ",
-      query.db_columns
-      |> Enum.map(&Table.invalid_value(&1.type))
-      |> Enum.map(&constant_to_fragment(&1, dialect))
-      |> join(", "),
-      from,
-      " WHERE NOT EXISTS(",
-      build_fragments(query),
+      ") UNION ALL (SELECT * FROM (",
+      build_fragments(%Query{strip_filters(query) | limit: 1, offset: 0, order_by: []}),
+      ") t WHERE NOT EXISTS(",
+      build_fragments(%Query{query | order_by: []}),
       "))"
     ]
   end
 
   defp build_subquery(subquery), do: build_fragments(subquery.ast)
+
+  defp strip_filters(query) do
+    Query.Lenses.all_queries()
+    |> Lens.filter(&(&1.type == :restricted))
+    |> Lens.map(query, &%Query{&1 | where: nil, having: nil})
+  end
 
   # -------------------------------------------------------------------
   # Mark boolean expressions

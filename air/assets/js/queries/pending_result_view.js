@@ -11,7 +11,7 @@ import { cancel } from "../request";
 
 type Props = {
   result: PendingResult,
-  authentication: Authentication
+  authentication: Authentication,
 };
 
 const stateItem = (state, currentState) => {
@@ -26,11 +26,11 @@ const stateItem = (state, currentState) => {
 
 export default ({ result, authentication }: Props) => {
   return (
-    <div className="panel panel-info">
-      <div className="panel-heading" />
-      <div className="panel-body">
+    <div className="card border-info">
+      <div className="card-header border-info">
         <CodeViewer statement={result.statement} />
-
+      </div>
+      <div className="card-body">
         <p className="text-center spinner">
           {" "}
           <img
@@ -39,7 +39,7 @@ export default ({ result, authentication }: Props) => {
           />{" "}
         </p>
         <ul>
-          {pendingStates.map(state => (
+          {pendingStates.map((state) => (
             <li key={state}>{stateItem(state, result.query_state)}</li>
           ))}
         </ul>

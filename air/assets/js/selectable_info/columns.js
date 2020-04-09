@@ -7,13 +7,13 @@ import { Filter } from "./filter";
 export type Column = {
   name: string,
   type: string,
-  key_type: string
+  key_type: string,
 };
 
 const potentiallyRenderColumnIcon = (column: Column) => {
   if (column.key_type) {
     const icon = column.key_type === "user_id" ? "user" : "link";
-    return <span className={`glyphicon glyphicon-${icon}`}>&nbsp;</span>;
+    return <span className={`fas fa-${icon}`}>&nbsp;</span>;
   } else {
     return null;
   }
@@ -33,10 +33,10 @@ const columnClassName = (column: Column) => {
 
 export const ColumnsView = ({
   filter,
-  columns
+  columns,
 }: {
   filter: Filter,
-  columns: Column[]
+  columns: Column[],
 }) => {
   return (
     <table className="table table-condensed">
@@ -48,12 +48,12 @@ export const ColumnsView = ({
       </thead>
 
       <tbody>
-        {filter.filterColumns(columns).map(column => (
+        {filter.filterColumns(columns).map((column) => (
           <tr key={column.name}>
             {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions,
                                jsx-a11y/click-events-have-key-events */}
             <td
-              onClick={event => {
+              onClick={(event) => {
                 event.preventDefault();
                 window.insertWordInEditor(column.name);
               }}

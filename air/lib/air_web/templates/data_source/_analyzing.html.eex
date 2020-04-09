@@ -1,4 +1,4 @@
-<div class="label label-success">
+<div class="badge badge-success">
   Online
   <sup>
     <a href="/docs/sql/restrictions.html#column-analysis" target="blank"

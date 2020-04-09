@@ -22,8 +22,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
     "unsafe_mul" => "*",
     "checked_mod" => "%",
     "unsafe_mod" => "%",
-    "^" => "pow",
-    "checked_pow" => "pow"
+    "checked_pow" => "^"
   }
 
   @impl Dialect
@@ -59,7 +58,7 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
 
   def function_sql("unsafe_pow", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
 
-  def function_sql("pow", [arg1, arg2]),
+  def function_sql("^", [arg1, arg2]),
     do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
 
   # Impala rounds positive and negative numbers assymetrically (when digits < 0).

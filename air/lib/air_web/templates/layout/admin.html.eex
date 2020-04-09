@@ -11,8 +11,8 @@
     <% end %>
 
     <title>Aircloak – Admin - Air control</title>
-    <link rel="shortcut icon" href="<%= static_path(@conn, "/images/favicon.ico") %>" type="image/x-icon">
-    <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
+    <link rel="shortcut icon" href="<%= static_path(@conn, "/frontend/images/favicon.ico") %>" type="image/x-icon">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/frontend/app.css") %>">
   </head>
 
   <body>
@@ -26,7 +26,7 @@
         <main role="main">
           <div class="row">
             <div class="col-lg-2 col-md-3">
-              <ul class="nav nav-pills nav-stacked">
+              <ul class="nav nav-pills flex-column">
                 <%= warning_navbar_link(@conn) %>
 
                 <%= navbar_link(@conn, "Activity monitor", admin_activity_monitor_path(@conn, :index)) %>
@@ -55,6 +55,6 @@
       <%= render AirWeb.SharedView, "full_footer.html", conn: @conn %>
     </div>
 
-    <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
+    <script src="<%= static_path(@conn, "/frontend/app.js") %>"></script>
   </body>
 </html>

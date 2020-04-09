@@ -8,8 +8,8 @@
     <meta name="author" content="">
 
     <title>Aircloak – Privacy policy</title>
-    <link rel="shortcut icon" href="<%= static_path(@conn, "/images/favicon.ico") %>" type="image/x-icon">
-    <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
+    <link rel="shortcut icon" href="<%= static_path(@conn, "/frontend/images/favicon.ico") %>" type="image/x-icon">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/frontend/app.css") %>">
   </head>
 
   <body>

@@ -1,3 +1,23 @@
+## Version 20.2.0-dev
+
+### __Breaking changes__
+
+- Default value for `max_rare_negative_conditions` is now 0.
+- The `IS [NOT] NULL` operator is restricted to clear expressions.
+- Aggregators are restricted to clear expressions.
+
+### New features
+
+### Enhancements
+
+### Bugfixes
+
+- Fixed filtering of censored values in standard queries.
+
+### Changes
+
+- Increased the minimum threshold for non-count stats-based aggregators.
+
 ## Version 20.1.1
 
 ### New features
