@@ -117,7 +117,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_name(%Expression{table: :unknown, name: name}, quote_char), do: quote_name(name, quote_char)
 
   defp column_name(column, quote_char),
-    do: "#{quote_table_name(column.table.name, quote_char)}.#{quote_name(column.name, quote_char)}"
+    do: "#{quote_name(column.table.name, quote_char)}.#{quote_name(column.name, quote_char)}"
 
   defp build_fragments(query) do
     common_clauses = [
@@ -290,16 +290,14 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join_sql(:left_outer_join), do: "LEFT OUTER JOIN"
   defp join_sql(:right_outer_join), do: "RIGHT OUTER JOIN"
 
-  defp table_to_from(%{name: table_name, db_name: table_name}, query),
-    do: quote_table_name(table_name, sql_dialect_module(query).quote_char())
-
   defp table_to_from(table, query) do
     dialect = sql_dialect_module(query)
+    db_name = quote_table_name(table.db_name, dialect.quote_char())
+    name = quote_name(table.name, dialect.quote_char())
 
-    dialect.alias_sql(
-      quote_table_name(table.db_name, dialect.quote_char()),
-      quote_name(table.name, dialect.quote_char())
-    )
+    if name == db_name,
+      do: name,
+      else: dialect.alias_sql(db_name, name)
   end
 
   defp where_fragments(%Query{where: nil}), do: []
