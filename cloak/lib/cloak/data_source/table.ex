@@ -20,6 +20,7 @@ defmodule Cloak.DataSource.Table do
           # the SQL query for a virtual table
           :query => Query.t() | nil,
           :columns => [column],
+          :exclude_columns => [String.t()],
           :keys => Map.t(),
           :content_type => :private | :public,
           :auto_isolating_column_classification => boolean,
@@ -36,6 +37,7 @@ defmodule Cloak.DataSource.Table do
   @type option ::
           {:db_name, String.t()}
           | {:columns, [column]}
+          | {:exclude_columns, [String.t()]}
           | {:keys, Map.t()}
           | {:query, Query.t()}
           | {:content_type, :private | :public}
@@ -66,6 +68,7 @@ defmodule Cloak.DataSource.Table do
         type: :regular
       }
       |> Map.merge(Map.new(opts))
+      |> remove_excluded_columns()
 
     keys = if(user_id_column_name == nil, do: table.keys, else: Map.put(table.keys, user_id_column_name, :user_id))
     %{table | keys: keys}
@@ -265,11 +268,16 @@ defmodule Cloak.DataSource.Table do
   end
 
   defp parse_columns(data_source, table) do
-    table.columns
+    current_columns = Enum.reject(table.columns, &exclude_column?(table, &1))
+
+    current_columns
     |> Enum.reject(&supported?/1)
     |> validate_unsupported_columns(data_source, table)
 
-    columns = for column <- table.columns, do: if(supported?(column), do: column, else: %{column | type: :unknown})
+    columns =
+      Enum.map(current_columns, fn column ->
+        if(supported?(column), do: column, else: %{column | type: :unknown})
+      end)
 
     table = %{table | columns: columns}
     verify_columns(data_source, table)
@@ -304,6 +312,14 @@ defmodule Cloak.DataSource.Table do
 
   defp supported?(%{type: {:unsupported, _db_type}}), do: false
   defp supported?(_column), do: true
+
+  defp exclude_column?(table, column), do: column.name in Map.get(table, :exclude_columns, [])
+
+  defp remove_excluded_columns(%{columns: columns, exclude_columns: exclude_columns} = table) do
+    %{table | columns: Enum.reject(columns, &(&1.name in exclude_columns))}
+  end
+
+  defp remove_excluded_columns(table), do: table
 
   defp validate_unsupported_columns([], _data_source, _table), do: :ok
 

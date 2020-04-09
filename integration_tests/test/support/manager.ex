@@ -95,6 +95,7 @@ defmodule IntegrationTest.Manager do
 
     Application.start(:cloak)
     :ok = create_users_table(skip_db_create: true)
+    :ok = create_column_access_table(skip_db_create: true)
     :ok = create_integers(skip_db_create: true)
     ensure_cloak_connected()
   end
@@ -132,6 +133,15 @@ defmodule IntegrationTest.Manager do
     :ok = create_users_table()
     :ok = insert_rows(1..100, "users", ["name", "height"], ["john", 180])
 
+    :ok = create_column_access_table()
+
+    :ok =
+      Cloak.Test.DB.insert_data(
+        "column_access",
+        ~w/user_id white grey black/,
+        Enum.map(1..1_000, &["user_1", &1, &1, &1])
+      )
+
     :ok = create_integers()
 
     :ok =
@@ -148,6 +158,17 @@ defmodule IntegrationTest.Manager do
 
   defp create_integers(opts \\ []) do
     Cloak.Test.DB.create_table("integers", "value INTEGER", opts)
+  end
+
+  defp create_column_access_table(opts \\ []) do
+    Cloak.Test.DB.create_table(
+      "column_access",
+      "white INTEGER, grey INTEGER, black INTEGER",
+      Keyword.merge(
+        opts,
+        exclude_columns: ["black"]
+      )
+    )
   end
 
   def setup_air_database() do

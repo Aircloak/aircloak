@@ -40,6 +40,20 @@ defmodule IntegrationTest.AnalystTableTest do
     assert result.buckets == [%{"occurrences" => 100, "row" => ["john"], "unreliable" => false}]
   end
 
+  test "select * ignores excluded columns", context do
+    name = unique_name(:table)
+    {:ok, table} = create_table(context.user, name, "select * from column_access")
+
+    columns = Enum.map(table.columns, & &1.name)
+    assert "black" not in columns
+  end
+
+  test "cannot select excluded columns", context do
+    name = unique_name(:table)
+    {:error, changeset} = create_table(context.user, name, "select white, black from column_access")
+    assert changeset.errors[:sql] == {"Column `black` doesn't exist in table `column_access`.", []}
+  end
+
   test "cloak error is reported", context do
     name = unique_name(:table)
     assert {:error, changeset} = create_table(context.user, name, "select foo")
