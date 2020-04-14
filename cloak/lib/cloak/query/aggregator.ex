@@ -135,12 +135,12 @@ defmodule Cloak.Query.Aggregator do
 
     query.aggregators
     |> Enum.with_index()
-    |> Enum.map(fn {_aggregator, index} ->
-      anonymizer =
-        if NoiseLayer.accumulator_references_aggregator?(accumulated_noise_layers, index),
-          do: accumulated_noise_layers |> NoiseLayer.filter_accumulator_for_aggregator(index) |> Anonymizer.new(),
-          else: default_anonymizer
-
+    |> Enum.map(fn {_aggregator, index} -> index end)
+    |> Enum.filter(fn index ->
+      NoiseLayer.accumulator_references_aggregator?(accumulated_noise_layers, index)
+    end)
+    |> Enum.map(fn index ->
+      anonymizer = accumulated_noise_layers |> NoiseLayer.filter_accumulator_for_aggregator(index) |> Anonymizer.new()
       {index, anonymizer}
     end)
     |> Enum.into(%{default: default_anonymizer})

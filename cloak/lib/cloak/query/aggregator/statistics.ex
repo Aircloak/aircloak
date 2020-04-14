@@ -164,7 +164,9 @@ defmodule Cloak.Query.Aggregator.Statistics do
     aggregation_results =
       Enum.zip(aggregators, aggregation_statistics)
       |> Enum.with_index()
-      |> Enum.map(fn {{aggregator, statistics}, index} -> {aggregator, statistics, anonymizers[index]} end)
+      |> Enum.map(fn {{aggregator, statistics}, index} ->
+        {aggregator, statistics, anonymizers[index] || anonymizers.default}
+      end)
       |> Enum.map(fn
         {%Expression{name: "count", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid], _anonymizer} ->
           users_count
