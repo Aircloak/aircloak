@@ -6,6 +6,7 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
 
   use Parent.GenServer
   import Aircloak, only: [in_env: 1]
+  require Logger
   alias Cloak.DataSource.PerColumn.Queue
 
   # -------------------------------------------------------------------
@@ -47,7 +48,7 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
   @impl GenServer
   def init(opts) do
     :ets.new(opts.name, [:named_table, :public, :set, read_concurrency: true])
-    start_cache_restore_job(opts.name, opts.persisted_cache_version)
+    restore_cache(opts.name, opts.persisted_cache_version)
 
     {:ok, Map.put(opts, :changed?, false)}
   end
@@ -57,7 +58,6 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
 
   @impl Parent.GenServer
   def handle_child_terminated(:persist_job, _meta, _pid, _reason, state), do: {:noreply, maybe_start_persist_job(state)}
-  def handle_child_terminated(:restore_job, _meta, _pid, _reason, state), do: {:noreply, maybe_start_persist_job(state)}
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -68,7 +68,7 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
   defp maybe_start_persist_job(%{changed?: false} = state), do: state
 
   defp maybe_start_persist_job(%{changed?: true} = state) do
-    if Parent.GenServer.child?(:restore_job) or Parent.GenServer.child?(:persist_job) do
+    if Parent.GenServer.child?(:persist_job) do
       state
     else
       start_persist_job(state)
@@ -96,20 +96,9 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
     )
   end
 
-  defp start_cache_restore_job(name, persisted_cache_version) do
-    # Starting the restore job as a background process allows us to ignore restore failures and implement a finite time
-    # synchronism (waiting for the cache to be restored for some time, but not forever).
-    Parent.GenServer.start_child(%{
-      id: :restore_job,
-      start: {Task, :start_link, [fn -> restore_cache(name, persisted_cache_version) end]}
-    })
-
-    # We'll wait a bit for the cache to be restored. This improves synchronous behaviour, allowing us to skip initial
-    # cache priming if we're able to restore it.
-    Parent.GenServer.await_child_termination(:restore_job, :timer.seconds(10))
-  end
-
   defp restore_cache(name, persisted_cache_version) do
+    Logger.info("Starting cache restoration for #{name} ...")
+
     with {:ok, serialized_cache} <- File.read(cache_file(name)),
          {^name, ^persisted_cache_version, cache_contents} <- :erlang.binary_to_term(serialized_cache),
          do: Enum.each(cache_contents, &:ets.insert(name, &1))
