@@ -58,27 +58,24 @@ defmodule Air.Service.Query.Lifecycle do
 
   @impl GenServer
   def handle_cast({:result_arrived, result}, state) do
-    :jobs.run(__MODULE__, fn -> Query.process_result(result) end)
+    Query.process_result(result)
     {:stop, :normal, state}
   end
 
   def handle_cast({:state_changed, query_id, query_state}, state) do
-    :jobs.run(__MODULE__, fn -> Query.update_state(query_id, query_state) end)
+    Query.update_state(query_id, query_state)
     Air.Service.Query.Events.trigger_state_change(%{query_id: query_id, state: query_state})
     if query_state in Air.Service.Query.State.completed(), do: {:stop, :normal, state}, else: {:noreply, state}
   end
 
   def handle_cast({:query_died, query_id, error}, state) do
-    :jobs.run(__MODULE__, fn -> Query.query_died(query_id, error) end)
+    Query.query_died(query_id, error)
     Air.Service.Query.Events.trigger_state_change(%{query_id: query_id, state: :query_died})
     {:stop, :normal, state}
   end
 
   def handle_cast({:report_query_error, query_id, error}, state) do
-    :jobs.run(__MODULE__, fn ->
-      Query.process_result(%{query_id: query_id, error: error, row_count: 0, chunks: []})
-    end)
-
+    Query.process_result(%{query_id: query_id, error: error, row_count: 0, chunks: []})
     {:stop, :normal, state}
   end
 
@@ -91,15 +88,6 @@ defmodule Air.Service.Query.Lifecycle do
 
   @doc false
   def start_link(query_id), do: GenServer.start_link(__MODULE__, nil, name: name(query_id))
-
-  defp setup_queue() do
-    with :undefined <- :jobs.queue_info(__MODULE__),
-         do:
-           :jobs.add_queue(__MODULE__,
-             max_time: :timer.hours(1),
-             regulators: [counter: [limit: 5]]
-           )
-  end
 
   defp name(query_id), do: {:via, Registry, {__MODULE__.Registry, query_id}}
 
@@ -125,7 +113,6 @@ defmodule Air.Service.Query.Lifecycle do
   def child_spec(_arg) do
     ChildSpec.supervisor(
       [
-        ChildSpec.setup_job(&setup_queue/0),
         ChildSpec.registry(:unique, __MODULE__.Registry),
         ChildSpec.dynamic_supervisor(name: __MODULE__.QuerySupervisor)
       ],

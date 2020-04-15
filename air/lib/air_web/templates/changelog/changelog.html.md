@@ -28,6 +28,7 @@
 
 - Fixed handling of dotted table names and aliases.
 - Fixed performance degradation bug introduced in version 20.1.0.
+- Fixed periodically occurring bug that would prevent queries from being run.
 
 ## Version 20.1.0
 
