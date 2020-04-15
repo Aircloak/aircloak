@@ -1,13 +1,15 @@
 defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
   @moduledoc """
   A key-value store that keeps a value for each of a set of columns. The store provides in-memory reads, while writes
-  are asynchronously persisted to disk. The persisted data is used to initialize the cache on restart.
+  are synchronously persisted to disk. The persisted data is used to initialize the cache on restart.
   """
 
-  use Parent.GenServer
+  use GenServer
   import Aircloak, only: [in_env: 1]
   require Logger
   alias Cloak.DataSource.PerColumn.Queue
+
+  @persist_interval :timer.seconds(10)
 
   # -------------------------------------------------------------------
   # API functions
@@ -50,14 +52,19 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
     :ets.new(opts.name, [:named_table, :public, :set, read_concurrency: true])
     restore_cache(opts.name, opts.persisted_cache_version)
 
-    {:ok, Map.put(opts, :changed?, false)}
+    {:ok, Map.put(opts, :dirty?, false)}
   end
 
   @impl GenServer
-  def handle_cast(:signal_change, state), do: {:noreply, maybe_start_persist_job(%{state | changed?: true})}
+  def handle_cast(:signal_change, %{dirty?: false} = state) do
+    Process.send_after(self(), :persist_cache, @persist_interval)
+    {:noreply, %{state | dirty?: true}}
+  end
 
-  @impl Parent.GenServer
-  def handle_child_terminated(:persist_job, _meta, _pid, _reason, state), do: {:noreply, maybe_start_persist_job(state)}
+  def handle_cast(:signal_change, %{dirty?: true} = state), do: {:noreply, state}
+
+  @impl GenServer
+  def handle_info(:persist_cache, %{dirty?: true} = state), do: {:noreply, persist_cache(state)}
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -65,39 +72,24 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
 
   defp signal_change(server), do: GenServer.cast(server, :signal_change)
 
-  defp maybe_start_persist_job(%{changed?: false} = state), do: state
+  defp persist_cache(state) do
+    Logger.info("Writing cache for #{state.name} ...")
 
-  defp maybe_start_persist_job(%{changed?: true} = state) do
-    if Parent.GenServer.child?(:persist_job) do
-      state
-    else
-      start_persist_job(state)
-      %{state | changed?: false}
-    end
-  end
+    cache_file = cache_file(state.name)
 
-  defp start_persist_job(state) do
-    cache_contents = :ets.tab2list(state.name)
-
-    Parent.GenServer.start_child(%{
-      id: :persist_job,
-      start: {Task, :start_link, [fn -> persist_cache(state, cache_contents) end]}
-    })
-  end
-
-  defp persist_cache(state, cache_contents) do
-    File.mkdir_p!(Path.dirname(cache_file(state.name)))
+    File.mkdir_p!(Path.dirname(cache_file))
 
     # Note: if you're changing the cache format, please bump `persisted_cache_version`. This will ensure that the
     # next version ignores the persisted cache of the previous version.
-    File.write!(
-      cache_file(state.name),
-      :erlang.term_to_binary({state.name, state.persisted_cache_version, cache_contents})
-    )
+    cache_contents = :ets.tab2list(state.name)
+    cache = :erlang.term_to_binary({state.name, state.persisted_cache_version, cache_contents})
+    File.write!(cache_file, cache)
+
+    %{state | dirty?: false}
   end
 
   defp restore_cache(name, persisted_cache_version) do
-    Logger.info("Starting cache restoration for #{name} ...")
+    Logger.info("Reading cache for #{name} ...")
 
     with {:ok, serialized_cache} <- File.read(cache_file(name)),
          {^name, ^persisted_cache_version, cache_contents} <- :erlang.binary_to_term(serialized_cache),
@@ -121,7 +113,7 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
 
   @doc false
   def start_link(opts) do
-    Parent.GenServer.start_link(
+    GenServer.start_link(
       __MODULE__,
       %{name: opts.name, persisted_cache_version: opts.persisted_cache_version},
       name: opts.name
