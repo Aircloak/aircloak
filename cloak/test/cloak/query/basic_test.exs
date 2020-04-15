@@ -198,7 +198,7 @@ defmodule Cloak.Query.BasicTest do
       rows: rows
     })
 
-    assert Enum.map(rows, & &1[:row]) == [[1700], [1600], [1800]]
+    assert Enum.map(rows, & &1[:row]) == [[nil], [1600], [1800]]
   end
 
   test "order by grouped but non-selected aggregate" do
@@ -212,7 +212,7 @@ defmodule Cloak.Query.BasicTest do
       rows: rows
     })
 
-    assert Enum.map(rows, & &1[:row]) == [["mike"], ["adam"], ["john"]]
+    assert Enum.map(rows, & &1[:row]) == [["adam"], ["mike"], ["john"]]
   end
 
   test "order by grouped but non-selected aggregate with selected aggregate function" do
@@ -226,7 +226,7 @@ defmodule Cloak.Query.BasicTest do
       rows: rows
     })
 
-    assert Enum.map(rows, & &1[:row]) == [[180.0, 180.0], [170.0, 170.0], [160.0, 160.0]]
+    assert Enum.map(rows, & &1[:row]) == [[180.0, 180.0], [170.0, 170.0], [160.0, nil]]
   end
 
   test "order by nulls first" do
@@ -1277,7 +1277,7 @@ defmodule Cloak.Query.BasicTest do
     test "sum" do
       assert_query("select sum_noise(height) from heights", %{
         columns: ["sum_noise"],
-        rows: [%{row: [180.0], occurrences: 1}]
+        rows: [%{row: [200.0], occurrences: 1}]
       })
     end
 
@@ -1288,8 +1288,8 @@ defmodule Cloak.Query.BasicTest do
     end
 
     test "avg statistics" do
-      assert_query("select avg_noise(height) from heights", %{
-        rows: [%{row: [6.0], occurrences: 1}]
+      assert_query("select trunc(avg_noise(height), 1) from heights", %{
+        rows: [%{row: [6.6], occurrences: 1}]
       })
     end
 
@@ -1946,5 +1946,19 @@ defmodule Cloak.Query.BasicTest do
       """,
       %{rows: [%{row: [10]}]}
     )
+  end
+
+  test "filtering censored values" do
+    :ok = insert_rows(_user_ids = 0..2, "heights", ["name"], ["Alice"])
+    :ok = insert_rows(_user_ids = 10..19, "heights", ["name"], ["Charlie"])
+    :ok = insert_rows(_user_ids = 3..6, "heights", ["name"], ["John"])
+    :ok = insert_rows(_user_ids = 7..9, "heights", ["name"], ["Bob"])
+
+    assert_query("select count(*), name from heights group by name having name = 'Charlie'", %{
+      columns: ["count", "name"],
+      rows: rows
+    })
+
+    assert [%{row: [10, "Charlie"], occurrences: 1}] = rows
   end
 end

@@ -1,23 +1,25 @@
 // @flow
 
 import React from "react";
-import _ from "lodash";
 
 import type { Query } from "./query";
 import StateView from "./state_view";
 
 type Props = {
-  queries: Query[]
+  queries: Query[],
 };
 
-const queryStats = queries =>
-  queries.forEach(query => {
+const queryStats = (queries) => {
+  const queryStats = {};
+  queries.forEach((query) => {
     if (queryStats[query.state]) {
       queryStats[query.state] += 1;
     } else {
       queryStats[query.state] = 1;
     }
   });
+  return queryStats;
+};
 
 export default ({ queries }: Props) => {
   return (
@@ -32,10 +34,10 @@ export default ({ queries }: Props) => {
           </tr>
         </thead>
         <tbody>
-          {_.map(queryStats(queries), (count, queryState) => (
-            <tr key={queryState}>
+          {Object.entries(queryStats(queries)).map(([count, queryState]) => (
+            <tr key={(queryState: any)}>
               <td>
-                <StateView queryState={queryState} />
+                <StateView queryState={(queryState: any)} />
               </td>
               <td>{count}</td>
             </tr>

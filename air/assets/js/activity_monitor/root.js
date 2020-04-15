@@ -1,7 +1,7 @@
 // @flow
 
 import React from "react";
-import _ from "lodash";
+import sortBy from "lodash/sortBy";
 import { Channel } from "phoenix";
 
 import QueriesView from "./queries";
@@ -16,18 +16,18 @@ import Disconnected from "../disconnected";
 type QueryEvent = {
   query_id: string,
   event: string,
-  query: Query
+  query: Query,
 };
 
 type Props = {
   frontendSocket: FrontendSocket,
   queries: Query[],
-  cloakStats: CloakStat[]
+  cloakStats: CloakStat[],
 };
 
 type State = {
   queries: Query[],
-  cloakStats: CloakStat[]
+  cloakStats: CloakStat[],
 };
 
 export default class ActivityMonitorView extends React.Component<Props, State> {
@@ -40,7 +40,7 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
 
     this.state = {
       queries,
-      cloakStats
+      cloakStats,
     };
 
     this.handleQueryEvent = this.handleQueryEvent.bind(this);
@@ -48,10 +48,10 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
     this.handleCloakStatsUpdate = this.handleCloakStatsUpdate.bind(this);
 
     this.channel = frontendSocket.joinAllQueryEventsChannel({
-      handleEvent: this.handleQueryEvent
+      handleEvent: this.handleQueryEvent,
     });
     frontendSocket.joinCloakStatsChannel({
-      handleEvent: this.handleCloakStatsUpdate
+      handleEvent: this.handleCloakStatsUpdate,
     });
   }
 
@@ -60,8 +60,8 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
   queryRemovalTime: number;
 
   handleRemoveQuery = (queryId: string) => {
-    this.setState(state => ({
-      queries: _.reject(state.queries, query => query.id === queryId)
+    this.setState((state) => ({
+      queries: state.queries.filter((query) => query.id !== queryId),
     }));
   };
 
@@ -79,24 +79,24 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
 
     if (queryEvent.event === "started") {
       const newQuery = queryEvent.query;
-      this.setState(state => ({ queries: [newQuery, ...state.queries] }));
+      this.setState((state) => ({ queries: [newQuery, ...state.queries] }));
     } else {
-      this.setState(state => ({
-        queries: _.map(state.queries, existingQuery => {
+      this.setState((state) => ({
+        queries: state.queries.map((existingQuery) => {
           if (existingQuery.id === queryEvent.query_id) {
-            const alteredQuery = _.clone(existingQuery);
+            const alteredQuery = { ...existingQuery };
             alteredQuery.state = queryEvent.event;
             return alteredQuery;
           } else {
             return existingQuery;
           }
-        })
+        }),
       }));
     }
   };
 
   handleCloakStatsUpdate = (cloakStatsUpdate: { cloakStats: CloakStat[] }) => {
-    const cloakStats = _.sortBy(cloakStatsUpdate.cloakStats, ["name"]);
+    const cloakStats = sortBy(cloakStatsUpdate.cloakStats, "name");
     this.setState({ cloakStats });
   };
 

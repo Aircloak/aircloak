@@ -10,15 +10,15 @@ import type { CancelledResult } from "./result";
 
 export default ({
   result,
-  debugModeEnabled
+  debugModeEnabled,
 }: {
   result: CancelledResult,
-  debugModeEnabled: boolean
+  debugModeEnabled: boolean,
 }) => {
   return (
-    <div className="panel panel-warning">
-      <div className="panel-heading" />
-      <div className="panel-body">
+    <div className="card border-warning mb-3">
+      <div className="card-header bg-warning" />
+      <div className="card-body">
         <CodeViewer statement={result.statement} />
         <h4>Query cancelled</h4>
         <div className="options-menu">

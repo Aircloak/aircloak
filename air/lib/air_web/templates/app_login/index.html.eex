@@ -1,5 +1,5 @@
 <%= if get_flash(@conn, :app_login) do %>
-<div class="alert alert-success" role="alert">
+<div class="alert alert-success mt-3 mb-3" role="alert">
   <p>Your new login has been added. Please copy and paste it into your application:</p>
   <br />
   <pre>
@@ -12,12 +12,9 @@ password: <%= get_flash(@conn, :app_password) %></pre>
 
 <div class="row">
   <div class="col-sm-6">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h3 class="panel-title">Add a new login</h3>
-      </div>
-
-      <div class="panel-body">
+    <div class="card mb-3">
+      <h3 class="card-header">Add a new login</h3>
+      <div class="card-body">
         <p>
           You can create app-specific logins that can only be used to access the PSQL API.
           See the <%=
@@ -51,10 +48,8 @@ password: <%= get_flash(@conn, :app_password) %></pre>
 
 <div class="row">
   <div class="col-sm-12">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h3 class="panel-title">Existing logins</h3>
-      </div>
+    <div class="card">
+      <h3 class="card-header">Existing logins</h3>
       <table class="table table-striped table-hover">
         <thead>
           <tr>
@@ -81,7 +76,7 @@ password: <%= get_flash(@conn, :app_password) %></pre>
                   <%= link "Revoke", to: app_login_path(@conn, :delete, login),
                     method: :delete, data: [
                       confirm: "Are you sure you want to revoke the login \"#{login.login}\"?"
-                    ], class: "btn btn-danger btn-xs" %>
+                    ], class: "btn btn-danger btn-sm" %>
                 </td>
               </tr>
             <% end %>

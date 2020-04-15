@@ -1,6 +1,6 @@
 <ol class="breadcrumb">
-  <li><%= link "Groups", to: admin_group_path(@conn, :index) %></li>
-  <li class="active"><%= @group.name %></li>
+  <li class="breadcrumb-item"><%= link "Groups", to: admin_group_path(@conn, :index) %></li>
+  <li class="breadcrumb-item active"><%= @group.name %></li>
 </ol>
 
 <h2>Edit <%= @group.name %></h2>

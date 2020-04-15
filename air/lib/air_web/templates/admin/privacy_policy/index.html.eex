@@ -1,6 +1,6 @@
 <h2>Privacy policy</h2>
 
-<%= link "Create new revision", to: admin_privacy_policy_path(@conn, :new), class: "btn btn-primary pull-right" %>
+<%= link "Create new revision", to: admin_privacy_policy_path(@conn, :new), class: "btn btn-success float-right" %>
 
 <h3>Revisions</h3>
 

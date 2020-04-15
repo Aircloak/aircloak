@@ -2,7 +2,6 @@
 
 import React from "react";
 import { UnControlled as Codemirror } from "react-codemirror2";
-import _ from "lodash";
 import Editor from "codemirror";
 
 import completions from "./code_editor/completion";
@@ -14,10 +13,10 @@ require("./code_editor/mode");
 
 type Props = {
   onRun: () => void,
-  onChange: string => void,
+  onChange: (string) => void,
   tableNames: string[],
   columnNames: string[],
-  statement: string
+  statement: string,
 };
 
 export default class CodeEditor extends React.Component<Props> {
@@ -54,7 +53,7 @@ export default class CodeEditor extends React.Component<Props> {
     return completions(
       cm.getLine(cm.getCursor().line),
       cm.getCursor().ch,
-      pos => _.merge({}, cm.getCursor(), { ch: pos }),
+      (pos) => ({ ...cm.getCursor(), ch: pos }),
       tableNames,
       columnNames,
       statement
@@ -102,8 +101,8 @@ export default class CodeEditor extends React.Component<Props> {
         "Ctrl-Enter": this.run,
         "Cmd-Enter": this.run,
         "Ctrl-Space": this.showHint,
-        "Cmd-Space": this.showHint
-      }
+        "Cmd-Space": this.showHint,
+      },
     };
 
     const { statement } = this.props;

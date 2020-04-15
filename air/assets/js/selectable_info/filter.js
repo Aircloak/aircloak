@@ -1,7 +1,5 @@
 // @flow
 
-import _ from "lodash";
-
 import type { Column } from "./columns";
 
 export class Filter {
@@ -19,10 +17,10 @@ export class Filter {
     this.regex.test(column.name) || this.regex.test(column.type);
 
   anyColumnMatches = (columns: Column[]): boolean =>
-    _.find(columns, this.filterFun) !== undefined;
+    columns.find(this.filterFun) !== undefined;
 
   filterColumns = (columns: Column[]): Column[] =>
-    _.filter(columns, this.filterFun);
+    columns.filter(this.filterFun);
 }
 
 export const EmptyFilter = () => new Filter(new RegExp(""));

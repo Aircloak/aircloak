@@ -1,17 +1,18 @@
 // @flow
 
 import React from "react";
+import loader from "../../static/images/loader.gif";
 
 export type History = {
   before: string,
   loaded: boolean,
   loading: boolean,
-  error?: boolean
+  error?: boolean,
 };
 
 type Props = {
   history: History,
-  handleLoadHistory: () => void
+  handleLoadHistory: () => void,
 };
 
 export const HistoryLoader = ({ history, handleLoadHistory }: Props) => {
@@ -21,7 +22,7 @@ export const HistoryLoader = ({ history, handleLoadHistory }: Props) => {
         <span className="label label-danger">Error</span>
         Loading history failed.{" "}
         <button
-          className="btn btn-default"
+          className="btn btn-secondary"
           onClick={handleLoadHistory}
           type="button"
         >
@@ -38,10 +39,7 @@ export const HistoryLoader = ({ history, handleLoadHistory }: Props) => {
   if (history.loading) {
     return (
       <p>
-        <img
-          alt="Icon indicating loading of past queries"
-          src="/images/loader.gif"
-        />{" "}
+        <img alt="Icon indicating loading of past queries" src={loader} />{" "}
         loading history
       </p>
     );
@@ -49,7 +47,7 @@ export const HistoryLoader = ({ history, handleLoadHistory }: Props) => {
     return (
       <button
         type="button"
-        className="btn btn-default"
+        className="btn btn-secondary"
         onClick={handleLoadHistory}
       >
         Load previous queries

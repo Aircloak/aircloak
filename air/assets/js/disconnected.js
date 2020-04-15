@@ -5,11 +5,11 @@ import React from "react";
 import { Channel } from "phoenix";
 
 type Props = {
-  channel: Channel
+  channel: Channel,
 };
 
 type State = {
-  isConnected: boolean
+  isConnected: boolean,
 };
 
 export default class Disconnected extends React.Component<Props, State> {
@@ -35,7 +35,7 @@ export default class Disconnected extends React.Component<Props, State> {
 
   updateConnected = () => {
     this.setState((_state, props) => ({
-      isConnected: props.channel.isJoined()
+      isConnected: props.channel.isJoined(),
     }));
   };
 

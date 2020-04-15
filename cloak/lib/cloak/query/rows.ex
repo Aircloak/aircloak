@@ -13,7 +13,7 @@ defmodule Cloak.Query.Rows do
   @doc "Returns a stream of rows or buckets passing all the given filters."
   @spec filter(Enumerable.t(), (any -> boolean) | nil) :: Enumerable.t()
   def filter(rows_or_buckets, nil), do: rows_or_buckets
-  def filter(rows_or_buckets, filter), do: Stream.filter(rows_or_buckets, &(&1 |> fields() |> filter.()))
+  def filter(rows_or_buckets, filter), do: Stream.filter(rows_or_buckets, &(&1 |> fields() |> filter.() == true))
 
   @doc """
     Filters groups and extracts desired columns according to query specification.

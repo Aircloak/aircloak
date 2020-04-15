@@ -1,15 +1,16 @@
 // @flow
 
-import _ from "lodash";
-
-export default <T>(items: Array<T>, key: (item: T) => any): Array<Array<T>> => {
+export default <T>(
+  items: Array<T>,
+  key: (item: T) => string
+): Array<Array<T>> => {
   const result = [];
   let chunk = [];
   let lastKey = null;
 
-  items.forEach(item => {
+  items.forEach((item) => {
     const nextKey = key(item);
-    if (_.isNull(lastKey) || _.isEqual(nextKey, lastKey)) {
+    if (lastKey === null || nextKey === lastKey) {
       chunk.push(item);
     } else {
       result.push(chunk);
@@ -18,7 +19,7 @@ export default <T>(items: Array<T>, key: (item: T) => any): Array<Array<T>> => {
     lastKey = nextKey;
   });
 
-  if (!_.isEmpty(chunk)) {
+  if (chunk.length > 0) {
     result.push(chunk);
   }
 
