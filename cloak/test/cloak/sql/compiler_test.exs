@@ -24,6 +24,14 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  defmacrop unselectable_error(column_name \\ "grey", table_name \\ "column_access") do
+    quote do
+      "Column `#{unquote(column_name)}` from table `#{unquote(table_name)}` cannot appear in this" <>
+        " query context as it has been classified as unselectable by your system administrator." <>
+        " Please consult the section on unselectable columns in the documentation."
+    end
+  end
+
   test "adds an empty group by" do
     assert %{group_by: []} = compile!("select count(*) from table", data_source())
   end
@@ -1600,6 +1608,251 @@ defmodule Cloak.Sql.Compiler.Test do
   test "[Issue #4181] grouping sets over the user id" do
     assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
              compile("SELECT uid, numeric FROM table GROUP BY CUBE(1, 2)", data_source())
+  end
+
+  describe "unselectable columns (greylisting) in anonymizing queries" do
+    test "cannot select unselectable columns" do
+      assert {:error, unselectable_error()} = compile("SELECT grey FROM column_access", data_source())
+    end
+
+    test "unselectable columns' names are normalized" do
+      result = compile("SELECT GrEy FROM column_access", data_source())
+      assert {:error, unselectable_error()} = result
+    end
+
+    test "cannot select unselectable columns in complex expressions" do
+      assert {:error, unselectable_error()} = compile("SELECT abs(grey + 1) FROM column_access", data_source())
+    end
+
+    test "columns remain unselectable when aliased" do
+      assert {:error, unselectable_error("grey", "ca")} =
+               compile("SELECT ca.grey AS col FROM column_access ca", data_source())
+    end
+
+    test "can count unselectable columns" do
+      assert {:ok, _} =
+               compile("SELECT count(grey), count(distinct grey), count_noise(grey) FROM column_access", data_source())
+    end
+
+    test "can count unselectable columns in complex expression" do
+      assert {:ok, _} = compile("SELECT count(abs(grey) + 1) FROM column_access", data_source())
+    end
+
+    for aggregator <- ~w(min max sum avg stddev variance) do
+      test "cannot aggregate unselectable columns using #{aggregator}" do
+        assert {:error, unselectable_error()} =
+                 compile("SELECT #{unquote(aggregator)}(grey) FROM column_access", data_source())
+      end
+    end
+
+    test "cannot filter by unselectable columns" do
+      assert {:error, unselectable_error()} =
+               compile("SELECT white FROM column_access WHERE grey > 0 AND grey < 100 GROUP BY white", data_source())
+    end
+
+    test "cannot order by unselectable columns" do
+      assert {:error, unselectable_error()} = compile("SELECT white FROM column_access ORDER BY grey", data_source())
+    end
+
+    test "cannot group by unselectable columns" do
+      assert {:error, unselectable_error()} =
+               compile("SELECT max(white) FROM column_access GROUP BY grey", data_source())
+    end
+
+    test "can filter by unselectable columns aggregates in having clause" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT white, count(grey)
+                 FROM column_access
+                 GROUP BY white
+                 HAVING count(grey) < 100
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can join by unselectable columns" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT column_access.white, count(*)
+                 FROM column_access
+                 INNER JOIN column_access_public ON column_access.grey = column_access_public.grey
+                 GROUP BY column_access.white
+                 """,
+                 data_source()
+               )
+    end
+  end
+
+  describe "unselectable columns (greylisting) in non-anonymized restricted queries" do
+    test "can select unselectable columns" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT grey
+                   FROM column_access
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can select unselectable columns in complex expressions" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT abs(grey + 1)
+                   FROM column_access
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "columns remain unselectable when aliased" do
+      assert {:error, unselectable_error("complex", "x")} =
+               compile(
+                 """
+                 SELECT max(x.complex)
+                 FROM (
+                   SELECT uid, abs(grey + 1) as complex
+                   FROM column_access
+                   GROUP BY uid, grey
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can count unselectable columns" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid, count(grey)
+                   FROM column_access
+                   GROUP BY uid
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can count unselectable columns in complex expression" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid, count(abs(grey + 1))
+                   FROM column_access
+                   GROUP BY uid
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    for aggregator <- ~w(min max sum avg stddev variance) do
+      test "cannot aggregate unselectable columns using #{aggregator}" do
+        assert {:error, unselectable_error()} =
+                 compile(
+                   """
+                   SELECT count(*)
+                   FROM (
+                     SELECT uid, #{unquote(aggregator)}(grey)
+                     FROM column_access
+                     GROUP BY uid
+                   ) x
+                   """,
+                   data_source()
+                 )
+      end
+    end
+
+    test "cannot filter by unselectable columns" do
+      assert {:error, unselectable_error()} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid
+                   FROM column_access
+                   WHERE grey > 0 AND GREY < 100
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "cannot order by unselectable columns" do
+      assert {:error, unselectable_error()} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid
+                   FROM column_access
+                   ORDER BY grey
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can group by unselectable columns" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid, grey
+                   FROM column_access
+                   GROUP BY uid, grey
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can filter by unselectable columns aggregates in having clause" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid, count(grey)
+                   FROM column_access
+                   GROUP BY uid
+                   HAVING count(grey) > 0 AND count(grey) < 100
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can join by unselectable columns" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid
+                   FROM column_access
+                   INNER JOIN column_access_public
+                   ON column_access.grey = column_access_public.grey
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
   end
 
   describe "excluded columns (blacklisting)" do
