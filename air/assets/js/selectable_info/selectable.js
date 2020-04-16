@@ -4,7 +4,7 @@ import React from "react";
 import Channel from "phoenix";
 
 import { ColumnsView } from "./columns";
-import { Filter } from "./filter";
+import { filterColumns, Higlighted } from "./filter";
 import type { Column } from "./columns";
 import activateTooltips from "../tooltips";
 
@@ -23,7 +23,7 @@ type Props = {
   selectablesEditUrl: string,
   onClick: () => void,
   expanded: boolean,
-  filter: Filter,
+  filter: string,
   channel: Channel,
 };
 
@@ -58,9 +58,15 @@ export class SelectableView extends React.Component<Props> {
     return selectable.kind === "view" || selectable.kind === "analyst_table";
   };
 
-  hasRenderableContent = () => {
+  searchResult = () => {
     const { filter, selectable } = this.props;
-    return filter.anyColumnMatches(selectable.columns);
+    if (filter !== "") {
+      return filterColumns(selectable.id, selectable.columns, filter, {
+        limit: 1,
+      })[0];
+    } else {
+      return {};
+    }
   };
 
   editLinkUrl = () => {
@@ -153,7 +159,7 @@ export class SelectableView extends React.Component<Props> {
     }
   };
 
-  renderSelectableView = () => {
+  renderSelectableView = (searchResult: any) => {
     const { selectable, expanded, filter } = this.props;
     const {
       title,
@@ -175,7 +181,11 @@ export class SelectableView extends React.Component<Props> {
         >
           {this.renderIcon()}
           &nbsp;
-          {selectable.id}
+          <Higlighted
+            table={selectable.id}
+            column={searchResult}
+            field="table"
+          />
           {this.isAnalystCreatedSelectable()
             ? this.renderSelectableActionMenu()
             : null}
@@ -183,7 +193,13 @@ export class SelectableView extends React.Component<Props> {
 
         {(() => {
           if (expanded) {
-            return <ColumnsView columns={selectable.columns} filter={filter} />;
+            return (
+              <ColumnsView
+                table={selectable.id}
+                columns={selectable.columns}
+                filter={filter}
+              />
+            );
           } else {
             return null;
           }
@@ -193,9 +209,10 @@ export class SelectableView extends React.Component<Props> {
   };
 
   render = () => {
-    if (this.hasRenderableContent()) {
+    const results = this.searchResult();
+    if (results) {
       activateTooltips();
-      return this.renderSelectableView();
+      return this.renderSelectableView(results);
     } else {
       return null;
     }
