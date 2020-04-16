@@ -21,6 +21,7 @@ defmodule Cloak.DataSource.Table do
           :query => Query.t() | nil,
           :columns => [column],
           :exclude_columns => [String.t()],
+          :unselectable_columns => [String.t()],
           :keys => Map.t(),
           :content_type => :private | :public,
           :auto_isolating_column_classification => boolean,
@@ -38,6 +39,7 @@ defmodule Cloak.DataSource.Table do
           {:db_name, String.t()}
           | {:columns, [column]}
           | {:exclude_columns, [String.t()]}
+          | {:unselectable_columns, [String.t()]}
           | {:keys, Map.t()}
           | {:query, Query.t()}
           | {:content_type, :private | :public}
