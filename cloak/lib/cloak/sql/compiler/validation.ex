@@ -47,6 +47,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_case_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
     Helpers.each_subquery(query, &verify_grouping_sets_uid/1)
+    Helpers.each_subquery(query, &verify_unselectable_columns_usage/1)
     query
   end
 
@@ -208,6 +209,24 @@ defmodule Cloak.Sql.Compiler.Validation do
       valid_expression_in_aggregate?(query, expression) -> []
       Expression.function?(expression) -> Enum.flat_map(expression.args, &invalid_columns_in_aggregate(query, &1))
       true -> [expression]
+    end
+  end
+
+  defp verify_unselectable_columns_usage(query) do
+    Lenses.greylistable_columns()
+    |> Lens.filter(&Helpers.unselectable_expression?/1)
+    |> Lens.to_list(query)
+    |> case do
+      [column | _] ->
+        raise CompilationError,
+          source_location: column.source_location,
+          message:
+            "Column #{Expression.display_name(column)} cannot appear in this" <>
+              " query context as it has been classified as unselectable by your system administrator." <>
+              " Please consult the section on unselectable columns in the documentation."
+
+      _ ->
+        :ok
     end
   end
 

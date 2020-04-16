@@ -135,6 +135,12 @@ defmodule Cloak.Sql.Compiler.Helpers do
     table_columns =
       Enum.map(selected_columns, &Table.column(Expression.title(&1), Function.type(&1), visible?: not &1.synthetic?))
 
+    # Inherit unselectable columns so that this information will bubble up to parent queries.
+    unselectable_columns =
+      selected_columns
+      |> Enum.filter(&unselectable_expression?/1)
+      |> Enum.map(&Expression.title/1)
+
     user_id_column = Enum.find(selected_columns, & &1.user_id?)
     user_id_name = user_id_column && Expression.title(user_id_column)
 
@@ -144,13 +150,45 @@ defmodule Cloak.Sql.Compiler.Helpers do
       |> Enum.map(&{Expression.title(&1), Expression.key_type(&1)})
       |> Enum.into(%{})
 
-    opts = [type: :subquery] |> Keyword.merge(opts) |> Keyword.merge(columns: table_columns, keys: keys)
+    opts =
+      [type: :subquery]
+      |> Keyword.merge(opts)
+      |> Keyword.merge(columns: table_columns, keys: keys, unselectable_columns: unselectable_columns)
+
     Table.new(table_name, user_id_name, opts)
+  end
+
+  @doc "Returns the unselectable (greylisted) columns of an expression."
+  @spec unselectable_columns(Expression.t()) :: [Expression.t()]
+  def unselectable_columns(expr) do
+    Query.Lenses.expression_greylistable_columns()
+    |> Lens.filter(&unselectable_column?/1)
+    |> Lens.to_list(expr)
+  end
+
+  @doc "Returns whether the expression or any of its subexpressions are unselectable (greylisted)."
+  @spec unselectable_expression?(Expression.t()) :: boolean
+  def unselectable_expression?(expr) do
+    expr
+    |> unselectable_columns()
+    |> case do
+      [_ | _] -> true
+      [] -> false
+    end
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp unselectable_column?(%{
+         name: name,
+         table: %{unselectable_columns: unselectable_columns}
+       })
+       when is_list(unselectable_columns),
+       do: name in unselectable_columns
+
+  defp unselectable_column?(_), do: false
 
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 

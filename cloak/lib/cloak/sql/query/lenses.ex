@@ -240,9 +240,79 @@ defmodule Cloak.Sql.Query.Lenses do
     end)
   end
 
+  @doc "Lens focusing on all columns of a query which can be greylisted (marked unselectable)."
+  deflens greylistable_columns() do
+    Lens.match(fn
+      %{type: :anonymized} ->
+        anonymized_greylistable_expressions()
+
+      %{type: :restricted} ->
+        restricted_greylistable_expressions()
+
+      _ ->
+        Lens.empty()
+    end)
+    |> expression_greylistable_columns()
+  end
+
+  @doc "Lens focusing on all columns of an expression which can be greylisted (marked unselectable)."
+  deflens expression_greylistable_columns() do
+    Lens.match(fn
+      {:distinct, _} ->
+        Lens.at(1)
+        |> expression_greylistable_columns()
+
+      %Expression{kind: :function, name: "count"} ->
+        Lens.empty()
+
+      %Expression{kind: :function, name: "count_noise"} ->
+        Lens.empty()
+
+      %Expression{kind: :function} ->
+        Lens.root()
+        |> Lens.key(:args)
+        |> Lens.all()
+        |> expression_greylistable_columns()
+
+      %Expression{kind: :column} ->
+        Lens.root()
+
+      _ ->
+        Lens.empty()
+    end)
+  end
+
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------
+
+  deflensp anonymized_greylistable_expressions() do
+    Lens.multiple([
+      Lens.keys?([:columns, :group_by])
+      |> Lens.filter(&is_list/1)
+      |> Lens.all(),
+      Lens.key?(:where)
+      |> Lens.reject(&is_nil/1),
+      Lens.key?(:order_by)
+      |> Lens.filter(&is_list/1)
+      |> Lens.all()
+      |> Lens.at(0)
+    ])
+  end
+
+  deflensp restricted_greylistable_expressions() do
+    Lens.multiple([
+      Lens.key(:columns)
+      |> Lens.all()
+      |> Lens.filter(&Compiler.Helpers.aggregated_column?/1),
+      Lens.key?(:where)
+      |> Lens.reject(&is_nil/1),
+      Lens.key?(:order_by)
+      |> Lens.filter(&is_list/1)
+      |> Lens.all()
+      |> Lens.at(0)
+    ])
+  end
 
   defp do_join_condition_lenses({:join, %{lhs: lhs, rhs: rhs}}, path) do
     base = path |> Lens.at(1)
