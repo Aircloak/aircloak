@@ -37,8 +37,7 @@ defmodule Cloak.DataSource.Shadows.Cache do
 
   defp known_columns(data_sources) do
     for data_source <- data_sources,
-        {_id, table} <- data_source.tables,
-        table.maintain_shadow_db,
+        {_id, table = %{maintain_shadow_db: true}} <- data_source.tables,
         column <- table.columns do
       {data_source, table.name, column.name}
     end
