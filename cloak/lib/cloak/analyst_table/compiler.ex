@@ -64,8 +64,10 @@ defmodule Cloak.AnalystTable.Compiler do
     columns = columns |> Enum.reject(& &1.user_id?) |> Enum.map(&"\"#{&1.alias}\"") |> Enum.join(", ")
 
     with {:ok, parsed_query} <- Cloak.Sql.Parser.parse("select #{columns} from (#{statement}) sq") do
+      opts = [analyst_table_compilation?: true]
+
       query =
-        Compiler.core_compile!(parsed_query, analyst, data_source, parameters, views)
+        Compiler.core_compile!(parsed_query, analyst, data_source, parameters, views, opts)
         |> Compiler.NoiseLayers.compile()
         |> Compiler.BoundAnalysis.analyze_query()
         |> Cloak.Query.AnalystTables.resolve()

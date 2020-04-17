@@ -36,10 +36,12 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   @doc "Checks that the query specification respects the anonymization restrictions."
-  @spec verify_anonymization_restrictions(Query.t()) :: Query.t()
-  def verify_anonymization_restrictions(%Query{command: :show} = query), do: query
+  @spec verify_anonymization_restrictions(Query.t(), Keyword.t()) :: Query.t()
+  def verify_anonymization_restrictions(query, opts \\ [])
 
-  def verify_anonymization_restrictions(%Query{command: :select} = query) do
+  def verify_anonymization_restrictions(%Query{command: :show} = query, _opts), do: query
+
+  def verify_anonymization_restrictions(%Query{command: :select} = query, opts) do
     verify_user_id_usage(query, nil)
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
     Helpers.each_subquery(query, &verify_conditions_usage/1)
@@ -47,7 +49,13 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_case_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
     Helpers.each_subquery(query, &verify_grouping_sets_uid/1)
-    Helpers.each_subquery(query, &verify_unselectable_columns_usage/1)
+
+    if Keyword.get(opts, :analyst_table_compilation?, false) do
+      Lens.each(Lenses.subqueries(), query, &verify_unselectable_columns_usage/1)
+    else
+      Helpers.each_subquery(query, &verify_unselectable_columns_usage/1)
+    end
+
     query
   end
 
