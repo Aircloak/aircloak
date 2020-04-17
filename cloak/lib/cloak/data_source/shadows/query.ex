@@ -21,7 +21,7 @@ defmodule Cloak.DataSource.Shadows.Query do
     cond do
       table.user_id_join_chain == nil -> []
       column == table.user_id -> []
-      true -> maybe_build_shadow(data_source, table_name, column)
+      true -> compute_shadow_values(data_source, table_name, column)
     end
   end
 
@@ -29,30 +29,23 @@ defmodule Cloak.DataSource.Shadows.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp maybe_build_shadow(data_source, table_name, column) do
-    if should_maintain_shadow?(data_source, table_name) do
-      {user_id, table_chain} = SqlBuilder.build_table_chain_with_user_id(data_source.tables, table_name)
+  defp compute_shadow_values(data_source, table_name, column) do
+    {user_id, table_chain} = SqlBuilder.build_table_chain_with_user_id(data_source.tables, table_name)
 
-      """
-        SELECT "#{table_name}"."#{column}"
-        FROM #{table_chain}
-        GROUP BY 1
-        HAVING COUNT(DISTINCT #{user_id}) > #{min_users()}
-        ORDER BY COUNT(*) DESC
-        LIMIT #{size()}
-      """
-      |> Parser.parse!()
-      |> Compiler.compile_direct!(nil, data_source)
-      |> DbEmulator.compile()
-      |> DbEmulator.select()
-      |> Enum.map(&hd/1)
-    else
-      []
-    end
+    """
+      SELECT "#{table_name}"."#{column}"
+      FROM #{table_chain}
+      GROUP BY 1
+      HAVING COUNT(DISTINCT #{user_id}) > #{min_users()}
+      ORDER BY COUNT(*) DESC
+      LIMIT #{size()}
+    """
+    |> Parser.parse!()
+    |> Compiler.compile_direct!(nil, data_source)
+    |> DbEmulator.compile()
+    |> DbEmulator.select()
+    |> Enum.map(&hd/1)
   end
-
-  defp should_maintain_shadow?(data_source, table_name),
-    do: Map.get(data_source.tables[table_name], :maintain_shadow_db, true)
 
   defp min_users(), do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:min_users)
 

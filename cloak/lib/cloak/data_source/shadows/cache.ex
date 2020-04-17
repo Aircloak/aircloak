@@ -12,8 +12,14 @@ defmodule Cloak.DataSource.Shadows.Cache do
 
   @doc "Returns the shadow table for the given column."
   @spec shadow(atom | pid, Cloak.DataSource.t(), String.t(), String.t()) :: [any]
-  def shadow(cache_ref \\ __MODULE__, data_source, table_name, column_name),
-    do: Cache.value(cache_ref, data_source, table_name, column_name)
+  def shadow(cache_ref \\ __MODULE__, data_source, table_name, column_name) do
+    Cache.lookup(cache_ref, data_source, table_name, column_name)
+    |> case do
+      {:ok, values} -> values
+      {:error, :unknown_column} -> []
+      _pending_or_failed -> Cache.value(cache_ref, data_source, table_name, column_name)
+    end
+  end
 
   @doc "Performs a cache lookup."
   @spec lookup(Cloak.DataSource.t(), String.t(), String.t()) ::
@@ -32,6 +38,7 @@ defmodule Cloak.DataSource.Shadows.Cache do
   defp known_columns(data_sources) do
     for data_source <- data_sources,
         {_id, table} <- data_source.tables,
+        table.maintain_shadow_db,
         column <- table.columns do
       {data_source, table.name, column.name}
     end
