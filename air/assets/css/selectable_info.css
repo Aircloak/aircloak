@@ -69,3 +69,8 @@
 .column-filter .form-group {
   display: block;
 }
+
+.highlight {
+  padding: 0;
+  text-decoration: underline;
+}

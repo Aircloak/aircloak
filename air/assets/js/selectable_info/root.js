@@ -5,7 +5,6 @@ import Channel from "phoenix";
 
 import { SelectableView } from "./selectable";
 import NewSelectableToolbarView from "./new_selectable_toolbar";
-import { Filter, EmptyFilter } from "./filter";
 import FilterView from "./filter_view";
 import FrontendSocket from "../frontend_socket";
 import type { Selectable } from "./selectable";
@@ -26,7 +25,7 @@ type Props = {
 
 type State = {
   expanded: Set<string>,
-  filter: Filter,
+  filter: string,
   selectables: Selectable[],
   dataSourceStatus: string,
 };
@@ -43,7 +42,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
 
     this.state = {
       expanded: new Set(),
-      filter: EmptyFilter(),
+      filter: "",
       selectables: props.selectables,
       dataSourceStatus,
     };
@@ -68,7 +67,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
 
   channel: Channel;
 
-  onFilterChange = (filter: Filter) => {
+  onFilterChange = (filter: string) => {
     this.setState({ filter });
   };
 
@@ -154,7 +153,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
           {this.renderDataSourceDescription()}
         </div>
 
-        <FilterView onFilterChange={this.onFilterChange} />
+        <FilterView filter={filter} onFilterChange={this.onFilterChange} />
 
         <div className="selectable-info-content">
           {this.selectables().map((selectable, i) => (

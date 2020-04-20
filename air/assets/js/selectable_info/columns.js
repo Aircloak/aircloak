@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import { Filter } from "./filter";
+import { filterColumns, Higlighted } from "./filter";
 
 export type Column = {
   name: string,
@@ -34,8 +34,10 @@ const columnClassName = (column: Column) => {
 export const ColumnsView = ({
   filter,
   columns,
+  table,
 }: {
-  filter: Filter,
+  table: string,
+  filter: string,
   columns: Column[],
 }) => {
   return (
@@ -48,29 +50,38 @@ export const ColumnsView = ({
       </thead>
 
       <tbody>
-        {filter.filterColumns(columns).map((column) => (
-          <tr key={column.name}>
-            {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions,
+        {filterColumns(table, columns, filter).map((item) => {
+          return (
+            <tr key={item.name}>
+              {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions,
                                jsx-a11y/click-events-have-key-events */}
-            <td
-              onClick={(event) => {
-                event.preventDefault();
-                window.insertWordInEditor(column.name);
-              }}
-              className={columnClassName(column)}
-            >
-              {potentiallyRenderColumnIcon(column)}
-              {column.name}
-            </td>
-            {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions,
+              <td
+                onClick={(event) => {
+                  event.preventDefault();
+                  window.insertWordInEditor(item.name);
+                }}
+                className={columnClassName(item)}
+              >
+                {potentiallyRenderColumnIcon(item)}
+                <Higlighted table={table} column={item} field="name" />
+              </td>
+              {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions,
                                jsx-a11y/click-events-have-key-events */}
-            <td>
-              {column.key_type
-                ? `${column.key_type} (${column.type})`
-                : column.type}
-            </td>
-          </tr>
-        ))}
+              <td>
+                {item.key_type ? (
+                  <span>
+                    <Higlighted table={table} column={item} field="key_type" />
+                    <>(</>
+                    <Higlighted table={table} column={item} field="type" />
+                    <>)</>
+                  </span>
+                ) : (
+                  <Higlighted table={table} column={item} field="type" />
+                )}
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
