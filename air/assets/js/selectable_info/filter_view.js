@@ -3,15 +3,15 @@
 import React from "react";
 
 type Props = {
-  onFilterChange: string => void,
-  filter: string
+  onFilterChange: (string) => void,
+  filter: string,
 };
 
 const FilterView = ({ filter, onFilterChange }: Props) => (
   <div className="column-filter">
     <div className="input-group">
       <input
-        onChange={event => onFilterChange(event.target.value)}
+        onChange={(event) => onFilterChange(event.target.value)}
         type="text"
         className="form-control"
         placeholder="Filter"
