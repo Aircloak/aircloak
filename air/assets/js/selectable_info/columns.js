@@ -68,15 +68,13 @@ export const ColumnsView = ({
               {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions,
                                jsx-a11y/click-events-have-key-events */}
               <td>
-                {item.key_type ? (
-                  <span>
+                <Higlighted table={table} column={item} field="type" />
+                {item.key_type && (
+                  <>
+                    {" ("}
                     <Higlighted table={table} column={item} field="key_type" />
-                    <>(</>
-                    <Higlighted table={table} column={item} field="type" />
-                    <>)</>
-                  </span>
-                ) : (
-                  <Higlighted table={table} column={item} field="type" />
+                    {")"}
+                  </>
                 )}
               </td>
             </tr>
