@@ -17,6 +17,7 @@ import { loadBuckets } from "../request";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
 import activateTooltips from "../tooltips";
+import loader from "../../static/images/loader.gif";
 
 export type Row = {
   occurrences: number,
@@ -349,10 +350,7 @@ export class ResultView extends React.Component<Props, State> {
       return (
         <p className="text-center">
           {" "}
-          <img
-            alt="indication of more rows being loaded"
-            src="/images/loader.gif"
-          />{" "}
+          <img alt="indication of more rows being loaded" src={loader} />{" "}
           Loading more rows.
         </p>
       );
