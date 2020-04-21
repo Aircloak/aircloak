@@ -7,6 +7,7 @@ import { ColumnsView } from "./columns";
 import { filterColumns, Higlighted } from "./filter";
 import type { Column } from "./columns";
 import activateTooltips from "../tooltips";
+import loader from "../../static/images/loader.gif";
 
 export type Selectable = {
   id: string,
@@ -147,8 +148,8 @@ export class SelectableView extends React.Component<Props> {
     if (this.pending()) {
       return (
         <img
-          src="/images/loader.gif"
-          alt="indicated analyst table is being created"
+          src={loader}
+          alt="analyst table is being created"
           height="12"
           width="12"
         />

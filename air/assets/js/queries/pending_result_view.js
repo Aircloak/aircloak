@@ -8,6 +8,7 @@ import type { Authentication } from "../authentication_provider";
 import CodeViewer from "../code_viewer";
 import { pendingStates, later, format } from "./state";
 import { cancel } from "../request";
+import loader from "../../static/images/loader.gif";
 
 type Props = {
   result: PendingResult,
@@ -34,7 +35,7 @@ export default ({ result, authentication }: Props) => {
         <p className="text-center spinner">
           {" "}
           <img
-            src="/images/loader.gif"
+            src={loader}
             alt="indicating the result is being computed"
           />{" "}
         </p>
