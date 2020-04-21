@@ -17,6 +17,9 @@ import AuditLogView from "./audit_log/root";
 import PasswordField from "./password_field";
 import activateDatetimePickers from "./datetimepicker";
 import "codemirror/mode/markdown/markdown";
+import activateTooltips from "./tooltips";
+
+activateTooltips();
 
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
