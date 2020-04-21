@@ -1625,8 +1625,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "columns remain unselectable when aliased" do
-      assert {:error, unselectable_error("grey", "ca")} =
-               compile("SELECT ca.grey AS col FROM column_access ca", data_source())
+      assert {:error, unselectable_error()} = compile("SELECT ca.grey AS col FROM column_access ca", data_source())
     end
 
     test "can count unselectable columns" do
@@ -1716,7 +1715,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "columns remain unselectable when aliased" do
-      assert {:error, unselectable_error("complex", "x")} =
+      assert {:error, error} =
                compile(
                  """
                  SELECT max(x.complex)
@@ -1728,6 +1727,10 @@ defmodule Cloak.Sql.Compiler.Test do
                  """,
                  data_source()
                )
+
+      assert error =~
+               "Column `complex` from table `x` cannot appear in this query context as it depends on column" <>
+                 " `grey` from table `column_access`, which has been classified as unselectable"
     end
 
     test "can count unselectable columns" do

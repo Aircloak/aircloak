@@ -220,24 +220,6 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_unselectable_columns_usage(query) do
-    Lenses.greylistable_columns()
-    |> Lens.filter(&Helpers.unselectable_expression?/1)
-    |> Lens.to_list(query)
-    |> case do
-      [column | _] ->
-        raise CompilationError,
-          source_location: column.source_location,
-          message:
-            "Column #{Expression.display_name(column)} cannot appear in this" <>
-              " query context as it has been classified as unselectable by your system administrator." <>
-              " Please consult the section on unselectable columns in the documentation."
-
-      _ ->
-        :ok
-    end
-  end
-
   defp verify_aggregators(query) do
     Lenses.query_expressions()
     |> Lens.filter(&Expression.function?/1)
@@ -297,6 +279,50 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_constant(_expression), do: :ok
+
+  # -------------------------------------------------------------------
+  # Unselectable columns (greylisting)
+  # -------------------------------------------------------------------
+
+  defp verify_unselectable_columns_usage(query) do
+    Lenses.greylistable_columns()
+    |> Lens.filter(&Helpers.unselectable_expression?/1)
+    |> Lens.to_list(query)
+    |> case do
+      [column | _] ->
+        column_display = unselectable_column_display(column)
+        source_column_display = unselectable_db_column(query, column) |> unselectable_column_display()
+
+        message =
+          if column_display == source_column_display do
+            "Column #{column_display} cannot appear in this query context as it has been classified as unselectable by your system administrator."
+          else
+            "Column #{column_display} cannot appear in this query context as it depends on" <>
+              " column #{source_column_display}, which has been classified as unselectable by your system administrator."
+          end <>
+            " Please consult the section on unselectable columns in the documentation."
+
+        raise CompilationError,
+          source_location: column.source_location,
+          message: message
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp unselectable_column_display(%{name: name, table: table}),
+    do: "`#{name}` from table `#{table.db_name || table.name}`"
+
+  defp unselectable_db_column(query, column) do
+    case Helpers.unselectable_db_columns(query, column) do
+      [source_column | _] ->
+        source_column
+
+      _ ->
+        column
+    end
+  end
 
   # -------------------------------------------------------------------
   # GROUP BY
