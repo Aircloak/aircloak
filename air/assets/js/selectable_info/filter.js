@@ -56,7 +56,7 @@ export const Higlighted = ({ table, column, field }: Props) => {
         maxIndex = minIndex + column.type.length;
       } else {
         minIndex += column.type.length;
-        maxIndex = minIndex += (column.key_type || "").length;
+        maxIndex = minIndex + (column.key_type || "").length;
       }
     }
   }
