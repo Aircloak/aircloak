@@ -64,7 +64,7 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
   def handle_cast(:signal_change, %{dirty?: true} = state), do: {:noreply, state}
 
   @impl GenServer
-  def handle_info(:persist_cache, %{dirty?: true} = state), do: {:noreply, persist_cache(state)}
+  def handle_info(:persist_cache, %{dirty?: true} = state), do: persist_cache(state)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -85,7 +85,23 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
     cache = :erlang.term_to_binary({state.name, state.persisted_cache_version, cache_contents})
     File.write!(cache_file, cache)
 
-    %{state | dirty?: false}
+    {:noreply, %{state | dirty?: false}}
+  catch
+    _kind, error ->
+      Logger.error(
+        "An exception occured while saving the cache to file `#{cache_file(state.name)}`. " <>
+          "Please make sure the target file is writable."
+      )
+
+      Logger.error(Cloak.LoggerTranslator.format_exit({error, __STACKTRACE__}))
+
+      # This operation happens long after initialization, any errors here will result in a restart of the process,
+      # according to the current supervising strategy. There is a very slim chance that the cause of the error will
+      # vanish after restart. Since this operation is rare, it will likely not trip the restart threshold.
+      # The end result result will probably be an infinite loop of failures to save the cache and restarts.
+      # It is better to stop the system manually here.
+      System.stop(1)
+      {:stop, :shutdown, state}
   end
 
   defp restore_cache(name, persisted_cache_version) do
@@ -94,6 +110,11 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
     with {:ok, serialized_cache} <- File.read(cache_file(name)),
          {^name, ^persisted_cache_version, cache_contents} <- :erlang.binary_to_term(serialized_cache),
          do: Enum.each(cache_contents, &:ets.insert(name, &1))
+  catch
+    kind, error ->
+      Logger.error("An exception occured while restoring the cache from file `#{cache_file(name)}`.")
+      # Since this operation happens during initialization, propagating the exception ensures the system will stop.
+      reraise(Exception.format(kind, error), __STACKTRACE__)
   end
 
   @doc false
