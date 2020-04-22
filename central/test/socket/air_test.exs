@@ -118,8 +118,8 @@ defmodule CentralWeb.Socket.AirTest do
 
   defp default_params() do
     {:ok, customer} = Customer.create(%{name: "test customer"})
-    {:ok, token} = Customer.generate_token(customer)
-    %{air_name: "air_1", token: token}
+    {:ok, license} = customer |> License.create(%{length_in_days: 10, auto_renew: true, name: "a license"})
+    %{air_name: "air_1", license: License.export(license)}
   end
 
   defp with_customer(_context), do: {:ok, customer: create_customer!()}
@@ -130,9 +130,10 @@ defmodule CentralWeb.Socket.AirTest do
   end
 
   defp joined_main(%{join_options: join_options, customer: customer}) do
-    {:ok, token} = Customer.generate_token(customer)
+    {:ok, license} = customer |> License.create(%{length_in_days: 10, auto_renew: true, name: "a license"})
 
-    {:ok, socket} = Phoenix.ChannelTest.connect(CentralWeb.Socket.Air, %{token: token, air_name: "air_name"})
+    {:ok, socket} =
+      Phoenix.ChannelTest.connect(CentralWeb.Socket.Air, %{license: License.export(license), air_name: "air_name"})
 
     {:ok, _, socket} = Phoenix.ChannelTest.subscribe_and_join(socket, "main", join_options)
     {:ok, socket: socket}

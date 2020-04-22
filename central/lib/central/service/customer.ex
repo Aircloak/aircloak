@@ -48,40 +48,6 @@ defmodule Central.Service.Customer do
     end
   end
 
-  @doc """
-  Generates a cryptographically signed token that is tied to a customer, and can
-  be used to identify a customer through APIs.
-  """
-  @spec generate_token(Customer.t()) :: {:ok, String.t()}
-  def generate_token(customer) do
-    {:ok, Phoenix.Token.sign(secret_key_base(), customer_token_salt(), customer.id)}
-  end
-
-  @doc """
-  Returns the customer associated with a token.
-  Returns an error either if the customer doesn't exist, and likewise
-  if the token is invalid.
-  """
-  @spec from_token(String.t()) :: {:ok, Customer.t()} | {:error, :invalid_token}
-  def from_token(token) do
-    Phoenix.Token.verify(
-      secret_key_base(),
-      customer_token_salt(),
-      token,
-      max_age: almost_infinity()
-    )
-    |> case do
-      {:ok, customer_id} ->
-        case get(customer_id) do
-          {:error, :not_found} -> {:error, :invalid_token}
-          other -> other
-        end
-
-      _ ->
-        {:error, :invalid_token}
-    end
-  end
-
   @doc "Returns the customer associated with the given license."
   @spec from_license(License.t()) :: {:ok, Customer.t()} | {:error, :invalid_license}
   def from_license(license) do
@@ -91,21 +57,5 @@ defmodule Central.Service.Customer do
       nil -> :error
       customer -> {:ok, customer}
     end
-  end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  # Phoenix warns if we're not validating the token age, so we need to pass some integer value.
-  # Therefore, we're simulating infinity by using a ridiculously large value (10,000 years).
-  defp almost_infinity(), do: 60 * 60 * 24 * 365 * 10_000
-
-  defp customer_token_salt() do
-    Central.site_setting("customer_token_salt")
-  end
-
-  defp secret_key_base() do
-    Central.site_setting("endpoint_key_base")
   end
 end
