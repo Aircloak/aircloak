@@ -60,7 +60,8 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:timex, "~> 3.5"},
       {:ex_json_schema, "~> 0.6"},
       {:html_sanitize_ex, "~> 1.3"},
-      {:comeonin, "~> 2.5"}
+      {:comeonin, "~> 2.5"},
+      {:observer_cli, "~> 1.5"}
     ]
   end
 
