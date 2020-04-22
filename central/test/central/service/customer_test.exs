@@ -56,30 +56,6 @@ defmodule Central.Service.CustomerTest do
     end
   end
 
-  describe "token management" do
-    test "creates tokens for customer" do
-      assert {:ok, _} = Customer.generate_token(create_customer())
-    end
-
-    test "can load customers from token" do
-      customer = create_customer()
-      {:ok, token} = Customer.generate_token(customer)
-      {:ok, loaded_customer} = Customer.from_token(token)
-      assert loaded_customer.id === customer.id
-    end
-
-    test "returns an invalid token error for missing customers" do
-      customer = create_customer()
-      {:ok, token} = Customer.generate_token(customer)
-      Customer.delete(customer)
-      assert {:error, :invalid_token} = Customer.from_token(token)
-    end
-
-    test "returns an invalid token bogus tokens" do
-      assert {:error, :invalid_token} = Customer.from_token("bogus token")
-    end
-  end
-
   defp create_customer(name \\ "default customer") do
     assert {:ok, customer} = Repo.insert(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
 
