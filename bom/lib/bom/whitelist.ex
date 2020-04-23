@@ -30,10 +30,6 @@ defmodule BOM.Whitelist do
   }
 
   @type_by_text_digest %{
-    # node/cli-table
-    "742167dd80c0afaa048b5fc2d45ca499" => :mit,
-    # node/caniuse-db
-    "eacc0b19e3fb8dd12d2e110b24be0452" => :cca4i,
     # node/type-fest
     "915042b5df33c31a6db2b37eadaa00e3" => :mit,
     # node/pako
@@ -42,18 +38,16 @@ defmodule BOM.Whitelist do
     "60f8103054954b2c75f1faa295ea3590" => :cca4i,
     # node/atob
     "493adefc1fe80b079a23203e4732d945" => :mit,
-    # node/ms
-    "2be2157b55ea281b7f4969d7ba05eea2" => :mit,
-    # node/nomnom
-    "0d8c303f84b56d8c334cffb5e6df6444" => :mit,
     # node/phoenix_html
     "1dc701356996e3d0dd135248577c8ef7" => :mit,
-    # node/rc
-    "ffcf739dca268cb0f20336d6c1a038f1" => :apache2,
-    # node/color-convert
-    "330031db3ec2b47f6e9d7923b8e1f95b" => :mit,
     # elixir/earmark
-    "1bf8028080e75e094cd7b53003c2efeb" => :apache2
+    "1bf8028080e75e094cd7b53003c2efeb" => :apache2,
+    # node/mousetrap
+    "573d6504860bb20f6f58dc76f7778c85" => :apache2,
+    # node/node-forge
+    "3468e584d830bfb0ffd2d0af6e129136" => :bsd_3_clause,
+    # node/sha.js
+    "71f5a3fe755d4bb9cb62b97bdad36e45" => :mit
   }
 
   @not_shipped %{

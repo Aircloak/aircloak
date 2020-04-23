@@ -4,7 +4,8 @@ test = fn
      [
        "MIX_ENV=test ./check_warnings.sh",
        "MIX_ENV=test mix lint",
-       "MIX_ENV=test mix test"
+       "MIX_ENV=test mix test",
+       "mix bom --node ../air/assets/node_modules --elixir ../air/deps --elixir ../cloak/deps --rust ../cloak/src/rodbc --validate /tmp"
      ]}
 
   :dev ->
