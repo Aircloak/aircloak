@@ -3,6 +3,8 @@
 ### __Breaking changes__
 
 - Default value for `max_rare_negative_conditions` is now 0.
+- The `IS [NOT] NULL` operator is restricted to clear expressions.
+- Aggregators are restricted to clear expressions.
 
 ### New features
 
@@ -10,7 +12,24 @@
 
 ### Bugfixes
 
+- Fixed filtering of censored values in standard queries.
+
 ### Changes
+
+- Increased the minimum threshold for non-count stats-based aggregators.
+
+## Version 20.1.1
+
+### New features
+
+- Support for excluding columns from a data source table. This can be done using the `exclude_columns` parameter.
+
+### Bugfixes
+
+- Fixed handling of dotted table names and aliases.
+- Fixed performance degradation bug introduced in version 20.1.0.
+- Fixed periodically occurring bug that would prevent queries from being run.
+- Fixed high CPU usage after startup caused by shadow values cache initialization.
 
 ## Version 20.1.0
 
@@ -43,8 +62,8 @@
 - Various data source connection timeouts can now be adjusted in the Cloak config file, under the `timeouts` field.
 - Improved support for boolean expressions.
 - Allowed inequalities between datetime columns and the current date.
-- Added support for `CASE` statements in [standard queries](sql#query-and-subquery-types). 
-  Experimental support for [restricted queries](sql#query-and-subquery-types) can be enabled 
+- Added support for `CASE` statements in [standard queries](sql#query-and-subquery-types).
+  Experimental support for [restricted queries](sql#query-and-subquery-types) can be enabled
   in the Cloak config using the `enable_case_support` flag.
 - The HTTP REST API query result endpoint no longer returns internal logging data.
 - The number of analysis queries needed when multiple copies of a data source exist was reduced.
@@ -53,7 +72,7 @@
 ### Bugfixes
 
 - Fixed detection of recursive aggregators usage inside the `HAVING` clause.
-- Various fixes for Oracle data source: 
+- Various fixes for Oracle data source:
   - the parameter order of the `trim` function in the generated SQL was fixed
   - date/time conversion was not always correct
 - Views and analyst tables now appear in popular analytics tools such as Tableau.

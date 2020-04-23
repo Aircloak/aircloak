@@ -1,6 +1,7 @@
 @import "./vendor.css";
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   height: 100%;
@@ -35,19 +36,22 @@ a {
 }
 
 /* Phoenix flash messages */
-.alert:empty { display: none; }
+.alert:empty {
+  display: none;
+}
 
 /* Phoenix inline forms in links and buttons */
-form.link, form.button {
+form.link,
+form.button {
   display: inline;
 }
 
 .logo {
-  margin: 10px;
+  margin-left: 10px;
   width: 160px;
   height: 30px;
   display: inline-block;
-  background-image: url("/images/aircloak_web.png");
+  background-image: url("../static/images/aircloak_web.svg");
   background-repeat: no-repeat;
   background-size: 160 30;
 }
@@ -62,7 +66,7 @@ form.link, form.button {
 }
 
 .table-hover tbody tr:hover td {
-  background: rgb(225,240,255);
+  background: rgb(225, 240, 255);
 }
 
 /* Customize container */
@@ -114,7 +118,7 @@ form.link, form.button {
 a.suggested-reading {
   z-index: 99999999999;
   color: black;
-  background-color: rgba(254,251,0,0.2);
+  background-color: rgba(254, 251, 0, 0.2);
 }
 
 a.suggested-reading:hover {

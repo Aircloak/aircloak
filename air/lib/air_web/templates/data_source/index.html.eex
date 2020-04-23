@@ -1,5 +1,5 @@
 <%= if @main_message not in ["", nil] do %>
-  <div id="info-message" class="panel">
+  <div id="info-message" class="card">
     <%= raw(Earmark.as_html!(@main_message)) %>
   </div>
 <% end %>
@@ -8,11 +8,11 @@
 
 <%= if length(@user_data_sources) == 0 do %>
 
-  <div class="panel panel-info">
-    <div class="panel-heading">
-      <h1 class="panel-title">No data sources</h1>
+  <div class="card text-white bg-info">
+    <div class="card-header">
+      <h1 class="card-title">No data sources</h1>
     </div>
-    <div class="panel-body">
+    <div class="card-body">
       <%= if @data_source_count == 0 do %>
         <%= if admin?(@conn) do %>
           <p>
@@ -55,11 +55,9 @@
 
 <%= if admin?(@conn) and length(@user_data_sources) < @data_source_count do %>
 
-  <div class="panel panel-info">
-    <div class="panel-heading">
-      <h1 class="panel-title">Notice</h1>
-    </div>
-    <div class="panel-body">
+  <div class="card border-info">
+    <h4 class="card-header border-info">Notice</h4>
+    <div class="card-body">
       <p>
         If the list of data sources does not include the data sources you expect to see there,
         this might be due to one of the following reasons:

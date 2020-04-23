@@ -7,7 +7,7 @@ import type { CloakStat } from "./cloak_stats";
 
 const renderCloaks = (cloakStats: CloakStat[]) => {
   if (cloakStats.length > 0) {
-    return cloakStats.map(cloakStat => (
+    return cloakStats.map((cloakStat) => (
       <CloakStatsView key={cloakStat.id} cloakStat={cloakStat} />
     ));
   } else {

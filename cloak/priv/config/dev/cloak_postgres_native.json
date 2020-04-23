@@ -20,7 +20,7 @@
       "db_name": "demographics",
       "keys": [{"user_id": "uid"}]
     },
-    "demographics_as_query": {
+    "demographics.query": {
       "query": "
         SELECT *
         FROM demographics

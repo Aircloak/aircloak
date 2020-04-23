@@ -289,8 +289,8 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "functions in sub-queries", context do
-    assert_query(context, "SELECT round(AVG(age)) FROM (SELECT _id, age * 2 + 1 AS age FROM #{@user_table}) AS t", %{
-      rows: [%{occurrences: 1, row: [61]}]
+    assert_query(context, "SELECT round(AVG(age)) FROM (SELECT _id, floor(age) AS age FROM #{@user_table}) AS t", %{
+      rows: [%{occurrences: 1, row: [30]}]
     })
 
     assert_query(context, "SELECT name FROM (SELECT _id, left(name, 4) AS name FROM #{@user_table}) AS t", %{
@@ -427,7 +427,7 @@ defmodule Cloak.DataSource.MongoDBTest do
       context,
       """
         SELECT COUNT(*) FROM (SELECT _id, COUNT(name) FROM #{@user_table}_bills
-        GROUP BY _id HAVING COUNT(abs(age)) = 1) AS t
+        GROUP BY _id HAVING COUNT(round(age)) = 1) AS t
       """,
       %{rows: [%{occurrences: 1, row: [10]}]}
     )

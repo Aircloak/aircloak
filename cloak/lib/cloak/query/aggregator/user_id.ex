@@ -192,20 +192,23 @@ defmodule Cloak.Query.Aggregator.UserId do
     users_count = Anonymizer.noisy_count(anonymizers.default, Enum.count(users_rows))
 
     aggregation_results =
-      Enum.map(indexed_aggregators, fn
-        {_values_index, %Expression{name: "count", args: [{:distinct, %Expression{user_id?: true}}]}, _aggregator_index} ->
+      indexed_aggregators
+      |> Enum.map(fn {values_index, aggregator, aggregator_index} ->
+        {values_index, aggregator, anonymizers[aggregator_index] || anonymizers.default}
+      end)
+      |> Enum.map(fn
+        {_values_index, %Expression{name: "count", args: [{:distinct, %Expression{user_id?: true}}]}, _anonymizer} ->
           users_count
 
-        {_values_index, %Expression{name: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]},
-         aggregator_index} ->
-          Anonymizer.noise_amount(1, anonymizers[aggregator_index])
+        {_values_index, %Expression{name: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]}, anonymizer} ->
+          Anonymizer.noise_amount(1, anonymizer)
 
-        {values_index, aggregator, aggregator_index} ->
+        {values_index, aggregator, anonymizer} ->
           users_rows
           |> Stream.map(fn {_user, row_values} -> Enum.at(row_values, values_index) end)
           |> Enum.reject(&(&1 in [nil, :NaN]))
           |> preprocess_for_aggregation(aggregator)
-          |> aggregate_by(aggregator.alias || aggregator.name, aggregator.type, anonymizers[aggregator_index])
+          |> aggregate_by(aggregator.alias || aggregator.name, aggregator.type, anonymizer)
       end)
 
     {users_count, property ++ aggregation_results}

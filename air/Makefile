@@ -64,8 +64,7 @@ flow:
 	cd assets && node_modules/.bin/flow check
 
 eslint:
-	cd assets && node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules js
-	cd assets && node_modules/.bin/eslint --max-warnings 0 --rulesdir eslint_rules --config .eslintrc-test.js test
+	cd assets && yarn lint
 
 mocha:
 	cd assets && NODE_PATH=test/js:js npm test

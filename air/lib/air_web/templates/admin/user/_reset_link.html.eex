@@ -5,7 +5,7 @@
 
   <pre id="reset-link"></pre>
 
-  <button id="copy-reset-link" class="btn btn-sm btn-default">Copy link</button>
+  <button id="copy-reset-link" class="btn btn-sm btn-secondary">Copy link</button>
 </div>
 
 <script>

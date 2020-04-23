@@ -456,7 +456,8 @@ The database tables that should be made available for querying are defined in th
   "table_name_1": {
     "db_name" | "query": string,
     "content_type": "personal" | "non-personal",
-    "keys": [{"key_type_1": "column_name_1"}, ...]
+    "keys": [{"key_type_1": "column_name_1"}, ...],
+    "exclude_columns": ["column1", "column2", ...]
   },
   "table_name_2": ...
 }
@@ -503,6 +504,9 @@ or projected tables from the configuration file).
 If the virtual table contains columns with duplicated names, only the first one is kept and the rest are dropped.
 Constant columns are also dropped from the table.
 
+The `exclude_columns` is an optional parameter. It takes the form of an array and specifies columns to exclude from the underlying table.
+Excluded columns will not appear in the data source and cannot be referenced in any way from queries.
+
 ##### Keys
 
 Entities in a dataset, whether they be persons, transactions, or products, are usually identifiable by a single column
@@ -543,7 +547,7 @@ products might look like this:
     ]
   },
   "products": {
-    "type": "non-personal",
+    "content_type": "non-personal",
     "keys": [
       {"product_id": "id"}
     ]

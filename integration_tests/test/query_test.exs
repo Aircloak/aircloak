@@ -14,6 +14,7 @@ defmodule IntegrationTest.QueryTest do
     assert result.selected_types == ["text", "text"]
 
     assert result.buckets == [
+             %{"occurrences" => 1, "row" => ["column_access", "personal"]},
              %{"occurrences" => 1, "row" => ["integers", "personal"]},
              %{"occurrences" => 1, "row" => ["users", "personal"]}
            ]
@@ -34,12 +35,27 @@ defmodule IntegrationTest.QueryTest do
            )
   end
 
+  test "show columns ignores excluded columns", context do
+    {:ok, result} = run_query(context.user, "show columns from column_access")
+
+    assert [
+             %{"occurrences" => 1, "row" => ["user_id", "text", _, "user_id"]},
+             %{"occurrences" => 1, "row" => ["white", "integer", _, nil]},
+             %{"occurrences" => 1, "row" => ["grey", "integer", _, nil]}
+           ] = result.buckets
+  end
+
   test "select", context do
     {:ok, result} = run_query(context.user, "select name, height from users")
 
     assert result.buckets == [
              %{"occurrences" => 100, "row" => ["john", 180], "unreliable" => false}
            ]
+  end
+
+  test "cannot select excluded columns", context do
+    {:ok, result} = run_query(context.user, "select white, black from column_access")
+    assert result.error =~ "Column `black` doesn't exist in table `column_access`."
   end
 
   test "Query logs returned are truncated to second", context do

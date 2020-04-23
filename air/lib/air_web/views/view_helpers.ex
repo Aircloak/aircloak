@@ -48,20 +48,30 @@ defmodule AirWeb.ViewHelpers do
     if length(problems) > 0 and admin?(conn) do
       path = AirWeb.Router.Helpers.admin_warnings_path(conn, :index)
       navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
-      navbar_link(conn, warnings_title(length(problems)), path, class: navbar_class)
+      navbar_link(conn, warnings_title(length(problems), navbar_class), path)
     else
       {:safe, []}
     end
   end
 
   @doc "Warnings title"
-  @spec warnings_title(non_neg_integer) :: [any]
-  def warnings_title(num_problems),
+  @spec warnings_title(non_neg_integer, String.t()) :: [any]
+  def warnings_title(num_problems, severity_class),
     do: [
-      content_tag(:span, [class: "badge"], do: num_problems),
+      Inflex.inflect("Warning", num_problems),
       " ",
-      Inflex.inflect("Warning", num_problems)
+      content_tag(:span, [class: "badge badge-" <> severity_class], do: num_problems)
     ]
+
+  @doc """
+  Generates a dropdown link, and highlights the active one
+  """
+  @spec dropdown_link(Plug.Conn.t(), any, String.t(), Keyword.t()) :: {:safe, [any]}
+  def dropdown_link(%{request_path: request_path}, name, desired_path, options \\ []) do
+    active = active_class(request_path, desired_path)
+    options = [{:class, "dropdown-item #{active}"} | [{:to, desired_path} | options]]
+    link(name, options)
+  end
 
   @doc """
   Generates a navbar link, and highlights the active one
@@ -71,24 +81,26 @@ defmodule AirWeb.ViewHelpers do
     content_tag(
       :li,
       role: "presentation",
-      class: navbar_link_classes(request_path, desired_path, options)
+      class: add_active_class("nav-item", request_path, desired_path, options)
     ) do
-      options = [{:to, desired_path} | options]
+      options =
+        Keyword.put(
+          [{:to, desired_path} | options],
+          :class,
+          add_active_class("nav-link", request_path, desired_path, [])
+        )
+
       link(name, options)
     end
   end
 
-  defp navbar_link_classes(request_path, desired_path, options) do
+  defp add_active_class(base_class, request_path, desired_path, options) do
     active = active_class(request_path, desired_path)
     provided = Keyword.get(options, :class)
 
-    [active, provided]
+    [active, provided, base_class]
     |> Enum.join(" ")
     |> String.trim()
-    |> case do
-      "" -> nil
-      content -> content
-    end
   end
 
   defp active_class(path, "/admin/activity_monitor") when path in ["/admin", "/admin/"],

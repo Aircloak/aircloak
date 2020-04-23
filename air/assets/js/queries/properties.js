@@ -9,10 +9,10 @@ type Props = {
   user: { name: string },
   queryState: string,
   insertedAt: string,
-  dataSource: { name: string }
+  dataSource: { name: string },
 };
 
-const formatTime = isoTime => {
+const formatTime = (isoTime) => {
   const time = moment.tz(isoTime, "UTC");
   return `${time.format("YYYY-MM-DD HH:mm:ss z")} (${time.fromNow()})`;
 };

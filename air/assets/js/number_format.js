@@ -5,13 +5,13 @@ import React from "react";
 export type NumberFormat = {
   decimal_digits: number,
   decimal_sep: string,
-  thousand_sep: string
+  thousand_sep: string,
 };
 
 export const formatNumber = (value: number, format: NumberFormat): string => {
   let string = value.toLocaleString("en-US", {
     minimumFractionDigits: format.decimal_digits,
-    maximumFractionDigits: format.decimal_digits
+    maximumFractionDigits: format.decimal_digits,
   });
   const [fixed, fractional] = string.split(".");
   string = fixed.replace(/,/g, format.thousand_sep);
@@ -22,9 +22,9 @@ export const formatNumber = (value: number, format: NumberFormat): string => {
 };
 
 export const NumberFormatExampleView = ({
-  numberFormat
+  numberFormat,
 }: {
-  numberFormat: NumberFormat
+  numberFormat: NumberFormat,
 }) => {
   return (
     <div>
