@@ -241,27 +241,33 @@ defmodule Cloak.Sql.Query.Lenses do
   end
 
   @doc "Lens focusing on all columns of a query which can be greylisted (marked unselectable)."
-  deflens greylistable_columns() do
+  deflens greylistable_columns(), do: greylistable_expressions() |> expression_greylistable_columns()
+
+  @doc "Lens focusing on all top-level expressions of a query which can contain greylisted columns."
+  deflens greylistable_expressions() do
     Lens.match(fn
       %{type: :anonymized} ->
-        anonymized_greylistable_expressions()
+        Lens.multiple([
+          Lens.keys?([:columns, :group_by]) |> Lens.all(),
+          Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
+          Lens.key?(:where)
+        ])
 
       %{type: :restricted} ->
-        restricted_greylistable_expressions()
+        Lens.multiple([
+          Lens.key?(:columns) |> Lens.all() |> Lens.filter(&Compiler.Helpers.aggregated_column?/1),
+          Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
+          Lens.keys?([:where, :having])
+        ])
 
       _ ->
         Lens.empty()
     end)
-    |> expression_greylistable_columns()
   end
 
   @doc "Lens focusing on all columns of an expression which can be greylisted (marked unselectable)."
   deflens expression_greylistable_columns() do
     Lens.match(fn
-      {:distinct, _} ->
-        Lens.at(1)
-        |> expression_greylistable_columns()
-
       %Expression{kind: :function, name: "count"} ->
         Lens.empty()
 
@@ -285,34 +291,6 @@ defmodule Cloak.Sql.Query.Lenses do
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------
-
-  deflensp anonymized_greylistable_expressions() do
-    Lens.multiple([
-      Lens.keys?([:columns, :group_by])
-      |> Lens.filter(&is_list/1)
-      |> Lens.all(),
-      Lens.key?(:where)
-      |> Lens.reject(&is_nil/1),
-      Lens.key?(:order_by)
-      |> Lens.filter(&is_list/1)
-      |> Lens.all()
-      |> Lens.at(0)
-    ])
-  end
-
-  deflensp restricted_greylistable_expressions() do
-    Lens.multiple([
-      Lens.key(:columns)
-      |> Lens.all()
-      |> Lens.filter(&Compiler.Helpers.aggregated_column?/1),
-      Lens.key?(:where)
-      |> Lens.reject(&is_nil/1),
-      Lens.key?(:order_by)
-      |> Lens.filter(&is_list/1)
-      |> Lens.all()
-      |> Lens.at(0)
-    ])
-  end
 
   defp do_join_condition_lenses({:join, %{lhs: lhs, rhs: rhs}}, path) do
     base = path |> Lens.at(1)
