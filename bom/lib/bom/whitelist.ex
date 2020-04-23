@@ -42,73 +42,24 @@ defmodule BOM.Whitelist do
     "60f8103054954b2c75f1faa295ea3590" => :cca4i,
     # node/atob
     "493adefc1fe80b079a23203e4732d945" => :mit,
-    # node/amdefine
-    "c06db4b145ce991f7e579f17699fdf2f" => :mit,
-    # node/babel-brunch
-    "864383f6d0b46747d1d580ef2fc2f67a" => :isc,
-    # node/colors
-    "a4ae3515249a7180a4af2a7be17636d9" => :mit,
-    # node/css-brunch
-    "95cc4f9fe9d1c095151534b92c412a9c" => :mit,
-    # node/extsprintf
-    "bc3c23d98d7aa86bbf232058884e19b2" => :mit,
-    # node/feature-filter
-    "478909a701ade1b289d6e548fc9a7999" => :isc,
-    # node/growl
-    "df1ee3f3e3f8585543aca8ab319c7d8e" => :mit,
-    # node/indexof
-    "950e018e87c0d974cc09cdc1aed56da1" => :mit,
     # node/ms
     "2be2157b55ea281b7f4969d7ba05eea2" => :mit,
     # node/nomnom
     "0d8c303f84b56d8c334cffb5e6df6444" => :mit,
-    # node/numeric
-    "5fc2c6d40f1d589b9530cbec8b857263" => :mit,
-    # node/phoenix
-    "9dcefced2116bbfa2c3ea64b8f5dbbc2" => :mit,
     # node/phoenix_html
     "1dc701356996e3d0dd135248577c8ef7" => :mit,
-    # node/progress
-    "eacbaae25552d53aba44661c68b770d7" => :mit,
-    # node/rw
-    "c8307a7b7a1394f77e887475cf03cd1d" => :bsd_3_clause,
-    # node/tv4
-    "62212b2d5d003ee7f76e89c7d15ef00e" => :public_domain,
-    # node/uglify-js-brunch
-    "44348b65b421f5f075c74680c11786d4" => :mit,
-    # node/path-is-inside
-    "8de5f23be471b6814f19b2ad82a5208a" => :mit,
     # node/rc
     "ffcf739dca268cb0f20336d6c1a038f1" => :apache2,
-    # node/commander
-    "99d097ff2dae4db019dd8ac5144f1efc" => :mit,
     # node/color-convert
     "330031db3ec2b47f6e9d7923b8e1f95b" => :mit,
-    # node/react-chartjs-2
-    "6d2716539b6e3fee1dff17903670f1cd" => :mit,
-    # node/ua-parser-js
-    "c8a186b02a48de60f8df66ba326360a2" => :mit,
-    # elixir/fs
-    "0b36f89594d6a8a4b5e8efa73f1f4fc5" => :mit,
-    # elixir/getopt
-    "0689a7b07fec79946ae192573e1450e8" => :bsd_3_clause,
-    # elixir/jose
-    "9741c346eef56131163e13b9db1241b3" => :mpl_2_0,
-    # elixir/phoenix_gen_socket_server
-    "4d8e2e181d7f8cdc38226f5ee04e5fdd" => :mit,
-    # elixir/file_system
-    "d0d1fe59ece5018a431ad8e694ec6c6a" => :wtfpl,
-    # elixir/idna
-    "7c9b6269d40a09414db760aa524bf240" => :mit,
     # elixir/earmark
     "1bf8028080e75e094cd7b53003c2efeb" => :apache2
   }
 
   @not_shipped %{
-    elixir: ~w(proper triq excheck rustler),
+    elixir: ~w(proper rustler),
     node: ~w(
-      eslint eslint-config-airbnb eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-react
-      eslint-config-airbnb-base eslint-import-resolver-node
+      eslint eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-react eslint-import-resolver-node
     )
   }
 
@@ -246,11 +197,12 @@ defmodule BOM.Whitelist do
         @licenses[realm]
         |> Enum.filter(fn {_, %{text: text}} -> text == :provided end)
         |> Enum.map(fn {{name, _}, _} ->
-          Path.join([Application.app_dir(:bom, "priv"), "licenses", to_string(realm), name])
+          name
         end)
 
-      Enum.map(provided -- requested, &"priv/licenses/#{realm}/#{&1}")
+      Enum.map((provided -- requested) -- ["babel"], &"priv/licenses/#{realm}/#{&1}")
     end)
+    |> Enum.sort()
   end
 
   defp validate_digests(packages) do
