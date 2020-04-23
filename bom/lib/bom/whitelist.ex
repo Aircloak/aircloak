@@ -10,27 +10,17 @@ defmodule BOM.Whitelist do
   @licenses %{
     :elixir => %{
       {"ecto_enum", "1.0.2"} => %{type: :mit, text: :provided},
-      {"ecto", "2.2.10"} => %{type: :apache2, text: :provided},
-      {"ecto", "2.2.11"} => %{type: :apache2, text: :provided},
-      {"ecto", "2.2.6"} => %{type: :apache2, text: :provided},
-      {"erlware_commons", "0.21.0"} => %{type: :mit, text: :provided},
       {"excoveralls", "0.5.7"} => %{type: :mit, text: :standard},
       {"file_system", "0.2.7"} => %{type: :wtfpl, text: :standard},
-      {"jamdb_oracle", "0.2.0"} => %{type: :mit, text: :provided},
       {"makeup_elixir", "0.14.0"} => %{type: :bsd_4_clause, text: :standard},
-      {"scrivener_ecto", "1.2.2"} => %{type: :mit, text: :standard},
       {"scrivener_ecto", "2.2.0"} => %{type: :mit, text: :provided},
-      {"scrivener_html", "1.3.3"} => %{type: :mit, text: :standard},
-      {"scrivener", "2.3.0"} => %{type: :mit, text: :standard},
       {"scrivener", "2.7.0"} => %{type: :mit, text: :provided}
     },
     :node => %{
       {"spdx-exceptions", "2.2.0"} => %{type: :cca3u, text: :standard}
     },
     :rust => %{
-      {"c_vec", "1.3.2"} => %{type: :mit, text: :provided},
       {"cfg-if", "0.1.5"} => %{type: :mit, text: :provided},
-      {"libc", "0.2.43"} => %{type: :mit, text: :provided},
       {"log", "0.4.5"} => %{type: :mit, text: :provided},
       {"odbc-safe", "0.4.1"} => %{type: :mit, text: :provided},
       {"odbc-sys", "0.6.3"} => %{type: :mit, text: :provided},
@@ -114,6 +104,14 @@ defmodule BOM.Whitelist do
     "1bf8028080e75e094cd7b53003c2efeb" => :apache2
   }
 
+  @not_shipped %{
+    elixir: ~w(proper triq excheck rustler),
+    node: ~w(
+      eslint eslint-config-airbnb eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-react
+      eslint-config-airbnb-base eslint-import-resolver-node
+    )
+  }
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -155,14 +153,6 @@ defmodule BOM.Whitelist do
     end
   end
 
-  @not_shipped %{
-    elixir: ~w(proper triq excheck rustler),
-    node: ~w(
-      eslint eslint-config-airbnb eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-react
-      eslint-config-airbnb-base eslint-import-resolver-node
-    )
-  }
-
   @doc """
   Returns false if the given package is used only for tests or building and not shipped with the product, true
   otherwise.
@@ -171,6 +161,31 @@ defmodule BOM.Whitelist do
   def shipped?(realm, name) do
     not_shipped = Map.get(@not_shipped, realm, [])
     !Enum.member?(not_shipped, name)
+  end
+
+  @doc """
+  Validates if this module or priv/licences contain superflous entries.
+  This is to make sure this file doesn't grow indefinitely.
+  """
+  @spec validate([Package.t()]) ::
+          :ok
+          | %{
+              whitelist: [%{realm: :atom, name: String.t(), license: String.t(), version: String.t()}],
+              licenses: [String.t()],
+              digests: [String.t()],
+              not_shipped: [String.t()]
+            }
+  def validate(packages) do
+    whitelist = validate_whitelist(packages)
+    licenses = validate_licenses()
+    digests = validate_digests(packages)
+    not_shipped = validate_not_shipped(packages)
+
+    if Enum.empty?(whitelist) && Enum.empty?(licenses) && Enum.empty?(digests) && Enum.empty?(not_shipped) do
+      :ok
+    else
+      %{whitelist: whitelist, licenses: licenses, digests: digests, not_shipped: not_shipped}
+    end
   end
 
   # -------------------------------------------------------------------
@@ -204,5 +219,55 @@ defmodule BOM.Whitelist do
     [Application.app_dir(:bom, "priv"), "licenses", to_string(realm), package]
     |> Path.join()
     |> File.read!()
+  end
+
+  defp validate_whitelist(packages) do
+    Enum.flat_map(@licenses, fn {realm, licenses} ->
+      licenses
+      |> Enum.map(fn {{name, version}, %{type: license_type}} ->
+        %{realm: realm, name: name, license: license_type, version: version}
+      end)
+      |> Enum.reject(fn candidate ->
+        Enum.find(packages, fn package ->
+          package.realm == candidate.realm && package.name == candidate.name && package.version == candidate.version
+        end)
+      end)
+    end)
+  end
+
+  defp validate_licenses() do
+    Enum.flat_map([:node, :elixir, :rust], fn realm ->
+      provided =
+        [Application.app_dir(:bom, "priv"), "licenses", to_string(realm)]
+        |> Path.join()
+        |> File.ls!()
+
+      requested =
+        @licenses[realm]
+        |> Enum.filter(fn {_, %{text: text}} -> text == :provided end)
+        |> Enum.map(fn {{name, _}, _} ->
+          Path.join([Application.app_dir(:bom, "priv"), "licenses", to_string(realm), name])
+        end)
+
+      Enum.map(provided -- requested, &"priv/licenses/#{realm}/#{&1}")
+    end)
+  end
+
+  defp validate_digests(packages) do
+    Map.keys(@type_by_text_digest) --
+      (packages
+       |> Enum.reject(fn package -> License.allowed_type?(package.license.type) || License.empty?(package.license) end)
+       |> Enum.map(&digest(&1.license.text)))
+  end
+
+  defp validate_not_shipped(packages) do
+    Enum.flat_map(@not_shipped, fn {realm, package_names} ->
+      package_names
+      |> Enum.reject(fn package_name ->
+        Enum.find(packages, fn package ->
+          package.realm == realm && package.name == package_name
+        end)
+      end)
+    end)
   end
 end
