@@ -8,7 +8,8 @@ defmodule Cloak.DataSource.Table do
   require Logger
 
   @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :interval | :unknown
-  @type column :: %{name: String.t(), type: data_type, visible?: boolean}
+  @type column :: %{name: String.t(), type: data_type, access: column_access}
+  @type column_access :: :visible | :unselectable | :hidden
   @type join_link :: {String.t(), atom, String.t()}
 
   @type t :: %{
@@ -70,16 +71,16 @@ defmodule Cloak.DataSource.Table do
         type: :regular
       }
       |> Map.merge(Map.new(opts))
-      |> remove_excluded_columns()
+      |> map_column_access()
 
     keys = if(user_id_column_name == nil, do: table.keys, else: Map.put(table.keys, user_id_column_name, :user_id))
     %{table | keys: keys}
   end
 
   @doc "Creates the column entry in the table specification."
-  @spec column(String.t(), data_type, visible?: boolean) :: column
+  @spec column(String.t(), data_type, access: column_access) :: column
   def column(name, type, optional_params \\ []),
-    do: %{name: name, type: type, visible?: Keyword.get(optional_params, :visible?, true)}
+    do: %{name: name, type: type, access: Keyword.get(optional_params, :access, :visible)}
 
   @doc "Given a data source and a connection to it, it will load all configured tables from the data set. "
   @spec load(DataSource.t(), DataSource.Driver.connection()) :: DataSource.t()
@@ -196,7 +197,7 @@ defmodule Cloak.DataSource.Table do
 
     columns =
       Enum.zip(compiled_query.column_titles, compiled_query.columns)
-      |> Enum.map(fn {title, column} -> %{name: title, type: column.type, visible?: true} end)
+      |> Enum.map(fn {title, column} -> %{name: title, type: column.type, access: :visible} end)
 
     table = new(to_string(name), config[:user_id], Map.merge(config, %{query: compiled_query, columns: columns}))
     verify_columns(data_source, table)
@@ -264,22 +265,34 @@ defmodule Cloak.DataSource.Table do
     table = new(table_id, Map.get(table, :user_id), [type: :regular, db_name: table_id] ++ Map.to_list(table))
 
     data_source.driver.load_tables(connection, table)
+    |> Enum.map(&map_column_access/1)
     |> Enum.map(&parse_columns(data_source, &1))
     |> Enum.map(&{String.to_atom(&1.name), &1})
     |> Enum.map(&resolve_table_keys/1)
   end
 
-  defp parse_columns(data_source, table) do
-    current_columns = Enum.reject(table.columns, &exclude_column?(table, &1))
+  defp map_column_access(table) do
+    columns =
+      table.columns
+      |> Enum.reject(&exclude_column?(table, &1))
+      |> Enum.map(fn column ->
+        if column[:access] == :visible do
+          access = if(unselectable_column?(table, column), do: :unselectable, else: :visible)
+          %{column | access: access}
+        else
+          column
+        end
+      end)
 
-    current_columns
+    %{table | columns: columns}
+  end
+
+  defp parse_columns(data_source, table) do
+    table.columns
     |> Enum.reject(&supported?/1)
     |> validate_unsupported_columns(data_source, table)
 
-    columns =
-      Enum.map(current_columns, fn column ->
-        if(supported?(column), do: column, else: %{column | type: :unknown})
-      end)
+    columns = for column <- table.columns, do: if(supported?(column), do: column, else: %{column | type: :unknown})
 
     table = %{table | columns: columns}
     verify_columns(data_source, table)
@@ -317,11 +330,7 @@ defmodule Cloak.DataSource.Table do
 
   defp exclude_column?(table, column), do: column.name in Map.get(table, :exclude_columns, [])
 
-  defp remove_excluded_columns(%{columns: columns, exclude_columns: exclude_columns} = table) do
-    %{table | columns: Enum.reject(columns, &(&1.name in exclude_columns))}
-  end
-
-  defp remove_excluded_columns(table), do: table
+  defp unselectable_column?(table, column), do: column.name in Map.get(table, :unselectable_columns, [])
 
   defp validate_unsupported_columns([], _data_source, _table), do: :ok
 

@@ -133,13 +133,19 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @spec create_table_from_columns([Expression.t()], String.t(), [Table.option()]) :: Table.t()
   def create_table_from_columns(selected_columns, table_name, opts \\ []) do
     table_columns =
-      Enum.map(selected_columns, &Table.column(Expression.title(&1), Function.type(&1), visible?: not &1.synthetic?))
-
-    # Inherit unselectable columns so that this information will bubble up to parent queries.
-    unselectable_columns =
-      selected_columns
-      |> Enum.filter(&unselectable_expression?/1)
-      |> Enum.map(&Expression.title/1)
+      Enum.map(
+        selected_columns,
+        &Table.column(
+          Expression.title(&1),
+          Function.type(&1),
+          access:
+            cond do
+              &1.synthetic? -> :hidden
+              unselectable_expression?(&1) -> :unselectable
+              true -> :visible
+            end
+        )
+      )
 
     user_id_column = Enum.find(selected_columns, & &1.user_id?)
     user_id_name = user_id_column && Expression.title(user_id_column)
@@ -150,10 +156,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
       |> Enum.map(&{Expression.title(&1), Expression.key_type(&1)})
       |> Enum.into(%{})
 
-    opts =
-      [type: :subquery]
-      |> Keyword.merge(opts)
-      |> Keyword.merge(columns: table_columns, keys: keys, unselectable_columns: unselectable_columns)
+    opts = [type: :subquery] |> Keyword.merge(opts) |> Keyword.merge(columns: table_columns, keys: keys)
 
     Table.new(table_name, user_id_name, opts)
   end
@@ -189,14 +192,10 @@ defmodule Cloak.Sql.Compiler.Helpers do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp unselectable_column?(%{
-         name: name,
-         table: %{unselectable_columns: unselectable_columns}
-       })
-       when is_list(unselectable_columns),
-       do: name in unselectable_columns
-
-  defp unselectable_column?(_), do: false
+  defp unselectable_column?(%{name: name, table: table}) do
+    column = Enum.find(table.columns, &(&1.name == name))
+    column != nil && column.access == :unselectable
+  end
 
   defp resolve_unselectable_db_columns(nil), do: []
 

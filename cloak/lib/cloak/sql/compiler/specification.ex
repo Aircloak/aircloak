@@ -389,7 +389,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> Enum.flat_map(fn table ->
       Enum.map(table.columns, fn column -> %{table: table, column: column} end)
     end)
-    |> Enum.filter(& &1.column.visible?)
+    |> Enum.filter(&(&1.column.access != :hidden))
   end
 
   defp columns_to_identifiers(columns, location),
