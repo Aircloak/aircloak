@@ -94,7 +94,9 @@ defmodule Air.PsqlServer.QueryExecution do
 
   defp internal_query?(query) do
     query = strip_comments(query)
-    select_from_any_of?(query, ~w(pg_attribute pg_type pg_catalog)) or simple_select?(query) or internal_show?(query)
+
+    select_from_any_of?(query, ~w(pg_attribute pg_type pg_catalog information_schema)) or
+      simple_select?(query) or internal_show?(query)
   end
 
   defp strip_comments(query), do: String.replace(query, ~r/^\s*--.*$/m, "")
