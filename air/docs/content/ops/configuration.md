@@ -510,9 +510,7 @@ Excluded columns will not appear in the data source and cannot be referenced in 
 
 The `unselectable_columns` is an optional parameter for personal tables.
 It takes the form of an array and marks columns as unselectable.
-For anonymizing queries, an unselectable column can only appear in join conditions or in `count()` and `count_noise()` expressions.
-For non-anonymizing (restricted) queries, unselectable columns can additionally appear in `GROUP BY` clauses or `SELECT` clauses.
-Unselectable columns cannot appear in aggregators other than `count` and `count_noise`, even for restricted queries.
+Unselectable columns can only be joined together, counted, and/or grouped by.
 
 ##### Keys
 

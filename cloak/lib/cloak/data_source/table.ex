@@ -411,7 +411,7 @@ defmodule Cloak.DataSource.Table do
         raise ExecutionError, message: "Table `#{name}` with content type `non-personal` has a `user_id` key set."
       end
 
-      if table |> Map.get(:unselectable_columns) |> is_list() do
+      if table[:unselectable_columns] != nil do
         raise ExecutionError,
           message: "Table `#{name}` with content type `non-personal` has `unselectable_columns` defined."
       end

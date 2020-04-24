@@ -26,9 +26,10 @@ defmodule Cloak.Sql.Compiler.Test do
 
   defmacrop unselectable_error(column_name \\ "grey", table_name \\ "column_access") do
     quote do
-      "Column `#{unquote(column_name)}` from table `#{unquote(table_name)}` cannot appear in this" <>
-        " query context as it has been classified as unselectable by your system administrator." <>
-        " Please consult the section on unselectable columns in the documentation."
+      {:error,
+       "Column `#{unquote(column_name)}` from table `#{unquote(table_name)}` cannot appear in this" <>
+         " query context as it has been classified as unselectable by your system administrator." <>
+         " Please consult the section on unselectable columns in the documentation."}
     end
   end
 
@@ -1612,20 +1613,20 @@ defmodule Cloak.Sql.Compiler.Test do
 
   describe "unselectable columns (greylisting) in anonymizing queries" do
     test "cannot select unselectable columns" do
-      assert {:error, unselectable_error()} = compile("SELECT grey FROM column_access", data_source())
+      assert unselectable_error() = compile("SELECT grey FROM column_access", data_source())
     end
 
     test "unselectable columns' names are normalized" do
       result = compile("SELECT GrEy FROM column_access", data_source())
-      assert {:error, unselectable_error()} = result
+      assert unselectable_error() = result
     end
 
     test "cannot select unselectable columns in complex expressions" do
-      assert {:error, unselectable_error()} = compile("SELECT abs(grey + 1) FROM column_access", data_source())
+      assert unselectable_error() = compile("SELECT abs(grey + 1) FROM column_access", data_source())
     end
 
     test "columns remain unselectable when aliased" do
-      assert {:error, unselectable_error()} = compile("SELECT ca.grey AS col FROM column_access ca", data_source())
+      assert unselectable_error() = compile("SELECT ca.grey AS col FROM column_access ca", data_source())
     end
 
     test "can count unselectable columns" do
@@ -1639,23 +1640,21 @@ defmodule Cloak.Sql.Compiler.Test do
 
     for aggregator <- ~w(min max sum avg stddev variance) do
       test "cannot aggregate unselectable columns using #{aggregator}" do
-        assert {:error, unselectable_error()} =
-                 compile("SELECT #{unquote(aggregator)}(grey) FROM column_access", data_source())
+        assert unselectable_error() = compile("SELECT #{unquote(aggregator)}(grey) FROM column_access", data_source())
       end
     end
 
     test "cannot filter by unselectable columns" do
-      assert {:error, unselectable_error()} =
+      assert unselectable_error() =
                compile("SELECT white FROM column_access WHERE grey > 0 AND grey < 100 GROUP BY white", data_source())
     end
 
     test "cannot order by unselectable columns" do
-      assert {:error, unselectable_error()} = compile("SELECT white FROM column_access ORDER BY grey", data_source())
+      assert unselectable_error() = compile("SELECT white FROM column_access ORDER BY grey", data_source())
     end
 
     test "cannot group by unselectable columns" do
-      assert {:error, unselectable_error()} =
-               compile("SELECT max(white) FROM column_access GROUP BY grey", data_source())
+      assert unselectable_error() = compile("SELECT max(white) FROM column_access GROUP BY grey", data_source())
     end
 
     test "can filter by unselectable columns aggregates in having clause" do
@@ -1765,7 +1764,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     for aggregator <- ~w(min max sum avg stddev variance) do
       test "cannot aggregate unselectable columns using #{aggregator}" do
-        assert {:error, unselectable_error()} =
+        assert unselectable_error() =
                  compile(
                    """
                    SELECT count(*)
@@ -1781,7 +1780,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "cannot filter by unselectable columns" do
-      assert {:error, unselectable_error()} =
+      assert unselectable_error() =
                compile(
                  """
                  SELECT count(*)
@@ -1796,7 +1795,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "cannot order by unselectable columns" do
-      assert {:error, unselectable_error()} =
+      assert unselectable_error() =
                compile(
                  """
                  SELECT count(*)
