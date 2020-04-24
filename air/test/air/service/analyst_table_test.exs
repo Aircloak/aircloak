@@ -106,6 +106,20 @@ defmodule Air.Service.AnalystTableTest do
     end
   end
 
+  describe ".update" do
+    test "a user is not permitted to update a table of a different user", context do
+      table = create_analyst_table(context[:ds1], context[:u1], "name")
+      assert {:error, :not_allowed} == AnalystTable.update(table.id, context[:u2], "name", "SELECT * FROM foo")
+    end
+  end
+
+  describe ".delete" do
+    test "a user is not permitted to delete a table of a different user", context do
+      table = create_analyst_table(context[:ds1], context[:u1], "name")
+      assert {:error, :not_allowed} == AnalystTable.delete(table.id, context[:u2])
+    end
+  end
+
   defp create_analyst_table(data_source, user, name),
     do:
       %Air.Schemas.AnalystTable{}
