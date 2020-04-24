@@ -171,14 +171,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
 
   @doc "Returns whether the expression or any of its subexpressions are unselectable (greylisted)."
   @spec unselectable_expression?(Expression.t()) :: boolean
-  def unselectable_expression?(expr) do
-    expr
-    |> unselectable_columns()
-    |> case do
-      [_ | _] -> true
-      [] -> false
-    end
-  end
+  def unselectable_expression?(expr), do: unselectable_columns(expr) != []
 
   @doc "Returns a list of unselectable db columns which this expression depends on."
   @spec unselectable_db_columns(Query.t(), Expression.t()) :: [Expression.t()]
@@ -197,40 +190,15 @@ defmodule Cloak.Sql.Compiler.Helpers do
     column != nil && column.access == :unselectable
   end
 
-  defp resolve_unselectable_db_columns(nil), do: []
-
-  defp resolve_unselectable_db_columns({query, %{kind: :column, table: %{db_name: db_name}} = column})
-       when is_binary(db_name),
-       do: [{query, column}]
-
   defp resolve_unselectable_db_columns({query, expr}) do
     expr
     |> unselectable_columns()
-    |> Enum.map(&resolve_column_source_expression(query, &1))
-    |> Enum.flat_map(&resolve_unselectable_db_columns/1)
-  end
-
-  defp resolve_column_source_expression(query, %{kind: :column, table: %{db_name: db_name}} = column)
-       when is_binary(db_name),
-       do: {query, column}
-
-  defp resolve_column_source_expression(query, column) do
-    name = column.table.name
-
-    Query.Lenses.direct_subqueries()
-    |> Lens.filter(fn
-      %{alias: ^name} -> true
-      _ -> false
+    |> Enum.flat_map(fn column ->
+      case Query.resolve_subquery_column(column, query) do
+        :database_column -> [{query, column}]
+        {column, subquery} -> resolve_unselectable_db_columns({subquery, column})
+      end
     end)
-    |> Lens.key(:ast)
-    |> Lens.to_list(query)
-    |> case do
-      [subquery] ->
-        {subquery, Enum.fetch!(subquery.columns, Enum.find_index(subquery.column_titles, &(&1 == column.name)))}
-
-      _ ->
-        nil
-    end
   end
 
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
