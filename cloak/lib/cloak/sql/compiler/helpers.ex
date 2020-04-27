@@ -141,7 +141,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
           access:
             cond do
               &1.synthetic? -> :hidden
-              unselectable_expression?(&1) -> :unselectable
+              unselectable_selected_expression?(&1) -> :unselectable
               true -> :visible
             end
         )
@@ -161,18 +161,6 @@ defmodule Cloak.Sql.Compiler.Helpers do
     Table.new(table_name, user_id_name, opts)
   end
 
-  @doc "Returns the unselectable (greylisted) columns of an expression."
-  @spec unselectable_columns(Expression.t()) :: [Expression.t()]
-  def unselectable_columns(expr) do
-    Query.Lenses.expression_greylistable_columns()
-    |> Lens.filter(&unselectable_column?/1)
-    |> Lens.to_list(expr)
-  end
-
-  @doc "Returns whether the expression or any of its subexpressions are unselectable (greylisted)."
-  @spec unselectable_expression?(Expression.t()) :: boolean
-  def unselectable_expression?(expr), do: unselectable_columns(expr) != []
-
   @doc "Returns a list of unselectable db columns which this expression depends on."
   @spec unselectable_db_columns(Query.t(), Expression.t()) :: [Expression.t()]
   def unselectable_db_columns(query, expression) do
@@ -185,14 +173,16 @@ defmodule Cloak.Sql.Compiler.Helpers do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp unselectable_column?(%{name: name, table: table}) do
-    column = Enum.find(table.columns, &(&1.name == name))
-    column != nil && column.access == :unselectable
+  defp unselectable_selected_expression?(expr), do: unselectable_selected_columns(expr) != []
+
+  defp unselectable_selected_columns(expr) do
+    Query.Lenses.expression_unselectable_selected_columns()
+    |> Lens.to_list(expr)
   end
 
   defp resolve_unselectable_db_columns({query, expr}) do
     expr
-    |> unselectable_columns()
+    |> unselectable_selected_columns()
     |> Enum.flat_map(fn column ->
       case Query.resolve_subquery_column(column, query) do
         :database_column -> [{query, column}]

@@ -240,53 +240,31 @@ defmodule Cloak.Sql.Query.Lenses do
     end)
   end
 
-  @doc "Lens focusing on all columns of a query which can be greylisted (marked unselectable)."
-  deflens greylistable_columns(), do: greylistable_expressions() |> expression_greylistable_columns()
-
-  @doc "Lens focusing on all top-level expressions of a query which can contain greylisted columns."
-  deflens greylistable_expressions() do
+  @doc "Lens focusing on all selected columns of a query which are marked unselectable."
+  deflens unselectable_selected_columns() do
     Lens.match(fn
       %{type: :anonymized} ->
         Lens.multiple([
           Lens.keys?([:columns, :group_by]) |> Lens.all(),
-          Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
-          Lens.key?(:where)
+          Lens.key?(:order_by) |> Lens.all() |> Lens.at(0)
         ])
 
       %{type: :restricted} ->
         Lens.multiple([
           Lens.key?(:columns) |> Lens.all() |> Lens.filter(&Compiler.Helpers.aggregated_column?/1),
           Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
-          Lens.keys?([:where, :having])
+          Lens.key?(:having)
         ])
 
       _ ->
         Lens.empty()
     end)
+    |> expression_unselectable_selected_columns()
   end
 
-  @doc "Lens focusing on all columns of an expression which can be greylisted (marked unselectable)."
-  deflens expression_greylistable_columns() do
-    Lens.match(fn
-      %Expression{kind: :function, name: "count"} ->
-        Lens.empty()
-
-      %Expression{kind: :function, name: "count_noise"} ->
-        Lens.empty()
-
-      %Expression{kind: :function} ->
-        Lens.root()
-        |> Lens.key(:args)
-        |> Lens.all()
-        |> expression_greylistable_columns()
-
-      %Expression{kind: :column} ->
-        Lens.root()
-
-      _ ->
-        Lens.empty()
-    end)
-  end
+  @doc "Lens focusing on all columns of a selected expression which are marked unselectable."
+  deflens expression_unselectable_selected_columns(),
+    do: expression_potential_unselectable_selected_columns() |> Lens.filter(&unselectable_column?/1)
 
   # -------------------------------------------------------------------
   # Internal lenses
@@ -415,5 +393,31 @@ defmodule Cloak.Sql.Query.Lenses do
       {_quoted, _table} -> Lens.root()
       {_identifier, :as, _alias} -> Lens.root()
     end)
+  end
+
+  deflensp expression_potential_unselectable_selected_columns() do
+    Lens.match(fn
+      %Expression{kind: :function, name: "count"} ->
+        Lens.empty()
+
+      %Expression{kind: :function, name: "count_noise"} ->
+        Lens.empty()
+
+      %Expression{kind: :function} ->
+        Lens.key(:args)
+        |> Lens.all()
+        |> expression_potential_unselectable_selected_columns()
+
+      %Expression{kind: :column} ->
+        Lens.root()
+
+      _ ->
+        Lens.empty()
+    end)
+  end
+
+  defp unselectable_column?(%{name: name, table: table}) do
+    column = Enum.find(table.columns, &(&1.name == name))
+    column != nil && column.access == :unselectable
   end
 end
