@@ -1611,7 +1611,7 @@ defmodule Cloak.Sql.Compiler.Test do
              compile("SELECT uid, numeric FROM table GROUP BY CUBE(1, 2)", data_source())
   end
 
-  describe "unselectable columns (greylisting) in anonymizing queries" do
+  describe "unselectable columns in anonymizing queries" do
     test "cannot select unselectable columns" do
       assert unselectable_error() = compile("SELECT grey FROM column_access", data_source())
     end
@@ -1649,6 +1649,11 @@ defmodule Cloak.Sql.Compiler.Test do
                compile("SELECT white FROM column_access WHERE grey > 0 AND grey < 100 GROUP BY white", data_source())
     end
 
+    test "cannot filter with = by unselectable columns" do
+      assert unselectable_error() =
+               compile("SELECT white FROM column_access WHERE grey = 100 GROUP BY white", data_source())
+    end
+
     test "cannot order by unselectable columns" do
       assert unselectable_error() = compile("SELECT white FROM column_access ORDER BY grey", data_source())
     end
@@ -1670,13 +1675,14 @@ defmodule Cloak.Sql.Compiler.Test do
                )
     end
 
-    test "can join by unselectable columns" do
+    test "can join with keys of same type" do
       assert {:ok, _} =
                compile(
                  """
                  SELECT column_access.white, count(*)
                  FROM column_access
-                 INNER JOIN column_access_public ON column_access.grey = column_access_public.grey
+                 INNER JOIN column_access_public
+                 ON column_access.grey = column_access_public.grey
                  GROUP BY column_access.white
                  """,
                  data_source()
@@ -1684,7 +1690,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
-  describe "unselectable columns (greylisting) in non-anonymized restricted queries" do
+  describe "unselectable columns in non-anonymized restricted queries" do
     test "can select unselectable columns" do
       assert {:ok, _} =
                compile(
@@ -1824,7 +1830,7 @@ defmodule Cloak.Sql.Compiler.Test do
                )
     end
 
-    test "can filter by unselectable columns aggregates in having clause" do
+    test "can filter by unselectable columns count in having clause" do
       assert {:ok, _} =
                compile(
                  """
@@ -1840,13 +1846,29 @@ defmodule Cloak.Sql.Compiler.Test do
                )
     end
 
-    test "can join by unselectable columns" do
+    test "cannot filter by unselectable columns in having clause" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT grey
+                   FROM column_access
+                   GROUP BY grey
+                   HAVING grey = 100
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can join with keys of same type" do
       assert {:ok, _} =
                compile(
                  """
                  SELECT count(*)
                  FROM (
-                   SELECT uid
+                   SELECT column_access.uid
                    FROM column_access
                    INNER JOIN column_access_public
                    ON column_access.grey = column_access_public.grey
