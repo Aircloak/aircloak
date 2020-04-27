@@ -49,6 +49,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_case_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
     Helpers.each_subquery(query, &verify_grouping_sets_uid/1)
+    Helpers.each_subquery(query, &verify_unselectable_columns_filtering/1)
 
     if Keyword.get(opts, :analyst_table_compilation?, false) do
       Lens.each(Lenses.subqueries(), query, &verify_unselectable_columns_selection/1)
@@ -285,7 +286,21 @@ defmodule Cloak.Sql.Compiler.Validation do
   # -------------------------------------------------------------------
 
   defp verify_unselectable_columns_selection(query) do
-    Lenses.unselectable_selected_columns()
+    do_verify_unselectable_columns(
+      Lenses.unselectable_selected_columns(),
+      query
+    )
+  end
+
+  defp verify_unselectable_columns_filtering(query) do
+    do_verify_unselectable_columns(
+      Lenses.unselectable_filtering_columns(),
+      query
+    )
+  end
+
+  defp do_verify_unselectable_columns(lens, query) do
+    lens
     |> Lens.to_list(query)
     |> case do
       [column | _] ->

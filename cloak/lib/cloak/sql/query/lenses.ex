@@ -266,6 +266,13 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens expression_unselectable_selected_columns(),
     do: expression_potential_unselectable_selected_columns() |> Lens.filter(&unselectable_column?/1)
 
+  @doc "Lens focusing on all unselectable columns used in where and join conditions."
+  deflens unselectable_filtering_columns() do
+    Lens.both(join_conditions(), Lens.key(:where))
+    |> expression_potential_unselectable_filtering_columns()
+    |> Lens.filter(&unselectable_column?/1)
+  end
+
   # -------------------------------------------------------------------
   # Internal lenses
   # -------------------------------------------------------------------
@@ -407,6 +414,32 @@ defmodule Cloak.Sql.Query.Lenses do
         Lens.key(:args)
         |> Lens.all()
         |> expression_potential_unselectable_selected_columns()
+
+      %Expression{kind: :column} ->
+        Lens.root()
+
+      _ ->
+        Lens.empty()
+    end)
+  end
+
+  deflensp expression_potential_unselectable_filtering_columns() do
+    Lens.match(fn
+      %Expression{kind: :function, name: "="} ->
+        Lens.key(:args)
+        |> Lens.reject(fn args ->
+          case Enum.map(args, &Expression.key_type/1) do
+            [key, key] when not is_nil(key) -> true
+            _ -> false
+          end
+        end)
+        |> Lens.all()
+        |> expression_potential_unselectable_filtering_columns()
+
+      %Expression{kind: :function} ->
+        Lens.key(:args)
+        |> Lens.all()
+        |> expression_potential_unselectable_filtering_columns()
 
       %Expression{kind: :column} ->
         Lens.root()
