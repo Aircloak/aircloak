@@ -56,6 +56,7 @@ defmodule Cloak.DataSource.Utility do
     {"postgresql", Cloak.DataSource.PostgreSQL},
     {"sqlserver", Cloak.DataSource.SQLServer},
     {"oracle", Cloak.DataSource.Oracle},
+    {"snowflake", Cloak.DataSource.Snowflake},
     {"cloudera-impala", Cloak.DataSource.ClouderaImpala}
   ]
 
