@@ -70,6 +70,5 @@ defmodule Cloak.DataSource.Snowflake do
       warehouse: normalized_parameters[:warehouse],
       DSN: "Snowflake"
     }
-    |> IO.inspect()
   end
 end
