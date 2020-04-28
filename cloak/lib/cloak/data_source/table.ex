@@ -71,7 +71,6 @@ defmodule Cloak.DataSource.Table do
         type: :regular
       }
       |> Map.merge(Map.new(opts))
-      |> map_column_access()
 
     keys = if(user_id_column_name == nil, do: table.keys, else: Map.put(table.keys, user_id_column_name, :user_id))
     %{table | keys: keys}
@@ -276,15 +275,11 @@ defmodule Cloak.DataSource.Table do
       table.columns
       |> Enum.reject(&exclude_column?(table, &1))
       |> Enum.map(fn column ->
-        if column[:access] == :visible do
-          access = if(unselectable_column?(table, column), do: :unselectable, else: :visible)
-          %{column | access: access}
-        else
-          column
-        end
+        access = if(unselectable_column?(table, column), do: :unselectable, else: :visible)
+        %{column | access: access}
       end)
 
-    %{table | columns: columns}
+    Map.drop(%{table | columns: columns}, [:unselectable_columns, :exclude_columns])
   end
 
   defp parse_columns(data_source, table) do

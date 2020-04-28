@@ -1879,18 +1879,6 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
-  describe "excluded columns (blacklisting)" do
-    test "select * does not include excluded columns" do
-      result = compile!("SELECT * FROM column_access_public", data_source())
-      assert "black" not in Enum.map(result.columns, & &1.name)
-    end
-
-    test "cannot select excluded columns" do
-      result = compile("SELECT black FROM column_access", data_source())
-      assert {:error, "Column `black` doesn't exist in table `column_access`."} = result
-    end
-  end
-
   defp compile_standard(query_string, data_source) do
     {:ok, parsed_query} = Parser.parse(query_string)
 
@@ -1987,14 +1975,11 @@ defmodule Cloak.Sql.Compiler.Test do
             columns: [
               Table.column("uid", :integer),
               Table.column("white", :integer),
-              Table.column("grey", :integer),
-              Table.column("black", :integer)
+              Table.column("grey", :integer, access: :unselectable)
             ],
             keys: %{
               "grey" => :join_key
-            },
-            unselectable_columns: ["grey"],
-            exclude_columns: ["black"]
+            }
           ),
         column_access_public:
           Cloak.DataSource.Table.new(
@@ -2003,13 +1988,11 @@ defmodule Cloak.Sql.Compiler.Test do
             db_name: "column_access_public",
             columns: [
               Table.column("white", :integer),
-              Table.column("grey", :integer),
-              Table.column("black", :integer)
+              Table.column("grey", :integer, access: :unselectable)
             ],
             keys: %{
               "grey" => :join_key
-            },
-            exclude_columns: ["black"]
+            }
           )
       }
     }
