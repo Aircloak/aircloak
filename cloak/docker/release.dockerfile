@@ -27,6 +27,12 @@ ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/aircloak/cloak/priv/odbc/drivers/oracle/in
 # Oracle locale
 ENV NLS_LANG=.AL32UTF8
 
+# Setup Snowflake ODBC driver
+RUN \
+  mkdir -p priv/odbc/drivers/snowflake && \
+  wget -O priv/odbc/drivers/snowflake/snowflake-odbc-2.21.2.deb https://www.dropbox.com/s/vh5pj9b5bf45l6r/snowflake-odbc-2.21.2.x86_64.deb?dl=0 && \
+  dpkg -i priv/odbc/drivers/snowflake/snowflake-odbc-2.21.2.deb
+
 # User under which the app will run.
 RUN useradd --shell /bin/bash deployer && mkdir -p /aircloak/app
 RUN chown -R deployer:deployer /aircloak/cloak && chown -R deployer:deployer /var/run/
