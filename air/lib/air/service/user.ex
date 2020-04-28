@@ -254,6 +254,24 @@ defmodule Air.Service.User do
   end
 
   @doc """
+  Updates only the password of a user, validating the existing password.
+
+  Returns `{:ok, user, sessions_revoked?}` on success.
+  """
+  @spec update_password(User.t(), map, change_options) :: {:ok, User.t(), boolean} | {:error, Ecto.Changeset.t()}
+  def update_password(user, params, options \\ []) do
+    check_ldap!(user, options)
+
+    user
+    |> change_main_login(&update_password_changeset(&1, params))
+    |> update_revoking_sesions()
+    |> case do
+      {:ok, {user, sessions_revoked?}} -> {:ok, user, sessions_revoked?}
+      error -> error
+    end
+  end
+
+  @doc """
   Updates the profile of the given user, validating user's password.
 
   Returns `{:ok, user, sessions_revoked?}` on success.
@@ -582,6 +600,14 @@ defmodule Air.Service.User do
     |> validate_length(:password, min: 10)
     |> validate_confirmation(:password, message: "does not match password")
     |> update_password_hash()
+  end
+
+  defp update_password_changeset(login, params) do
+    if validate_password(login, params["old_password"] || "") do
+      password_reset_changeset(login, params)
+    else
+      change(login) |> add_error(:old_password, "Password invalid")
+    end
   end
 
   defp password_changeset(login, params) do

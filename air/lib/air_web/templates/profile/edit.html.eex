@@ -12,7 +12,7 @@
     <div class="card-body">
       <%= form_for @changeset, profile_path(@conn, :update), fn f -> %>
         <%= validated_text_input f, :login, "Login", disabled: not can_edit?(@changeset.data) %>
-        
+
         <%= validated_text_input f, :name, "Name", disabled: not can_edit?(@changeset.data) %>
 
         <div class="form-group">
@@ -29,7 +29,7 @@
           <%= validated_text_input f, :decimal_sep, "Decimal separator", inline_form_options%>
 
           <%= validated_text_input f, :thousand_sep, "Thousand separator",inline_form_options %>
-          
+
           <%= validated_number_input f, :decimal_digits, "Decimal digits",inline_form_options %>
         </div>
         <div class="form-group">
@@ -136,7 +136,7 @@
       var props = <%= to_json(%{numberFormat: number_format_settings(@conn)}) %>;
       App.numberFormatExample(props, document.getElementById("example"));
 
-      App.passwordField({}, document.getElementById(#password-field"));
+      App.passwordField({}, document.getElementById("password-field"));
     }
   };
 </script>
