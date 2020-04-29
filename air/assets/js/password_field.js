@@ -25,7 +25,7 @@ export default class PasswordField extends React.Component<Props, State> {
     const value = e.target.value;
     this.setState({
       value,
-      score: this.zxcvbn ? this.zxcvbn(value).score : 0,
+      score: this.zxcvbn ? this.zxcvbn(value, ["AirCloak"]).score : 0,
     });
   };
 
@@ -50,6 +50,7 @@ export default class PasswordField extends React.Component<Props, State> {
 
   highlightClass = () => {
     const { value, score } = this.state;
+
     if (value === "") {
       return "";
     } else if (score <= 1) {
@@ -65,7 +66,6 @@ export default class PasswordField extends React.Component<Props, State> {
     const { value } = this.state;
     return (
       <div>
-        <label htmlFor="user_password">New Password</label>
         <input
           type="password"
           id="user_password"

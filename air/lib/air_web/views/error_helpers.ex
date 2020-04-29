@@ -46,7 +46,13 @@ defmodule AirWeb.ErrorHelpers do
         if form.errors[field], do: class <> " is-invalid", else: class
       end)
 
-    fancy_wrapper(form, field, label, tag(:input, opts), special)
+    fancy_wrapper(
+      form,
+      field,
+      label,
+      content_tag(:div, tag(:input, opts), class: if(form.errors[field], do: "is-invalid", else: "")),
+      special
+    )
   end
 
   @doc """
