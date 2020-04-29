@@ -40,7 +40,7 @@ defmodule Cloak.DataSource.Snowflake do
 
   @impl Driver
   def select(connection, query, result_processor) do
-    statement = SqlBuilder.build(query) |> IO.inspect()
+    statement = SqlBuilder.build(query)
     RODBC.select(connection, statement, query.db_columns, %{}, result_processor)
   end
 
