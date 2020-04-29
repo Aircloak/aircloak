@@ -21,8 +21,6 @@ defmodule Cloak.DataSource.Table do
           # the SQL query for a virtual table
           :query => Query.t() | nil,
           :columns => [column],
-          :exclude_columns => [String.t()],
-          :unselectable_columns => [String.t()],
           :keys => Map.t(),
           :content_type => :private | :public,
           :auto_isolating_column_classification => boolean,
@@ -31,6 +29,8 @@ defmodule Cloak.DataSource.Table do
           :status => :created | :creating | :create_error,
           :user_id_join_chain => [join_link] | nil,
           :type => type,
+          optional(:exclude_columns) => [String.t()],
+          optional(:unselectable_columns) => [String.t()],
           optional(any) => any
         }
 
