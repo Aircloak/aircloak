@@ -190,8 +190,8 @@ defmodule IntegrationTest.Manager do
         "master_password" => "super_secret_master_password",
         "name" => "aircloak_admin",
         "login" => "admin@aircloak.com",
-        "password" => "password1234",
-        "password_confirmation" => "password1234"
+        "password" => @user_password,
+        "password_confirmation" => @user_password
       })
 
     # connect data source to group
