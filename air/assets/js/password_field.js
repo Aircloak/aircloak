@@ -10,7 +10,7 @@ type State = {
 };
 
 export default class PasswordField extends React.Component<Props, State> {
-  zxcvbn: null | ((string) => { score: number });
+  zxcvbn: null | ((string, [string]) => { score: number });
   constructor(props: Props) {
     super(props);
 
