@@ -20,7 +20,6 @@ defmodule Cloak.DataSource.RODBC do
     normalized_parameters
     |> conn_params_extractor.()
     |> Map.merge(Map.get(normalized_parameters, :odbc_parameters, %{}))
-    |> IO.inspect()
     |> driver_connect(driver_params)
   end
 
