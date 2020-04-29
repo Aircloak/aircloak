@@ -1688,6 +1688,34 @@ defmodule Cloak.Sql.Compiler.Test do
                  data_source()
                )
     end
+
+    test "cannot join with keys of different type" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT column_access.white, count(*)
+                 FROM column_access
+                 INNER JOIN column_access_public
+                 ON column_access.grey = column_access_public.grey AND column_access.grey = column_access_public.id
+                 GROUP BY column_access.white
+                 """,
+                 data_source()
+               )
+    end
+
+    test "cannot join with non-keys" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT column_access.white, count(*)
+                 FROM column_access
+                 INNER JOIN column_access_public
+                 ON column_access.grey = column_access_public.grey AND column_access.grey = column_access_public.white
+                 GROUP BY column_access.white
+                 """,
+                 data_source()
+               )
+    end
   end
 
   describe "unselectable columns in non-anonymized restricted queries" do
@@ -1877,6 +1905,38 @@ defmodule Cloak.Sql.Compiler.Test do
                  data_source()
                )
     end
+
+    test "cannot join with keys of different type" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT column_access.uid
+                   FROM column_access
+                   INNER JOIN column_access_public
+                   ON column_access.grey = column_access_public.grey AND column_access.grey = column_access_public.id
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "cannot join with non-keys" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT column_access.uid
+                   FROM column_access
+                   INNER JOIN column_access_public
+                   ON column_access.grey = column_access_public.grey AND column_access.grey = column_access_public.white
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
   end
 
   defp compile_standard(query_string, data_source) do
@@ -1987,10 +2047,12 @@ defmodule Cloak.Sql.Compiler.Test do
             nil,
             db_name: "column_access_public",
             columns: [
+              Table.column("id", :integer),
               Table.column("white", :integer),
               Table.column("grey", :integer, access: :unselectable)
             ],
             keys: %{
+              "id" => :id,
               "grey" => :join_key
             }
           )
