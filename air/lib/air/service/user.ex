@@ -735,7 +735,10 @@ defmodule Air.Service.User do
       %{feedback: feedback, score: score} = zxcvbn(value, ["AirCloak"])
 
       if score <= 1 do
-        [{current_field, feedback.warning || "The password is too weak"}]
+        [
+          {current_field,
+           if(String.length(feedback.warning) == 0, do: "The password is too weak", else: feedback.warning)}
+        ]
       else
         []
       end
