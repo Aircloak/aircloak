@@ -37,7 +37,7 @@ defmodule Air.Repo.Seeder do
       }
       |> User.create!()
       |> User.reset_password_token()
-      |> User.reset_password(%{password: "password1234", password_confirmation: "password1234"})
+      |> User.reset_password(%{password: "psswrd12", password_confirmation: "psswrd12"})
 
     admin
   end
@@ -48,7 +48,7 @@ defmodule Air.Repo.Seeder do
       name: "Test client regular user"
     })
     |> User.reset_password_token()
-    |> User.reset_password(%{password: "password1234", password_confirmation: "password1234"})
+    |> User.reset_password(%{password: "psswrd12", password_confirmation: "psswrd12"})
   end
 
   if Mix.env() != :test do

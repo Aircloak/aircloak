@@ -16,7 +16,7 @@ defmodule AirWeb.SessionControllerTest do
 
   test "logging in", %{user: user} do
     # invalid login
-    html = build_conn() |> post("/auth", login: "foo@aircloak.com", password: "password1234") |> response(200)
+    html = build_conn() |> post("/auth", login: "foo@aircloak.com", password: "psswrd12") |> response(200)
 
     assert html =~ "Invalid login or password"
 
@@ -25,7 +25,7 @@ defmodule AirWeb.SessionControllerTest do
     assert html =~ "Invalid login or password"
 
     # correct login
-    logged_in_conn = build_conn() |> post("/auth", login: User.main_login(user), password: "password1234")
+    logged_in_conn = build_conn() |> post("/auth", login: User.main_login(user), password: "psswrd12")
     assert "/" == redirected_to(logged_in_conn)
     assert get_flash(logged_in_conn)["info"] =~ "Logged in successfully"
     # verify that the user can now access a page requiring authentication
@@ -33,7 +33,7 @@ defmodule AirWeb.SessionControllerTest do
   end
 
   test "logging out", %{user: user} do
-    logged_in_conn = build_conn() |> post("/auth", login: User.main_login(user), password: "password1234")
+    logged_in_conn = build_conn() |> post("/auth", login: User.main_login(user), password: "psswrd12")
     logged_out_conn = recycle(logged_in_conn) |> delete("/logout")
 
     assert "/auth" == redirected_to(logged_out_conn)
@@ -75,22 +75,20 @@ defmodule AirWeb.SessionControllerTest do
 
   describe "remember me" do
     test "when unchecked, the session is not restored", %{user: user} do
-      logged_in_conn = build_conn() |> post("/auth", login: User.main_login(user), password: "password1234")
+      logged_in_conn = build_conn() |> post("/auth", login: User.main_login(user), password: "psswrd12")
 
       assert "/auth" =
                logged_in_conn |> recycle() |> delete_req_cookie("_air_key") |> get("/data_sources") |> redirected_to()
     end
 
     test "when checked, the session is restored", %{user: user} do
-      logged_in_conn =
-        build_conn() |> post("/auth", login: User.main_login(user), password: "password1234", remember: "on")
+      logged_in_conn = build_conn() |> post("/auth", login: User.main_login(user), password: "psswrd12", remember: "on")
 
       assert logged_in_conn |> recycle() |> delete_req_cookie("_air_key") |> get("/data_sources") |> response(200)
     end
 
     test "when checked, the session is not restored after logout", %{user: user} do
-      logged_in_conn =
-        build_conn() |> post("/auth", login: User.main_login(user), password: "password1234", remember: "on")
+      logged_in_conn = build_conn() |> post("/auth", login: User.main_login(user), password: "psswrd12", remember: "on")
 
       logged_in_conn |> recycle() |> delete("/logout")
 
