@@ -170,8 +170,10 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{kind: :function, name: "/", type: :interval, args: args}, dialect),
     do: dialect.interval_division(Enum.map(args, &to_fragment(&1, dialect)))
 
-  defp column_sql(%Expression{kind: :function, name: "-", type: :interval, args: args}, dialect),
-    do: dialect.date_subtraction_expression(Enum.map(args, &to_fragment(&1, dialect)))
+  defp column_sql(%Expression{kind: :function, name: "-", type: :interval, args: args}, dialect) do
+    [%Expression{type: type}, %Expression{type: type}] = args
+    dialect.date_subtraction_expression(type, Enum.map(args, &to_fragment(&1, dialect)))
+  end
 
   defp column_sql(%Expression{kind: :function, name: {:cast, to_type}, args: [arg]}, dialect),
     do: arg |> to_fragment(dialect) |> dialect.cast_sql(arg.type, to_type)

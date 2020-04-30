@@ -173,7 +173,19 @@ defmodule Cloak.Query.DatetimeTest do
   test "subtracting dates" do
     :ok = insert_rows(_user_ids = 1..10, "datetimes", ["date_only"], [~D[2015-01-02]])
 
-    assert_query("select date_only - date '2014-01-02' from datetimes", %{rows: [%{row: [365]}]})
+    assert_query("select date_only - date '2014-01-02' from datetimes", %{rows: [%{row: ["P1Y"]}]})
+  end
+
+  test "subtracting datetimes" do
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[2015-01-02 12:00:00]])
+
+    assert_query("select datetime - datetime '2014-01-02 12:00:00' from datetimes", %{rows: [%{row: ["P1Y"]}]})
+  end
+
+  test "subtracting times" do
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", ["time_only"], [~T[01:01:00]])
+
+    assert_query("select time_only - time '00:01:00' from datetimes", %{rows: [%{row: ["PT1H"]}]})
   end
 
   test "using interval math" do

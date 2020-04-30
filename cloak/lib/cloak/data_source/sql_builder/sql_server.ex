@@ -165,7 +165,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
     do: ["DATEADD(s, -(", interval, "), TRY_CAST(", date, " AS datetime))"]
 
   @impl Dialect
-  def date_subtraction_expression([arg1, arg2]), do: ["DATEDIFF(s, ", arg2, ", ", arg1, ")"]
+  def date_subtraction_expression(_type, [arg1, arg2]), do: ["DATEDIFF(s, ", arg2, ", ", arg1, ")"]
 
   @impl Dialect
   def order_by(column, :asc, :nulls_last), do: ["CASE WHEN ", column, " IS NULL THEN 1 ELSE 0 END, ", column, " ASC"]

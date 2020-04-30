@@ -22,8 +22,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the dialect-specific SQL for adding/subtracting to a date/time/datetime."
   @callback time_arithmetic_expression(String.t(), iodata) :: iodata
 
-  @doc "Returns the dialect-specific SQL for subtracting two date/time/datetimes."
-  @callback date_subtraction_expression(iodata) :: iodata
+  @doc "Returns the dialect-specific SQL for subtracting two dates/times/datetimes."
+  @callback date_subtraction_expression(atom, iodata) :: iodata
 
   @doc "Returns the dialect-specific SQL for dividing an interval."
   @callback interval_division(iodata) :: iodata
@@ -76,7 +76,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def time_arithmetic_expression(operator, [arg1, arg2]), do: ["(", arg1, " ", operator, " ", arg2, ")"]
 
       @impl unquote(__MODULE__)
-      def date_subtraction_expression([arg1, arg2]), do: ["(", arg1, " - ", arg2, ")"]
+      def date_subtraction_expression(_type, [arg1, arg2]), do: ["(", arg1, " - ", arg2, ")"]
 
       @impl unquote(__MODULE__)
       def interval_division(args), do: function_sql("/", args)
