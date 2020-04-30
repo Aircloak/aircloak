@@ -45,15 +45,16 @@ defmodule Cloak.Sql.Compiler do
           Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
-          Query.view_map()
+          Query.view_map(),
+          Keyword.t()
         ) :: Query.t()
-  def core_compile!(parsed_query, analyst_id, data_source, parameters, views) do
+  def core_compile!(parsed_query, analyst_id, data_source, parameters, views, opts \\ []) do
     parsed_query
     |> Compiler.Specification.compile(analyst_id, data_source, parameters, views)
     |> Compiler.Anonymization.set_query_type()
     |> Compiler.Normalization.prevalidation_normalizations()
     |> Compiler.Validation.verify_standard_restrictions()
-    |> Compiler.Validation.verify_anonymization_restrictions()
+    |> Compiler.Validation.verify_anonymization_restrictions(opts)
     |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
     |> Compiler.Execution.align()
     |> Compiler.Normalization.postvalidation_normalizations()

@@ -3,6 +3,7 @@
 ### New features
 
 - Support for excluding columns from a data source table. This can be done using the `exclude_columns` parameter.
+- Support for marking columns as unselectable. This can be done using the `unselectable_columns` parameter.
 
 ### Bugfixes
 

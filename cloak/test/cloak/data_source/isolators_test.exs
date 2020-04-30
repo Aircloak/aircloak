@@ -47,7 +47,7 @@ defmodule Cloak.DataSource.Isolators.Test do
         tables: %{
           table: %{
             name: "table",
-            columns: [%{name: "column1", type: :integer, visible?: true}],
+            columns: [%{name: "column1", type: :integer, access: :visible}],
             auto_isolating_column_classification: true
           }
         }
@@ -62,7 +62,7 @@ defmodule Cloak.DataSource.Isolators.Test do
         tables: %{
           table: %{
             name: "table",
-            columns: [%{name: "column", type: :integer, visible?: true}],
+            columns: [%{name: "column", type: :integer, access: :visible}],
             auto_isolating_column_classification: false
           }
         }
@@ -78,7 +78,7 @@ defmodule Cloak.DataSource.Isolators.Test do
           table: %{
             name: "table",
             isolating_columns: %{"column" => false},
-            columns: [%{name: "column", type: :integer, visible?: true}],
+            columns: [%{name: "column", type: :integer, access: :visible}],
             auto_isolating_column_classification: false
           }
         }

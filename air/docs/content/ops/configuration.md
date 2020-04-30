@@ -457,7 +457,8 @@ The database tables that should be made available for querying are defined in th
     "db_name" | "query": string,
     "content_type": "personal" | "non-personal",
     "keys": [{"key_type_1": "column_name_1"}, ...],
-    "exclude_columns": ["column1", "column2", ...]
+    "exclude_columns": ["column1", "column2", ...],
+    "unselectable_columns": ["column1", "column2", ...]
   },
   "table_name_2": ...
 }
@@ -506,6 +507,10 @@ Constant columns are also dropped from the table.
 
 The `exclude_columns` is an optional parameter. It takes the form of an array and specifies columns to exclude from the underlying table.
 Excluded columns will not appear in the data source and cannot be referenced in any way from queries.
+
+The `unselectable_columns` is an optional parameter for personal tables.
+It takes the form of an array and marks columns as unselectable.
+Unselectable columns can only be joined together, counted, and/or grouped by.
 
 ##### Keys
 
