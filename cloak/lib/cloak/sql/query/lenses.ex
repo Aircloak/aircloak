@@ -438,6 +438,6 @@ defmodule Cloak.Sql.Query.Lenses do
 
   defp unselectable_column?(%{name: name, table: table}) do
     column = Enum.find(table.columns, &(&1.name == name))
-    column != nil && column.access == :unselectable
+    column != nil and column.access == :unselectable
   end
 end
