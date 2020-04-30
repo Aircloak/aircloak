@@ -133,7 +133,19 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @spec create_table_from_columns([Expression.t()], String.t(), [Table.option()]) :: Table.t()
   def create_table_from_columns(selected_columns, table_name, opts \\ []) do
     table_columns =
-      Enum.map(selected_columns, &Table.column(Expression.title(&1), Function.type(&1), visible?: not &1.synthetic?))
+      Enum.map(
+        selected_columns,
+        &Table.column(
+          Expression.title(&1),
+          Function.type(&1),
+          access:
+            cond do
+              &1.synthetic? -> :hidden
+              unselectable_selected_expression?(&1) -> :unselectable
+              true -> :visible
+            end
+        )
+      )
 
     user_id_column = Enum.find(selected_columns, & &1.user_id?)
     user_id_name = user_id_column && Expression.title(user_id_column)
@@ -145,12 +157,39 @@ defmodule Cloak.Sql.Compiler.Helpers do
       |> Enum.into(%{})
 
     opts = [type: :subquery] |> Keyword.merge(opts) |> Keyword.merge(columns: table_columns, keys: keys)
+
     Table.new(table_name, user_id_name, opts)
+  end
+
+  @doc "Returns a list of unselectable db columns which this expression depends on."
+  @spec unselectable_db_columns(Query.t(), Expression.t()) :: [Expression.t()]
+  def unselectable_db_columns(query, expression) do
+    {query, expression}
+    |> resolve_unselectable_db_columns()
+    |> Enum.map(&elem(&1, 1))
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp unselectable_selected_expression?(expr), do: unselectable_selected_columns(expr) != []
+
+  defp unselectable_selected_columns(expr) do
+    Query.Lenses.expression_unselectable_selected_columns()
+    |> Lens.to_list(expr)
+  end
+
+  defp resolve_unselectable_db_columns({query, expr}) do
+    expr
+    |> unselectable_selected_columns()
+    |> Enum.flat_map(fn column ->
+      case Query.resolve_subquery_column(column, query) do
+        :database_column -> [{query, column}]
+        {column, subquery} -> resolve_unselectable_db_columns({subquery, column})
+      end
+    end)
+  end
 
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
