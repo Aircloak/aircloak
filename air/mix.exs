@@ -95,7 +95,8 @@ defmodule Air.Mixfile do
       {:combine, "~> 0.10.0"},
       {:epgsql, "~> 4.1"},
       {:jobs, "~> 0.7"},
-      {:bom, path: "../bom", runtime: false, only: :dev}
+      {:bom, path: "../bom", runtime: false, only: :dev},
+      {:zxcvbn, "~> 0.1.3"}
     ]
   end
 

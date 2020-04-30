@@ -47,11 +47,11 @@ defmodule Air.Service.UserTest do
       User.create(%{
         login: "email@example.com",
         name: "Person",
-        password: "password1234",
-        password_confirmation: "password1234"
+        password: "psswrd12",
+        password_confirmation: "psswrd12"
       })
 
-      assert {:error, _} = User.login("email@example.com", "password1234")
+      assert {:error, _} = User.login("email@example.com", "psswrd12")
     end
 
     test "create cannot set ldap_dn" do
@@ -63,7 +63,7 @@ defmodule Air.Service.UserTest do
     end
 
     test "admin update cannot set the password" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       User.update(user, %{password: "new password", password_confirmation: "new password"})
       assert {:error, _} = User.login("email@example.com", "new password")
     end
@@ -89,30 +89,30 @@ defmodule Air.Service.UserTest do
       do: assert(error_on(&User.create/1, :name, "a") == "should be at least 2 character(s)")
 
     test "only update hashed password on password change" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
 
       {:ok, updated_user, _} = User.update_full_profile(user, %{"name" => "foobar"})
       assert hd(updated_user.logins).hashed_password == hd(user.logins).hashed_password
 
       {:ok, updated_user, _} =
         User.update_full_profile(user, %{
-          "old_password" => "password1234",
-          "password" => "passwordwxyz",
-          "password_confirmation" => "passwordwxyz"
+          "old_password" => "psswrd12",
+          "password" => "psswrd12wxyz",
+          "password_confirmation" => "psswrd12wxyz"
         })
 
       refute hd(updated_user.logins).hashed_password == hd(user.logins).hashed_password
     end
 
     test "password is not changed if old password is invalid" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
 
       assert errors_on(
                &User.update_full_profile(user, &1),
                %{
                  "old_password" => "invalid",
-                 "password" => "passwordwxyz",
-                 "password_confirmation" => "passwordwxyz"
+                 "password" => "psswrd12wxyz",
+                 "password_confirmation" => "psswrd12wxyz"
                }
              ) == [
                old_password: "Password invalid"
@@ -122,49 +122,49 @@ defmodule Air.Service.UserTest do
     end
 
     test "revokes sessions on password change" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       {:ok, _, _} =
         User.update_full_profile(user, %{
-          "old_password" => "password1234",
-          "password" => "passwordwxyz",
-          "password_confirmation" => "passwordwxyz"
+          "old_password" => "psswrd12",
+          "password" => "psswrd12wxyz",
+          "password_confirmation" => "psswrd12wxyz"
         })
 
       assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
     end
 
     test "revokes sessions on password change in the presence of app logins" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       _ = User.create_app_login(user, %{})
       session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       {:ok, _, _} =
         User.update_full_profile(User.load!(user.id), %{
-          "old_password" => "password1234",
-          "password" => "passwordwxyz",
-          "password_confirmation" => "passwordwxyz"
+          "old_password" => "psswrd12",
+          "password" => "psswrd12wxyz",
+          "password_confirmation" => "psswrd12wxyz"
         })
 
       assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
     end
 
     test "does not reset sessions on failed password change" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       User.update_full_profile(user, %{
         "old_password" => "wrong password",
-        "password" => "passwordwxyz",
-        "password_confirmation" => "passwordwxyz"
+        "password" => "psswrd12wxyz",
+        "password_confirmation" => "psswrd12wxyz"
       })
 
       assert {:ok, :data} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
     end
 
     test "does not revoke sessons on profile update that does not change the password" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       User.update_full_profile(user, %{"name" => "foobar"})
@@ -173,17 +173,17 @@ defmodule Air.Service.UserTest do
     end
 
     test "[Issue #3407] change password for user with an app login" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       {:ok, login, password} = User.create_app_login(user, %{})
 
       assert {:ok, _, _} =
                User.update_full_profile(user, %{
-                 "old_password" => "password1234",
-                 "password" => "passwordwxyz",
-                 "password_confirmation" => "passwordwxyz"
+                 "old_password" => "psswrd12",
+                 "password" => "psswrd12wxyz",
+                 "password_confirmation" => "psswrd12wxyz"
                })
 
-      assert {:ok, _} = User.login(User.main_login(user), "passwordwxyz")
+      assert {:ok, _} = User.login(User.main_login(user), "psswrd12wxyz")
       assert {:ok, _} = User.login_psql(login, password)
     end
 
@@ -285,17 +285,17 @@ defmodule Air.Service.UserTest do
 
   describe ".login" do
     test "success for native user" do
-      user_id = TestRepoHelper.create_user!(%{login: "alice", password: "password1234"}).id
-      assert {:ok, %{id: ^user_id}} = User.login("alice", "password1234")
+      user_id = TestRepoHelper.create_user!(%{login: "alice", password: "psswrd12"}).id
+      assert {:ok, %{id: ^user_id}} = User.login("alice", "psswrd12")
     end
 
     test "login is case insensitive" do
-      user_id = TestRepoHelper.create_user!(%{login: "alice", password: "password1234"}).id
-      assert {:ok, %{id: ^user_id}} = User.login("AlicE", "password1234")
+      user_id = TestRepoHelper.create_user!(%{login: "alice", password: "psswrd12"}).id
+      assert {:ok, %{id: ^user_id}} = User.login("AlicE", "psswrd12")
     end
 
     test "failure for native user" do
-      TestRepoHelper.create_user!(%{login: "alice", password: "password1234"})
+      TestRepoHelper.create_user!(%{login: "alice", password: "psswrd12"})
       assert {:error, :invalid_login_or_password} = User.login("alice", "invalid password")
     end
 
@@ -310,9 +310,9 @@ defmodule Air.Service.UserTest do
     end
 
     test "disabled users cannot log in" do
-      user = TestRepoHelper.create_user!(%{login: "alice", password: "password1234", enabled: false})
+      user = TestRepoHelper.create_user!(%{login: "alice", password: "psswrd12", enabled: false})
       User.disable(user)
-      assert {:error, :invalid_login_or_password} = User.login("alice", "password1234")
+      assert {:error, :invalid_login_or_password} = User.login("alice", "psswrd12")
     end
   end
 
@@ -476,8 +476,8 @@ defmodule Air.Service.UserTest do
 
       assert {:ok, %{name: ^old_name}} =
                User.reset_password(token, %{
-                 password: "password1234",
-                 password_confirmation: "password1234",
+                 password: "psswrd12",
+                 password_confirmation: "psswrd12",
                  name: "new name"
                })
     end
@@ -597,11 +597,11 @@ defmodule Air.Service.UserTest do
     test "creates user accounts that can be used to log in" do
       data = %{
         login: "login",
-        password_hash: Air.Service.Password.hash("password1234")
+        password_hash: Air.Service.Password.hash("psswrd12")
       }
 
       assert {:ok, user} = User.add_preconfigured_user(data)
-      assert {:ok, _user} = User.login("login", "password1234")
+      assert {:ok, _user} = User.login("login", "psswrd12")
     end
 
     test "creates admin users" do
@@ -660,27 +660,27 @@ defmodule Air.Service.UserTest do
 
   describe ".update_password" do
     test "updates hashed password on password change" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
 
       {:ok, updated_user, _} =
         User.update_password(user, %{
-          "old_password" => "password1234",
-          "password" => "passwordwxyz",
-          "password_confirmation" => "passwordwxyz"
+          "old_password" => "psswrd12",
+          "password" => "psswrd12wxyz",
+          "password_confirmation" => "psswrd12wxyz"
         })
 
       refute hd(updated_user.logins).hashed_password == hd(user.logins).hashed_password
     end
 
     test "password is not changed if old password is invalid" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
 
       assert errors_on(
                &User.update_password(user, &1),
                %{
                  "old_password" => "invalid",
-                 "password" => "passwordwxyz",
-                 "password_confirmation" => "passwordwxyz"
+                 "password" => "psswrd12wxyz",
+                 "password_confirmation" => "psswrd12wxyz"
                }
              ) == [
                old_password: "Password invalid"
@@ -690,69 +690,69 @@ defmodule Air.Service.UserTest do
     end
 
     test "revokes sessions on password change" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       {:ok, _, _} =
         User.update_password(user, %{
-          "old_password" => "password1234",
-          "password" => "passwordwxyz",
-          "password_confirmation" => "passwordwxyz"
+          "old_password" => "psswrd12",
+          "password" => "psswrd12wxyz",
+          "password_confirmation" => "psswrd12wxyz"
         })
 
       assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
     end
 
     test "revokes sessions on password change in the presence of app logins" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       _ = User.create_app_login(user, %{})
       session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       {:ok, _, _} =
         User.update_password(User.load!(user.id), %{
-          "old_password" => "password1234",
-          "password" => "passwordwxyz",
-          "password_confirmation" => "passwordwxyz"
+          "old_password" => "psswrd12",
+          "password" => "psswrd12wxyz",
+          "password_confirmation" => "psswrd12wxyz"
         })
 
       assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
     end
 
     test "does not reset sessions on failed password change" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       User.update_password(user, %{
         "old_password" => "wrong password",
-        "password" => "passwordwxyz",
-        "password_confirmation" => "passwordwxyz"
+        "password" => "psswrd12wxyz",
+        "password_confirmation" => "psswrd12wxyz"
       })
 
       assert {:ok, :data} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
     end
 
     test "fails if changing non-password related fields" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       assert {:error, _} = User.update_password(user, %{"name" => "foobar"})
-      {:ok, updated_user, _} = User.update_password(user, %{"name" => "foobar", "old_password" => "password1234"})
+      {:ok, updated_user, _} = User.update_password(user, %{"name" => "foobar", "old_password" => "psswrd12"})
 
       refute "foobar" == updated_user.name
     end
 
     test "[Issue #3407] change password for user with an app login" do
-      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       {:ok, login, password} = User.create_app_login(user, %{})
 
       assert {:ok, _, _} =
                User.update_password(user, %{
-                 "old_password" => "password1234",
-                 "password" => "passwordwxyz",
-                 "password_confirmation" => "passwordwxyz"
+                 "old_password" => "psswrd12",
+                 "password" => "psswrd12wxyz",
+                 "password_confirmation" => "psswrd12wxyz"
                })
 
-      assert {:ok, _} = User.login(User.main_login(user), "passwordwxyz")
+      assert {:ok, _} = User.login(User.main_login(user), "psswrd12wxyz")
       assert {:ok, _} = User.login_psql(login, password)
     end
   end
