@@ -53,11 +53,6 @@ defmodule IntegrationTest.QueryTest do
            ]
   end
 
-  test "cannot select excluded columns", context do
-    {:ok, result} = run_query(context.user, "select white, black from column_access")
-    assert result.error =~ "Column `black` doesn't exist in table `column_access`."
-  end
-
   test "Query logs returned are truncated to second", context do
     {:ok, result} = run_query(context.user, "select name, height from users")
 
