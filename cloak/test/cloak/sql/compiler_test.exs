@@ -24,6 +24,12 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  defmacrop constant(type, value) do
+    quote do
+      %{kind: :constant, type: unquote(type), value: unquote(value)}
+    end
+  end
+
   defmacrop unselectable_error(column_name \\ "grey", table_name \\ "column_access") do
     quote do
       {:error,
@@ -222,7 +228,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert [_is_not_null_id, function(">=", [column("table", "column"), value]), _lt_date] =
              conditions_list(result.where)
 
-    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2015-01-01 00:00:00.000000]) = value
   end
 
   test "casts datetime - date conditions" do
@@ -234,7 +240,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert [_is_not_null_id, function("<>", [column("table", "column"), value])] = conditions_list(result.where)
 
-    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2015-01-01 00:00:00.000000]) = value
   end
 
   test "[Issue #2152] an invalid datetime comparison",
@@ -248,7 +254,7 @@ defmodule Cloak.Sql.Compiler.Test do
     result = compile!("select stddev(uid) from table where column = cast('2017-01-01' as datetime)", data_source())
 
     assert [_is_not_null_id, function("=", [column("table", "column"), value])] = conditions_list(result.where)
-    assert value == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2017-01-01 00:00:00.000000]) = value
   end
 
   test "[Issue #2562] doesn't cast expressions that are already datetime in IN" do
@@ -261,8 +267,8 @@ defmodule Cloak.Sql.Compiler.Test do
     assert [_is_not_null_id, function("in", [column("table", "column"), value1, value2])] =
              conditions_list(result.where)
 
-    assert value1 == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
-    assert value2 == Expression.constant(:datetime, ~N[2017-02-02 00:00:00.000000])
+    assert constant(:datetime, ~N[2017-01-01 00:00:00.000000]) = value1
+    assert constant(:datetime, ~N[2017-02-02 00:00:00.000000]) = value2
   end
 
   test "allows comparing datetime columns to other datetime columns" do
@@ -277,7 +283,7 @@ defmodule Cloak.Sql.Compiler.Test do
              )
 
     assert function("and", [function(">=", [column("table", "column"), value]), _rhs]) = range
-    assert value == Expression.constant(:time, ~T[01:00:00.000000])
+    assert constant(:time, ~T[01:00:00.000000]) = value
   end
 
   test "casts date where conditions" do
@@ -288,7 +294,7 @@ defmodule Cloak.Sql.Compiler.Test do
              )
 
     assert function("and", [function(">=", [column("table", "column"), value]), _rhs]) = range
-    assert value == Expression.constant(:date, ~D[2015-01-01])
+    assert constant(:date, ~D[2015-01-01]) = value
   end
 
   test "casts datetime in `in` conditions" do
@@ -311,7 +317,7 @@ defmodule Cloak.Sql.Compiler.Test do
              function("<>", [column("table", "column"), value])
            ]) = result.where
 
-    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2015-01-01 00:00:00.000000]) = value
   end
 
   test "casts integers to reals in IN" do
@@ -1601,9 +1607,9 @@ defmodule Cloak.Sql.Compiler.Test do
     assert [function("not", [function("in", [column("table", "numeric"), value1, value2, value3])])] =
              conditions_list(result.where)
 
-    assert value1 = Expression.constant(:integer, 1)
-    assert value2 = Expression.constant(:integer, 2)
-    assert value3 = Expression.constant(:integer, 3)
+    assert constant(:integer, 1) = value1
+    assert constant(:integer, 2) = value2
+    assert constant(:integer, 3) = value3
   end
 
   test "[Issue #4181] grouping sets over the user id" do

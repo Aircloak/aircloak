@@ -170,7 +170,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     end
   end
 
-  defp udfs(), do: @cast_udfs ++ math_udfs()
+  defp udfs(), do: @cast_udfs ++ math_udfs() ++ date_udfs()
 
   defp math_udfs() do
     operators = [{"ac_mul", "*"}, {"ac_add", "+"}, {"ac_sub", "-"}, {"ac_div", "/"}, {"ac_pow", "^"}]
@@ -178,6 +178,25 @@ defmodule Cloak.DataSource.PostgreSQL do
 
     for type <- number_types, {name, operator} <- operators do
       {"#{name}(a #{type}, b #{type}) RETURNS #{type}", "CAST(a #{operator} b AS #{type})"}
+    end
+  end
+
+  defp date_udfs() do
+    date_functions = [
+      {"ac_add(a DATE, b INTERVAL) RETURNS TIMESTAMP", "a + b"},
+      {"ac_add(a TIMESTAMP, b INTERVAL) RETURNS TIMESTAMP", "a + b"},
+      {"ac_sub(a DATE, b INTERVAL) RETURNS TIMESTAMP", "a - b"},
+      {"ac_sub(a TIMESTAMP, b INTERVAL) RETURNS TIMESTAMP", "a - b"}
+    ]
+
+    for {header, expression} <- date_functions do
+      # Postgrex library crashes when reading values outside the valid Elixir range.
+      body = """
+        CASE WHEN EXTRACT(year FROM #{expression}) BETWEEN #{Cloak.Time.year_lower_bound()}
+          AND #{Cloak.Time.year_upper_bound()} THEN #{expression} ELSE NULL END
+      """
+
+      {header, body}
     end
   end
 

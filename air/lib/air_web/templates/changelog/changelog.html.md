@@ -10,6 +10,8 @@
 
 ### Enhancements
 
+- Added overflow protection for date arithmetic. Oracle UDFs have to be reloaded.
+
 ### Bugfixes
 
 - Fixed filtering of censored values in standard queries.

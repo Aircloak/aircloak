@@ -73,10 +73,10 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def alias_sql(object, alias), do: [object, " AS ", alias]
 
       @impl unquote(__MODULE__)
-      def time_arithmetic_expression(operator, [arg1, arg2]), do: ["(", arg1, " ", operator, " ", arg2, ")"]
+      def time_arithmetic_expression(operator, args), do: function_sql(operator, args)
 
       @impl unquote(__MODULE__)
-      def date_subtraction_expression(_type, [arg1, arg2]), do: ["(", arg1, " - ", arg2, ")"]
+      def date_subtraction_expression(_type, args), do: function_sql("unsafe_sub", args)
 
       @impl unquote(__MODULE__)
       def interval_division(args), do: function_sql("/", args)
