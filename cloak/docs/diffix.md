@@ -47,6 +47,7 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
       - [Operation of min and max](#operation-of-min-and-max)
     - [Reporting suppression](#reporting-suppression)
       - [Bucket merging](#bucket-merging)
+    - [Reporting noise](#reporting-noise)
     - [Suppress aggregate values](#suppress-aggregate-values)
 - [Aggregation function count distinct](#aggregation-function-count-distinct)
 - [Aggregation function stddev](#aggregation-function-stddev)
@@ -815,6 +816,30 @@ The information that needs to be generated is: `col_sum, count_duid, min_uid, ma
   - `merged_count_duid = max(count_duid1, count_duid2) + min(count_duid1, count_duid2) / 4`
 - `merged_avg = merged_col_sum / merged_col_count`
 - For the standard deviation, we use the formula: `sd(v) = sqrt(sum(v^2) / count - avg(v)^2)` We first extract the sums of squared values: `sum_sqrs1 = (col_stddev1^2 + avg1^2) * col_count1` and `sum_sqrs2 = (col_stddev2^2 + avg2^2) * col_count2`, we then add them together to get the merged sum of squared values, resulting in: `merged_sd = sqrt(merged_sum_sqrs / merged_col_count - merged_avg^2)`
+
+### Reporting noise
+
+For each of the aggregation functions `count()`, `sum()`, `avg()`, and `stddev()`, the cloak provides corresponding `aggr_noise()` functions (`count_noise()` etc.). The ideal here would be to report the exact standard deviation of the actual noise added by the cloak. Doing so, however, opens the cloak to a [Noise signal attack](./attacks.md#noise-signal-attack). This is because the `min` and `max` values from the set of aggregated values has a substantial influence on the noise standard deviation. In the aggregate value itself, this influence is somewhat hidden by the presence of the other values and by flattening.
+
+To hide the influence in the reported noise, the cloak reports a value close to but different from the true noise standard deviation. The larger the contribution of the extreme user, the larger the distortion. (Note that in any event, the larger the contribution of the extreme user, the greater the amount of flattening, and so in any event the reported noise is not a good representation of the total distortion.)
+
+The section [Value flattening and noise addition](#value-flattening-and-noise-addition) describes how the standard deviation for noise is computed from the measured values of `col_avg`, `col_std`, `col_min`, `col_max`, and `col_cnt`. When computing a standard deviation for reporting noise, the following per-layer computation is used instead:
+
+```
+1  col_sum = col_avg * ct
+2  new_avg = (col_sum - (col_max - col_avg) - (col_min - col_avg)) / ct
+3  sum_of_sqr_diff = col_std^2 * (ct - 1)
+4  new_sum_of_sqr_diff = sum_of_sqr_diff - (col_max - col_avg)^2 - (col_min - col_avg)^2
+5  new_var = new_sum_of_sqr_diff / (ct - 1)
+6  new_std = new_var^0.5
+```
+
+The reported noise is then:
+
+```
+reported_noise = max((new_avg + (factor * new_std)) * top_scale,
+            new_avg * avg_scale)
+```
 
 ### Suppress aggregate values
 
