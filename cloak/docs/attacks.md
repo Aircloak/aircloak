@@ -8,6 +8,7 @@ This section describes a variety of attacks against anonymization mechanisms. So
   - [Trackers](#trackers)
   - [Attribute value inspection attacks](#attribute-value-inspection-attacks)
   - [Suppression signal attacks](#suppression-signal-attacks)
+  - [Noise signal attacks](#noise-signal-attacks)
   - [Noise averaging attacks](#noise-averaging-attacks)
     - [Naive averaging](#naive-averaging)
     - [Different syntax but same semantics, with floating](#different-syntax-but-same-semantics-with-floating)
@@ -169,6 +170,24 @@ This attack is prevented through the use of *low-count suppression*.  Any column
 An attacker may be able to learn about individual users from whether a given bucket was suppressed or not. For instance, if a constant threshold were used for the suppress decision (i.e. suppress when 2 or fewer distinct users), then if the attacker happened to know that there is either 2 or 3 users with a certain set of attribute values, then if the bucket is not suppressed then the attacker knows that there must be three users, and potentially learns something about the third user.
 
 To prevent this, Diffix uses a noisy threshold using sticky layered noise. Because the threshold itself can vary, in the previous example the attacker would be uncertain as to whether there were 2 or 3 users.
+
+## Noise signal attack
+
+Diffix can report the amount of noise added to the aggregates `count()`, `sum()`, `avg()`, and `stddev()`. This is reported as the standard deviation of the noise. In Diffix Cedar, the amount of noise is influenced by the `min` and `max` values. If a user has an extreme value (say 2x or 3x greater than the next highest value), then the presence or absence of that user in a bucket may have a significant effect on the amount of noise added.
+
+This opens an attack whereby the attacker can determine which bucket the extreme user is in by noting which bucket reports the most noise (for instance, using `sum_noise()`).
+
+For instance, if one user (the victimm) has a salary that far exceeds the second highest salary, then `gender` could be learned with the following query:
+
+```sql
+SELECT gender, sum(salary), sum_noise(salary)
+FROM table
+GROUP BY 1
+```
+
+Whichever gender bucket reports the highest `sum_noise(salary)` is the bucket that contains the victim.
+
+To defend against this, the cloak does not precisely report the standard deviation of the noise, but rather an approximation based on a formulation that eliminates the effect of the `min` and `max` values.
 
 ## Noise averaging attacks
 
