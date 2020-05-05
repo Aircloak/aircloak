@@ -135,9 +135,6 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def date_subtraction_expression(type, args), do: super(type, args)
 
   @impl Dialect
-  def interval_division([arg1, arg2]), do: ["(", arg1, " / ", arg2, ")"]
-
-  @impl Dialect
   def analyst_meta_table_create_statement(quoted_table_name) do
     """
     CREATE TABLE #{quoted_table_name} (

@@ -5,6 +5,7 @@
 - Default value for `max_rare_negative_conditions` is now 0.
 - The `IS [NOT] NULL` operator is restricted to clear expressions.
 - Aggregators are restricted to clear expressions.
+- Dropped support for non-datetime/interval arithmetic.
 
 ### New features
 

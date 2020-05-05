@@ -188,14 +188,6 @@ defmodule Cloak.Query.DatetimeTest do
     assert_query("select time_only - time '00:01:00' from datetimes", %{rows: [%{row: ["PT1H"]}]})
   end
 
-  test "using interval math" do
-    :ok = insert_rows(_user_ids = 1..10, "datetimes", [], [])
-
-    assert_query("select 10 * interval 'P1Y' from datetimes", %{
-      rows: [%{row: ["P10Y"]}]
-    })
-  end
-
   test "casting date to datetime" do
     :ok = insert_rows(_user_ids = 1..10, "datetimes", ["date_only"], [~D[0001-02-03]])
 

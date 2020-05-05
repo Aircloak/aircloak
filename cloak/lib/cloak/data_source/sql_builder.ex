@@ -169,9 +169,6 @@ defmodule Cloak.DataSource.SqlBuilder do
     dialect.time_arithmetic_expression(fun_name, Enum.map(args, &to_fragment(&1, dialect)))
   end
 
-  defp column_sql(%Expression{kind: :function, name: "/", type: :interval, args: args}, dialect),
-    do: dialect.interval_division(Enum.map(args, &to_fragment(&1, dialect)))
-
   defp column_sql(%Expression{kind: :function, name: fun_name, type: :interval, args: args}, dialect)
        when fun_name in ~w(- unsafe_sub) do
     [%Expression{type: type}, %Expression{type: type}] = args
