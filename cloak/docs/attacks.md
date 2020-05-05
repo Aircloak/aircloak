@@ -173,7 +173,7 @@ To prevent this, Diffix uses a noisy threshold using sticky layered noise. Becau
 
 ## Noise signal attack
 
-Diffix can report the amount of noise added to the aggregates `count()`, `sum()`, `avg()`, and `stddev()`. This is reported as the standard deviation of the noise.  In Diffix Cedar, the amount of noise is influenced by the `min` and `max` values. If a user has an extreme value (say 2x or 3x greater than the next highest value), then the presence or absence of that user in a bucket may have a significant effect on the amount of noise added.
+Diffix can report the amount of noise added to the aggregates `count()`, `sum()`, `avg()`, and `stddev()`. This is reported as the standard deviation of the noise. In Diffix Cedar, the amount of noise is influenced by the `min` and `max` values. If a user has an extreme value (say 2x or 3x greater than the next highest value), then the presence or absence of that user in a bucket may have a significant effect on the amount of noise added.
 
 This opens an attack whereby the attacker can determine which bucket the extreme user is in by noting which bucket reports the most noise (for instance, using `sum_noise()`).
 
@@ -185,9 +185,9 @@ FROM table
 GROUP BY 1
 ```
 
-Whichever gender bucket reports the highest salary is the bucket that contains the victim.
+Whichever gender bucket reports the highest `sum_noise(salary)` is the bucket that contains the victim.
 
-To defend against this, the cloak does not precisely report the standard deviation of the noise, but rather an approximation based on a forumlation that substantially reduces the effect of the `min` and `max` extreme values.
+To defend against this, the cloak does not precisely report the standard deviation of the noise, but rather an approximation based on a formulation that eliminates the effect of the `min` and `max` values.
 
 ## Noise averaging attacks
 
