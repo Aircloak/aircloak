@@ -87,10 +87,7 @@ Enum.each(
       Enum.each(datetime_columns(), fn {column, table} ->
         @tag compliance: "#{condition} in where #{column} #{table} query"
         test "#{condition} on input #{column} in where in query on table #{table}", context do
-          context
-          # Impala does not support intervals as standalone expressions such as x - y = interval 2 days
-          |> disable_for(Cloak.DataSource.ClouderaImpala)
-          |> assert_consistent_and_not_failing("""
+          assert_consistent_and_not_failing(context, """
             SELECT COUNT(*)
             FROM #{unquote(table)}
             WHERE #{on_column(unquote(condition), unquote(column))}
@@ -99,9 +96,7 @@ Enum.each(
 
         @tag compliance: "#{condition} in where #{column} #{table} subquery"
         test "#{condition} on input #{column} in where in subquery on table #{table}", context do
-          context
-          |> disable_for(Cloak.DataSource.ClouderaImpala)
-          |> assert_consistent_and_not_failing("""
+          assert_consistent_and_not_failing(context, """
             SELECT COUNT(*)
             FROM (
               SELECT user_id
