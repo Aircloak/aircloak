@@ -46,7 +46,6 @@
   "inflex": {:hex, :inflex, "1.5.0", "e4ff5d900280b2011b24d1ac1c4590986ee5add2ea644c9894e72213cf93ff0b", [:mix], [], "hexpm", "d48609edc5bb7901b95dcc00c1e38f259e8006904865a028954ccfe9336a3384"},
   "jason": {:hex, :jason, "1.1.2", "b03dedea67a99223a2eaf9f1264ce37154564de899fd3d8b9a21b1a6fd64afe7", [:mix], [{:decimal, "~> 1.0", [hex: :decimal, repo: "hexpm", optional: true]}], "hexpm", "fdf843bca858203ae1de16da2ee206f53416bbda5dc8c9e78f43243de4bc3afe"},
   "jiffy": {:hex, :jiffy, "0.14.13", "225a9a35e26417832c611526567194b4d3adc4f0dfa5f2f7008f4684076f2a01", [:rebar3], [], "hexpm", "be5f0b124d03284b79fa90e07c3cf7a04be1a6111e97e0c9059e3cc0c7aac11a"},
-  "jobs": {:hex, :jobs, "0.9.0", "b2f0071531c4a48575a096fec428dcdd4555c64e5086fe521fceaf581b1f51dc", [:rebar3], [{:parse_trans, "3.3.0", [hex: :parse_trans, repo: "hexpm", optional: false]}], "hexpm", "4e50cc8edd7b5a0ae6f4c17b25514470a772626a5f6c24e9bc06a62aef618237"},
   "jose": {:hex, :jose, "1.8.4", "7946d1e5c03a76ac9ef42a6e6a20001d35987afd68c2107bcd8f01a84e75aa73", [:mix, :rebar3], [{:base64url, "~> 0.0.1", [hex: :base64url, repo: "hexpm", optional: false]}], "hexpm"},
   "jsx": {:hex, :jsx, "2.8.3", "a05252d381885240744d955fbe3cf810504eb2567164824e19303ea59eef62cf", [:mix, :rebar3], [], "hexpm", "fc3499fed7a726995aa659143a248534adc754ebd16ccd437cd93b649a95091f"},
   "lens": {:hex, :lens, "0.9.0", "b166d4b00eb0c55a78ef76e65a4dc7ad558bdb290d774ca77059070098bfaefd", [:mix], [], "hexpm", "2f51a38444cf0a218687083ecc4735a4f54af83ccb6e65bd2c5d7f8cfdbb3b9c"},
