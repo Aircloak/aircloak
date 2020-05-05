@@ -146,3 +146,19 @@ Enum.each(
     end
   end
 )
+
+defmodule Compliance.DateTimeFunctions.OffloadTest do
+  use ComplianceCase, async: true
+
+  [
+    "date '3000-12-01' - cast(birthday as date) + date '2000-01-01'",
+    "date '2000-01-01' + (date '3000-12-01' - cast(birthday as date))",
+    "datetime '2020-01-01 12:00:00' - (date '2000-12-01' - cast(birthday as date))"
+  ]
+  |> Enum.each(fn snippet ->
+    @tag compliance: "datetime functions offload"
+    test "datetime functions offload in #{snippet}", context do
+      assert_not_failing(context, "SELECT #{unquote(snippet)} AS val FROM users_public")
+    end
+  end)
+end

@@ -157,15 +157,27 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   def cast_sql(value, _, type), do: ["TRY_CAST(", value, " AS ", sql_type(type), ")"]
 
+  @seconds_in_day 24 * 60 * 60
+
   @impl Dialect
+  # DATEADD requires a signed 32-bit value for the offset, so we do the interval addition
+  # in 2 steps, to make sure we don't get an overflow error.
   def time_arithmetic_expression("+", [date, interval]),
-    do: ["DATEADD(s, ", interval, ", TRY_CAST(", date, " AS datetime))"]
+    do: [
+      "DATEADD(s, ",
+      interval,
+      " % #{@seconds_in_day}, DATEADD(d, ",
+      interval,
+      " / #{@seconds_in_day}, TRY_CAST(",
+      date,
+      " AS datetime)))"
+    ]
 
   def time_arithmetic_expression("-", [date, interval]),
-    do: ["DATEADD(s, -(", interval, "), TRY_CAST(", date, " AS datetime))"]
+    do: time_arithmetic_expression("+", [date, ["-(", interval, ")"]])
 
   @impl Dialect
-  def date_subtraction_expression(_type, [arg1, arg2]), do: ["DATEDIFF(s, ", arg2, ", ", arg1, ")"]
+  def date_subtraction_expression(_type, [arg1, arg2]), do: ["DATEDIFF_BIG(s, ", arg2, ", ", arg1, ")"]
 
   @impl Dialect
   def order_by(column, :asc, :nulls_last), do: ["CASE WHEN ", column, " IS NULL THEN 1 ELSE 0 END, ", column, " ASC"]

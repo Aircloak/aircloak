@@ -123,7 +123,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   def literal_default(%Date{} = value), do: ["date '", to_string(value), ?']
 
   def literal_default(%Timex.Duration{} = duration),
-    do: duration |> Timex.Duration.to_seconds() |> to_string()
+    do: duration |> Timex.Duration.to_seconds() |> round() |> to_string()
 
   def literal_default(value) when is_number(value), do: to_string(value)
 
