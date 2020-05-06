@@ -11,14 +11,6 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Initializes the internal manager queue."
-  @spec init_queue() :: :ok
-  def init_queue() do
-    # We're using queue to limit maximum amount of simultaneous manager database operations.
-    :jobs.add_queue(__MODULE__, max_time: :timer.minutes(10), regulators: [counter: [limit: 10]])
-    :ok
-  end
-
   @doc "Returns the pid of the server related to the given data source, or `nil` if such server doesn't exist."
   @spec whereis(User.t(), String.t()) :: pid | nil
   def whereis(user, data_source_name), do: GenServer.whereis(name(user, data_source_name))
@@ -30,7 +22,7 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   @doc "Drops the given shadow database."
   @spec drop_database(User.t(), String.t()) :: :ok
   def drop_database(user, data_source_name) do
-    exec_queued(fn ->
+    run_and_measure(fn ->
       Connection.execute!(
         Air.PsqlServer.ShadowDb.connection_params().name,
         fn conn ->
@@ -87,14 +79,14 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
 
   @impl GenServer
   def handle_cast(:ensure_exists, state) do
-    exec_queued(fn -> ensure_db!(state.user, state.data_source_name) end)
+    run_and_measure(fn -> ensure_db!(state.user, state.data_source_name) end)
     {:noreply, state}
   end
 
   @impl GenServer
   def handle_cast(:update_definition, state) do
     tables = data_source_tables(state.user, state.data_source_name)
-    if state.tables != tables, do: exec_queued(fn -> update_shadow_db(state, tables) end)
+    if state.tables != tables, do: run_and_measure(fn -> update_shadow_db(state, tables) end)
     {:noreply, %{state | tables: tables}}
   end
 
@@ -105,13 +97,14 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp exec_queued(fun) do
-    {:ok, ref} = :jobs.ask(__MODULE__)
+  @slow_update_duration 500
 
-    try do
-      fun.()
-    after
-      :jobs.done(ref)
+  defp run_and_measure(fun) do
+    {time, _} = :timer.tc(fun)
+    ms = time / 1000
+
+    if ms > @slow_update_duration do
+      Logger.warn("Updating the shadow database took #{ms}ms")
     end
   end
 
