@@ -210,6 +210,10 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def literal(value), do: super(value)
 
   @impl Dialect
+  def date_subtraction_expression(_type, [arg1, arg2]),
+    do: [?(, cast_sql(arg1, :any, :datetime), " - ", cast_sql(arg2, :any, :datetime), ?)]
+
+  @impl Dialect
   def select_table_names(prefix),
     do: "SELECT table_name FROM user_tables WHERE table_name LIKE '#{prefix}%'"
 
