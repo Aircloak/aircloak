@@ -22,7 +22,7 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   @doc "Drops the given shadow database."
   @spec drop_database(User.t(), String.t()) :: :ok
   def drop_database(user, data_source_name) do
-    run_and_measure(fn ->
+    run_queued("drop_database (#{data_source_name}/#{user.id})", fn ->
       Connection.execute!(
         Air.PsqlServer.ShadowDb.connection_params().name,
         fn conn ->
@@ -79,14 +79,23 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
 
   @impl GenServer
   def handle_cast(:ensure_exists, state) do
-    run_and_measure(fn -> ensure_db!(state.user, state.data_source_name) end)
+    run_queued("ensure_db (#{state.data_source_name}/#{state.user.id})", fn ->
+      ensure_db!(state.user, state.data_source_name)
+    end)
+
     {:noreply, state}
   end
 
   @impl GenServer
   def handle_cast(:update_definition, state) do
     tables = data_source_tables(state.user, state.data_source_name)
-    if state.tables != tables, do: run_and_measure(fn -> update_shadow_db(state, tables) end)
+
+    if state.tables != tables do
+      run_queued("update_shadow_db (#{state.data_source_name}/#{state.user.id})", fn ->
+        update_shadow_db(state, tables)
+      end)
+    end
+
     {:noreply, %{state | tables: tables}}
   end
 
@@ -97,15 +106,21 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   # Internal functions
   # -------------------------------------------------------------------
 
+  @lock_concurrency 10
   @slow_update_duration 500
 
-  defp run_and_measure(fun) do
-    {time, _} = :timer.tc(fun)
-    ms = time / 1000
+  defp run_queued(name, fun) do
+    :global.trans(
+      {{:shadow_db_update, :rand.uniform(@lock_concurrency)}, self()},
+      fn ->
+        {time, _} = :timer.tc(fun)
+        ms = time / 1000
 
-    if ms > @slow_update_duration do
-      Logger.warn("Updating the shadow database took #{ms}ms")
-    end
+        if ms > @slow_update_duration do
+          Logger.warn("Shadow database operation #{name} took #{ms}ms")
+        end
+      end
+    )
   end
 
   defp name(user, data_source_name), do: Air.PsqlServer.ShadowDb.registered_name(user, data_source_name, __MODULE__)
