@@ -12,7 +12,6 @@ RUN \
   apt-get -y install postgresql-9.6
 
 COPY air/docker/pg_hba.conf /etc/postgresql/9.6/main/
-ENV PGDATA=/ramdisk
 RUN echo "fsync = off" >> /etc/postgresql/9.6/main/postgresql.conf
 
 # User under which the app will run.
