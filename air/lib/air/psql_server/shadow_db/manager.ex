@@ -183,10 +183,16 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   defp normalize_column(%{"name" => name, "type" => type}), do: %{name: name, type: type}
 
   defp update_shadow_db(state, tables) do
-    Logger.info("data source definition changed for #{state.data_source_name}, updating shadow database")
+    Logger.debug(fn ->
+      "Data source definition changed for #{state.data_source_name}/#{state.user.id}, updating shadow database"
+    end)
+
     ensure_db!(state.user, state.data_source_name)
     update_tables_definition(state, tables)
-    Logger.info("shadow database for #{state.data_source_name} updated")
+
+    Logger.debug(fn ->
+      "Shadow database for #{state.data_source_name}/#{state.user.id}, updated"
+    end)
   end
 
   defp ensure_db!(user, data_source_name) do
