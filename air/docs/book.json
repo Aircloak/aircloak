@@ -1,6 +1,6 @@
 {
   "author": "Aircloak GmbH",
-  "description": "This copy of the Aircloak user guide describes the features of, and how to configure and work with Aircloak Insights version 20.1.0.",
+  "description": "This copy of the Aircloak user guide describes the features of, and how to configure and work with Aircloak Insights version 20.1.1.",
   "gitbook": "3.2.2",
   "language": "en",
   "plugins": [
@@ -13,5 +13,5 @@
   "styles": {
     "website": "styles/website.css"
   },
-  "title": "Aircloak User Guide – version 20.1.0"
+  "title": "Aircloak User Guide – version 20.1.1"
 }
