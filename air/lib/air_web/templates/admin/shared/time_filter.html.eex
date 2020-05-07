@@ -1,9 +1,9 @@
-<div class="panel panel-default">
-  <div class="panel-heading">
+<div class="card mb-3">
+  <div class="card-header">
     Filter by time
   </div>
 
-  <div class="panel-body">
+  <div class="card-body">
     <form>
       <%= for {name, value} <- serialize_params(@conn), name not in ~w(from to) do %>
         <input type="hidden" name="<%= name %>" value="<%= value %>" />
@@ -11,23 +11,26 @@
 
       <div class="form-group">
         <label for="from">From</label>
-        <div class="input-group date datetimepicker">
-          <input id="from" name="from" type="text" class="form-control" value="<%= @from %>" />
-          <span class="input-group-addon">
-            <span class="glyphicon glyphicon-calendar"></span>
-          </span>
+
+        <div class="input-group date" id="datetimepickerfrom" data-target-input="nearest">
+          <input type="text" name="from" value="<%= @from %>" class="form-control datetimepicker-input" data-target="#datetimepickerfrom"/>
+          <div class="input-group-append" data-target="#datetimepickerfrom" data-toggle="datetimepicker">
+              <div class="input-group-text"><i class="fa fa-calendar-alt"></i></div>
+          </div>
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="to">To</label>
-        <div class="input-group date datetimepicker">
-          <input id="to" name="to" type="text" class="form-control" value="<%= @to %>" />
-          <span class="input-group-addon">
-            <span class="glyphicon glyphicon-calendar"></span>
-          </span>
+       <div class="form-group">
+        <label for="from">To</label>
+
+        <div class="input-group date" id="datetimepickerto" data-target-input="nearest">
+          <input type="text" name="to" value="<%= @to %>" class="form-control datetimepicker-input" data-target="#datetimepickerto"/>
+          <div class="input-group-append" data-target="#datetimepickerto" data-toggle="datetimepicker">
+              <div class="input-group-text"><i class="fa fa-calendar-alt"></i></div>
+          </div>
         </div>
       </div>
+
 
       <button type="submit" class="btn btn-primary">Filter</button>
     </form>

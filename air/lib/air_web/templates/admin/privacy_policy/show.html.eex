@@ -1,6 +1,6 @@
 <ol class="breadcrumb">
-  <li><%= link "Privacy policy", to: admin_privacy_policy_path(@conn, :index) %></li>
-  <li class="active">Revision <%= @privacy_policy.id %></li>
+  <li class="breadcrumb-item"><%= link "Privacy policy", to: admin_privacy_policy_path(@conn, :index) %></li>
+  <li class="breadcrumb-item active">Revision <%= @privacy_policy.id %></li>
 </ol>
 
 <h2>Privacy policy revision <%= @privacy_policy.id %></h2>

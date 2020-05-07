@@ -5,17 +5,8 @@
   </div>
 <% end %>
 
-<div class="form-group">
-  <label>Login</label>
-  <%= text_input f, :login, class: "form-control" %>
-  <%= error_tag f, :login %>
-</div>
-
-<div class="form-group">
-  <label>Name</label>
-  <%= text_input f, :name, class: "form-control" %>
-  <%= error_tag f, :name %>
-</div>
+<%= validated_text_input f, :login, "Login" %>
+<%= validated_text_input f, :name, "Name" %>
 
 <h3>Groups</h3>
 
@@ -36,6 +27,6 @@
 </div>
 
 <div class="form-group">
-  <%= submit "Save", class: "btn btn-primary" %>
+  <%= submit "Save", class: "btn btn-success" %>
 </div>
 <% end %>

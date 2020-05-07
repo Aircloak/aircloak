@@ -10,11 +10,11 @@ For information on how to read this table consult the <%=
 
 <div>
   <ul class="nav nav-tabs" role="tablist">
-    <li class="active">
-      <a href="#data-source" aria-controls="data-source" role="tab" data-toggle="tab">By data source</a>
+    <li class="nav-item">
+      <a href="#data-source" aria-controls="data-source" role="tab" data-toggle="tab" class="active nav-link">By data source</a>
     </li>
-    <li><a href="#table" aria-controls="home" role="tab" data-toggle="tab">By table</a></li>
-    <li><a href="#host" aria-controls="host" role="tab" data-toggle="tab">By host</a></li>
+    <li class="nav-item"><a class="nav-link" href="#table" aria-controls="home" role="tab" data-toggle="tab">By table</a></li>
+    <li class="nav-item"><a class="nav-link" href="#host" aria-controls="host" role="tab" data-toggle="tab">By host</a></li>
   </ul>
 
   <div class="tab-content">

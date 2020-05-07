@@ -239,8 +239,8 @@ defmodule Cloak.Query.JoinTest do
 
     assert_query(
       """
-        SELECT sum(x) FROM (
-          SELECT t1.user_id, x1 + x2 AS x FROM
+        SELECT sum(x1) + sum(x2) FROM (
+          SELECT t1.user_id, x1, x2 FROM
             (SELECT user_id, COUNT(*) AS x2 FROM heights_join GROUP BY user_id, height) AS t1
             INNER JOIN
             (SELECT user_id, COUNT(*) AS x1 FROM purchases GROUP BY user_id, price) AS t2
@@ -299,8 +299,8 @@ defmodule Cloak.Query.JoinTest do
   end
 
   test "RIGHT JOIN with filter" do
-    :ok = insert_rows(_user_ids = 1..4, "heights_join", ["height"], [180])
-    :ok = insert_rows(_user_ids = 1..5, "children_join", ["age"], [20])
+    :ok = insert_rows(_user_ids = 1..14, "heights_join", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..15, "children_join", ["age"], [20])
 
     assert_query(
       """
@@ -311,7 +311,7 @@ defmodule Cloak.Query.JoinTest do
           (SELECT user_id, age FROM children_join WHERE age = 20) AS t2
         ON t1.user_id = t2.user_id
       """,
-      %{rows: [%{row: [100], occurrences: 1}]}
+      %{rows: [%{row: [300], occurrences: 1}]}
     )
   end
 end

@@ -2,7 +2,6 @@
 
 import React from "react";
 import moment from "moment-timezone";
-import _ from "lodash";
 
 import AuditLogEntry from "./audit_log_entry";
 
@@ -11,11 +10,6 @@ import type { AuditLog } from "./audit_log_entry";
 type Props = { auditLogs: Array<AuditLog> };
 
 type State = { collapsed: boolean };
-
-const formatTime = (isoTime: string) => {
-  const time = moment.tz(isoTime, "UTC");
-  return time.format("YYYY-MM-DD HH:mm:ss z");
-};
 
 export default class AuditLogChunk extends React.Component<Props, State> {
   constructor(props: Props) {
@@ -28,11 +22,13 @@ export default class AuditLogChunk extends React.Component<Props, State> {
   }
 
   times = () =>
-    this.props.auditLogs.map<AuditLog>(auditLog => formatTime(auditLog.time));
+    this.props.auditLogs.map<number>((auditLog) =>
+      moment.tz(auditLog.time, "UTC").valueOf()
+    );
 
   toggleCollapsed = (event: Event) => {
     event.preventDefault();
-    this.setState(state => ({ collapsed: !state.collapsed }));
+    this.setState((state) => ({ collapsed: !state.collapsed }));
   };
 
   renderEvents = (): React$Node => {
@@ -42,7 +38,7 @@ export default class AuditLogChunk extends React.Component<Props, State> {
       return (
         <tr>
           <td colSpan="5">
-            <table className="table">
+            <table className="table table-sm">
               <thead>
                 <tr>
                   <th>Time</th>
@@ -63,15 +59,15 @@ export default class AuditLogChunk extends React.Component<Props, State> {
   };
 
   render = () => (
-    <tbody className="panel panel-default">
-      <tr className="panel-heading">
+    <tbody>
+      <tr>
         <td>{this.props.auditLogs[0].event}</td>
         <td>{this.props.auditLogs.length}</td>
         <td>{this.props.auditLogs[0].user}</td>
         <td>
-          {_.min(this.times())}
+          {moment(Math.min(...this.times())).format("YYYY-MM-DD HH:mm:ss z")}
           {" - "}
-          {_.max(this.times())}
+          {moment(Math.max(...this.times())).format("YYYY-MM-DD HH:mm:ss z")}
         </td>
         <td>
           <button type="button" onClick={this.toggleCollapsed}>

@@ -4,9 +4,10 @@ import React from "react";
 import Channel from "phoenix";
 
 import { ColumnsView } from "./columns";
-import { Filter } from "./filter";
+import { filterColumns, Higlighted } from "./filter";
 import type { Column } from "./columns";
 import activateTooltips from "../tooltips";
+import loader from "../../static/images/loader.gif";
 
 export type Selectable = {
   id: string,
@@ -15,7 +16,7 @@ export type Selectable = {
   columns: Column[],
   delete_html: string,
   broken: boolean,
-  creation_status: string
+  creation_status: string,
 };
 
 type Props = {
@@ -23,8 +24,8 @@ type Props = {
   selectablesEditUrl: string,
   onClick: () => void,
   expanded: boolean,
-  filter: Filter,
-  channel: Channel
+  filter: string,
+  channel: Channel,
 };
 
 const ERROR_REASON_MESSAGE =
@@ -40,7 +41,7 @@ const TABLE_INVALID_MESSAGE =
 export class SelectableView extends React.Component<Props> {
   handleToggleClick = (event: {
     target: Element,
-    preventDefault: () => void
+    preventDefault: () => void,
   }) => {
     // Hacky solution to prevent bubbling from `<a>` elements. Normally, we'd use stopPropagation.
     // However, the problem here is that we're injecting some html provided by the server, which
@@ -58,9 +59,15 @@ export class SelectableView extends React.Component<Props> {
     return selectable.kind === "view" || selectable.kind === "analyst_table";
   };
 
-  hasRenderableContent = () => {
+  searchResult = () => {
     const { filter, selectable } = this.props;
-    return filter.anyColumnMatches(selectable.columns);
+    if (filter !== "") {
+      return filterColumns(selectable.id, selectable.columns, filter, {
+        limit: 1,
+      })[0];
+    } else {
+      return {};
+    }
   };
 
   editLinkUrl = () => {
@@ -74,7 +81,7 @@ export class SelectableView extends React.Component<Props> {
       // eslint-disable-line no-alert
       channel.push("delete_selectable", {
         internal_id: selectable.internal_id,
-        kind: selectable.kind
+        kind: selectable.kind,
       });
     }
     event.preventDefault();
@@ -85,15 +92,15 @@ export class SelectableView extends React.Component<Props> {
       return null;
     } else {
       return (
-        <span className="pull-right">
+        <span className="float-right">
           &nbsp;
-          <a className="btn btn-xs btn-default" href={this.editLinkUrl()}>
+          <a className="btn btn-sm btn-secondary" href={this.editLinkUrl()}>
             Edit
           </a>
           &nbsp;
           <button
             type="button"
-            className="btn btn-xs btn-danger"
+            className="btn btn-sm btn-danger"
             onClick={this.triggerDelete}
           >
             Delete
@@ -119,14 +126,14 @@ export class SelectableView extends React.Component<Props> {
         title: this.brokenErrorMessage(),
         dataToggle: "tooltip",
         dataContainer: "body",
-        className: "list-group-item-heading alert-danger"
+        className: "list-group-item-heading alert-danger",
       };
     } else {
       return {
         title: null,
         dataToggle: null,
         dataContainer: null,
-        className: "list-group-item-heading"
+        className: "list-group-item-heading",
       };
     }
   };
@@ -141,27 +148,25 @@ export class SelectableView extends React.Component<Props> {
     if (this.pending()) {
       return (
         <img
-          src="/images/loader.gif"
-          alt="indicated analyst table is being created"
+          src={loader}
+          alt="analyst table is being created"
           height="12"
           width="12"
         />
       );
     } else {
-      const glyphType = expanded
-        ? "glyphicon glyphicon-minus"
-        : "glyphicon glyphicon-plus";
+      const glyphType = expanded ? "fas fa-minus" : "fas fa-plus";
       return <span className={glyphType} />;
     }
   };
 
-  renderSelectableView = () => {
+  renderSelectableView = (searchResult: any) => {
     const { selectable, expanded, filter } = this.props;
     const {
       title,
       dataToggle,
       dataContainer,
-      className
+      className,
     } = this.brokenMetaData();
     return (
       <div className="list-group-item">
@@ -177,7 +182,11 @@ export class SelectableView extends React.Component<Props> {
         >
           {this.renderIcon()}
           &nbsp;
-          {selectable.id}
+          <Higlighted
+            table={selectable.id}
+            column={searchResult}
+            field="table"
+          />
           {this.isAnalystCreatedSelectable()
             ? this.renderSelectableActionMenu()
             : null}
@@ -185,7 +194,13 @@ export class SelectableView extends React.Component<Props> {
 
         {(() => {
           if (expanded) {
-            return <ColumnsView columns={selectable.columns} filter={filter} />;
+            return (
+              <ColumnsView
+                table={selectable.id}
+                columns={selectable.columns}
+                filter={filter}
+              />
+            );
           } else {
             return null;
           }
@@ -195,9 +210,10 @@ export class SelectableView extends React.Component<Props> {
   };
 
   render = () => {
-    if (this.hasRenderableContent()) {
+    const results = this.searchResult();
+    if (results) {
       activateTooltips();
-      return this.renderSelectableView();
+      return this.renderSelectableView(results);
     } else {
       return null;
     }

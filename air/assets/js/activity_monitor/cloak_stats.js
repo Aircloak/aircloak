@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import _ from "lodash";
 import { Sparklines, SparklinesLine } from "react-sparklines";
 
 export type CloakStat = {
@@ -12,14 +11,14 @@ export type CloakStat = {
       total: number,
       currently_in_use: number,
       in_use_percent: number,
-      readings: [number]
+      readings: [number],
     },
-    queries: [number]
-  }
+    queries: [number],
+  },
 };
 
 type Props = {
-  cloakStat: CloakStat
+  cloakStat: CloakStat,
 };
 
 const toGB = (memoryInKBytes: number) => {
@@ -40,7 +39,7 @@ const toGBstring = (memoryInKBytes: number) => {
   }
 };
 
-const memoryUtilisationClasses = memoryUtilisationPercentage => {
+const memoryUtilisationClasses = (memoryUtilisationPercentage) => {
   if (memoryUtilisationPercentage >= 95) {
     return "label label-danger";
   } else if (memoryUtilisationPercentage >= 60) {
@@ -50,7 +49,7 @@ const memoryUtilisationClasses = memoryUtilisationPercentage => {
   }
 };
 
-const renderCurrentMemoryUtilisation = memory => (
+const renderCurrentMemoryUtilisation = (memory) => (
   <td>
     <span className={memoryUtilisationClasses(memory.in_use_percent)}>
       {toGBstring(memory.currently_in_use)}
@@ -60,7 +59,7 @@ const renderCurrentMemoryUtilisation = memory => (
   </td>
 );
 
-const renderMemoryUtilisationGraph = readings => (
+const renderMemoryUtilisationGraph = (readings) => (
   <td>
     <Sparklines data={readings} svgHeight={25} svgWidth={190} min={0} max={100}>
       <SparklinesLine />
@@ -68,8 +67,8 @@ const renderMemoryUtilisationGraph = readings => (
   </td>
 );
 
-const renderQueriesGraph = queryStats => {
-  const maxQueriesStat = _.max([1, ...queryStats]);
+const renderQueriesGraph = (queryStats) => {
+  const maxQueriesStat = Math.max(1, ...queryStats);
   return (
     <td>
       <Sparklines

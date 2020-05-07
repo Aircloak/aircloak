@@ -1634,10 +1634,6 @@ defmodule Cloak.Sql.Compiler.Test do
                compile("SELECT count(grey), count(distinct grey), count_noise(grey) FROM column_access", data_source())
     end
 
-    test "can count unselectable columns in complex expression" do
-      assert {:ok, _} = compile("SELECT count(abs(grey) + 1) FROM column_access", data_source())
-    end
-
     for aggregator <- ~w(min max sum avg stddev variance) do
       test "cannot aggregate unselectable columns using #{aggregator}" do
         assert unselectable_error() = compile("SELECT #{unquote(aggregator)}(grey) FROM column_access", data_source())
@@ -1773,21 +1769,6 @@ defmodule Cloak.Sql.Compiler.Test do
                  SELECT count(*)
                  FROM (
                    SELECT uid, count(grey)
-                   FROM column_access
-                   GROUP BY uid
-                 ) x
-                 """,
-                 data_source()
-               )
-    end
-
-    test "can count unselectable columns in complex expression" do
-      assert {:ok, _} =
-               compile(
-                 """
-                 SELECT count(*)
-                 FROM (
-                   SELECT uid, count(abs(grey + 1))
                    FROM column_access
                    GROUP BY uid
                  ) x

@@ -20,8 +20,8 @@ defmodule Air.ReleaseCLI.Test do
 
       assert {:ok, %{id: id}} =
                Air.Service.User.reset_password(token, %{
-                 password: "password1234",
-                 password_confirmation: "password1234"
+                 password: "psswrd12",
+                 password_confirmation: "psswrd12"
                })
 
       assert id == user.id

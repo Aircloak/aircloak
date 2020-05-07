@@ -78,17 +78,37 @@ defmodule Air.Service.View do
 
   @doc "Updates the existing view in the database."
   @spec update(integer, User.t(), String.t(), String.t(), revalidation_timeout: non_neg_integer) ::
-          {:ok, View.t()} | {:error, Ecto.Changeset.t()}
+          {:ok, View.t()} | {:error, Ecto.Changeset.t()} | {:error, :not_allowed}
   def update(view_id, user, name, sql, options \\ []) do
     view = Repo.get!(View, view_id)
 
     # view must be owned by the user
-    true = view.user_id == user.id
+    if view.user_id == user.id do
+      changes = %{name: name, sql: sql}
 
-    changes = %{name: name, sql: sql}
+      with {:ok, changeset} <- validated_view_changeset(view, user, changes, :update) do
+        {:ok, view} = Repo.update(changeset)
 
-    with {:ok, changeset} <- validated_view_changeset(view, user, changes, :update) do
-      {:ok, view} = Repo.update(changeset)
+        revalidate_views_and_wait(
+          user,
+          view.data_source_id,
+          Keyword.take(options, [:revalidation_timeout])
+        )
+
+        {:ok, view}
+      end
+    else
+      {:error, :not_allowed}
+    end
+  end
+
+  @doc "Deletes the given view from the database."
+  @spec delete(integer, User.t(), revalidation_timeout: non_neg_integer) :: :ok | {:error, :not_allowed}
+  def delete(view_id, user, options \\ []) do
+    view = Repo.get!(View, view_id)
+
+    if view.user_id == user.id do
+      Repo.delete!(view)
 
       revalidate_views_and_wait(
         user,
@@ -96,24 +116,10 @@ defmodule Air.Service.View do
         Keyword.take(options, [:revalidation_timeout])
       )
 
-      {:ok, view}
+      :ok
+    else
+      {:error, :not_allowed}
     end
-  end
-
-  @doc "Deletes the given view from the database."
-  @spec delete(integer, User.t(), revalidation_timeout: non_neg_integer) :: :ok
-  def delete(view_id, user, options \\ []) do
-    view = Repo.get!(View, view_id)
-
-    Repo.delete!(view)
-
-    revalidate_views_and_wait(
-      user,
-      view.data_source_id,
-      Keyword.take(options, [:revalidation_timeout])
-    )
-
-    :ok
   end
 
   @doc "Delete all views into the given data source from the database."

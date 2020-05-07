@@ -1,10 +1,9 @@
 // @flow
 
-import _ from "lodash";
 import type { Row } from "./result";
 
 export type TableAlignerT = {
-  alignmentClass: (columnIndex: number) => string
+  alignmentClass: (columnIndex: number) => string,
 };
 
 export const TableAligner = (rows: Row[]): TableAlignerT => {
@@ -12,14 +11,13 @@ export const TableAligner = (rows: Row[]): TableAlignerT => {
   // Internal functions
   // ----------------------------------------------------------------
 
-  const isNumeric = n => typeof n === "number" && Number.isFinite(n);
+  const isNumeric = (n) => typeof n === "number" && Number.isFinite(n);
 
   const ignorableValues = ["*", null, undefined];
 
-  const firstResultCell = columnIndex => {
-    const firstValue = _.find(
-      rows,
-      rowData => !_.includes(ignorableValues, rowData.row[columnIndex])
+  const firstResultCell = (columnIndex) => {
+    const firstValue = rows.find(
+      (rowData) => !ignorableValues.includes(rowData.row[columnIndex])
     );
     if (firstValue === undefined) {
       return undefined;
@@ -32,7 +30,7 @@ export const TableAligner = (rows: Row[]): TableAlignerT => {
   // API
   // ----------------------------------------------------------------
 
-  const alignmentClass = columnIndex => {
+  const alignmentClass = (columnIndex) => {
     if (isNumeric(firstResultCell(columnIndex))) {
       return "text-right";
     } else {

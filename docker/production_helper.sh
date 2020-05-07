@@ -48,7 +48,7 @@ function build_image {
     {
       git checkout master
       git remote prune origin
-      git branch -vv | grep 'origin/.*: gone]' | awk '{print $1}' | xargs git branch -D
+      git branch -vv | grep 'origin/.*: gone]' | awk '{print $1}' | xargs -r git branch -D
     } || true
 
     # remove obsolete docker images

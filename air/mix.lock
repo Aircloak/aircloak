@@ -95,4 +95,5 @@
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.4.1", "d869e4c68901dd9531385bb0c8c40444ebf624e60b6962d95952775cac5e90cd", [:rebar3], [], "hexpm", "1d1848c40487cdb0b30e8ed975e34e025860c02e419cb615d255849f3427439d"},
   "uuid": {:hex, :uuid, "1.1.8", "e22fc04499de0de3ed1116b770c7737779f226ceefa0badb3592e64d5cfb4eb9", [:mix], [], "hexpm"},
   "websocket_client": {:hex, :websocket_client, "1.2.4", "14ec1ca4b6d247b44ccd9a80af8f6ca98328070f6c1d52a5cb00bc9d939d63b8", [:rebar3], [], "hexpm", "295a79cce15c208e03a545073f1318e97e7780aa9f2415e825cb9e338aecc305"},
+  "zxcvbn": {:hex, :zxcvbn, "0.1.3", "742f32386f1dfc8bf8b30d33b5947737036df9194c33113d885bec6093c8be13", [:mix], [], "hexpm", "43bb62a65e19c4abf1ca28deb378acdd8159bc80c73a31e1a78597945c7ba11a"},
 }

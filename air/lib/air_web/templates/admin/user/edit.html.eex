@@ -1,6 +1,6 @@
 <ol class="breadcrumb">
-  <li><%= link "Users", to: admin_user_path(@conn, :index) %></li>
-  <li class="active"><%= @changeset.data.name %></li>
+  <li class="breadcrumb-item"><%= link "Users", to: admin_user_path(@conn, :index) %></li>
+  <li class="breadcrumb-item active"><%= @changeset.data.name %></li>
 </ol>
 
 <% user_id = @user.id %>
@@ -16,7 +16,7 @@
 <h2>Actions</h2>
 
 <span>
-  <%= link "Reset password", to: admin_user_user_path(@conn, :reset_password, @user), class: "btn btn-default" %>
+  <%= link "Reset password", to: admin_user_user_path(@conn, :reset_password, @user), class: "btn btn-secondary" %>
 </span>
 
 <span>

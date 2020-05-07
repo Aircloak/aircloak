@@ -1,6 +1,6 @@
 <ol class="breadcrumb">
-  <li><%= link "Users", to: admin_user_path(@conn, :index) %></li>
-  <li class="active">New user</li>
+  <li class="breadcrumb-item"><%= link "Users", to: admin_user_path(@conn, :index) %></li>
+  <li class="breadcrumb-item active">New user</li>
 </ol>
 
 <h2>Add a user</h2>

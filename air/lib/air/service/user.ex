@@ -8,6 +8,7 @@ defmodule Air.Service.User do
   alias Air.Schemas.{DataSource, Group, User, Login}
   import Ecto.Query, only: [from: 2, join: 4, where: 3, preload: 3]
   import Ecto.Changeset
+  import ZXCVBN
 
   @required_fields ~w(name)a
   @login_fields ~w(login)a
@@ -250,6 +251,24 @@ defmodule Air.Service.User do
 
       other ->
         other
+    end
+  end
+
+  @doc """
+  Updates only the password of a user, validating the existing password.
+
+  Returns `{:ok, user, sessions_revoked?}` on success.
+  """
+  @spec update_password(User.t(), map, change_options) :: {:ok, User.t(), boolean} | {:error, Ecto.Changeset.t()}
+  def update_password(user, params, options \\ []) do
+    check_ldap!(user, options)
+
+    user
+    |> change_main_login(&update_password_changeset(&1, params))
+    |> update_revoking_sesions()
+    |> case do
+      {:ok, {user, sessions_revoked?}} -> {:ok, user, sessions_revoked?}
+      error -> error
     end
   end
 
@@ -579,9 +598,17 @@ defmodule Air.Service.User do
     login
     |> cast(params, @password_fields)
     |> validate_required(@password_fields)
-    |> validate_length(:password, min: 10)
+    |> validate_password_requirements(:password)
     |> validate_confirmation(:password, message: "does not match password")
     |> update_password_hash()
+  end
+
+  defp update_password_changeset(login, params) do
+    if validate_password(login, params["old_password"] || "") do
+      password_reset_changeset(login, params)
+    else
+      change(login) |> add_error(:old_password, "Password invalid")
+    end
   end
 
   defp password_changeset(login, params) do
@@ -701,6 +728,21 @@ defmodule Air.Service.User do
       other ->
         other
     end
+  end
+
+  defp validate_password_requirements(changeset, field) when is_atom(field) do
+    validate_change(changeset, field, :zxcvbn, fn current_field, value ->
+      %{feedback: feedback, score: score} = zxcvbn(value, ["AirCloak"])
+
+      if score <= 1 do
+        [
+          {current_field,
+           if(String.length(feedback.warning) == 0, do: "The password is too weak", else: feedback.warning)}
+        ]
+      else
+        []
+      end
+    end)
   end
 
   # -------------------------------------------------------------------

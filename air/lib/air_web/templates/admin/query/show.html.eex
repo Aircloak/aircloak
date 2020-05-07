@@ -1,9 +1,11 @@
-<ol class="breadcrumb">
-  <li><%= link "Activity monitor", to: admin_activity_monitor_path(@conn, :index) %></li>
-  <li class="active">
-    ID: <strong><%= @query.id %></strong>
-  </li>
-</ol>
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><%= link "Activity monitor", to: admin_activity_monitor_path(@conn, :index) %></li>
+    <li class="breadcrumb-item active">
+      ID: <strong><%= @query.id %></strong>
+    </li>
+  </ol>
+</nav>
 
 <h2>Query view</h2>
 

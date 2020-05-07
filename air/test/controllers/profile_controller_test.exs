@@ -65,7 +65,7 @@ defmodule Air.ProfileController.Test do
       |> put(
         "/profile",
         user: %{
-          old_password: "password1234",
+          old_password: "psswrd12",
           password: "new password",
           password_confirmation: "new password"
         }
@@ -78,7 +78,7 @@ defmodule Air.ProfileController.Test do
       assert login(user)
              |> put(
                "/profile",
-               user: %{old_password: "password1234", password: "new password", password_confirmation: "new password"}
+               user: %{old_password: "psswrd12", password: "new password", password_confirmation: "new password"}
              )
              |> recycle()
              |> get("/profile/edit")
