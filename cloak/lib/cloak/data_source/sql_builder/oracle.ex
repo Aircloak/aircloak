@@ -182,9 +182,18 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def cast_sql(value, number, :text) when number in [:integer, :real], do: ["TO_CHAR(", value, ")"]
 
   def cast_sql(value, :date, :text), do: ["TO_CHAR(", value, ", 'YYYY-MM-DD')"]
-  def cast_sql(value, :datetime, :text), do: ["TO_CHAR(", value, ", 'YYYY-MM-DD HH:MI:SS AM')"]
-  def cast_sql(value, :text, :date), do: ["TO_DATE(", value, ", 'YYYY-MM-DD')"]
-  def cast_sql(value, :text, :datetime), do: ["TO_TIMESTAMP(", value, ", 'YYYY-MM-DD HH:MI:SS AM')"]
+  def cast_sql(value, :datetime, :text), do: ["TO_CHAR(", value, ", 'YYYY-MM-DD HH24:MI:SS')"]
+  def cast_sql(value, :time, :text), do: ["TO_CHAR(", value, ", 'HH24:MI:SS')"]
+
+  def cast_sql(value, :text, :date), do: ["CAST(", value, " AS DATE DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD')"]
+
+  def cast_sql(value, :text, :datetime),
+    do: ["CAST(", value, " AS TIMESTAMP DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD HH24:MI:SS')"]
+
+  def cast_sql(value, :text, :time),
+    do: ["CAST(CAST(", value, " AS TIMESTAMP DEFAULT NULL ON CONVERSION ERROR, 'HH24:MI:SS') AS TIME)"]
+
+  def cast_sql(value, :text, type), do: ["CAST(", value, " AS ", sql_type(type), " DEFAULT NULL ON CONVERSION ERROR)"]
 
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
