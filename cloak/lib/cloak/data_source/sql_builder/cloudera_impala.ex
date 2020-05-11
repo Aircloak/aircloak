@@ -156,14 +156,9 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   def function_sql(name, args), do: super(name, args)
 
   @impl Dialect
-  def literal(%NaiveDateTime{} = value), do: ["CAST('", to_string(value), "' AS TIMESTAMP)"]
-  def literal(%Date{} = value), do: ["CAST('", to_string(value), "' AS TIMESTAMP)"]
-  def literal(%Time{} = value), do: ["CAST('", to_string(value), "' AS TIMESTAMP)"]
-
-  def literal(%Timex.Duration{} = value) do
-    ["INTERVAL ", Timex.Duration.to_seconds(value) |> to_string(), " SECONDS"]
-  end
-
+  def literal(%NaiveDateTime{} = value), do: [?', value |> NaiveDateTime.truncate(:millisecond) |> to_string(), ?']
+  def literal(%Date{} = value), do: [?', to_string(value), ?']
+  def literal(%Time{} = value), do: [?', to_string(value), ?']
   def literal(value), do: super(value)
 
   @impl Dialect
@@ -190,6 +185,16 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
     do: ["CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " THEN 'true' ELSE 'false' END"]
 
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
+
+  @impl Dialect
+  def time_arithmetic_expression(operator, [date, interval]) when operator in ~w(+ unsafe_add),
+    do: ["seconds_add(", date, ", ", interval, ")"]
+
+  def time_arithmetic_expression(operator, [date, interval]) when operator in ~w(- unsafe_sub),
+    do: ["seconds_sub(", date, ", ", interval, ")"]
+
+  @impl Dialect
+  def date_subtraction_expression(_type, [arg1, arg2]), do: ["UNIX_TIMESTAMP(", arg1, ") - UNIX_TIMESTAMP(", arg2, ")"]
 
   @impl Dialect
   def supports_overriding_pattern_escape?(), do: false

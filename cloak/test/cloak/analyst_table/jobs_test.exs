@@ -80,7 +80,7 @@ defmodule Cloak.AnalystTable.JobsTest do
   defp column() do
     fixed_map(%{
       name: non_empty_string(),
-      visible?: boolean(),
+      access: member_of(~w[visible, unselectable, hidden]a),
       type: member_of(~w[text, integer, real, boolean, datetime, time, date, interval, unknown]a)
     })
   end

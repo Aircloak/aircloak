@@ -22,11 +22,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the dialect-specific SQL for adding/subtracting to a date/time/datetime."
   @callback time_arithmetic_expression(String.t(), iodata) :: iodata
 
-  @doc "Returns the dialect-specific SQL for subtracting two date/time/datetimes."
-  @callback date_subtraction_expression(iodata) :: iodata
-
-  @doc "Returns the dialect-specific SQL for dividing an interval."
-  @callback interval_division(iodata) :: iodata
+  @doc "Returns the dialect-specific SQL for subtracting two dates/times/datetimes."
+  @callback date_subtraction_expression(atom, iodata) :: iodata
 
   @doc "Returns the dialect-specific ORDER BY clause SQL for the given column, order and nulls directive."
   @callback order_by(iodata, :asc | :desc, :nulls_first | :nulls_last | :nulls_natural) :: iodata
@@ -73,13 +70,10 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def alias_sql(object, alias), do: [object, " AS ", alias]
 
       @impl unquote(__MODULE__)
-      def time_arithmetic_expression(operator, [arg1, arg2]), do: ["(", arg1, " ", operator, " ", arg2, ")"]
+      def time_arithmetic_expression(operator, args), do: function_sql(operator, args)
 
       @impl unquote(__MODULE__)
-      def date_subtraction_expression([arg1, arg2]), do: ["(", arg1, " - ", arg2, ")"]
-
-      @impl unquote(__MODULE__)
-      def interval_division(args), do: function_sql("/", args)
+      def date_subtraction_expression(_type, args), do: function_sql("unsafe_sub", args)
 
       @impl unquote(__MODULE__)
       def literal(value), do: unquote(__MODULE__).literal_default(value)
@@ -123,7 +117,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   def literal_default(%Date{} = value), do: ["date '", to_string(value), ?']
 
   def literal_default(%Timex.Duration{} = duration),
-    do: duration |> Timex.Duration.to_seconds() |> to_string()
+    do: duration |> Timex.Duration.to_seconds() |> round() |> to_string()
 
   def literal_default(value) when is_number(value), do: to_string(value)
 
