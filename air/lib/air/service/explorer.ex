@@ -2,7 +2,7 @@ defmodule Air.Service.Explorer do
   @moduledoc """
   Implements a service for interacting with a Diffix Explorer serice.
   """
-  # use GenServer
+  use GenServer
   alias Air.Repo
   alias Air.Schemas.{DataSource, ExplorerAnalysis}
   require Aircloak.DeployConfig
@@ -10,6 +10,12 @@ defmodule Air.Service.Explorer do
   import Aircloak, only: [in_env: 1]
 
   @poll_interval in_env(test: 0, else: :timer.seconds(5))
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+  @spec start_link(any) :: :ignore | {:error, any} | {:ok, pid}
+  def start_link(_), do: GenServer.start_link(__MODULE__, enabled?(), name: __MODULE__)
 
   @doc "Is the Diffix Explorer integration enabled? Other methods should only be called if this returns `true`."
   @spec enabled? :: boolean
@@ -35,6 +41,8 @@ defmodule Air.Service.Explorer do
         )
       )
 
+  @doc "Deletes all analysis results for the datasource and requests new analyses."
+  @spec reanalyze_datasource(Air.Schemas.DataSource.t()) :: :ok
   def reanalyze_datasource(ds) do
     Repo.delete_all(
       from(ea in ExplorerAnalysis,
@@ -43,30 +51,31 @@ defmodule Air.Service.Explorer do
     )
 
     request_analysis_for_data_source(ds)
+    GenServer.cast(__MODULE__, :begin_polling)
   end
 
-  @doc "Returns all analysis results."
-  @spec all :: [ExplorerAnalysis.t()]
-  def all(), do: Repo.all(from(ExplorerAnalysis, preload: [:data_source]))
+  # -------------------------------------------------------------------
+  # GenServer callbacks
+  # -------------------------------------------------------------------
 
-  @doc "Kicks the system off. Will issue a number of requests to the Diffix Explorer system."
-  @spec begin_analyses :: :ok
-  def begin_analyses() do
-    from(ds in DataSource, where: ds.name in ^data_source_names())
-    |> Repo.all()
-    |> Enum.each(&request_analysis_for_data_source/1)
+  @impl GenServer
+  def init(true) do
+    Process.send_after(self(), :poll, @poll_interval)
+    {:ok, true}
   end
 
-  def reanalyze() do
-    Repo.delete_all(from(ExplorerAnalysis))
-    begin_analyses()
-    poll_for_updates()
-    all()
+  def init(false), do: {:ok, false}
+
+  @impl GenServer
+  def handle_cast(:begin_polling, false) do
+    Process.send_after(self(), :poll, @poll_interval)
+    {:noreply, true}
   end
 
-  @doc "Will poll all pending jobs to obtain results."
-  @spec poll_for_updates :: :ok
-  def poll_for_updates() do
+  def handle_cast(:begin_polling, true), do: {:noreply, true}
+
+  @impl GenServer
+  def handle_info(:poll, _state) do
     older_than_limit = NaiveDateTime.utc_now() |> NaiveDateTime.add(-@poll_interval, :millisecond)
 
     pending_analyses =
@@ -78,12 +87,16 @@ defmodule Air.Service.Explorer do
     Enum.each(pending_analyses, &poll_for_update/1)
 
     if Repo.exists?(from(ea in ExplorerAnalysis, where: ea.status in ["new", "processing"])) do
-      Process.sleep(@poll_interval)
-      poll_for_updates()
+      Process.send_after(self(), :poll, @poll_interval)
+      {:noreply, true}
+    else
+      {:noreply, false}
     end
-
-    :ok
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp request_analysis_for_data_source(data_source) do
     DataSource.tables(data_source)
@@ -116,15 +129,21 @@ defmodule Air.Service.Explorer do
            |> Air.Repo.insert() do
       {:ok, analysis}
     else
-      {:error, err} ->
-        IO.inspect(err, label: "Error")
+      {:error, _err} ->
+        %ExplorerAnalysis{
+          data_source: data_source,
+          table_name: table_name,
+          column: column_name,
+          status: :error,
+          last_request: NaiveDateTime.utc_now()
+        }
+        |> Air.Repo.insert()
+
         :error
     end
   end
 
   defp poll_for_update(explorer_analysis) do
-    IO.inspect(explorer_analysis, label: "polling")
-
     with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
            HTTPoison.get("#{base_url()}/result/#{explorer_analysis.job_id}"),
          {:ok, decoded} <- Jason.decode(response),
@@ -132,7 +151,6 @@ defmodule Air.Service.Explorer do
            explorer_analysis
            |> ExplorerAnalysis.from_result_json(decoded)
            |> Air.Repo.update() do
-      IO.puts("#{explorer_analysis.column}: #{decoded["status"]}")
       {:ok, analysis}
     else
       {:ok, %HTTPoison.Response{status_code: 404}} ->
@@ -147,12 +165,9 @@ defmodule Air.Service.Explorer do
           explorer_analysis.column
         )
 
-        IO.puts("Error, got 404")
         {:error, explorer_analysis}
 
       {:ok, %HTTPoison.Response{status_code: 500}} ->
-        IO.puts("Error: got 500")
-
         explorer_analysis
         |> ExplorerAnalysis.changeset(%{status: :error})
         |> Air.Repo.update()
@@ -160,14 +175,17 @@ defmodule Air.Service.Explorer do
         {:error, "Something went wrong in Diffix Explorer", explorer_analysis}
 
       {:error, err} ->
-        IO.inspect(err, label: "Error")
-        :error
+        explorer_analysis
+        |> ExplorerAnalysis.changeset(%{status: :error})
+        |> Air.Repo.update()
+
+        {:error, err}
     end
   end
 
   defp data_source_names(), do: config!("data_sources")
 
-  defp base_url(), do: IO.inspect(config!("url"), label: "Base")
+  defp base_url(), do: config!("url")
   defp api_key(), do: config!("api_key")
 
   defp config!(key), do: Map.fetch!(Aircloak.DeployConfig.fetch!("explorer"), key)

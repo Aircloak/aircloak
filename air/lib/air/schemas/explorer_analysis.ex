@@ -1,4 +1,5 @@
 defmodule Air.Schemas.ExplorerAnalysis do
+  @moduledoc "Represents Diffix Explorer analysis results for each column"
   use Ecto.Schema
   import Ecto.Changeset
   alias Air.Schemas.DataSource

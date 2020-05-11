@@ -74,7 +74,7 @@ defmodule Air.Service.DataSourceTest do
   end
 
   setup do
-    endpoint = MockServer.Endpoint.start_link([])
+    endpoint = MockServer.Endpoint.start_link(false)
 
     tables = [
       %{
@@ -94,35 +94,67 @@ defmodule Air.Service.DataSourceTest do
 
     ds1 = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
 
+    ds_not_included = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
+
     Aircloak.DeployConfig.update("explorer", fn _ ->
       %{"url" => MockServer.Endpoint.url() <> "/explorer", "api_key" => "foobar", "data_sources" => [ds1.name]}
     end)
 
-    %{endpoint: endpoint, ds1: ds1}
+    %{endpoint: endpoint, ds1: ds1, ds_not_included: ds_not_included}
   end
 
-  test ".begin_analyses" do
-    assert :ok == Explorer.begin_analyses()
-
-    assert [
-             %ExplorerAnalysis{table_name: "foos", column: "user_id", status: :new},
-             %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new}
-           ] = Explorer.all()
+  describe ".enabled?" do
+    test "returns true when config exists" do
+      # No idea how to test false, since the config appears pretty static...
+      assert Explorer.enabled?()
+    end
   end
 
-  test ".poll_for_updates" do
-    Explorer.begin_analyses()
-    Process.sleep(10)
-    assert :ok == Explorer.poll_for_updates()
+  describe ".data_source_supported?" do
+    test "returns true if source included in config", context do
+      assert Explorer.data_source_supported?(context.ds1)
+    end
 
-    assert [
-             %ExplorerAnalysis{table_name: "foos", column: "user_id", status: :error, metrics: "[]"},
-             %ExplorerAnalysis{
-               table_name: "foos",
-               column: "foo",
-               status: :complete,
-               metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
-             }
-           ] = Explorer.all()
+    test "returns false if source not included in config", context do
+      assert not Explorer.data_source_supported?(context.ds_not_included)
+    end
+  end
+
+  describe ".reanalyze_datasource" do
+    test "creates analysis records", context do
+      assert :ok == Explorer.reanalyze_datasource(context.ds1)
+
+      assert [
+               %ExplorerAnalysis{table_name: "foos", column: "user_id", status: :new},
+               %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new}
+             ] = Explorer.results_for_datasource(context.ds1)
+
+      # This prevents errors from terminating DB connexion
+      Process.sleep(100)
+    end
+
+    test "begins polling for results", context do
+      Explorer.reanalyze_datasource(context.ds1)
+      Process.sleep(100)
+
+      assert [
+               %ExplorerAnalysis{table_name: "foos", column: "user_id", status: :error, metrics: "[]"},
+               %ExplorerAnalysis{
+                 table_name: "foos",
+                 column: "foo",
+                 status: :complete,
+                 metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
+               }
+             ] = Explorer.results_for_datasource(context.ds1)
+    end
+
+    test "removes old records", context do
+      Explorer.reanalyze_datasource(context.ds1)
+      Process.sleep(100)
+      results = Explorer.results_for_datasource(context.ds1)
+      refute results == Explorer.reanalyze_datasource(context.ds1)
+      # This prevents errors from terminating DB connexion
+      Process.sleep(100)
+    end
   end
 end
