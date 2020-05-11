@@ -11,14 +11,6 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Initializes the internal manager queue."
-  @spec init_queue() :: :ok
-  def init_queue() do
-    # We're using queue to limit maximum amount of simultaneous manager database operations.
-    :jobs.add_queue(__MODULE__, max_time: :timer.minutes(10), regulators: [counter: [limit: 10]])
-    :ok
-  end
-
   @doc "Returns the pid of the server related to the given data source, or `nil` if such server doesn't exist."
   @spec whereis(User.t(), String.t()) :: pid | nil
   def whereis(user, data_source_name), do: GenServer.whereis(name(user, data_source_name))
@@ -30,7 +22,7 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   @doc "Drops the given shadow database."
   @spec drop_database(User.t(), String.t()) :: :ok
   def drop_database(user, data_source_name) do
-    exec_queued(fn ->
+    run_queued("drop_database (#{data_source_name}/#{user.id})", fn ->
       Connection.execute!(
         Air.PsqlServer.ShadowDb.connection_params().name,
         fn conn ->
@@ -87,14 +79,23 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
 
   @impl GenServer
   def handle_cast(:ensure_exists, state) do
-    exec_queued(fn -> ensure_db!(state.user, state.data_source_name) end)
+    run_queued("ensure_db (#{state.data_source_name}/#{state.user.id})", fn ->
+      ensure_db!(state.user, state.data_source_name)
+    end)
+
     {:noreply, state}
   end
 
   @impl GenServer
   def handle_cast(:update_definition, state) do
     tables = data_source_tables(state.user, state.data_source_name)
-    if state.tables != tables, do: exec_queued(fn -> update_shadow_db(state, tables) end)
+
+    if state.tables != tables do
+      run_queued("update_shadow_db (#{state.data_source_name}/#{state.user.id})", fn ->
+        update_shadow_db(state, tables)
+      end)
+    end
+
     {:noreply, %{state | tables: tables}}
   end
 
@@ -105,14 +106,21 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp exec_queued(fun) do
-    {:ok, ref} = :jobs.ask(__MODULE__)
+  @lock_concurrency 10
+  @slow_update_duration 500
 
-    try do
-      fun.()
-    after
-      :jobs.done(ref)
-    end
+  defp run_queued(name, fun) do
+    :global.trans(
+      {{:shadow_db_update, :rand.uniform(@lock_concurrency)}, self()},
+      fn ->
+        {time, _} = :timer.tc(fun)
+        ms = time / 1000
+
+        if ms > @slow_update_duration do
+          Logger.warn("Shadow database operation #{name} took #{ms}ms")
+        end
+      end
+    )
   end
 
   defp name(user, data_source_name), do: Air.PsqlServer.ShadowDb.registered_name(user, data_source_name, __MODULE__)
@@ -175,10 +183,16 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   defp normalize_column(%{"name" => name, "type" => type}), do: %{name: name, type: type}
 
   defp update_shadow_db(state, tables) do
-    Logger.info("data source definition changed for #{state.data_source_name}, updating shadow database")
+    Logger.debug(fn ->
+      "Data source definition changed for #{state.data_source_name}/#{state.user.id}, updating shadow database"
+    end)
+
     ensure_db!(state.user, state.data_source_name)
     update_tables_definition(state, tables)
-    Logger.info("shadow database for #{state.data_source_name} updated")
+
+    Logger.debug(fn ->
+      "Shadow database for #{state.data_source_name}/#{state.user.id}, updated"
+    end)
   end
 
   defp ensure_db!(user, data_source_name) do
