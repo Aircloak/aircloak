@@ -1,4 +1,4 @@
-defmodule Air.Service.DataSourceTest do
+defmodule Air.Service.ExplorerTest do
   # because of shared mode
   use Air.SchemaCase, async: false
   alias Air.Service.Explorer
