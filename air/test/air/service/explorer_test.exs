@@ -5,6 +5,61 @@ defmodule Air.Service.ExplorerTest do
   alias Air.Schemas.ExplorerAnalysis
   require Aircloak.DeployConfig
 
+  describe ".enabled?" do
+    test "returns true when config exists" do
+      # No idea how to test false, since the config appears pretty static...
+      assert Explorer.enabled?()
+    end
+  end
+
+  describe ".data_source_supported?" do
+    test "returns true if source included in config", context do
+      assert Explorer.data_source_supported?(context.ds1)
+    end
+
+    test "returns false if source not included in config", context do
+      assert not Explorer.data_source_supported?(context.ds_not_included)
+    end
+  end
+
+  describe ".reanalyze_datasource" do
+    test "creates analysis records", context do
+      assert :ok == Explorer.reanalyze_datasource(context.ds1)
+
+      assert [
+               %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new},
+               %ExplorerAnalysis{table_name: "foos", column: "user_id", status: :new}
+             ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
+
+      # This prevents errors from terminating DB connexion
+      Process.sleep(100)
+    end
+
+    test "begins polling for results", context do
+      Explorer.reanalyze_datasource(context.ds1)
+      Process.sleep(100)
+
+      assert [
+               %ExplorerAnalysis{
+                 table_name: "foos",
+                 column: "foo",
+                 status: :complete,
+                 metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
+               },
+               %ExplorerAnalysis{table_name: "foos", column: "user_id", status: :error, metrics: "[]"}
+             ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
+    end
+
+    test "removes old records", context do
+      Explorer.reanalyze_datasource(context.ds1)
+      Process.sleep(100)
+      results = Explorer.results_for_datasource(context.ds1)
+      refute results == Explorer.reanalyze_datasource(context.ds1)
+      # This prevents errors from terminating DB connexion
+      Process.sleep(100)
+    end
+  end
+
   defmodule MockServer do
     defmodule Controller do
       use Phoenix.Controller, namespace: AirWeb
@@ -101,60 +156,5 @@ defmodule Air.Service.ExplorerTest do
     end)
 
     %{endpoint: endpoint, ds1: ds1, ds_not_included: ds_not_included}
-  end
-
-  describe ".enabled?" do
-    test "returns true when config exists" do
-      # No idea how to test false, since the config appears pretty static...
-      assert Explorer.enabled?()
-    end
-  end
-
-  describe ".data_source_supported?" do
-    test "returns true if source included in config", context do
-      assert Explorer.data_source_supported?(context.ds1)
-    end
-
-    test "returns false if source not included in config", context do
-      assert not Explorer.data_source_supported?(context.ds_not_included)
-    end
-  end
-
-  describe ".reanalyze_datasource" do
-    test "creates analysis records", context do
-      assert :ok == Explorer.reanalyze_datasource(context.ds1)
-
-      assert [
-               %ExplorerAnalysis{table_name: "foos", column: "user_id", status: :new},
-               %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new}
-             ] = Explorer.results_for_datasource(context.ds1)
-
-      # This prevents errors from terminating DB connexion
-      Process.sleep(100)
-    end
-
-    test "begins polling for results", context do
-      Explorer.reanalyze_datasource(context.ds1)
-      Process.sleep(100)
-
-      assert [
-               %ExplorerAnalysis{table_name: "foos", column: "user_id", status: :error, metrics: "[]"},
-               %ExplorerAnalysis{
-                 table_name: "foos",
-                 column: "foo",
-                 status: :complete,
-                 metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
-               }
-             ] = Explorer.results_for_datasource(context.ds1)
-    end
-
-    test "removes old records", context do
-      Explorer.reanalyze_datasource(context.ds1)
-      Process.sleep(100)
-      results = Explorer.results_for_datasource(context.ds1)
-      refute results == Explorer.reanalyze_datasource(context.ds1)
-      # This prevents errors from terminating DB connexion
-      Process.sleep(100)
-    end
   end
 end
