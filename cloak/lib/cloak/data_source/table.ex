@@ -31,6 +31,7 @@ defmodule Cloak.DataSource.Table do
           :type => type,
           optional(:exclude_columns) => [String.t()],
           optional(:unselectable_columns) => [String.t()],
+          optional(:warnings) => [String.t()],
           optional(any) => any
         }
 
@@ -90,6 +91,7 @@ defmodule Cloak.DataSource.Table do
       |> scan_virtual_tables(connection)
       |> resolve_tables_keys()
       |> resolve_user_id_join_chains()
+      |> collect_table_warnings()
 
   @doc "Maps configured tables into the proper table structure."
   @spec map_tables(Map.t()) :: Map.t()
@@ -264,22 +266,33 @@ defmodule Cloak.DataSource.Table do
     table = new(table_id, Map.get(table, :user_id), [type: :regular, db_name: table_id] ++ Map.to_list(table))
 
     data_source.driver.load_tables(connection, table)
-    |> Enum.map(&map_column_access/1)
+    |> Enum.map(&map_column_access(&1, data_source))
     |> Enum.map(&parse_columns(data_source, &1))
     |> Enum.map(&{String.to_atom(&1.name), &1})
     |> Enum.map(&resolve_table_keys/1)
   end
 
-  defp map_column_access(table) do
+  defp map_column_access(table, data_source) do
+    exclude_columns = Map.get(table, :exclude_columns, [])
+    unselectable_columns = Map.get(table, :unselectable_columns, [])
+
+    warnings =
+      Enum.concat([
+        validate_marked_columns(table, data_source, exclude_columns, "excluded"),
+        validate_marked_columns(table, data_source, unselectable_columns, "unselectable")
+      ])
+
     columns =
       table.columns
-      |> Enum.reject(&exclude_column?(table, &1))
+      |> Enum.reject(&(&1.name in exclude_columns))
       |> Enum.map(fn column ->
-        access = if(unselectable_column?(table, column), do: :unselectable, else: :visible)
+        access = if(column.name in unselectable_columns, do: :unselectable, else: :visible)
         %{column | access: access}
       end)
 
-    Map.drop(%{table | columns: columns}, [:unselectable_columns, :exclude_columns])
+    %{table | columns: columns}
+    |> add_warnings(warnings)
+    |> Map.drop([:unselectable_columns, :exclude_columns])
   end
 
   defp parse_columns(data_source, table) do
@@ -323,10 +336,6 @@ defmodule Cloak.DataSource.Table do
   defp supported?(%{type: {:unsupported, _db_type}}), do: false
   defp supported?(_column), do: true
 
-  defp exclude_column?(table, column), do: column.name in Map.get(table, :exclude_columns, [])
-
-  defp unselectable_column?(table, column), do: column.name in Map.get(table, :unselectable_columns, [])
-
   defp validate_unsupported_columns([], _data_source, _table), do: :ok
 
   defp validate_unsupported_columns(unsupported, data_source, table) do
@@ -341,6 +350,32 @@ defmodule Cloak.DataSource.Table do
     )
 
     :ok
+  end
+
+  defp validate_marked_columns(table, data_source, marked_columns, marked_type) do
+    column_names = Enum.map(table.columns, & &1.name)
+    missing_columns = marked_columns -- column_names
+
+    if missing_columns != [] do
+      columns_string =
+        missing_columns
+        |> Enum.map(&"`#{&1}`")
+        |> Enum.join(", ")
+
+      warning =
+        case missing_columns do
+          [_] ->
+            "Column #{columns_string} has been marked as #{marked_type}, but is missing from table `#{table.name}`"
+
+          _ ->
+            "Columns #{columns_string} have been marked as #{marked_type}, but are missing from table `#{table.name}`"
+        end
+
+      Logger.warn(warning <> " in data source `#{data_source.name}`.")
+      [warning <> "."]
+    else
+      []
+    end
   end
 
   defp resolve_tables_keys(data_source) do
@@ -515,5 +550,18 @@ defmodule Cloak.DataSource.Table do
           end
         end)
     end
+  end
+
+  defp add_warnings(table, warnings) do
+    Map.update(table, :warnings, warnings, &(&1 ++ warnings))
+  end
+
+  defp collect_table_warnings(data_source) do
+    {tables, warnings} =
+      Enum.map_reduce(data_source.tables, [], fn {name, table}, warnings ->
+        {{name, Map.drop(table, [:warnings])}, warnings ++ Map.get(table, :warnings, [])}
+      end)
+
+    %{data_source | tables: Enum.into(tables, %{}), errors: data_source.errors ++ warnings}
   end
 end
