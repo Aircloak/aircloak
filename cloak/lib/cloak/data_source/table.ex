@@ -144,8 +144,8 @@ defmodule Cloak.DataSource.Table do
               {Map.put(tables, id, Map.put(loaded_table, :query, nil)), warnings}
 
             _ ->
-              {loaded_tables, loaded_warnings} = load_tables(data_source, connection, {id, table})
-              {Enum.into(loaded_tables, tables), warnings ++ loaded_warnings}
+              {loaded_tables, load_warnings} = load_tables(data_source, connection, {id, table})
+              {Enum.into(loaded_tables, tables), warnings ++ load_warnings}
           end
         end
       end)
@@ -268,22 +268,17 @@ defmodule Cloak.DataSource.Table do
     table_id = to_string(table_id)
     table = new(table_id, Map.get(table, :user_id), [type: :regular, db_name: table_id] ++ Map.to_list(table))
 
-    {data_source.driver.load_tables(connection, table), []}
-    |> tuple_map_both(&map_column_access(&1, data_source))
-    |> tuple_map_first(&parse_columns(data_source, &1))
-    |> tuple_map_first(&{String.to_atom(&1.name), &1})
-    |> tuple_map_first(&resolve_table_keys/1)
-  end
+    {tables, warnings} =
+      data_source.driver.load_tables(connection, table)
+      |> Enum.map_reduce([], fn table, warnings ->
+        {mapped_table, table_warnings} = map_column_access(table, data_source)
+        {mapped_table, warnings ++ table_warnings}
+      end)
 
-  defp tuple_map_both({tables, warnings}, fun) do
-    Enum.map_reduce(tables, warnings, fn table, warnings ->
-      {mapped_table, table_warnings} = fun.(table)
-      {mapped_table, warnings ++ table_warnings}
-    end)
-  end
-
-  defp tuple_map_first({tables, warnings}, fun) do
-    {Enum.map(tables, fun), warnings}
+    {tables
+     |> Enum.map(&parse_columns(data_source, &1))
+     |> Enum.map(&{String.to_atom(&1.name), &1})
+     |> Enum.map(&resolve_table_keys/1), warnings}
   end
 
   defp map_column_access(table, data_source) do
