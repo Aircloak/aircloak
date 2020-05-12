@@ -129,7 +129,7 @@ defmodule Air.Service.ExplorerTest do
   end
 
   setup do
-    endpoint = MockServer.Endpoint.start_link(false)
+    start_supervised!(MockServer.Endpoint)
 
     tables = [
       %{
@@ -155,6 +155,6 @@ defmodule Air.Service.ExplorerTest do
       %{"url" => MockServer.Endpoint.url() <> "/explorer", "api_key" => "foobar", "data_sources" => [ds1.name]}
     end)
 
-    %{endpoint: endpoint, ds1: ds1, ds_not_included: ds_not_included}
+    %{ds1: ds1, ds_not_included: ds_not_included}
   end
 end
