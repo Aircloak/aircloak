@@ -131,24 +131,28 @@ defmodule Cloak.DataSource.Table do
     tables = Enum.map(data_source.tables, &parse_virtual_table/1)
     # in order to compile the raw SQL queries that generate virtual tables,
     # we need to create a virtual data source containing the real database tables referenced by those queries
-    virtual_tables =
+    {virtual_tables, warnings} =
       tables
       |> Enum.flat_map(&get_db_tables_for_virtual_query/1)
       |> Enum.uniq_by(fn {id, _} -> id end)
-      |> Enum.reduce(%{}, fn {id, table}, acc ->
-        if id in Map.keys(acc) do
-          acc
+      |> Enum.reduce({%{}, []}, fn {id, table}, {tables, warnings} ->
+        if id in Map.keys(tables) do
+          {tables, warnings}
         else
           case data_source.tables[id] do
-            %{columns: [_ | _]} = loaded_table -> Map.put(acc, id, Map.put(loaded_table, :query, nil))
-            _ -> data_source |> load_tables(connection, {id, table}) |> Enum.into(acc)
+            %{columns: [_ | _]} = loaded_table ->
+              {Map.put(tables, id, Map.put(loaded_table, :query, nil)), warnings}
+
+            _ ->
+              {loaded_tables, loaded_warnings} = load_tables(data_source, connection, {id, table})
+              {Enum.into(loaded_tables, tables), warnings ++ loaded_warnings}
           end
         end
       end)
 
     virtual_data_source = %{data_source | tables: virtual_tables}
     tables = Enum.map(tables, &compile_virtual_table(&1, virtual_data_source))
-    %{data_source | tables: Enum.into(tables, %{})}
+    %{data_source | tables: Enum.into(tables, %{}), errors: data_source.errors ++ warnings}
   end
 
   defp parse_virtual_table({name, %{query: statement} = table}) when statement != nil do
@@ -240,7 +244,8 @@ defmodule Cloak.DataSource.Table do
           if to_string(table_id) =~ ~r/^public\./,
             do: raise(ExecutionError, message: "table name can't start with `public.`")
 
-          {tables ++ load_tables(data_source, connection, table), errors}
+          {lodaded_tables, warnings} = load_tables(data_source, connection, table)
+          {tables ++ lodaded_tables, errors ++ warnings}
         rescue
           error in ExecutionError ->
             message =
@@ -257,25 +262,39 @@ defmodule Cloak.DataSource.Table do
   end
 
   defp load_tables(_data_source, _connection, {table_id, %{query: query} = table}) when query != nil,
-    do: [{table_id, Map.put(table, :type, :virtual)}]
+    do: {[{table_id, Map.put(table, :type, :virtual)}], []}
 
   defp load_tables(data_source, connection, {table_id, table}) do
     table_id = to_string(table_id)
     table = new(table_id, Map.get(table, :user_id), [type: :regular, db_name: table_id] ++ Map.to_list(table))
 
-    data_source.driver.load_tables(connection, table)
-    |> Enum.map(&map_column_access(&1, data_source))
-    |> Enum.map(&parse_columns(data_source, &1))
-    |> Enum.map(&{String.to_atom(&1.name), &1})
-    |> Enum.map(&resolve_table_keys/1)
+    {data_source.driver.load_tables(connection, table), []}
+    |> tuple_map_both(&map_column_access(&1, data_source))
+    |> tuple_map_first(&parse_columns(data_source, &1))
+    |> tuple_map_first(&{String.to_atom(&1.name), &1})
+    |> tuple_map_first(&resolve_table_keys/1)
+  end
+
+  defp tuple_map_both({tables, warnings}, fun) do
+    Enum.map_reduce(tables, warnings, fn table, warnings ->
+      {mapped_table, table_warnings} = fun.(table)
+      {mapped_table, warnings ++ table_warnings}
+    end)
+  end
+
+  defp tuple_map_first({tables, warnings}, fun) do
+    {Enum.map(tables, fun), warnings}
   end
 
   defp map_column_access(table, data_source) do
     exclude_columns = Map.get(table, :exclude_columns, [])
     unselectable_columns = Map.get(table, :unselectable_columns, [])
 
-    validate_marked_columns(table, data_source, exclude_columns, "excluded")
-    validate_marked_columns(table, data_source, unselectable_columns, "unselectable")
+    warnings =
+      Enum.concat([
+        validate_marked_columns(table, data_source, exclude_columns, "excluded"),
+        validate_marked_columns(table, data_source, unselectable_columns, "unselectable")
+      ])
 
     columns =
       table.columns
@@ -285,7 +304,7 @@ defmodule Cloak.DataSource.Table do
         %{column | access: access}
       end)
 
-    Map.drop(%{table | columns: columns}, [:unselectable_columns, :exclude_columns])
+    {Map.drop(%{table | columns: columns}, [:unselectable_columns, :exclude_columns]), warnings}
   end
 
   defp parse_columns(data_source, table) do
@@ -355,13 +374,20 @@ defmodule Cloak.DataSource.Table do
         |> Enum.map(&"`#{&1}`")
         |> Enum.join(", ")
 
-      Logger.warn(
-        "Columns #{columns_string} have been marked as #{marked_type}, but are missing " <>
-          "from table `#{table.name}` in data source `#{data_source.name}`."
-      )
-    end
+      warning =
+        case missing_columns do
+          [_] ->
+            "Column #{columns_string} has been marked as #{marked_type}, but is missing from table `#{table.name}`"
 
-    :ok
+          _ ->
+            "Columns #{columns_string} have been marked as #{marked_type}, but are missing from table `#{table.name}`"
+        end
+
+      Logger.warn(warning <> " in data source `#{data_source.name}`.")
+      [warning <> "."]
+    else
+      []
+    end
   end
 
   defp resolve_tables_keys(data_source) do
