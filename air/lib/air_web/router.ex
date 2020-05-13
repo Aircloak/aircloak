@@ -90,8 +90,7 @@ defmodule AirWeb.Router do
     resources "/data_sources", DataSourceController do
       get("/selectables/edit", SelectableController, :edit)
       resources("/selectables/:kind", SelectableController)
-      get("/diffix-explorer", ExplorerAnalysisController, :index)
-      post("/diffix-explorer", ExplorerAnalysisController, :create)
+      resources("/diffix-explorer", ExplorerAnalysisController, only: [:index, :create])
     end
 
     get("/licenses", LicenseController, :index)
