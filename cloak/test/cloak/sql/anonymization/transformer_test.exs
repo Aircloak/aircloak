@@ -77,7 +77,7 @@ defmodule Cloak.Sql.TransformerTest do
     test "select count(*)" do
       assert transform("select count(*) from table", &Transformer.group_by_uid/1) ==
                flatten("""
-               SELECT 
+               SELECT
                 SUM(uid_grouping.agg_0) AS count
                FROM (
                 SELECT
@@ -329,7 +329,7 @@ defmodule Cloak.Sql.TransformerTest do
                   SELECT
                     0 AS grouping_id,
                     table.col1 AS target,
-                    CASE WHEN (COUNT(DISTINCT table.uid) < 3) THEN MIN(table.uid) ELSE NULL END AS user_id
+                    CASE WHEN (MIN(table.uid) = MAX(table.uid)) THEN MIN(table.uid) ELSE NULL END AS user_id
                   FROM table
                   WHERE table.uid IS NOT NULL
                   GROUP BY table.col1
@@ -363,7 +363,7 @@ defmodule Cloak.Sql.TransformerTest do
                     0 AS grouping_id,
                     table.col2 AS group_0,
                     table.col1 AS target,
-                    CASE WHEN (COUNT(DISTINCT table.uid) < 3) THEN MIN(table.uid) ELSE NULL END AS user_id
+                    CASE WHEN (MIN(table.uid) = MAX(table.uid)) THEN MIN(table.uid) ELSE NULL END AS user_id
                   FROM table
                   WHERE table.uid IS NOT NULL
                   GROUP BY table.col2, table.col1
