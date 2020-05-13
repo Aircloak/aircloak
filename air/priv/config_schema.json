@@ -93,7 +93,6 @@
       "required": ["host", "user_base", "group_base"]
     },
 
-
     "explorer": {
       "type": "object",
       "properties": {

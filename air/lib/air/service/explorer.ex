@@ -1,6 +1,6 @@
 defmodule Air.Service.Explorer do
   @moduledoc """
-  Implements a service for interacting with a Diffix Explorer serice.
+  Implements a service for interacting with a Diffix Explorer service.
   """
   use GenServer
   alias Air.Repo
@@ -8,14 +8,16 @@ defmodule Air.Service.Explorer do
   require Aircloak.DeployConfig
   import Ecto.Query
   import Aircloak, only: [in_env: 1]
+  require Logger
 
   @poll_interval in_env(test: 0, else: :timer.seconds(5))
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
   @spec start_link(any) :: :ignore | {:error, any} | {:ok, pid}
-  def start_link(_), do: GenServer.start_link(__MODULE__, enabled?(), name: __MODULE__)
+  def start_link(_), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
   @doc "Is the Diffix Explorer integration enabled? Other methods should only be called if this returns `true`."
   @spec enabled? :: boolean
@@ -27,8 +29,8 @@ defmodule Air.Service.Explorer do
   end
 
   @doc "Is diffix explorer integration enabled for this datasource?"
-  @spec data_source_supported?(DataSource.t()) :: boolean
-  def data_source_supported?(ds), do: ds.name in data_source_names()
+  @spec data_source_enabled?(DataSource.t()) :: boolean
+  def data_source_enabled?(ds), do: ds.name in data_source_names()
 
   @doc "Returns analysis results for a particular data source"
   @spec results_for_datasource(DataSource.t()) :: [ExplorerAnalysis.t()]
@@ -59,28 +61,24 @@ defmodule Air.Service.Explorer do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(true) do
-    Process.send_after(self(), :poll, @poll_interval)
+  def init(_) do
+    if enabled?(), do: Process.send_after(self(), :poll, @poll_interval)
     {:ok, true}
   end
 
-  def init(false), do: {:ok, false}
-
   @impl GenServer
-  def handle_cast(:begin_polling, false) do
-    Process.send_after(self(), :poll, @poll_interval)
+  def handle_cast(:begin_polling, poll_already_in_progress?) do
+    if poll_already_in_progress?, do: Process.send_after(self(), :poll, @poll_interval)
     {:noreply, true}
   end
 
-  def handle_cast(:begin_polling, true), do: {:noreply, true}
-
   @impl GenServer
-  def handle_info(:poll, _state) do
+  def handle_info(:poll, _poll_in_progress) do
     older_than_limit = NaiveDateTime.utc_now() |> NaiveDateTime.add(-@poll_interval, :millisecond)
 
     pending_analyses =
       from(ea in ExplorerAnalysis,
-        where: ea.status in ["new", "processing"] and ea.last_request <= ^older_than_limit
+        where: ea.status in ["new", "processing"] and ea.updated_at <= ^older_than_limit
       )
       |> Repo.all()
 
@@ -105,7 +103,9 @@ defmodule Air.Service.Explorer do
   end
 
   defp request_analysis_for_table(data_source, %{"id" => table_name, "columns" => columns}) do
-    Enum.each(columns, fn %{"name" => column_name} ->
+    columns
+    |> Enum.reject(fn %{"isolated" => isolating?, "user_id" => uid?} -> isolating? || uid? end)
+    |> Enum.each(fn %{"name" => column_name} ->
       request_analysis_for_column(data_source, table_name, column_name)
     end)
   end
@@ -134,8 +134,7 @@ defmodule Air.Service.Explorer do
           data_source: data_source,
           table_name: table_name,
           column: column_name,
-          status: :error,
-          last_request: NaiveDateTime.utc_now()
+          status: :error
         }
         |> Air.Repo.insert()
 
@@ -154,33 +153,42 @@ defmodule Air.Service.Explorer do
       {:ok, analysis}
     else
       {:ok, %HTTPoison.Response{status_code: 404}} ->
-        # Diffix Explorer doesn't know about this job. In that case, we delete it from the DB
-        # and try again.
-        explorer_analysis = Repo.preload(explorer_analysis, :data_source)
-        Repo.delete!(explorer_analysis)
-
-        request_analysis_for_column(
-          explorer_analysis.data_source,
-          explorer_analysis.table_name,
-          explorer_analysis.column
-        )
-
-        {:error, explorer_analysis}
+        handle_retry(explorer_analysis)
 
       {:ok, %HTTPoison.Response{status_code: 500}} ->
-        explorer_analysis
-        |> ExplorerAnalysis.changeset(%{status: :error})
-        |> Air.Repo.update()
-
-        {:error, "Something went wrong in Diffix Explorer", explorer_analysis}
+        handle_poll_error(explorer_analysis, "Something went wrong in Diffix Explorer")
 
       {:error, err} ->
-        explorer_analysis
-        |> ExplorerAnalysis.changeset(%{status: :error})
-        |> Air.Repo.update()
-
-        {:error, err}
+        handle_poll_error(explorer_analysis, err)
     end
+  end
+
+  defp handle_retry(explorer_analysis) do
+    explorer_analysis = Repo.preload(explorer_analysis, :data_source)
+
+    Logger.warn(
+      "Explorer returned 404 for previously created job (#{explorer_analysis.data_source.name}/#{
+        explorer_analysis.table_name
+      }/%{explorer_analysis.column}). Retrying."
+    )
+
+    Repo.delete!(explorer_analysis)
+
+    request_analysis_for_column(
+      explorer_analysis.data_source,
+      explorer_analysis.table_name,
+      explorer_analysis.column
+    )
+
+    {:error, "Job deleted in Explorer"}
+  end
+
+  defp handle_poll_error(explorer_analysis, error) do
+    explorer_analysis
+    |> ExplorerAnalysis.changeset(%{status: :error})
+    |> Air.Repo.update()
+
+    {:error, error}
   end
 
   defp data_source_names(), do: config!("data_sources")

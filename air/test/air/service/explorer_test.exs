@@ -4,6 +4,7 @@ defmodule Air.Service.ExplorerTest do
   alias Air.Service.Explorer
   alias Air.Schemas.ExplorerAnalysis
   require Aircloak.DeployConfig
+  import Aircloak.AssertionHelper
 
   describe ".enabled?" do
     test "returns true when config exists" do
@@ -12,13 +13,13 @@ defmodule Air.Service.ExplorerTest do
     end
   end
 
-  describe ".data_source_supported?" do
+  describe ".data_source_enabled?" do
     test "returns true if source included in config", context do
-      assert Explorer.data_source_supported?(context.ds1)
+      assert Explorer.data_source_enabled?(context.ds1)
     end
 
     test "returns false if source not included in config", context do
-      assert not Explorer.data_source_supported?(context.ds_not_included)
+      assert not Explorer.data_source_enabled?(context.ds_not_included)
     end
   end
 
@@ -27,8 +28,8 @@ defmodule Air.Service.ExplorerTest do
       assert :ok == Explorer.reanalyze_datasource(context.ds1)
 
       assert [
-               %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new},
-               %ExplorerAnalysis{table_name: "foos", column: "user_id", status: :new}
+               %ExplorerAnalysis{table_name: "foos", column: "bar", status: :new},
+               %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new}
              ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
 
       # This prevents errors from terminating DB connexion
@@ -37,30 +38,31 @@ defmodule Air.Service.ExplorerTest do
 
     test "begins polling for results", context do
       Explorer.reanalyze_datasource(context.ds1)
-      Process.sleep(100)
+      Process.sleep(200)
 
       assert [
+               %ExplorerAnalysis{table_name: "foos", column: "bar", status: :error, metrics: "[]"},
                %ExplorerAnalysis{
                  table_name: "foos",
                  column: "foo",
                  status: :complete,
                  metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
-               },
-               %ExplorerAnalysis{table_name: "foos", column: "user_id", status: :error, metrics: "[]"}
+               }
              ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
     end
 
     test "removes old records", context do
       Explorer.reanalyze_datasource(context.ds1)
-      Process.sleep(100)
       results = Explorer.results_for_datasource(context.ds1)
-      refute results == Explorer.reanalyze_datasource(context.ds1)
+      Explorer.reanalyze_datasource(context.ds1)
+      refute results == Explorer.results_for_datasource(context.ds1)
       # This prevents errors from terminating DB connexion
       Process.sleep(100)
     end
   end
 
   defmodule MockServer do
+    @moduledoc "Mocks the [Diffix Explorer API](https://github.com/diffix/explorer#usage)."
     defmodule Controller do
       use Phoenix.Controller, namespace: AirWeb
 
@@ -81,7 +83,7 @@ defmodule Air.Service.ExplorerTest do
               id: "foo"
             })
 
-          "user_id" ->
+          "bar" ->
             resp(conn, 500, "Something went wrong")
         end
       end
@@ -136,11 +138,18 @@ defmodule Air.Service.ExplorerTest do
         columns: [
           %{
             name: "user_id",
-            user_id: true
+            user_id: true,
+            isolated: true
           },
           %{
             name: "foo",
-            user_id: false
+            user_id: false,
+            isolated: false
+          },
+          %{
+            name: "bar",
+            user_id: false,
+            isolated: false
           }
         ],
         id: "foos"

@@ -11,8 +11,8 @@ defmodule Air.Repo.Migrations.CreateExplorerAnalyses do
       add(:status, ExplorerAnalysis.Status.type())
       add(:metrics, :text)
       add(:job_id, :string)
-      add(:last_request, :naive_datetime)
       add(:data_source_id, references(:data_sources, on_delete: :delete_all))
+      timestamps(type: :naive_datetime_usec)
     end
 
     create(index(:explorer_analyses, [:data_source_id]))

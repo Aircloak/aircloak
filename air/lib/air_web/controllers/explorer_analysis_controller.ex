@@ -58,7 +58,7 @@ defmodule AirWeb.ExplorerAnalysisController do
   end
 
   defp check_if_supported_for_data_source(conn, _opts) do
-    if Explorer.data_source_supported?(conn.assigns.data_source) do
+    if Explorer.data_source_enabled?(conn.assigns.data_source) do
       conn
     else
       conn

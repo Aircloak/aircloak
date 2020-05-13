@@ -10,18 +10,19 @@ defmodule Air.Schemas.ExplorerAnalysis do
   schema "explorer_analyses" do
     field(:column, :string)
     field(:job_id, :string)
-    field(:last_request, :naive_datetime)
     field(:metrics, :string)
     field(:status, __MODULE__.Status)
     field(:table_name, :string)
-    belongs_to(:data_source, DataSource)
+    belongs_to(:data_source, DataSource, on_replace: :delete)
+
+    timestamps(type: :naive_datetime_usec)
   end
 
   @doc false
   def changeset(explorer_analysis, attrs) do
     explorer_analysis
-    |> cast(attrs, [:table_name, :column, :status, :metrics, :job_id, :last_request])
-    |> validate_required([:table_name, :column, :status, :metrics, :job_id, :last_request])
+    |> cast(attrs, [:table_name, :column, :status, :metrics, :job_id])
+    |> validate_required([:table_name, :column, :status, :metrics, :job_id])
   end
 
   def from_result_json(explorer_analysis, json_struct) do
@@ -29,8 +30,7 @@ defmodule Air.Schemas.ExplorerAnalysis do
     |> changeset(%{
       status: String.downcase(json_struct["status"]),
       job_id: json_struct["id"],
-      metrics: Jason.encode!(json_struct["metrics"]),
-      last_request: NaiveDateTime.utc_now()
+      metrics: Jason.encode!(json_struct["metrics"])
     })
   end
 end
