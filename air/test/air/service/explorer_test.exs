@@ -8,8 +8,14 @@ defmodule Air.Service.ExplorerTest do
 
   describe ".enabled?" do
     test "returns true when config exists" do
-      # No idea how to test false, since the config appears pretty static...
       assert Explorer.enabled?()
+    end
+
+    test "returns false when config doesn't exist" do
+      config = Application.get_env(:air, Aircloak.DeployConfig)
+      Application.put_env(:air, Aircloak.DeployConfig, Map.delete(config, "explorer"))
+      refute Explorer.enabled?()
+      Application.put_env(:air, Aircloak.DeployConfig, config)
     end
   end
 
