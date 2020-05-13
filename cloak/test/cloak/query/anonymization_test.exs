@@ -169,7 +169,7 @@ defmodule Cloak.Query.AnonymizationTest do
       %{rows: [%{row: [1.0, 1.0, distinct_noise]}]}
     )
 
-    assert_in_delta distinct_noise, 0.5, 0.01
+    assert_in_delta distinct_noise, 1.0, 0.01
 
     assert_query(
       """
