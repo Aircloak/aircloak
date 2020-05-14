@@ -121,7 +121,7 @@ defmodule Cloak.Sql.Range do
   defp implicit_range?(%Expression{kind: :constant}, _query), do: false
 
   defp implicit_range?(function = %Expression{kind: :function, args: args}, query) do
-    if Function.has_attribute?(function, :implicit_range) do
+    if Function.implicit_range?(function) do
       true
     else
       Enum.any?(args, &implicit_range?(&1, query))
