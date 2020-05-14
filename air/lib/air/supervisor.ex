@@ -19,6 +19,7 @@ defmodule Air.Supervisor do
         Air.Service.Central,
         Air.Service.AdminGuard,
         Air.Service.Export,
+        Air.Service.Explorer,
         Air.Service.Cleanup,
         Air.Service.RevokableToken,
         Air.Service.LDAP,

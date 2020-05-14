@@ -2,7 +2,7 @@ defmodule Air.Schemas.DataSource do
   @moduledoc "Represents data sources made available through the cloaks"
   use Air.Schemas.Base
 
-  alias Air.Schemas.{Group, Query}
+  alias Air.Schemas.{ExplorerAnalysis, Group, Query}
 
   @type t :: %__MODULE__{}
 
@@ -23,6 +23,7 @@ defmodule Air.Schemas.DataSource do
     field(:supports_analyst_tables, :boolean)
 
     has_many(:queries, Query, on_delete: :delete_all)
+    has_many(:explorer_analyses, ExplorerAnalysis, on_delete: :delete_all)
 
     many_to_many(
       :groups,
