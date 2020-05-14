@@ -90,6 +90,15 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
        when type in [:integer, :real],
        do: %{expression | bounds: {floor(value), ceil(value)}}
 
+  defp do_set_bounds(expression = %Expression{kind: :constant, type: type, value: value})
+       when type in [:date, :datetime],
+       do: %{expression | bounds: {value.year, value.year}}
+
+  defp do_set_bounds(expression = %Expression{kind: :constant, type: :interval, value: value}) do
+    years = Timex.Duration.to_days(value) / 365.25
+    %{expression | bounds: {floor(years), ceil(years)}}
+  end
+
   defp do_set_bounds(expression = %Expression{kind: :column}),
     do: expression
 
@@ -102,7 +111,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   defp do_set_bounds(
          expression = %Expression{kind: :function, name: {:cast, to}, args: [%{bounds: bounds, type: from}]}
        )
-       when from in [:real, :integer] and to in [:real, :integer],
+       when from in [:real, :integer, :date, :datetime] and to in [:real, :integer, :date, :datetime],
        do: %{expression | bounds: bounds}
 
   defp do_set_bounds(expression = %Expression{kind: :function, name: {:cast, to}, args: [%{type: :boolean}]})
@@ -113,6 +122,15 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     do: %{expression | bounds: update_bounds(name, Enum.map(args, & &1.bounds))}
 
   defp do_set_bounds(expression), do: %{expression | bounds: :unknown}
+
+  defp update_bounds("year", [bounds]), do: bounds
+  defp update_bounds("quarter", [_bounds]), do: {1, 4}
+  defp update_bounds("month", [_bounds]), do: {1, 12}
+  defp update_bounds("day", [_bounds]), do: {1, 31}
+  defp update_bounds("hour", [_bounds]), do: {0, 23}
+  defp update_bounds("minute", [_bounds]), do: {0, 59}
+  defp update_bounds("second", [_bounds]), do: {0, 60}
+  defp update_bounds("weekday", [_bounds]), do: {1, 7}
 
   defp update_bounds("+", [{min1, max1}, {min2, max2}]), do: {min1 + min2, max1 + max2}
   defp update_bounds("-", [{min1, max1}, {min2, max2}]), do: {min1 - max2, max1 - min2}
@@ -268,7 +286,11 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     if magnitude < @large_float_number, do: {:ok, magnitude / @large_float_number}, else: :error
   end
 
-  defp within_bounds?(:integer, {min, max}), do: min > -@max_int && max < @max_int
-  defp within_bounds?(:real, {min, max}), do: min > -@large_float_number && max < @large_float_number
+  defp within_bounds?(:integer, {min, max}), do: min > -@max_int and max < @max_int
+  defp within_bounds?(:real, {min, max}), do: min > -@large_float_number and max < @large_float_number
+
+  defp within_bounds?(type, {min, max}) when type in [:date, :datetime],
+    do: min >= Cloak.Time.year_lower_bound() and max <= Cloak.Time.year_upper_bound()
+
   defp within_bounds?(_, _), do: false
 end

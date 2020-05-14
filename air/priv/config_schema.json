@@ -91,6 +91,21 @@
       },
       "additionalProperties": false,
       "required": ["host", "user_base", "group_base"]
+    },
+
+    "explorer": {
+      "type": "object",
+      "properties": {
+        "url": {"type": "string"},
+        "api_key": {"type": "string"},
+        "data_sources": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "additionalProperties": false,
+      "required": ["url", "api_key", "data_sources"],
+      "uniqueItems": true
     }
   },
   "additionalProperties": false,

@@ -61,7 +61,6 @@ defmodule Air do
     Aircloak.DeployConfig.validate!(:air)
     configure_secrets()
     Air.Repo.configure()
-    Air.PsqlServer.ShadowDb.init_queue()
 
     with {:ok, _pid} = result <- Air.Supervisor.start_link() do
       load_license()

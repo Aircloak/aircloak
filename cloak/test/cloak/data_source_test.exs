@@ -26,8 +26,8 @@ defmodule Cloak.DataSourceTest do
       assert(
         DataSource.table(data_source, :test).columns ==
           [
-            %{name: "user_id", type: :text, visible?: true},
-            %{name: "value", type: :integer, visible?: true}
+            %{name: "user_id", type: :text, access: :visible},
+            %{name: "value", type: :integer, access: :visible}
           ]
       )
     end

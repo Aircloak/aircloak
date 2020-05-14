@@ -6,7 +6,7 @@ defmodule IntegrationTest.Manager do
   alias Air.Schemas.{AnalystTable, DataSource, ExportForAircloak, Group, Query, ResultChunk, User, View}
 
   @admin_group_name "admins"
-  @user_password "password1234"
+  @user_password "psswrd12"
   @data_source_name "data_source_name"
 
   def start(_type, _args) do
@@ -166,6 +166,7 @@ defmodule IntegrationTest.Manager do
       "white INTEGER, grey INTEGER, black INTEGER",
       Keyword.merge(
         opts,
+        unselectable_columns: ["grey"],
         exclude_columns: ["black"]
       )
     )
@@ -190,8 +191,8 @@ defmodule IntegrationTest.Manager do
         "master_password" => "super_secret_master_password",
         "name" => "aircloak_admin",
         "login" => "admin@aircloak.com",
-        "password" => "password1234",
-        "password_confirmation" => "password1234"
+        "password" => @user_password,
+        "password_confirmation" => @user_password
       })
 
     # connect data source to group

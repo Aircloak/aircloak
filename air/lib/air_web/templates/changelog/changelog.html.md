@@ -5,10 +5,13 @@
 - Default value for `max_rare_negative_conditions` is now 0.
 - The `IS [NOT] NULL` operator is restricted to clear expressions.
 - Aggregators are restricted to clear expressions.
+- Dropped support for non-datetime/interval arithmetic.
 
 ### New features
 
 ### Enhancements
+
+- Added overflow protection for date arithmetic. Oracle UDFs have to be reloaded.
 
 ### Bugfixes
 
@@ -23,6 +26,7 @@
 ### New features
 
 - Support for excluding columns from a data source table. This can be done using the `exclude_columns` parameter.
+- Support for marking columns as unselectable. This can be done using the `unselectable_columns` parameter.
 
 ### Bugfixes
 

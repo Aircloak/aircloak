@@ -27,7 +27,7 @@ const stateItem = (state, currentState) => {
 
 export default ({ result, authentication }: Props) => {
   return (
-    <div className="card border-info">
+    <div className="card border-info mb-3">
       <div className="card-header border-info">
         <CodeViewer statement={result.statement} />
       </div>

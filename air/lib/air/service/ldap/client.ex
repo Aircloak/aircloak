@@ -9,11 +9,7 @@ defmodule Air.Service.LDAP.Client do
   @timeout :timer.seconds(5)
 
   @type ldap_error ::
-          :connect_failed
-          | :invalid_credentials
-          | :ldap_not_configured
-          | :user_filter_invalid
-          | :group_filter_invalid
+          :connect_failed | :invalid_credentials | :ldap_not_configured | :user_filter_invalid | :group_filter_invalid
 
   # -------------------------------------------------------------------
   # API functions
@@ -146,11 +142,7 @@ defmodule Air.Service.LDAP.Client do
 
   defp with_bound_connection(config, action) do
     with_connection(config, fn conn, config ->
-      case :eldap.simple_bind(
-             conn,
-             Map.get(config, "bind_dn", ""),
-             Map.get(config, "password", "")
-           ) do
+      case :eldap.simple_bind(conn, Map.get(config, "bind_dn", ""), Map.get(config, "password", "")) do
         :ok -> action.(conn, config)
         _ -> {:error, :connect_failed}
       end
@@ -180,18 +172,11 @@ defmodule Air.Service.LDAP.Client do
     end
   end
 
-  defp open_connection({:ok, config = %{"host" => host, "encryption" => "ssl"}}) do
-    :eldap.open([to_charlist(host)],
-      port: port(config),
-      ssl: true,
-      sslopts: ssl_options(config),
-      timeout: @timeout
-    )
-  end
+  defp open_connection({:ok, config = %{"host" => host, "encryption" => "ssl"}}),
+    do: :eldap.open([to_charlist(host)], port: port(config), ssl: true, sslopts: ssl_options(config), timeout: @timeout)
 
-  defp open_connection({:ok, config = %{"host" => host}}) do
-    :eldap.open([to_charlist(host)], port: port(config), timeout: @timeout)
-  end
+  defp open_connection({:ok, config = %{"host" => host}}),
+    do: :eldap.open([to_charlist(host)], port: port(config), timeout: @timeout)
 
   defp open_connection(_), do: {:error, :invalid_config}
 

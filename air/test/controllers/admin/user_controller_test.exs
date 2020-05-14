@@ -44,8 +44,8 @@ defmodule AirWeb.Admin.UserController.Test do
         user: %{
           login: new_user_login,
           name: "foobarbaz",
-          password: "password1234",
-          password_confirmation: "password1234"
+          password: "psswrd12",
+          password_confirmation: "psswrd12"
         }
       )
 

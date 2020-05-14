@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
   alias Cloak.DataSource.Bounds.Query
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("bounds", "value INTEGER, string TEXT, pk INTEGER")
+    :ok = Cloak.Test.DB.create_table("bounds", "value INTEGER, string TEXT, pk INTEGER, date DATE")
 
     :ok =
       Cloak.Test.DB.create_table(
@@ -15,7 +15,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
       )
 
     :ok =
-      Cloak.Test.DB.create_table("public bounds", "id INTEGER, value INTEGER, float REAL, string TEXT",
+      Cloak.Test.DB.create_table("public bounds", "id INTEGER, value INTEGER, float REAL, string TEXT, dt TIMESTAMP",
         user_id: nil,
         add_user_id: false,
         content_type: :public,
@@ -29,7 +29,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
     :ok = Cloak.Test.DB.clear_table("public bounds")
   end
 
-  test "computes min and max if there are > cutoff users" do
+  test "computes min and max if there are > cutoff users for numeric column" do
     :ok =
       Cloak.Test.DB.insert_data("bounds", ["user_id", "value"], [
         ["user1", 10],
@@ -41,6 +41,21 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
       ])
 
     assert_bounds("bounds", "value", {1, 500})
+  end
+
+  test "computes min and max if there are > cutoff users for date column" do
+    :ok =
+      Cloak.Test.DB.insert_data("bounds", ["user_id", "date"], [
+        ["user1", ~D[2010-12-21]],
+        ["user2", ~D[2001-08-01]],
+        ["user3", ~D[1999-07-02]],
+        ["user4", ~D[2015-04-30]],
+        ["user5", ~D[2020-12-04]],
+        ["user4", ~D[2021-02-07]],
+        ["user6", ~D[2014-08-08]]
+      ])
+
+    assert_bounds("bounds", "date", {1975, 2125})
   end
 
   for data_source <- [DataSource.SQLServer, DataSource.MongoDB] do
@@ -143,6 +158,16 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
       ])
 
     assert_bounds("public bounds", "float", {2, 310})
+  end
+
+  test "datetime column in public table" do
+    :ok =
+      Cloak.Test.DB.insert_data("public bounds", ["id", "dt"], [
+        [1, ~N[2001-01-02 12:01:01]],
+        [2, ~N[2020-12-12 13:20:20]]
+      ])
+
+    assert_bounds("public bounds", "dt", {1976, 2045})
   end
 
   test "public table with no data" do

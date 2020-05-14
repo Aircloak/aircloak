@@ -21,10 +21,11 @@ defmodule AirWeb.ProfileController do
     render(conn, "edit.html", changeset: changeset, global_settings: global_settings)
   end
 
-  def update(conn, params), do: update(conn, params, _flash = "Profile updated", _log_tag = "Altered own profile")
+  def update(conn, params),
+    do: update(&update_profile/2, conn, params, _flash = "Profile updated", _log_tag = "Altered own profile")
 
   def change_password(conn, params),
-    do: update(conn, params, _flash = "Password changed", _log_tag = "Changed own password")
+    do: update(&update_password/2, conn, params, _flash = "Password changed", _log_tag = "Changed own password")
 
   def toggle_debug_mode(conn, _params) do
     User.toggle_debug_mode(conn.assigns.current_user)
@@ -46,8 +47,8 @@ defmodule AirWeb.ProfileController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp update(conn, params, flash, log_tag) do
-    case update_profile(conn.assigns.current_user, params["user"]) do
+  defp update(updater, conn, params, flash, log_tag) do
+    case updater.(conn.assigns.current_user, params["user"]) do
       {:ok, _, sessions_revoked?} ->
         audit_log(conn, log_tag)
 
@@ -72,4 +73,6 @@ defmodule AirWeb.ProfileController do
       {:ok, user, false}
     end
   end
+
+  defp update_password(user, params), do: User.update_password(user, params)
 end

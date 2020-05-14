@@ -253,9 +253,8 @@ defmodule Cloak.Query.Anonymizer do
 
   def noisy_distinct_count(anonymizer, {count, noise_factor} = _statistics) do
     {noise, _anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
-    count_sigma = noise_factor * 0.5
-    noise_amount = noise_amount(count_sigma, anonymizer)
-    noisy_count = count + noise * count_sigma
+    noise_amount = noise_amount(noise_factor, anonymizer)
+    noisy_count = count + noise * noise_factor
     {noisy_count |> round() |> Kernel.max(0), noise_amount}
   end
 

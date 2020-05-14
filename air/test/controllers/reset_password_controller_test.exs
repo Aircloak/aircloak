@@ -16,7 +16,7 @@ defmodule Air.ResetPasswordController.Test do
         build_conn()
         |> put("/reset_password", %{
           token: token,
-          user: %{password: "password1234", password_confirmation: "password1234"}
+          user: %{password: "psswrd12", password_confirmation: "psswrd12"}
         })
         |> recycle()
         |> get("/profile/edit")
@@ -29,7 +29,7 @@ defmodule Air.ResetPasswordController.Test do
         build_conn()
         |> put("/reset_password", %{
           token: "whatever",
-          user: %{password: "password1234", password_confirmation: "password1234"}
+          user: %{password: "psswrd12", password_confirmation: "psswrd12"}
         })
         |> recycle()
         |> get("/profile/edit")
@@ -42,7 +42,7 @@ defmodule Air.ResetPasswordController.Test do
         build_conn()
         |> put("/reset_password", %{
           token: token,
-          user: %{password: "password1234", password_confirmation: "password12345"}
+          user: %{password: "psswrd12", password_confirmation: "password12345"}
         })
         |> recycle()
         |> get("/profile/edit")

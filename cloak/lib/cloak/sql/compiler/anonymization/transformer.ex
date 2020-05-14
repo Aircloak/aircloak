@@ -111,9 +111,9 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
 
     user_id = Helpers.id_column(query)
     min_user_id = Expression.function("min", [user_id], user_id.type)
-    count_distinct_user_id = Expression.function("count", [{:distinct, user_id}], :integer)
+    max_user_id = Expression.function("max", [user_id], user_id.type)
 
-    low_count_user_id? = Expression.function("<", [count_distinct_user_id, Expression.constant(:integer, 3)], :boolean)
+    low_count_user_id? = Expression.function("=", [min_user_id, max_user_id], :boolean)
 
     # The user id is valid only for at-risk values in the target column.
     user_id_aggregator =
