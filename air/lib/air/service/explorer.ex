@@ -68,7 +68,7 @@ defmodule Air.Service.Explorer do
 
   @impl GenServer
   def handle_cast(:begin_polling, poll_already_in_progress?) do
-    if poll_already_in_progress?, do: Process.send_after(self(), :poll, @poll_interval)
+    if not poll_already_in_progress?, do: Process.send_after(self(), :poll, @poll_interval)
     {:noreply, true}
   end
 

@@ -30,40 +30,38 @@ defmodule Air.Service.ExplorerTest do
   end
 
   describe ".reanalyze_datasource" do
-    test "creates analysis records", context do
+    test "creates analysis records, polls for results and removes old records", context do
       assert :ok == Explorer.reanalyze_datasource(context.ds1)
+      results = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
 
       assert [
                %ExplorerAnalysis{table_name: "foos", column: "bar", status: :new},
                %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new}
-             ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
+             ] = results
 
-      # This prevents errors from terminating DB connexion
-      Process.sleep(100)
-    end
+      # Here we wait for polling to happen
+      assert soon(
+               match?(
+                 [
+                   %ExplorerAnalysis{table_name: "foos", column: "bar", status: :error, metrics: "[]"},
+                   %ExplorerAnalysis{
+                     table_name: "foos",
+                     column: "foo",
+                     status: :complete,
+                     metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
+                   }
+                 ],
+                 Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
+               )
+             )
 
-    test "begins polling for results", context do
-      Explorer.reanalyze_datasource(context.ds1)
-      Process.sleep(200)
-
-      assert [
-               %ExplorerAnalysis{table_name: "foos", column: "bar", status: :error, metrics: "[]"},
-               %ExplorerAnalysis{
-                 table_name: "foos",
-                 column: "foo",
-                 status: :complete,
-                 metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
-               }
-             ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
-    end
-
-    test "removes old records", context do
-      Explorer.reanalyze_datasource(context.ds1)
-      results = Explorer.results_for_datasource(context.ds1)
       Explorer.reanalyze_datasource(context.ds1)
       refute results == Explorer.results_for_datasource(context.ds1)
-      # This prevents errors from terminating DB connexion
-      Process.sleep(100)
+
+      # This prevents "Client is still using a connection from owner at location"
+      # errors from appearing in the test log. These errors don't seem to break anything,
+      # but make test output unnecesarily noisy.
+      Process.sleep(50)
     end
   end
 
