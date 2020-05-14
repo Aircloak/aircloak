@@ -493,7 +493,7 @@ In addition, there is a generic noise layer for queries that otherwise have no n
 
 The aggregation function `count(col)` is given an additional UID-noise layer. The purpose of this noise layer is to defend against the [Difference attack with counting NULL](./attacks.md#difference-attack-with-counting-null).
 
-The implicit ranges `bucket()`, `round()`, and `trunc()` do not have a UID-noise layer, only a static noise layer. This is to defend against noise exploitation attacks [through chaff conditions](attacks.md#through-chaff-conditions).
+Ranges, as well as the implicit ranges `bucket()`, `round()`, and `trunc()`, do not have a UID-noise layer, only a static noise layer. This is to defend against noise exploitation attacks [through chaff conditions](attacks.md#through-chaff-conditions).
 [ghi3931](https://github.com/Aircloak/aircloak/issues/3931)
 [ghi4110](https://github.com/Aircloak/aircloak/issues/4110)
 
