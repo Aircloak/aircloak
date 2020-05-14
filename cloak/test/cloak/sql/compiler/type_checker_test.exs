@@ -303,8 +303,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert narrative =~ ~r/Only clear expressions can be used in range conditions/
     end
 
-    test "does not consider cast to integer as an implicit range",
-      do: assert({:ok, _} = compile("SELECT cast(float + 1 as integer) FROM table"))
+    test "consider cast to integer as an implicit range" do
+      assert({:error, narrative} = compile("SELECT cast(float + 1 as integer) FROM table"))
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
+    end
 
     for function <- ~w(round trunc floor ceil) do
       test "consider #{function} as an implicit range" do

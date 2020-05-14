@@ -169,9 +169,6 @@ defmodule Cloak.DataSource.SqlBuilder.ClouderaImpala do
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
   @impl Dialect
-  def cast_sql(value, :real, :integer),
-    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(ROUND(", value, ") AS BIGINT) END"]
-
   def cast_sql(value, :text, :boolean),
     do: [
       "CASE WHEN TRIM(LOWER(",
