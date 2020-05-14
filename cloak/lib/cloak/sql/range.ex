@@ -102,7 +102,7 @@ defmodule Cloak.Sql.Range do
     |> Query.Lenses.conditions()
     |> Lens.filter(&Condition.equals?/1)
     |> Lens.to_list(query)
-    |> Enum.map(&Condition.subject/1)
+    |> Enum.flat_map(&Condition.targets/1)
     |> Enum.filter(&implicit_range?(&1, query))
     |> Enum.map(&function_range/1)
   end
