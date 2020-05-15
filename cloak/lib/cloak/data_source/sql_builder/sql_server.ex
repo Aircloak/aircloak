@@ -141,6 +141,15 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   @impl Dialect
   def cast_sql(["DISTINCT " | value], from, to), do: ["DISTINCT " | cast_sql(value, from, to)]
 
+  def cast_sql(value, :real, :integer),
+    do: [
+      "CASE WHEN ABS(",
+      value,
+      ") > #{@integer_range} THEN NULL ELSE CAST(",
+      function_sql("round", [value]),
+      " AS BIGINT) END"
+    ]
+
   def cast_sql(value, :unknown, :text), do: ["TRY_CAST(", value, " AS varbinary)"]
 
   def cast_sql(value, date_type, :text) when date_type in [:date, :datetime],
