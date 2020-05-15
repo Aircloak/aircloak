@@ -146,7 +146,7 @@ If the database allows user-defined exception handlers, then these are installed
 
 The [safe math functions](#safe-math-functions) unfortunately slow down query execution. To mitigate this, the cloak conservatively estimates when a math function *might* result in an exception, and only executes the safe functions in these cases.
 
-In order to make this estimate for numeric and date/time/datetime [overflow](./attacks.md#overflow) exceptions, the cloak records a minimum and maximum value for each numeric and date/time/datetime column. These recorded values are not the true minimum and maximum values, because an attacker could then detect these values through a series of queries that detect when a safe function was executed through a timing attack.
+In order to make this estimate for numeric and date/time/datetime [overflow](./attacks.md#overflow) exceptions, the cloak records an anonymized minimum and maximum value for each numeric and date/time/datetime column. These recorded values are not the true minimum and maximum values, because an attacker could then detect these values through a series of queries that detect when a safe function was executed through a timing attack.
 [ghi3780](https://github.com/Aircloak/aircloak/issues/3780)
 
 With high (but not 100%) probability, the approximated min and max exceed the true min and max. For numeric columns they are computed as follows:
@@ -165,7 +165,7 @@ With high (but not 100%) probability, the approximated min and max exceed the tr
 7. If there are not enough values to compute either min or max, set the bounds to :unknown and always use safe math functions
 
 The procedure for date/time/datetime is similar but the following two differences:
-1. In step 5, the closest snapped value is computed from '1900-01-01' (rather than zero, as is the case with numeric).
+1. In step 5, the closest snapped value is computed from '1900-01-01' (rather than zero, as is the case with numeric columns).
 2. In step 6, the max is expanded by adding 50 years (rather than multiply by 10).
 [ghi3794](https://github.com/Aircloak/aircloak/issues/3794)
 
