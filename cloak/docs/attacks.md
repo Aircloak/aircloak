@@ -536,8 +536,9 @@ The cloak defends against this by installing and executing "safe" math routines 
 
 Unfortunately the safe math routines slow down query execution. To minimize this performance hit, the cloak also makes a conservative estimate as to whether or not a given math expression *might* result in an exception. If not, then the safe math routine is not executed.
 
-
 #### Square root of a negative number
+
+It may be possible to execute an error generating attack by forcing the square root of a negative number. The cloak defends against this by checking if the operand of the square root function is negative.
 
 ### Timing attacks
 
