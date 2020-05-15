@@ -52,8 +52,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     # Recomputing these for every condition becomes far too slow in the presence of nested analyst tables
 
     update_in(query, [Query.Lenses.all_queries() |> Lens.filter(& &1.analyst_table)], fn query ->
-      {:ok, cloak_table, columns} = Cloak.AnalystTable.to_cloak_table_with_columns(query.analyst_table, query.views)
-      %{query | analyst_table: {query.analyst_table, cloak_table, columns}}
+      {:ok, cloak_table} = Cloak.AnalystTable.to_cloak_table(query.analyst_table, query.views)
+      %{query | analyst_table: {query.analyst_table, cloak_table}}
     end)
   end
 
@@ -248,25 +248,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     %Query{query | noise_layers: finalize(noise_layers, query)}
   end
 
-  defp finalize(noise_layers, query) do
-    noise_layers
-    |> adjust_for_analyst_tables(query)
-    |> drop_redundant_noise_layers_columns(query)
-  end
-
-  defp adjust_for_analyst_tables(noise_layers, %{analyst_table: {_, table, columns}}),
-    do: update_in(noise_layers, [noise_layer_expressions()], &do_adjust_for_analyst_tables(&1, table, columns))
-
-  defp adjust_for_analyst_tables(noise_layers, _query), do: noise_layers
-
-  defp do_adjust_for_analyst_tables(expression, table, columns) do
-    columns
-    |> Enum.find_index(&Expression.equals?(&1, expression))
-    |> case do
-      nil -> expression
-      found -> %{Expression.column(table.columns |> Enum.at(found), table) | user_id?: expression.user_id?}
-    end
-  end
+  defp finalize(noise_layers, query), do: drop_redundant_noise_layers_columns(noise_layers, query)
 
   defp drop_redundant_noise_layers_columns(noise_layers, query) do
     all_expressions =
@@ -279,7 +261,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     update_in(noise_layers, [noise_layer_expressions()], &set_noise_layer_expression_alias(&1, all_expressions, query))
   end
 
-  defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: {_, table, _}}) do
+  defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: {_, table}}) do
     if Enum.any?(table.columns, &(&1.name == expression.name)) do
       expression
     else
