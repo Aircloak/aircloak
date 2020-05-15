@@ -164,9 +164,9 @@ With high (but not 100%) probability, the approximated min and max exceed the tr
   * If both are negative, multiply min by 10 and divide max by 10
 7. If there are not enough values to compute either min or max, set the bounds to :unknown and always use safe math functions
 
-The procedure for date/time/datetime is similar but the following two differences:
+The procedure for `date`, `time`, and `datetime` columns is similar but differs in the following two ways:
 1. In step 5, the closest snapped value is computed from '1900-01-01' (rather than zero, as is the case with numeric columns).
-2. In step 6, the max is expanded by adding 50 years (rather than multiply by 10).
+2. In step 6, the max is expanded by adding 50 years (rather than multiplying by 10).
 [ghi3794](https://github.com/Aircloak/aircloak/issues/3794)
 
 # Handle incoming SQL
