@@ -32,6 +32,9 @@ This section describes a variety of attacks against anonymization mechanisms. So
       - [Divide by zero](#divide-by-zero)
       - [Overflow](#overflow)
       - [Square root of a negative number](#square-root-of-a-negative-number)
+    - [NULL producing safe function attacks](#null-producing-safe-function-attacks)
+      - [IS NOT NULL](#is-not-null)
+      - [NULL within aggregation](#null-within-aggregation)
     - [Timing attacks](#timing-attacks)
       - [JOIN timing attack](#join-timing-attack)
 
@@ -536,6 +539,52 @@ Unfortunately the safe math routines slow down query execution. To minimize this
 
 
 #### Square root of a negative number
+
+### NULL producing safe function attacks
+
+#### IS NOT NULL
+
+The defense against [Error generation attacks](#error-generation-attacks) is to install or use a safe math routine that inserts a `NULL` value rather than throw and exception. This mechanism leads to attacks that exploits the insertion of a `NULL` value.
+ghi
+[ghi4091](https://github.com/Aircloak/aircloak/issues/4091)
+
+An example of this attack is the following two queries:
+
+```sql
+SELECT cli_district_id, sum(acct_district_id)
+FROM transactions
+WHERE 1/(amount - 24615) IS NOT NULL
+GROUP BY 1
+```
+
+```sql
+SELECT cli_district_id, sum(acct_district_id)
+FROM transactions
+WHERE 1/(amount - 24615.3333) IS NOT NULL
+GROUP BY 1
+```
+
+The victim in the attack is a user that has a unique value for the `amount` column of 24615. No user has an `amount` value of 24615.3333. The goal of the attack is to learn the `cli_district_id` value of the user.
+
+In the first query, the term `1/(amount - 24615)` has a divide-by-zero error for the victim, which gets converted to `NULL` and is therefore filtered by the `WHERE` condition. The `WHERE` clause of the second query doesn't filter any rows. At the same time, the noise layers for the two `WHERE` clauses are with high probability identical, because the seed would be based on the floated max and min `amount`, which are likely the same.
+
+The victim's `cli_district_id` then is recorded as that where the sums from the first and second queries differ.
+
+The defense against this attack is to force `IS NOT NULL` expressions to be `clear`.
+
+#### NULL within aggregation
+
+The following query attacks the same victim as the previous example.
+
+```
+SELECT cli_district_id, count(amount), count(1/(amount - 24615))
+FROM transactions
+GROUP BY 1
+```
+
+The first `count()` counts all rows (assuming no `NULL` values in the `amount` column). Because the victim's row has a divide-by-zero which becomes `NULL`, the second `count()` counts all rows except that of the victim. There is no noise layer associated with the expression within the aggregation, and so the victim's `cli_district_id` is simply that where the two counts differ.
+
+The defense is similar: to force expressions within aggregation functions to be clear.
 
 ### Timing attacks
 
