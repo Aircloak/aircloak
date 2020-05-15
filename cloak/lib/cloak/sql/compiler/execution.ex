@@ -39,7 +39,8 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> Helpers.apply_bottom_up(&reject_null_user_ids/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&compute_aggregators/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&expand_virtual_tables/1, analyst_tables?: false)
-      |> Helpers.apply_bottom_up(&protect_against_join_timing_attacks/1, analyst_tables?: false)
+
+  # |> Helpers.apply_bottom_up(&protect_against_join_timing_attacks/1, analyst_tables?: false)
 
   # -------------------------------------------------------------------
   # UID handling
