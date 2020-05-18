@@ -242,8 +242,12 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp valid_range?(comparisons) do
     case Enum.sort_by(comparisons, &Condition.direction/1, &Kernel.>/2) do
       [cmp1, cmp2] ->
+        [_subject, target1] = Condition.targets(cmp1)
+        [_subject, target2] = Condition.targets(cmp2)
+
         Condition.direction(cmp1) != Condition.direction(cmp2) and
-          Cloak.Data.lt(Condition.value(cmp1), Condition.value(cmp2))
+          compatible_types?(target1.type, target2.type) and
+          Cloak.Data.lt(Expression.const_value(target1), Expression.const_value(target2))
 
       [cmp] ->
         cmp |> Condition.value() |> current_date?()
@@ -265,6 +269,11 @@ defmodule Cloak.Sql.Compiler.Execution do
     {date, _time} = NaiveDateTime.to_erl(value)
     NaiveDateTime.from_erl!({date, {0, 0, 0}}) |> Cloak.Time.max_precision()
   end
+
+  defp compatible_types?(:integer, :real), do: true
+  defp compatible_types?(:real, :integer), do: true
+  defp compatible_types?(type, type), do: true
+  defp compatible_types?(_type1, _type2), do: false
 
   # -------------------------------------------------------------------
   # Virtual tables
