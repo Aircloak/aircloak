@@ -469,6 +469,13 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     )
   end
 
+  test "cast(real to integer)" do
+    assert_equivalent(
+      "SELECT CAST(numeric AS integer) AS x FROM table",
+      "SELECT round(numeric) AS x FROM table"
+    )
+  end
+
   defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
 
   defp data_source() do

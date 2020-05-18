@@ -278,6 +278,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert narrative =~ ~r/Only clear expressions can be used in range conditions/
     end
 
+    test "forbids unclear implicit ranges on the lhs of condition" do
+      assert {:error, narrative} = compile("SELECT count(*) FROM table WHERE trunc(float + 0.5) = 4")
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
+    end
+
+    test "forbids unclear implicit ranges on the rhs of condition" do
+      assert {:error, narrative} = compile("SELECT count(*) FROM table WHERE float = trunc(float + 0.5)")
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
+    end
+
     test "forbids implicit ranges within another function" do
       assert {:error, narrative} = compile("SELECT abs(trunc(float)) FROM table")
       assert narrative =~ ~r/Only clear expressions can be used in range conditions/
@@ -293,12 +303,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert narrative =~ ~r/Only clear expressions can be used in range conditions/
     end
 
-    test "does not consider cast to integer as an implicit range",
-      do: assert({:ok, _} = compile("SELECT cast(float + 1 as integer) FROM table"))
+    test "consider cast to integer as an implicit range" do
+      assert({:error, narrative} = compile("SELECT cast(float + 1 as integer) FROM table"))
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
+    end
 
-    for function <- ~w(floor ceil ceiling) do
-      test "does not consider #{function} as an implicit range",
-        do: assert({:ok, _} = compile("SELECT #{unquote(function)}(float + 1) FROM table"))
+    for function <- ~w(round trunc floor ceil) do
+      test "consider #{function} as an implicit range" do
+        assert({:error, narrative} = compile("SELECT #{unquote(function)}(float + 1) FROM table"))
+        assert narrative =~ ~r/Only clear expressions can be used in range conditions/
+      end
     end
 
     test "allows casts in ranges",

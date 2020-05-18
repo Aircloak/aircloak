@@ -289,7 +289,6 @@ defmodule Cloak.DataSource.MongoDB.Projector do
     do: null_check(value, %{"$substr": [value, 0, -1]})
 
   defp parse_function("cast", [value, :integer, :real]), do: value
-  defp parse_function("cast", [value, :real, :integer]), do: parse_function("round", value)
 
   defp parse_function("cast", [value, :boolean, :integer]),
     do: null_check(value, %{"$cond": [value, 1, 0]})
