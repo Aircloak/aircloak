@@ -1,3 +1,9 @@
+## Version 20.1.2
+
+### Bugfixes
+
+- Fixed crash when executing query over analyst table.
+
 ## Version 20.1.1
 
 ### New features

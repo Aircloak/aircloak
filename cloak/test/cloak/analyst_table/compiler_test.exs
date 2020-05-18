@@ -127,7 +127,7 @@ defmodule Cloak.AnalystTable.CompilerTest do
                ~s/SELECT "mv1"."user_id" AS "user_id",/ <>
                  ~s/PG_TEMP.AC_MUL(CAST("mv1"."x" AS bigint), CAST("mv1"."x" AS bigint)) AS "x",/ <>
                  ~s/MIN("mv1"."x") AS "__ac_nlc__0",/ <>
-                 ~s/MAX("mv1"."x") AS "__ac_nlc__1",COUNT(*) AS "__ac_count_star"/ <>
+                 ~s/MAX("mv1"."x") AS "__ac_nlc__1"/ <>
                  ~s/ FROM "cloak_test"."mv1" AS "mv1"/ <>
                  ~s/ GROUP BY "mv1"."user_id", PG_TEMP.AC_MUL(CAST("mv1"."x" AS bigint), CAST("mv1"."x" AS bigint))/
     end
