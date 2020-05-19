@@ -421,6 +421,8 @@ For simplicity, these substitutions are not shown in the [example database query
 
 As described in the [JOIN timing attack](./attacks.md#join-timing-attack), an analyst can strongly influence query execution time in the database by including `JOIN` expressions that may return an empty table.
 [ghi3691](https://github.com/Aircloak/aircloak/issues/3691)
+[ghi4083](https://github.com/Aircloak/aircloak/issues/4083)
+[ghi4164](https://github.com/Aircloak/aircloak/issues/4164)
 
 To prevent this, the cloak modifies all but the last JOIN expression so that at least one row is always returned. This is done with a `UNION` operation:
 
