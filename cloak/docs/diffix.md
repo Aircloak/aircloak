@@ -23,6 +23,7 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
       - [In general](#in-general)
       - [With isolating columns](#with-isolating-columns)
     - [String functions](#string-functions)
+    - [Datetime intervals](#datetime-intervals)
     - [LIKE and NOT LIKE](#like-and-not-like)
     - [Limitations due to shadow table](#limitations-due-to-shadow-table)
     - [Conditions with two columns](#conditions-with-two-columns)
@@ -137,7 +138,7 @@ This table is refreshed every 60 days.
 
 ### Safe math functions
 
-There are a variety of functions that can throw an error in some databases, for instance divide-by-zero, numeric overflow, and taking the square root of a negative number. In such databases, the error manifests itself as a error message transmitted to the analyst, which can be exploited by an attacker (see [Error generation attacks](./attacks.md#error-generation-attacks)).
+There are a variety of functions that can throw an error in some databases, for instance divide-by-zero, numeric overflow, datetime overflow, and taking the square root of a negative number. In such databases, the error manifests itself as a error message transmitted to the analyst, which can be exploited by an attacker (see [Error generation attacks](./attacks.md#error-generation-attacks)).
 
 If the database allows user-defined exception handlers, then these are installed in the database, either by the cloak when it connects, through configuration of the database prior to cloak connection. If not, then the cloak modifies SQL to prevent exceptions. In both cases, errors are prevented from being transmitted to the analyst. See [Determine if safe math functions needed](#determine-if-safe-math-functions-needed).
 
@@ -145,10 +146,10 @@ If the database allows user-defined exception handlers, then these are installed
 
 The [safe math functions](#safe-math-functions) unfortunately slow down query execution. To mitigate this, the cloak conservatively estimates when a math function *might* result in an exception, and only executes the safe functions in these cases.
 
-In order to make this estimate for numeric [overflow](./attacks.md#overflow) exceptions, the cloak records a minimum and maximum value for each numeric column. These recorded values are not the true minimum and maximum values, because an attacker could then detect these values through a series of queries that detect when a safe function was executed through a timing attack.
+In order to make this estimate for numeric and date/time/datetime [overflow](./attacks.md#overflow) exceptions, the cloak records an anonymized minimum and maximum value for each numeric and date/time/datetime column. These recorded values are not the true minimum and maximum values, because an attacker could then detect these values through a series of queries that detect when a safe function was executed through a timing attack.
 [ghi3780](https://github.com/Aircloak/aircloak/issues/3780)
 
-With high (but not 100%) probability, the approximated min and max exceed the true min and max, and is computed as follows:
+With high (but not 100%) probability, the approximated min and max exceed the true min and max. For numeric columns they are computed as follows:
 
 1. Take the top/bottom 1000 values from a given column (note that a given user can have multiple values)
 2. Discard all but the biggest/smallest value for each user out of those
@@ -162,6 +163,11 @@ With high (but not 100%) probability, the approximated min and max exceed the tr
   * If both are positive, multiply max by 10 and divide min by 10
   * If both are negative, multiply min by 10 and divide max by 10
 7. If there are not enough values to compute either min or max, set the bounds to :unknown and always use safe math functions
+
+The procedure for `date`, `time`, and `datetime` columns is similar but differs in the following two ways:
+1. In step 5, the closest snapped value is computed from '1900-01-01' (rather than zero, as is the case with numeric columns).
+2. In step 6, the max is expanded by adding 50 years (rather than multiplying by 10).
+[ghi3794](https://github.com/Aircloak/aircloak/issues/3794)
 
 # Handle incoming SQL
 
@@ -253,6 +259,11 @@ In order to generally reduce the attack surface available with string functions 
 1. Columns which have undergone a string function cannot be combined with other transformations.
 2. String functions cannot be applied to columns that have undergone multiple casts.
 3. Results of string functions can only be compared with constants or with other columns.
+
+### Datetime intervals
+
+The cloak allows `date`, `time`, and `datetime` math using intervals (for instance, `datetime_col + interval 'PT1H2M3S'`). In order to limit the number of cases that need to be checked for datetime overflow, the cloak limits overflow math to `datetime_col + interval` and `datetime_col = interval`. Math operations involving multiple intervals (`interval + interval`) or intervals and constants `integer * real` are prohibited.
+[ghi3794](https://github.com/Aircloak/aircloak/issues/3794)
 
 ### LIKE and NOT LIKE
 
@@ -847,7 +858,7 @@ reported_noise = max(
 
 ### Suppress aggregate values
 
-The aggregates `min()` and `max()` often have very poor accuracy when the number of distinct users is low. To mitigate this, the cloak reports `NULL` for `min()` and `max()` when the number of distinct users is less than a noisy threshold with mean 10 and a standard deviation of `(0.5 * L)`, where `L` is the number of noise layers. Note that the bucket itself is still reported: only the `min()` or `max()` aggregate itself is set to `NULL`.
+When the number of distinct users is low, the aggregates `min()`, `max()`, `sum()`, `avg()` and `stddev()` can potentially reveal information about the underlying values. In addition, the accuracy can be quite poor. To mitigate these factors, the cloak reports `NULL` when the number of distinct users is less than a noisy threshold with mean 10 and a standard deviation of `(0.5 * L)`, where `L` is the number of noise layers. Note that the bucket itself is still reported: only the aggregate value itself is set to `NULL`.
 
 # Aggregation function count distinct
 

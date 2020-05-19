@@ -6,6 +6,7 @@
 - The `IS [NOT] NULL` operator is restricted to clear expressions.
 - Aggregators are restricted to clear expressions.
 - Dropped support for non-datetime/interval arithmetic.
+- `floor`, `ceil` and `cast(real as integer)` are now considered implicit ranges.
 
 ### New features
 
@@ -16,6 +17,7 @@
 ### Bugfixes
 
 - Fixed filtering of censored values in standard queries.
+- Verify implicit range usage on both sides of a condition.
 
 ### Changes
 
