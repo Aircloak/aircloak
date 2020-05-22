@@ -1,6 +1,6 @@
-# Specification for Diffix Cedar
+# Specification for Diffix Dogwood
 
-The anonymization algorithm underlying Aircloak Insights is Diffix. The current version of Diffix is Cedar. This section describes the operation of Diffix Cedar.  It explains how and why Diffix Cedar protects against [known attacks](./attacks.md#attacks-on-diffix-cedar), thus providing strong anonymity. 
+The anonymization algorithm underlying Aircloak Insights is Diffix. The current version of Diffix is Dogwood. This section describes the operation of Diffix Dogwood.  It explains how and why Diffix Dogwood protects against [known attacks](./attacks.md#attacks-on-diffix-dogwood), thus providing strong anonymity. 
 
 ## Table Of Contents
 
@@ -57,21 +57,21 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
 
 ## Key concepts
 
-Anonymization in Diffix Cedar has two main aspects, **SQL constraints** and **answer perturbation**. The goal is to allow as much SQL as possible, especially commonly used SQL, and to minimize answer perturbation while maintaining strong anonymity. Strong anonymity is achieved when an attacker's guess as to the attributes of individual users either has low confidence with high probability, or high confidence with low probability.
+Anonymization in Diffix Dogwood has two main aspects, **SQL constraints** and **answer perturbation**. The goal is to allow as much SQL as possible, especially commonly used SQL, and to minimize answer perturbation while maintaining strong anonymity. Strong anonymity is achieved when an attacker's guess as to the attributes of individual users either has low confidence with high probability, or high confidence with low probability.
 
-In order to safely allow as much SQL as possible, Diffix Cedar constrains SQL in a fine-grained fashion. While some entire SQL features are prevented (for instance window functions), more often an SQL feature is allowed but constrained in terms of what other features it may be used in combination with, how frequently it may be used, or even what constant values it may be used with.
+In order to safely allow as much SQL as possible, Diffix Dogwood constrains SQL in a fine-grained fashion. While some entire SQL features are prevented (for instance window functions), more often an SQL feature is allowed but constrained in terms of what other features it may be used in combination with, how frequently it may be used, or even what constant values it may be used with.
 
 Perturbation takes the form of suppressing answers and distorting answers. The latter occurs through both adjusting extreme column values (flattening) and adding noise. Key mechanisms include:
 
 - **Answer suppression:** Answers that pertain to too few distinct users are suppressed.
-- **Sticky layered noise:** Diffix Cedar adds noise taken from a Gaussian distribution. The noise is sticky in that identical query conditions generate identical noise.  The noise is layered in that each query condition contributes a separate noise value (which are summed together to produce the final noise value).  There are in fact two types of noise layers, *UID-noise* and *static-noise*. Static-noise is sticky in the sense that the same filter condition, for instance `age = 20`, will typically generate the same noise sample. UID-noise is sticky in the sense that the same filter condition combined with the same set of selected users will typically generate the same noise sample.
+- **Sticky layered noise:** Diffix Dogwood adds noise taken from a Gaussian distribution. The noise is sticky in that identical query conditions generate identical noise.  The noise is layered in that each query condition contributes a separate noise value (which are summed together to produce the final noise value).  There are in fact two types of noise layers, *UID-noise* and *static-noise*. Static-noise is sticky in the sense that the same filter condition, for instance `age = 20`, will typically generate the same noise sample. UID-noise is sticky in the sense that the same filter condition combined with the same set of selected users will typically generate the same noise sample.
 - **Extreme value flattening:** When a few individual users contribute an extreme amount to an answer (relative to other users), then the values contributed by those users are reduced (or increased if negative) to be comparable with values contributed by other users.
 
-Diffix Cedar can report how much answer suppression has taken place and how much noise was added to an answer. Diffix Cedar cannot, however, report how much extreme value flattening has taken place.
+Diffix Dogwood can report how much answer suppression has taken place and how much noise was added to an answer. Diffix Dogwood cannot, however, report how much extreme value flattening has taken place.
 
 ## Deployment
 
-Diffix Cedar is deployed as a function or device that sits between an analyst (or application) and an un-anonymized database. In the Aircloak system, this device is referred to as Insights Cloak. In this document, for readability, we refer to is simply as the cloak.
+Diffix Dogwood is deployed as a function or device that sits between an analyst (or application) and an un-anonymized database. In the Aircloak system, this device is referred to as Insights Cloak. In this document, for readability, we refer to is simply as the cloak.
 
 An SQL interface is exposed to the analyst. The database may be an SQL database, or may be some other kind of data store. The cloak translates the analyst SQL into the appropriate query language.
 
@@ -187,7 +187,7 @@ While the cloak allows inequality operators (`> | >= | < | <=`), there are restr
 
 This document refers to all inequalities that are bounded on both sides as *ranges*.
 
-In addition to the ranges that can be specified with `BETWEEN` and inequality operators, some functions implicitly define a range. For instance, the function `hour` defines a range of width one hour. The definition of range in this document includes implicit ranges. These are: `hour`, `minute`, `second`, `year`, `quarter`, `month`, `day`, `weekday`, `date_trunc`, `round`, `trunc`, and `bucket`.
+In addition to the ranges that can be specified with `BETWEEN` and inequality operators, some functions implicitly define a range. For instance, the function `hour` defines a range of width one hour. The definition of range in this document includes implicit ranges. These are: `hour`, `minute`, `second`, `year`, `quarter`, `month`, `day`, `weekday`, `date_trunc`, `floor`, `ceil`, `cast to int`, `round`, `trunc`, and `bucket`.
 
 Inequalities that are not ranges (not bounded on both sides) are possible in the special case of [Conditions with two columns](#conditions-with-two-columns).
 
@@ -612,7 +612,7 @@ To prevent this, the cloak flattens the extreme user or users values to hide the
 
 In Diffix Birch, the perturbations for extreme and heavy contributors were done explicitly. That is, the cloak would explicitly determine the contributions of each user, identify the extreme and heavy contributors, and compute the flattening and noise accordingly. This process would sometimes incur a heavy performance penalty, as the database would have to convey per-user information to the cloak.
 
-To improve performance, Diffix Cedar uses per-bucket rather than per-user information. In most cases, this substantially reduces the amount of data transferred from the database to the cloak. Unfortunately, this means that the cloak can no longer explicitly determine the extreme and heavy contributors. Instead, the cloak uses aggregate statistics about the users in each bucket to *estimate* the extreme and heavy contributors.
+To improve performance, Diffix Dogwood uses per-bucket rather than per-user information. In most cases, this substantially reduces the amount of data transferred from the database to the cloak. Unfortunately, this means that the cloak can no longer explicitly determine the extreme and heavy contributors. Instead, the cloak uses aggregate statistics about the users in each bucket to *estimate* the extreme and heavy contributors.
 
 The statistics are these (line numbers taken from [example query](#generate-db-query)):
 

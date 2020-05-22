@@ -1,6 +1,6 @@
-# Attacks on Diffix Cedar
+# Attacks on Diffix Dogwood
 
-This section describes a variety of attacks against anonymization mechanisms. Some of the attacks are general in nature (can be used against multiple mechanisms). Some are specific to Diffix overall, and others specific to [Diffix Cedar](diffix.md). In what follows, the *cloak* is the device that implements Diffix.
+This section describes a variety of attacks against anonymization mechanisms. Some of the attacks are general in nature (can be used against multiple mechanisms). Some are specific to Diffix overall, and others specific to [Diffix Dogwood](diffix.md). In what follows, the *cloak* is the device that implements Diffix.
 
 ## Table Of Contents
 
@@ -176,7 +176,7 @@ To prevent this, Diffix uses a noisy threshold using sticky layered noise. Becau
 
 ## Noise signal attack
 
-Diffix can report the amount of noise added to the aggregates `count()`, `sum()`, `avg()`, and `stddev()`. This is reported as the standard deviation of the noise. In Diffix Cedar, the amount of noise is influenced by the `min` and `max` values. If a user has an extreme value (say 2x or 3x greater than the next highest value), then the presence or absence of that user in a bucket may have a significant effect on the amount of noise added.
+Diffix can report the amount of noise added to the aggregates `count()`, `sum()`, `avg()`, and `stddev()`. This is reported as the standard deviation of the noise. In Diffix Dogwood, the amount of noise is influenced by the `min` and `max` values. If a user has an extreme value (say 2x or 3x greater than the next highest value), then the presence or absence of that user in a bucket may have a significant effect on the amount of noise added.
 
 This opens an attack whereby the attacker can determine which bucket the extreme user is in by noting which bucket reports the most noise (for instance, using `sum_noise()`).
 
@@ -240,7 +240,7 @@ Text datatypes for instance are all converted to lower case for the purpose of s
 
 ### Different syntax and semantics, but same result
 
-In Diffix Cedar, an analyst can obtain multiple samples for `<>` text conditions using `substring()`. For instance, suppose that a text column contains two values, 'ABCDE' and 'FGHIJ'. Each of the following conditions would generate a different seed even though the underlying answers are the same:
+In Diffix Dogwood, an analyst can obtain multiple samples for `<>` text conditions using `substring()`. For instance, suppose that a text column contains two values, 'ABCDE' and 'FGHIJ'. Each of the following conditions would generate a different seed even though the underlying answers are the same:
 
 ```
 WHERE substring(col for 1) <> 'A'
@@ -296,7 +296,7 @@ WHERE floor(5 * pow((client_id * 2),0.5) + 0.5) = floor(5 * pow((client_id * 2),
 
 where different constants were used to effectly select different users.
 
-The current defense is to force `clear` conditions (no math) on columns that have a substantial fraction of user-unique values.
+The current defense is twofold: to force `clear` conditions (no math) on columns that have a substantial fraction of user-unique values, and to force `clear` conditions on all implicit ranges (for instance `round()`, `date_trunc()`).
 
 ### JOINs with non-personal tables
 
