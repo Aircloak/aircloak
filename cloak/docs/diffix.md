@@ -195,9 +195,10 @@ Inequalities that are not ranges (not bounded on both sides) are possible in the
 
 The cloak may require that certain conditions are *clear*. The primary purpose of clear conditions is so that the cloak can [seed noise layers](#determine-seeds) through [SQL inspection](#sql-inspection) rather than by [floating the column value](#floating-columns-values). The following operators must be clear:
 
-* negative conditions (`col <> val`) including `NOT IN`.
+* negative conditions (`col <> val`) including `NOT IN` and `IS NOT NULL`.
 * `IN` (`col IN (val1, val2)`), though note that the column is floated for the purpose of seeding the [static noise layer](#noise-layers) (not the per-element UID-noise layers).
 * range (`col BETWEEN val1 and val2`), including implicit ranges.
+* expressions within aggregation functions (for instance `sum(col + 1)`).
 
 Negative conditions must be clear because it would not be efficient to float a value that is being excluded by the condition.
 
@@ -206,6 +207,7 @@ The column in a range can be floated. However, by generating the seed materials 
 The term "clear" implies that it is clear from SQL inspection alone what the semantics of the conditions are, and therefore how to seed the corresponding noise layers.
 
 Clear conditions also have the effect of reducing the attack surface since it gives an attacker fewer mechanisms to work with. For isolating columns, the cloak forces clear conditions for all operators.
+[ghi4091](https://github.com/Aircloak/aircloak/issues/4091)
 
 In earlier versions of Diffix, clear conditions were limited to only columns on the left-hand-side: no column functions were allowed (for instance `col = val`). This restriction was subsequently relaxed to allow operators that are on one hand frequently useful to analysts, but on the other hand do not give analysts an adequately large attack surface (for instance `lower(col) = val`).
 [ghi2982](https://github.com/Aircloak/aircloak/issues/2982)
