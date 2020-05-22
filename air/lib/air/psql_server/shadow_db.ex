@@ -2,20 +2,13 @@ defmodule Air.PsqlServer.ShadowDb do
   @moduledoc """
   Service for managing shadow databases.
 
-  A shadow database is a local PostgreSQL database which corresponds in structure to data source. We maintain these
-  databases so we can offload PostgreSQL specific queries issued over the psql interface.
+  A shadow database is a local PostgreSQL database which corresponds in structure to data source.
+  We maintain these databases so we can offload PostgreSQL specific queries issued over the psql interface.
   """
 
-  use Supervisor
   require Logger
   require Aircloak.DeployConfig
-  alias Aircloak.ChildSpec
-  alias Air.PsqlServer.ShadowDb.{Connection, ConnectionPool, Database, Manager}
-  alias Air.Schemas.User
-  import Aircloak, only: [in_env: 1]
-
-  @database_supervisor __MODULE__.Databases
-  @registry __MODULE__.Registry
+  alias Air.PsqlServer.ShadowDb.{Connection, Schema}
 
   @type connection_params :: %{
           host: String.t(),
@@ -42,69 +35,17 @@ defmodule Air.PsqlServer.ShadowDb do
   @doc "Executes the query on the given data source."
   @spec query(User.t(), String.t(), String.t(), [term]) :: Connection.query_result()
   def query(user, data_source_name, query, params) do
-    ensure_database!(user, data_source_name)
-    Manager.wait_until_initialized(user, data_source_name)
-    ConnectionPool.query(user, data_source_name, query, params)
+    run(user, data_source_name, fn conn ->
+      Connection.query(conn, query, params)
+    end)
   end
 
   @doc "Parses the query on the given data source."
   @spec parse(User.t(), String.t(), String.t()) :: Connection.parse_result()
   def parse(user, data_source_name, query) do
-    ensure_database!(user, data_source_name)
-    Manager.wait_until_initialized(user, data_source_name)
-    ConnectionPool.parse(user, data_source_name, query)
-  end
-
-  @doc "Updates the shadow database for the given data source."
-  @spec update(User.t(), String.t()) :: :ok
-  def update(user, data_source_name) do
-    ensure_database!(user, data_source_name)
-    Manager.update_definition(user, data_source_name)
-  end
-
-  @doc "Drops the given shadow database."
-  @spec drop(User.t(), String.t()) :: :ok
-  def drop(user, data_source_name) do
-    with pid when is_pid(pid) <- Database.whereis(user, data_source_name),
-         do: DynamicSupervisor.terminate_child(@database_supervisor, pid)
-
-    # Manager.drop_database creates a connection and closes it, and closing a connection requires the client process to
-    # trap exits. Since we don't want to implicitly start trapping exit in the caller of drop/1 we're doing this in a
-    # separate task.
-    Task.start_link(fn ->
-      Process.flag(:trap_exit, true)
-      Manager.drop_database(user, data_source_name)
+    run(user, data_source_name, fn conn ->
+      Connection.parse(conn, query)
     end)
-
-    :ok
-  end
-
-  @doc "Returns the name of the shadow database for the given data source."
-  @spec db_name(User.t(), String.t()) :: String.t()
-  defdelegate db_name(user, data_source), to: Manager
-
-  @doc "Returns the registered name for the process related to the given data source in a given role."
-  @spec registered_name(User.t(), String.t(), term()) :: {:via, module, {atom, term}}
-  def registered_name(user, data_source_name, role),
-    do: {:via, Registry, {@registry, {user.id, data_source_name, role}}}
-
-  # -------------------------------------------------------------------
-  # Supervisor callbacks
-  # -------------------------------------------------------------------
-
-  @impl Supervisor
-  def init(_arg) do
-    wait_local_postgresql()
-
-    Supervisor.init(
-      [
-        ChildSpec.registry(:unique, @registry),
-        ChildSpec.dynamic_supervisor(name: @database_supervisor),
-        in_env(test: nil, else: Air.PsqlServer.ShadowDb.SchemaSynchronizer)
-      ]
-      |> Enum.reject(&is_nil/1),
-      strategy: :one_for_one
-    )
   end
 
   # -------------------------------------------------------------------
@@ -122,42 +63,43 @@ defmodule Air.PsqlServer.ShadowDb do
     }
   end
 
-  defp ensure_database!(user, data_source_name) do
-    with nil <- Database.whereis(user, data_source_name) do
-      case DynamicSupervisor.start_child(@database_supervisor, {Database, {user, data_source_name}}) do
-        {:ok, _pid} -> :ok
-        {:error, {:already_started, _pid}} -> :ok
-      end
-    end
-  end
+  # We chunk updates in batches because the operation may fail if the SQL string becomes too long.
+  @chunk_size 30
 
-  defp wait_local_postgresql() do
-    Logger.info("waiting for local PostgreSQL instance")
+  defp run(user, data_source_name, fun) do
+    :global.trans({__MODULE__, self()}, fn ->
+      {time, result} =
+        :timer.tc(fn ->
+          Connection.run!(fn conn ->
+            Connection.execute!(conn, "BEGIN TRANSACTION")
 
-    task =
-      Task.async(fn ->
-        Process.flag(:trap_exit, true)
-
-        Stream.repeatedly(&Manager.db_server_available?/0)
-        |> Stream.intersperse(:sleep)
-        |> Stream.map(fn
-          :sleep -> Process.sleep(:timer.seconds(5))
-          el -> el
+            try do
+              build_schema(conn, user, data_source_name)
+              fun.(conn)
+            after
+              Connection.execute!(conn, "ROLLBACK")
+            end
+          end)
         end)
-        |> Stream.drop_while(&(&1 != true))
-        |> Enum.take(1)
-      end)
 
-    case Task.yield(task, :timer.minutes(1)) do
-      nil -> raise "local PostgreSQL is not available"
-      _ -> :ok
-    end
+      Logger.debug(fn -> "Shadow db operation took #{time / 1000}ms." end)
+      result
+    end)
   end
 
-  # -------------------------------------------------------------------
-  # Supervision tree
-  # -------------------------------------------------------------------
+  defp build_schema(conn, user, data_source_name) do
+    Schema.build(user, data_source_name)
+    |> Enum.chunk_every(@chunk_size)
+    |> Enum.each(fn chunk ->
+      sql = Enum.join(chunk, "\n")
 
-  @doc false
-  def start_link(_arg), do: Supervisor.start_link(__MODULE__, nil, name: __MODULE__)
+      case Connection.execute(conn, sql) do
+        {:error, error} ->
+          Logger.error("Error building Shadow DB for #{data_source_name}/#{user.id}: #{error}")
+
+        :ok ->
+          :ok
+      end
+    end)
+  end
 end
