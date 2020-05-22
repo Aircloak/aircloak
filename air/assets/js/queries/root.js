@@ -37,6 +37,7 @@ type Props = {
 };
 
 type State = {
+  statement: string,
   sessionResults: Result[],
   history: History,
   connected: boolean,
@@ -70,13 +71,12 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     } = props;
 
     this.state = {
+      statement: this.initialStatement(),
       sessionResults: pendingQueries,
       connected: true,
       dataSourceStatus,
       history: emptyHistory,
     };
-
-    this.statement = this.initialStatement();
 
     this.setStatement = this.setStatement.bind(this);
     this.runQuery = debounce(this.runQuery.bind(this), runQueryTimeout, {
@@ -109,8 +109,6 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   // eslint-disable-next-line react/static-property-placement
   static contextType = AuthContext;
 
-  statement: string;
-
   connectedInterval: IntervalID;
 
   channel: Channel;
@@ -139,7 +137,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   };
 
   setStatement = (statement: string) => {
-    this.statement = statement;
+    this.setState({ statement });
   };
 
   setResults = (results: Result[]) => {
@@ -246,7 +244,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
   queryData = (queryId: string) => {
     const { dataSourceName, sessionId } = this.props;
-    const { statement } = this;
+    const { statement } = this.state;
     return JSON.stringify({
       query: {
         id: queryId,
@@ -263,7 +261,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     window.clearErrorLocation();
 
     const queryId = uuidv4();
-    const { statement } = this;
+    const { statement } = this.state;
     const { authentication } = this.context;
 
     this.addPendingResult(queryId, statement);
@@ -359,13 +357,13 @@ export default class QueriesView extends React.PureComponent<Props, State> {
         <CodeEditor
           onRun={this.runQuery}
           onChange={this.setStatement}
-          statement={this.statement}
+          statement={this.state.statement}
           tableNames={this.tableNames()}
           columnNames={this.columnNames()}
         />
       );
     } else {
-      return <CodeViewer statement={this.statement} />;
+      return <CodeViewer statement={this.state.statement} />;
     }
   };
 
