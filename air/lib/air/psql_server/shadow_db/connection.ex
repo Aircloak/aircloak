@@ -9,6 +9,7 @@ defmodule Air.PsqlServer.ShadowDb.Connection do
   Record.defrecordp(:epgsql_error, Record.extract(:error, from_lib: "epgsql/include/epgsql.hrl"))
 
   @type query_result :: {:ok, [column], [row]} | {:error, String.t()}
+  @type execute_result :: :ok | {:error, String.t()}
   @type parse_result :: {:ok, [column], [atom]} | {:error, String.t()}
   @type column :: %{name: String.t(), type: atom}
   @type row :: [term]
@@ -18,9 +19,9 @@ defmodule Air.PsqlServer.ShadowDb.Connection do
   # -------------------------------------------------------------------
 
   @doc "Opens the new connection, invokes the given lambda, closes the connection, and returns the result."
-  @spec execute!(String.t(), (pid -> result)) :: result when result: var
-  def execute!(database_name, fun) do
-    conn = open!(database_name)
+  @spec run!((pid -> result)) :: result when result: var
+  def run!(fun) do
+    conn = open!()
 
     try do
       fun.(conn)
@@ -30,15 +31,15 @@ defmodule Air.PsqlServer.ShadowDb.Connection do
   end
 
   @doc "Opens the connection, raises on error."
-  @spec open!(String.t()) :: pid
-  def open!(database_name) do
-    {:ok, pid} = open(database_name)
+  @spec open!() :: pid
+  def open!() do
+    {:ok, pid} = open()
     pid
   end
 
   @doc "Opens the connection."
-  @spec open(String.t()) :: {:ok, pid} | {:error, term}
-  def open(database_name) do
+  @spec open() :: {:ok, pid} | {:error, term}
+  def open() do
     connection_params = Air.PsqlServer.ShadowDb.connection_params()
 
     :epgsql.connect(
@@ -47,26 +48,13 @@ defmodule Air.PsqlServer.ShadowDb.Connection do
       ssl: connection_params.ssl,
       username: to_charlist(connection_params.user),
       password: to_charlist(connection_params.password),
-      database: to_charlist(database_name)
+      database: to_charlist(connection_params.name)
     )
   end
 
   @doc "Closes the connection."
   @spec close(pid) :: :ok
-  def close(pid) do
-    Process.exit(pid, :shutdown)
-
-    receive do
-      {:EXIT, ^pid, _reason} -> :ok
-    after
-      :timer.seconds(5) ->
-        Process.exit(pid, :kill)
-
-        receive do
-          {:EXIT, ^pid, _reason} -> :ok
-        end
-    end
-  end
+  def close(pid), do: :epgsql.close(pid)
 
   @doc "Executes the given SQL query."
   @spec query!(pid, String.t(), [term]) :: {[column], [row]}
@@ -87,6 +75,34 @@ defmodule Air.PsqlServer.ShadowDb.Connection do
       {:error, epgsql_error} ->
         Logger.error("error executing shadow db query: #{query}")
         {:error, epgsql_error(epgsql_error, :message)}
+    end
+  end
+
+  @doc "Executes the given SQL statement(s)."
+  @spec execute!(pid, String.t()) :: :ok
+  def execute!(pid, query) do
+    :ok = execute(pid, query)
+    :ok
+  end
+
+  @doc "Executes the given SQL statement(s)."
+  @spec execute(pid, String.t()) :: execute_result()
+  def execute(conn, statement) do
+    case :epgsql.squery(conn, to_charlist(statement)) do
+      {:error, epgsql_error} ->
+        execution_error(statement, epgsql_error)
+
+      results when is_list(results) ->
+        Enum.find_value(results, :ok, fn
+          {:error, epgsql_error} ->
+            execution_error(statement, epgsql_error)
+
+          _ ->
+            false
+        end)
+
+      _ ->
+        :ok
     end
   end
 
@@ -116,18 +132,6 @@ defmodule Air.PsqlServer.ShadowDb.Connection do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp connect(%{user: user, data_source_name: data_source_name}, attempts \\ 10) do
-    {:ok, _} = open(Air.PsqlServer.ShadowDb.db_name(user, data_source_name))
-  catch
-    _, _ ->
-      if attempts == 1 do
-        raise "can't connect to the shadow database for `#{data_source_name}`"
-      else
-        Process.sleep(:timer.seconds(1))
-        connect(data_source_name, attempts - 1)
-      end
-  end
 
   defp map_column(epgsql_column) do
     %{
@@ -196,18 +200,8 @@ defmodule Air.PsqlServer.ShadowDb.Connection do
     {{hours, minutes, seconds_int}, microseconds}
   end
 
-  # -------------------------------------------------------------------
-  # Supervision tree
-  # -------------------------------------------------------------------
-
-  @doc false
-  def child_spec(data_source_name) do
-    # We're using epgsql instead of Postgrex, since epgsql supports lower level functions, such as query parsing, and
-    # because it returns proper type information, even for queries which return no rows. Finally, Postgrex suffers from
-    # a potential information loss for OID types (see https://hexdocs.pm/postgrex/readme.html#oid-type-encoding).
-    %{
-      id: __MODULE__,
-      start: fn -> connect(data_source_name) end
-    }
+  defp execution_error(statement, epgsql_error) do
+    Logger.error("error executing shadow db query: #{statement}")
+    {:error, epgsql_error(epgsql_error, :message)}
   end
 end
