@@ -421,6 +421,8 @@ For simplicity, these substitutions are not shown in the [example database query
 
 As described in the [JOIN timing attack](./attacks.md#join-timing-attack), an analyst can strongly influence query execution time in the database by including `JOIN` expressions that may return an empty table.
 [ghi3691](https://github.com/Aircloak/aircloak/issues/3691)
+[ghi4083](https://github.com/Aircloak/aircloak/issues/4083)
+[ghi4164](https://github.com/Aircloak/aircloak/issues/4164)
 
 To prevent this, the cloak modifies all but the last JOIN expression so that at least one row is always returned. This is done with a `UNION` operation:
 
@@ -430,12 +432,19 @@ original_expression UNION inverse_original_expression
 
 The second expression of the `UNION` returns a single row if and only if the first expression, which is the original expression, returns no rows. Following is an example:
 
-```
+```sql
 SELECT uid
 FROM accounts
 WHERE lastname = 'Zamora'
   AND birthdate = '1996-11-16'
-UNION ALL SELECT -2147483648
+UNION ALL
+SELECT *
+FROM (
+   SELECT uid
+   FROM accounts
+   LIMIT 1
+   OFFSET 0
+   ) t
 WHERE NOT EXISTS
 (
    SELECT uid
@@ -445,7 +454,7 @@ WHERE NOT EXISTS
 )
 ```
 
-The original `JOIN` expression is the part above the `UNION`. It is repeated within the `WHERE NOT EXISTS` expression. The forced UID `-2147483648` is chosen to be a value that is very unlikely to exist in practice. As a result, if the forced UID is selected, it won't match anything from the other `JOIN` expressions and so won't effect the answer.
+The original `JOIN` expression is the part above the `UNION`. It is repeated within the `WHERE NOT EXISTS` expression. If the original `JOIN` expression returns nothing, the the `UNION` expression returns a single row.
 
 ### Add protection against divide-by-zero attacks
 
