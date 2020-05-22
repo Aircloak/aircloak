@@ -222,17 +222,6 @@ defmodule Air.Service.Cloak.Test do
     assert Enum.sort(Task.await(task)) == ["bar", "baz", "foo"]
   end
 
-  describe "cloak events" do
-    test "publishes data sources added event" do
-      Cloak.subscribe_to(:data_sources_registered)
-
-      Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
-
-      assert_receive {:data_sources_registered, %{data_sources: _}}
-      Cloak.unsubscribe_from(:data_sources_registered)
-    end
-  end
-
   defp data_source_with_columns(columns \\ [table_column()]) do
     %{
       name: @data_source_name,

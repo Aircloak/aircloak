@@ -8,25 +8,10 @@ defmodule Air.Service.AnalystTable do
   import Ecto.Query
 
   @creation_status_supervisor __MODULE__.CreationStatusSupervisor
-  @notifications_registry __MODULE__.NotificationsRegistry
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Subscribes to notifications about asynchronous activities."
-  @spec subscribe_to(:revalidated_analyst_tables) :: :ok
-  def subscribe_to(notification) do
-    Registry.register(@notifications_registry, notification, nil)
-    :ok
-  end
-
-  @doc "Unsubscribes from notifications about asynchronous activities."
-  @spec unsubscribe_from(:revalidated_analyst_tables) :: :ok
-  def unsubscribe_from(notification) do
-    Registry.unregister(@notifications_registry, notification)
-    :ok
-  end
 
   @doc "Creates the new analyst table, and stores it in cloak and in air."
   @spec create(Air.Schemas.User.t(), DataSource.t(), String.t(), String.t()) ::
@@ -182,12 +167,6 @@ defmodule Air.Service.AnalystTable do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp notify_subscribers(notification, payload),
-    do:
-      Registry.lookup(@notifications_registry, notification)
-      |> Enum.map(fn {pid, nil} -> pid end)
-      |> Enum.each(&send(&1, {notification, payload}))
-
   defp transactional_store(changeset, old_table_name, user, data_source) do
     Repo.transaction(fn ->
       changeset =
@@ -210,7 +189,6 @@ defmodule Air.Service.AnalystTable do
              |> Ecto.Changeset.put_embed(:columns, columns),
            {:ok, table} <- Repo.update(table_changeset) do
         sync_cloaks(table)
-        notify_subscribers(:revalidated_analyst_tables, %{user_id: user.id, data_source_id: data_source.id})
         table
       else
         {:error, error_changeset} ->
@@ -275,8 +253,7 @@ defmodule Air.Service.AnalystTable do
     do:
       Aircloak.ChildSpec.supervisor(
         [
-          {Task.Supervisor, name: @creation_status_supervisor},
-          Aircloak.ChildSpec.registry(:duplicate, @notifications_registry)
+          {Task.Supervisor, name: @creation_status_supervisor}
         ],
         strategy: :one_for_one,
         name: __MODULE__
