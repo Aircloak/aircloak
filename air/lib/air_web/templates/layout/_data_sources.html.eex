@@ -1,0 +1,13 @@
+<div class="dropdown">
+  <button class="btn dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    <%= @data_source.name %>
+  </button>
+  <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+    <h6 class="dropdown-header">Data Sources</h6>
+    <%= for data_source <- @data_sources do %>
+      <a  href="<%= data_source_path(@conn, :show, data_source.name) %>" class="dropdown-item <%= if data_source == @data_source, do: "active" %>">
+        <%= data_source.name %> <%= data_source_badge(data_source) %>
+      </a>
+    <% end %>
+  </div>
+</div>

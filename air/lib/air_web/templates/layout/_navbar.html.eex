@@ -1,18 +1,16 @@
 <header>
   <nav role="navigation" class="navbar navbar-light bg-light fixed-top navbar-expand-md">
     <a class="navbar-brand logo" title="Back to the frontpage" href="/"></a>
+    <%= if show_data_source_dropdown?(@conn), do: render("_data_sources.html", conn: @conn, data_source: @conn.assigns.data_source, data_sources: @conn.assigns.data_sources) %>
+
     <button type="button" class="navbar-toggler collapsed" data-toggle="collapse"
-    data-target="#collapsed-navbar" aria-expanded="false"> 
+    data-target="#collapsed-navbar" aria-expanded="false">
       <span class="sr-only">Toggle navigation</span> &#x2630;
-    </button> 
+    </button>
     <div class="collapse navbar-collapse"
     id="collapsed-navbar">
       <ul class="nav navbar-nav ml-auto">
         <%= warning_navbar_link(@conn) %>
-
-        <%= if permitted?(@conn, AirWeb.DataSourceController, :index) do %>
-          <%= navbar_link(@conn, "Data sources", data_source_path(@conn, :index)) %>
-        <% end %>
 
         <%= if logged_in?(@conn) do %>
           <%= navbar_link(@conn, "User Guide", "/docs/", rel: "help", target: "_blank") %>

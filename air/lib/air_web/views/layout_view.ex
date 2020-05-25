@@ -10,6 +10,47 @@ defmodule AirWeb.LayoutView do
     end
   end
 
+  defp show_data_source_dropdown?(conn) do
+    permitted?(conn, AirWeb.DataSourceController, :index) && Map.has_key?(conn.assigns, :data_source) &&
+      Map.has_key?(conn.assigns, :data_sources)
+  end
+
+  defp data_source_badge(data_source) do
+    case Air.Service.DataSource.status(data_source) do
+      :broken ->
+        content_tag(:i, "",
+          class: "fas fa-exclamation-triangle text-warning",
+          title: "Broken",
+          "data-toggle": "tooltip",
+          "data-placement": "right"
+        )
+
+      :analyzing ->
+        content_tag(:span, "#{length(Air.Schemas.DataSource.tables(data_source))} tables",
+          class: "badge badge-warning",
+          title: "Some features unavailable pending analysis",
+          "data-toggle": "tooltip",
+          "data-placement": "right"
+        )
+
+      :online ->
+        content_tag(:span, "#{length(Air.Schemas.DataSource.tables(data_source))} tables",
+          class: "badge badge-success",
+          title: "Online",
+          "data-toggle": "tooltip",
+          "data-placement": "right"
+        )
+
+      :offline ->
+        content_tag(:i, "",
+          class: "fas fa-exclamation-triangle text-danger",
+          title: "Offline",
+          "data-toggle": "tooltip",
+          "data-placement": "right"
+        )
+    end
+  end
+
   @background_images [
     %{
       photographer: "Kalen Emsley",
