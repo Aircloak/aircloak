@@ -4,8 +4,7 @@ defmodule Cloak.DataSource.MySQL do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.SqlBuilder
-  alias Cloak.DataSource.Table
+  alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.Query.ExecutionError
 
   use Cloak.DataSource.Driver.SQL
