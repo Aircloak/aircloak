@@ -1,8 +1,8 @@
 // @flow
 
 import React from "react";
-import { UnControlled as Codemirror } from "react-codemirror2";
-import Editor from "codemirror";
+import { Controlled as Codemirror } from "react-codemirror2";
+import type { Editor, EditorChange } from "codemirror";
 
 import completions from "./code_editor/completion";
 
@@ -41,7 +41,9 @@ export default class CodeEditor extends React.Component<Props> {
     editor.showHint({ hint: this.completionList });
   };
 
-  onChange = (editor: Editor) => this.props.onChange(editor.getValue());
+  onBeforeChange = (_editor: Editor, _data: EditorChange, value: string) => {
+    this.props.onChange(value);
+  };
 
   editorDidMount = (editor: Editor) => {
     this.editor = editor;
@@ -110,7 +112,7 @@ export default class CodeEditor extends React.Component<Props> {
       <Codemirror
         value={statement}
         editorDidMount={this.editorDidMount}
-        onChange={this.onChange}
+        onBeforeChange={this.onBeforeChange}
         options={options}
         className="editable"
       />
