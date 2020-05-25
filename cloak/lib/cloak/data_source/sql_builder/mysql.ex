@@ -151,6 +151,9 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def order_by(column, :asc, _), do: [column, " ASC"]
   def order_by(column, :desc, _), do: [column, " DESC"]
 
+  @impl Dialect
+  def quote_char(), do: ?`
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
