@@ -74,7 +74,7 @@ defmodule Air.PsqlServer.ShadowDb do
             Connection.execute!(conn, "BEGIN TRANSACTION")
 
             try do
-              build_schema(conn, user, data_source_name)
+              build_schema!(conn, user, data_source_name)
               fun.(conn)
             after
               Connection.execute!(conn, "ROLLBACK")
@@ -87,19 +87,12 @@ defmodule Air.PsqlServer.ShadowDb do
     end)
   end
 
-  defp build_schema(conn, user, data_source_name) do
-    Schema.build(user, data_source_name)
+  defp build_schema!(conn, user, data_source_name) do
+    Schema.create_table_statements(user, data_source_name)
     |> Enum.chunk_every(@chunk_size)
     |> Enum.each(fn chunk ->
       sql = Enum.join(chunk, "\n")
-
-      case Connection.execute(conn, sql) do
-        {:error, error} ->
-          Logger.error("Error building Shadow DB for #{data_source_name}/#{user.id}: #{error}")
-
-        :ok ->
-          :ok
-      end
+      Connection.execute!(conn, sql)
     end)
   end
 end

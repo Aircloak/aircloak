@@ -8,8 +8,8 @@ defmodule Air.PsqlServer.ShadowDb.Schema do
   # -------------------------------------------------------------------
 
   @doc "Returns a list of CREATE TABLE statements for all selectables in the data source."
-  @spec build(User.t(), String.t()) :: [String.t()]
-  def build(user, data_source_name) do
+  @spec create_table_statements(User.t(), String.t()) :: [String.t()]
+  def create_table_statements(user, data_source_name) do
     data_source_tables(user, data_source_name)
     |> Enum.reject(& &1.broken?)
     |> Enum.map(&~s/CREATE TABLE "#{sanitize_name(&1.id)}" (#{columns_sql(&1.columns)});/)
@@ -20,11 +20,11 @@ defmodule Air.PsqlServer.ShadowDb.Schema do
   # -------------------------------------------------------------------
 
   defp data_source_tables(user, data_source_name) do
-    case Air.Service.DataSource.by_name(data_source_name) do
-      nil ->
+    case Air.Service.DataSource.fetch_as_user({:name, data_source_name}, user) do
+      {:error, _} ->
         []
 
-      data_source ->
+      {:ok, data_source} ->
         regular_tables =
           data_source
           |> Air.Schemas.DataSource.tables()
@@ -54,14 +54,15 @@ defmodule Air.PsqlServer.ShadowDb.Schema do
 
   defp normalize_tables(tables) do
     tables
-    |> Stream.map(&normalize_table/1)
+    |> Aircloak.atomize_keys()
+    |> Enum.map(&normalize_table/1)
     |> Enum.reject(&Enum.empty?(&1.columns))
   end
 
   defp normalize_table(table) do
     %{
-      id: Map.fetch!(table, "id"),
-      columns: table |> Map.get("columns", []) |> Enum.map(&normalize_column/1),
+      id: table.id,
+      columns: table.columns,
       broken?: false
     }
   end
@@ -73,8 +74,6 @@ defmodule Air.PsqlServer.ShadowDb.Schema do
       broken?: selectable.broken or Enum.empty?(selectable.columns)
     }
   end
-
-  defp normalize_column(%{"name" => name, "type" => type}), do: %{name: name, type: type}
 
   defp columns_sql(columns), do: columns |> Enum.map(&column_sql/1) |> Enum.join(", ")
 
