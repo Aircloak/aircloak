@@ -36,5 +36,5 @@ defmodule AirWeb.DataSourceView do
     do: Enum.any?(data_sources, &(&1.description || "" |> String.trim() |> String.length() > 0))
 
   defp any_with_explorer_analysis?(data_sources),
-    do: Enum.any?(data_sources, &Service.Explorer.data_source_enabled?(&1))
+    do: Service.Explorer.enabled?() && Enum.any?(data_sources, &Service.Explorer.data_source_enabled?(&1))
 end
