@@ -8,7 +8,7 @@ import QueriesView from "./queries/root";
 import SingleQueryView from "./queries/single_query_root";
 import ImmutableSingleQueryView from "./queries/immutable_single_query";
 import SelectableInfoView from "./selectable_info/root";
-import EditorView from "./view/editor";
+import ViewEditor from "./view/editor";
 import ActivityMonitorView from "./activity_monitor/root";
 import AuthenticationProvider from "./authentication_provider";
 import FrontendSocket from "./frontend_socket";
@@ -150,7 +150,7 @@ const App = {
           />
         );
       case "view_editor":
-        return <EditorView statement={statement} selectables={selectables} />;
+        return <ViewEditor statement={statement} selectables={selectables} />;
       case "activity_monitor":
         return (
           <ActivityMonitorView
