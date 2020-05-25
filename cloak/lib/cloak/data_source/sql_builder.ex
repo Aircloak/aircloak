@@ -37,6 +37,9 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   iex> SqlBuilder.quote_table_name("long.full.name")
   ~s/"long"."full"."name"/
+
+  iex> SqlBuilder.quote_table_name("name", ?`)
+  ~s/`name`/
   ```
   """
   @spec quote_table_name(String.t(), integer) :: String.t()
