@@ -23,8 +23,9 @@
   "shadow_database": {
     "host": "localhost",
     "port": 20002,
-    "user": "air",
-    "name": "air_dev"
+    "user": "postgres",
+    "password": "",
+    "name": "postgres"
   },
   "ldap": {
     "host": "localhost",

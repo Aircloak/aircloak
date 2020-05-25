@@ -27,6 +27,7 @@
     "host": "localhost",
     "port": 20002,
     "user": "postgres",
+    "password": "",
     "name": "postgres"
   },
 
