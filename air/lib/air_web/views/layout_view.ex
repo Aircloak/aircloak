@@ -26,8 +26,8 @@ defmodule AirWeb.LayoutView do
         )
 
       :analyzing ->
-        content_tag(:span, "#{length(Air.Schemas.DataSource.tables(data_source))} tables",
-          class: "badge badge-warning",
+        content_tag(:span, "#{length(Air.Schemas.DataSource.tables(data_source))} tables*",
+          class: "badge badge-success",
           title: "Some features unavailable pending analysis",
           "data-toggle": "tooltip",
           "data-placement": "right"

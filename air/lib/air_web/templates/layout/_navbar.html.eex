@@ -12,6 +12,10 @@
       <ul class="nav navbar-nav ml-auto">
         <%= warning_navbar_link(@conn) %>
 
+        <%= if permitted?(@conn, AirWeb.DataSourceController, :index) do %>
+          <%= navbar_link(@conn, "Data sources", data_source_path(@conn, :index)) %>
+        <% end %>
+
         <%= if logged_in?(@conn) do %>
           <%= navbar_link(@conn, "User Guide", "/docs/", rel: "help", target: "_blank") %>
           <li class="dropdown nav-item">
