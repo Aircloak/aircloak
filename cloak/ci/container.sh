@@ -25,7 +25,7 @@ function prepare_for_compliance {
   container_name=$1
   ensure_database_containers
 
-  for db_container in oracle-db12ee postgres9.6 mongo3.6 mysql5.7 sqlserver2017 quickstart.cloudera; do
+  for db_container in oracle-db12ee postgres9.6 mongo3.6 mysql5.7 sqlserver2017 quickstart.cloudera tidb4; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container
   done
@@ -55,6 +55,8 @@ function ensure_database_containers {
     --hostname quickstart.cloudera -p 21050:21050 \
     quay.io/aircloak/cloudera-quickstart-vm-5.13.0-0-beta \
     /usr/bin/docker-quickstart
+
+  ensure_supporting_container tidb4 pingcap/tidb:release-4.0-nightly 
 }
 
 mount $(pwd)/cloak/priv/odbc/drivers/cloudera /opt/cloudera
