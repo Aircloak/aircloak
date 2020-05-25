@@ -1926,6 +1926,28 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  test "range with integer and real bounds" do
+    assert {:ok, _} =
+             compile(
+               """
+               select count(*) from table
+               where numeric between 0 and 0.5
+               """,
+               data_source()
+             )
+  end
+
+  test "range with date and datetime bounds" do
+    assert {:error, "Column `column` from table `table` must be limited to a finite, nonempty range."} =
+             compile(
+               """
+               select count(*) from table
+               where column between date '2000-01-01' and datetime '2020-01-01 12:00:00'
+               """,
+               date_data_source()
+             )
+  end
+
   defp compile_standard(query_string, data_source) do
     {:ok, parsed_query} = Parser.parse(query_string)
 

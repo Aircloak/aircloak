@@ -226,13 +226,36 @@ defmodule Cloak.Query.NoiseLayerTest do
       assert_analyst_table_consistent(query, subquery)
     end
 
-    test "aggregated subquery" do
+    test "aggregated subquery (1)" do
       :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
       :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [-10])
       :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [11])
 
       query = "SELECT count(*) FROM $subquery WHERE column = 100"
       subquery = "SELECT user_id, number * number AS column FROM noise_layers GROUP BY 1, 2"
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
+    test "aggregated subquery (2)" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [-10])
+      :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [11])
+
+      query = "SELECT sum(c) FROM $subquery"
+      subquery = "SELECT user_id, number, count(*) as c FROM noise_layers GROUP BY 1, 2"
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
+    test "aggregated subquery (3)" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["string", "number"], ["a", 12])
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["string", "number"], ["b", -20])
+      :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["string", "number"], ["c", 30])
+      :ok = insert_rows(_user_ids = 1..20, "noise_layers", ["string", "number"], ["a", 5])
+
+      query = "SELECT string, sum(s) FROM $subquery GROUP BY 1"
+      subquery = "SELECT user_id, string, sum(number) as s FROM noise_layers WHERE number <> 12 GROUP BY 1, 2"
 
       assert_analyst_table_consistent(query, subquery)
     end

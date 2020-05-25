@@ -23,6 +23,13 @@
 
 - Increased the minimum threshold for non-count stats-based aggregators.
 
+## Version 20.1.2
+
+### Bugfixes
+
+- Fixed crash when executing query over analyst table.
+- Fixed crash when using ranges with different boundary types.
+
 ## Version 20.1.1
 
 ### New features
