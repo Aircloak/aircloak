@@ -1,7 +1,7 @@
 defmodule Air.Service.ExplorerTest do
   # because of shared mode
   use Air.SchemaCase, async: false
-  alias Air.Service.Explorer
+  alias Air.Service.{Explorer, Group}
   alias Air.Schemas.ExplorerAnalysis
   require Aircloak.DeployConfig
   import Aircloak.AssertionHelper
@@ -15,7 +15,6 @@ defmodule Air.Service.ExplorerTest do
       config = Application.get_env(:air, Aircloak.DeployConfig)
       Application.put_env(:air, Aircloak.DeployConfig, Map.delete(config, "explorer"))
       refute Explorer.enabled?()
-      Application.put_env(:air, Aircloak.DeployConfig, config)
     end
   end
 
@@ -135,7 +134,18 @@ defmodule Air.Service.ExplorerTest do
   end
 
   setup do
+    config = Application.get_env(:air, Aircloak.DeployConfig)
     start_supervised!(MockServer.Endpoint)
+
+    Application.put_env(
+      :air,
+      Aircloak.DeployConfig,
+      Map.put(config, "explorer", %{"url" => MockServer.Endpoint.url() <> "/explorer"})
+    )
+
+    on_exit(fn -> Application.put_env(:air, Aircloak.DeployConfig, config) end)
+
+    start_supervised!(Explorer)
 
     tables = [
       %{
@@ -164,9 +174,9 @@ defmodule Air.Service.ExplorerTest do
 
     ds_not_included = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
 
-    Aircloak.DeployConfig.update("explorer", fn _ ->
-      %{"url" => MockServer.Endpoint.url() <> "/explorer", "api_key" => "foobar", "data_sources" => [ds1.name]}
-    end)
+    {:ok, group} = Group.get_by_name("Diffix Explorer")
+    group = Group.load(group.id)
+    Group.update!(group, %{data_sources: [ds1.id]})
 
     %{ds1: ds1, ds_not_included: ds_not_included}
   end

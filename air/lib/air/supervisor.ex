@@ -19,7 +19,6 @@ defmodule Air.Supervisor do
         Air.Service.Central,
         Air.Service.AdminGuard,
         Air.Service.Export,
-        Air.Service.Explorer,
         Air.Service.Cleanup,
         Air.Service.RevokableToken,
         Air.Service.LDAP,
@@ -29,6 +28,7 @@ defmodule Air.Supervisor do
         Air.TimestampUpdater,
         Air.PsqlServer,
         Air.Web,
+        in_env(test: nil, else: Air.Service.Explorer),
         AirWeb.MonitoringEndpoint,
         Air.BOM
       ]

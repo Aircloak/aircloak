@@ -25,6 +25,16 @@ defmodule Air.Service.Token do
     end
   end
 
+  def find_token_for_user(user, description) do
+    import Ecto.Query
+
+    token =
+      from(token in Air.Schemas.ApiToken, where: token.user_id == ^user.id and token.description == ^description)
+      |> Repo.one()
+
+    Phoenix.Token.sign(Endpoint, api_token_salt(), token.id)
+  end
+
   @doc "Will return the user associated with a token, assuming the token is valid"
   @spec user_for_token(String.t(), ApiToken.Access.t(), max_age: pos_integer | :infinity) :: User.t() | :error
   def user_for_token(token, access, opts \\ []) do

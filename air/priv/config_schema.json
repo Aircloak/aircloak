@@ -96,15 +96,10 @@
     "explorer": {
       "type": "object",
       "properties": {
-        "url": {"type": "string"},
-        "api_key": {"type": "string"},
-        "data_sources": {
-          "type": "array",
-          "items": {"type": "string"}
-        }
+        "url": {"type": "string"}
       },
       "additionalProperties": false,
-      "required": ["url", "api_key", "data_sources"],
+      "required": ["url"],
       "uniqueItems": true
     }
   },
