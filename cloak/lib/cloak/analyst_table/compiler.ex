@@ -73,20 +73,10 @@ defmodule Cloak.AnalystTable.Compiler do
         |> Cloak.Query.AnalystTables.resolve()
 
       {:subquery, %{ast: subquery}} = query.from
-      {:ok, subquery |> maybe_add_count() |> Query.resolve_db_columns()}
+      {:ok, Query.resolve_db_columns(subquery)}
     end
   rescue
     e in Cloak.Sql.CompilationError -> {:error, Cloak.Sql.CompilationError.message(e)}
-  end
-
-  defp maybe_add_count(query) do
-    if Enum.any?(query.group_by) and not Enum.any?(query.columns, &Expression.equals?(&1, Expression.count_star())) do
-      query
-      |> put_in([Lens.key(:columns) |> Lens.back()], Expression.count_star())
-      |> put_in([Lens.key(:column_titles) |> Lens.back()], "__ac_count_star")
-    else
-      query
-    end
   end
 
   defp verify_table_name(table_name, data_source) do
