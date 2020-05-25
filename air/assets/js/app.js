@@ -29,9 +29,9 @@ const App = {
   selectableInfo: (props, elem) => App.render("selectable_info", props, elem),
   viewEditor: (props, elem) => App.render("view_editor", props, elem),
   activityMonitor: (props, elem) => App.render("activity_monitor", props, elem),
-  numberFormatExample: (numberFormat, elem) =>
+  numberFormatExample: (props, elem) =>
     ReactDOM.render(
-      <NumberFormatExampleView numberFormat={numberFormat} />,
+      <NumberFormatExampleView numberFormat={props.numberFormat} />,
       elem
     ),
   auditLog: (props, elem) => App.render("audit_log", props, elem),
