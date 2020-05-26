@@ -2,14 +2,6 @@ defmodule AirWeb.LayoutView do
   @moduledoc false
   use Air.Web, :view
 
-  defp container_class(assigns) do
-    if assigns[:full_width] do
-      "container-fluid"
-    else
-      "container-lg"
-    end
-  end
-
   @background_images [
     %{
       photographer: "Kalen Emsley",
