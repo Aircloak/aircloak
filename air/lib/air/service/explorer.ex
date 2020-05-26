@@ -63,6 +63,13 @@ defmodule Air.Service.Explorer do
     GenServer.call(__MODULE__, {:request_analysis_for_data_source, ds})
   end
 
+  @doc "Creates the Diffix Explorer user and group unless they exist already."
+  @spec setup_credentials_if_required() :: :ok
+  def setup_credentials_if_required() do
+    if enabled?(), do: find_or_create_explorer_creds()
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -70,7 +77,6 @@ defmodule Air.Service.Explorer do
   @impl GenServer
   def init(_) do
     if enabled?() do
-      _ = find_or_create_explorer_creds()
       Process.send_after(self(), :poll, @poll_interval)
       {:ok, true}
     else

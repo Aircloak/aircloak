@@ -37,8 +37,6 @@
     "group_filter": "(objectClass=posixGroup)"
   },
   "explorer": {
-    "url": "http://localhost:5000",
-    "data_sources": ["cloak_performance"],
-    "api_key": "SFMyNTY.g3QAAAACZAAEZGF0YW0AAAAkOGJiYWViNWMtOTlhNC00ZTkwLTgzZTktOWUxODQ1YjczNTg4ZAAGc2lnbmVkbgYAhxdy5HEB.7dKfFS3tf16qVNh-wk4F_l4to4hJRfmHLzOKQ9RQGJE"
+    "url": "http://localhost:5000"
   }
 }
