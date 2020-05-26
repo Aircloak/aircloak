@@ -39,11 +39,5 @@
     "user_filter": "(objectClass=organizationalRole)",
     "group_base": "dc=example,dc=org",
     "group_filter": "(objectClass=posixGroup)"
-  },
-
-  "explorer": {
-    "url": "http://localhost:8000",
-    "api_key": "foo",
-    "data_sources": []
   }
 }

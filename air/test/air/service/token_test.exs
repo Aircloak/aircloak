@@ -46,6 +46,22 @@ defmodule Air.Service.Token.Test do
     end
   end
 
+  describe "find_token_for_user" do
+    setup %{user: user} do
+      _ = Token.create_api_token(user, :api, "description1")
+      :ok
+    end
+
+    test "finds token by user and description", %{user: user} do
+      {:ok, new_token} = Token.find_token_for_user(user, "description1")
+      assert user.id == Token.user_for_token(new_token, :api).id
+    end
+
+    test "if no matching token, returns an error", %{user: user} do
+      assert {:error, :not_found} = Token.find_token_for_user(user, "other description")
+    end
+  end
+
   describe "query_from_token" do
     test "the user is ignored for public tokens" do
       query = create_query!(create_user!())

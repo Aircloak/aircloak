@@ -1,7 +1,7 @@
 defmodule Air.Service.ExplorerTest do
   # because of shared mode
   use Air.SchemaCase, async: false
-  alias Air.Service.Explorer
+  alias Air.Service.{Explorer, Group}
   alias Air.Schemas.ExplorerAnalysis
   require Aircloak.DeployConfig
   import Aircloak.AssertionHelper
@@ -15,7 +15,6 @@ defmodule Air.Service.ExplorerTest do
       config = Application.get_env(:air, Aircloak.DeployConfig)
       Application.put_env(:air, Aircloak.DeployConfig, Map.delete(config, "explorer"))
       refute Explorer.enabled?()
-      Application.put_env(:air, Aircloak.DeployConfig, config)
     end
   end
 
@@ -26,6 +25,25 @@ defmodule Air.Service.ExplorerTest do
 
     test "returns false if source not included in config", context do
       assert not Explorer.data_source_enabled?(context.ds_not_included)
+    end
+  end
+
+  describe ".setup_credentials_if_required" do
+    test "creates a user and group" do
+      {:ok, user} = Air.Service.User.get_by_login("diffix-explorer@aircloak.com")
+      Air.Service.User.delete!(user)
+      {:ok, group} = Air.Service.Group.get_by_name("Diffix Explorer")
+      Air.Service.Group.delete!(group)
+      assert :ok = Explorer.setup_credentials_if_required()
+      assert {:ok, _} = Air.Service.User.get_by_login("diffix-explorer@aircloak.com")
+      assert {:ok, _} = Air.Service.Group.get_by_name("Diffix Explorer")
+    end
+
+    test "is indempotent" do
+      assert :ok = Explorer.setup_credentials_if_required()
+      users = Air.Service.User.all()
+      assert :ok = Explorer.setup_credentials_if_required()
+      assert users == Air.Service.User.all()
     end
   end
 
@@ -135,7 +153,18 @@ defmodule Air.Service.ExplorerTest do
   end
 
   setup do
+    config = Application.get_env(:air, Aircloak.DeployConfig)
     start_supervised!(MockServer.Endpoint)
+
+    Application.put_env(
+      :air,
+      Aircloak.DeployConfig,
+      Map.put(config, "explorer", %{"url" => MockServer.Endpoint.url() <> "/explorer"})
+    )
+
+    on_exit(fn -> Application.put_env(:air, Aircloak.DeployConfig, config) end)
+
+    start_supervised!(Explorer)
 
     tables = [
       %{
@@ -163,10 +192,10 @@ defmodule Air.Service.ExplorerTest do
     ds1 = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
 
     ds_not_included = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
-
-    Aircloak.DeployConfig.update("explorer", fn _ ->
-      %{"url" => MockServer.Endpoint.url() <> "/explorer", "api_key" => "foobar", "data_sources" => [ds1.name]}
-    end)
+    Explorer.setup_credentials_if_required()
+    {:ok, group} = Group.get_by_name("Diffix Explorer")
+    group = Group.load(group.id)
+    Group.update!(group, %{data_sources: [ds1.id]})
 
     %{ds1: ds1, ds_not_included: ds_not_included}
   end
