@@ -32,7 +32,8 @@ defmodule Air.Service.Explorer do
   @doc "Is diffix explorer integration enabled for this datasource?"
   @spec data_source_enabled?(DataSource.t()) :: boolean
   def data_source_enabled?(ds) do
-    enabled?() and Enum.any?(GenServer.call(__MODULE__, :data_sources), fn data_source -> ds.id == data_source.id end)
+    {user, _} = find_or_create_explorer_creds()
+    enabled?() and match?({:ok, _}, Air.Service.DataSource.fetch_as_user({:id, ds.id}, user))
   end
 
   @doc "Returns analysis results for a particular data source"
@@ -65,53 +66,42 @@ defmodule Air.Service.Explorer do
   @impl GenServer
   def init(_) do
     if enabled?() do
-      {user, token} = find_or_create_explorer_creds()
+      _ = find_or_create_explorer_creds()
       Process.send_after(self(), :poll, @poll_interval)
-      {:ok, %{poll_in_progress: true, user: user, token: token}}
+      {:ok, true}
     else
-      {:ok, %{poll_in_progress: false}}
+      {:ok, false}
     end
   end
 
   @impl GenServer
-  def handle_call({:request_analysis_for_data_source, data_source}, _from, state) do
-    request_analysis_for_data_source(data_source, state.token)
-    if not state.poll_in_progress, do: Process.send_after(self(), :poll, @poll_interval)
-    {:reply, :ok, %{state | poll_in_progress: true}}
+  def handle_call({:request_analysis_for_data_source, data_source}, _from, poll_in_progress?) do
+    request_analysis_for_data_source(data_source)
+    unless poll_in_progress?, do: Process.send_after(self(), :poll, @poll_interval)
+    {:reply, :ok, true}
   end
 
   @impl GenServer
-  def handle_call(:data_sources, _from, state) do
-    if Map.has_key?(state, :user) do
-      {:reply, Air.Service.DataSource.for_user(state.user), state}
-    else
-      {:reply, [], state}
-    end
-  end
+  def handle_info(:poll, _state) do
+    pending_analyses_query()
+    |> Repo.all()
+    |> Enum.each(&poll_for_update/1)
 
-  @impl GenServer
-  def handle_info(:poll, %{token: token} = state) do
-    older_than_limit = NaiveDateTime.utc_now() |> NaiveDateTime.add(-@poll_interval, :millisecond)
-
-    pending_analyses =
-      from(ea in ExplorerAnalysis,
-        where: ea.status in ["new", "processing"] and ea.updated_at <= ^older_than_limit
-      )
-      |> Repo.all()
-
-    Enum.each(pending_analyses, &poll_for_update(&1, token))
-
-    if Repo.exists?(from(ea in ExplorerAnalysis, where: ea.status in ["new", "processing"])) do
+    if Repo.exists?(pending_analyses_query()) do
       Process.send_after(self(), :poll, @poll_interval)
-      {:noreply, %{state | poll_in_progress: true}}
+      {:noreply, true}
     else
-      {:noreply, %{state | poll_in_progress: false}}
+      {:noreply, false}
     end
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp pending_analyses_query() do
+    from(ea in ExplorerAnalysis, where: ea.status in ["new", "processing"])
+  end
 
   defp find_or_create_explorer_creds() do
     login = "diffix-explorer@aircloak.com"
@@ -120,7 +110,8 @@ defmodule Air.Service.Explorer do
 
     case User.get_by_login(login) do
       {:ok, user} ->
-        {user, Token.find_token_for_user(user, token_desc)}
+        {:ok, token} = Token.find_token_for_user(user, token_desc)
+        {user, token}
 
       {:error, :not_found} ->
         user = User.create!(%{name: name, login: login})
@@ -130,7 +121,9 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  defp request_analysis_for_data_source(data_source, token) do
+  defp request_analysis_for_data_source(data_source) do
+    {_, token} = find_or_create_explorer_creds()
+
     DataSource.tables(data_source)
     |> Enum.filter(fn %{"columns" => columns} -> Enum.any?(columns, fn %{"user_id" => uid} -> uid end) end)
     |> Enum.each(&request_analysis_for_table(data_source, &1, token))
@@ -176,7 +169,7 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  defp poll_for_update(explorer_analysis, token) do
+  defp poll_for_update(explorer_analysis) do
     with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
            HTTPoison.get("#{base_url()}/result/#{explorer_analysis.job_id}"),
          {:ok, decoded} <- Jason.decode(response),
@@ -187,7 +180,7 @@ defmodule Air.Service.Explorer do
       {:ok, analysis}
     else
       {:ok, %HTTPoison.Response{status_code: 404}} ->
-        handle_retry(explorer_analysis, token)
+        handle_retry(explorer_analysis)
 
       {:ok, %HTTPoison.Response{status_code: 500}} ->
         handle_poll_error(explorer_analysis, "Something went wrong in Diffix Explorer")
@@ -197,7 +190,7 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  defp handle_retry(explorer_analysis, token) do
+  defp handle_retry(explorer_analysis) do
     explorer_analysis = Repo.preload(explorer_analysis, :data_source)
 
     Logger.warn(
@@ -205,6 +198,8 @@ defmodule Air.Service.Explorer do
         explorer_analysis.table_name
       }/%{explorer_analysis.column}). Retrying."
     )
+
+    {_, token} = find_or_create_explorer_creds()
 
     Repo.delete!(explorer_analysis)
 
