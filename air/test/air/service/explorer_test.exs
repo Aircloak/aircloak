@@ -192,7 +192,7 @@ defmodule Air.Service.ExplorerTest do
     ds1 = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
 
     ds_not_included = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
-
+    Explorer.setup_credentials_if_required()
     {:ok, group} = Group.get_by_name("Diffix Explorer")
     group = Group.load(group.id)
     Group.update!(group, %{data_sources: [ds1.id]})
