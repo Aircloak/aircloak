@@ -32,8 +32,12 @@ defmodule Air.Service.Explorer do
   @doc "Is diffix explorer integration enabled for this datasource?"
   @spec data_source_enabled?(DataSource.t()) :: boolean
   def data_source_enabled?(ds) do
-    {user, _} = find_or_create_explorer_creds()
-    enabled?() and match?({:ok, _}, Air.Service.DataSource.fetch_as_user({:id, ds.id}, user))
+    if enabled?() do
+      {user, _} = find_or_create_explorer_creds()
+      match?({:ok, _}, Air.Service.DataSource.fetch_as_user({:id, ds.id}, user))
+    else
+      false
+    end
   end
 
   @doc "Returns analysis results for a particular data source"
