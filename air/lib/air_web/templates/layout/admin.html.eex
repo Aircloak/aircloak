@@ -19,8 +19,6 @@
     <%= render "_navbar.html", conn: @conn, admin: true %>
     <div class="body-wrapper">
       <div class="container-fluid">
-        <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
-        <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
         <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-light border-right">
           <div class="container-fluid">
             <div class="collapse navbar-collapse" id="sidebarCollapse">
@@ -53,6 +51,8 @@
 
           <main>
             <div class="container-fluid">
+              <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
+              <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
               <%= render @view_module, @view_template, assigns %>
             </div>
           </main>
