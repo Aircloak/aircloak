@@ -1,14 +1,15 @@
-<header>
-  <nav role="navigation" class="navbar navbar-light bg-light fixed-top navbar-expand flex-md-row border-bottom">
+
+  <nav role="navigation" class="navbar navbar-light bg-light sticky-top navbar-expand flex-column justify-items-center flex-md-row border-bottom">
      <%= if @admin do %>
       <button type="button" class="navbar-toggler d-block d-md-none" data-toggle="collapse"
     data-target="#sidebarCollapse" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span> &#x2630;
       </button>
     <% end %>
-    <a class="navbar-brand logo" title="Back to the frontpage" href="/"></a>
+    <a class="navbar-brand logo m-2 m-md-0 ml-md-1" title="Back to the frontpage" href="/"></a>
+    <%= if show_data_source_dropdown?(@conn), do: render("_data_sources.html", conn: @conn, data_source: @conn.assigns.data_source, data_sources: @conn.assigns.data_sources) %>
 
-    <ul class="nav navbar-nav ml-auto flex-row">
+    <ul class="nav navbar-nav ml-md-auto flex-row">
       <%= warning_navbar_link(@conn) %>
 
       <%= if permitted?(@conn, AirWeb.DataSourceController, :index) do %>
@@ -51,4 +52,4 @@
       <% end %>
     </ul>
   </nav>
-</header>
+

@@ -13,9 +13,8 @@ a {
 
 .body-wrapper {
   min-height: 100%;
-  /* For the navbar */
-  padding-top: 70px;
   /* For the footer */
+  padding-top: 1rem;
   padding-bottom: 50px;
   position: relative;
 }

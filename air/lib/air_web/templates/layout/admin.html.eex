@@ -16,10 +16,9 @@
   </head>
 
   <body>
+    <%= render "_navbar.html", conn: @conn, admin: true %>
     <div class="body-wrapper">
       <div class="container-fluid">
-        <%= render "_navbar.html", conn: @conn, admin: true %>
-
         <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
         <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
         <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-light border-right">
