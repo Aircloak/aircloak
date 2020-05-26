@@ -49,6 +49,7 @@ defmodule Air.Service.Token.Test do
   describe "find_token_for_user" do
     setup %{user: user} do
       _ = Token.create_api_token(user, :api, "description1")
+      :ok
     end
 
     test "finds token by user and description", %{user: user} do
