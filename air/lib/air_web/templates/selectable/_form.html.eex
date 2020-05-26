@@ -20,14 +20,12 @@
           <% end %>
 
           <div class="form-group">
-            <label>Name</label>
-            <%= text_input f, :name, class: "form-control" %>
-            <%= error_tag f, :name %>
+            <%= validated_text_input f, :name, "Name" %>
           </div>
 
           <div class="form-group">
             <label>Code</label>
-            <%= textarea f, :sql, id: "sql", class: "form-control", style: "display:none;"%>
+            <%= textarea f, :sql, id: "sql", class: (if f.errors[:sql], do: "form-control is-invalid", else: "form-control"), style: "display:none;" %>
             <div id="viewEditor"></div>
             <%= error_tag f, :sql %>
           </div>

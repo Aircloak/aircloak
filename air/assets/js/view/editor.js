@@ -10,10 +10,22 @@ type Props = {
   selectables: Selectable[],
 };
 
-export default class ViewEditor extends React.Component<Props> {
-  static setStatement(statement: string) {
-    $("#sql").val(statement);
+type State = {
+  statement: string,
+};
+
+export default class ViewEditor extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      statement: props.statement,
+    };
   }
+
+  setStatement = (statement: string) => {
+    $("#sql").val(statement);
+    this.setState({ statement });
+  };
 
   tableNames() {
     const { selectables } = this.props;
@@ -32,13 +44,12 @@ export default class ViewEditor extends React.Component<Props> {
   }
 
   render() {
-    const { statement } = this.props;
     return (
       <CodeEditor
-        statement={statement}
+        statement={this.state.statement}
         tableNames={this.tableNames()}
         columnNames={this.columnNames()}
-        onChange={ViewEditor.setStatement}
+        onChange={this.setStatement}
         onRun={ViewEditor.save}
       />
     );
