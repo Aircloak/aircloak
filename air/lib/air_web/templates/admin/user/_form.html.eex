@@ -8,7 +8,7 @@
 <%= validated_text_input f, :login, "Login" %>
 <%= validated_text_input f, :name, "Name" %>
 
-<h3>Groups</h3>
+<h4>Groups</h4>
 
 <p>The user's group memberships determine which data sources are available for querying.</p>
 
@@ -19,10 +19,11 @@
   </strong>
 <% end %>
 
-<div class="form-group group-selector">
+<div class="form-group group-selector border-bottom-0">
   <%= PhoenixMTM.Helpers.collection_checkboxes f, :groups,
     Enum.map(AirWeb.Admin.GroupView.available_groups(), &({&1, &1.id})),
     selected: Enum.map(@chosen_groups, &(&1.id)),
+    input_opts: [class: "mr-2"],
     mapper: &checkbox_mapper/6 %>
 </div>
 

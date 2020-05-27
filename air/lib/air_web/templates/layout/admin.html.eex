@@ -17,7 +17,7 @@
 
   <body>
     <%= render "_navbar.html", conn: @conn, admin: true %>
-    <div class="container-fluid">
+    <div class="container-fluid full-height">
       <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-light border-right">
         <div class="container-fluid">
           <div class="collapse navbar-collapse" id="sidebarCollapse">
@@ -55,9 +55,8 @@
           <%= render @view_module, @view_template, assigns %>
         </div>
       </main>
-      <div class="admin-footer"><%= render AirWeb.SharedView, "footer.html", conn: @conn %></div>
     </div> <!-- /container-fluid -->
-
+    <div class="admin-footer mt-auto"><%= render AirWeb.SharedView, "footer.html", conn: @conn %></div>
     <script src="<%= static_path(@conn, "/frontend/app.js") %>"></script>
   </body>
 </html>

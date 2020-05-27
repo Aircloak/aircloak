@@ -1,4 +1,10 @@
-<h2>Aircloak license</h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+  <h1>Aircloak License</h1>
+</header>
+
 
 <%= if license_warning() do %>
   <div class="alert alert-danger"><%= license_warning() %></div>

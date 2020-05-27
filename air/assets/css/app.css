@@ -123,12 +123,6 @@ a.suggested-reading:hover {
   color: black;
 }
 
-h2 {
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgb(238, 238, 238);
-  margin-bottom: 20px;
-}
-
 .mode-select {
   margin-top: 10px;
   margin-right: 0px;
@@ -215,6 +209,10 @@ h2 {
   border: unset;
   padding: 0;
   margin: 1em 0 0.2em 0;
+}
+
+.table-no-top-border > thead:first-child > tr:first-child > th {
+  border-top: none;
 }
 
 @import "./activity-monitor.css";

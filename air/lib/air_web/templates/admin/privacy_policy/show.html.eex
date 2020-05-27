@@ -1,18 +1,23 @@
-<ol class="breadcrumb">
-  <li class="breadcrumb-item"><%= link "Privacy policy", to: admin_privacy_policy_path(@conn, :index) %></li>
-  <li class="breadcrumb-item active">Revision <%= @privacy_policy.id %></li>
-</ol>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    <li class="breadcrumb-item"><%= link "Privacy policy", to: admin_privacy_policy_path(@conn, :index), class: "text-muted" %></li>
+  </ol>
 
-<h2>Privacy policy revision <%= @privacy_policy.id %></h2>
+  <h1>Privacy policy revision <%= @privacy_policy.id %></h1>
+  <p class="lead">This version was created on the <%= format_datetime(@privacy_policy.inserted_at) %>.</p>
+</header>
 
-<p>This version was created on the <%= format_datetime(@privacy_policy.inserted_at) %>.</p>
+
+
 
 <%= if AirWeb.PrivacyPolicyView.has_change_info?(@privacy_policy) do %>
-  <h3>Changes in this revision</h3>
+  <h5>Changes in this revision</h5>
   <%= raw(AirWeb.PrivacyPolicyView.changes_as_html(@privacy_policy)) %>
 <% end %>
 
-<h3>Privacy policy content</h3>
-<div id="privacy-policy">
-  <%= raw(AirWeb.PrivacyPolicyView.content_as_html(@privacy_policy)) %>
+<div class="bg-light p-4" id="current" role="tabpanel" aria-labelledby="current-tab">
+  <div class="bg-white p-3 mb-0 container-lg ml-0" id="privacy-policy" style="min-height: 300px">
+    <%= raw(AirWeb.PrivacyPolicyView.content_as_html(@privacy_policy)) %>
+  </div>
 </div>

@@ -1,4 +1,10 @@
-<h2>Cloaks</h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+  <h1>Cloaks</h1>
+</header>
+
 
 <%= if @count == 0 do %>
   <div><b>There are currently no cloaks registered.</b></div>

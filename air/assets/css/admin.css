@@ -143,3 +143,56 @@ label small.newline {
   position: absolute;
   right: 24px;
 }
+
+.page-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+  padding-bottom: 1em;
+  margin-bottom: 2em;
+}
+
+.page-header .breadcrumb {
+  font-size: 0.75em;
+  padding: 0;
+  margin: 0;
+  letter-spacing: 0px;
+  /* text-transform: uppercase; */
+  font-variant: small-caps;
+  font-variant: all-small-caps;
+}
+
+.page-header h1 {
+  font-size: 2em;
+}
+
+.full-height {
+  min-height: calc(100vh - 100px);
+}
+
+.header-tabs {
+  margin-bottom: -1rem;
+  border-bottom-width: 0;
+}
+
+.header-tabs .nav-link,
+.header-tabs .nav-link:hover {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-color: transparent;
+}
+
+.header-tabs .nav-item.show .nav-link,
+.header-tabs .nav-link.active {
+  color: #12263f;
+  background-color: transparent;
+  border-color: transparent transparent #2c7be5;
+}
+
+.header-tabs .nav-link:not(.active) {
+  color: #95aac9;
+}
+.header-tabs .nav-link:not(.active):hover {
+  color: #6e84a3;
+}
+.header-tabs .nav-item:first-child .nav-link {
+  padding-left: 0;
+}

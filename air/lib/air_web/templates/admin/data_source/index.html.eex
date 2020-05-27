@@ -1,6 +1,12 @@
-<h2>Data sources</h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+  <h1>Data Sources</h1>
+</header>
 
-<table class="table table-striped">
+
+<table class="table table-striped table-no-top-border">
   <thead>
     <tr>
       <th>Name</th>

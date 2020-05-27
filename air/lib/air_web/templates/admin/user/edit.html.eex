@@ -1,25 +1,18 @@
-<ol class="breadcrumb">
-  <li class="breadcrumb-item"><%= link "Users", to: admin_user_path(@conn, :index) %></li>
-  <li class="breadcrumb-item active"><%= @changeset.data.name %></li>
-</ol>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    <li class="breadcrumb-item"><%= link "Users", to: admin_user_path(@conn, :index), class: "text-muted" %></li>
+  </ol>
+  <%= link "Sign out all sessions", to: admin_user_user_path(@conn, :delete_sessions, @user), class: "btn btn-danger float-right",
+    method: :delete, "data-confirm": "Sign out the user #{@user.name} from all devices?" %>
+  <%= link "Reset password", to: admin_user_user_path(@conn, :reset_password, @user), class: "btn btn-secondary float-right mr-3" %>
+  <h1>Edit <%= @changeset.data.name %></h1>
+</header>
 
 <% user_id = @user.id %>
 <%= with {id, token} when id == user_id <- get_flash(@conn, :reset_password_token) do %>
   <%= render "_reset_link.html", conn: @conn, token: token %>
 <% end %>
 
-<h2>Edit <%= @changeset.data.name %></h2>
-
 <%= render "_form.html", changeset: @changeset,
   action: admin_user_path(@conn, :update, @changeset.data.id), conn: @conn, chosen_groups: @user.groups %>
-
-<h2>Actions</h2>
-
-<span>
-  <%= link "Reset password", to: admin_user_user_path(@conn, :reset_password, @user), class: "btn btn-secondary" %>
-</span>
-
-<span>
-  <%= link "Sign out all sessions", to: admin_user_user_path(@conn, :delete_sessions, @user), class: "btn btn-danger",
-    method: :delete, "data-confirm": "Sign out the user #{@user.name} from all devices?" %>
-</span>

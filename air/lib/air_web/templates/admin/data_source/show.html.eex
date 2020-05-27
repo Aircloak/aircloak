@@ -1,15 +1,16 @@
-<ol class="breadcrumb">
-  <li class="breadcrumb-item"><%= link "Data sources", to: admin_data_source_path(@conn, :index) %></li>
-  <li class="breadcrumb-item active"><%= @data_source.name %></li>
-</ol>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    <li class="breadcrumb-item"><%= link "Data sources", to: admin_data_source_path(@conn, :index), class: "text-muted" %></li>
+  </ol>
 
-<h2>
-  <%= @data_source.name %> <%= availability_label(@data_source) %>
-  <%= if @data_source.description do %>
-    <small class="newline"><%= @data_source.description %></small>
-  <% end %>
-</h2>
-
+  <h1>
+    <%= @data_source.name %> <small><%= availability_label(@data_source) %></small>
+  </h1>
+   <%= if @data_source.description do %>
+      <p class="lead"><%= @data_source.description %></p>
+    <% end %>
+</header>
 <%= render AirWeb.Admin.WarningsView, "_warnings.html", conn: @conn, problems: @problems %>
 
 <div class="card-columns" style="column-count: 2">

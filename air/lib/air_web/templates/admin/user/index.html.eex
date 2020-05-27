@@ -1,7 +1,12 @@
-<h2>
-  Users
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
   <a class="btn btn-success btn-sm float-right" href="<%= admin_user_path(@conn, :new) %>">Add a user</a>
-</h2>
+  <h1>Users</h1>
+</header>
+
+
 
 <%= if length(@disabled_users) > 0 do %>
   <h3>Enabled user accounts</h3>
@@ -14,7 +19,7 @@
 <% end %>
 
 <%= if @ldap_enabled do %>
-  <h2>
+  <h2 class="mt-5">
     LDAP Users
     <%= link("Sync now", to: admin_user_path(@conn, :sync_ldap), method: :post,
           class: "btn btn-primary btn-sm float-right") %>
@@ -24,7 +29,7 @@
     <h3>Enabled LDAP user accounts</h3>
   <% end %>
 
-  <div class="alert alert-info">These accounts are managed through LDAP and cannot be changed.</div>
+  <p class="lead">These accounts are managed through LDAP and cannot be changed.</p>
   <%= render "_list.html", conn: @conn, users: @enabled_ldap_users, data_sources_count: @data_sources_count, role: false %>
 
   <%= if length(@disabled_ldap_users) > 0 do %>

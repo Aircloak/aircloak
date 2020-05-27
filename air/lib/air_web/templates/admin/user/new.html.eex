@@ -1,9 +1,11 @@
-<ol class="breadcrumb">
-  <li class="breadcrumb-item"><%= link "Users", to: admin_user_path(@conn, :index) %></li>
-  <li class="breadcrumb-item active">New user</li>
-</ol>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    <li class="breadcrumb-item"><%= link "Users", to: admin_user_path(@conn, :index), class: "text-muted" %></li>
+  </ol>
 
-<h2>Add a user</h2>
+  <h1>Add a user</h1>
+</header>
 
 <%= render "_form.html", changeset: @changeset,
   action: admin_user_path(@conn, :create), conn: @conn, chosen_groups: [] %>

@@ -1,4 +1,11 @@
-<h2>Settings</h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+
+  <h1>Settings</h1>
+</header>
+
 
 <%= if @changeset.action do %>
   <div class="alert alert-danger">
@@ -64,7 +71,7 @@
 
   <div class="form-group row">
     <div class="offset-3 col-sm-9">
-      <%= submit "Save", class: "btn btn-success" %>
+      <%= submit "Save", class: "btn btn-primary" %>
     </div>
   </div>
 <% end %>
