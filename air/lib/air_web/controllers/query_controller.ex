@@ -13,7 +13,7 @@ defmodule AirWeb.QueryController do
 
   def permissions do
     %{
-      user: [:cancel, :create, :show, :load_history, :buckets, :debug_export],
+      user: [:cancel, :delete, :create, :show, :load_history, :buckets, :debug_export],
       admin: :all,
       anonymous: [:permalink_show, :permalink_buckets]
     }
@@ -121,6 +121,19 @@ defmodule AirWeb.QueryController do
       {:ok, query} ->
         DataSource.cancel_query(query)
         json(conn, %{success: true})
+
+      _ ->
+        send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
+    end
+  end
+
+  def delete(conn, %{"id" => query_id}) do
+    case Air.Service.Query.delete_as_user(conn.assigns.current_user, query_id) do
+      :ok ->
+        json(conn, %{success: true})
+
+      {:error, :query_running} ->
+        send_resp(conn, Status.code(:conflict), "A running query must be cancelled first")
 
       _ ->
         send_resp(conn, Status.code(:not_found), "A query with that id does not exist")

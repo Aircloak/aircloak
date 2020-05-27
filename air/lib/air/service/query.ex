@@ -129,6 +129,23 @@ defmodule Air.Service.Query do
     |> get(id)
   end
 
+  @doc "Deletes a finished query for a user."
+  @spec delete_as_user(User.t(), query_id) :: :ok | {:error, :not_found | :invalid_id | :query_running}
+  def delete_as_user(user, id) do
+    case get_as_user(user, id) do
+      {:ok, query} ->
+        if query.query_state in __MODULE__.State.completed() do
+          Repo.delete!(query)
+          :ok
+        else
+          {:error, :query_running}
+        end
+
+      error ->
+        error
+    end
+  end
+
   @doc """
   Returns the query with the given id, without associations preloaded. In most cases `get_as_user` should be used
   instead as it enforces access rules. The client of this function is responsible for enforcing any such rules.
