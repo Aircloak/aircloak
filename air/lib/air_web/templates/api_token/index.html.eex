@@ -1,4 +1,6 @@
-<h2>API tokens</h2>
+<header class="page-header">
+  <h1>API tokens</h1>
+</header>
 
 <%= if get_flash(@conn, :api_token) do %>
 <div class="alert alert-success mt-2 mb-2" role="alert">

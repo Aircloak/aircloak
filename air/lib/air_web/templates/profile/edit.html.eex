@@ -1,4 +1,6 @@
-<h2>Profile settings</h2>
+<header class="page-header">
+  <h1>Profile settings</h1>
+</header>
 
 <%= if @changeset.action do %>
   <div class="alert alert-danger">
