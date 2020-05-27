@@ -7,14 +7,10 @@
       </button>
     <% end %>
     <a class="navbar-brand logo m-2 m-md-0 ml-md-1" title="Back to the frontpage" href="/"></a>
-    <%= if show_data_source_dropdown?(@conn), do: render("_data_sources.html", conn: @conn, data_source: @conn.assigns.data_source, data_sources: @conn.assigns.data_sources) %>
+    <%= data_sources_widget(@conn) %>
 
     <ul class="nav navbar-nav ml-md-auto flex-row">
       <%= warning_navbar_link(@conn) %>
-
-      <%= if permitted?(@conn, AirWeb.DataSourceController, :index) do %>
-        <%= navbar_link(@conn, "Data sources", data_source_path(@conn, :index)) %>
-      <% end %>
 
       <%= if logged_in?(@conn) do %>
         <%= navbar_link(@conn, "User Guide", "/docs/", rel: "help", target: "_blank") %>
