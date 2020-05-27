@@ -15,6 +15,7 @@ type Props = {
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
   authentication: Authentication,
+  onDeleteClick?: (id: string) => void,
 };
 
 export default ({
@@ -22,6 +23,7 @@ export default ({
   numberFormat,
   debugModeEnabled,
   authentication,
+  onDeleteClick,
 }: Props) => {
   return (
     <div>
@@ -34,6 +36,7 @@ export default ({
                 result={result}
                 numberFormat={numberFormat}
                 debugModeEnabled={debugModeEnabled}
+                onDeleteClick={onDeleteClick}
               />
             );
           case "cancelled":
@@ -42,6 +45,7 @@ export default ({
                 key={result.id}
                 result={result}
                 debugModeEnabled={debugModeEnabled}
+                onDeleteClick={onDeleteClick}
               />
             );
           case "error":
@@ -50,6 +54,7 @@ export default ({
                 key={result.id}
                 result={result}
                 debugModeEnabled={debugModeEnabled}
+                onDeleteClick={onDeleteClick}
               />
             );
           default:

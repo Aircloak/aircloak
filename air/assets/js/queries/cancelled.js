@@ -5,15 +5,18 @@ import React from "react";
 import CodeViewer from "../code_viewer";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
+import DeleteButton from "./delete_button";
 
 import type { CancelledResult } from "./result";
 
 export default ({
   result,
   debugModeEnabled,
+  onDeleteClick,
 }: {
   result: CancelledResult,
   debugModeEnabled: boolean,
+  onDeleteClick?: (queryId: string) => void,
 }) => {
   return (
     <div className="card border-warning mb-3">
@@ -24,6 +27,7 @@ export default ({
         <div className="options-menu">
           <ShareButton result={result} />
           <DebugExport id={result.id} debugModeEnabled={debugModeEnabled} />
+          <DeleteButton id={result.id} onClick={onDeleteClick} />
         </div>
       </div>
     </div>

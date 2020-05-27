@@ -20,7 +20,7 @@ import { HistoryLoader } from "./history_loader";
 import type { History } from "./history_loader";
 import Disconnected from "../disconnected";
 import { isFinished } from "./state";
-import { startQuery, loadHistory } from "../request";
+import { startQuery, loadHistory, deleteQueryResult } from "../request";
 import activateTooltips from "../tooltips";
 
 type Props = {
@@ -199,6 +199,15 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     return sessionResults.some(
       (sessionResult) => sessionResult.id === result.id
     );
+  };
+
+  deleteResult = (queryId: string) => {
+    if (window.confirm("Do you want to permanently delete this result?")) {
+      deleteQueryResult(queryId, this.context.authentication);
+      this.setResults(
+        this.state.sessionResults.filter((r) => r.id !== queryId)
+      );
+    }
   };
 
   addPendingResult = (queryId: string, statement: string) => {
@@ -402,6 +411,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
           numberFormat={numberFormat}
           debugModeEnabled={debugModeEnabled}
           authentication={authentication}
+          onDeleteClick={this.deleteResult}
         />
 
         <HistoryLoader

@@ -16,6 +16,7 @@ import { formatNumber } from "../number_format";
 import { loadBuckets } from "../request";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
+import DeleteButton from "./delete_button";
 import activateTooltips from "../tooltips";
 import loader from "../../static/images/loader.gif";
 
@@ -77,6 +78,7 @@ type Props = {
   result: SuccessResult,
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
+  onDeleteClick?: (queryId: string) => void,
 };
 
 type State = {
@@ -563,7 +565,7 @@ export class ResultView extends React.Component<Props, State> {
   };
 
   renderOptionMenu = () => {
-    const { result, debugModeEnabled } = this.props;
+    const { result, debugModeEnabled, onDeleteClick } = this.props;
     return (
       <div className="options-menu">
         <ShareButton result={result} />
@@ -576,6 +578,7 @@ export class ResultView extends React.Component<Props, State> {
         <DebugExport id={result.id} debugModeEnabled={debugModeEnabled} />
         {this.renderChartButton()}
         {this.renderAxesButton()}
+        <DeleteButton id={result.id} onClick={onDeleteClick} />
       </div>
     );
   };
