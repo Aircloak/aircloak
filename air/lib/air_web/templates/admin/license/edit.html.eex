@@ -50,6 +50,7 @@
 </div>
 
 <%= if license_present?() do %>
+  <div class="container-md ml-0">
     <h3>Licensed features</h3>
     <p>Your Aircloak Insights license includes the following features.</p>
 
@@ -80,7 +81,7 @@
         <%= feature_row("Postgres Message Protocol query interface", true) %>
         <%= feature_row("HTTP REST API", true) %>
         <%= feature_row("System monitoring API", true) %>
-        
+
         <tr>
           <td colspan="2"><strong>Support</strong></td>
         </tr>
@@ -88,4 +89,5 @@
         <%= feature_row("Aircloak support", :emailds_support) %>
       </tbody>
     </table>
+  </div>
 <% end %>
