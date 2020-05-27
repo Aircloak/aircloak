@@ -1,4 +1,4 @@
-<div class="data-source body-wrapper">
+<div class="data-source">
   <div class="container-fluid mt-3">
     <div class="row">
       <div class="column col-sm-9">
@@ -13,9 +13,8 @@
           <% end %>
 
           <div id="query-view"></div>
-
-          <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
         </div>
+        <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
       </div>
 
       <div id="selectable-column" class="column col-sm-3">

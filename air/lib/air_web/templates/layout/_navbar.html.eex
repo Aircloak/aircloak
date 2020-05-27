@@ -1,5 +1,5 @@
 
-  <nav role="navigation" class="navbar navbar-light bg-light sticky-top navbar-expand flex-column justify-items-center flex-md-row border-bottom">
+  <nav role="navigation" class="navbar mb-3 navbar-light bg-light sticky-top navbar-expand flex-column justify-items-center flex-md-row border-bottom">
      <%= if @admin do %>
       <button type="button" class="navbar-toggler d-block d-md-none" data-toggle="collapse"
     data-target="#sidebarCollapse" aria-expanded="false">

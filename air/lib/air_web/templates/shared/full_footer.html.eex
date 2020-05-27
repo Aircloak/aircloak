@@ -1,4 +1,4 @@
-<div class="footer">
+<div class="footer mt-auto">
   <div class="container">
     <%= render "_footer_content.html", conn: @conn %>
   </div>
