@@ -22,7 +22,7 @@ export const deleteQueryResult = (
   queryId: string,
   authentication: Authentication
 ) =>
-  $.ajax(`/queries/${queryId}`, {
+  fetch(`/queries/${queryId}`, {
     method: "DELETE",
     headers: headers(authentication),
   });
