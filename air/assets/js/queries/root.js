@@ -204,9 +204,9 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   deleteResult = (queryId: string) => {
     if (window.confirm("Do you want to permanently delete this result?")) {
       deleteQueryResult(queryId, this.context.authentication);
-      this.setResults(
-        this.state.sessionResults.filter((r) => r.id !== queryId)
-      );
+      this.setState((state) => ({
+        sessionResults: state.sessionResults.filter((r) => r.id !== queryId),
+      }));
     }
   };
 
