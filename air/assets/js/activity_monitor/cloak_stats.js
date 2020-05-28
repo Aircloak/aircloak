@@ -41,11 +41,11 @@ const toGBstring = (memoryInKBytes: number) => {
 
 const memoryUtilisationClasses = (memoryUtilisationPercentage) => {
   if (memoryUtilisationPercentage >= 95) {
-    return "label label-danger";
+    return "badge badge-danger";
   } else if (memoryUtilisationPercentage >= 60) {
-    return "label label-warning";
+    return "badge badge-warning";
   } else {
-    return "label label-success";
+    return "badge badge-success";
   }
 };
 

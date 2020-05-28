@@ -5,9 +5,9 @@ import React from "react";
 import { format } from "../queries/state";
 
 const stateClasses = {
-  completed: "label label-success",
-  error: "label label-danger",
-  cancelled: "label label-warning",
+  completed: "badge badge-success",
+  error: "badge badge-danger",
+  cancelled: "badge badge-warning",
 };
 
 const stateClass = (queryState) =>
