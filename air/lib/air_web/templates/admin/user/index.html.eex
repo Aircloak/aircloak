@@ -6,8 +6,6 @@
   <h1>Users</h1>
 </header>
 
-
-
 <%= if length(@disabled_users) > 0 do %>
   <h3>Enabled user accounts</h3>
 <% end %>

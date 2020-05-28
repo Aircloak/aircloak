@@ -3,24 +3,23 @@ defmodule AirWeb.LayoutView do
   use Air.Web, :view
 
   defp data_sources_widget(%{request_path: request_path} = conn) do
-    cond do
-      show_data_source_dropdown?(conn) ->
+    if permitted?(conn, AirWeb.DataSourceController, :index) do
+      if show_data_source_dropdown?(conn) do
         render("_data_sources.html",
           conn: conn,
           data_source: conn.assigns.data_source,
           data_sources: conn.assigns.data_sources
         )
-
-      permitted?(conn, AirWeb.DataSourceController, :index) ->
+      else
         path = data_source_path(conn, :index)
         class = if String.starts_with?(request_path, path), do: "active nav-link", else: "nav-link"
         content_tag(:div, link("Data sources", to: path, class: class), class: "nav navbar-nav ml-3")
+      end
     end
   end
 
   defp show_data_source_dropdown?(conn) do
-    permitted?(conn, AirWeb.DataSourceController, :index) && Map.has_key?(conn.assigns, :data_source) &&
-      Map.has_key?(conn.assigns, :data_sources)
+    Map.has_key?(conn.assigns, :data_source) && Map.has_key?(conn.assigns, :data_sources)
   end
 
   defp data_source_badge(data_source) do
