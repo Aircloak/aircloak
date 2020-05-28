@@ -19,7 +19,7 @@ export const HistoryLoader = ({ history, handleLoadHistory }: Props) => {
   if (history.error) {
     return (
       <div>
-        <span className="label label-danger">Error</span>
+        <span className="badge badge-danger">Error</span>
         Loading history failed.{" "}
         <button
           className="btn btn-secondary"
