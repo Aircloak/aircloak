@@ -114,6 +114,26 @@ defmodule AirWeb.QueryController.Test do
     assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
   end
 
+  describe "deleting a finished query" do
+    test "can delete a finished query", context do
+      query = create_query!(context.user, %{data_source_id: context.data_source.id})
+
+      send_query_result(
+        query.id,
+        %{columns: ["col"]},
+        Enum.map(1..10, &%{occurrences: 1, row: [&1]})
+      )
+
+      assert login(context.user) |> delete("/queries/#{query.id}") |> response(200)
+      assert login(context.user) |> get("/queries/#{query.id}") |> response(404)
+    end
+
+    test "cannot delete an in-progress query", context do
+      query = create_query!(context.user, %{data_source_id: context.data_source.id})
+      assert login(context.user) |> delete("/queries/#{query.id}") |> response(409)
+    end
+  end
+
   test "returns unauthorized when not authorized to query data source", context do
     query_data_params = %{
       query: %{statement: "Query code", data_source_id: context[:data_source].id}
