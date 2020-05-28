@@ -54,29 +54,12 @@ defmodule Air.Service.DataSource do
           ]
         }
 
-  @type data_source_notification :: :data_source_updated | :data_source_deleted
-
   @task_supervisor __MODULE__.TaskSupervisor
   @delete_supervisor __MODULE__.DeleteSupervisor
-  @notifications_registry __MODULE__.NotificationsRegistry
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Subscribes to notifications about activities."
-  @spec subscribe_to(data_source_notification) :: :ok
-  def subscribe_to(notification) do
-    Registry.register(@notifications_registry, notification, nil)
-    :ok
-  end
-
-  @doc "Unsubscribes from notifications about asynchronous activities."
-  @spec unsubscribe_from(data_source_notification) :: :ok
-  def unsubscribe_from(notification) do
-    Registry.unregister(@notifications_registry, notification)
-    :ok
-  end
 
   @doc "Returns the count of all known non-deleted data sources."
   @spec count() :: non_neg_integer
@@ -236,14 +219,7 @@ defmodule Air.Service.DataSource do
     with {:ok, data_source} <- data_source |> data_source_changeset(params) |> Repo.update() do
       new_users = Repo.preload(data_source, groups: :users).groups |> Stream.flat_map(& &1.users) |> MapSet.new()
       revoked_users = MapSet.difference(old_users, new_users)
-
       Enum.each(revoked_users, &Air.Service.AnalystTable.delete_all(&1, data_source))
-
-      notify_subscribers(:data_source_updated, %{
-        data_source_name: data_source.name,
-        previous_users: old_users
-      })
-
       {:ok, data_source}
     end
   end
@@ -254,16 +230,9 @@ defmodule Air.Service.DataSource do
   """
   @spec delete!(DataSource.t(), (() -> any), (() -> any)) :: :ok
   def delete!(data_source, success_callback, failure_callback) do
-    users = users(data_source)
-
     Task.Supervisor.start_child(@delete_supervisor, fn ->
       case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
         {:ok, _} ->
-          notify_subscribers(:data_source_deleted, %{
-            data_source_name: data_source.name,
-            previous_users: users
-          })
-
           success_callback.()
 
         {:error, _} ->
@@ -290,11 +259,6 @@ defmodule Air.Service.DataSource do
   @spec by_name(String.t()) :: DataSource.t() | nil
   def by_name(data_source_name),
     do: Repo.one(from(ds in DataSource, where: ds.name == ^data_source_name, preload: [:groups]))
-
-  @doc "Returns the data source with the given id."
-  @spec by_id!(pos_integer | binary) :: DataSource.t()
-  def by_id!(data_source_id),
-    do: Repo.one!(from(ds in DataSource, where: ds.id == ^data_source_id, preload: [:groups]))
 
   @doc "Returns the count of users per each distinct data source."
   @spec users_count() :: %{integer => non_neg_integer}
@@ -369,12 +333,6 @@ defmodule Air.Service.DataSource do
       end)
     end)
   end
-
-  defp notify_subscribers(notification, payload),
-    do:
-      Registry.lookup(@notifications_registry, notification)
-      |> Enum.map(fn {pid, nil} -> pid end)
-      |> Enum.each(&send(&1, {notification, payload}))
 
   defp add_group(name, users) do
     case Air.Service.Group.get_by_name(name) do
@@ -548,8 +506,7 @@ defmodule Air.Service.DataSource do
       [
         QueryScheduler,
         ChildSpec.task_supervisor(name: @task_supervisor, restart: :temporary),
-        ChildSpec.task_supervisor(name: @delete_supervisor, restart: :temporary),
-        ChildSpec.registry(:duplicate, @notifications_registry)
+        ChildSpec.task_supervisor(name: @delete_supervisor, restart: :temporary)
       ],
       strategy: :one_for_one,
       name: __MODULE__

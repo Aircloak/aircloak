@@ -357,13 +357,13 @@ export default class QueriesView extends React.PureComponent<Props, State> {
         <CodeEditor
           onRun={this.runQuery}
           onChange={this.setStatement}
-          statement={this.initialStatement()}
+          statement={this.state.statement}
           tableNames={this.tableNames()}
           columnNames={this.columnNames()}
         />
       );
     } else {
-      return <CodeViewer statement={this.initialStatement()} />;
+      return <CodeViewer statement={this.state.statement} />;
     }
   };
 

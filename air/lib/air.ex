@@ -66,6 +66,7 @@ defmodule Air do
       load_license()
       load_privacy_policy()
       load_users_and_datasources()
+      prepare_explorer()
       log_startup()
       result
     end
@@ -85,6 +86,10 @@ defmodule Air do
   defp log_startup() do
     version = Aircloak.Version.for_app(:air)
     Logger.info("Insights Air version #{version} started [name: '#{name()}', instance: '#{instance_name()}']")
+  end
+
+  defp prepare_explorer() do
+    Air.Service.Explorer.setup_credentials_if_required()
   end
 
   defp configure_secrets do

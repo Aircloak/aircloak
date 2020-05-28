@@ -99,44 +99,6 @@ defmodule Air.TestSocketHelper do
     :ok
   end
 
-  @doc """
-  Awaits a create_or_update_analyst_table and responds with dummy columns.
-  Expects next message to be refresh_analyst_tables.
-  """
-  def respond_to_create_or_update_analyst_table(socket, timeout \\ :timer.seconds(1)) do
-    {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
-    %{request_id: request_id, event: "create_or_update_analyst_table", payload: %{}} = request
-
-    columns = [%{name: "foo", type: "integer", key_type: "user_id"}, %{name: "bar", type: "text", key_type: nil}]
-
-    {:ok, _ref} =
-      TestSocket.push(socket, "main", "cloak_response", %{
-        request_id: request_id,
-        status: :ok,
-        result: {columns, []}
-      })
-
-    {:ok, {"main", "air_cast", %{event: "refresh_analyst_tables"}}} = TestSocket.await_message(socket, timeout)
-    :ok
-  end
-
-  @doc """
-  Awaits a drop_analyst_table and responds with an acknowledgment.
-  """
-  def respond_to_drop_analyst_table(socket, timeout \\ :timer.seconds(1)) do
-    {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
-    %{request_id: request_id, event: "drop_analyst_table", payload: %{}} = request
-
-    {:ok, _ref} =
-      TestSocket.push(socket, "main", "cloak_response", %{
-        request_id: request_id,
-        status: :ok,
-        result: []
-      })
-
-    :ok
-  end
-
   @doc "Runs the action while a cloak with the given name and data source exists and returns its result."
   @spec with_cloak(String.t(), String.t(), (() -> any)) :: any
   def with_cloak(cloak_name, data_source_name, action) do

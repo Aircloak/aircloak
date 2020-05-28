@@ -237,7 +237,7 @@ defmodule Air.PsqlServer.RanchServer do
     else
       # printing query failures in integration tests, because logging is turned off there
       if Application.get_env(:air, :integration_tests, false), do: IO.puts(Exception.format_exit(reason))
-      {:noreply, meta.on_failure(conn, reason)}
+      {:noreply, meta.on_failure.(conn, reason)}
     end
   end
 

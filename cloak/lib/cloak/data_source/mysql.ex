@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.MySQL do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.Table
+  alias Cloak.DataSource.{SqlBuilder, Table}
   alias Cloak.Query.ExecutionError
 
   use Cloak.DataSource.Driver.SQL
@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.MySQL do
 
   @impl Driver
   def load_tables(connection, table) do
-    query = "SHOW COLUMNS FROM #{SqlBuilder.quote_table_name(table.db_name)}"
+    query = "SHOW COLUMNS FROM #{SqlBuilder.quote_table_name(table.db_name, SqlBuilder.MySQL.quote_char())}"
     column_info_mapper = fn [name, type | _others] -> Table.column(name, parse_type(type)) end
 
     case run_query(connection, query, column_info_mapper, &Enum.concat/1) do

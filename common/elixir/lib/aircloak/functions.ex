@@ -97,7 +97,7 @@ defmodule Aircloak.Functions do
                },
                ~w(floor ceil) => %{
                  type_specs: %{[numeric] => :integer},
-                 attributes: [:math, :restricted]
+                 attributes: [:implicit_range, :math, :restricted]
                },
                ~w(round trunc) => %{
                  attributes: [:implicit_range, :math, :restricted],

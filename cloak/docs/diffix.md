@@ -1,6 +1,6 @@
-# Specification for Diffix Cedar
+# Specification for Diffix Dogwood
 
-The anonymization algorithm underlying Aircloak Insights is Diffix. The current version of Diffix is Cedar. This section describes the operation of Diffix Cedar.  It explains how and why Diffix Cedar protects against [known attacks](./attacks.md#attacks-on-diffix-cedar), thus providing strong anonymity. 
+The anonymization algorithm underlying Aircloak Insights is Diffix. The current version of Diffix is Dogwood. This section describes the operation of Diffix Dogwood.  It explains how and why Diffix Dogwood protects against [known attacks](./attacks.md#attacks-on-diffix-dogwood), thus providing strong anonymity. 
 
 ## Table Of Contents
 
@@ -23,6 +23,7 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
       - [In general](#in-general)
       - [With isolating columns](#with-isolating-columns)
     - [String functions](#string-functions)
+    - [Datetime intervals](#datetime-intervals)
     - [LIKE and NOT LIKE](#like-and-not-like)
     - [Limitations due to shadow table](#limitations-due-to-shadow-table)
     - [Conditions with two columns](#conditions-with-two-columns)
@@ -56,21 +57,21 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
 
 ## Key concepts
 
-Anonymization in Diffix Cedar has two main aspects, **SQL constraints** and **answer perturbation**. The goal is to allow as much SQL as possible, especially commonly used SQL, and to minimize answer perturbation while maintaining strong anonymity. Strong anonymity is achieved when an attacker's guess as to the attributes of individual users either has low confidence with high probability, or high confidence with low probability.
+Anonymization in Diffix Dogwood has two main aspects, **SQL constraints** and **answer perturbation**. The goal is to allow as much SQL as possible, especially commonly used SQL, and to minimize answer perturbation while maintaining strong anonymity. Strong anonymity is achieved when an attacker's guess as to the attributes of individual users either has low confidence with high probability, or high confidence with low probability.
 
-In order to safely allow as much SQL as possible, Diffix Cedar constrains SQL in a fine-grained fashion. While some entire SQL features are prevented (for instance window functions), more often an SQL feature is allowed but constrained in terms of what other features it may be used in combination with, how frequently it may be used, or even what constant values it may be used with.
+In order to safely allow as much SQL as possible, Diffix Dogwood constrains SQL in a fine-grained fashion. While some entire SQL features are prevented (for instance window functions), more often an SQL feature is allowed but constrained in terms of what other features it may be used in combination with, how frequently it may be used, or even what constant values it may be used with.
 
 Perturbation takes the form of suppressing answers and distorting answers. The latter occurs through both adjusting extreme column values (flattening) and adding noise. Key mechanisms include:
 
 - **Answer suppression:** Answers that pertain to too few distinct users are suppressed.
-- **Sticky layered noise:** Diffix Cedar adds noise taken from a Gaussian distribution. The noise is sticky in that identical query conditions generate identical noise.  The noise is layered in that each query condition contributes a separate noise value (which are summed together to produce the final noise value).  There are in fact two types of noise layers, *UID-noise* and *static-noise*. Static-noise is sticky in the sense that the same filter condition, for instance `age = 20`, will typically generate the same noise sample. UID-noise is sticky in the sense that the same filter condition combined with the same set of selected users will typically generate the same noise sample.
+- **Sticky layered noise:** Diffix Dogwood adds noise taken from a Gaussian distribution. The noise is sticky in that identical query conditions generate identical noise.  The noise is layered in that each query condition contributes a separate noise value (which are summed together to produce the final noise value).  There are in fact two types of noise layers, *UID-noise* and *static-noise*. Static-noise is sticky in the sense that the same filter condition, for instance `age = 20`, will typically generate the same noise sample. UID-noise is sticky in the sense that the same filter condition combined with the same set of selected users will typically generate the same noise sample.
 - **Extreme value flattening:** When a few individual users contribute an extreme amount to an answer (relative to other users), then the values contributed by those users are reduced (or increased if negative) to be comparable with values contributed by other users.
 
-Diffix Cedar can report how much answer suppression has taken place and how much noise was added to an answer. Diffix Cedar cannot, however, report how much extreme value flattening has taken place.
+Diffix Dogwood can report how much answer suppression has taken place and how much noise was added to an answer. Diffix Dogwood cannot, however, report how much extreme value flattening has taken place.
 
 ## Deployment
 
-Diffix Cedar is deployed as a function or device that sits between an analyst (or application) and an un-anonymized database. In the Aircloak system, this device is referred to as Insights Cloak. In this document, for readability, we refer to is simply as the cloak.
+Diffix Dogwood is deployed as a function or device that sits between an analyst (or application) and an un-anonymized database. In the Aircloak system, this device is referred to as Insights Cloak. In this document, for readability, we refer to is simply as the cloak.
 
 An SQL interface is exposed to the analyst. The database may be an SQL database, or may be some other kind of data store. The cloak translates the analyst SQL into the appropriate query language.
 
@@ -137,7 +138,7 @@ This table is refreshed every 60 days.
 
 ### Safe math functions
 
-There are a variety of functions that can throw an error in some databases, for instance divide-by-zero, numeric overflow, and taking the square root of a negative number. In such databases, the error manifests itself as a error message transmitted to the analyst, which can be exploited by an attacker (see [Error generation attacks](./attacks.md#error-generation-attacks)).
+There are a variety of functions that can throw an error in some databases, for instance divide-by-zero, numeric overflow, datetime overflow, and taking the square root of a negative number. In such databases, the error manifests itself as a error message transmitted to the analyst, which can be exploited by an attacker (see [Error generation attacks](./attacks.md#error-generation-attacks)).
 
 If the database allows user-defined exception handlers, then these are installed in the database, either by the cloak when it connects, through configuration of the database prior to cloak connection. If not, then the cloak modifies SQL to prevent exceptions. In both cases, errors are prevented from being transmitted to the analyst. See [Determine if safe math functions needed](#determine-if-safe-math-functions-needed).
 
@@ -145,10 +146,10 @@ If the database allows user-defined exception handlers, then these are installed
 
 The [safe math functions](#safe-math-functions) unfortunately slow down query execution. To mitigate this, the cloak conservatively estimates when a math function *might* result in an exception, and only executes the safe functions in these cases.
 
-In order to make this estimate for numeric [overflow](./attacks.md#overflow) exceptions, the cloak records a minimum and maximum value for each numeric column. These recorded values are not the true minimum and maximum values, because an attacker could then detect these values through a series of queries that detect when a safe function was executed through a timing attack.
+In order to make this estimate for numeric and date/time/datetime [overflow](./attacks.md#overflow) exceptions, the cloak records an anonymized minimum and maximum value for each numeric and date/time/datetime column. These recorded values are not the true minimum and maximum values, because an attacker could then detect these values through a series of queries that detect when a safe function was executed through a timing attack.
 [ghi3780](https://github.com/Aircloak/aircloak/issues/3780)
 
-With high (but not 100%) probability, the approximated min and max exceed the true min and max, and is computed as follows:
+With high (but not 100%) probability, the approximated min and max exceed the true min and max. For numeric columns they are computed as follows:
 
 1. Take the top/bottom 1000 values from a given column (note that a given user can have multiple values)
 2. Discard all but the biggest/smallest value for each user out of those
@@ -162,6 +163,11 @@ With high (but not 100%) probability, the approximated min and max exceed the tr
   * If both are positive, multiply max by 10 and divide min by 10
   * If both are negative, multiply min by 10 and divide max by 10
 7. If there are not enough values to compute either min or max, set the bounds to :unknown and always use safe math functions
+
+The procedure for `date`, `time`, and `datetime` columns is similar but differs in the following two ways:
+1. In step 5, the closest snapped value is computed from '1900-01-01' (rather than zero, as is the case with numeric columns).
+2. In step 6, the max is expanded by adding 50 years (rather than multiplying by 10).
+[ghi3794](https://github.com/Aircloak/aircloak/issues/3794)
 
 # Handle incoming SQL
 
@@ -181,7 +187,7 @@ While the cloak allows inequality operators (`> | >= | < | <=`), there are restr
 
 This document refers to all inequalities that are bounded on both sides as *ranges*.
 
-In addition to the ranges that can be specified with `BETWEEN` and inequality operators, some functions implicitly define a range. For instance, the function `hour` defines a range of width one hour. The definition of range in this document includes implicit ranges. These are: `hour`, `minute`, `second`, `year`, `quarter`, `month`, `day`, `weekday`, `date_trunc`, `round`, `trunc`, and `bucket`.
+In addition to the ranges that can be specified with `BETWEEN` and inequality operators, some functions implicitly define a range. For instance, the function `hour` defines a range of width one hour. The definition of range in this document includes implicit ranges. These are: `hour`, `minute`, `second`, `year`, `quarter`, `month`, `day`, `weekday`, `date_trunc`, `floor`, `ceil`, `cast to int`, `round`, `trunc`, and `bucket`.
 
 Inequalities that are not ranges (not bounded on both sides) are possible in the special case of [Conditions with two columns](#conditions-with-two-columns).
 
@@ -189,9 +195,10 @@ Inequalities that are not ranges (not bounded on both sides) are possible in the
 
 The cloak may require that certain conditions are *clear*. The primary purpose of clear conditions is so that the cloak can [seed noise layers](#determine-seeds) through [SQL inspection](#sql-inspection) rather than by [floating the column value](#floating-columns-values). The following operators must be clear:
 
-* negative conditions (`col <> val`) including `NOT IN`.
+* negative conditions (`col <> val`) including `NOT IN` and `IS NOT NULL`.
 * `IN` (`col IN (val1, val2)`), though note that the column is floated for the purpose of seeding the [static noise layer](#noise-layers) (not the per-element UID-noise layers).
 * range (`col BETWEEN val1 and val2`), including implicit ranges.
+* expressions within aggregation functions (for instance `sum(col + 1)`).
 
 Negative conditions must be clear because it would not be efficient to float a value that is being excluded by the condition.
 
@@ -200,6 +207,7 @@ The column in a range can be floated. However, by generating the seed materials 
 The term "clear" implies that it is clear from SQL inspection alone what the semantics of the conditions are, and therefore how to seed the corresponding noise layers.
 
 Clear conditions also have the effect of reducing the attack surface since it gives an attacker fewer mechanisms to work with. For isolating columns, the cloak forces clear conditions for all operators.
+[ghi4091](https://github.com/Aircloak/aircloak/issues/4091)
 
 In earlier versions of Diffix, clear conditions were limited to only columns on the left-hand-side: no column functions were allowed (for instance `col = val`). This restriction was subsequently relaxed to allow operators that are on one hand frequently useful to analysts, but on the other hand do not give analysts an adequately large attack surface (for instance `lower(col) = val`).
 [ghi2982](https://github.com/Aircloak/aircloak/issues/2982)
@@ -251,6 +259,11 @@ In order to generally reduce the attack surface available with string functions 
 1. Columns which have undergone a string function cannot be combined with other transformations.
 2. String functions cannot be applied to columns that have undergone multiple casts.
 3. Results of string functions can only be compared with constants or with other columns.
+
+### Datetime intervals
+
+The cloak allows `date`, `time`, and `datetime` math using intervals (for instance, `datetime_col + interval 'PT1H2M3S'`). In order to limit the number of cases that need to be checked for datetime overflow, the cloak limits overflow math to `datetime_col + interval` and `datetime_col = interval`. Math operations involving multiple intervals (`interval + interval`) or intervals and constants `integer * real` are prohibited.
+[ghi3794](https://github.com/Aircloak/aircloak/issues/3794)
 
 ### LIKE and NOT LIKE
 
@@ -410,6 +423,8 @@ For simplicity, these substitutions are not shown in the [example database query
 
 As described in the [JOIN timing attack](./attacks.md#join-timing-attack), an analyst can strongly influence query execution time in the database by including `JOIN` expressions that may return an empty table.
 [ghi3691](https://github.com/Aircloak/aircloak/issues/3691)
+[ghi4083](https://github.com/Aircloak/aircloak/issues/4083)
+[ghi4164](https://github.com/Aircloak/aircloak/issues/4164)
 
 To prevent this, the cloak modifies all but the last JOIN expression so that at least one row is always returned. This is done with a `UNION` operation:
 
@@ -419,12 +434,19 @@ original_expression UNION inverse_original_expression
 
 The second expression of the `UNION` returns a single row if and only if the first expression, which is the original expression, returns no rows. Following is an example:
 
-```
+```sql
 SELECT uid
 FROM accounts
 WHERE lastname = 'Zamora'
   AND birthdate = '1996-11-16'
-UNION ALL SELECT -2147483648
+UNION ALL
+SELECT *
+FROM (
+   SELECT uid
+   FROM accounts
+   LIMIT 1
+   OFFSET 0
+   ) t
 WHERE NOT EXISTS
 (
    SELECT uid
@@ -434,7 +456,7 @@ WHERE NOT EXISTS
 )
 ```
 
-The original `JOIN` expression is the part above the `UNION`. It is repeated within the `WHERE NOT EXISTS` expression. The forced UID `-2147483648` is chosen to be a value that is very unlikely to exist in practice. As a result, if the forced UID is selected, it won't match anything from the other `JOIN` expressions and so won't effect the answer.
+The original `JOIN` expression is the part above the `UNION`. It is repeated within the `WHERE NOT EXISTS` expression. If the original `JOIN` expression returns nothing, the the `UNION` expression returns a single row.
 
 ### Add protection against divide-by-zero attacks
 
@@ -493,7 +515,7 @@ In addition, there is a generic noise layer for queries that otherwise have no n
 
 The aggregation function `count(col)` is given an additional UID-noise layer. The purpose of this noise layer is to defend against the [Difference attack with counting NULL](./attacks.md#difference-attack-with-counting-null).
 
-The implicit ranges `bucket()`, `round()`, and `trunc()` do not have a UID-noise layer, only a static noise layer. This is to defend against noise exploitation attacks [through chaff conditions](attacks.md#through-chaff-conditions).
+Ranges, as well as the implicit ranges `bucket()`, `round()`, and `trunc()`, do not have a UID-noise layer, only a static noise layer. This is to defend against noise exploitation attacks [through chaff conditions](attacks.md#through-chaff-conditions).
 [ghi3931](https://github.com/Aircloak/aircloak/issues/3931)
 [ghi4110](https://github.com/Aircloak/aircloak/issues/4110)
 
@@ -590,7 +612,7 @@ To prevent this, the cloak flattens the extreme user or users values to hide the
 
 In Diffix Birch, the perturbations for extreme and heavy contributors were done explicitly. That is, the cloak would explicitly determine the contributions of each user, identify the extreme and heavy contributors, and compute the flattening and noise accordingly. This process would sometimes incur a heavy performance penalty, as the database would have to convey per-user information to the cloak.
 
-To improve performance, Diffix Cedar uses per-bucket rather than per-user information. In most cases, this substantially reduces the amount of data transferred from the database to the cloak. Unfortunately, this means that the cloak can no longer explicitly determine the extreme and heavy contributors. Instead, the cloak uses aggregate statistics about the users in each bucket to *estimate* the extreme and heavy contributors.
+To improve performance, Diffix Dogwood uses per-bucket rather than per-user information. In most cases, this substantially reduces the amount of data transferred from the database to the cloak. Unfortunately, this means that the cloak can no longer explicitly determine the extreme and heavy contributors. Instead, the cloak uses aggregate statistics about the users in each bucket to *estimate* the extreme and heavy contributors.
 
 The statistics are these (line numbers taken from [example query](#generate-db-query)):
 
@@ -845,7 +867,7 @@ reported_noise = max(
 
 ### Suppress aggregate values
 
-The aggregates `min()` and `max()` often have very poor accuracy when the number of distinct users is low. To mitigate this, the cloak reports `NULL` for `min()` and `max()` when the number of distinct users is less than a noisy threshold with mean 10 and a standard deviation of `(0.5 * L)`, where `L` is the number of noise layers. Note that the bucket itself is still reported: only the `min()` or `max()` aggregate itself is set to `NULL`.
+When the number of distinct users is low, the aggregates `min()`, `max()`, `sum()`, `avg()` and `stddev()` can potentially reveal information about the underlying values. In addition, the accuracy can be quite poor. To mitigate these factors, the cloak reports `NULL` when the number of distinct users is less than a noisy threshold with mean 10 and a standard deviation of `(0.5 * L)`, where `L` is the number of noise layers. Note that the bucket itself is still reported: only the aggregate value itself is set to `NULL`.
 
 # Aggregation function count distinct
 
