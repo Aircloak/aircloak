@@ -55,7 +55,7 @@
 
 <%= if admin?(@conn) and length(@user_data_sources) < @data_source_count do %>
 
-  <div class="card border-info">
+  <div class="card border-info mt-3">
     <h4 class="card-header border-info">Notice</h4>
     <div class="card-body">
       <p>
