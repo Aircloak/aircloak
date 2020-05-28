@@ -5,7 +5,6 @@ import React from "react";
 import CodeViewer from "../code_viewer";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
-import DeleteButton from "./delete_button";
 
 import type { CancelledResult } from "./result";
 
@@ -27,7 +26,15 @@ export default ({
         <div className="options-menu">
           <ShareButton result={result} />
           <DebugExport id={result.id} debugModeEnabled={debugModeEnabled} />
-          <DeleteButton id={result.id} onClick={onDeleteClick} />
+          {onDeleteClick && (
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              onClick={() => onDeleteClick(result.id)}
+            >
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </div>
