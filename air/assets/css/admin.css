@@ -40,6 +40,7 @@ label small.newline {
 .navbar-vertical .navbar-nav .nav-link {
   display: flex;
   align-items: center;
+  border-left: 0.3rem solid transparent;
 }
 
 .navbar-vertical .navbar-nav .nav .nav-link {
@@ -62,8 +63,8 @@ label small.newline {
   letter-spacing: 0.04em;
 }
 
-.navbar-vertical .nav-link.active {
-  border-left: 2px solid #007bff;
+.navbar-vertical .navbar-nav .nav-link.active {
+  border-left-color: #007bff;
 }
 
 .navbar-vertical .navbar-heading {
@@ -106,16 +107,12 @@ label small.newline {
     margin-left: 250px;
   }
 
-  .admin-footer .footer {
-    width: calc(100% - 250px);
-  }
-
   .admin-footer .footer .content {
     padding-left: 24px;
   }
 
   .navbar-vertical.navbar-expand-md .navbar-nav .nav-link {
-    padding: 0.5rem 1.5rem;
+    padding: 0.5rem 1.5rem 0.5rem 1.2rem;
   }
 
   .navbar-vertical.navbar-expand-md .navbar-collapse > * {

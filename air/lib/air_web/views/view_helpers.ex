@@ -45,12 +45,16 @@ defmodule AirWeb.ViewHelpers do
   def warning_navbar_link(conn) do
     problems = Warnings.problems()
 
-    if length(problems) > 0 and admin?(conn) do
-      path = AirWeb.Router.Helpers.admin_warnings_path(conn, :index)
-      navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
-      navbar_link(conn, admin_title(length(problems), navbar_class), path)
+    if admin?(conn) do
+      if length(problems) > 0 do
+        path = AirWeb.Router.Helpers.admin_warnings_path(conn, :index)
+        navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
+        navbar_link(conn, admin_title(length(problems), navbar_class), path)
+      else
+        navbar_link(conn, "Admin", "/admin")
+      end
     else
-      navbar_link(conn, "admin", "/admin")
+      {:safe, []}
     end
   end
 
