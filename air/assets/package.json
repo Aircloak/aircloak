@@ -21,8 +21,11 @@
     "react-codemirror2": "^7.1.0",
     "react-dom": "^16.13.1",
     "react-sparklines": "^1.7.0",
+    "react-vega": "^7.3.0",
     "tempusdominus-bootstrap-4": "^5.1.2",
     "uuid": "^7.0.2",
+    "vega": "^5.12.3",
+    "vega-lite": "^4.12.2",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {

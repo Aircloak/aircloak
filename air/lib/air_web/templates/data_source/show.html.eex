@@ -45,7 +45,7 @@
         debugModeEnabled: @debug_mode_enabled,
         newTableURL: data_source_selectable_path(@conn, :new, @data_source.name, :analyst_table),
         newViewURL: data_source_selectable_path(@conn, :new, @data_source.name, :view),
-        supportsCreateTable: @data_source.supports_analyst_tables
+        supportsCreateTable: @data_source.supports_analyst_tables,
       } %>;
 
       App.selectableInfo(props, document.getElementById("selectable-info"));

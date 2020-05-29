@@ -8,6 +8,7 @@ import NewSelectableToolbarView from "./new_selectable_toolbar";
 import FilterView from "./filter_view";
 import FrontendSocket from "../frontend_socket";
 import type { Selectable } from "./selectable";
+import type { NumberFormat } from "../number_format";
 
 type Props = {
   selectables: Selectable[],
@@ -21,6 +22,7 @@ type Props = {
   frontendSocket: FrontendSocket,
   supportsCreateTable: boolean,
   selectableToExclude: number,
+  numberFormat: NumberFormat,
 };
 
 type State = {
@@ -144,6 +146,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
       newTableURL,
       newViewURL,
       supportsCreateTable,
+      numberFormat,
     } = this.props;
     const { filter } = this.state;
     return (
@@ -167,6 +170,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
               channel={this.channel}
               expanded={this.expanded(selectable)}
               onClick={this.toggleExpand(selectable)}
+              numberFormat={numberFormat}
             />
           ))}
         </div>

@@ -326,10 +326,18 @@ defmodule Air.Service.DataSource do
       update_in(table, [:columns, Access.all()], fn column ->
         result = Enum.find(results, fn result -> result.table_name == table.id && column.name == result.column end)
 
-        if result && result.status == :complete,
-          do:
-            Map.put(column, :analysis, [%{name: "updated_at", value: result.updated_at} | Jason.decode!(result.metrics)]),
-          else: column
+        if result && result.metrics do
+          metrics = Jason.decode!(result.metrics)
+
+          if Enum.empty?(metrics),
+            do: column,
+            else:
+              Map.put(column, :analysis, [
+                %{name: "updated_at", value: result.updated_at} | Jason.decode!(result.metrics)
+              ])
+        else
+          column
+        end
       end)
     end)
   end

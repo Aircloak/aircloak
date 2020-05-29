@@ -3,11 +3,14 @@
 import React from "react";
 
 import { filterColumns, Higlighted } from "./filter";
+import ExplorerResultButton from "./explorer-result-button.js";
+import type { NumberFormat } from "../number_format";
 
 export type Column = {
   name: string,
   type: string,
   key_type: string,
+  analysis?: any,
 };
 
 const typeColors = {
@@ -66,10 +69,12 @@ export const ColumnsView = ({
   filter,
   columns,
   table,
+  numberFormat,
 }: {
   table: string,
   filter: string,
   columns: Column[],
+  numberFormat: NumberFormat,
 }) => {
   return (
     <ul className="list-group list-group-flush">
@@ -98,6 +103,9 @@ export const ColumnsView = ({
                 </>
               )}
             </button>
+            {item.analysis && (
+              <ExplorerResultButton item={item} numberFormat={numberFormat} />
+            )}
           </li>
         );
       })}
