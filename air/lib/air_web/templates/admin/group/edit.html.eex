@@ -1,9 +1,10 @@
-<ol class="breadcrumb">
-  <li class="breadcrumb-item"><%= link "Groups", to: admin_group_path(@conn, :index) %></li>
-  <li class="breadcrumb-item active"><%= @group.name %></li>
-</ol>
-
-<h2>Edit <%= @group.name %></h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    <li class="breadcrumb-item"><%= link "Groups", to: admin_group_path(@conn, :index), class: "text-muted" %></li>
+  </ol>
+  <h1>Edit <%= @group.name %></h1>
+</header>
 
 <%= render "_form.html", data: @data, action: admin_group_path(@conn, :update, @group),
   conn: @conn, changeset: @changeset %>

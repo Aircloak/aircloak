@@ -1,8 +1,14 @@
-<h2>Warnings</h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+
+  <h1>Warnings</h1>
+</header>
 
 <%= if length(@problems) > 0 do %>
 
-  <table class="table">
+  <table class="table table-no-top-border">
     <thead>
       <tr>
         <th>Severity</th>

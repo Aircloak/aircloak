@@ -1,7 +1,13 @@
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+
+  <h1>Failed queries</h1>
+</header>
+
 <div class="row">
   <div class="col-md-9">
-    <h2>Failed queries</h2>
-
     <%= if length(@failed_queries) == 0 do %>
 
       <div><b>There are no failed queries matching your search criteria.</b></div>

@@ -4,7 +4,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
 }
 
 a {
@@ -13,16 +13,13 @@ a {
 
 .body-wrapper {
   min-height: 100%;
-  /* For the navbar */
-  padding-top: 70px;
   /* For the footer */
+  padding-top: 1rem;
   padding-bottom: 50px;
   position: relative;
 }
 
 .footer {
-  position: absolute;
-  bottom: 0;
   width: 100%;
 }
 
@@ -126,12 +123,6 @@ a.suggested-reading:hover {
   color: black;
 }
 
-h2 {
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgb(238, 238, 238);
-  margin-bottom: 20px;
-}
-
 .mode-select {
   margin-top: 10px;
   margin-right: 0px;
@@ -220,13 +211,16 @@ h2 {
   margin: 1em 0 0.2em 0;
 }
 
+.table-no-top-border > thead:first-child > tr:first-child > th {
+  border-top: none;
+}
+
 @import "./activity-monitor.css";
 @import "./admin.css";
 @import "./audit_log.css";
 @import "./changelog.css";
 @import "./data_source.css";
 @import "./login.css";
-@import "./navbar.css";
 @import "./privacy-policy.css";
 @import "./queries.css";
 @import "./selectable_info.css";

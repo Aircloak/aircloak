@@ -1,20 +1,17 @@
-<ol class="breadcrumb">
-  <li class="breadcrumb-item"><%= link "Privacy policy", to: admin_privacy_policy_path(@conn, :index) %></li>
-  <li class="breadcrumb-item active">
-    <%= if first_privacy_policy?(@privacy_policy) do %>
-      Initial privacy policy
-    <% else %>
-      New revision
-    <% end %>
-  </li>
-</ol>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    <li class="breadcrumb-item"><%= link "Privacy policy", to: admin_privacy_policy_path(@conn, :index), class: "text-muted" %></li>
+  </ol>
 
-<%= if first_privacy_policy?(@privacy_policy) do %>
-  <h2>Set your privacy policy</h2>
-<% else %>
-  <h2>Alter your privacy policy</h2>
-<% end %>
+  <%= if first_privacy_policy?(@privacy_policy) do %>
+    <h1>Set your privacy policy</h1>
+  <% else %>
+    <h1>Alter your privacy policy</h1>
+  <% end %>
+</header>
 
+<div class="container-lg ml-0 pl-0">
 <%= if first_privacy_policy?(@privacy_policy) do %>
   <div class="alert alert-info">
     <h4 class="alert-heading">Creating a privacy policy</h4>
@@ -61,7 +58,7 @@
   </div>
 <% end %>
 
-<div class="alert alert-danger mb-3">
+<div class="alert alert-danger mb-4">
   <h4 class="alert-heading">Notice</h4>
   <p>
     <strong>
@@ -76,18 +73,17 @@
   </p>
 </div>
 
-<div class="alert alert-secondary">
-  <p>
-    The content of your privacy policy can be written in
-    <a href="https://guides.github.com/features/mastering-markdown/">markdown</a>.
-    This allows you to provide some structure and use formatting in your privacy policy.
-  </p>
 
-  <p>
-    For a quick guide to the markdown language, have a look at the following guide:
-    <a href="https://guides.github.com/features/mastering-markdown/">Mastering Markdown</a>.
-  </p>
-</div>
+<p>
+  The content of your privacy policy can be written in
+  <a href="https://guides.github.com/features/mastering-markdown/">markdown</a>.
+  This allows you to provide some structure and use formatting in your privacy policy.
+</p>
+
+<p>
+  For a quick guide to the markdown language, have a look at the following guide:
+  <a href="https://guides.github.com/features/mastering-markdown/">Mastering Markdown</a>.
+</p>
 
 <%= form_tag admin_privacy_policy_path(@conn, :create), method: "post" do %>
 
@@ -116,6 +112,7 @@
   </div>
 
 <% end %>
+</div>
 
 <script>
   window.pageConfig = {

@@ -45,14 +45,40 @@ defmodule AirWeb.ViewHelpers do
   def warning_navbar_link(conn) do
     problems = Warnings.problems()
 
-    if length(problems) > 0 and admin?(conn) do
-      path = AirWeb.Router.Helpers.admin_warnings_path(conn, :index)
-      navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
-      navbar_link(conn, warnings_title(length(problems), navbar_class), path)
+    if admin?(conn) do
+      if length(problems) > 0 do
+        path = AirWeb.Router.Helpers.admin_warnings_path(conn, :index)
+        navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
+        navbar_link(conn, admin_title(length(problems), navbar_class), path)
+      else
+        navbar_link(conn, "Admin", "/admin")
+      end
     else
       {:safe, []}
     end
   end
+
+  @doc "Conditionally creates a sidebar link if there are warnings"
+  @spec warning_sidebar_link(Plug.Conn.t()) :: {:safe, [any]}
+  def warning_sidebar_link(conn) do
+    problems = Warnings.problems()
+
+    if length(problems) > 0 and admin?(conn) do
+      path = AirWeb.Router.Helpers.admin_warnings_path(conn, :index)
+      navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
+      sidebar_link(conn, warnings_title(length(problems), navbar_class), "exclamation-triangle", path)
+    else
+      {:safe, []}
+    end
+  end
+
+  @doc "Warnings title"
+  @spec admin_title(non_neg_integer, String.t()) :: [any]
+  def admin_title(num_problems, severity_class),
+    do: [
+      "Admin ",
+      content_tag(:span, [class: "badge badge-" <> severity_class], do: num_problems)
+    ]
 
   @doc "Warnings title"
   @spec warnings_title(non_neg_integer, String.t()) :: [any]
@@ -92,6 +118,14 @@ defmodule AirWeb.ViewHelpers do
 
       link(name, options)
     end
+  end
+
+  @doc """
+  Generates a link with an icon, highlighting the active one.
+  """
+  @spec sidebar_link(Plug.Conn.t(), any, String.t(), String.t(), Keyword.t()) :: {:safe, [any]}
+  def sidebar_link(conn, name, icon, path, options \\ []) do
+    navbar_link(conn, [content_tag(:i, "", class: "fas fa-#{icon}"), name], path, options)
   end
 
   defp add_active_class(base_class, request_path, desired_path, options) do

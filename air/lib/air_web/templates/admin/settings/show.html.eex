@@ -1,4 +1,11 @@
-<h2>Settings</h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+
+  <h1>Settings</h1>
+</header>
+
 
 <%= if @changeset.action do %>
   <div class="alert alert-danger">
@@ -6,9 +13,10 @@
   </div>
 <% end %>
 
+<div class="container-md ml-0">
 <%= form_for @changeset, admin_settings_path(@conn, :update), fn f -> %>
   <%= validated_number_input f, :query_retention_days, "Query retention time (days)", horizontal: {3, 9}, label_class: "label-right", help_text: "Past queries will be kept for this many days. After that they will be deleted and unavailable when you \"Load previous queries\" or under Failed Queries. However, they will remain in the Audit Log. Leave blank to never delete queries." %>
- 
+
 
   <div class="form-group row">
     <label class="col-sm-3 control-label label-right" for="<%= input_id(f, :audit_log_enabled)%>">Audit logging</label>
@@ -63,11 +71,11 @@
 
   <div class="form-group row">
     <div class="offset-3 col-sm-9">
-      <%= submit "Save", class: "btn btn-success" %>
+      <%= submit "Save", class: "btn btn-primary" %>
     </div>
   </div>
 <% end %>
-
+</div>
 
 <script>
   window.pageConfig = {

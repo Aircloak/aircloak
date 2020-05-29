@@ -1,12 +1,17 @@
-<h2>
-  Groups
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
   <a class="btn btn-success btn-sm float-right" href="<%= admin_group_path(@conn, :new) %>">Add a group</a>
-</h2>
+  <h1>Groups</h1>
+</header>
+
+
 
 <%= render("_list.html", conn: @conn, groups: @groups) %>
 
 <%= if @ldap_enabled? do %>
-  <h2>
+  <h2 class="mt-5">
     LDAP Groups
 
     <%= link("Sync now", to: admin_group_path(@conn, :sync_ldap), method: :post,
@@ -14,9 +19,9 @@
   </h2>
 
   <%= if length(@ldap_groups) > 0 do %>
-    <div class="alert alert-info">
+    <p class="lead">
       These groups and their membership are managed in LDAP. You can only assign them to data sources here.
-    </div>
+    </p>
     <%= render("_list.html", conn: @conn, groups: @ldap_groups) %>
   <% else %>
     <div class="alert alert-info">
