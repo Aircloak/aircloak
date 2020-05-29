@@ -168,7 +168,7 @@ defmodule Cloak.Query.AnonimyzerTest do
   end
 
   test "noisy statistics" do
-    statistics = {10, 100, 1, 20, 10, 5}
+    statistics = [10, 100, 1, 20, 5]
     anonymizer = empty_accumulator() |> Anonymizer.new()
     assert {sum, min, max, sd} = Anonymizer.noisy_statistics(anonymizer, statistics)
     assert_in_delta sum, 100, 1
@@ -180,13 +180,13 @@ defmodule Cloak.Query.AnonimyzerTest do
   test "statistics aggregators bounds around 0" do
     anonymizer = empty_accumulator() |> Anonymizer.new()
 
-    assert {_sum, 0.0, _max, _sd} = Anonymizer.noisy_statistics(anonymizer, {5, 15, 1, 10, 3, 4})
-    assert {_sum, _min, 0.0, _sd} = Anonymizer.noisy_statistics(anonymizer, {5, -15, -10, -1, -3, 4})
-    assert {0.0, _min, _max, _sd} = Anonymizer.noisy_statistics(anonymizer, {5, 0.1, 0, 0.02, 0.1, 0.01})
+    assert {_sum, 0.0, _max, _sd} = Anonymizer.noisy_statistics(anonymizer, [5, 15, 1, 10, 4])
+    assert {_sum, _min, 0.0, _sd} = Anonymizer.noisy_statistics(anonymizer, [5, -15, -10, -1, 4])
+    assert {0.05, _min, _max, _sd} = Anonymizer.noisy_statistics(anonymizer, [5, 0.05, 0, 0.02, 0.01])
   end
 
   test "insufficient statistics" do
-    statistics = {2, 100, 1, 20, 10, 5}
+    statistics = [2, 100, 1, 20, 5]
     anonymizer = empty_accumulator() |> Anonymizer.new()
     assert {nil, nil, nil, nil} = Anonymizer.noisy_statistics(anonymizer, statistics)
   end

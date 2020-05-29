@@ -185,10 +185,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
         {aggregator, [_count, nil, nil, nil, nil], _anonymizer} ->
           if aggregator.alias == "count", do: Anonymizer.config(:low_count_absolute_lower_bound), else: nil
 
-        {aggregator, [count, sum, min, max, stddev], anonymizer} ->
-          avg = sum / count
-          statistics = {count, sum, min, max, avg, stddev}
-
+        {aggregator, [count, _sum, _min, _max, _stddev] = statistics, anonymizer} ->
           {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma} = Anonymizer.noisy_statistics(anonymizer, statistics)
 
           case aggregator.alias do

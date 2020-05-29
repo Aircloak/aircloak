@@ -222,9 +222,10 @@ defmodule Cloak.Query.Anonymizer do
   @top_scale 0.5
 
   @doc "Computes the noisy sum, min and max aggregates from the no-uid statistics for a bucket."
-  @spec noisy_statistics(t, {non_neg_integer, number, number, number, float, float}) ::
-          {float | nil, float | nil, float | nil, float | nil}
-  def noisy_statistics(anonymizer, {count, sum, min, max, avg, _stddev} = statistics) do
+  @spec noisy_statistics(t, [number]) :: {float | nil, float | nil, float | nil, float | nil}
+  def noisy_statistics(anonymizer, [count, sum, min, max, _stddev] = statistics) do
+    avg = sum / count
+
     {noise_sigma, edge_above, edge_below, flatten} = noise_parameters_from_statistics(statistics)
 
     {noise, anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
@@ -449,7 +450,9 @@ defmodule Cloak.Query.Anonymizer do
 
   defp sqr(value), do: value * value
 
-  defp noise_parameters_from_statistics({count, _sum, min, max, avg, stddev} = _statistics) do
+  defp noise_parameters_from_statistics([count, sum, min, max, stddev] = _statistics) do
+    avg = sum / count
+
     {edge_above, edge_below} =
       if min == max do
         # In this case we want edge_{above,below} to become the avg
@@ -473,12 +476,13 @@ defmodule Cloak.Query.Anonymizer do
   # We report a different sigma from the one we actually use to generate the noise for stats-based aggregators.
   # We compute the reported noise sigma after removing the effect of `min` and `max` from `avg` and `stddev`.
   # For details, see: https://github.com/Aircloak/aircloak/issues/4231.
-  defp reported_statistics_sigma({count, sum, min, max, avg, stddev} = _statistics) do
+  defp reported_statistics_sigma([count, sum, min, max, stddev] = _statistics) do
+    avg = sum / count
     sum_of_squared_diff = sqr(stddev) * (count - 1) - sqr(max - avg) - sqr(min - avg)
     stddev = (sum_of_squared_diff / (count - 1)) |> Kernel.max(0) |> :math.sqrt()
-    avg = (sum - max - min + 2 * avg) / count
+    sum = sum - max - min + 2 * avg
 
-    {sigma, _edge_above, _edge_below, _flatten} = noise_parameters_from_statistics({count, sum, min, max, avg, stddev})
+    {sigma, _edge_above, _edge_below, _flatten} = noise_parameters_from_statistics([count, sum, min, max, stddev])
     sigma
   end
 end
