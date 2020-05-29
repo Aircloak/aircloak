@@ -249,13 +249,17 @@ defmodule Cloak.Query.Anonymizer do
     do: sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma(round_amount)
 
   @doc "Computes the noisy count of distinct values from the no-uid statistics for a bucket."
-  @spec noisy_distinct_count(t, {non_neg_integer | nil, non_neg_integer | nil}) :: {float | nil, float | nil}
-  def noisy_distinct_count(_anonymizer, {count, nil} = _statistics), do: {count, 0}
+  @spec noisy_distinct_count(t, non_neg_integer, [number]) :: {float | nil, float | nil}
+  def noisy_distinct_count(_anonymizer, count, [1, 0, 0, 0, nil] = _noise_factor_statistics), do: {count, 0}
 
-  def noisy_distinct_count(anonymizer, {count, noise_factor} = _statistics) do
-    {noise, _anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
-    noise_amount = noise_amount(noise_factor, anonymizer)
-    noisy_count = count + noise * noise_factor
+  def noisy_distinct_count(anonymizer, count, noise_factor_statistics) do
+    {noise_sigma, _edge_above, _edge_below, flatten} = noise_parameters_from_statistics(noise_factor_statistics)
+
+    {noise, anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
+
+    noisy_count = count + noise * noise_sigma - flatten
+    noise_amount = noise_factor_statistics |> reported_statistics_sigma() |> noise_amount(anonymizer, 0.2)
+
     {noisy_count |> round() |> Kernel.max(0), noise_amount}
   end
 

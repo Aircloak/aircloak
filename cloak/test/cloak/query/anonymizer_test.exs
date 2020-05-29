@@ -177,6 +177,12 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert_in_delta sd, 10, 1
   end
 
+  test "noisy distinct count" do
+    nf_statistics = [5, 10, 1, 4, 2]
+    anonymizer = empty_accumulator() |> Anonymizer.new()
+    assert {12, 3.5} = Anonymizer.noisy_distinct_count(anonymizer, 10, nf_statistics)
+  end
+
   test "statistics aggregators bounds around 0" do
     anonymizer = empty_accumulator() |> Anonymizer.new()
 
