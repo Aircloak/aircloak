@@ -77,6 +77,7 @@ type Props = {
   result: SuccessResult,
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
+  onDeleteClick?: (queryId: string) => void,
 };
 
 type State = {
@@ -563,7 +564,7 @@ export class ResultView extends React.Component<Props, State> {
   };
 
   renderOptionMenu = () => {
-    const { result, debugModeEnabled } = this.props;
+    const { result, debugModeEnabled, onDeleteClick } = this.props;
     return (
       <div className="options-menu">
         <ShareButton result={result} />
@@ -576,6 +577,15 @@ export class ResultView extends React.Component<Props, State> {
         <DebugExport id={result.id} debugModeEnabled={debugModeEnabled} />
         {this.renderChartButton()}
         {this.renderAxesButton()}
+        {onDeleteClick && (
+          <button
+            type="button"
+            className="btn btn-danger btn-sm"
+            onClick={() => onDeleteClick(result.id)}
+          >
+            Delete
+          </button>
+        )}
       </div>
     );
   };

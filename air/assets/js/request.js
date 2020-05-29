@@ -18,6 +18,15 @@ export const cancel = (queryId: string, authentication: Authentication) =>
     headers: headers(authentication),
   });
 
+export const deleteQueryResult = (
+  queryId: string,
+  authentication: Authentication
+) =>
+  fetch(`/queries/${queryId}`, {
+    method: "DELETE",
+    headers: headers(authentication),
+  });
+
 export const startQuery = (
   queryData: string,
   authentication: Authentication,
