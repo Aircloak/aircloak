@@ -47,7 +47,9 @@ defmodule BOM.Whitelist do
     # node/node-forge
     "3468e584d830bfb0ffd2d0af6e129136" => :bsd_3_clause,
     # node/sha.js
-    "71f5a3fe755d4bb9cb62b97bdad36e45" => :mit
+    "71f5a3fe755d4bb9cb62b97bdad36e45" => :mit,
+    # node/tslib
+    "f938d99cba29007eeae26d80a9a4cfa6" => :bsd_0_clause
   }
 
   @not_shipped %{
