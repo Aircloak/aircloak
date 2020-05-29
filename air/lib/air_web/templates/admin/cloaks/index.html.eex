@@ -22,7 +22,7 @@
 
               <h5 class="card-title">Data sources</h5>
               <%= if length(cloak.data_sources) == 0 do %>
-                <p class="card-text">This cloak doesn't serve any data sources.</p>
+                <p class="card-text mb-3">This cloak doesn't serve any data sources.</p>
               <% end %>
             </div>
 
