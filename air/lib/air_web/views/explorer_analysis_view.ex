@@ -5,7 +5,7 @@ defmodule AirWeb.ExplorerAnalysisView do
   def status_to_badge_class(status) do
     case status do
       :new -> "badge-primary"
-      :pending -> "badge-info"
+      :processing -> "badge-info"
       :complete -> "badge-success"
       :error -> "badge-danger"
       :canceled -> "badge-secondary"

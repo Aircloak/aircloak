@@ -147,6 +147,7 @@ const App = {
             supportsCreateTable={supportsCreateTable}
             selectableToExclude={selectableToExclude}
             frontendSocket={App.buildSocket(props)}
+            numberFormat={numberFormat}
           />
         );
       case "view_editor":

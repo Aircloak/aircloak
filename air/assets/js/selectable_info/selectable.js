@@ -8,6 +8,7 @@ import { filterColumns, Higlighted } from "./filter";
 import type { Column } from "./columns";
 import activateTooltips from "../tooltips";
 import loader from "../../static/images/loader.gif";
+import type { NumberFormat } from "../number_format";
 
 export type Selectable = {
   id: string,
@@ -26,6 +27,7 @@ type Props = {
   expanded: boolean,
   filter: string,
   channel: Channel,
+  numberFormat: NumberFormat,
 };
 
 const ERROR_REASON_MESSAGE =
@@ -161,7 +163,7 @@ export class SelectableView extends React.Component<Props> {
   };
 
   renderSelectableView = (searchResult: any) => {
-    const { selectable, expanded, filter } = this.props;
+    const { selectable, expanded, filter, numberFormat } = this.props;
     const {
       title,
       dataToggle,
@@ -199,6 +201,7 @@ export class SelectableView extends React.Component<Props> {
                 table={selectable.id}
                 columns={selectable.columns}
                 filter={filter}
+                numberFormat={numberFormat}
               />
             );
           } else {
