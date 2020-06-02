@@ -436,6 +436,8 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("like", [subject, {_pattern, regex, _regex_ci}]), do: subject =~ regex
   defp do_apply("ilike", [subject, {_pattern, _regex, regex_ci}]), do: subject =~ regex_ci
 
+  defp do_apply("!<>", [arg1, arg2]), do: arg1 == arg2
+
   defp do_apply("extract_words", [nil]), do: [nil]
   defp do_apply("extract_words", [string]), do: String.split(string)
   defp do_apply("unsafe_pow", [x, y]) when x >= 0, do: do_apply("^", [x, y])
