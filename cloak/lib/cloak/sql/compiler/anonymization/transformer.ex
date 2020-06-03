@@ -211,6 +211,9 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
         where: nil
     }
     |> update_base_columns(grouped_columns, uid_grouping_table)
+    # We mark these subqueries as `standard` because we don't want them to generate
+    # additional noise layers (even though they will be deduplicated in end).
+    |> Helpers.apply_bottom_up(&%Query{&1 | type: :standard})
   end
 
   @doc "Offloads grouping sets from an anonymizing query into the subquery that groups by user id."
