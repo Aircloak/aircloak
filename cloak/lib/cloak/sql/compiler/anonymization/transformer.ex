@@ -116,7 +116,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     low_count_user_id? = Expression.function("<", [count_distinct_user_id, Expression.constant(:integer, 3)], :boolean)
 
     # The user id is valid only for at-risk values in the target column.
-    user_id_aggregator =
+    user_id_for_at_risk_values =
       Expression.function("case", [low_count_user_id?, min_user_id, Expression.null()], user_id.type)
       |> set_fields(alias: "__ac_user_id", synthetic?: true, user_id?: true)
 
@@ -129,14 +129,14 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
         do: add_column_index_to_grouping_sets(query.grouping_sets, Enum.count(base_columns)),
         else: Helpers.default_grouping_sets(grouped_columns)
 
-    aggregated_columns = [user_id_aggregator]
+    aggregated_columns = [user_id_for_at_risk_values]
     inner_columns = [grouping_id | grouped_columns ++ aggregated_columns]
 
     distinct_values_query = %Query{
       query
       | subquery?: true,
         type: :restricted,
-        aggregators: aggregated_columns,
+        aggregators: [count_distinct_user_id],
         columns: inner_columns,
         column_titles: Enum.map(inner_columns, &Expression.title/1),
         group_by: Enum.map(grouped_columns, &Expression.unalias/1),
