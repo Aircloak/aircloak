@@ -317,14 +317,18 @@ defmodule Cloak.Sql.TransformerTest do
                flatten("""
                SELECT
                 uid_grouping.grouping_id AS grouping_id,
-                MAX((CAST(uid_grouping.user_id IS NOT NULL AS integer)*CAST(uid_grouping.count_distinct AS bigint)))
-                  AS noise_factor,
-                SUM(uid_grouping.count_distinct) AS count_distinct
+                SUM(uid_grouping.count_distinct) AS count_distinct,
+                COUNT(uid_grouping.noise_factor) AS noise_factor_count,
+                SUM(uid_grouping.noise_factor) AS noise_factor_sum,
+                MIN(uid_grouping.noise_factor) AS noise_factor_min,
+                MAX(uid_grouping.noise_factor) AS noise_factor_max,
+                STDDEV(uid_grouping.noise_factor) AS noise_factor_stddev
                FROM (
                 SELECT
                   distinct_values.grouping_id AS grouping_id,
                   distinct_values.user_id AS user_id,
-                  COUNT(distinct_values.target) AS count_distinct
+                  COUNT(distinct_values.target) AS count_distinct,
+                  (CAST(distinct_values.user_id IS NOT NULL AS integer)*CAST(COUNT(distinct_values.target) AS bigint)) AS noise_factor
                 FROM (
                   SELECT
                     0 AS grouping_id,
@@ -349,15 +353,19 @@ defmodule Cloak.Sql.TransformerTest do
                SELECT
                 uid_grouping.grouping_id AS grouping_id,
                 uid_grouping.group_0 AS group_0,
-                MAX((CAST(uid_grouping.user_id IS NOT NULL AS integer)*CAST(uid_grouping.count_distinct AS bigint)))
-                  AS noise_factor,
-                SUM(uid_grouping.count_distinct) AS count_distinct
+                SUM(uid_grouping.count_distinct) AS count_distinct,
+                COUNT(uid_grouping.noise_factor) AS noise_factor_count,
+                SUM(uid_grouping.noise_factor) AS noise_factor_sum,
+                MIN(uid_grouping.noise_factor) AS noise_factor_min,
+                MAX(uid_grouping.noise_factor) AS noise_factor_max,
+                STDDEV(uid_grouping.noise_factor) AS noise_factor_stddev
                FROM (
                 SELECT
                   distinct_values.grouping_id AS grouping_id,
                   distinct_values.user_id AS user_id,
                   distinct_values.group_0 AS group_0,
-                  COUNT(distinct_values.target) AS count_distinct
+                  COUNT(distinct_values.target) AS count_distinct,
+                  (CAST(distinct_values.user_id IS NOT NULL AS integer)*CAST(COUNT(distinct_values.target) AS bigint)) AS noise_factor
                 FROM (
                   SELECT
                     0 AS grouping_id,

@@ -122,8 +122,15 @@ defmodule Cloak.Query.Aggregator.Statistics do
   defp merge_aggregation_statistics(count_adder, [count1], [count2]), do: [count_adder.(count1, count2)]
 
   # merge statistics for count(distinct column)
-  defp merge_aggregation_statistics(_count_adder, [count1, noise_factor1], [count2, noise_factor2]),
-    do: [max(count1, count2), max(noise_factor1, noise_factor2)]
+  defp merge_aggregation_statistics(
+         _count_adder,
+         [count1 | [_nf_count1, _nf_sum1, _nf_min1, nf_max1, _nf_stddev1] = nf_statistics1],
+         [count2 | [_nf_count2, _nf_sum2, _nf_min2, nf_max2, _nf_stddev2] = nf_statistics2]
+       ) do
+    count = max(count1, count2)
+    nf_statistics = if nf_max1 >= nf_max2, do: nf_statistics1, else: nf_statistics2
+    [count | nf_statistics]
+  end
 
   # merge regular statistics
   defp merge_aggregation_statistics(_count_adder, [0, nil, nil, nil, nil], statistics2), do: statistics2
@@ -174,21 +181,18 @@ defmodule Cloak.Query.Aggregator.Statistics do
         {%Expression{name: "count_noise", args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid], anonymizer} ->
           Anonymizer.noise_amount(1, anonymizer)
 
-        {%Expression{name: "count", args: [{:distinct, _}]}, [real_count, noise_factor], anonymizer} ->
-          {noisy_count, _noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, {real_count, noise_factor})
-          noisy_count
+        {%Expression{name: name, args: [{:distinct, _}]}, [count | noise_factor_statistics], anonymizer} ->
+          {noisy_count, noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, count, noise_factor_statistics)
 
-        {%Expression{name: "count_noise", args: [{:distinct, _}]}, [real_count, noise_factor], anonymizer} ->
-          {_noisy_count, noise_amount} = Anonymizer.noisy_distinct_count(anonymizer, {real_count, noise_factor})
-          noise_amount
+          case name do
+            "count" -> noisy_count
+            "count_noise" -> noise_amount
+          end
 
         {aggregator, [_count, nil, nil, nil, nil], _anonymizer} ->
           if aggregator.alias == "count", do: Anonymizer.config(:low_count_absolute_lower_bound), else: nil
 
-        {aggregator, [count, sum, min, max, stddev], anonymizer} ->
-          avg = sum / count
-          statistics = {count, sum, min, max, avg, stddev}
-
+        {aggregator, [count, _sum, _min, _max, _stddev] = statistics, anonymizer} ->
           {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma} = Anonymizer.noisy_statistics(anonymizer, statistics)
 
           case aggregator.alias do
