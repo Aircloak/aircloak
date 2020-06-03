@@ -110,7 +110,8 @@ defmodule Cloak.Sql.Compiler.Anonymization do
        ),
        do: Expression.function("=", [column1, column2], :boolean)
 
-  defp columns_not_distinct_condition(column1, column2), do: Expression.function("!<>", [column1, column2], :boolean)
+  defp columns_not_distinct_condition(column1, column2),
+    do: Expression.function("!<>", [column1, column2], :boolean) |> Map.put(:synthetic?, true)
 
   defp groups_equal_or_null_conditions(group1, group2) do
     Enum.zip(group1, group2)
