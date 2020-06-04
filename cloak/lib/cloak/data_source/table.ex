@@ -29,6 +29,10 @@ defmodule Cloak.DataSource.Table do
           :status => :created | :creating | :create_error,
           :user_id_join_chain => [join_link] | nil,
           :type => type,
+          optional(:comments) => %{
+            optional(:table) => String.t(),
+            optional(:columns) => Map.t()
+          },
           optional(:exclude_columns) => [String.t()],
           optional(:unselectable_columns) => [String.t()],
           optional(:warnings) => [String.t()],
@@ -411,6 +415,7 @@ defmodule Cloak.DataSource.Table do
   defp map_table({name, table}) do
     {name, table}
     |> map_isolators()
+    |> map_comments()
     |> map_keys()
     |> map_content_type()
   end
@@ -419,6 +424,11 @@ defmodule Cloak.DataSource.Table do
     do: {name, update_in(table, [Lens.key(:isolating_columns) |> Lens.map_keys()], &to_string/1)}
 
   def map_isolators({name, table}), do: {name, table}
+
+  def map_comments({name, %{comments: _} = table}),
+    do: {name, update_in(table, [Lens.key(:comments) |> Lens.key?(:columns) |> Lens.map_keys()], &to_string/1)}
+
+  def map_comments({name, table}), do: {name, table}
 
   defp map_content_type({name, %{user_id: nil}}) do
     raise ExecutionError,
