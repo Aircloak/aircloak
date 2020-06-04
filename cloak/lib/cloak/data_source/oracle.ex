@@ -42,7 +42,7 @@ defmodule Cloak.DataSource.Oracle do
     end)
     |> case do
       [] -> raise ExecutionError, message: "Table #{table.db_name} does not have any columns"
-      columns -> [%{table | columns: columns}]
+      columns -> [load_comments(connection, %{table | columns: columns})]
     end
   end
 
@@ -80,6 +80,33 @@ defmodule Cloak.DataSource.Oracle do
       Pwd: normalized_parameters[:password],
       DSN: "Oracle"
     }
+  end
+
+  defp load_comments(connection, table) do
+    [table_comments] =
+      connection
+      |> select!("""
+        SELECT COMMENTS
+        FROM ALL_TAB_COMMENTS
+        WHERE #{table_filter(table)}
+      """)
+      |> Enum.at(0, [nil])
+
+    column_comments =
+      connection
+      |> select!("""
+        SELECT COLUMN_NAME, COMMENTS
+        FROM ALL_COL_COMMENTS
+        WHERE #{table_filter(table)} AND COMMENTS IS NOT NULL
+      """)
+      |> Enum.map(&List.to_tuple/1)
+      |> Enum.into(%{})
+
+    comments =
+      %{table: table_comments, columns: column_comments}
+      |> Aircloak.deep_merge(Map.get(table, :comments, %{}))
+
+    Map.put(table, :comments, comments)
   end
 
   defp table_filter(table) do
