@@ -3,6 +3,7 @@
 ### Bugfixes
 
 - Fixed duplication of noise layers when using `count(distinct column)` aggregators.
+- Fixed incorrect rounding in Oracle when using `bucket` functions.
 
 ## Version 20.1.2
 

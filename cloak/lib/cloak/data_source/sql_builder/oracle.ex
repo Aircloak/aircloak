@@ -207,6 +207,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
       ", 'SECOND')"
     ]
 
+  def literal(real) when is_float(real), do: "#{real}d"
+
   def literal(value), do: super(value)
 
   @impl Dialect
