@@ -1,7 +1,7 @@
 defmodule AirWeb.Admin.ExplorerView do
   use Air.Web, :view
 
-  defp checkbox_mapper(form, field, input_opts, {name, description}, label_opts, _opts) do
+  defp checkbox_mapper(form, field, input_opts, {name, _description}, label_opts, _opts) do
     content_tag(:div, class: "form-check") do
       [
         tag(:input, [{:class, "form-check-input"} | input_opts]),
