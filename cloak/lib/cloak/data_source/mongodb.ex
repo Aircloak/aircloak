@@ -287,7 +287,9 @@ defmodule Cloak.DataSource.MongoDB do
       end)
 
   # Offloaded global aggregators do not work properly as the `$group` operator return an empty output on empty input.
-  defp supports_aggregators?(%Query{aggregators: [_ | _], implicit_count?: false, type: :standard}), do: false
+  defp supports_aggregators?(%Query{aggregators: [_ | _], implicit_count?: false, type: :standard, subquery?: false}),
+    do: false
+
   defp supports_aggregators?(_query), do: true
 
   defp supports_grouping?(query), do: query.type == :anonymized or length(query.grouping_sets) <= 1

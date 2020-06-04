@@ -1,3 +1,9 @@
+## Version 20.1.3
+
+### Bugfixes
+
+- Fixed duplication of noise layers when using `count(distinct column)` aggregators.
+
 ## Version 20.1.2
 
 ### Bugfixes
