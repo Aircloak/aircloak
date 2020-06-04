@@ -11,6 +11,7 @@ export type Column = {
   type: string,
   key_type: string,
   analysis?: any,
+  comment: string | null,
 };
 
 const typeColors = {
@@ -85,6 +86,7 @@ export const ColumnsView = ({
               item
             )} d-flex justify-content-between align-items-center`}
             key={item.name}
+            title={item.comment}
           >
             <button
               className="btn"
