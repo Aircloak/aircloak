@@ -9,40 +9,30 @@ type Props = {
   user: { name: string },
   queryState: string,
   insertedAt: string,
-  dataSource: { name: string }
+  dataSource: { name: string },
 };
 
-const formatTime = isoTime => {
+const formatTime = (isoTime) => {
   const time = moment.tz(isoTime, "UTC");
   return `${time.format("YYYY-MM-DD HH:mm:ss z")} (${time.fromNow()})`;
 };
 
 export default ({ user, dataSource, insertedAt, queryState }: Props) => {
   return (
-    <table className="table table-condensed">
-      <tbody>
-        <tr>
-          <td className="active col-md-2">User</td>
-          <td>{user.name}</td>
-        </tr>
+    <dl className="row">
+      <dt className="col-sm-3 col-md-2">User</dt>
+      <dd className="col-sm-9 col-md-10">{user.name}</dd>
 
-        <tr>
-          <td className="active col-md-2">Data source</td>
-          <td>{dataSource.name}</td>
-        </tr>
+      <dt className="col-sm-3 col-md-2">Data source</dt>
+      <dd className="col-sm-9 col-md-10">{dataSource.name}</dd>
 
-        <tr>
-          <td className="active col-md-2">Started on</td>
-          <td>{formatTime(insertedAt)}</td>
-        </tr>
+      <dt className="col-sm-3 col-md-2">Started on</dt>
+      <dd className="col-sm-9 col-md-10">{formatTime(insertedAt)}</dd>
 
-        <tr>
-          <td className="active col-md-2">Current state</td>
-          <td>
-            <StateView queryState={queryState} />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+      <dt className="col-sm-3 col-md-2">Current state</dt>
+      <dd className="col-sm-9 col-md-10">
+        <StateView queryState={queryState} />
+      </dd>
+    </dl>
   );
 };

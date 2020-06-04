@@ -30,8 +30,7 @@ defmodule Central do
 
     Central.Utils.update_app_env(:central, CentralWeb.Endpoint, fn config ->
       [
-        {:secret_key_base, site_setting("endpoint_key_base")},
-        {:customer_token_salt, site_setting("customer_token_salt")}
+        {:secret_key_base, site_setting("endpoint_key_base")}
         | config
       ] ++ https_config()
     end)

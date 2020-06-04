@@ -1,0 +1,13 @@
+<div class="dropdown ml-3">
+  <button class="btn text-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    <i class="fas fa-database pr-2"></i><%= @data_source.name %>
+  </button>
+  <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+    <h6 class="dropdown-header"><%= link("Data sources", to: data_source_path(@conn, :index)) %></h6>
+    <%= for data_source <- @data_sources do %>
+      <a  href="<%= data_source_path(@conn, :show, data_source.name) %>" class="dropdown-item <%= if data_source == @data_source, do: "active" %>">
+         <i class="fas fa-database pr-2"></i> <%= data_source.name %> <%= data_source_badge(data_source) %>
+      </a>
+    <% end %>
+  </div>
+</div>

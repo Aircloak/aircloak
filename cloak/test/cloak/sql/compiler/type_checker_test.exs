@@ -278,6 +278,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert narrative =~ ~r/Only clear expressions can be used in range conditions/
     end
 
+    test "forbids unclear implicit ranges on the lhs of condition" do
+      assert {:error, narrative} = compile("SELECT count(*) FROM table WHERE trunc(float + 0.5) = 4")
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
+    end
+
+    test "forbids unclear implicit ranges on the rhs of condition" do
+      assert {:error, narrative} = compile("SELECT count(*) FROM table WHERE float = trunc(float + 0.5)")
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
+    end
+
     test "forbids implicit ranges within another function" do
       assert {:error, narrative} = compile("SELECT abs(trunc(float)) FROM table")
       assert narrative =~ ~r/Only clear expressions can be used in range conditions/
@@ -293,12 +303,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert narrative =~ ~r/Only clear expressions can be used in range conditions/
     end
 
-    test "does not consider cast to integer as an implicit range",
-      do: assert({:ok, _} = compile("SELECT cast(float + 1 as integer) FROM table"))
+    test "consider cast to integer as an implicit range" do
+      assert({:error, narrative} = compile("SELECT cast(float + 1 as integer) FROM table"))
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
+    end
 
-    for function <- ~w(floor ceil ceiling) do
-      test "does not consider #{function} as an implicit range",
-        do: assert({:ok, _} = compile("SELECT #{unquote(function)}(float + 1) FROM table"))
+    for function <- ~w(round trunc floor ceil) do
+      test "consider #{function} as an implicit range" do
+        assert({:error, narrative} = compile("SELECT #{unquote(function)}(float + 1) FROM table"))
+        assert narrative =~ ~r/Only clear expressions can be used in range conditions/
+      end
     end
 
     test "allows casts in ranges",
@@ -344,6 +358,62 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbid arbitray math in where filter" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE float * 3 / (3 - float) + 1 - float * 2 = 7")
       assert "Queries containing expressions with a high number of functions" <> _ = message
+    end
+  end
+
+  describe "IS NULL" do
+    test "allows clear IS NULL",
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE round(numeric) IS NULL"))
+
+    test "allows clear IS NOT NULL",
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE round(numeric) IS NOT NULL"))
+
+    test "forbids unclear IS NULL" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE 1 / numeric IS NULL")
+
+      assert message =~ ~r(Only clear expressions can be used with the `IS \[NOT\] NULL` operator\.)
+    end
+
+    test "forbids unclear IS NOT NULL" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE 1 / numeric IS NOT NULL")
+
+      assert message =~ ~r(Only clear expressions can be used with the `IS \[NOT\] NULL` operator\.)
+    end
+
+    test "forbids unclear IS NULL from subqueries" do
+      assert {:error, message} =
+               compile("SELECT COUNT(*) FROM (SELECT 1 / numeric AS number FROM table) x WHERE number IS NULL")
+
+      assert message =~ ~r(Only clear expressions can be used with the `IS \[NOT\] NULL` operator\.)
+    end
+  end
+
+  describe "aggregators" do
+    test "allows clear aggregator",
+      do: assert({:ok, _} = compile("SELECT SUM(round(numeric)) FROM table"))
+
+    test "forbids unclear count" do
+      assert {:error, message} = compile("SELECT COUNT(1/numeric) FROM table")
+
+      assert message =~ ~r(Only clear expressions can be aggregated\.)
+    end
+
+    test "forbids unclear sum" do
+      assert {:error, message} = compile("SELECT SUM(1/numeric) FROM table")
+
+      assert message =~ ~r(Only clear expressions can be aggregated\.)
+    end
+
+    test "forbids unclear count distinct" do
+      assert {:error, message} = compile("SELECT COUNT(DISTINCT 1/numeric) FROM table")
+
+      assert message =~ ~r(Only clear expressions can be aggregated\.)
+    end
+
+    test "forbids unclear aggregator from subquery" do
+      assert {:error, message} = compile("SELECT STDDEV(number) FROM (SELECT 1 / numeric AS number FROM table) x")
+
+      assert message =~ ~r(Only clear expressions can be aggregated\.)
     end
   end
 

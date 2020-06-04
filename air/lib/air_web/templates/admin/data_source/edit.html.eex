@@ -1,9 +1,10 @@
-<ol class="breadcrumb">
-  <li><%= link "Data sources", to: admin_data_source_path(@conn, :index) %></li>
-  <li class="active"><%= @data_source.name %></li>
-</ol>
-
-<h2>Edit <%= @changeset.data.name %></h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    <li class="breadcrumb-item"><%= link "Data sources", to: admin_data_source_path(@conn, :index), class: "text-muted" %></li>
+  </ol>
+  <h1>Edit <%= @changeset.data.name %></h1>
+</header>
 
 <%= form_for @changeset, admin_data_source_path(@conn, :update, @changeset.data.name), fn f -> %>
 <%= if @changeset.action do %>
@@ -15,7 +16,7 @@
 <div class="form-group">
   <label>Description</label>
   <%= textarea f, :description, class: "form-control" %>
-  <p class="help-block">
+  <p class="form-text text-muted">
     A description is optional. If available it will be shown to analysts on
     the data source overview page to help them better distinguish between
     different available data sources.
@@ -42,6 +43,6 @@
 </div>
 
 <div class="form-group">
-  <%= submit "Save", class: "btn btn-primary" %>
+  <%= submit "Save", class: "btn btn-success" %>
 </div>
 <% end %>

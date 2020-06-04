@@ -36,7 +36,8 @@ defmodule BOM.Gather.Node do
     type = license_type(path)
 
     Gather.public_domain_license(type) || babel_license(path) || Gather.license_from_file(path, type) ||
-      Gather.license_from_readme(path, type) || Whitelist.find(:node, Path.basename(path), version)
+      Gather.license_from_readme(path, type) || Gather.allowed_license(type) ||
+      Whitelist.find(:node, Path.basename(path), version)
   end
 
   defp license_type(path) do

@@ -1,11 +1,11 @@
-<div class="col-sm-12" id="login-panel">
-  <div class="panel <%= panel_class(@conn) %>">
-    <h1 class="panel-heading login-h1">
+<div class="col-sm-12" id="login-card">
+  <div class="card <%= panel_class(@conn) %>">
+    <h1 class="card-header login-h1 h2 <%= panel_class(@conn) %>">
       Login
-      <img id="login-logo" src="/images/aircloak_web.png" />
+      <img alt="Aircloak" class="float-right mt-1" width="160" height="30" src="/frontend/images/aircloak_web.svg" />
     </h1>
 
-    <div class="panel-body">
+    <div class="card-body">
       <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
       <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
 

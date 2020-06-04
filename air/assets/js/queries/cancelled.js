@@ -10,20 +10,31 @@ import type { CancelledResult } from "./result";
 
 export default ({
   result,
-  debugModeEnabled
+  debugModeEnabled,
+  onDeleteClick,
 }: {
   result: CancelledResult,
-  debugModeEnabled: boolean
+  debugModeEnabled: boolean,
+  onDeleteClick?: (queryId: string) => void,
 }) => {
   return (
-    <div className="panel panel-warning">
-      <div className="panel-heading" />
-      <div className="panel-body">
+    <div className="card border-warning mb-3">
+      <div className="card-header bg-warning" />
+      <div className="card-body">
         <CodeViewer statement={result.statement} />
         <h4>Query cancelled</h4>
         <div className="options-menu">
           <ShareButton result={result} />
           <DebugExport id={result.id} debugModeEnabled={debugModeEnabled} />
+          {onDeleteClick && (
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              onClick={() => onDeleteClick(result.id)}
+            >
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -193,19 +193,19 @@ defmodule Cloak.Sql.Compiler.Anonymization do
        ) do
     table_index = Enum.find_index(distinct_columns, &Expression.equals?(&1, arg))
     distinct_statistics_table = Enum.at(distinct_statistics_tables, table_index)
-    real_count = Transformer.column_from_synthetic_table(distinct_statistics_table, "__ac_count_distinct")
-    noise_factor = Transformer.column_from_synthetic_table(distinct_statistics_table, "__ac_noise_factor")
-    %Expression{aggregator | args: [{:distinct, [real_count, noise_factor]}]}
+    count = Transformer.column_from_synthetic_table(distinct_statistics_table, "__ac_count_distinct")
+    noise_factor_statistics = statistics_columns(distinct_statistics_table, "__ac_noise_factor")
+    %Expression{aggregator | args: [{:distinct, [count | noise_factor_statistics]}]}
   end
 
   defp update_stats_aggregator(aggregator, [regular_statistics_table | _distinct_statistics_tables], _distinct_columns) do
     [%Expression{name: "__ac_agg_" <> _ = name}] = aggregator.args
+    %Expression{aggregator | args: statistics_columns(regular_statistics_table, name)}
+  end
 
-    args =
-      for input <- ~w(count sum min max stddev),
-          do: Transformer.column_from_synthetic_table(regular_statistics_table, "#{name}_#{input}")
-
-    %Expression{aggregator | args: args}
+  defp statistics_columns(table, name) do
+    for input <- ~w(count sum min max stddev),
+        do: Transformer.column_from_synthetic_table(table, "#{name}_#{input}")
   end
 
   defp target_columns_for_distinct_aggregators(aggregators) do

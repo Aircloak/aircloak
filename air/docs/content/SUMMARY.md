@@ -4,7 +4,7 @@
 ---- This way the mix task compiling the docs will be able to insert the current
 ---- version number when it changes.
 ---- Please check the automatically adjusted header into version control.
-## Aircloak Insights - version 20.1.2
+## Aircloak Insights - version 20.2.0-dev
 ---- Please only cautiously edit the line above.
 
 - [Introduction](README.md)

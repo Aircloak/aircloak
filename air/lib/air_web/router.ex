@@ -75,10 +75,9 @@ defmodule AirWeb.Router do
 
     get("/", DataSourceController, :redirect_to_last_used)
 
-    post("/queries", QueryController, :create)
+    resources("/queries", QueryController, only: [:create, :show, :delete])
     post("/queries/:id/cancel", QueryController, :cancel)
     get("/queries/load_history/:data_source_name", QueryController, :load_history)
-    get("/queries/:id", QueryController, :show)
     get("/queries/:id/buckets", QueryController, :buckets)
     get("/queries/:id/debug_export", QueryController, :debug_export)
 
@@ -90,6 +89,7 @@ defmodule AirWeb.Router do
     resources "/data_sources", DataSourceController do
       get("/selectables/edit", SelectableController, :edit)
       resources("/selectables/:kind", SelectableController)
+      resources("/diffix-explorer", ExplorerAnalysisController, only: [:index, :create])
     end
 
     get("/licenses", LicenseController, :index)

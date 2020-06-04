@@ -49,6 +49,7 @@ defmodule AirWeb.DataSourceController do
       |> render(
         "show.html",
         data_source: data_source,
+        data_sources: DataSource.for_user(conn.assigns.current_user),
         pending_queries: pending_queries,
         socket_token: AirWeb.Plug.Session.current_token(conn),
         csrf_token: CSRFProtection.get_csrf_token(),

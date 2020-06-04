@@ -101,9 +101,9 @@ defmodule Cloak.Sql.Range do
     Query.Lenses.pre_anonymization_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.filter(&Condition.equals?/1)
+    |> Query.Lenses.operands()
+    |> Lens.filter(&implicit_range?(&1, query))
     |> Lens.to_list(query)
-    |> Enum.map(&Condition.subject/1)
-    |> Enum.filter(&implicit_range?(&1, query))
     |> Enum.map(&function_range/1)
   end
 
@@ -111,8 +111,8 @@ defmodule Cloak.Sql.Range do
     Lens.key(:columns)
     |> Lens.all()
     |> Lens.reject(&aggregate?(&1))
+    |> Lens.filter(&implicit_range?(&1, query))
     |> Lens.to_list(query)
-    |> Enum.filter(&implicit_range?(&1, query))
     |> Enum.map(&function_range/1)
   end
 
@@ -121,7 +121,7 @@ defmodule Cloak.Sql.Range do
   defp implicit_range?(%Expression{kind: :constant}, _query), do: false
 
   defp implicit_range?(function = %Expression{kind: :function, args: args}, query) do
-    if Function.has_attribute?(function, :implicit_range) do
+    if Function.implicit_range?(function) do
       true
     else
       Enum.any?(args, &implicit_range?(&1, query))

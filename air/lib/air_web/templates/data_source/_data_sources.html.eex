@@ -5,6 +5,9 @@
       <%= if any_with_description?(@data_sources) do %>
         <th>Description</th>
       <% end %>
+      <%= if any_with_explorer_analysis?(@data_sources) do %>
+        <th>Analysis</th>
+      <% end %>
       <th>Status</th>
       <th>Tables</th>
     </tr>
@@ -17,6 +20,9 @@
       </td>
       <%= if any_with_description?(@data_sources) do %>
         <td><%= data_source.description %></td>
+      <% end %>
+      <%= if any_with_explorer_analysis?(@data_sources) do %>
+        <td><%= link "Analysis", to: data_source_explorer_analysis_path(@conn, :index, data_source.name) %></td>
       <% end %>
       <td>
         <%= availability_label(data_source) %>

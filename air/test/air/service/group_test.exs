@@ -138,35 +138,6 @@ defmodule Air.Service.Group.Test do
     end
   end
 
-  describe "group events" do
-    test "publishes delete event" do
-      Group.subscribe_to(:group_deleted)
-      group = TestRepoHelper.create_group!()
-
-      Group.delete!(group)
-
-      assert_receive {:group_deleted, %{group: _, previous_users_and_data_sources: _}}
-      Group.unsubscribe_from(:group_deleted)
-    end
-
-    test "publishes update event" do
-      Group.subscribe_to(:group_updated)
-      data_source1 = TestRepoHelper.create_data_source!()
-      data_source2 = TestRepoHelper.create_data_source!()
-      user = TestRepoHelper.create_user!()
-      group = TestRepoHelper.create_group!(%{data_sources: [data_source1.id]})
-
-      {:ok, group} = Group.update_data_sources(group, %{data_sources: [data_source2.id]})
-      assert_receive {:group_updated, %{group: _, previous_users_and_data_sources: _}}
-
-      group = group |> Repo.preload(:users)
-      Group.update!(group, %{users: [user.id]})
-      assert_receive {:group_updated, %{group: _, previous_users_and_data_sources: _}}
-
-      Group.unsubscribe_from(:group_updated)
-    end
-  end
-
   describe ".get_by_name" do
     test "returns not found for bogus name" do
       assert {:error, :not_found} = Group.get_by_name("bogus")

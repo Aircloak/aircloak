@@ -252,7 +252,7 @@ defmodule Cloak.DataSource.MongoDB do
     cast_boolean_to_text cast_text_to_boolean cast_integer_to_real cast_datetime_to_text
     ^ abs ceil floor round sqrt trunc quarter div cast_real_to_integer min max avg
     length left right substring cast_real_to_text cast_integer_to_text coalesce case
-    < > <= >= = <> and or not in is_null !<>
+    < > <= >= = <> and or not in is_null !<> stddev
   )
 
   @supported_functions_42 @supported_functions_36 ++ ~w(like ilike)

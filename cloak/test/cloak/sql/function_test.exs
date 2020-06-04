@@ -177,25 +177,23 @@ defmodule Cloak.Sql.Function.Test do
   end
 
   test "interval + interval" do
-    assert well_typed?("+", [:interval, :interval])
-    assert return_type("+", [:interval, :interval]) == :interval
+    refute well_typed?("+", [:interval, :interval])
   end
 
   test "interval - interval" do
-    assert well_typed?("-", [:interval, :interval])
-    assert return_type("-", [:interval, :interval]) == :interval
+    refute well_typed?("-", [:interval, :interval])
   end
 
   test "interval * number" do
-    assert return_type("*", [:interval, :integer]) == :interval
-    assert return_type("*", [:integer, :interval]) == :interval
-    assert return_type("*", [:interval, :real]) == :interval
-    assert return_type("*", [:real, :interval]) == :interval
+    refute well_typed?("*", [:interval, :integer]) == :interval
+    refute well_typed?("*", [:integer, :interval]) == :interval
+    refute well_typed?("*", [:interval, :real]) == :interval
+    refute well_typed?("*", [:real, :interval]) == :interval
   end
 
   test "interval / number" do
-    assert return_type("/", [:interval, :integer]) == :interval
-    assert return_type("/", [:interval, :real]) == :interval
+    refute well_typed?("/", [:interval, :integer]) == :interval
+    refute well_typed?("/", [:interval, :real]) == :interval
   end
 
   test "number / interval is ill-typed" do

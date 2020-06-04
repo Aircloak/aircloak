@@ -1,4 +1,11 @@
-<h2>Settings</h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+
+  <h1>Settings</h1>
+</header>
+
 
 <%= if @changeset.action do %>
   <div class="alert alert-danger">
@@ -6,34 +13,26 @@
   </div>
 <% end %>
 
-<%= form_for @changeset, admin_settings_path(@conn, :update), [class: "form-horizontal"], fn f -> %>
-  <div class="form-group">
-    <label class="col-sm-3 control-label">Query retention time (days)</label>
-    <div class="col-sm-9">
-      <%= number_input f, :query_retention_days, class: "form-control form-control-inline" %>
-      <p class="help-block">
-        Past queries will be kept for this many days. After that they will be deleted and unavailable
-        when you "Load previous queries" or under Failed Queries. However, they will remain in the
-        Audit Log. Leave blank to never delete queries.
-      </p>
-    </div>
-  </div>
+<div class="container-md ml-0">
+<%= form_for @changeset, admin_settings_path(@conn, :update), fn f -> %>
+  <%= validated_number_input f, :query_retention_days, "Query retention time (days)", horizontal: {3, 9}, label_class: "label-right", help_text: "Past queries will be kept for this many days. After that they will be deleted and unavailable when you \"Load previous queries\" or under Failed Queries. However, they will remain in the Audit Log. Leave blank to never delete queries." %>
 
-  <div class="form-group">
-    <label class="col-sm-3 control-label">Audit logging</label>
+
+  <div class="form-group row">
+    <label class="col-sm-3 control-label label-right" for="<%= input_id(f, :audit_log_enabled)%>">Audit logging</label>
     <div class="col-sm-9">
       <div class="checkbox">
         <label>
           <%= checkbox(f, :audit_log_enabled) %>
           (enabled when checked)
         </label>
-        <p class="help-block">
+        <small class="form-text text-muted">
           When audit logging is enabled, all actions that cause a change to the system
           (like adding or removing a user, or changing a data source) will be recorded
           in the <%= link "audit log", to: admin_audit_log_path(@conn, :index) %>.
           Please ensure that having audit logging enabled does not violate laws in your
           jurisdiction. You might for example need the sign in from the workers council.
-        </p>
+        </small>
       </div>
 
       <%= if (not @changeset.data.audit_log_enabled) and @audit_log_entries_count > 0 do %>
@@ -47,53 +46,36 @@
     </div>
   </div>
 
-  <div class="form-group">
-    <h4><label class="col-sm-3 label-right">Number format</label></h4>
+  <div class="form-group row">
+    <h4 class="col-sm-3 label-right">Number format</h4>
     <div class="col-sm-7">(applies only to the user interface)</div>
-    <div class="col-sm-7" id="example"></div>
-  </div>
-  <div class="form-group">
-    <label class="col-sm-3 control-label">Decimal separator</label>
-    <div class="col-sm-2">
-      <%= text_input f, :decimal_sep, class: "form-control input-sm" %>
-    </div>
-    <%= error_tag f, :decimal_sep %>
-  </div>
-  <div class="form-group">
-    <label class="col-sm-3 control-label">Thousand separator</label>
-    <div class="col-sm-2">
-      <%= text_input f, :thousand_sep, class: "form-control input-sm" %>
-    </div>
-    <%= error_tag f, :thousand_sep %>
-  </div>
-  <div class="form-group">
-    <label class="col-sm-3 control-label">Decimal digits</label>
-    <div class="col-sm-2">
-      <%= number_input f, :decimal_digits, class: "form-control input-sm" %>
-    </div>
-    <%= error_tag f, :decimal_digits %>
+    <div class="offset-3 col-sm-7" id="example"></div>
   </div>
 
-  <div class="form-group">
-    <label class="col-sm-3 control-label">Login screen message<br/>(Markdown)</label>
+  <%= validated_text_input f, :decimal_sep, "Decimal separator", horizontal: {3, 2}, label_class: "label-right" %>
+  <%= validated_text_input f, :thousand_sep, "Thousand separator", horizontal: {3, 2}, label_class: "label-right" %>
+  <%= validated_number_input f, :decimal_digits, "Decimal digits", horizontal: {3, 2}, label_class: "label-right" %>
+
+  <div class="form-group row">
+    <label class="col-sm-3 control-label label-right">Login screen message<br/>(Markdown)</label>
     <div class="col-sm-9">
       <%= textarea f, :login_message, class: "form-control input-sm" %>
     </div>
   </div>
-  <div class="form-group">
-    <label class="col-sm-3 control-label">Main screen message<br/>(Markdown)</label>
+  <div class="form-group row">
+    <label class="col-sm-3 control-label label-right">Main screen message<br/>(Markdown)</label>
     <div class="col-sm-9">
       <%= textarea f, :main_message, class: "form-control input-sm" %>
     </div>
   </div>
 
-  <div class="form-group">
-    <div class="col-sm-offset-3 col-sm-9">
+  <div class="form-group row">
+    <div class="offset-3 col-sm-9">
       <%= submit "Save", class: "btn btn-primary" %>
     </div>
   </div>
 <% end %>
-
+</div>
 
 <script>
   window.pageConfig = {

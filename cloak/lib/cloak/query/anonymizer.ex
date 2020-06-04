@@ -222,35 +222,18 @@ defmodule Cloak.Query.Anonymizer do
   @top_scale 0.5
 
   @doc "Computes the noisy sum, min and max aggregates from the no-uid statistics for a bucket."
-  @spec noisy_statistics(t, {non_neg_integer, number, number, number, float, float}) ::
-          {float | nil, float | nil, float | nil, float | nil}
-  def noisy_statistics(anonymizer, {count, sum, min, max, avg, stddev} = _statistics) do
-    {std_above, std_below} =
-      if min == max do
-        # In this case we want edge_{above,below} to become the avg
-        {0, 0}
-      else
-        range = max - min
-        std_above = stddev * (max - avg) / range
-        std_below = stddev * (avg - min) / range
-        {std_above, std_below}
-      end
+  @spec noisy_statistics(t, [number]) :: {float | nil, float | nil, float | nil, float | nil}
+  def noisy_statistics(anonymizer, [count, sum, min, max, _stddev] = statistics) do
+    avg = sum / count
 
-    edge_above = avg + @factor * std_above
-    edge_below = avg - @factor * std_below
-
-    flatten = max - edge_above + min - edge_below
-
-    adj_avg = avg - if flatten > 0, do: flatten / count, else: 0
-
-    sum_sigma = Enum.max([abs(@avg_scale * adj_avg), abs(@top_scale * edge_above), abs(@top_scale * edge_below)])
+    {noise_sigma, edge_above, edge_below, flatten} = noise_parameters_from_statistics(statistics)
 
     {noise, anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
 
-    noisy_sum = sum + noise * sum_sigma - flatten
+    noisy_sum = sum + noise * noise_sigma - flatten
     noisy_min = edge_below + noise * edge_sigma(edge_below, avg, count) * @top_scale
     noisy_max = edge_above + noise * edge_sigma(edge_above, avg, count) * @top_scale
-    noise_amount = noise_amount(sum_sigma, anonymizer)
+    noise_amount = statistics |> reported_statistics_sigma() |> noise_amount(anonymizer, 0.2)
 
     cond do
       not sufficiently_large?(anonymizer, count) -> {nil, nil, nil, nil}
@@ -261,18 +244,22 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Returns the actual noise amount from a dynamic anonymizer and a static noise SD."
-  @spec noise_amount(number, t) :: float
-  def noise_amount(sigma, anonymizer), do: sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()
+  @spec noise_amount(number, t, float) :: float
+  def noise_amount(sigma, anonymizer, round_amount \\ 0.05),
+    do: sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma(round_amount)
 
   @doc "Computes the noisy count of distinct values from the no-uid statistics for a bucket."
-  @spec noisy_distinct_count(t, {non_neg_integer | nil, non_neg_integer | nil}) :: {float | nil, float | nil}
-  def noisy_distinct_count(_anonymizer, {count, nil} = _statistics), do: {count, 0}
+  @spec noisy_distinct_count(t, non_neg_integer, [number]) :: {float | nil, float | nil}
+  def noisy_distinct_count(_anonymizer, count, [1, 0, 0, 0, nil] = _noise_factor_statistics), do: {count, 0}
 
-  def noisy_distinct_count(anonymizer, {count, noise_factor} = _statistics) do
-    {noise, _anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
-    count_sigma = noise_factor * 0.5
-    noise_amount = noise_amount(count_sigma, anonymizer)
-    noisy_count = count + noise * count_sigma
+  def noisy_distinct_count(anonymizer, count, noise_factor_statistics) do
+    {noise_sigma, _edge_above, _edge_below, flatten} = noise_parameters_from_statistics(noise_factor_statistics)
+
+    {noise, anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
+
+    noisy_count = count + noise * noise_sigma - flatten
+    noise_amount = noise_factor_statistics |> reported_statistics_sigma() |> noise_amount(anonymizer, 0.2)
+
     {noisy_count |> round() |> Kernel.max(0), noise_amount}
   end
 
@@ -419,7 +406,7 @@ defmodule Cloak.Query.Anonymizer do
     value_count = values |> Enum.count() |> Kernel.max(1)
     average = Enum.sum(values) / value_count
 
-    variance = (values |> Enum.map(&((&1 - average) * (&1 - average))) |> Enum.sum()) / value_count
+    variance = (values |> Enum.map(&sqr(&1 - average)) |> Enum.sum()) / value_count
 
     quarter_stddev = :math.sqrt(variance) / 4
     {noisy_average, _anonymizer} = add_noise(anonymizer, {average, quarter_stddev})
@@ -441,8 +428,8 @@ defmodule Cloak.Query.Anonymizer do
 
   # Rounds the noise sigma to a value that can be provided back to the analyst.
   # For more info, see this: https://github.com/Aircloak/aircloak/issues/267.
-  defp round_noise_sigma(sigma) do
-    case money_round(sigma * 0.05) do
+  defp round_noise_sigma(sigma, amount) do
+    case money_round(sigma * amount) do
       0.0 -> 0.0
       round_step -> Float.round(sigma / round_step) * round_step
     end
@@ -450,7 +437,7 @@ defmodule Cloak.Query.Anonymizer do
 
   defp sum_noise_sigmas(sigma1, nil), do: sigma1
   defp sum_noise_sigmas(nil, sigma2), do: sigma2
-  defp sum_noise_sigmas(sigma1, sigma2), do: :math.sqrt(sigma1 * sigma1 + sigma2 * sigma2)
+  defp sum_noise_sigmas(sigma1, sigma2), do: :math.sqrt(sqr(sigma1) + sqr(sigma2))
 
   defp get_group_count(anonymizer, range_sigma) do
     {min_count, max_count, sigma} = range_sigma
@@ -463,5 +450,43 @@ defmodule Cloak.Query.Anonymizer do
   defp edge_sigma(edge, avg, count) do
     new_avg = (avg * count - edge) / Kernel.max(count - 1, 1)
     abs(avg - new_avg)
+  end
+
+  defp sqr(value), do: value * value
+
+  defp noise_parameters_from_statistics([count, sum, min, max, stddev] = _statistics) do
+    avg = sum / count
+
+    {edge_above, edge_below} =
+      if min == max do
+        # In this case we want edge_{above,below} to become the avg
+        {avg, avg}
+      else
+        range = max - min
+        std_above = stddev * (max - avg) / range
+        std_below = stddev * (avg - min) / range
+        edge_above = avg + @factor * std_above
+        edge_below = avg - @factor * std_below
+        {edge_above, edge_below}
+      end
+
+    flatten = max - edge_above + min - edge_below
+    adj_avg = avg - if flatten > 0, do: flatten / count, else: 0
+
+    sigma = Enum.max([abs(@avg_scale * adj_avg), abs(@top_scale * edge_above), abs(@top_scale * edge_below)])
+    {sigma, edge_above, edge_below, flatten}
+  end
+
+  # We report a different sigma from the one we actually use to generate the noise for stats-based aggregators.
+  # We compute the reported noise sigma after removing the effect of `min` and `max` from `avg` and `stddev`.
+  # For details, see: https://github.com/Aircloak/aircloak/issues/4231.
+  defp reported_statistics_sigma([count, sum, min, max, stddev] = _statistics) do
+    avg = sum / count
+    sum_of_squared_diff = sqr(stddev) * (count - 1) - sqr(max - avg) - sqr(min - avg)
+    stddev = (sum_of_squared_diff / (count - 1)) |> Kernel.max(0) |> :math.sqrt()
+    sum = sum - max - min + 2 * avg
+
+    {sigma, _edge_above, _edge_below, _flatten} = noise_parameters_from_statistics([count, sum, min, max, stddev])
+    sigma
   end
 end

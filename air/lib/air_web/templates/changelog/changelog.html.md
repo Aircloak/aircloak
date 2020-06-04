@@ -1,3 +1,28 @@
+## Version 20.2.0-dev
+
+### __Breaking changes__
+
+- Default value for `max_rare_negative_conditions` is now 0.
+- The `IS [NOT] NULL` operator is restricted to clear expressions.
+- Aggregators are restricted to clear expressions.
+- Dropped support for non-datetime/interval arithmetic.
+- `floor`, `ceil` and `cast(real as integer)` are now considered implicit ranges.
+
+### New features
+
+### Enhancements
+
+- Added overflow protection for date arithmetic. Oracle UDFs have to be reloaded.
+
+### Bugfixes
+
+- Fixed filtering of censored values in standard queries.
+- Verify implicit range usage on both sides of a condition.
+
+### Changes
+
+- Increased the minimum threshold for non-count stats-based aggregators.
+
 ## Version 20.1.3
 
 ### Bugfixes

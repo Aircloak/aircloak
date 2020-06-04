@@ -173,6 +173,17 @@ defmodule Air.Service.ViewTest do
 
       assert Repo.get(Air.Schemas.View, context.v2.id).broken
     end
+
+    test "fails if different user", context do
+      assert {:error, :not_allowed} ==
+               View.update(
+                 context.v1.id,
+                 context.u2,
+                 "some view",
+                 "some sql",
+                 revalidation_timeout: :timer.seconds(1)
+               )
+    end
   end
 
   describe "deleting a view" do
@@ -187,6 +198,14 @@ defmodule Air.Service.ViewTest do
       assert nil == Repo.get(Air.Schemas.View, context.v1.id)
 
       assert_receive {:revalidated_views, _}
+    end
+
+    test "fails if different user", context do
+      assert {:error, :not_allowed} ==
+               View.delete(
+                 context.v1.id,
+                 context.u2
+               )
     end
 
     test "revalidating other views", context do

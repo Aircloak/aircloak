@@ -28,6 +28,6 @@
     "ssl": false,
     "user": "postgres",
     "password": "",
-    "name": "air_test"
+    "name": "postgres"
   }
 }

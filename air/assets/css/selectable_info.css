@@ -7,13 +7,14 @@
   }
 }
 
+#selectable-column {
+  position: sticky;
+  top: 70px;
+}
+
 .selectable-heading {
   width: 100%;
   display: table;
-}
-
-.selectable-heading .label-success a {
-  color: white;
 }
 
 .selectable-info {
@@ -65,7 +66,25 @@
   display: block;
 }
 
-.column-filter .input-group {
-  display: table;
-  width: 100%;
+.highlight {
+  padding: 0;
+  text-decoration: underline;
+}
+
+.type-icon {
+  border: 1px solid grey;
+  border-radius: 2px;
+  padding: 3px;
+  margin-right: 0.6em;
+}
+
+.type-icon.user-icon,
+.type-icon.link-icon {
+  padding-right: 0;
+}
+
+.type-icon.native-type {
+  width: 24px;
+  display: inline-block;
+  line-height: 1;
 }

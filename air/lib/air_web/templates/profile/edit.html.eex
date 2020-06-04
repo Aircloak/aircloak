@@ -1,4 +1,6 @@
-<h2>Profile settings</h2>
+<header class="page-header">
+  <h1>Profile settings</h1>
+</header>
 
 <%= if @changeset.action do %>
   <div class="alert alert-danger">
@@ -6,148 +8,87 @@
   </div>
 <% end %>
 
-<div class="row">
-  <div class="col-sm-6">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h4>Profile</h4>
-      </div>
+<div class="card-columns">
+  <div class="card">
+    <h4 class="card-header">Profile</h4>
+    <div class="card-body">
+      <%= form_for @changeset, profile_path(@conn, :update), fn f -> %>
+        <%= validated_text_input f, :login, "Login", disabled: not can_edit?(@changeset.data) %>
 
-      <div class="panel-body">
-        <%= form_for @changeset, profile_path(@conn, :update), fn f -> %>
-            <div class="form-group">
-              <label>Login</label>
-              <%= text_input f, :login, class: "form-control", disabled: not can_edit?(@changeset.data) %>
-              <%= error_tag f, :login %>
-            </div>
+        <%= validated_text_input f, :name, "Name", disabled: not can_edit?(@changeset.data) %>
 
-            <div class="form-group">
-              <label>Name</label>
-              <%= text_input f, :name, class: "form-control", disabled: not can_edit?(@changeset.data) %>
-              <%= error_tag f, :name %>
-            </div>
+        <div class="form-group">
+          <label>Number format</label> (applies only to the user interface)<br/>
+          If not set, global settings will apply, which are:
+          <ul>
+            <li>show <%= @global_settings.decimal_digits %> decimal digits</li>
+            <li>decimal separator is '<%= @global_settings.decimal_sep %>'</li>
+            <li>thousand separator is '<%= @global_settings.thousand_sep %>'</li>
+          </ul>
+          <div id="example"></div>
+          <br/>
+          <% inline_form_options = [class: "form-control form-control-sm col-sm-3", group_class: "form-group row", label_class: "col-sm-5 col-form-label col-form-label-sm", error_class: "col-sm-4 invalid-feedback"] %>
+          <%= validated_text_input f, :decimal_sep, "Decimal separator", inline_form_options%>
 
-          <div class="form-group">
-            <label>Number format</label> (applies only to the user interface)<br/>
-            If not set, global settings will apply, which are:
-            <ul>
-              <li>show <%= @global_settings.decimal_digits %> decimal digits</li>
-              <li>decimal separator is '<%= @global_settings.decimal_sep %>'</li>
-              <li>thousand separator is '<%= @global_settings.thousand_sep %>'</li>
-            </ul>
-            <div id="example"></div>
-            <br/>
-            <div class="form-group">
-              <span class="col-sm-5">
-                Decimal separator
-              </span>
-              <span class="col-sm-3">
-                <%= text_input f, :decimal_sep, class: "form-control input-sm" %>
-              </span>
-            </div>
-            <br/>
-            <%= error_tag f, :decimal_sep %>
-            <div class="form-group">
-              <span class="col-sm-5">
-                Thousand separator
-              </span>
-              <span class="col-sm-3">
-                <%= text_input f, :thousand_sep, class: "form-control input-sm" %>
-              </span>
-            </div>
-            <br/>
-            <%= error_tag f, :thousand_sep %>
-            <div class="form-group">
-              <span class="col-sm-5">
-                Decimal digits
-              </span>
-              <span class="col-sm-3">
-                <%= number_input f, :decimal_digits, class: "form-control input-sm" %>
-              </span>
-            </div>
-            <br/>
-            <%= error_tag f, :decimal_digits %>
-          </div>
+          <%= validated_text_input f, :thousand_sep, "Thousand separator",inline_form_options %>
+
+          <%= validated_number_input f, :decimal_digits, "Decimal digits",inline_form_options %>
+        </div>
+        <div class="form-group">
+          <%= submit "Save", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4 class="card-header">Sessions</h4>
+    <div class="card-body">
+      <p>
+        You are currently signed in on <strong><%= session_count(@conn) %></strong> devices. Press the button below,
+        to sign out from all devices except this one.
+      </p>
+
+      <%= link "Sign out other sessions", class: "btn btn-danger",
+        to: profile_profile_path(@conn, :delete_sessions), method: :delete %>
+    </div>
+  </div>
+
+
+  <%= if can_edit?(@changeset.data) do %>
+    <div class="card">
+      <h4 class="card-header">Change password</h4>
+      <div class="card-body">
+        <%= form_for @changeset, profile_path(@conn, :change_password), fn f -> %>
+          <%= validated_password_input f, :old_password, "Old Password", autocomplete: "current-password"  %>
+          <div id="password-field"><%= validated_password_input f, :password, "New Password", autocomplete: "new-password"  %></div>
+          <%= validated_password_input f, :password_confirmation, "Password Confirmation", autocomplete: "new-password"  %>
 
           <div class="form-group">
             <%= submit "Save", class: "btn btn-primary" %>
           </div>
         <% end %>
-      </div>
-    </div>
 
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h4>Sessions</h4>
-        </div>
-        <div class="panel-body">
-          <p>
-            You are currently signed in on <strong><%= session_count(@conn) %></strong> devices. Press the button below,
-            to sign out from all devices except this one.
-          </p>
-
-          <%= link "Sign out other sessions", class: "btn btn-primary",
-            to: profile_profile_path(@conn, :delete_sessions), method: :delete %>
-        </div>
-      </div>
-  </div>
-
-  <%= if can_edit?(@changeset.data) do %>
-    <div class="col-sm-6">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h4>Change password</h4>
-        </div>
-
-        <div class="panel-body">
-          <%= form_for @changeset, profile_path(@conn, :change_password), fn f -> %>
-            <div class="form-group">
-              <label>Old Password</label>
-              <%= password_input f, :old_password, class: "form-control" %>
-              <%= error_tag f, :old_password %>
-            </div>
-
-            <div class="form-group">
-              <label>New Password</label>
-              <div id="password-field"></div>
-              <%= error_tag f, :password %>
-            </div>
-
-            <div class="form-group">
-              <label>Password Confirmation</label>
-              <%= password_input f, :password_confirmation, class: "form-control" %>
-              <%= error_tag f, :password_confirmation %>
-            </div>
-
-            <div class="form-group">
-              <%= submit "Save", class: "btn btn-primary" %>
-            </div>
-          <% end %>
-        </div>
       </div>
     </div>
   <% end %>
 
-  <div class="col-sm-6">
-    <div class="panel <%= panel_class(@conn.assigns.current_user.debug_mode_enabled) %>">
-      <div class="panel-heading">
-        <h4>Debug mode</h4>
-      </div>
+  <div class="<%= panel_class(@conn.assigns.current_user.debug_mode_enabled) %>">
+    <h4 class="<%= header_class(@conn.assigns.current_user.debug_mode_enabled) %>">Debug mode</h4>
 
-      <div class="panel-body">
-        <p>
-          Debug mode enables additional functionality in the user interface aiding in debugging query results.
-          This mode is usually only enabled upon request by the Aircloak support team.
-        </p>
-        <%= if @conn.assigns.current_user.debug_mode_enabled do %>
-          <p>Debug mode is currently enabled.</p>
-          <%= button "Disable debug mode", to: profile_path(@conn, :toggle_debug_mode), class: "btn btn-primary" %>
-        <% else %>
-          <p>Debug mode is currently disabled.</p>
-          <%= button "Enable debug mode", to: profile_path(@conn, :toggle_debug_mode), class: "btn btn-primary" %>
-        <% end %>
-        </p>
-      </div>
+    <div class="card-body">
+      <p>
+        Debug mode enables additional functionality in the user interface aiding in debugging query results.
+        This mode is usually only enabled upon request by the Aircloak support team.
+      </p>
+      <%= if @conn.assigns.current_user.debug_mode_enabled do %>
+        <p>Debug mode is currently enabled.</p>
+        <%= button "Disable debug mode", to: profile_path(@conn, :toggle_debug_mode), class: "btn btn-success" %>
+      <% else %>
+        <p>Debug mode is currently disabled.</p>
+        <%= button "Enable debug mode", to: profile_path(@conn, :toggle_debug_mode), class: "btn btn-warning" %>
+      <% end %>
+      </p>
     </div>
   </div>
 </div>
@@ -156,12 +97,9 @@
 
 <div class="row">
   <div class="col-sm-6">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h4>Export data</h4>
-      </div>
-
-      <div class="panel-body">
+    <div class="card">
+      <h4 class="card-header">Export data</h4>
+      <div class="card-body">
         <p>
           By clicking on the button below you can download a machine-readable copy of all the data gathered about you in
           Aircloak Insights.
@@ -171,7 +109,7 @@
 
         <p>
         <a href="/export" download="<%= export_name() %>"class="btn btn-primary">
-            <span class="glyphicon glyphicon-download" aria-hidden="true"></span>
+            <span class="fas fa-download" aria-hidden="true"></span>
             Download
           </a>
         </p>
@@ -181,12 +119,9 @@
 
   <div class="col-sm-6">
 
-    <div class="panel panel-success">
-      <div class="panel-heading">
-        <h4>Privacy policy</h4>
-      </div>
-
-      <div class="panel-body">
+    <div class="card border-success mb-3">
+      <h4 class="card-header border-success">Privacy policy</h4>
+      <div class="card-body">
         <p><strong>You have given consent to the privacy policy.</strong></p>
         <p>
           You can review the contents of the privacy policy here:
@@ -203,7 +138,7 @@
       var props = <%= to_json(%{numberFormat: number_format_settings(@conn)}) %>;
       App.numberFormatExample(props, document.getElementById("example"));
 
-      App.passwordField({}, document.getElementById("password-field"));
+      App.passwordField({}, document.querySelector("#password-field .form-group > div"));
     }
   };
 </script>

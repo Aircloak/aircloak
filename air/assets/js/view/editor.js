@@ -2,29 +2,40 @@
 
 import React from "react";
 import $ from "jquery";
-import _ from "lodash";
 import CodeEditor from "../code_editor";
 import type { Selectable } from "../selectable_info/selectable";
 
 type Props = {
   statement: string,
-  selectables: Selectable[]
+  selectables: Selectable[],
 };
 
-export default class ViewEditor extends React.Component<Props> {
-  static setStatement(statement: string) {
-    $("#sql").val(statement);
+type State = {
+  statement: string,
+};
+
+export default class ViewEditor extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      statement: props.statement,
+    };
   }
+
+  setStatement = (statement: string) => {
+    $("#sql").val(statement);
+    this.setState({ statement });
+  };
 
   tableNames() {
     const { selectables } = this.props;
-    return selectables.map<string>(table => table.id);
+    return selectables.map<string>((table) => table.id);
   }
 
   columnNames() {
     const { selectables } = this.props;
-    return _.flatMap(selectables, table =>
-      table.columns.map<string>(column => column.name)
+    return selectables.flatMap<string>((table) =>
+      table.columns.map<string>((column) => column.name)
     );
   }
 
@@ -33,13 +44,12 @@ export default class ViewEditor extends React.Component<Props> {
   }
 
   render() {
-    const { statement } = this.props;
     return (
       <CodeEditor
-        statement={statement}
+        statement={this.state.statement}
         tableNames={this.tableNames()}
         columnNames={this.columnNames()}
-        onChange={ViewEditor.setStatement}
+        onChange={this.setStatement}
         onRun={ViewEditor.save}
       />
     );

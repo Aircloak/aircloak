@@ -14,18 +14,20 @@ type Props = {
   results: Result[],
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
-  authentication: Authentication
+  authentication: Authentication,
+  onDeleteClick?: (id: string) => void,
 };
 
 export default ({
   results,
   numberFormat,
   debugModeEnabled,
-  authentication
+  authentication,
+  onDeleteClick,
 }: Props) => {
   return (
     <div>
-      {results.map(result => {
+      {results.map((result) => {
         switch (result.query_state) {
           case "completed":
             return (
@@ -34,6 +36,7 @@ export default ({
                 result={result}
                 numberFormat={numberFormat}
                 debugModeEnabled={debugModeEnabled}
+                onDeleteClick={onDeleteClick}
               />
             );
           case "cancelled":
@@ -42,6 +45,7 @@ export default ({
                 key={result.id}
                 result={result}
                 debugModeEnabled={debugModeEnabled}
+                onDeleteClick={onDeleteClick}
               />
             );
           case "error":
@@ -50,6 +54,7 @@ export default ({
                 key={result.id}
                 result={result}
                 debugModeEnabled={debugModeEnabled}
+                onDeleteClick={onDeleteClick}
               />
             );
           default:

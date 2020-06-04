@@ -115,10 +115,10 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     assert_query(
       context,
       """
-        SELECT AVG(salary)
+        SELECT COUNT(salary), SUM(salary)
         FROM "left" INNER JOIN "right" ON "left".id = "right".id AND abs(salary) = 100
       """,
-      %{rows: [%{occurrences: 1, row: [100.0]}]}
+      %{rows: [%{occurrences: 1, row: [7, nil]}]}
     )
   end
 

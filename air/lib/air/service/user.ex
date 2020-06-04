@@ -1,13 +1,13 @@
 defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
-  alias Aircloak.ChildSpec
   alias Air.Repo
   alias Air.Service
   alias Air.Service.{AuditLog, LDAP, Password, RevokableToken, AdminGuard}
   alias Air.Schemas.{DataSource, Group, User, Login}
   import Ecto.Query, only: [from: 2, join: 4, where: 3, preload: 3]
   import Ecto.Changeset
+  import ZXCVBN
 
   @required_fields ~w(name)a
   @login_fields ~w(login)a
@@ -21,27 +21,10 @@ defmodule Air.Service.User do
   @type change_options :: [ldap: true | false | :any]
   @type login :: String.t()
   @type password :: String.t()
-  @type user_notification :: :user_updated | :user_deleted
-
-  @notifications_registry __MODULE__.NotificationsRegistry
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Subscribes to notifications about activities."
-  @spec subscribe_to(user_notification) :: :ok
-  def subscribe_to(notification) do
-    Registry.register(@notifications_registry, notification, nil)
-    :ok
-  end
-
-  @doc "Subscribes to notifications about activities."
-  @spec unsubscribe_from(user_notification) :: :ok
-  def unsubscribe_from(notification) do
-    Registry.unregister(@notifications_registry, notification)
-    :ok
-  end
 
   @doc "Authenticates the given user, only allowing the main login to be used."
   @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_login_or_password}
@@ -233,23 +216,29 @@ defmodule Air.Service.User do
   def update(user, params, options \\ []) do
     check_ldap!(user, options)
 
-    previous_data_sources =
-      Air.Service.DataSource.for_user(user)
-      |> Enum.map(& &1.name)
-
     AdminGuard.commit_if_active_last_admin(fn ->
       user
       |> user_changeset(params)
       |> merge(change_main_login(user, &main_login_changeset(&1, params)))
       |> update()
     end)
-    |> case do
-      {:ok, updated_user} ->
-        notify_subscribers(:user_updated, %{user: updated_user, previous_data_sources: previous_data_sources})
-        {:ok, updated_user}
+  end
 
-      other ->
-        other
+  @doc """
+  Updates only the password of a user, validating the existing password.
+
+  Returns `{:ok, user, sessions_revoked?}` on success.
+  """
+  @spec update_password(User.t(), map, change_options) :: {:ok, User.t(), boolean} | {:error, Ecto.Changeset.t()}
+  def update_password(user, params, options \\ []) do
+    check_ldap!(user, options)
+
+    user
+    |> change_main_login(&update_password_changeset(&1, params))
+    |> update_revoking_sesions()
+    |> case do
+      {:ok, {user, sessions_revoked?}} -> {:ok, user, sessions_revoked?}
+      error -> error
     end
   end
 
@@ -462,12 +451,6 @@ defmodule Air.Service.User do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp notify_subscribers(notification, payload),
-    do:
-      Registry.lookup(@notifications_registry, notification)
-      |> Enum.map(fn {pid, nil} -> pid end)
-      |> Enum.each(&send(&1, {notification, payload}))
-
   defp do_login(login, password, meta, login_types) do
     normalized_login = String.downcase(login)
 
@@ -579,9 +562,17 @@ defmodule Air.Service.User do
     login
     |> cast(params, @password_fields)
     |> validate_required(@password_fields)
-    |> validate_length(:password, min: 10)
+    |> validate_password_requirements(:password)
     |> validate_confirmation(:password, message: "does not match password")
     |> update_password_hash()
+  end
+
+  defp update_password_changeset(login, params) do
+    if validate_password(login, params["old_password"] || "") do
+      password_reset_changeset(login, params)
+    else
+      change(login) |> add_error(:old_password, "Password invalid")
+    end
   end
 
   defp password_changeset(login, params) do
@@ -685,36 +676,24 @@ defmodule Air.Service.User do
   defp merge_login_errors(other), do: other
 
   defp do_delete(user) do
-    previous_data_sources =
-      Air.Service.DataSource.for_user(user)
-      |> Enum.map(& &1.name)
-
     Repo.transaction(fn ->
       Air.Service.AnalystTable.delete_all(user)
       Repo.delete(user)
     end)
-    |> case do
-      {:ok, _} = result ->
-        notify_subscribers(:user_deleted, %{user: user, previous_data_sources: previous_data_sources})
-        result
-
-      other ->
-        other
-    end
   end
 
-  # -------------------------------------------------------------------
-  # Supervision tree
-  # -------------------------------------------------------------------
+  defp validate_password_requirements(changeset, field) when is_atom(field) do
+    validate_change(changeset, field, :zxcvbn, fn current_field, value ->
+      %{feedback: feedback, score: score} = zxcvbn(value, ["AirCloak"])
 
-  @doc false
-  def child_spec(_arg) do
-    ChildSpec.supervisor(
-      [
-        ChildSpec.registry(:duplicate, @notifications_registry)
-      ],
-      strategy: :one_for_one,
-      name: __MODULE__
-    )
+      if score <= 1 do
+        [
+          {current_field,
+           if(String.length(feedback.warning) == 0, do: "The password is too weak", else: feedback.warning)}
+        ]
+      else
+        []
+      end
+    end)
   end
 end

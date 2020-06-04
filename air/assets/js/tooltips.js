@@ -1,7 +1,6 @@
 // @flow
-
-import _ from "lodash";
 import $ from "jquery";
 import "bootstrap";
 
-export default () => _.defer(() => $("[data-toggle='tooltip']").tooltip());
+export default () =>
+  setTimeout(() => $("[data-toggle='tooltip']").tooltip(), 1);

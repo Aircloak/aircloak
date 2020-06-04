@@ -91,6 +91,16 @@
       },
       "additionalProperties": false,
       "required": ["host", "user_base", "group_base"]
+    },
+
+    "explorer": {
+      "type": "object",
+      "properties": {
+        "url": {"type": "string"}
+      },
+      "additionalProperties": false,
+      "required": ["url"],
+      "uniqueItems": true
     }
   },
   "additionalProperties": false,

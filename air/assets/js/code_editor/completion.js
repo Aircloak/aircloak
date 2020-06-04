@@ -1,7 +1,6 @@
 // @flow
-
-import _ from "lodash";
-
+import sortBy from "lodash/sortBy";
+import uniqBy from "lodash/uniqBy";
 // the function completion keywords are automatically generated during compilation
 /* eslint-disable */
 import aircloakFunctionCompletions from "./function_completion_keywords.json";
@@ -32,10 +31,10 @@ const SQL_KEYWORDS = [
   "NOT LIKE ''",
   "NOT ILIKE ''",
   "IN ()",
-  "NOT IN ()"
+  "NOT IN ()",
 ];
 
-const longestFirst = candidate => -candidate.text.length;
+const longestFirst = (candidate) => -candidate.text.length;
 
 const wordCharRegex = /(\w|\.)/;
 
@@ -49,7 +48,7 @@ const wordEnd = (string, start) => {
   return end;
 };
 
-const escapeWord = word => word.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&");
+const escapeWord = (word) => word.replace(/[-[\]/{}()*+?.\\^$|]/g, "\\$&");
 
 export default function completionList(
   curLine: string,
@@ -69,8 +68,8 @@ export default function completionList(
   // we take the full document into account), lose the location info of
   // where the match starts, when prepping and creating the RegExp match string.
   // This could be worked around, but it seems only for marginal gains.
-  const rawCodeWords = _.split(curLine.slice(0, end), /[\s(]/);
-  const codeWords = _.map(rawCodeWords, escapeWord);
+  const rawCodeWords = curLine.slice(0, end).split(/[\s(]/);
+  const codeWords = rawCodeWords.map(escapeWord);
   const potentialMatchSequences = [];
   for (let i = codeWords.length; i >= 0; i -= 1) {
     const wordsToUse = [];
@@ -82,54 +81,53 @@ export default function completionList(
       potentialMatchSequences.push(potentialMatchSequence);
     }
   }
-  const finalClause = _.chain(potentialMatchSequences)
-    .reverse()
-    .join("")
-    .value();
+  const finalClause = Array.from(potentialMatchSequences).reverse().join("");
 
-  const keywordsFromStatement = _.chain(statement)
+  const keywordsFromStatement: string[] = statement
     .split(/[\s(),]/)
-    .reject(word => word.length < 3)
-    .reject(word => _.last(rawCodeWords) === word)
-    .value();
+    .filter((word) => word.length >= 3)
+    .filter((word) => rawCodeWords[rawCodeWords.length - 1] !== word);
 
   const matcher = new RegExp(finalClause, "i");
 
-  const showColumnsFromTables = _.map(
-    tableNames,
-    tableName => `SHOW COLUMNS FROM ${tableName}`
+  const showColumnsFromTables: string[] = tableNames.map(
+    (tableName) => `SHOW COLUMNS FROM ${tableName}`
   );
 
-  const fromWithTables = _.map(tableNames, tableName => `FROM ${tableName}`);
+  const fromWithTables = tableNames.map((tableName) => `FROM ${tableName}`);
 
-  const aircloakSQLFunctions = _.chain(aircloakFunctionCompletions)
-    .values()
-    .flatten()
-    .value();
+  const aircloakSQLFunctions: string[] = (Object.values(
+    aircloakFunctionCompletions
+  ).flat(): any);
 
-  const list = _.chain(SQL_KEYWORDS)
-    .concat(aircloakSQLFunctions)
-    .concat(tableNames)
-    .concat(showColumnsFromTables)
-    .concat(fromWithTables)
-    .concat(columnNames)
-    .concat(keywordsFromStatement)
-    .map(candidate => {
-      const bestMatch = candidate.match(matcher).shift();
+  const listBase = SQL_KEYWORDS.concat(
+    aircloakSQLFunctions,
+    tableNames,
+    showColumnsFromTables,
+    fromWithTables,
+    columnNames,
+    keywordsFromStatement
+  )
+    .map((candidate: string) => {
+      const matches = candidate.match(matcher);
+      if (!matches) return null;
+      const bestMatch = matches.shift();
       if (bestMatch === "") {
         return null;
       } else {
         return {
           text: candidate,
           from: posBuilder(end - bestMatch.length),
-          to: posBuilder(end)
+          to: posBuilder(end),
         };
       }
     })
-    .reject(candidate => candidate === null)
-    .uniqBy(candidate => _.upperCase(candidate.text))
-    .sortBy(longestFirst)
-    .value();
+    .filter((candidate) => candidate !== null);
+
+  const list = sortBy(
+    uniqBy(listBase, (candidate) => candidate.text.toUpperCase()),
+    longestFirst
+  );
 
   if (list.length > 0) {
     // CodeMirror expects there being a global from/to pair, despite these being

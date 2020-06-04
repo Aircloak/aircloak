@@ -129,7 +129,10 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
     do: "SELECT table_name FROM information_schema.tables WHERE table_name LIKE '#{prefix}%'"
 
   @impl Dialect
-  def interval_division([arg1, arg2]), do: ["(", arg1, " / ", arg2, ")"]
+  def date_subtraction_expression(:date, [arg1, arg2]),
+    do: super(:datetime, [cast_sql(arg1, :date, :datetime), cast_sql(arg2, :date, :datetime)])
+
+  def date_subtraction_expression(type, args), do: super(type, args)
 
   @impl Dialect
   def analyst_meta_table_create_statement(quoted_table_name) do

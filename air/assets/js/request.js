@@ -9,13 +9,22 @@ type Callbacks = { success?: Callback, error?: Callback };
 
 const headers = ({ CSRFToken }) => ({
   "X-CSRF-TOKEN": CSRFToken,
-  "Content-Type": "application/json"
+  "Content-Type": "application/json",
 });
 
 export const cancel = (queryId: string, authentication: Authentication) =>
   $.ajax(`/queries/${queryId}/cancel`, {
     method: "POST",
-    headers: headers(authentication)
+    headers: headers(authentication),
+  });
+
+export const deleteQueryResult = (
+  queryId: string,
+  authentication: Authentication
+) =>
+  fetch(`/queries/${queryId}`, {
+    method: "DELETE",
+    headers: headers(authentication),
   });
 
 export const startQuery = (
@@ -28,7 +37,7 @@ export const startQuery = (
     headers: headers(authentication),
     data: queryData,
     success: callbacks.success,
-    error: callbacks.error
+    error: callbacks.error,
   });
 };
 
@@ -42,7 +51,7 @@ export const loadHistory = (
     method: "GET",
     headers: headers(authentication),
     success: callbacks.success,
-    error: callbacks.error
+    error: callbacks.error,
   });
 };
 
@@ -57,6 +66,6 @@ export const loadBuckets = (
     method: "GET",
     headers: headers(authentication),
     success: callbacks.success,
-    error: callbacks.error
+    error: callbacks.error,
   });
 };

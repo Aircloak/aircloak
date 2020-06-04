@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import _ from "lodash";
 import AuditLogChunk from "./audit_log_chunk";
 import chunkBy from "./chunkBy";
 
@@ -9,7 +8,7 @@ import type { AuditLog } from "./audit_log_entry";
 
 type Props = { auditLogs: Array<AuditLog> };
 
-const auditLogKey = auditLog => [auditLog.event, auditLog.user];
+const auditLogKey = (auditLog) => [auditLog.event, auditLog.user].join("-");
 
 export default ({ auditLogs }: Props) => (
   <table className="table table-condensed">
@@ -23,7 +22,7 @@ export default ({ auditLogs }: Props) => (
       </tr>
     </thead>
     {(() => {
-      if (_.isEmpty(auditLogs)) {
+      if (auditLogs.length === 0) {
         return (
           <tbody>
             <tr>

@@ -1,6 +1,5 @@
 // @flow
 
-import _ from "lodash";
 import type { Row, Column } from "./result";
 
 type ValueFormatter = (value: any, columnIndex: number) => any;
@@ -11,13 +10,13 @@ export type GraphDataT = {
   ready: () => boolean,
   x: () => Column[],
   xLabel: () => string,
-  series: () => Series[]
+  series: () => Series[],
 };
 
 export type GraphInfoT = {
   xColumns: () => Column[],
   usableAsY: (index: number) => boolean,
-  chartable: () => boolean
+  chartable: () => boolean,
 };
 
 export const GraphInfo = (columns: Column[], rows: Row[]): GraphInfoT => {
@@ -25,7 +24,7 @@ export const GraphInfo = (columns: Column[], rows: Row[]): GraphInfoT => {
   // Internal functions
   // ----------------------------------------------------------------
 
-  const isNumeric = n => typeof n === "number" && Number.isFinite(n);
+  const isNumeric = (n) => typeof n === "number" && Number.isFinite(n);
 
   // ----------------------------------------------------------------
   // API
@@ -33,12 +32,12 @@ export const GraphInfo = (columns: Column[], rows: Row[]): GraphInfoT => {
 
   const xColumns = () => columns;
 
-  const usableAsY = index => isNumeric(rows[0].row[index]);
+  const usableAsY = (index) => isNumeric(rows[0].row[index]);
 
   const chartable = () =>
     columns.length >= 2 &&
     rows.length > 1 &&
-    _.some(columns, (_column, index) => usableAsY(index));
+    columns.some((_, index) => usableAsY(index));
 
   return { xColumns, usableAsY, chartable };
 };
@@ -98,7 +97,7 @@ export const GraphData = (
   // Internal functions
   // ----------------------------------------------------------------
 
-  const valueFormatter = formatter || _.identity;
+  const valueFormatter = formatter || ((a) => a);
 
   // ----------------------------------------------------------------
   // API
@@ -111,27 +110,27 @@ export const GraphData = (
     rows.map(({ row }) =>
       graphConfig
         .xColumns()
-        .map(columnIndex => valueFormatter(row[columnIndex], columnIndex))
+        .map((columnIndex) => valueFormatter(row[columnIndex], columnIndex))
         .join(", ")
     );
 
   const xLabel = () =>
     graphConfig
       .xColumns()
-      .map(columnIndex => columns[columnIndex])
+      .map((columnIndex) => columns[columnIndex])
       .join(", ");
 
   const series = () =>
-    graphConfig.yColumns().map(columnIndex => ({
+    graphConfig.yColumns().map((columnIndex) => ({
       label: columns[columnIndex],
       data: rows.map(({ row }) => row[columnIndex]),
-      indexInResult: columnIndex
+      indexInResult: columnIndex,
     }));
 
   return {
     ready,
     x,
     xLabel,
-    series
+    series,
   };
 };

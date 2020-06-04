@@ -1,38 +1,53 @@
-<h2>Privacy policy</h2>
+<header class="page-header mb-0">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+   <%= link "Revise policy", to: admin_privacy_policy_path(@conn, :new), class: "btn btn-success float-right" %>
+  <h1>Privacy Policy</h1>
 
-<%= link "Create new revision", to: admin_privacy_policy_path(@conn, :new), class: "btn btn-primary pull-right" %>
+  <ul class="nav nav-tabs nav-overflow header-tabs" role="tablist">
+   <li class="nav-item" role="presentation">
+      <a class="nav-link active" id="current-tab" data-toggle="tab" href="#current" role="tab" aria-controls="current" aria-selected="true">Current</a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link" id="revisions-tab" data-toggle="tab" href="#revisions" role="tab" aria-controls="revisions" aria-selected="false">Revisions</a>
+    </li>
+  </ul>
+</header>
 
-<h3>Revisions</h3>
 
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Revision</th>
-      <th>Time of creation</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <%= for privacy_policy <- @privacy_policies do %>
-    <tr>
-      <td>
-        <%= privacy_policy.id %>
-      </td>
-      <td>
-        <%= format_datetime(privacy_policy.inserted_at) %>
-      </td>
-      <td>
-        <%= link "View revision", to: admin_privacy_policy_path(@conn, :show, privacy_policy.id) %>
-      </td>
-    </tr>
-    <% end %>
-  </tbody>
-</table>
-
-<h3>Current privacy policy</h3>
-
-<hr />
-
-<div id="privacy-policy">
-  <%= raw(AirWeb.PrivacyPolicyView.content_as_html(@current_privacy_policy)) %>
+<div class="tab-content" id="myTabContent">
+  <div class="tab-pane fade show active bg-light p-4" id="current" role="tabpanel" aria-labelledby="current-tab">
+    <div class="bg-white p-3 mb-0" id="privacy-policy" style="min-height: 300px">
+      <%= raw(AirWeb.PrivacyPolicyView.content_as_html(@current_privacy_policy)) %>
+    </div>
+  </div>
+  <div class="tab-pane fade mt-3" id="revisions" role="tabpanel" aria-labelledby="revisions-tab">
+    <div class="container-md ml-0 pl-0">
+      <table class="table table-striped table-no-top-border table-hover">
+        <thead>
+          <tr>
+            <th>Revision</th>
+            <th>Time of creation</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for privacy_policy <- @privacy_policies do %>
+          <tr>
+            <td class="position-relative">
+              <%= link privacy_policy.id, to: admin_privacy_policy_path(@conn, :show, privacy_policy.id), class: "stretched-link" %>
+            </td>
+            <td class="position-relative">
+              <%= link format_datetime(privacy_policy.inserted_at), to: admin_privacy_policy_path(@conn, :show, privacy_policy.id), class: "stretched-link" %>
+            </td>
+            <td class="position-relative">
+              <%= link "View revision", to: admin_privacy_policy_path(@conn, :show, privacy_policy.id), class: "stretched-link" %>
+            </td>
+          </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>

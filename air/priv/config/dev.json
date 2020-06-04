@@ -23,8 +23,9 @@
   "shadow_database": {
     "host": "localhost",
     "port": 20002,
-    "user": "air",
-    "name": "air_dev"
+    "user": "postgres",
+    "password": "",
+    "name": "postgres"
   },
   "ldap": {
     "host": "localhost",
@@ -35,5 +36,8 @@
     "user_filter": "(objectClass=organizationalRole)",
     "group_base": "dc=example,dc=org",
     "group_filter": "(objectClass=posixGroup)"
+  },
+  "explorer": {
+    "url": "http://localhost:5000"
   }
 }

@@ -18,7 +18,7 @@
   <div class="form-group">
     <%= label f, :master_password, class: "col-sm-3 control-label" %>
     <div class="col-sm-9">
-      <%= password_input f, :master_password, class: "form-control", value: "" %>
+      <%= password_input f, :master_password, class: "form-control", value: "", autocomplete: "off" %>
       <%= error_tag f, :master_password %>
       <span class="help-block">
         The master password is defined as part of the <strong>config.json</strong>
@@ -33,7 +33,7 @@
   <div class="form-group">
     <%= label f, :login, "Login", class: "col-sm-3 control-label" %>
     <div class="col-sm-9">
-      <%= text_input f, :login, class: "form-control" %>
+      <%= text_input f, :login, class: "form-control", autocomplete: "username" %>
       <%= error_tag f, :login %>
     </div>
   </div>
@@ -41,7 +41,7 @@
   <div class="form-group">
     <%= label f, :name, class: "col-sm-3 control-label" %>
     <div class="col-sm-9">
-      <%= text_input f, :name, class: "form-control" %>
+      <%= text_input f, :name, class: "form-control", autocomplete: "name" %>
       <%= error_tag f, :name %>
     </div>
   </div>
@@ -57,7 +57,7 @@
   <div class="form-group">
     <%= label f, :password_confirmation, class: "col-sm-3 control-label" %>
     <div class="col-sm-9">
-      <%= password_input f, :password_confirmation, class: "form-control" %>
+      <%= password_input f, :password_confirmation, class: "form-control", autocomplete: "new-password" %>
       <%= error_tag f, :password_confirmation %>
     </div>
   </div>

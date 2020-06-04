@@ -1,5 +1,6 @@
 body#login {
   margin: 0;
+  min-height: 100vh;
 }
 
 body#login h1.login-h1 {
@@ -7,7 +8,7 @@ body#login h1.login-h1 {
   margin: 0;
 }
 
-body#login #login-panel {
+body#login #login-card {
   margin: 20px 0;
 }
 
@@ -47,10 +48,10 @@ div#aircloak {
   text-align: center;
 }
 
-@supports(display: grid) {
+@supports (display: grid) {
   body#login {
     display: grid;
-    grid-template-columns: 1fr ;
+    grid-template-columns: 1fr;
     grid-template-rows: 1fr 28px;
     grid-template-areas:
       "login-box"
@@ -87,27 +88,27 @@ div#aircloak {
 
   @media only screen and (min-width: 600px) {
     body.img1 {
-      background: url(/images/bg1.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg1.jpg) no-repeat center center fixed;
     }
 
     body.img2 {
-      background: url(/images/bg2.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg2.jpg) no-repeat center center fixed;
     }
 
     body.img3 {
-      background: url(/images/bg3.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg3.jpg) no-repeat center center fixed;
     }
 
     body.img4 {
-      background: url(/images/bg4.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg4.jpg) no-repeat center center fixed;
     }
 
     body.img5 {
-      background: url(/images/bg5.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg5.jpg) no-repeat center center fixed;
     }
 
     body.img6 {
-      background: url(/images/bg6.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg6.jpg) no-repeat center center fixed;
     }
 
     body#login {

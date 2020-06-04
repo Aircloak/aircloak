@@ -1,4 +1,9 @@
-<h2>Activity monitor</h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+  <h1>Activity Monitor</h1>
+</header>
 
 <div id="activity-monitor-view" />
 

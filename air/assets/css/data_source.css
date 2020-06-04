@@ -8,13 +8,9 @@
   height: 100%;
 }
 
-.data-source .column .content-wrapper {
+.content-wrapper {
   position: relative;
-  min-height: calc(100vh - 70px);
+  min-height: calc(100vh - 120px);
   /* Footer */
   padding-bottom: 100px;
-}
-
-.data-source .quarter-width {
-  width: calc(25% - 20px);
 }

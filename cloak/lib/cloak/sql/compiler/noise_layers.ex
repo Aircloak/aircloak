@@ -192,11 +192,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp min_of_min(%Expression{kind: :constant} = constant), do: constant
   defp min_of_min(%Expression{type: :boolean} = min), do: min |> cast(:integer) |> min_of_min() |> cast(:boolean)
-  defp min_of_min(min), do: Expression.function("min", [Expression.unalias(min)], min.type)
+  defp min_of_min(min), do: Expression.function("min", [Expression.unalias(min)], min.type) |> mark_synthetic()
 
   defp max_of_max(%Expression{kind: :constant} = constant), do: constant
   defp max_of_max(%Expression{type: :boolean} = max), do: max |> cast(:integer) |> max_of_max() |> cast(:boolean)
-  defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type)
+  defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type) |> mark_synthetic()
 
   defp float_potential_uid_expression(%Query{anonymization_type: :statistics, type: :restricted}, [
          %Expression{kind: :function, name: "case", args: [condition, uid, _null]}
@@ -204,16 +204,20 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     casted_condition = Expression.function({:cast, :integer}, [condition], :integer)
     condition_max = Expression.function("max", [casted_condition], :integer)
     aggregated_condition = Expression.function("=", [condition_max, Expression.constant(:integer, 1)], :boolean)
-    [Expression.function("case", [aggregated_condition, uid, Expression.constant(nil, nil)], uid.type)]
+
+    [
+      Expression.function("case", [aggregated_condition, uid, Expression.constant(nil, nil)], uid.type)
+      |> mark_synthetic()
+    ]
   end
 
   defp float_potential_uid_expression(%Query{anonymization_type: :statistics, type: :restricted}, [
          %Expression{user_id?: false} = conditional_uid
        ]) do
     [
-      Expression.function("count", [{:distinct, conditional_uid}], :integer),
-      Expression.function("min", [conditional_uid], conditional_uid.type),
-      Expression.function("max", [conditional_uid], conditional_uid.type)
+      Expression.function("count", [{:distinct, conditional_uid}], :integer) |> mark_synthetic(),
+      Expression.function("min", [conditional_uid], conditional_uid.type) |> mark_synthetic(),
+      Expression.function("max", [conditional_uid], conditional_uid.type) |> mark_synthetic()
     ]
   end
 
@@ -227,6 +231,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp float_potential_uid_expression(query, [%Expression{user_id?: true}]), do: [Helpers.id_column(query)]
 
   defp float_potential_uid_expression(_query, potential_uid_expression), do: potential_uid_expression
+
+  defp mark_synthetic(expression), do: %Expression{expression | synthetic?: true}
 
   # -------------------------------------------------------------------
   # Computing base noise layers
@@ -390,7 +396,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         %Expression{kind: :function, name: "=", args: [column, constant]} = condition
         uid = Helpers.id_column(query)
 
-        conditional_uid = Expression.function("case", [condition, uid, Expression.constant(nil, nil)], uid.type)
+        conditional_uid =
+          Expression.function("case", [condition, uid, Expression.constant(nil, nil)], uid.type) |> mark_synthetic()
 
         [
           static_noise_layer(column, constant, nil, {:aggregator, index}),

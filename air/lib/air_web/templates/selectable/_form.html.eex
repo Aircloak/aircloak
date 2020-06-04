@@ -1,13 +1,13 @@
-<div class="data-source body-wrapper">
-  <div class="container">
-    <div class="column col-sm-9">
-      <div class="content-wrapper">
+<div class="data-source body-wrapper mt-3 mb-3">
+  <div class="container-lg">
+    <div class="row">
+      <div class="column col-sm-9 mb-3 content-wrapper">
         <ol class="breadcrumb">
-          <li><a href="/data_sources">Data sources</a></li>
-          <li>
+          <li class="breadcrumb-item"><a href="/data_sources">Data sources</a></li>
+          <li class="breadcrumb-item">
             <a href="<%= data_source_path(@conn, :show, @data_source.name) %>"><%= @data_source.name %></a>
           </li>
-          <li class="active"><%= @view_name %></li>
+          <li class="breadcrumb-item active"><%= @view_name %></li>
         </ol>
 
         <h2><%= @view_name %></h2>
@@ -20,19 +20,17 @@
           <% end %>
 
           <div class="form-group">
-            <label>Name</label>
-            <%= text_input f, :name, class: "form-control" %>
-            <%= error_tag f, :name %>
+            <%= validated_text_input f, :name, "Name" %>
           </div>
 
           <div class="form-group">
             <label>Code</label>
-            <%= textarea f, :sql, id: "sql", class: "form-control", style: "display:none;"%>
+            <%= textarea f, :sql, id: "sql", class: (if f.errors[:sql], do: "form-control is-invalid", else: "form-control"), style: "display:none;" %>
             <div id="viewEditor"></div>
             <%= error_tag f, :sql %>
           </div>
 
-          <div class="form-group pull-right">
+          <div class="form-group f-flex justify-content-end mb-3">
             <%= submit @action_name, class: "btn btn-primary" %>
             or
             <kbd>Ctrl + Enter</kbd>
@@ -41,10 +39,8 @@
 
         <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
       </div>
-    </div>
 
-    <div class="column col-sm-3">
-      <div data-spy="affix">
+      <div id="selectable-column" class="column col-sm-3">
         <div id="selectable-info"></div>
       </div>
     </div>

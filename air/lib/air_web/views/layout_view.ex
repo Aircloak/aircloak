@@ -2,11 +2,59 @@ defmodule AirWeb.LayoutView do
   @moduledoc false
   use Air.Web, :view
 
-  defp container_class(assigns) do
-    if assigns[:full_width] do
-      "container-fluid"
-    else
-      "container"
+  defp data_sources_widget(%{request_path: request_path} = conn) do
+    if permitted?(conn, AirWeb.DataSourceController, :index) do
+      if show_data_source_dropdown?(conn) do
+        render("_data_sources.html",
+          conn: conn,
+          data_source: conn.assigns.data_source,
+          data_sources: conn.assigns.data_sources
+        )
+      else
+        path = data_source_path(conn, :index)
+        class = if String.starts_with?(request_path, path), do: "active nav-link", else: "nav-link"
+        content_tag(:div, link("Data sources", to: path, class: class), class: "nav navbar-nav ml-3")
+      end
+    end
+  end
+
+  defp show_data_source_dropdown?(conn) do
+    Map.has_key?(conn.assigns, :data_source) && Map.has_key?(conn.assigns, :data_sources)
+  end
+
+  defp data_source_badge(data_source) do
+    case Air.Service.DataSource.status(data_source) do
+      :broken ->
+        content_tag(:i, "",
+          class: "fas fa-exclamation-triangle text-warning",
+          title: "Broken",
+          "data-toggle": "tooltip",
+          "data-placement": "right"
+        )
+
+      :analyzing ->
+        content_tag(:span, "#{length(Air.Schemas.DataSource.tables(data_source))} tables*",
+          class: "badge badge-success",
+          title: "Some features unavailable pending analysis",
+          "data-toggle": "tooltip",
+          "data-placement": "right"
+        )
+
+      :online ->
+        content_tag(:span, "#{length(Air.Schemas.DataSource.tables(data_source))} tables",
+          class: "badge badge-success",
+          title: "Online",
+          "data-toggle": "tooltip",
+          "data-placement": "right"
+        )
+
+      :offline ->
+        content_tag(:i, "",
+          class: "fas fa-exclamation-triangle text-danger",
+          title: "Offline",
+          "data-toggle": "tooltip",
+          "data-placement": "right"
+        )
     end
   end
 

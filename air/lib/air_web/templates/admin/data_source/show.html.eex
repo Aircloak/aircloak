@@ -1,32 +1,31 @@
-<ol class="breadcrumb">
-  <li><%= link "Data sources", to: admin_data_source_path(@conn, :index) %></li>
-  <li class="active"><%= @data_source.name %></li>
-</ol>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    <li class="breadcrumb-item"><%= link "Data sources", to: admin_data_source_path(@conn, :index), class: "text-muted" %></li>
+  </ol>
 
-<h2>
-  <%= @data_source.name %> <%= availability_label(@data_source) %>
-  <%= if @data_source.description do %>
-    <small class="newline"><%= @data_source.description %></small>
-  <% end %>
-</h2>
-
+  <h1>
+    <%= @data_source.name %> <small><%= availability_label(@data_source) %></small>
+  </h1>
+   <%= if @data_source.description do %>
+      <p class="lead"><%= @data_source.description %></p>
+    <% end %>
+</header>
 <%= render AirWeb.Admin.WarningsView, "_warnings.html", conn: @conn, problems: @problems %>
 
-<div class="row">
-  <div class="col-md-6">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h1 class="panel-title">
-          Users with access
-          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-default btn-xs" %>
-        </h1>
-      </div>
+<div class="card-columns" style="column-count: 2">
+    <div class="card">
+      <h4 class="card-header">
+        Users with access
+        <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-outline-secondary btn-sm" %>
+      </h4>
+
       <%= if length(@users) == 0 do %>
-        <p class="panel-body">
+        <p class="card-body">
           No users currently have the privileges to query this data source
         </p>
       <% else %>
-        <table class="table">
+        <table class="table table-sm">
           <tbody>
             <%= for user <- @users do %>
               <tr>
@@ -34,59 +33,54 @@
                 <td class="login-column"><%= Air.Service.User.main_login(user) %></td>
                 <td>
                   <%= if admin?(user) do %>
-                    <span class="label label-danger">Admin</span>
+                    <span class="badge badge-danger">Admin</span>
                   <% end %>
                 </td>
-                <td><%= link "Edit user", to: admin_user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %></td>
+                <td><%= link "Edit user", to: admin_user_path(@conn, :edit, user), class: "btn btn-outline-secondary btn-sm" %></td>
               </tr>
             <% end %>
           </tbody>
         </table>
       <% end %>
     </div>
-  </div>
 
-  <div class="col-md-6">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h1 class="panel-title">
-          Groups granting access
-          <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-default btn-xs" %>
-        </h1>
-      </div>
+    <div class="card">
+      <h4 class="card-header">
+        Groups granting access
+        <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-outline-secondary btn-sm" %>
+      </h4>
+      <div class="card-body">
       <%= if length(@data_source.groups) == 0 do %>
-        <p class="panel-body">
+        <p>
           This data source has not been assigned any groups. As a result it will not be queryable by anyone.
         </p>
       <% else %>
-        <table class="table">
+        <table class="table table-sm">
           <tbody>
             <%= for group <- @data_source.groups do %>
               <tr>
                 <td><%= group.name %></td>
                 <td>
                   <%= if group.admin do %>
-                    <span class="label label-danger">Admin</span>
+                    <span class="badge badge-danger">Admin</span>
                   <% end %>
                 </td>
-                <td><%= link "Edit group", to: admin_group_path(@conn, :edit, group), class: "btn btn-default btn-xs" %></td>
+                <td><%= link "Edit group", to: admin_group_path(@conn, :edit, group), class: "btn btn-outline-secondary btn-sm" %></td>
               </tr>
             <% end %>
           </tbody>
         </table>
       <% end %>
-    </div>
-  </div>
-
-  <div class="col-md-6">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h1 class="panel-title">
-          Cloaks hosting data source
-        </h1>
       </div>
+    </div>
+
+    <div class="card">
+      <h4 class="card-header">
+        Cloaks hosting data source
+      </h4>
+
       <%= if number_of_cloaks_serving(@data_source) == 0 do %>
-        <p class="panel-body">
+        <p class="card-body">
           No online cloak is serving this data source.
         </p>
       <% else %>
@@ -103,16 +97,13 @@
       <% end %>
     </div>
   </div>
-</div>
 
 <div class="row">
   <div class="col-md-12">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h1 class="panel-title">
-          System tables
-        </h1>
-      </div>
+    <div class="card">
+      <h4 class="card-header">
+        System tables
+      </h4>
 
       <%= if Enum.count(@tables) > 0 do %>
         <table class="table">
@@ -144,7 +135,7 @@
           </tbody>
         </table>
       <% else %>
-        <p class="panel-body">
+        <p class="card-body">
           No tables are made available by this data source.
         </p>
       <% end %>
@@ -155,9 +146,9 @@
 <%= if Enum.count(@analyst_tables) > 0 do %>
   <div class="row">
     <div class="col-md-12">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h1 class="panel-title">
+      <div class="card">
+        <div class="card-header">
+          <h1 class="card-title">
             Analyst tables
           </h1>
         </div>

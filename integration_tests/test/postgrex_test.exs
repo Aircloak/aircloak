@@ -52,11 +52,10 @@ defmodule IntegrationTest.PostgrexTest do
   end
 
   test "select a computed interval", context do
-    result =
-      Postgrex.query!(context.conn, "select DATE '2000-01-15' - DATE '2000-01-03' + INTERVAL 'PT1H30S' from users", [])
+    result = Postgrex.query!(context.conn, "select DATE '2000-01-15' - DATE '2000-01-03' from users", [])
 
     [row | _] = result.rows
-    assert row == [%Postgrex.Interval{months: 0, days: 12, secs: 3630}]
+    assert row == [%Postgrex.Interval{months: 0, days: 12, secs: 0}]
   end
 
   for type <- ["text", "integer", "real", "boolean", "date", "time", "datetime", "interval"] do

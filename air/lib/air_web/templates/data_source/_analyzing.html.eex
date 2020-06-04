@@ -1,9 +1,7 @@
-<div class="label label-success">
+<div class="badge badge-success">
   Online
-  <sup>
-    <a href="/docs/sql/restrictions.html#column-analysis" target="blank"
-      data-toggle="tooltip" data-placement="right" title="Some features unavailable pending analysis">
-      *
-    </a>
-  </sup>
+  <a href="/docs/sql/restrictions.html#column-analysis" target="blank"
+    data-toggle="tooltip" class="text-white" data-placement="bottom" title="Some features unavailable pending analysis">
+    *
+  </a>
 </div>
