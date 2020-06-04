@@ -63,7 +63,11 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   end
 
   defp table_info(data_source, {id, table}),
-    do: %{id: id, columns: Enum.map(table.columns, &column_info(data_source, table, &1))}
+    do: %{
+      id: id,
+      columns: Enum.map(table.columns, &column_info(data_source, table, &1)),
+      comment: get_in(table, [:comments, :table])
+    }
 
   defp column_info(data_source, table, column) do
     {shadow_table, shadow_table_size} =
@@ -92,7 +96,8 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
       bounds: bounds,
       isolated: isolated,
       shadow_table: shadow_table,
-      shadow_table_size: shadow_table_size
+      shadow_table_size: shadow_table_size,
+      comment: get_in(table, [:comments, :columns, column.name])
     }
   end
 
