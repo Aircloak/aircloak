@@ -77,4 +77,6 @@ defmodule AirWeb.Admin.UserView do
   defp can_edit?(%{source: :native}), do: true
 
   defp is_self?(conn, user), do: conn.assigns.current_user.id == user.id
+
+  defp is_explorer?(user), do: user.name == "Diffix Explorer" && user.system
 end

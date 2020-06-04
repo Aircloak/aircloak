@@ -17,6 +17,7 @@ defmodule Air.Schemas.User do
     field(:ldap_dn, :string)
     field(:source, Air.Schemas.Source)
     field(:enabled, :boolean)
+    field(:system, :boolean)
 
     has_many(:queries, Air.Schemas.Query)
     has_many(:views, Air.Schemas.View)

@@ -29,6 +29,41 @@ defmodule Air.Service.Explorer do
     end
   end
 
+  @doc "Returns counts of columns in various stages grouped by data source."
+  @spec statistics :: [
+          %{
+            complete: integer,
+            processing: integer,
+            error: integer,
+            total: integer,
+            id: integer,
+            name: String.t(),
+            description: String.t()
+          }
+        ]
+  def statistics() do
+    from(ea in ExplorerAnalysis,
+      right_join: ds in DataSource,
+      on: ea.data_source_id == ds.id,
+      join: dsg in "data_sources_groups",
+      on: dsg.data_source_id == ds.id,
+      join: g in Air.Schemas.Group,
+      on: g.id == dsg.group_id,
+      where: g.name == "Diffix Explorer" and g.system,
+      select: %{
+        complete: count(ea.status in ["complete"] or nil),
+        processing: count(ea.status in ["new", "processing"] or nil),
+        error: count(ea.status in ["error"] or nil),
+        total: count(ea.id),
+        id: ds.id,
+        name: ds.name,
+        description: ds.description
+      },
+      group_by: ds.id
+    )
+    |> Repo.all()
+  end
+
   @doc "Is diffix explorer integration enabled for this datasource?"
   @spec data_source_enabled?(DataSource.t()) :: boolean
   def data_source_enabled?(ds) do
@@ -60,7 +95,21 @@ defmodule Air.Service.Explorer do
       )
     )
 
-    GenServer.call(__MODULE__, {:request_analysis_for_data_source, ds})
+    GenServer.cast(__MODULE__, {:request_analysis_for_data_source, ds})
+  end
+
+  @doc "Deletes analysis results that are not authorized anymore, then re-requests analysis for all remaining authorized data sources."
+  @spec reanalyze_all() :: :ok
+  def reanalyze_all() do
+    current_datasources = group().data_sources
+
+    Repo.delete_all(
+      from(ea in ExplorerAnalysis,
+        where: not (ea.data_source_id in ^Enum.map(current_datasources, & &1.id))
+      )
+    )
+
+    Enum.each(current_datasources, &GenServer.cast(__MODULE__, {:request_analysis_for_data_source, &1}))
   end
 
   @doc "Creates the Diffix Explorer user and group unless they exist already."
@@ -68,6 +117,21 @@ defmodule Air.Service.Explorer do
   def setup_credentials_if_required() do
     if enabled?(), do: find_or_create_explorer_creds()
     :ok
+  end
+
+  @doc "Returns the user and group which authorizes Diffix Explorer"
+  @spec group() :: Air.Schemas.Group.t()
+  def group() do
+    {user, _} = find_or_create_explorer_creds()
+    group = Enum.find(user.groups, fn group -> group.name == "Diffix Explorer" && group.system end)
+    Group.load(group.id)
+  end
+
+  @doc "Returns the explorer user"
+  @spec user() :: Air.Schemas.User.t()
+  def user() do
+    {user, _} = find_or_create_explorer_creds()
+    user
   end
 
   # -------------------------------------------------------------------
@@ -85,10 +149,10 @@ defmodule Air.Service.Explorer do
   end
 
   @impl GenServer
-  def handle_call({:request_analysis_for_data_source, data_source}, _from, poll_in_progress?) do
+  def handle_cast({:request_analysis_for_data_source, data_source}, poll_in_progress?) do
     request_analysis_for_data_source(data_source)
     unless poll_in_progress?, do: Process.send_after(self(), :poll, @poll_interval)
-    {:reply, :ok, true}
+    {:noreply, true}
   end
 
   @impl GenServer
@@ -124,8 +188,8 @@ defmodule Air.Service.Explorer do
         {user, token}
 
       {:error, :not_found} ->
-        user = User.create!(%{name: name, login: login})
-        Group.create!(%{name: name, admin: false, users: [user.id]})
+        user = User.create!(%{name: name, login: login, system: true})
+        Group.create!(%{name: name, admin: false, users: [user.id], system: true})
         token = Token.create_api_token(user, :api, token_desc)
         {user, token}
     end
@@ -160,23 +224,34 @@ defmodule Air.Service.Explorer do
     with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
            HTTPoison.post(base_url() <> "/explore", body, [{"Content-Type", "application/json"}]),
          {:ok, decoded} <- Jason.decode(response),
-         {:ok, analysis} <-
-           %ExplorerAnalysis{data_source: data_source, table_name: table_name, column: column_name}
-           |> ExplorerAnalysis.from_result_json(decoded)
-           |> Air.Repo.insert() do
+         {:ok, analysis} <- upsert_analysis(data_source, table_name, column_name, result: decoded) do
       {:ok, analysis}
     else
       {:error, _err} ->
-        %ExplorerAnalysis{
-          data_source: data_source,
-          table_name: table_name,
-          column: column_name,
-          status: :error
-        }
-        |> Air.Repo.insert()
-
+        upsert_analysis(data_source, table_name, column_name, status: :error)
         :error
     end
+  end
+
+  defp upsert_analysis(data_source, table_name, column, opts) do
+    changeset =
+      case Repo.one(
+             from(ea in ExplorerAnalysis,
+               where: ea.data_source_id == ^data_source.id and ea.table_name == ^table_name and ea.column == ^column
+             )
+           ) do
+        nil -> %ExplorerAnalysis{data_source: data_source, table_name: table_name, column: column}
+        analysis -> analysis
+      end
+
+    modified =
+      if Keyword.has_key?(opts, :result) do
+        ExplorerAnalysis.from_result_json(changeset, Keyword.get(opts, :result))
+      else
+        ExplorerAnalysis.changeset(changeset, Enum.into(opts, %{}))
+      end
+
+    Repo.insert_or_update(modified)
   end
 
   defp poll_for_update(explorer_analysis) do
