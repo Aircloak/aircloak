@@ -1336,6 +1336,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  test "[BUG] stats-anon for count(distinct column) doesn't increase the amount of noise layers" do
+    query1 = compile!("SELECT id, name, count(*) FROM table WHERE numeric <> 1 GROUP BY 1, 2")
+    query2 = compile!("SELECT id, name, count(*), count(distinct name2) FROM table WHERE numeric <> 1 GROUP BY 1, 2")
+
+    assert length(query1.noise_layers) == length(query2.noise_layers)
+  end
+
   defp compile!(query, opts \\ []),
     do:
       Cloak.Test.QueryHelpers.compile!(query, data_source(), opts)

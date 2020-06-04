@@ -23,6 +23,13 @@
 
 - Increased the minimum threshold for non-count stats-based aggregators.
 
+## Version 20.1.3
+
+### Bugfixes
+
+- Fixed duplication of noise layers when using `count(distinct column)` aggregators.
+- Fixed incorrect rounding in Oracle when using `bucket` functions.
+
 ## Version 20.1.2
 
 ### Bugfixes
