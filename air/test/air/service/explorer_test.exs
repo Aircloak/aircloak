@@ -194,37 +194,31 @@ defmodule Air.Service.ExplorerTest do
 
       data_source_id = ds1.id
 
-      assert soon(
-               match?(
-                 [
-                   %{
-                     complete: 0,
-                     processing: 2,
-                     error: 0,
-                     total: 2,
-                     id: ^data_source_id
-                   }
-                 ],
-                 Explorer.statistics()
-               )
-             )
+      assert_soon(
+        [
+          %{
+            complete: 0,
+            processing: 2,
+            error: 0,
+            total: 2,
+            id: ^data_source_id
+          }
+        ] = Explorer.statistics()
+      )
 
       MockServer.resume()
 
-      assert soon(
-               match?(
-                 [
-                   %{
-                     complete: 1,
-                     processing: 0,
-                     error: 1,
-                     total: 2,
-                     id: ^data_source_id
-                   }
-                 ],
-                 Explorer.statistics()
-               )
-             )
+      assert_soon(
+        [
+          %{
+            complete: 1,
+            processing: 0,
+            error: 1,
+            total: 2,
+            id: ^data_source_id
+          }
+        ] = Explorer.statistics()
+      )
     end
   end
 
@@ -262,34 +256,28 @@ defmodule Air.Service.ExplorerTest do
       assert :ok == Explorer.reanalyze_datasource(context.ds1)
       MockServer.pause()
 
-      assert soon(
-               match?(
-                 [
-                   %ExplorerAnalysis{table_name: "foos", column: "bar", status: :new},
-                   %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new}
-                 ],
-                 Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
-               )
-             )
+      assert_soon(
+        [
+          %ExplorerAnalysis{table_name: "foos", column: "bar", status: :new},
+          %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new}
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
+      )
 
       results = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
 
       MockServer.resume()
       # Here we wait for polling to happen
-      assert soon(
-               match?(
-                 [
-                   %ExplorerAnalysis{table_name: "foos", column: "bar", status: :error, metrics: "[]"},
-                   %ExplorerAnalysis{
-                     table_name: "foos",
-                     column: "foo",
-                     status: :complete,
-                     metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
-                   }
-                 ],
-                 Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
-               )
-             )
+      assert_soon(
+        [
+          %ExplorerAnalysis{table_name: "foos", column: "bar", status: :error, metrics: "[]"},
+          %ExplorerAnalysis{
+            table_name: "foos",
+            column: "foo",
+            status: :complete,
+            metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
+          }
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
+      )
 
       Explorer.reanalyze_datasource(context.ds1)
       refute soon(results == Explorer.results_for_datasource(context.ds1))
@@ -313,25 +301,22 @@ defmodule Air.Service.ExplorerTest do
     test "it inserts results as needed", context do
       Explorer.reanalyze_all()
 
-      assert soon(
-               match?(
-                 [
-                   %ExplorerAnalysis{
-                     table_name: "foos",
-                     column: "bar",
-                     status: :error
-                   },
-                   %ExplorerAnalysis{
-                     table_name: "foos",
-                     column: "foo",
-                     status: :complete,
-                     metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
-                   }
-                 ],
-                 Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
-               ),
-               200
-             )
+      assert_soon(
+        [
+          %ExplorerAnalysis{
+            table_name: "foos",
+            column: "bar",
+            status: :error
+          },
+          %ExplorerAnalysis{
+            table_name: "foos",
+            column: "foo",
+            status: :complete,
+            metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
+          }
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column),
+        timeout: 200
+      )
     end
   end
 end

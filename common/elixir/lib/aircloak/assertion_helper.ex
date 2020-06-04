@@ -4,6 +4,33 @@ defmodule Aircloak.AssertionHelper do
   """
 
   @doc """
+  You can essentially rewrite code that does:
+
+      assert(soon(match?(left, right)))
+
+  to
+
+      assert_soon left = right
+
+  Not only is this syntactically lighter, but you will also get the nice error messages
+  in the test output.
+  """
+  defmacro assert_soon({:=, _meta, [left, right]} = assertion, opts \\ []) do
+    quote do
+      timeout = Keyword.get(unquote(opts), :timeout, 100)
+      repeat_wait_time = Keyword.get(unquote(opts), :repeat_wait_time, div(timeout, 10))
+
+      unless Aircloak.AssertionHelper.perform_soon_check(
+               fn -> match?(unquote(left), unquote(right)) end,
+               trunc(Float.ceil(timeout / repeat_wait_time)),
+               repeat_wait_time
+             ) do
+        assert unquote(assertion)
+      end
+    end
+  end
+
+  @doc """
   Executed until it succeeds or up to a total of 10 attempts with a total timeout of `timeout`.
 
   Usage:
