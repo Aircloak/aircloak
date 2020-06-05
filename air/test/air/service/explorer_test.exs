@@ -252,7 +252,7 @@ defmodule Air.Service.ExplorerTest do
   end
 
   describe ".reanalyze_datasource" do
-    test "creates analysis records, polls for results and removes old records", context do
+    test "creates analysis records and polls for results", context do
       assert :ok == Explorer.reanalyze_datasource(context.ds1)
       MockServer.pause()
 
@@ -262,8 +262,6 @@ defmodule Air.Service.ExplorerTest do
           %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new}
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
       )
-
-      results = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
 
       MockServer.resume()
       # Here we wait for polling to happen
@@ -278,28 +276,21 @@ defmodule Air.Service.ExplorerTest do
           }
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
       )
-
-      Explorer.reanalyze_datasource(context.ds1)
-      refute soon(results == Explorer.results_for_datasource(context.ds1))
-
-      # This prevents "Client is still using a connection from owner at location"
-      # errors from appearing in the test log. These errors don't seem to break anything,
-      # but make test output unnecesarily noisy.
-      Process.sleep(50)
     end
   end
 
-  describe "reanalyze_all" do
+  describe "change_permitted_data_sources" do
     test "it removes all data sources that currently do not have permissions", context do
       Explorer.reanalyze_datasource(context.ds_not_included)
       assert soon(not Enum.empty?(Explorer.results_for_datasource(context.ds_not_included)))
 
-      Explorer.reanalyze_all()
+      assert {:ok, _} = Explorer.change_permitted_data_sources(%{data_sources: [context.ds1.id]})
       assert soon(Enum.empty?(Explorer.results_for_datasource(context.ds_not_included)))
     end
 
-    test "it inserts results as needed", context do
-      Explorer.reanalyze_all()
+    test "it adds results for newly authorized data sources", context do
+      assert {:ok, _} =
+               Explorer.change_permitted_data_sources(%{data_sources: [context.ds1.id, context.ds_not_included.id]})
 
       assert_soon(
         [
@@ -314,6 +305,62 @@ defmodule Air.Service.ExplorerTest do
             status: :complete,
             metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
           }
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.column),
+        timeout: 200
+      )
+    end
+
+    test "it does not attempt to get results for already existing data sources", context do
+      # Setup: make sure we have ds1 one ready and results already fetched
+      Explorer.reanalyze_datasource(context.ds1)
+
+      assert_soon(
+        [
+          %ExplorerAnalysis{
+            table_name: "foos",
+            column: "bar",
+            status: :error
+          },
+          %ExplorerAnalysis{}
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column),
+        timeout: 200
+      )
+
+      # Now change what the server will have to say about bar
+      MockServer.set_reponse(
+        :bar,
+        {:ok,
+         %{
+           status: "Processing",
+           metrics: [%{value: [10], key: "some-other-metric"}]
+         }}
+      )
+
+      assert {:ok, _} =
+               Explorer.change_permitted_data_sources(%{data_sources: [context.ds1.id, context.ds_not_included.id]})
+
+      # Here we wait for ds_not_included to return from polling
+      assert_soon(
+        [
+          %ExplorerAnalysis{
+            table_name: "foos",
+            column: "bar",
+            status: :processing
+          },
+          %ExplorerAnalysis{}
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.column),
+        timeout: 200
+      )
+
+      # The point of this test: notice that status is still error, which shows that this data source was not refreshed
+      assert_soon(
+        [
+          %ExplorerAnalysis{
+            table_name: "foos",
+            column: "bar",
+            status: :error
+          },
+          %ExplorerAnalysis{}
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column),
         timeout: 200
       )

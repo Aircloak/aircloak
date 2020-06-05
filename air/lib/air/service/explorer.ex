@@ -86,30 +86,34 @@ defmodule Air.Service.Explorer do
         )
       )
 
-  @doc "Deletes all analysis results for the datasource and requests new analyses."
+  @doc "Requests new analyses for datasource."
   @spec reanalyze_datasource(Air.Schemas.DataSource.t()) :: :ok
   def reanalyze_datasource(ds) do
-    Repo.delete_all(
-      from(ea in ExplorerAnalysis,
-        where: ea.data_source_id == ^ds.id
-      )
-    )
-
     GenServer.cast(__MODULE__, {:request_analysis_for_data_source, ds})
   end
 
-  @doc "Deletes analysis results that are not authorized anymore, then re-requests analysis for all remaining authorized data sources."
-  @spec reanalyze_all() :: :ok
-  def reanalyze_all() do
-    current_datasources = group().data_sources
+  @doc """
+  Modifies the data source membership of the Diffix Explorer group.
+  It then deletes all analysis results belonging to data sources that Diffix Explorer no longer has access to.
+  Finally it will request analysis results of all groups that have been added to it.
+  """
+  @spec change_permitted_data_sources(map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
+  def change_permitted_data_sources(params) do
+    old_group = group()
+    old_data_source_ids = Enum.map(old_group.data_sources, & &1.id)
 
-    Repo.delete_all(
-      from(ea in ExplorerAnalysis,
-        where: not (ea.data_source_id in ^Enum.map(current_datasources, & &1.id))
-      )
-    )
+    case Air.Service.Group.update(old_group, params) do
+      {:ok, new_group} ->
+        new_group.data_sources
+        |> delete_all_unauthorized()
+        |> Enum.reject(fn ds -> Enum.member?(old_data_source_ids, ds.id) end)
+        |> Enum.each(&reanalyze_datasource/1)
 
-    Enum.each(current_datasources, &GenServer.cast(__MODULE__, {:request_analysis_for_data_source, &1}))
+        {:ok, new_group}
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
   end
 
   @doc "Creates the Diffix Explorer user and group unless they exist already."
@@ -119,19 +123,18 @@ defmodule Air.Service.Explorer do
     :ok
   end
 
-  @doc "Returns the user and group which authorizes Diffix Explorer"
-  @spec group() :: Air.Schemas.Group.t()
-  def group() do
-    {user, _} = find_or_create_explorer_creds()
-    group = Enum.find(user.groups, fn group -> group.name == "Diffix Explorer" && group.system end)
-    Group.load(group.id)
-  end
-
   @doc "Returns the explorer user"
   @spec user() :: Air.Schemas.User.t()
   def user() do
     {user, _} = find_or_create_explorer_creds()
     user
+  end
+
+  @doc "Returns the group which authorizes Diffix Explorer"
+  @spec group() :: Air.Schemas.Group.t()
+  def group() do
+    group = Enum.find(user().groups, fn group -> group.name == "Diffix Explorer" && group.system end)
+    Group.load(group.id)
   end
 
   # -------------------------------------------------------------------
@@ -172,6 +175,16 @@ defmodule Air.Service.Explorer do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp delete_all_unauthorized(current_datasources) do
+    Repo.delete_all(
+      from(ea in ExplorerAnalysis,
+        where: not (ea.data_source_id in ^Enum.map(current_datasources, & &1.id))
+      )
+    )
+
+    current_datasources
+  end
 
   defp pending_analyses_query() do
     from(ea in ExplorerAnalysis, where: ea.status in ["new", "processing"])

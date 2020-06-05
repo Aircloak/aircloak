@@ -24,13 +24,9 @@ defmodule AirWeb.Admin.ExplorerController do
   end
 
   def create(conn, params) do
-    group = Explorer.group()
-
-    case Group.update(group, params["group"]) do
+    case Explorer.change_permitted_data_sources(params["group"]) do
       {:ok, group} ->
-        audit_log(conn, "Altered group", group: group.name, admin: group.admin)
-
-        Explorer.reanalyze_all()
+        audit_log(conn, "Altered Diffix Explorer permissions", group: group.name, admin: group.admin)
 
         conn
         |> put_flash(:info, "Diffix Explorer settings updated. It can take some time before you see new results.")
@@ -38,7 +34,7 @@ defmodule AirWeb.Admin.ExplorerController do
 
       {:error, changeset} ->
         render(conn, "show.html",
-          group: group,
+          group: Explorer.group(),
           changeset: changeset,
           all_data_sources: Enum.map(Air.Service.DataSource.all(), &{{&1.name, &1.description}, &1.id})
         )

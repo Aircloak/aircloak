@@ -8,7 +8,7 @@
 <div class="container-lg mx-0 px-0">
 <div class="row">
   <div class="col-xl-7">
-    <%= form_for @changeset, admin_explorer_path(@conn, :create), [class: "form-horizontal"], fn f -> %>
+    <%= form_for @changeset, admin_explorer_path(@conn, :create), [method: "POST", class: "form-horizontal"], fn f -> %>
       <h3>Data Sources</h3>
       <p class="lead">These are the data sources that Diffix Explorer will start analyzing.</p>
 
