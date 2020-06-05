@@ -260,7 +260,8 @@ defmodule Air.Service.ExplorerTest do
         [
           %ExplorerAnalysis{table_name: "foos", column: "bar", status: :new},
           %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new}
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column),
+        timeout: 200
       )
 
       MockServer.resume()
@@ -274,7 +275,8 @@ defmodule Air.Service.ExplorerTest do
             status: :complete,
             metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
           }
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column)
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column),
+        timeout: 200
       )
     end
   end
