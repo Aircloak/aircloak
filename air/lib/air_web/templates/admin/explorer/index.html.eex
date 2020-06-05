@@ -39,7 +39,7 @@
           <div class="card-header d-flex justify-content-between align-items-baseline">
             <h3 class="h5 text-truncate"><%= data_source.name %></h3>
             <div class="btn-group" role="group" aria-label="Actions">
-              <%= link to: admin_explorer_path(@conn, :update, data_source.name), method: "PUT", class: "btn btn-outline-secondary btn-sm",  "data-toggle": "tooltip", "data-placement": "bottom", title: "Reanalyze." do %>
+              <%= link to: admin_explorer_path(@conn, :update, data_source.name), method: "PUT", class: "btn btn-outline-secondary btn-sm",  "data-toggle": "tooltip", "data-placement": "bottom", title: "Reanalyze" do %>
                 <i class="fas fa-redo fa-sm" aria-label="Reanalyze"></i>
               <% end %>
 
