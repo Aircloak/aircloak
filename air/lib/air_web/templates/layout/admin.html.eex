@@ -18,9 +18,8 @@
   <body>
     <%= render "_navbar.html", conn: @conn, admin: true %>
     <div class="container-fluid full-height">
-      <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-light border-right">
-        <div class="container-fluid">
-          <div class="collapse navbar-collapse" id="sidebarCollapse">
+      <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-light border-right collapse navbar-collapse align-items-start" id="sidebarCollapse">
+        <div class="container-fluid d-block">
             <ul class="navbar-nav">
               <%= warning_sidebar_link(@conn) %>
 
@@ -33,18 +32,18 @@
               <%= sidebar_link(@conn, "Analysis", "signal", admin_analysis_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Failed queries", "bomb", admin_query_path(@conn, :failed)) %>
             </ul>
-            <hr class="navbar-divider my-3" />
+            <hr class="navbar-divider my-3 w-100" />
             <ul class="navbar-nav">
               <%= sidebar_link(@conn, "Users", "user", admin_user_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Groups", "user-friends", admin_group_path(@conn, :index)) %>
             </ul>
-            <hr class="navbar-divider my-3" />
+            <hr class="navbar-divider my-3 w-100" />
             <ul class="navbar-nav">
               <%= sidebar_link(@conn, "Settings", "cogs" ,admin_settings_path(@conn, :show)) %>
               <%= sidebar_link(@conn, "Privacy policy", "user-shield", admin_privacy_policy_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Aircloak license", "key", admin_license_path(@conn, :edit)) %>
             </ul>
-          </div>
+
         </div>
       </nav>
 

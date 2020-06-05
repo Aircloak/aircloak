@@ -22,6 +22,34 @@ label small.newline {
 .navbar-vertical.navbar-expand-md.fixed-left {
   left: 0;
   border-width: 0 1px 0 0;
+  position: fixed;
+  top: 140px;
+  bottom: 0px;
+  overflow-y: auto;
+  z-index: 10;
+  padding: 0;
+  transform: translateX(0px) scaleX(1);
+  transition: transform 0.35s ease;
+}
+
+.navbar-vertical.navbar-expand-md.fixed-left.collapse.show,
+.navbar-vertical.navbar-expand-md.fixed-left.collapsing {
+  padding: 0.5rem 1rem;
+}
+
+.navbar-vertical.navbar-expand-md .navbar-nav {
+  flex-direction: column;
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+.navbar-vertical.navbar-expand-md.fixed-left.collapsing {
+  height: auto;
+  transition: transform 0.35s ease;
+}
+.navbar-vertical.collapse:not(.show) {
+  transform: translateX(-300px) scaleX(0);
+  display: block;
 }
 
 .navbar-vertical .navbar-nav .nav-link {
@@ -42,17 +70,9 @@ label small.newline {
   align-items: center;
   border-left: 0.3rem solid transparent;
 }
-
-.navbar-vertical .navbar-nav .nav .nav-link {
-  padding-left: 2.75rem;
-}
-
-.navbar-vertical .navbar-nav .nav .nav .nav-link {
-  padding-left: 3.25rem;
-}
-
-.navbar-vertical .navbar-nav .nav .nav .nav .nav-link {
-  padding-left: 3.75rem;
+.navbar-vertical.navbar-expand-md .navbar-nav .nav-link {
+  padding: 0.5rem 1.5rem 0.5rem 1.2rem;
+  position: relative;
 }
 
 .navbar-vertical .navbar-heading {
@@ -76,16 +96,21 @@ label small.newline {
 }
 
 @media (min-width: 768px) {
-  .navbar-vertical.navbar-expand-md {
+  .navbar-vertical.navbar-expand-md.fixed-left {
     display: block;
     position: fixed;
     top: 56px;
     bottom: 0;
     width: 100%;
     max-width: 250px;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+    padding: 0.5rem 1.5rem;
     overflow-y: auto;
+    transform: none;
+  }
+
+  .navbar-vertical.collapse:not(.show) {
+    transform: none;
+    display: block;
   }
 
   .navbar-vertical.navbar-expand-md > [class*="container"] {
@@ -139,6 +164,7 @@ label small.newline {
 .navbar-vertical .navbar-nav .nav-link .badge {
   position: absolute;
   right: 24px;
+  top: 12px;
 }
 
 .page-header {

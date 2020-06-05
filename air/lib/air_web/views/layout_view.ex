@@ -19,7 +19,8 @@ defmodule AirWeb.LayoutView do
   end
 
   defp show_data_source_dropdown?(conn) do
-    Map.has_key?(conn.assigns, :data_source) && Map.has_key?(conn.assigns, :data_sources)
+    Map.has_key?(conn.assigns, :data_source) && Map.has_key?(conn.assigns, :data_sources) &&
+      length(conn.assigns.data_sources) > 1
   end
 
   defp data_source_badge(data_source) do

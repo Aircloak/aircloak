@@ -138,6 +138,13 @@ a.suggested-reading:hover {
   border-right: none;
 }
 
+@media (max-width: 576px) {
+  .dropdown-menu-centerish {
+    right: -20%;
+    left: auto;
+  }
+}
+
 /********************************************************************
  * Styles for Aircloak installations with an invalid license
  *******************************************************************/
