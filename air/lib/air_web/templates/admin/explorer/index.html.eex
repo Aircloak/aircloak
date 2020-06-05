@@ -19,11 +19,11 @@
       </div>
 
       <div class="form-group">
-      <%= submit "Reanalyze", class: "btn btn-success" %>
+      <%= submit "Save", class: "btn btn-success" %>
       </div>
     <% end %>
   </div>
-  <div class="col-xl-5 p-4 border-left">
+  <div class="col-xl-5 p-md-4 border-md-left">
     <p>The Diffix Explorer integration manages a normal <%= link "user", to: admin_user_path(@conn, :index) %> and <%= link "group", to: admin_group_path(@conn, :index) %> that get permissions to make API requests against these data sources.</p>
     <p>Once you hit Reanalyze, Diffix Explorer will make a large number of queries about every non-isolating column in every user table. Once we have the results, we'll present them in the query page.</p>
   </div>
@@ -33,16 +33,22 @@
 <%= if length(@data_sources) > 0 do %>
   <section>
     <h3 class="mt-5 pb-2">Analysis Progress</h3>
-    <div class="card-columns">
+    <div class="card-columns card-columns-responsive">
       <%= for data_source <- @data_sources do %>
         <div class="card">
-          <div class="card-header d-flex justify-content-between">
-            <h3 class="h5"><%= data_source.name %></h3>
-            <%= if @current_user.debug_mode_enabled do %>
-              <a href="<%= admin_explorer_path(@conn, :show, data_source.name) %>">
-                <i class="fas fa-bug" aria-label="Debug"></i>
-              </a>
-            <% end %>
+          <div class="card-header d-flex justify-content-between align-items-baseline">
+            <h3 class="h5 text-truncate"><%= data_source.name %></h3>
+            <div class="btn-group" role="group" aria-label="Actions">
+              <%= link to: admin_explorer_path(@conn, :update, data_source.name), method: "PUT", class: "btn btn-outline-secondary btn-sm",  "data-toggle": "tooltip", "data-placement": "bottom", title: "Reanalyze." do %>
+                <i class="fas fa-redo fa-sm" aria-label="Reanalyze"></i>
+              <% end %>
+
+              <%= if @current_user.debug_mode_enabled do %>
+                <a data-toggle="tooltip" data-placement="bottom" title="Debug" class="btn btn-outline-secondary btn-sm" href="<%= admin_explorer_path(@conn, :show, data_source.name) %>">
+                  <i class="fas fa-bug fa-sm" aria-label="Debug"></i>
+                </a>
+              <% end %>
+            </div>
           </div>
           <div class="card-body">
             <%= if data_source.total == 0 do %>

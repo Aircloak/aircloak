@@ -48,7 +48,7 @@ defmodule AirWeb.Admin.ExplorerController do
   def update(conn, _params) do
     data_source = conn.assigns.data_source
     Explorer.reanalyze_datasource(data_source)
-    redirect(conn, to: admin_explorer_path(conn, :show, data_source.name))
+    redirect(conn, to: admin_explorer_path(conn, :index))
   end
 
   # -------------------------------------------------------------------

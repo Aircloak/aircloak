@@ -215,6 +215,40 @@ a.suggested-reading:hover {
   border-top: none;
 }
 
+@media (min-width: 576px) {
+  .card-columns-responsive {
+    column-count: 1;
+  }
+}
+
+@media (min-width: 768px) {
+  .border-md-left {
+    border-left: 1px solid #dee2e6 !important;
+  }
+
+  .card-columns-responsive {
+    column-count: 1;
+  }
+}
+
+@media (min-width: 992px) {
+  .card-columns-responsive {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1200px) {
+  .card-columns-responsive {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 1500px) {
+  .card-columns-responsive {
+    column-count: 4;
+  }
+}
+
 @import "./activity-monitor.css";
 @import "./admin.css";
 @import "./audit_log.css";

@@ -3,7 +3,6 @@
     <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
     <li class="breadcrumb-item"><%= link "Diffix Explorer", to: admin_explorer_path(@conn, :index), class: "text-muted" %></li>
   </ol>
-  <%= link "Delete and Re-analyze", to: admin_explorer_path(@conn, :update, @data_source.name), method: :put, class: "btn btn-danger float-right" %>
   <h1>Debug <%=@data_source.name%> analyses</h1>
   <p class="lead">This page shows the raw metrics for each column that analysis was requested. It can be helpful to explain strange results in the user interface.</p>
 </header>
