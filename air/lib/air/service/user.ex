@@ -16,7 +16,7 @@ defmodule Air.Service.User do
   @ldap_fields ~w(ldap_dn source)a
   @ldap_required_fields ~w(ldap_dn)a
   @format_fields ~w(decimal_sep decimal_digits thousand_sep)a
-  @optional_fields @format_fields
+  @optional_fields @format_fields ++ ~w(system)a
 
   @type change_options :: [ldap: true | false | :any]
   @type login :: String.t()
