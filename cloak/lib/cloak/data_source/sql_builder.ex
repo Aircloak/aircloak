@@ -419,24 +419,28 @@ defmodule Cloak.DataSource.SqlBuilder do
   # -------------------------------------------------------------------
 
   defp build_subquery(%{ast: query, join_timing_protection?: true}) do
+    dialect = sql_dialect_module(query)
+
+    from =
+      case dialect do
+        Cloak.DataSource.SqlBuilder.Oracle -> " FROM dual"
+        _ -> ""
+      end
+
     [
       "(",
       build_fragments(query),
-      ") UNION ALL (SELECT * FROM (",
-      build_fragments(%Query{strip_filters(query) | limit: 1, offset: 0, order_by: []}),
-      ") t WHERE NOT EXISTS(",
-      build_fragments(%Query{query | order_by: []}),
-      "))"
+      ") UNION ALL (SELECT ",
+      query.db_columns
+      |> Enum.map(&Table.invalid_value(&1.type))
+      |> Enum.map(&constant_to_fragment(&1, dialect))
+      |> Enum.join(", "),
+      from,
+      ")"
     ]
   end
 
   defp build_subquery(subquery), do: build_fragments(subquery.ast)
-
-  defp strip_filters(query) do
-    Query.Lenses.all_queries()
-    |> Lens.filter(&(&1.type == :restricted))
-    |> Lens.map(query, &%Query{&1 | where: nil, having: nil})
-  end
 
   # -------------------------------------------------------------------
   # Mark boolean expressions
