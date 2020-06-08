@@ -83,4 +83,6 @@ defmodule AirWeb.Admin.GroupView do
   def can_manage?(_new_group = %{source: nil}), do: true
   def can_manage?(%{source: :native}), do: true
   def can_manage?(%{source: :ldap}), do: false
+
+  defp is_explorer?(group), do: group.name == "Diffix Explorer" && group.system
 end

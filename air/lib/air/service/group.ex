@@ -120,7 +120,7 @@ defmodule Air.Service.Group do
   defp group_changeset(group, params, options \\ []),
     do:
       group
-      |> cast(params, ~w(name admin)a)
+      |> cast(params, ~w(name admin system)a)
       |> validate_required(~w(name admin)a)
       |> unique_constraint(:name, name: :groups_name_source_index)
       |> PhoenixMTM.Changeset.cast_collection(:users, Repo, User)
