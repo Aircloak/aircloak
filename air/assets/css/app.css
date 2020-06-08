@@ -222,10 +222,6 @@ a.suggested-reading:hover {
 }
 
 @media (min-width: 768px) {
-  .border-md-left {
-    border-left: 1px solid #dee2e6 !important;
-  }
-
   .card-columns-responsive {
     column-count: 1;
   }
@@ -240,6 +236,10 @@ a.suggested-reading:hover {
 @media (min-width: 1200px) {
   .card-columns-responsive {
     column-count: 3;
+  }
+
+  .border-xl-left {
+    border-left: 1px solid #dee2e6 !important;
   }
 }
 
