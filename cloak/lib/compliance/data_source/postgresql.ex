@@ -34,6 +34,12 @@ defmodule Compliance.DataSource.PostgreSQL do
   def create_table(table_name, columns, conn) do
     execute!(conn, "DROP TABLE IF EXISTS #{table_name}")
     execute!(conn, "CREATE TABLE #{table_name} (#{columns_sql(columns)})")
+    execute!(conn, "COMMENT ON TABLE #{table_name} IS 'This is table #{table_name}.'")
+
+    Enum.each(columns, fn {column_name, _} ->
+      execute!(conn, "COMMENT ON COLUMN #{table_name}.#{escape_name(column_name)} IS 'This is column #{column_name}.'")
+    end)
+
     conn
   end
 

@@ -24,7 +24,16 @@ defmodule Compliance.DataSource.Oracle do
   @impl Connector
   def create_table(table_name, columns, conn) do
     drop_table!(conn, table_name)
-    execute!(conn, "CREATE TABLE \"#{table_name}\" (#{columns_sql(columns)})")
+    execute!(conn, ~s/CREATE TABLE "#{table_name}" (#{columns_sql(columns)})/)
+    execute!(conn, ~s/COMMENT ON TABLE "#{table_name}" IS 'This is table #{table_name}.'/)
+
+    Enum.each(columns, fn {column_name, _} ->
+      execute!(
+        conn,
+        ~s/COMMENT ON COLUMN "#{table_name}"."#{column_name}" IS 'This is column #{column_name}.'/
+      )
+    end)
+
     conn
   end
 

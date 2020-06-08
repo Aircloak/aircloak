@@ -32,7 +32,7 @@ defmodule Compliance.DataSource.MySQL do
   @impl Connector
   def create_table(table_name, columns, conn) do
     execute!(conn, "DROP TABLE IF EXISTS #{table_name}")
-    execute!(conn, "CREATE TABLE #{table_name} (#{columns_sql(columns)})")
+    execute!(conn, "CREATE TABLE #{table_name} (#{columns_sql(columns)}) COMMENT 'This is table #{table_name}.'")
     conn
   end
 
@@ -108,7 +108,7 @@ defmodule Compliance.DataSource.MySQL do
       |> Enum.map(&column_sql/1)
       |> Enum.join(", ")
 
-  defp column_sql({name, type}), do: "#{escape_name(name)} #{sql_type(type)}"
+  defp column_sql({name, type}), do: "#{escape_name(name)} #{sql_type(type)} COMMENT 'This is column #{name}.'"
 
   defp escape_name(name), do: "`#{name}`"
 
