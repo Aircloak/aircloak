@@ -339,8 +339,31 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp protect_join_branch({:subquery, subquery}),
     do: {:subquery, Map.put(subquery, :join_timing_protection?, query_needs_protection?(subquery.ast))}
 
-  defp protect_join_branch({:join, join}),
-    do: {:join, %{join | lhs: protect_join_branch(join.lhs), rhs: protect_join_branch(join.rhs)}}
+  defp protect_join_branch({:join, join}) do
+    lhs = protect_join_branch(join.lhs)
+    rhs = protect_join_branch(join.rhs)
+
+    {lhs, rhs} =
+      if branch_has_timing_protection?(lhs) or branch_has_timing_protection?(rhs),
+        do: {force_timing_protection(lhs), force_timing_protection(rhs)},
+        else: {lhs, rhs}
+
+    {:join, %{join | lhs: lhs, rhs: rhs}}
+  end
 
   defp protect_join_branch(table), do: table
+
+  defp branch_has_timing_protection?({:join, join}),
+    do: branch_has_timing_protection?(join.lhs) or branch_has_timing_protection?(join.rhs)
+
+  defp branch_has_timing_protection?({:subquery, subquery}), do: subquery[:join_timing_protection?] == true
+  defp branch_has_timing_protection?(_), do: false
+
+  defp force_timing_protection({:join, join}),
+    do: {:join, %{join | lhs: force_timing_protection(join.lhs), rhs: force_timing_protection(join.rhs)}}
+
+  defp force_timing_protection({:subquery, subquery}),
+    do: {:subquery, Map.put(subquery, :join_timing_protection?, true)}
+
+  defp force_timing_protection(table), do: table
 end
