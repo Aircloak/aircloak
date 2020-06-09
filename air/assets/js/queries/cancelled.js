@@ -19,9 +19,10 @@ export default ({
 }) => {
   return (
     <div className="card border-warning mb-3">
-      <div className="card-header bg-warning" />
-      <div className="card-body">
+      <div className="card-header border-danger bg-warning">
         <CodeViewer statement={result.statement} />
+      </div>
+      <div className="card-body">
         <h4>Query cancelled</h4>
         <div className="options-menu">
           <ShareButton result={result} />
