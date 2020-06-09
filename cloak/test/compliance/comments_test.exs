@@ -59,7 +59,6 @@ defmodule Compliance.CommentsTest do
   defp data_sources(context) do
     context
     |> disable_for(Cloak.DataSource.MongoDB)
-    |> disable_for(Cloak.DataSource.ClouderaImpala)
     |> disable_for(Cloak.DataSource.SQLServer)
     |> disable_for(Cloak.DataSource.MySQL)
     |> Map.fetch!(:data_sources)
