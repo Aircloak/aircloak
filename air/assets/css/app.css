@@ -265,5 +265,6 @@ a.suggested-reading:hover {
 @import "./privacy-policy.css";
 @import "./queries.css";
 @import "./selectable_info.css";
+@import "./sidebar.css";
 @import "./tasks.css";
 @import "./users.css";

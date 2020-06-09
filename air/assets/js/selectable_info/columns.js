@@ -81,7 +81,7 @@ export const ColumnsView = ({
       {filterColumns(table, columns, filter).map((item) => {
         return (
           <li
-            className={`list-group-item p-1  pr-3 ${columnClassName(
+            className={`list-group-item p-1 bg-transparent pr-3 ${columnClassName(
               item
             )} d-flex justify-content-between align-items-center`}
             key={item.name}

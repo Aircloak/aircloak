@@ -150,37 +150,52 @@ export default class SelectableInfo extends React.Component<Props, State> {
     } = this.props;
     const { filter } = this.state;
     return (
-      <div className="card selectable-info">
-        <div className="card-header selectable-heading">
-          <strong>{dataSourceName}</strong>
-          {this.renderAvailabilityLabel()}
+      <div
+        id="sidebar"
+        className="sidebar fixed-right border-left navbar-expand-md collapse"
+      >
+        <div className="d-flex flex-column h-100">
+          <div className="sidebar-header d-flex justify-content-between align-items-baseline">
+            <h1 className="h3">{dataSourceName}</h1>
+            {this.renderAvailabilityLabel()}
+
+            <button
+              type="button"
+              className="btn d-block d-md-none"
+              data-toggle="collapse"
+              data-target="#sidebar"
+              aria-expanded="false"
+            >
+              <i className="fas fa-times" aria-label="Hide sidebar"></i>
+            </button>
+          </div>
           {this.renderDataSourceDescription()}
-        </div>
 
-        <FilterView filter={filter} onFilterChange={this.onFilterChange} />
+          <FilterView filter={filter} onFilterChange={this.onFilterChange} />
 
-        <div className="selectable-info-content">
-          {this.selectables().map((selectable, i) => (
-            <SelectableView
-              // eslint-disable-next-line react/no-array-index-key
-              key={i}
-              filter={filter}
-              selectable={selectable}
-              selectablesEditUrl={selectablesEditUrl}
-              channel={this.channel}
-              expanded={this.expanded(selectable)}
-              onClick={this.toggleExpand(selectable)}
-              numberFormat={numberFormat}
+          <div className="selectable-info-content flex-grow-1 overflow-auto list-group list-group-flush mx-n4">
+            {this.selectables().map((selectable, i) => (
+              <SelectableView
+                // eslint-disable-next-line react/no-array-index-key
+                key={i}
+                filter={filter}
+                selectable={selectable}
+                selectablesEditUrl={selectablesEditUrl}
+                channel={this.channel}
+                expanded={this.expanded(selectable)}
+                onClick={this.toggleExpand(selectable)}
+                numberFormat={numberFormat}
+              />
+            ))}
+          </div>
+
+          <div className="d-flex justify-content-around mt-2">
+            <NewSelectableToolbarView
+              newTableURL={newTableURL}
+              newViewURL={newViewURL}
+              supportsCreateTable={supportsCreateTable}
             />
-          ))}
-        </div>
-
-        <div className="card-footer">
-          <NewSelectableToolbarView
-            newTableURL={newTableURL}
-            newViewURL={newViewURL}
-            supportsCreateTable={supportsCreateTable}
-          />
+          </div>
         </div>
       </div>
     );
