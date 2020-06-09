@@ -15,10 +15,6 @@ label small.newline {
   font-size: 0.8em;
 }
 
-.label-right {
-  text-align: right;
-}
-
 .navbar-vertical.navbar-expand-md.fixed-left {
   left: 0;
   border-width: 0 1px 0 0;
@@ -57,14 +53,6 @@ label small.newline {
   align-items: center;
 }
 
-.navbar-vertical .navbar-nav .nav-link[data-toggle="collapse"]:after {
-  display: block;
-  content: "\e92e";
-  font-family: Feather;
-  margin-left: auto;
-  transition: transform 0.2s;
-}
-
 .navbar-vertical .navbar-nav .nav-link {
   display: flex;
   align-items: center;
@@ -84,7 +72,7 @@ label small.newline {
 }
 
 .navbar-vertical .navbar-nav .nav-link.active {
-  border-left-color: #007bff;
+  border-left-color: var(--primary, #007bff);
 }
 
 .navbar-vertical .navbar-heading {
@@ -218,4 +206,10 @@ label small.newline {
 }
 .header-tabs .nav-item:first-child .nav-link {
   padding-left: 0;
+}
+
+@media (min-width: 576px) {
+  .label-right {
+    text-align: right;
+  }
 }

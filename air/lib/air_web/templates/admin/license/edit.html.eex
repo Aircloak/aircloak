@@ -11,7 +11,7 @@
 <% end %>
 
 <div class="row mb-5">
-  <div class="col-sm-8">
+  <div class="col-md-7 col-xl-8 mb-3">
     <div class="card h-100">
       <h4 class="card-header">License status</h4>
       <div class="card-body">
@@ -39,7 +39,7 @@
     </div>
   </div>
 
-  <div class="col-sm-4">
+  <div class="col-md-5 col-xl-4 mb-3">
     <div class="card h-100">
       <h4 class="card-header">Upload license file</h4>
       <div class="card-body">

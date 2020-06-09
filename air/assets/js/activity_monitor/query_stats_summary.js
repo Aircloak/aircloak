@@ -26,7 +26,7 @@ export default ({ queries }: Props) => {
     <div>
       <h4>Snapshot of current query states</h4>
 
-      <table className="table">
+      <table className="table table-responsive">
         <thead>
           <tr>
             <th>State</th>

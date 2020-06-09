@@ -23,7 +23,7 @@ export default ({ cloakStats }: { cloakStats: CloakStat[] }) => {
   return (
     <div>
       <h3>Cloaks</h3>
-      <table className="table">
+      <table className="table table-responsive">
         <thead>
           <tr>
             <th>Name</th>

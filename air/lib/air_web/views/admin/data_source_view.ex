@@ -13,14 +13,21 @@ defmodule AirWeb.Admin.DataSourceView do
   def available?(data_source), do: Air.Service.DataSource.available?(data_source.name)
 
   defp checkbox_mapper(form, field, input_opts, group, label_opts, _opts) do
-    content_tag(:div, class: "checkbox") do
-      label(form, field, label_opts) do
-        [
-          tag(:input, input_opts),
-          Air.Utils.CheckboxMapper.group_label_text(group),
-          raw(" &ndash; ") | users_given_access_to(group)
-        ]
-      end
+    content_tag(:div, class: "form-check") do
+      [
+        tag(:input, [{:class, "form-check-input"} | input_opts]),
+        label(form, field, [{:class, "form-check-label"} | label_opts]) do
+          [Air.Utils.CheckboxMapper.group_label_text(group), raw(" &ndash; ") | users_given_access_to(group)]
+        end
+      ]
+    end
+  end
+
+  defp link_unless_explorer(conn, title, thing, opts) do
+    if thing.system && thing.name == "Diffix Explorer" do
+      link("Manage", to: admin_explorer_path(conn, :index))
+    else
+      link(title, opts)
     end
   end
 
@@ -36,7 +43,7 @@ defmodule AirWeb.Admin.DataSourceView do
 
       names when length(names) <= @num_to_take ->
         [
-          raw("Gives access to #{length(names)} users: ")
+          raw("Gives access to #{length(names)} #{Inflex.inflect("user", length(names))}: ")
           | Air.Utils.CheckboxMapper.highlighted_and_comma_separated(names, @num_to_take)
         ]
 

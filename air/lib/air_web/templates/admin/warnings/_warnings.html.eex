@@ -6,7 +6,7 @@
   <%= Inflex.inflect("Warning", length(@problems)) %>
 </h3>
 
-<table class="table table-borderless">
+<table class="table table-borderless table-responsive">
   <thead>
     <tr>
       <th>Severity</th>
