@@ -17,7 +17,7 @@
       <%= navbar_link(@conn, "User Guide", "/docs/", rel: "help", target: "_blank") %>
       <li class="dropdown nav-item">
         <a href="#" id="navbar_dropdown" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-          <span class="fas fa-user"></span>
+          <span class="fas fa-user" aria-label="User menu"></span>
         </a>
 
         <div class="dropdown-menu dropdown-menu-right">
