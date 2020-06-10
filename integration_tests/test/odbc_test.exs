@@ -116,8 +116,8 @@ defmodule IntegrationTest.OdbcTest do
       do:
         assert(
           :odbc.sql_query(context.conn, 'show tables') ==
-            {:selected, ['name', 'type'],
-             [{'column_access', 'personal'}, {'integers', 'personal'}, {'users', 'personal'}]}
+            {:selected, ['name', 'type', 'comment'],
+             [{'column_access', 'personal', ''}, {'integers', 'personal', ''}, {'users', 'personal', ''}]}
         )
     )
 
@@ -127,11 +127,11 @@ defmodule IntegrationTest.OdbcTest do
       do:
         assert(
           :odbc.sql_query(context.conn, 'show columns from users') ==
-            {:selected, ['name', 'data type', 'isolator?', 'key type'],
+            {:selected, ['name', 'data type', 'isolator?', 'key type', 'comment'],
              [
-               {'user_id', 'text', 'true', 'user_id'},
-               {'name', 'text', 'failed', :null},
-               {'height', 'integer', 'failed', :null}
+               {'user_id', 'text', 'true', 'user_id', ''},
+               {'name', 'text', 'failed', :null, ''},
+               {'height', 'integer', 'failed', :null, ''}
              ]}
         )
     )

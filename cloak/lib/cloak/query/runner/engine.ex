@@ -68,9 +68,15 @@ defmodule Cloak.Query.Runner.Engine do
     tables =
       Cloak.DataSource.tables(query.data_source)
       |> Stream.concat(Cloak.AnalystTable.cloak_tables(query.analyst_id, query.data_source, query.views))
-      |> Enum.map(&[to_string(&1.name), display_content_type(&1.content_type)])
+      |> Enum.map(
+        &[
+          to_string(&1.name),
+          display_content_type(&1.content_type),
+          get_in(&1, [:comments, :table]) || ""
+        ]
+      )
 
-    views = query.views |> Map.keys() |> Enum.map(&[to_string(&1), "view"])
+    views = query.views |> Map.keys() |> Enum.map(&[to_string(&1), "view", ""])
 
     Enum.map(tables ++ views, &%{occurrences: 1, row: &1})
   end
@@ -82,7 +88,13 @@ defmodule Cloak.Query.Runner.Engine do
       table.columns,
       &%{
         occurrences: 1,
-        row: [&1.name, to_string(&1.type), isolator_status(query.data_source, table, &1.name), table.keys[&1.name]]
+        row: [
+          &1.name,
+          to_string(&1.type),
+          isolator_status(query.data_source, table, &1.name),
+          table.keys[&1.name],
+          get_in(table, [:comments, :columns, &1.name]) || ""
+        ]
       }
     )
   end

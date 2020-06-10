@@ -32,19 +32,19 @@ defmodule Cloak.Query.BasicTest do
 
   test "show tables and views" do
     assert_query("show tables", [views: %{"v1" => "select user_id, height from heights"}], %{
-      columns: ["name", "type"],
+      columns: ["name", "type", "comment"],
       rows: rows
     })
 
     rows = Enum.map(rows, & &1.row)
 
     [
-      ["children", "personal"],
-      ["heights", "personal"],
-      ["weird things", "personal"],
-      ["dotted.table", "personal"],
-      ["dates", "personal"],
-      ["v1", "view"]
+      ["children", "personal", ""],
+      ["heights", "personal", ""],
+      ["weird things", "personal", ""],
+      ["dotted.table", "personal", ""],
+      ["dates", "personal", ""],
+      ["v1", "view", ""]
     ]
     |> Enum.each(&assert(Enum.member?(rows, &1)))
   end
@@ -58,15 +58,15 @@ defmodule Cloak.Query.BasicTest do
     end
 
     assert_query("show columns from basic_isolators", %{
-      columns: ["name", "data type", "isolator?", "key type"],
+      columns: ["name", "data type", "isolator?", "key type", "comment"],
       rows: rows
     })
 
     assert Enum.sort_by(rows, & &1[:row]) == [
-             %{occurrences: 1, row: ["isolates", "integer", "true", nil]},
-             %{occurrences: 1, row: ["pending", "boolean", "pending", nil]},
-             %{occurrences: 1, row: ["regular", "text", "false", nil]},
-             %{occurrences: 1, row: ["user_id", "text", "false", :user_id]}
+             %{occurrences: 1, row: ["isolates", "integer", "true", nil, ""]},
+             %{occurrences: 1, row: ["pending", "boolean", "pending", nil, ""]},
+             %{occurrences: 1, row: ["regular", "text", "false", nil, ""]},
+             %{occurrences: 1, row: ["user_id", "text", "false", :user_id, ""]}
            ]
   end
 
@@ -84,8 +84,8 @@ defmodule Cloak.Query.BasicTest do
     })
 
     assert Enum.sort_by(rows, & &1[:row]) == [
-             %{occurrences: 1, row: ["height", "integer", nil, nil]},
-             %{occurrences: 1, row: ["user_id", "text", nil, :user_id]}
+             %{occurrences: 1, row: ["height", "integer", nil, nil, ""]},
+             %{occurrences: 1, row: ["user_id", "text", nil, :user_id, ""]}
            ]
   end
 

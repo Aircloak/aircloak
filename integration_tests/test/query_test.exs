@@ -10,13 +10,13 @@ defmodule IntegrationTest.QueryTest do
 
   test "show tables", context do
     assert {:ok, result} = run_query(context.user, "show tables")
-    assert result.columns == ["name", "type"]
-    assert result.selected_types == ["text", "text"]
+    assert result.columns == ["name", "type", "comment"]
+    assert result.selected_types == ["text", "text", "text"]
 
     assert result.buckets == [
-             %{"occurrences" => 1, "row" => ["column_access", "personal"]},
-             %{"occurrences" => 1, "row" => ["integers", "personal"]},
-             %{"occurrences" => 1, "row" => ["users", "personal"]}
+             %{"occurrences" => 1, "row" => ["column_access", "personal", ""]},
+             %{"occurrences" => 1, "row" => ["integers", "personal", ""]},
+             %{"occurrences" => 1, "row" => ["users", "personal", ""]}
            ]
   end
 
@@ -24,9 +24,9 @@ defmodule IntegrationTest.QueryTest do
     {:ok, result} = run_query(context.user, "show columns from users")
 
     assert [
-             %{"occurrences" => 1, "row" => ["user_id", "text", isolator1, "user_id"]},
-             %{"occurrences" => 1, "row" => ["name", "text", isolator2, nil]},
-             %{"occurrences" => 1, "row" => ["height", "integer", isolator3, nil]}
+             %{"occurrences" => 1, "row" => ["user_id", "text", isolator1, "user_id", ""]},
+             %{"occurrences" => 1, "row" => ["name", "text", isolator2, nil, ""]},
+             %{"occurrences" => 1, "row" => ["height", "integer", isolator3, nil, ""]}
            ] = result.buckets
 
     assert Enum.all?(
@@ -39,9 +39,9 @@ defmodule IntegrationTest.QueryTest do
     {:ok, result} = run_query(context.user, "show columns from column_access")
 
     assert [
-             %{"occurrences" => 1, "row" => ["user_id", "text", _, "user_id"]},
-             %{"occurrences" => 1, "row" => ["white", "integer", _, nil]},
-             %{"occurrences" => 1, "row" => ["grey", "integer", _, nil]}
+             %{"occurrences" => 1, "row" => ["user_id", "text", _, "user_id", ""]},
+             %{"occurrences" => 1, "row" => ["white", "integer", _, nil, ""]},
+             %{"occurrences" => 1, "row" => ["grey", "integer", _, nil, ""]}
            ] = result.buckets
   end
 

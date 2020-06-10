@@ -35,15 +35,15 @@ defmodule Cloak.Query.KeysTest do
 
   test "show columns" do
     assert_query("show columns from keys_transactions", %{
-      rows: [%{row: ["account_id", _, _, :account_id]}, %{row: ["product_id", _, _, :product_id]}]
+      rows: [%{row: ["account_id", _, _, :account_id, _]}, %{row: ["product_id", _, _, :product_id, _]}]
     })
   end
 
   test "show tables" do
     assert_query("show tables", %{rows: rows})
-    assert Enum.find(rows, &(&1.row == ["keys_accounts", "personal"])) != nil
-    assert Enum.find(rows, &(&1.row == ["keys_transactions", "personal"])) != nil
-    assert Enum.find(rows, &(&1.row == ["keys_products", "non-personal"])) != nil
+    assert Enum.find(rows, &(&1.row == ["keys_accounts", "personal", ""])) != nil
+    assert Enum.find(rows, &(&1.row == ["keys_transactions", "personal", ""])) != nil
+    assert Enum.find(rows, &(&1.row == ["keys_products", "non-personal", ""])) != nil
   end
 
   test "simple select" do

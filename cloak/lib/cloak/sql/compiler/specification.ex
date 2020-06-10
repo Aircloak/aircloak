@@ -54,7 +54,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp parse_parameter(:time, value), do: Time.from_iso8601(value)
   defp parse_parameter(:interval, value), do: Timex.Duration.parse(value)
 
-  @table_attributes ["name", "type"]
+  @table_attributes ["name", "type", "comment"]
   defp compile_query(%Query{command: :show, show: :tables} = query),
     do: %Query{
       query
@@ -62,7 +62,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         columns: Enum.map(@table_attributes, &Expression.constant(:text, &1))
     }
 
-  @column_attributes ["name", "data type", "isolator?", "key type"]
+  @column_attributes ["name", "data type", "isolator?", "key type", "comment"]
   defp compile_query(%Query{command: :show, show: :columns} = query),
     do: %Query{
       compile_from(query)
