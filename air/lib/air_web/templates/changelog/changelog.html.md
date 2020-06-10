@@ -10,6 +10,8 @@
 
 ### New features
 
+- Comments can be added to tables and columns. Database comments are automatically loaded to configured tables.
+
 ### Enhancements
 
 - Added overflow protection for date arithmetic. Oracle UDFs have to be reloaded.
