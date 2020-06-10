@@ -250,7 +250,7 @@ defmodule Cloak.Query.Anonymizer do
 
   @doc "Computes the noisy count of distinct values from the no-uid statistics for a bucket."
   @spec noisy_distinct_count(t, non_neg_integer, [number]) :: {float | nil, float | nil}
-  def noisy_distinct_count(_anonymizer, count, [1, 0, 0, 0, nil] = _noise_factor_statistics), do: {count, 0}
+  def noisy_distinct_count(_anonymizer, count, [1, _, _, _, nil] = _noise_factor_statistics), do: {count, 0}
 
   def noisy_distinct_count(anonymizer, count, noise_factor_statistics) do
     {noise_sigma, _edge_above, _edge_below, flatten} = noise_parameters_from_statistics(noise_factor_statistics)
