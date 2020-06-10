@@ -19,7 +19,7 @@ defmodule Air.ResetPasswordController.Test do
           user: %{password: "psswrd12", password_confirmation: "psswrd12"}
         })
         |> recycle()
-        |> get("/profile/edit")
+        |> get("/settings/security")
 
       assert response(conn, 200) =~ user.name
     end
@@ -32,7 +32,7 @@ defmodule Air.ResetPasswordController.Test do
           user: %{password: "psswrd12", password_confirmation: "psswrd12"}
         })
         |> recycle()
-        |> get("/profile/edit")
+        |> get("/settings/security")
 
       assert redirected_to(conn) == "/auth"
     end
@@ -45,7 +45,7 @@ defmodule Air.ResetPasswordController.Test do
           user: %{password: "psswrd12", password_confirmation: "password12345"}
         })
         |> recycle()
-        |> get("/profile/edit")
+        |> get("/settings/security")
 
       assert redirected_to(conn) == "/auth"
     end
