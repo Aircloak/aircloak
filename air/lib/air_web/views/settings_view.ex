@@ -1,4 +1,4 @@
-defmodule AirWeb.ProfileView do
+defmodule AirWeb.SettingsView do
   @moduledoc false
   use Air.Web, :view
 

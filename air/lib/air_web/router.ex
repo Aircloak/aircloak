@@ -95,13 +95,21 @@ defmodule AirWeb.Router do
     get("/licenses/:realm/:name", LicenseController, :show)
     get("/licenses/dependencies.zip", LicenseController, :dependencies)
 
-    resources("/profile", ProfileController, singleton: true, only: [:edit, :update]) do
-      delete("/sessions", ProfileController, :delete_sessions)
+    scope "/settings" do
+      get("/privacy", SettingsController, :privacy)
+      # patch("/privacy", SettingsController, :change_password)
+
+      get("/security", SettingsController, :security)
+      put("/security", SettingsController, :change_password)
+
+      get("/", SettingsController, :profile)
+      put("/", SettingsController, :update)
+      patch("/toggle_debug_mode", SettingsController, :toggle_debug_mode)
+
+      delete("/sessions", SettingsController, :delete_sessions)
     end
 
     get("/export", ExportsController, :show)
-    put("/profile/change_password", ProfileController, :change_password)
-    post("/profile/toggle_debug_mode", ProfileController, :toggle_debug_mode)
 
     get("/changelog", ChangelogController, :index)
   end

@@ -1,4 +1,7 @@
 <header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Settings", to: settings_path(@conn, :profile), class: "text-muted" %></li>
+  </ol>
   <h1>App logins</h1>
 </header>
 
@@ -13,48 +16,47 @@ password: <%= get_flash(@conn, :app_password) %></pre>
 <% end %>
 
 
+<img src="/frontend/images/online_storage.svg" alt="" class="d-none d-xl-block float-right" width="300" />
 
-<div class="row">
-  <div class="col-sm-6">
-    <div class="card mb-3">
-      <h3 class="card-header">Add a new login</h3>
-      <div class="card-body">
-        <p>
-          You can create app-specific logins that can only be used to access the PSQL API.
-          See the <%=
-            link "App logins section in the PSQL protocol documentation",
-              to: "/docs/api/psql.html#app-logins",
-              target: :_blank
-          %> for more.
-        </p>
 
-        <%= form_for @changeset, app_login_path(@conn, :create), fn f -> %>
-          <%= if @changeset.action do %>
-            <div class="alert alert-danger">
-              <p>Oops, something went wrong! Please check the errors below.</p>
-            </div>
-          <% end %>
+<div class="container-lg px-0 mx-0 mb-5">
+  <div class="row">
+    <div class="col-sm-6">
+      <h3>Add a new login</h3>
+      <p>
+        You can create app-specific logins that can only be used to access the PSQL API.
+        See the <%=
+          link "App logins section in the PSQL protocol documentation",
+            to: "/docs/api/psql.html#app-logins",
+            target: :_blank
+        %> for more.
+      </p>
 
-          <div class="form-group">
-            <%= label f, :description, "Description" %>
-            <%= text_input f, :description, class: "form-control" %>
-            <%= error_tag f, :description %>
-          </div>
-
-          <div class="form-group">
-            <%= submit "Create login", class: "btn btn-primary" %>
+      <%= form_for @changeset, app_login_path(@conn, :create), fn f -> %>
+        <%= if @changeset.action do %>
+          <div class="alert alert-danger">
+            <p>Oops, something went wrong! Please check the errors below.</p>
           </div>
         <% end %>
-      </div>
+
+        <div class="form-group">
+          <%= label f, :description, "Description" %>
+          <%= text_input f, :description, class: "form-control" %>
+          <%= error_tag f, :description %>
+        </div>
+
+        <div class="form-group">
+          <%= submit "Create login", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+
     </div>
   </div>
-</div>
 
-<div class="row">
-  <div class="col-sm-12">
-    <div class="card">
-      <h3 class="card-header">Existing logins</h3>
-      <table class="table table-striped table-hover">
+  <div class="row mt-5">
+    <div class="col-sm-12">
+      <h3 class="mb-3">Existing logins</h3>
+      <table class="table table-striped table-hover table-responsive">
         <thead>
           <tr>
             <th>Login name</th>

@@ -5,6 +5,8 @@ defmodule AirWeb.ApiTokenController do
   alias Air.Schemas.ApiToken
   alias Air.Service.Token
 
+  plug(:put_layout, "settings.html")
+
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------

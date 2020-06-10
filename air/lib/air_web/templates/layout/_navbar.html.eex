@@ -32,8 +32,8 @@
             <%= dropdown_link(@conn, "App logins", app_login_path(@conn, :index)) %>
           <% end %>
 
-          <%= if permitted?(@conn, AirWeb.ProfileController, :edit) do %>
-            <%= dropdown_link(@conn, "Settings", profile_path(@conn, :edit)) %>
+          <%= if permitted?(@conn, AirWeb.SettingsController, :edit) do %>
+            <%= dropdown_link(@conn, "Settings", settings_path(@conn, :profile)) %>
           <% end %>
 
           <div role="separator" class="dropdown-divider"></div>

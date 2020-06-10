@@ -1,4 +1,4 @@
-defmodule Air.ProfileController.Test do
+defmodule Air.SettingsController.Test do
   use AirWeb.ConnCase, async: true
 
   import Air.TestConnHelper
