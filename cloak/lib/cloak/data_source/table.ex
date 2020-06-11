@@ -129,6 +129,14 @@ defmodule Cloak.DataSource.Table do
   @spec key?(t, String.t()) :: boolean
   def key?(table, column_name), do: Map.has_key?(table.keys, column_name)
 
+  @doc "Returns the table's comment or nil if the table has no comment."
+  @spec table_comment(t) :: String.t() | nil
+  def table_comment(table), do: get_in(table, [:comments, :table])
+
+  @doc "Returns a column's comment in the table or nil if the column has no comment."
+  @spec column_comment(t, String.t()) :: String.t() | nil
+  def column_comment(table, column), do: get_in(table, [:comments, :columns, column])
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

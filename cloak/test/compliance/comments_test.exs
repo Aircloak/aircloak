@@ -9,7 +9,7 @@ defmodule Compliance.CommentsTest do
       |> Map.values()
       |> Enum.filter(&valid_table?/1)
       |> Enum.each(fn table ->
-        table_comment = get_in(table, [:comments, :table])
+        table_comment = Cloak.DataSource.Table.table_comment(table)
 
         if table.name == "notes" do
           assert table_comment == "Overridden comment on table notes.",
@@ -30,10 +30,8 @@ defmodule Compliance.CommentsTest do
       |> Map.values()
       |> Enum.filter(&valid_table?/1)
       |> Enum.each(fn table ->
-        column_comments = get_in(table, [:comments, :columns]) || %{}
-
         Enum.each(table.columns, fn column ->
-          column_comment = column_comments[column.name]
+          column_comment = Cloak.DataSource.Table.column_comment(table, column.name)
 
           if table.name == "notes" and column.name == "title" do
             assert column_comment == "Overridden comment on column notes.title.",

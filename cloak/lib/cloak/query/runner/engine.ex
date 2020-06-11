@@ -72,7 +72,7 @@ defmodule Cloak.Query.Runner.Engine do
         &[
           to_string(&1.name),
           display_content_type(&1.content_type),
-          get_in(&1, [:comments, :table]) || ""
+          Cloak.DataSource.Table.table_comment(&1) || ""
         ]
       )
 
@@ -93,7 +93,7 @@ defmodule Cloak.Query.Runner.Engine do
           to_string(&1.type),
           isolator_status(query.data_source, table, &1.name),
           table.keys[&1.name],
-          get_in(table, [:comments, :columns, &1.name]) || ""
+          Cloak.DataSource.Table.column_comment(table, &1.name) || ""
         ]
       }
     )
