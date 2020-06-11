@@ -45,6 +45,13 @@
     max-width: 20vw;
     min-width: 300px;
   }
+
+  .container-with-sidebar {
+    max-width: 1140px;
+    width: calc(100% - 350px - 2rem);
+    margin-left: auto;
+    margin-right: calc(max(350px, 25vw) + 2rem);
+  }
 }
 
 @media (min-width: 992px) {

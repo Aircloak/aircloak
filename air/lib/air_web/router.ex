@@ -97,7 +97,6 @@ defmodule AirWeb.Router do
 
     scope "/settings" do
       get("/privacy", SettingsController, :privacy)
-      # patch("/privacy", SettingsController, :change_password)
 
       get("/security", SettingsController, :security)
       put("/security", SettingsController, :change_password)

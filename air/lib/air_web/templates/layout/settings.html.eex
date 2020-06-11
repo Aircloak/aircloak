@@ -18,7 +18,7 @@
   <body>
     <%= render "_navbar.html", conn: @conn, admin: true %>
     <div class="container-fluid full-height">
-      <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-light border-right collapse navbar-collapse align-items-start" id="sidebarCollapse">
+      <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-light border-right collapse navbar-collapse align-items-start py-0 my-0" id="sidebarCollapse">
         <div class="container-fluid d-block">
             <h1 class="h3 d-flex flex-column align-items-center my-3 font-weight-light" style="text-align: center">
                 <i class="fas fa-user-circle fa-2x"></i>

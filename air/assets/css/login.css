@@ -127,6 +127,10 @@ div#aircloak {
         "footer footer footer";
     }
 
+    body#login.with-message {
+      grid-template-columns: 1fr minmax(600px, 800px) 1fr;
+    }
+
     body#login footer {
       color: white;
       padding: 2px 2px 0 0;

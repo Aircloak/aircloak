@@ -4,6 +4,7 @@ defmodule AirWeb.AppLoginController do
 
   alias Air.Service.User
   plug(:put_layout, "settings.html")
+
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------

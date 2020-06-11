@@ -1,53 +1,47 @@
-<div class="data-source">
-  <div class="container-fluid mt-3">
-    <div class="row">
-      <div class="column col-sm-9 mb-3">
-        <div class="container-lg mr-4">
-          <div class="content-wrapper">
-            <header class="page-header">
-              <ol class="breadcrumb bg-white">
-                <li class="breadcrumb-item"><%= link "Data sources", to: data_source_path(@conn, :index), class: "text-muted" %></li>
-                <li class="breadcrumb-item"><%= link @data_source.name, to: data_source_path(@conn, :show, @data_source.name), class: "text-muted" %></li>
-              </ol>
+<div class="container-fluid mt-3 full-height">
+  <div class="content-wrapper container-with-sidebar">
+    <header class="page-header">
+      <ol class="breadcrumb bg-white">
+        <li class="breadcrumb-item"><%= link "Data sources", to: data_source_path(@conn, :index), class: "text-muted" %></li>
+        <li class="breadcrumb-item"><%= link @data_source.name, to: data_source_path(@conn, :show, @data_source.name), class: "text-muted" %></li>
+      </ol>
 
-              <h1><%= @view_name %></h1>
-            </header>
+       <button type="button" class="btn btn-primary d-block d-md-none float-right" data-toggle="collapse"
+          data-target="#sidebar" aria-expanded="false">
+        <i class="fas fa-list"></i> Tables
+      </button>
+      <h1><%= @view_name %></h1>
+    </header>
 
-            <%= form_for @changeset, @action, [id: "viewForm", method: @method], fn f -> %>
-              <%= if @changeset.action do %>
-                <div class="alert alert-danger">
-                  <p>Oops, something went wrong! Please check the errors below.</p>
-                </div>
-              <% end %>
-
-              <div class="form-group">
-                <%= validated_text_input f, :name, "Name" %>
-              </div>
-
-              <div class="form-group">
-                <label>Code</label>
-                <%= textarea f, :sql, id: "sql", class: (if f.errors[:sql], do: "form-control is-invalid", else: "form-control"), style: "display:none;" %>
-                <div id="viewEditor"></div>
-                <%= error_tag f, :sql %>
-              </div>
-
-              <div class="form-group f-flex justify-content-end mb-3">
-                <%= submit @action_name, class: "btn btn-primary" %>
-                or
-                <kbd>Ctrl + Enter</kbd>
-              </div>
-            <% end %>
-          </div>
-        <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
+    <%= form_for @changeset, @action, [id: "viewForm", method: @method], fn f -> %>
+      <%= if @changeset.action do %>
+        <div class="alert alert-danger">
+          Oops, something went wrong! Please check the errors below.
         </div>
+      <% end %>
+
+      <div class="form-group">
+        <%= validated_text_input f, :name, "Name" %>
       </div>
 
-      <div id="selectable-column" class="column col-sm-3">
-        <div id="selectable-info"></div>
+      <div class="form-group">
+        <label>Code</label>
+        <%= textarea f, :sql, id: "sql", class: (if f.errors[:sql], do: "form-control is-invalid", else: "form-control"), style: "display:none;" %>
+        <div id="viewEditor"></div>
+        <%= error_tag f, :sql %>
       </div>
-    </div>
+
+      <div class="form-group f-flex justify-content-end mb-3">
+        <%= submit @action_name, class: "btn btn-primary" %>
+        or
+        <kbd>Ctrl + Enter</kbd>
+      </div>
+    <% end %>
   </div>
+  <div id="selectable-info"></div>
+  <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
 </div>
+
 
 <script>
   window.pageConfig = {

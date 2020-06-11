@@ -24,16 +24,16 @@
           <p class="dropdown-item-text text-muted">Signed in as <strong><%= @conn.assigns.current_user.name %></strong></p>
           <div role="separator" class="dropdown-divider"></div>
 
+          <%= if permitted?(@conn, AirWeb.SettingsController, :edit) do %>
+            <%= dropdown_link(@conn, "Settings", settings_path(@conn, :profile)) %>
+          <% end %>
+
           <%= if permitted?(@conn, AirWeb.ApiTokenController, :index) do %>
             <%= dropdown_link(@conn, "API Tokens", api_token_path(@conn, :index)) %>
           <% end %>
 
           <%= if permitted?(@conn, AirWeb.AppLoginController, :index) do %>
             <%= dropdown_link(@conn, "App logins", app_login_path(@conn, :index)) %>
-          <% end %>
-
-          <%= if permitted?(@conn, AirWeb.SettingsController, :edit) do %>
-            <%= dropdown_link(@conn, "Settings", settings_path(@conn, :profile)) %>
           <% end %>
 
           <div role="separator" class="dropdown-divider"></div>
