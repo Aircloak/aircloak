@@ -208,16 +208,56 @@ defmodule Cloak.DataSource.Table do
 
     Enum.each(compiled_query.column_titles, &verify_column_name(name, &1))
 
-    columns =
-      Enum.zip(compiled_query.column_titles, compiled_query.columns)
-      |> Enum.map(fn {title, column} -> %{name: title, type: column.type, access: :visible} end)
+    zipped_columns = Enum.zip(compiled_query.column_titles, compiled_query.columns)
 
-    table = new(to_string(name), config[:user_id], Map.merge(config, %{query: compiled_query, columns: columns}))
+    columns = Enum.map(zipped_columns, fn {title, column} -> %{name: title, type: column.type, access: :visible} end)
+
+    comments =
+      Aircloak.deep_merge(
+        %{table: virtual_table_comment(data_source), columns: virtual_column_comments(zipped_columns)},
+        config[:comments] || %{}
+      )
+
+    table =
+      new(
+        to_string(name),
+        config[:user_id],
+        Map.merge(config, %{query: compiled_query, columns: columns, comments: comments})
+      )
+
     verify_columns(data_source, table)
     {name, table}
   end
 
   defp compile_virtual_table(table, _data_source), do: table
+
+  defp virtual_table_comment(virtual_data_source) do
+    case Map.values(virtual_data_source.tables) do
+      [table] -> table_comment(table)
+      _ -> nil
+    end
+  end
+
+  defp virtual_column_comments(columns) do
+    Enum.reduce(columns, %{}, fn
+      {
+        title,
+        %Cloak.Sql.Expression{
+          kind: :column,
+          name: name,
+          table: table
+        }
+      },
+      acc ->
+        case column_comment(table, name) do
+          nil -> acc
+          comment -> Map.put(acc, title, comment)
+        end
+
+      _, acc ->
+        acc
+    end)
+  end
 
   defp verify_column_name(table, name) do
     if not Expression.valid_alias?(name) do
