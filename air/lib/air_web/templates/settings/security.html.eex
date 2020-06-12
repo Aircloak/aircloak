@@ -1,0 +1,50 @@
+<header class="page-header">
+ <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Settings", to: settings_path(@conn, :profile), class: "text-muted" %></li>
+  </ol>
+  <h1>Security</h1>
+</header>
+
+<%= if @changeset.action do %>
+  <div class="alert alert-danger">
+    Oops, something went wrong! Please check the errors below.
+  </div>
+<% end %>
+
+<img src="/frontend/images/online_protection.svg" alt="" class="d-none d-xl-block float-right" width="300" />
+
+<div class="container-lg px-0 mx-0 mb-5 pt-3">
+  <%= if can_edit?(@changeset.data) do %>
+    <h2 class="h3 offset-lg-3 mb-3">Change password</h2>
+
+    <%= form_for @changeset, settings_path(@conn, :change_password), fn f -> %>
+      <%= validated_password_input f, :old_password, "Current Password", horizontal: {3, 6}, label_class: "label-right", autocomplete: "current-password"  %>
+      <div id="password-field"><%= validated_password_input f, :password, "New Password", horizontal: {3, 6}, label_class: "label-right", autocomplete: "new-password"  %></div>
+      <%= validated_password_input f, :password_confirmation, "Password Confirmation", horizontal: {3, 6}, label_class: "label-right", autocomplete: "new-password"  %>
+
+      <div class="form-group offset-sm-3 pl-2">
+        <%= submit "Save", class: "btn btn-primary" %>
+      </div>
+    <% end %>
+
+    <hr class="my-5" />
+  <% end %>
+
+  <h2 class="h3">Sessions</h2>
+  <p>
+    You are currently signed in on <strong><%= session_count(@conn) %></strong> devices. Press the button below,
+    to sign out from all devices except this one.
+  </p>
+
+  <%= link "Sign out other sessions", class: "btn btn-danger",
+    to: settings_path(@conn, :delete_sessions), method: :delete %>
+</div>
+
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      App.passwordField({}, document.querySelector("#password-field .form-group > div > div"));
+    }
+  };
+</script>

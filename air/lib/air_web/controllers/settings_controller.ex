@@ -1,7 +1,9 @@
-defmodule AirWeb.ProfileController do
+defmodule AirWeb.SettingsController do
   @moduledoc false
   use Air.Web, :controller
   alias Air.Service.User
+
+  plug(:put_layout, "settings.html")
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -15,21 +17,52 @@ defmodule AirWeb.ProfileController do
   # Actions
   # -------------------------------------------------------------------
 
-  def edit(conn, _params) do
+  def profile(conn, _params) do
     changeset = User.to_changeset(conn.assigns.current_user)
     global_settings = Air.Service.Settings.read()
-    render(conn, "edit.html", changeset: changeset, global_settings: global_settings)
+
+    render(conn, "profile.html", changeset: changeset, global_settings: global_settings)
   end
 
-  def update(conn, params),
-    do: update(&update_profile/2, conn, params, _flash = "Profile updated", _log_tag = "Altered own profile")
+  def update(conn, params) do
+    case update_profile(conn.assigns.current_user, params["user"]) do
+      {:ok, _, sessions_revoked?} ->
+        audit_log(conn, "Altered own profile")
 
-  def change_password(conn, params),
-    do: update(&update_password/2, conn, params, _flash = "Password changed", _log_tag = "Changed own password")
+        conn
+        |> maybe_login(sessions_revoked?)
+        |> put_flash(:info, "Profile updated")
+        |> redirect(to: settings_path(conn, :profile))
+
+      {:error, changeset} ->
+        global_settings = Air.Service.Settings.read()
+
+        render(conn, "profile.html", changeset: changeset, global_settings: global_settings)
+    end
+  end
 
   def toggle_debug_mode(conn, _params) do
     User.toggle_debug_mode(conn.assigns.current_user)
-    redirect(conn, to: profile_path(conn, :edit))
+    redirect(conn, to: settings_path(conn, :profile))
+  end
+
+  def security(conn, _params) do
+    render(conn, "security.html", changeset: User.to_changeset(conn.assigns.current_user))
+  end
+
+  def change_password(conn, params) do
+    case update_password(conn.assigns.current_user, params["user"]) do
+      {:ok, _, sessions_revoked?} ->
+        audit_log(conn, "Password changed")
+
+        conn
+        |> maybe_login(sessions_revoked?)
+        |> put_flash(:info, "Changed own password")
+        |> redirect(to: settings_path(conn, :security))
+
+      {:error, changeset} ->
+        render(conn, "security.html", changeset: changeset)
+    end
   end
 
   def delete_sessions(conn, _params) do
@@ -40,28 +73,16 @@ defmodule AirWeb.ProfileController do
     conn
     |> AirWeb.Plug.Session.sign_in(conn.assigns.current_user)
     |> put_flash(:info, "All sessions signed out.")
-    |> redirect(to: profile_path(conn, :edit))
+    |> redirect(to: settings_path(conn, :security))
+  end
+
+  def privacy(conn, _params) do
+    render(conn, "privacy.html")
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp update(updater, conn, params, flash, log_tag) do
-    case updater.(conn.assigns.current_user, params["user"]) do
-      {:ok, _, sessions_revoked?} ->
-        audit_log(conn, log_tag)
-
-        conn
-        |> maybe_login(sessions_revoked?)
-        |> put_flash(:info, flash)
-        |> redirect(to: profile_path(conn, :edit))
-
-      {:error, changeset} ->
-        global_settings = Air.Service.Settings.read()
-        render(conn, "edit.html", changeset: changeset, global_settings: global_settings)
-    end
-  end
 
   defp maybe_login(conn, false), do: conn
   defp maybe_login(conn, true), do: AirWeb.Plug.Session.sign_in(conn, conn.assigns.current_user)

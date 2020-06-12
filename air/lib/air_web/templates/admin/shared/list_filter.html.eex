@@ -1,8 +1,6 @@
 <%= if length(@options) > 0 do %>
-  <div class="card mb-3">
-    <div class="card-header">
-      <%= @title %>
-    </div>
+  <section>
+    <h3 class="h5 mt-3"><%= @title %></h3>
     <table class="table">
       <tbody>
         <%= for option <- @options do %>
@@ -15,5 +13,5 @@
         <% end %>
       </tbody>
     </table>
-  </div>
+  </section>
 <% end %>

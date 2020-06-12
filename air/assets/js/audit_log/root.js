@@ -11,7 +11,7 @@ type Props = { auditLogs: Array<AuditLog> };
 const auditLogKey = (auditLog) => [auditLog.event, auditLog.user].join("-");
 
 export default ({ auditLogs }: Props) => (
-  <table className="table table-condensed">
+  <table className="table table-condensed table-responsive-xl">
     <thead>
       <tr>
         <th>Event</th>

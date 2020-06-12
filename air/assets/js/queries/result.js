@@ -114,39 +114,9 @@ export class ResultView extends React.Component<Props, State> {
       loadError: false,
     };
 
-    this.componentDidUpdate = this.componentDidUpdate.bind(this);
-
-    this.handleClickMoreRows = this.handleClickMoreRows.bind(this);
-    this.handleClickLessRows = this.handleClickLessRows.bind(this);
-
-    this.loadAndShowMoreRows = this.loadAndShowMoreRows.bind(this);
-    this.renderRows = this.renderRows.bind(this);
-    this.renderShowAll = this.renderShowAll.bind(this);
-    this.renderChartButton = this.renderChartButton.bind(this);
-    this.renderAxesButton = this.renderAxesButton.bind(this);
-    this.renderOptionMenu = this.renderOptionMenu.bind(this);
-
-    this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
-    this.conditionallyRenderChartConfig = this.conditionallyRenderChartConfig.bind(
-      this
-    );
-    this.formatValue = this.formatValue.bind(this);
-
-    this.showingAllOfFewRows = this.showingAllOfFewRows.bind(this);
-    this.showingAllOfManyRows = this.showingAllOfManyRows.bind(this);
-    this.showingMinimumNumberOfManyRows = this.showingMinimumNumberOfManyRows.bind(
-      this
-    );
-
     const { availableRows } = this.state;
     this.graphInfo = GraphInfo(result.columns, availableRows);
     this.rebuildGraphData();
-
-    this.addX = this.addX.bind(this);
-    this.addY = this.addY.bind(this);
-    this.removeColumn = this.removeColumn.bind(this);
-
-    this.getInfoMessages = this.getInfoMessages.bind(this);
   }
 
   // eslint-disable-next-line react/static-property-placement
@@ -259,26 +229,6 @@ export class ResultView extends React.Component<Props, State> {
         this.setState({ loadingChunks: false, loadError: true });
       },
     });
-  };
-
-  showingAllOfFewRows = () => {
-    const { result } = this.props;
-    return result.row_count <= this.minRowsToShow;
-  };
-
-  showingAllOfManyRows = () => {
-    const { result } = this.props;
-    const { rowsToShowCount } = this.state;
-    return result.row_count === rowsToShowCount;
-  };
-
-  showingMinimumNumberOfManyRows = () => {
-    const { result } = this.props;
-    const { rowsToShowCount } = this.state;
-    return (
-      rowsToShowCount === this.minRowsToShow &&
-      result.row_count > this.minRowsToShow
-    );
   };
 
   addX = (col: number) => () =>
@@ -442,67 +392,27 @@ export class ResultView extends React.Component<Props, State> {
     const { loadingChunks, rowsToShowCount } = this.state;
     if (loadingChunks) {
       return null;
-    } else if (this.showingAllOfFewRows()) {
+    } else if (result.row_count <= this.minRowsToShow) {
       return (
         <div className="row-count">
           {result.row_count}
           {" rows."}
         </div>
       );
-    } else if (this.showingAllOfManyRows()) {
+    } else {
+      const rowsShown = Math.min(rowsToShowCount, result.row_count);
       return (
-        <div className="row-count">
-          {result.row_count}
-          {" rows. "}
+        <div className="row-count d-flex align-items-baseline justify-content-end">
+          <span>
+            Showing {rowsShown} of {result.row_count} rows.
+          </span>
           <button
+            className="btn btn-link btn-sm"
             type="button"
-            className="btn btn-outline-secondary btn-sm"
-            onClick={this.handleClickLessRows}
-          >
-            Show fewer rows
-          </button>
-        </div>
-      );
-    } else if (this.showingMinimumNumberOfManyRows()) {
-      return (
-        <div className="row-count">
-          Showing {this.minRowsToShow}
-          {" of "}
-          {result.row_count}
-          {" rows. "}
-          <button
-            type="button"
-            className="btn btn-outline-secondary btn-sm"
             onClick={this.handleClickMoreRows}
           >
             Show more rows
           </button>
-        </div>
-      );
-    } else {
-      const rowsShown = Math.min(rowsToShowCount, result.row_count);
-      return (
-        <div className="row-count">
-          Showing {rowsShown}
-          {" of "}
-          {result.row_count}
-          {" rows. Show "}
-          <button
-            className="btn btn-outline-secondary btn-sm"
-            type="button"
-            onClick={this.handleClickLessRows}
-          >
-            fewer rows
-          </button>
-          {", "}
-          <button
-            className="btn btn-outline-secondary btn-sm"
-            type="button"
-            onClick={this.handleClickMoreRows}
-          >
-            more rows
-          </button>
-          .
         </div>
       );
     }
@@ -527,7 +437,7 @@ export class ResultView extends React.Component<Props, State> {
             }
           }}
         >
-          {chartButtonText}
+          <i className="fas fa-chart-bar"></i> {chartButtonText}
         </button>
       );
     } else {
@@ -564,38 +474,44 @@ export class ResultView extends React.Component<Props, State> {
   };
 
   renderOptionMenu = () => {
-    const { result, debugModeEnabled, onDeleteClick } = this.props;
+    const { result, debugModeEnabled } = this.props;
     return (
-      <div className="options-menu">
-        <ShareButton result={result} />
-        <a
-          className="btn btn-outline-secondary btn-sm"
-          href={`/queries/${result.id}.csv`}
-        >
-          Download as CSV
-        </a>
-        <DebugExport id={result.id} debugModeEnabled={debugModeEnabled} />
-        {this.renderChartButton()}
-        {this.renderAxesButton()}
-        {onDeleteClick && (
-          <button
-            type="button"
-            className="btn btn-danger btn-sm"
-            onClick={() => onDeleteClick(result.id)}
+      <div className="d-flex justify-content-between flex-column align-items-start flex-lg-row">
+        <div className="btn-group my-2">
+          <ShareButton result={result} />
+          <a
+            className="btn btn-outline-secondary btn-sm"
+            href={`/queries/${result.id}.csv`}
           >
-            Delete
-          </button>
-        )}
+            <i className="fas fa-file-csv"></i>{" "}
+            <span className="d-none d-lg-inline">Download as </span>CSV
+          </a>
+          <DebugExport id={result.id} debugModeEnabled={debugModeEnabled} />
+        </div>
+
+        <div className="btn-group my-2">
+          {this.renderChartButton()}
+          {this.renderAxesButton()}
+        </div>
       </div>
     );
   };
 
   render = () => {
-    const { result } = this.props;
+    const { result, onDeleteClick } = this.props;
     const { tableAligner } = this.state;
     return (
       <div className="card border-success mb-3">
         <div className="card-header border-success bg-white">
+          {onDeleteClick && (
+            <button
+              type="button"
+              className="btn btn-sm float-right"
+              onClick={() => onDeleteClick(result.id)}
+            >
+              <i className="fas fa-times" aria-label="Delete"></i>
+            </button>
+          )}
           <CodeViewer statement={result.statement} />
         </div>
         <div className="card-body">

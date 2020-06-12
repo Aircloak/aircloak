@@ -12,17 +12,8 @@
     <link rel="stylesheet" href="<%= static_path(@conn, "/frontend/app.css") %>">
   </head>
 
-  <body id="login" class="<%= background_img_class() %>">
+  <body id="login" class="<%= background_img_class() %> <%= if @login_message not in ["", nil], do: "with-message" %>">
     <main role="main" id="login-container">
-      <%= if @login_message not in ["", nil] do %>
-        <div class="col-sm-12">
-          <div id="info-message" class="card card-header">
-            <%= raw(Earmark.as_html!(@login_message)) %>
-          </div>
-        </div>
-        <br/>
-      <% end %>
-
       <%= render @view_module, @view_template, assigns %>
     </main>
 

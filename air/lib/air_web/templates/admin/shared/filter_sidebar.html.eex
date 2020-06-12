@@ -1,0 +1,112 @@
+<div
+  id="sidebar"
+  class="sidebar mb-2 fixed-right border-left navbar-expand-lg collapse narrow"
+>
+  <div class="h-100">
+    <div class="sidebar-header d-flex justify-content-between align-items-baseline">
+      <h2 class="h3">Filters</h2>
+      <button
+        type="button"
+        class="btn d-block d-lg-none"
+        data-toggle="collapse"
+        data-target="#sidebar"
+      >
+        <i class="fas fa-times" aria-label="Close sidebar"></i>
+      </button>
+    </div>
+
+    <section class="mb-3">
+      <h3 class="h5 mt-3">Filter by time</h3>
+      <form>
+        <%= for {name, value} <- serialize_params(@conn), name not in ~w(from
+        to) do %>
+        <input type="hidden" name="<%= name %>" value="<%= value %>" />
+        <% end %>
+
+        <div class="form-group">
+          <label for="from">From</label>
+
+          <div
+            class="input-group date"
+            id="datetimepickerfrom"
+            data-target-input="nearest"
+          >
+            <input
+              type="text"
+              name="from"
+              value="<%= @from %>"
+              class="form-control datetimepicker-input"
+              data-target="#datetimepickerfrom"
+            />
+            <div
+              class="input-group-append"
+              data-target="#datetimepickerfrom"
+              data-toggle="datetimepicker"
+            >
+              <div class="input-group-text">
+                <i class="fa fa-calendar-alt"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="from">To</label>
+
+          <div
+            class="input-group date"
+            id="datetimepickerto"
+            data-target-input="nearest"
+          >
+            <input
+              type="text"
+              name="to"
+              value="<%= @to %>"
+              class="form-control datetimepicker-input"
+              data-target="#datetimepickerto"
+            />
+            <div
+              class="input-group-append"
+              data-target="#datetimepickerto"
+              data-toggle="datetimepicker"
+            >
+              <div class="input-group-text">
+                <i class="fa fa-calendar-alt"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Filter</button>
+      </form>
+    </section>
+
+    <%= render(
+      "list_filter.html",
+      conn: @conn,
+      title: "Filter by users",
+      name: :users,
+      options: @users,
+      link: &@path.(&1)
+    ) %>
+
+    <%= if Map.has_key?(@conn.assigns, :event_types), do:
+      render(
+        "list_filter.html",
+        conn: @conn,
+        title: "Filter by event type",
+        name: :events,
+        options: @conn.assigns.event_types,
+        link: &@path.(&1)
+      ) %>
+
+    <%= render(
+      "list_filter.html",
+      conn: @conn,
+      title: "Filter by data source",
+      name: :data_sources,
+      options: @data_sources,
+      link: &@path.(&1)
+    ) %>
+  </div>
+</div>

@@ -19,22 +19,23 @@ export default ({
 }) => {
   return (
     <div className="card border-warning mb-3">
-      <div className="card-header bg-warning" />
-      <div className="card-body">
+      <div className="card-header border-danger bg-warning">
+        {onDeleteClick && (
+          <button
+            type="button"
+            className="btn btn-sm float-right"
+            onClick={() => onDeleteClick(result.id)}
+          >
+            <i className="fas fa-times" aria-label="Delete"></i>
+          </button>
+        )}
         <CodeViewer statement={result.statement} />
+      </div>
+      <div className="card-body">
         <h4>Query cancelled</h4>
-        <div className="options-menu">
+        <div className="btn-group my-2">
           <ShareButton result={result} />
           <DebugExport id={result.id} debugModeEnabled={debugModeEnabled} />
-          {onDeleteClick && (
-            <button
-              type="button"
-              className="btn btn-danger btn-sm"
-              onClick={() => onDeleteClick(result.id)}
-            >
-              Delete
-            </button>
-          )}
         </div>
       </div>
     </div>

@@ -377,17 +377,28 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   };
 
   renderButton = () => (
-    <button
-      className="btn btn-primary"
-      onClick={this.runQuery}
-      disabled={!this.runEnabled()}
-      data-toggle="tooltip"
-      data-placement="left"
-      title="or press Ctrl + Enter"
-      type="button"
-    >
-      Run
-    </button>
+    <div>
+      <button
+        className="btn btn-primary"
+        onClick={this.runQuery}
+        disabled={!this.runEnabled()}
+        data-toggle="tooltip"
+        data-placement="left"
+        title="or press Ctrl + Enter"
+        type="button"
+      >
+        Run
+      </button>
+      <button
+        type="button"
+        className="btn d-block d-md-none"
+        data-toggle="collapse"
+        data-target="#sidebar"
+        aria-expanded="false"
+      >
+        <i className="fas fa-list" aria-label="Show sidebar"></i>
+      </button>
+    </div>
   );
 
   render = () => {

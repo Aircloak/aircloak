@@ -1,4 +1,6 @@
-<h2>Third party licenses</h2>
+<header class="page-header">
+  <h1>Third party licenses</h1>
+</header>
 
 <p>
   The sources of the dependencies are avaialble as a
@@ -34,10 +36,10 @@
   </table>
 </div>
 
-<h3>Packages</h3>
+<h3 class="mt-5">Packages</h3>
 
 <%= for {type, packages} <- group_by_type(@packages) do %>
-  <div class="card">
+  <div class="card my-3">
     <div class="card-header">
       <h4><a name="<%= type %>"></a><%= license_name(type) %></h4>
     </div>

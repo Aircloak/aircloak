@@ -3,7 +3,7 @@
     <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
     <li class="breadcrumb-item"><%= link "Data sources", to: admin_data_source_path(@conn, :index), class: "text-muted" %></li>
   </ol>
-
+  <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-secondary float-md-right" %>
   <h1>
     <%= @data_source.name %> <small><%= availability_label(@data_source) %></small>
   </h1>
@@ -13,100 +13,78 @@
 </header>
 <%= render AirWeb.Admin.WarningsView, "_warnings.html", conn: @conn, problems: @problems %>
 
-<div class="card-columns" style="column-count: 2">
-    <div class="card">
-      <h4 class="card-header">
-        Users with access
-        <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-outline-secondary btn-sm" %>
-      </h4>
+<div class="row">
+  <div class="col-md-6 mb-3">
+    <h3 class="h4">Users with access</h3>
 
-      <%= if length(@users) == 0 do %>
-        <p class="card-body">
-          No users currently have the privileges to query this data source
-        </p>
-      <% else %>
-        <table class="table table-sm">
-          <tbody>
-            <%= for user <- @users do %>
-              <tr>
-                <td><%= user.name %></td>
-                <td class="login-column"><%= Air.Service.User.main_login(user) %></td>
-                <td>
-                  <%= if admin?(user) do %>
-                    <span class="badge badge-danger">Admin</span>
-                  <% end %>
-                </td>
-                <td><%= link "Edit user", to: admin_user_path(@conn, :edit, user), class: "btn btn-outline-secondary btn-sm" %></td>
-              </tr>
+    <%= if length(@users) == 0 do %>
+      <p>No users currently have the privileges to query this data source</p>
+    <% else %>
+      <%= for user <- @users do %>
+      <div class="row border-bottom mb-2 py-2">
+          <div class="col-lg-5 d-flex justify-content-between align-items-baseline"><span><%= user.name %></span>
+            <%= if admin?(user) do %>
+              <span class="badge badge-danger">Admin</span>
             <% end %>
-          </tbody>
-        </table>
+          </div>
+          <div class="col-lg-4 text-muted text-truncate"><%= Air.Service.User.main_login(user) %></div>
+          <div class="col-lg-3 d-flex justify-content-lg-end align-items-baseline"><%= link_unless_explorer @conn, "Edit user", user, to: admin_user_path(@conn, :edit, user), class: "btn btn-outline-secondary btn-sm" %></div>
+          </div>
       <% end %>
-    </div>
-
-    <div class="card">
-      <h4 class="card-header">
-        Groups granting access
-        <%= link "Edit", to: admin_data_source_path(@conn, :edit, @data_source.name), class: "btn btn-outline-secondary btn-sm" %>
-      </h4>
-      <div class="card-body">
-      <%= if length(@data_source.groups) == 0 do %>
-        <p>
-          This data source has not been assigned any groups. As a result it will not be queryable by anyone.
-        </p>
-      <% else %>
-        <table class="table table-sm">
-          <tbody>
-            <%= for group <- @data_source.groups do %>
-              <tr>
-                <td><%= group.name %></td>
-                <td>
-                  <%= if group.admin do %>
-                    <span class="badge badge-danger">Admin</span>
-                  <% end %>
-                </td>
-                <td><%= link "Edit group", to: admin_group_path(@conn, :edit, group), class: "btn btn-outline-secondary btn-sm" %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      <% end %>
-      </div>
-    </div>
-
-    <div class="card">
-      <h4 class="card-header">
-        Cloaks hosting data source
-      </h4>
-
-      <%= if number_of_cloaks_serving(@data_source) == 0 do %>
-        <p class="card-body">
-          No online cloak is serving this data source.
-        </p>
-      <% else %>
-        <table class="table">
-          <tbody>
-            <%= for cloak_info <- cloak_infos_for_data_source(@data_source) do %>
-              <tr>
-                <td><%= cloak_info.name %></td>
-                <td>Available since <%= Timex.from_now(cloak_info.online_since) %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      <% end %>
-    </div>
+    <% end %>
   </div>
+  <div class="col-md-6 mb-3">
+    <h3 class="h4">Groups granting access</h3>
+
+    <%= if length(@data_source.groups) == 0 do %>
+      <p>
+        This data source has not been assigned any groups. As a result it will not be queryable by anyone.
+      </p>
+    <% else %>
+      <table class="table">
+        <tbody>
+          <%= for group <- @data_source.groups do %>
+            <tr>
+              <td><%= group.name %></td>
+              <td>
+                <%= if group.admin do %>
+                  <span class="badge badge-danger">Admin</span>
+                <% end %>
+              </td>
+              <td><%= link_unless_explorer @conn, "Edit group",  group, to: admin_group_path(@conn, :edit, group), class: "btn btn-outline-secondary btn-sm" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  </div>
+  <div class="col-md-6 mb-3">
+    <h3 class="h4">Cloaks hosting data source</h3>
+    <%= if number_of_cloaks_serving(@data_source) == 0 do %>
+      <p>
+        No online cloak is serving this data source.
+      </p>
+    <% else %>
+      <table class="table">
+        <tbody>
+          <%= for cloak_info <- cloak_infos_for_data_source(@data_source) do %>
+            <tr>
+              <td><%= cloak_info.name %></td>
+              <td>Available since <%= Timex.from_now(cloak_info.online_since) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  </div>
+</div>
 
 <div class="row">
   <div class="col-md-12">
-    <div class="card">
-      <h4 class="card-header">
-        System tables
-      </h4>
+      <h3 class="h4">System tables</h3>
 
       <%= if Enum.count(@tables) > 0 do %>
-        <table class="table">
+        <table class="table table-responsive-lg">
           <thead>
             <tr>
               <th>Name</th>
@@ -135,46 +113,37 @@
           </tbody>
         </table>
       <% else %>
-        <p class="card-body">
-          No tables are made available by this data source.
-        </p>
+        <p>No tables are made available by this data source.</p>
       <% end %>
     </div>
-  </div>
 </div>
 
 <%= if Enum.count(@analyst_tables) > 0 do %>
   <div class="row">
     <div class="col-md-12">
-      <div class="card">
-        <div class="card-header">
-          <h1 class="card-title">
-            Analyst tables
-          </h1>
-        </div>
+      <h3 class="h4">Analyst tables</h3>
 
-        <table class="table">
-          <thead>
+      <table class="table table-responsive-lg">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Analyst name</th>
+            <th>Creation status</th>
+            <th>Broken?</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <%= for analyst_table <- @analyst_tables do %>
             <tr>
-              <th>Name</th>
-              <th>Analyst name</th>
-              <th>Creation status</th>
-              <th>Broken?</th>
+              <td><%= analyst_table.name %></td>
+              <td><%= analyst_table.user.name %></td>
+              <td><%= analyst_table.creation_status %></td>
+              <td><%= analyst_table.broken %></td>
             </tr>
-          </thead>
-
-          <tbody>
-            <%= for analyst_table <- @analyst_tables do %>
-              <tr>
-                <td><%= analyst_table.name %></td>
-                <td><%= analyst_table.user.name %></td>
-                <td><%= analyst_table.creation_status %></td>
-                <td><%= analyst_table.broken %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
+          <% end %>
+        </tbody>
+      </table>
     </div>
   </div>
 <% end %>

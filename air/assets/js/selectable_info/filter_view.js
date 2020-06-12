@@ -8,8 +8,13 @@ type Props = {
 };
 
 const FilterView = ({ filter, onFilterChange }: Props) => (
-  <div className="column-filter">
+  <div className="column-filter my-3">
     <div className="input-group">
+      <div className="input-group-prepend">
+        <span className="input-group-text">
+          <i className="fas fa-search"></i>
+        </span>
+      </div>
       <input
         onChange={(event) => onFilterChange(event.target.value)}
         type="text"
@@ -17,14 +22,16 @@ const FilterView = ({ filter, onFilterChange }: Props) => (
         placeholder="Filter"
         value={filter}
       />
-      <div className="input-group-append">
-        <button
-          className="btn btn-outline-secondary"
-          onClick={() => onFilterChange("")}
-        >
-          <span className="fas fa-times" aria-hidden="true" />
-        </button>
-      </div>
+      {filter.length > 0 && (
+        <div className="input-group-append">
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => onFilterChange("")}
+          >
+            <span className="fas fa-times" aria-hidden="true" />
+          </button>
+        </div>
+      )}
     </div>
   </div>
 );

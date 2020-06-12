@@ -138,6 +138,13 @@ a.suggested-reading:hover {
   border-right: none;
 }
 
+@media (max-width: 576px) {
+  .dropdown-menu-centerish {
+    right: -20%;
+    left: auto;
+  }
+}
+
 /********************************************************************
  * Styles for Aircloak installations with an invalid license
  *******************************************************************/
@@ -189,6 +196,10 @@ a.suggested-reading:hover {
 /* ******************************************************************
  * Formatting of user provided information screens
  ***************************************************************** */
+
+#info-message > *:first-child {
+  margin-top: 0;
+}
 
 #info-message h1 {
   font-size: 2em;
@@ -258,5 +269,6 @@ a.suggested-reading:hover {
 @import "./privacy-policy.css";
 @import "./queries.css";
 @import "./selectable_info.css";
+@import "./sidebar.css";
 @import "./tasks.css";
 @import "./users.css";

@@ -1,0 +1,86 @@
+<header class="page-header">
+ <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Settings", to: settings_path(@conn, :profile), class: "text-muted" %></li>
+  </ol>
+  <h1>Profile</h1>
+</header>
+
+<%= if @changeset.action do %>
+  <div class="alert alert-danger">
+    <p>Oops, something went wrong! Please check the errors below.</p>
+  </div>
+<% end %>
+
+
+<img src="/frontend/images/settings_monochromatic.svg" alt="" class="d-none d-xl-block float-right" width="300" />
+
+<div class="container-lg px-0 mx-0 mb-5">
+
+  <%= form_for @changeset, settings_path(@conn, :profile), fn f -> %>
+    <%= validated_text_input f, :name, "User Name", horizontal: {2, 6}, label_class: "label-right", disabled: not can_edit?(@changeset.data), help_text: "This is the name you and others can use to indetify your actions in the system." %>
+    <%= validated_text_input f, :login, "Login", horizontal: {2, 6}, label_class: "label-right", help_text: "Use this to login in to the sytem. We recommend using your email address.", disabled: not can_edit?(@changeset.data) %>
+
+    <div class="form-group offset-sm-2">
+      <%= submit "Save", class: "btn btn-primary" %>
+    </div>
+  <% end %>
+
+  <hr class="my-5" />
+
+  <%= form_for @changeset, settings_path(@conn,  :profile), fn f -> %>
+    <h2 class="h3">Number format</h2>
+    <p>(applies only to the user interface)</p>
+    <div class="row">
+      <div class="col-lg-6 order-lg-2 mt-lg-5">
+        <p>If not set, global settings will apply, which are:</p>
+        <ul>
+        <li>show <%= @global_settings.decimal_digits %> decimal digits</li>
+        <li>decimal separator is '<%= @global_settings.decimal_sep %>'</li>
+        <li>thousand separator is '<%= @global_settings.thousand_sep %>'</li>
+        </ul>
+      </div>
+      <div class="col-lg-6 order-lg-1">
+        <div id="example"></div>
+        <br/>
+
+        <%= validated_text_input f, :decimal_sep, "Decimal separator", horizontal: {4, 4}, label_class: "label-right"%>
+
+        <%= validated_text_input f, :thousand_sep, "Thousand separator",horizontal: {4, 4}, label_class: "label-right" %>
+
+        <%= validated_number_input f, :decimal_digits, "Decimal digits",horizontal: {4, 4}, label_class: "label-right" %>
+        <div class="form-group offset-sm-4 pl-2">
+          <%= submit "Save", class: "btn btn-primary" %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <hr class="my-5" />
+
+
+  <h2 class="h3">Debug mode</h2>
+
+  <p>
+    Debug mode enables additional functionality in the user interface aiding in debugging query results.
+    This mode is usually only enabled upon request by the Aircloak support team.
+  </p>
+  <%= if @conn.assigns.current_user.debug_mode_enabled do %>
+    <p><i class="fas fa-check text-success mr-2"></i>Debug mode is currently <strong>enabled</strong>.</p>
+    <%= button "Disable debug mode", to: settings_path(@conn, :toggle_debug_mode), method: "PATCH", class: "btn btn-success" %>
+  <% else %>
+    <p><i class="fas fa-times text-danger mr-2"></i>Debug mode is currently <strong>disabled</strong>.</p>
+    <%= button "Enable debug mode", to: settings_path(@conn, :toggle_debug_mode), method: "PATCH", class: "btn btn-warning" %>
+  <% end %>
+  </p>
+
+</div>
+
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = <%= to_json(%{numberFormat: number_format_settings(@conn)}) %>;
+      App.numberFormatExample(props, document.getElementById("example"));
+    }
+  };
+</script>

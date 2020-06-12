@@ -157,7 +157,9 @@ export class SelectableView extends React.Component<Props> {
         />
       );
     } else {
-      const glyphType = expanded ? "fas fa-minus" : "fas fa-plus";
+      const glyphType = expanded
+        ? "fas fa-caret-right fa-rotate-90"
+        : "fas fa-caret-right";
       return <span className={glyphType} />;
     }
   };
@@ -171,28 +173,26 @@ export class SelectableView extends React.Component<Props> {
       className,
     } = this.brokenMetaData();
     return (
-      <div className="list-group-item">
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={this.handleToggleClick}
+      <div className="list-group-item px-4 py-1 bg-transparent">
+        {this.isAnalystCreatedSelectable()
+          ? this.renderSelectableActionMenu()
+          : null}
+        <button
           onClick={this.handleToggleClick}
           title={title}
           data-container={dataContainer}
           data-toggle={dataToggle}
-          className={className}
+          className={`${className} btn ml-n2`}
         >
           {this.renderIcon()}
-          &nbsp;
-          <Higlighted
-            table={selectable.id}
-            column={searchResult}
-            field="table"
-          />
-          {this.isAnalystCreatedSelectable()
-            ? this.renderSelectableActionMenu()
-            : null}
-        </div>
+          <span className="pl-2">
+            <Higlighted
+              table={selectable.id}
+              column={searchResult}
+              field="table"
+            />
+          </span>
+        </button>
 
         {(() => {
           if (expanded) {

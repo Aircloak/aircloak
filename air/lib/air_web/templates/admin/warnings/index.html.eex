@@ -8,7 +8,7 @@
 
 <%= if length(@problems) > 0 do %>
 
-  <table class="table table-no-top-border">
+  <table class="table table-no-top-border table-responsive">
     <thead>
       <tr>
         <th>Severity</th>

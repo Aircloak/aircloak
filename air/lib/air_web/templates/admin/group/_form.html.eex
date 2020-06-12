@@ -6,26 +6,18 @@
   <% end %>
 
   <div class="row">
-    <div class="col-sm-6">
-      <div class="card">
-        <h4 class="card-header">Users</h4>
-        <div class="card-body p-0">
-          <table class="table table-striped">
-            <tbody>
-              <%= PhoenixMTM.Helpers.collection_checkboxes f, :users, @data.all_users,
-                selected: @data.selected_user_ids,
-                input_opts: [disabled: not can_manage?(@changeset.data)],
-                mapper: &checkbox_mapper/6
-              %>
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div class="col-sm-6 mb-3">
+      <h3 class="h4">Users</h3>
+
+      <%= PhoenixMTM.Helpers.collection_checkboxes f, :users, @data.all_users,
+        selected: @data.selected_user_ids,
+        input_opts: [disabled: not can_manage?(@changeset.data)],
+        mapper: &checkbox_mapper/6
+      %>
     </div>
 
-    <div class="col-sm-6">
-      <div class="card">
-        <h4 class="card-header">Data sources</h4>
+    <div class="col-sm-6 mb-3">
+        <h3 class="h4">Data sources</h3>
         <div class="card-body p-0">
           <table class="table table-striped">
             <tbody>
@@ -36,7 +28,6 @@
           </table>
         </div>
       </div>
-    </div>
   </div>
 
   <hr />
@@ -44,7 +35,7 @@
   <div class="form">
     <%= validated_text_input(f, :name, "Group name", placeholder: "Group name",
           disabled: not can_manage?(@changeset.data)) %>
-   
+
     <%= if can_manage?(@changeset.data) do %>
       <div class="form-group">
         <div class="col-sm-offset-2 col-sm-5">

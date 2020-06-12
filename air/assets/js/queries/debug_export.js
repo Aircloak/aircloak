@@ -12,10 +12,10 @@ export default ({
   if (debugModeEnabled) {
     return (
       <a
-        className="btn btn-secondary btn-sm"
+        className="btn btn-outline-secondary btn-sm"
         href={`/queries/${id}/debug_export`}
       >
-        Download debug export
+        <i className="fas fa-file-medical-alt"></i> Download debug export
       </a>
     );
   } else {
