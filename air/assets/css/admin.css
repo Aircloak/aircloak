@@ -72,7 +72,7 @@ label small.newline {
 }
 
 .navbar-vertical .navbar-nav .nav-link.active {
-  border-left-color: var(--primary, #007bff);
+  border-left-color: var(--primary);
 }
 
 .navbar-vertical .navbar-heading {
