@@ -197,6 +197,10 @@ a.suggested-reading:hover {
  * Formatting of user provided information screens
  ***************************************************************** */
 
+#info-message > *:first-child {
+  margin-top: 0;
+}
+
 #info-message h1 {
   font-size: 2em;
   border: unset;

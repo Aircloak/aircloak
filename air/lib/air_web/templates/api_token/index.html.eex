@@ -67,29 +67,20 @@
         <h4 class="card-header">Add a new token</h4>
         <div class="card-body">
           <%= form_for @changeset, api_token_path(@conn, :create), fn f -> %>
-          <%= if @changeset.action do %>
-            <div class="alert alert-danger">
-              <p>Oops, something went wrong! Please check the errors below.</p>
-            </div>
-          <% end %>
 
-          <div class="form-group">
-            <%= label f, :description, "Token description" %>
-            <%= text_input f, :description, class: "form-control" %>
-            <%= error_tag f, :description %>
-          </div>
+            <%= if @changeset.action do %>
+              <div class="alert alert-danger">
+                Oops, something went wrong! Please check the errors below.
+              </div>
+            <% end %>
 
-          <%= if admin?(@current_user) do %>
+            <%= validated_text_input f, :description, "Token description" %>
+
+            <%= if admin?(@current_user), do: validated_select(f, :access, "Access", ["API": :api, "Monitoring": :monitoring]) %>
+
             <div class="form-group">
-              <%= label f, :access, "Access" %>
-              <%= select f, :access, ["API": :api, "Monitoring": :monitoring], class: "form-control" %>
-              <%= error_tag f, :access %>
+              <%= submit "Create token", class: "btn btn-primary" %>
             </div>
-          <% end %>
-
-          <div class="form-group">
-            <%= submit "Create token", class: "btn btn-primary" %>
-          </div>
           <% end %>
         </div>
       </div>

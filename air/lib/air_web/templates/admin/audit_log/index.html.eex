@@ -1,27 +1,28 @@
-<header class="page-header col-lg-8 col-xl-9 px-0">
-  <ol class="breadcrumb bg-white">
-    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
-  </ol>
-  <button type="button" class="btn btn-primary d-block d-lg-none float-right" data-toggle="collapse"
-      data-target="#sidebar" aria-expanded="false">
-    <i class="fas fa-list"></i> Filters
-  </button>
-  <h1>Audit Log</h1>
-</header>
+<div class="container-with-sidebar-narrow">
+  <header class="page-header">
+    <ol class="breadcrumb bg-white">
+      <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    </ol>
+    <button type="button" class="btn btn-primary d-block d-lg-none float-right" data-toggle="collapse"
+        data-target="#sidebar" aria-expanded="false">
+      <i class="fas fa-list"></i> Filters
+    </button>
+    <h1>Audit Log</h1>
+  </header>
 
 
-<div class="px-0 col-md-7 col-lg-8 col-xl-9">
-  <%= if length(@audit_logs) >= @max_results do %>
-    <div class="alert alert-warning" role="alert">
-      There are more than <strong><%= @max_results %></strong> entries matching your filters. Only the most recent
-      <strong><%= @max_results %></strong> are shown. Consider narrowing your search criteria.
+  <div class="px-0">
+    <%= if length(@audit_logs) >= @max_results do %>
+      <div class="alert alert-warning" role="alert">
+        There are more than <strong><%= @max_results %></strong> entries matching your filters. Only the most recent
+        <strong><%= @max_results %></strong> are shown. Consider narrowing your search criteria.
+      </div>
+    <% end %>
+
+    <div id="audit-log">
     </div>
-  <% end %>
-
-  <div id="audit-log">
   </div>
 </div>
-
 <%= render(AirWeb.Admin.SharedView, "filter_sidebar.html",
   conn: @conn,
   from: @from,

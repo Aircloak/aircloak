@@ -12,7 +12,7 @@
   <%= for group <- @cloak_groups do %>
     <div class="row">
       <%= for cloak <- group do %>
-        <div class="col-md-6">
+        <div class="col-lg-6">
           <div class="card mb-3">
             <h4 class="card-header"><%= cloak.name %></h4>
             <div class="card-body pb-0">

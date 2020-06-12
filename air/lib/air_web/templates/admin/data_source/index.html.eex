@@ -6,7 +6,7 @@
 </header>
 
 
-<table class="table table-striped table-no-top-border table-responsive-lg">
+<table class="table table-striped table-no-top-border table-responsive-xl">
   <thead>
     <tr>
       <th>Name</th>

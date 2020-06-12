@@ -104,18 +104,18 @@ export default class SelectableInfo extends React.Component<Props, State> {
   renderAvailabilityLabel = () => {
     switch (this.state.dataSourceStatus) {
       case "online":
-        return <span className="badge badge-success float-right">Online</span>;
+        return <span className="badge badge-success ml-2">Online</span>;
       case "offline":
-        return <span className="badge badge-danger float-right">Offline</span>;
+        return <span className="badge badge-danger ml-2">Offline</span>;
       case "analyzing":
         return this.analyzing();
       default:
-        return <span className="badge badge-warning float-right">Broken</span>;
+        return <span className="badge badge-warning ml-2">Broken</span>;
     }
   };
 
   analyzing = () => (
-    <span className="badge badge-success float-right">
+    <span className="badge badge-success ml-2">
       Online
       <a
         href="/docs/sql/restrictions.html#column-analysis"

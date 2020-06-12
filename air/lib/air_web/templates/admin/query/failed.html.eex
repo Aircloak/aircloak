@@ -1,36 +1,37 @@
-<header class="page-header px-0 col-md-6 col-lg-7 col-xl-8">
-  <ol class="breadcrumb bg-white">
-    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
-  </ol>
-  <button type="button" class="btn btn-primary d-block d-lg-none float-right" data-toggle="collapse"
-      data-target="#sidebar" aria-expanded="false">
-    <i class="fas fa-list"></i> Filters
-  </button>
-  <h1>Failed queries</h1>
-</header>
+<div class="container-with-sidebar-narrow">
+  <header class="page-header px-0">
+    <ol class="breadcrumb bg-white">
+      <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    </ol>
+    <button type="button" class="btn btn-primary d-block d-lg-none float-right" data-toggle="collapse"
+        data-target="#sidebar" aria-expanded="false">
+      <i class="fas fa-list"></i> Filters
+    </button>
+    <h1>Failed queries</h1>
+  </header>
 
 
-<div class="px-0 col-md-6 col-lg-7 col-xl-8">
-  <%= if length(@failed_queries) == 0 do %>
+  <div class="px-0">
+    <%= if length(@failed_queries) == 0 do %>
 
-    <div><b>There are no failed queries matching your search criteria.</b></div>
+      <div><b>There are no failed queries matching your search criteria.</b></div>
 
-  <% else %>
+    <% else %>
 
-    <%= if length(@failed_queries) >= @max_results do %>
-      <div class="alert alert-warning" role="alert">
-        There are more than <strong><%= @max_results %></strong> entries matching your filters. Only the most recent
-        <strong><%= @max_results %></strong> are shown. Consider narrowing your search criteria.
-      </div>
+      <%= if length(@failed_queries) >= @max_results do %>
+        <div class="alert alert-warning" role="alert">
+          There are more than <strong><%= @max_results %></strong> entries matching your filters. Only the most recent
+          <strong><%= @max_results %></strong> are shown. Consider narrowing your search criteria.
+        </div>
+      <% end %>
+
+      <%= for query <- @failed_queries do %>
+        <div id="<%= query.id %>"></div>
+        <hr />
+      <% end %>
     <% end %>
-
-    <%= for query <- @failed_queries do %>
-      <div id="<%= query.id %>"></div>
-      <hr />
-    <% end %>
-  <% end %>
+  </div>
 </div>
-
 
 <%= render(AirWeb.Admin.SharedView, "filter_sidebar.html",
   conn: @conn,

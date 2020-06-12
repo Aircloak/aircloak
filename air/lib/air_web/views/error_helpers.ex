@@ -56,6 +56,30 @@ defmodule AirWeb.ErrorHelpers do
   end
 
   @doc """
+  Generates an select tag that automatically includes bootstrap error classes.
+  """
+  def validated_select(form, field, label, options, opts \\ []) do
+    {special, opts} = split_fancy_opts(opts)
+
+    opts =
+      opts
+      |> Keyword.put_new(:class, "form-control")
+      |> Keyword.update!(:class, fn class ->
+        if form.errors[field], do: class <> " is-invalid", else: class
+      end)
+
+    fancy_wrapper(
+      form,
+      field,
+      label,
+      content_tag(:div, Phoenix.HTML.Form.select(form, field, options, opts),
+        class: if(form.errors[field], do: "is-invalid", else: "")
+      ),
+      special
+    )
+  end
+
+  @doc """
   Translates an error message using gettext.
   """
   def translate_error({msg, opts}) do

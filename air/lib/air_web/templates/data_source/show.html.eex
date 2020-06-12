@@ -1,5 +1,5 @@
 <div class="container-fluid mt-3 full-height">
-  <div class="content-wrapper col-md-7 col-lg-8 col-xl-9">
+  <div class="content-wrapper container-with-sidebar-fluid">
     <%= if get_flash(@conn, :warn) do %>
       <p class="alert alert-warning alert-dismissible" role="alert">
         <button type="button" class="close" data-dismiss="alert" aria-label="Close">

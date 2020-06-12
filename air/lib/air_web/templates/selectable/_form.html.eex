@@ -1,5 +1,5 @@
 <div class="container-fluid mt-3 full-height">
-  <div class="content-wrapper container-with-sidebar">
+  <div class="content-wrapper container-with-sidebar-wide">
     <header class="page-header">
       <ol class="breadcrumb bg-white">
         <li class="breadcrumb-item"><%= link "Data sources", to: data_source_path(@conn, :index), class: "text-muted" %></li>
