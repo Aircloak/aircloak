@@ -81,7 +81,7 @@ defmodule Cloak.Sql.Query do
           parameter_types: [String.t()]
         }
 
-  @type described_columns :: [%{name: String.t(), type: String.t(), key_type: String.t()}]
+  @type described_columns :: [%{name: String.t(), type: String.t(), key_type: String.t(), comment: String.t() | nil}]
 
   defstruct columns: [],
             where: nil,
@@ -164,7 +164,8 @@ defmodule Cloak.Sql.Query do
         %{
           name: column.name,
           type: to_string(column.type),
-          key_type: with(key_type when not is_nil(key_type) <- table.keys[column.name], do: to_string(key_type))
+          key_type: with(key_type when not is_nil(key_type) <- table.keys[column.name], do: to_string(key_type)),
+          comment: Cloak.DataSource.Table.column_comment(table, column.name)
         }
       end
     )

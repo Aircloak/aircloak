@@ -156,7 +156,14 @@ defmodule Cloak.Sql.Compiler.Helpers do
       |> Enum.map(&{Expression.title(&1), Expression.key_type(&1)})
       |> Enum.into(%{})
 
-    opts = [type: :subquery] |> Keyword.merge(opts) |> Keyword.merge(columns: table_columns, keys: keys)
+    opts =
+      [type: :subquery]
+      |> Keyword.merge(opts)
+      |> Keyword.merge(
+        columns: table_columns,
+        keys: keys,
+        comments: %{columns: column_comments(selected_columns)}
+      )
 
     Table.new(table_name, user_id_name, opts)
   end
@@ -172,6 +179,24 @@ defmodule Cloak.Sql.Compiler.Helpers do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp column_comments(columns) do
+    Enum.reduce(columns, %{}, fn
+      %Cloak.Sql.Expression{
+        kind: :column,
+        name: name,
+        table: table
+      } = expr,
+      acc ->
+        case Table.column_comment(table, name) do
+          nil -> acc
+          comment -> Map.put(acc, Expression.title(expr), comment)
+        end
+
+      _, acc ->
+        acc
+    end)
+  end
 
   defp unselectable_selected_expression?(expr), do: unselectable_selected_columns(expr) != []
 
