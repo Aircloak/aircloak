@@ -3,14 +3,23 @@ SELECT [DISTINCT | ALL]
   field_expression [, ...]
   FROM from_expression [, ...]
   [ WHERE filter_expression [AND ...] ]
-  [ GROUP BY column_expression | position |
-      GROUPING SETS (...) | ROLLUP (...) | CUBE (...) | [, ...] ]
+  [ GROUP BY grouping_expression ]
   [ HAVING filter_expression [AND ...] ]
   [ ORDER BY column_name  | position [ASC | DESC] [NULLS FIRST | LAST] [, ...]
     [ LIMIT amount ] [ OFFSET amount ] ]
 
 field_expression :=
   * | table_name.* | column_expression [AS alias]
+
+grouping_expression := 
+  regular_grouping |
+  GROUPING SETS (groups) |
+  ROLLUP (groups) | 
+  CUBE (groups)
+
+regular_grouping := (column_expression | position) [, ...]
+
+groups := (regular_grouping | (regular_grouping)) [, ...]
 
 column_expression :=
   [table_name.]column_name |
