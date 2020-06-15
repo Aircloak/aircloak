@@ -353,7 +353,9 @@ The general shape of `config.json` is:
 
 The `air_site` parameter holds the URL where Insights Air component can be reached. It can be in the form of `"ws://air_host_name:port"` or `"wss://air_host_name:port"`, where `air_host_name` is the address of the machine where the Insights Air component is running. You should use the `ws` prefix if Insights Air is serving traffic over HTTP, while `wss` should be used for the HTTPS protocol.
 
-The `salt` parameter is used for anonymisation purposes. Make sure to create a strongly random secret for this parameter, for example with the following command:
+The `salt` parameter is used for anonymisation purposes. If your Aircloak Insights installation has multiple Insights Cloak instances
+you must make sure they use the same salt. Failing to do so has a negative impact on the quality of the anonymization.
+You can derive a strong `salt` parameter using a command such as:
 
 ```
 cat /dev/urandom |
