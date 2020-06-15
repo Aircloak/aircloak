@@ -261,7 +261,8 @@ defmodule Cloak.AirSocket do
              data_source,
              serialized_query.statement || "",
              decode_params(serialized_query.parameters),
-             serialized_query.views
+             serialized_query.views,
+             serialized_query.metadata
            ),
          do: respond_to_air(from, :ok),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))

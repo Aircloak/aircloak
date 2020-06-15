@@ -25,7 +25,7 @@ defmodule Cloak.Test.MongoHelpers do
   end
 
   def run_query!(data_source, query) do
-    Runner.start("1", nil, data_source, query, [], %{}, result_target: self())
+    Runner.start("1", nil, data_source, query, [], %{}, nil, result_target: self())
 
     receive do
       {:result, response} -> response
