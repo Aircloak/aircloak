@@ -84,7 +84,11 @@ defmodule Air.Service.DataSource.QueryScheduler.Starter do
              query.statement,
              query.data_source.name,
              query.parameters["values"],
-             Air.Service.View.user_views_map(query.user, query.data_source.id)
+             Air.Service.View.user_views_map(query.user, query.data_source.id),
+             %{
+               analyst_tables: Air.Service.AnalystTable.user_analyst_tables_metadata(query.user, query.data_source_id),
+               views: Air.Service.View.user_views_metadata(query.user, query.data_source_id)
+             }
            ) do
       Cloak.Stats.record_query(cloak_info.id)
       query = add_cloak_info_to_query(query, cloak_info.id)

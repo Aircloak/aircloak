@@ -7,6 +7,12 @@ defmodule Air.Service.AnalystTable do
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query
 
+  @type analyst_table_metadata_map :: %{
+          String.t() => %{
+            comment: String.t() | nil
+          }
+        }
+
   @creation_status_supervisor __MODULE__.CreationStatusSupervisor
 
   # -------------------------------------------------------------------
@@ -153,6 +159,17 @@ defmodule Air.Service.AnalystTable do
       nil -> {:error, :not_found}
       table -> {:ok, table}
     end
+  end
+
+  @doc "Returns a map containing metadata of all the analyst tables the given user defined for the given data source."
+  @spec user_analyst_tables_metadata(User.t(), integer) :: analyst_table_metadata_map
+  def user_analyst_tables_metadata(user, data_source_id) do
+    AnalystTable
+    |> by_user_id(user.id)
+    |> by_data_source_id(data_source_id)
+    |> select([v], {v.name, %{comment: v.comment}})
+    |> Repo.all()
+    |> Enum.into(%{})
   end
 
   @doc "Returns the changeset representing an empty table."

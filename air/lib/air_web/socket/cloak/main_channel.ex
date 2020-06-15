@@ -16,6 +16,11 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   @type validated_views :: %{String.t() => validation_result}
   @type validation_result :: {:ok, described_columns} | {:error, atom, String.t()}
 
+  @type metadata :: %{
+          views: Air.Service.View.view_metadata_map(),
+          analyst_tables: Air.Service.AnalystTable.analyst_table_metadata_map()
+        }
+
   @short_timeout :timer.seconds(20)
 
   # -------------------------------------------------------------------
@@ -28,15 +33,35 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   The function returns when the cloak responds. If the timeout occurs, it is
   still possible that a cloak has received the request.
   """
-  @spec run_query(pid, String.t(), String.t(), String.t(), String.t(), parameters, views) :: :ok | {:error, any}
-  def run_query(channel_pid, query_id, analyst_id, statement, data_source_name, parameters, views) do
+  @spec run_query(
+          pid,
+          String.t(),
+          String.t(),
+          String.t(),
+          String.t(),
+          parameters,
+          views,
+          metadata
+        ) ::
+          :ok | {:error, any}
+  def run_query(
+        channel_pid,
+        query_id,
+        analyst_id,
+        statement,
+        data_source_name,
+        parameters,
+        views,
+        metadata
+      ) do
     payload = %{
       id: query_id,
       analyst_id: analyst_id,
       statement: statement,
       data_source: data_source_name,
       parameters: parameters,
-      views: views
+      views: views,
+      metadata: metadata
     }
 
     with {:ok, _} <- call(channel_pid, "run_query", encode(payload), @short_timeout), do: :ok

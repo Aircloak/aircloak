@@ -8,6 +8,11 @@ defmodule Air.Service.View do
   require Logger
 
   @type view_map :: %{optional(String.t()) => String.t()}
+  @type view_metadata_map :: %{
+          String.t() => %{
+            comment: String.t() | nil
+          }
+        }
 
   @cloak_validations_sup __MODULE__.CloakValidationsSup
   @notifications_registry __MODULE__.NotificationsRegistry
@@ -136,6 +141,17 @@ defmodule Air.Service.View do
     |> by_user_id(user.id)
     |> by_data_source_id(data_source_id)
     |> select([v], {v.name, v.sql})
+    |> Repo.all()
+    |> Enum.into(%{})
+  end
+
+  @doc "Returns a map containing metadata of all the views the given user defined for the given data source."
+  @spec user_views_metadata(User.t(), integer) :: view_metadata_map
+  def user_views_metadata(user, data_source_id) do
+    View
+    |> by_user_id(user.id)
+    |> by_data_source_id(data_source_id)
+    |> select([v], {v.name, %{comment: v.comment}})
     |> Repo.all()
     |> Enum.into(%{})
   end
