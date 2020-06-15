@@ -227,6 +227,7 @@ defmodule Air.Service.Explorer do
   defp request_analysis_for_column(data_source, table_name, column_name, token) do
     body =
       %{
+        "ApiUrl" => AirWeb.Endpoint.url() <> "/api/",
         "ApiKey" => token,
         "DataSourceName" => data_source.name,
         "TableName" => table_name,

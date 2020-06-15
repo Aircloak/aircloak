@@ -14,6 +14,11 @@
   transform: translateX(0px);
   transition: transform 0.35s ease;
   background: linear-gradient(-180deg, #fff 0, #f3fcfd 100%);
+  width: 350px;
+}
+
+.sidebar.narrow.fixed-right {
+  width: 300px;
 }
 
 .sidebar.fixed-right.collapsing {
