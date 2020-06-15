@@ -309,7 +309,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     {:join, %{join | lhs: lhs, rhs: rhs}}
   end
 
-  defp protect_joins(query), do: query
+  defp protect_joins(from), do: from
 
   defp query_has_non_key_filters?(query) do
     Lens.both(Lens.root(), simple_subquery_lens())
