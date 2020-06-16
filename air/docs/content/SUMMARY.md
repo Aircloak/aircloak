@@ -97,7 +97,7 @@
   - [Forgotten password](ops/administration.md#forgotten-password)
   - [Analysis status](ops/administration.md#analysis-status)
 
-## Diffix Cedar
+## Diffix Dogwood
 
 - [Diffix overview](diffix.md)
 - [Attacks](attacks.md)
