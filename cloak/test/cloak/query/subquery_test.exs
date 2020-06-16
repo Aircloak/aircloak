@@ -20,9 +20,9 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "selecting all from a subquery" do
-    assert_query("select alias.* from (select user_id, height from heights_sq) alias", %{
-      columns: ["user_id", "height"],
-      rows: [%{row: [:*, 180], occurrences: 100}]
+    assert_query("select height from (select alias.* from (select user_id, height from heights_sq) alias) t", %{
+      columns: ["height"],
+      rows: [%{row: [180], occurrences: 100}]
     })
   end
 
@@ -48,14 +48,7 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "selecting all from a subquery with an implicitly selected user id" do
-    assert_query("select * from (select height from heights_sq) alias", %{
-      columns: ["height"],
-      rows: [%{row: [180], occurrences: 100}]
-    })
-  end
-
-  test "nested selecting all from a subquery with an implicitly selected user id" do
-    assert_query("select * from (select * from (select height from heights_sq) sq1) sq2", %{
+    assert_query("select height from (select * from (select height from heights_sq) sq1) sq2", %{
       columns: ["height"],
       rows: [%{row: [180], occurrences: 100}]
     })
@@ -229,19 +222,6 @@ defmodule Cloak.Query.SubqueryTest do
     )
   end
 
-  test "*-select constants in subquery" do
-    assert_query("select * from (select 1, 2 from heights_sq) t", %{
-      columns: ["", ""],
-      rows: [%{row: [1, 2], occurrences: 100}]
-    })
-  end
-
-  test "[Issue #3081] selecting an expression containing a user id from a subquery" do
-    assert_query("select * from (select upper(user_id) from heights_sq) t", %{
-      rows: [%{row: [:*], occurrences: 100}]
-    })
-  end
-
   test "[Issue #3191] grouping by user_id-derived column causes invalid noise layers" do
     assert_query(
       """
@@ -267,6 +247,13 @@ defmodule Cloak.Query.SubqueryTest do
     assert_query(
       "select count(*) from (select user_id, height, name from heights_sq group by grouping sets ((1, 2), (1, 3))) t",
       %{columns: ["count"], rows: [%{row: [200], occurrences: 1}]}
+    )
+  end
+
+  test "aliased subquery with dots" do
+    assert_query(
+      "select count(height) from (select user_id, height from heights_sq) \"x.y\"",
+      %{columns: ["count"], rows: [%{row: [100], occurrences: 1}]}
     )
   end
 end

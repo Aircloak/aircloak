@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Query.Lenses do
   @moduledoc "Lenses for traversing queries"
 
-  alias Cloak.Sql.{Expression, Function, Query}
+  alias Cloak.Sql.{Expression, Function, Query, Compiler}
 
   use Lens.Macros
 
@@ -223,17 +223,54 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on all expressions in a query used to form the groups for aggregation and anonymization."
   deflens group_expressions() do
     Lens.match(fn
-      %Query{type: :anonymized, group_by: [], implicit_count?: true} ->
-        # Group by is not provided, and no selected expression is an aggregation function ->
-        #   we're grouping on all selected columns + non selected order by expressions.
-        Lens.both(
-          Lens.key(:columns) |> Lens.all(),
-          Lens.key(:order_by) |> Lens.all() |> Lens.at(0)
-        )
+      %Query{command: :select, type: :anonymized, group_by: []} = query ->
+        if not Compiler.Helpers.aggregates?(query) do
+          # Group by is not provided, and no selected expression is an aggregation function ->
+          #   we're grouping on all selected columns + non selected order by expressions.
+          Lens.both(
+            Lens.key(:columns) |> Lens.all(),
+            Lens.key(:order_by) |> Lens.all() |> Lens.at(0)
+          )
+        else
+          Lens.empty()
+        end
 
       _ ->
         Lens.key(:group_by) |> Lens.all()
     end)
+  end
+
+  @doc "Lens focusing on all selected columns of a query which are marked unselectable."
+  deflens unselectable_selected_columns() do
+    Lens.match(fn
+      %{type: :anonymized} ->
+        Lens.multiple([
+          Lens.keys?([:columns, :group_by]) |> Lens.all(),
+          Lens.key?(:order_by) |> Lens.all() |> Lens.at(0)
+        ])
+
+      %{type: :restricted} ->
+        Lens.multiple([
+          Lens.key?(:columns) |> Lens.all() |> Lens.filter(&Compiler.Helpers.aggregated_column?/1),
+          Lens.key?(:order_by) |> Lens.all() |> Lens.at(0),
+          Lens.key?(:having)
+        ])
+
+      _ ->
+        Lens.empty()
+    end)
+    |> expression_unselectable_selected_columns()
+  end
+
+  @doc "Lens focusing on all columns of a selected expression which are marked unselectable."
+  deflens expression_unselectable_selected_columns(),
+    do: expression_potential_unselectable_selected_columns() |> Lens.filter(&unselectable_column?/1)
+
+  @doc "Lens focusing on all unselectable columns used in where and join conditions."
+  deflens unselectable_filtering_columns() do
+    Lens.both(join_conditions(), Lens.key(:where))
+    |> non_key_match_columns()
+    |> Lens.filter(&unselectable_column?/1)
   end
 
   # -------------------------------------------------------------------
@@ -363,5 +400,44 @@ defmodule Cloak.Sql.Query.Lenses do
       {_quoted, _table} -> Lens.root()
       {_identifier, :as, _alias} -> Lens.root()
     end)
+  end
+
+  deflensp expression_potential_unselectable_selected_columns() do
+    Lens.match(fn
+      %Expression{kind: :function, name: "count"} ->
+        Lens.empty()
+
+      %Expression{kind: :function, name: "count_noise"} ->
+        Lens.empty()
+
+      %Expression{kind: :function} ->
+        Lens.key(:args)
+        |> Lens.all()
+        |> expression_potential_unselectable_selected_columns()
+
+      %Expression{kind: :column} ->
+        Lens.root()
+
+      _ ->
+        Lens.empty()
+    end)
+  end
+
+  deflensp non_key_match_columns() do
+    conditions()
+    |> Lens.reject(fn
+      %Expression{kind: :function, name: "=", args: [arg1, arg2]} ->
+        Expression.key_type(arg1) != nil and Expression.key_type(arg1) == Expression.key_type(arg2)
+
+      _ ->
+        false
+    end)
+    |> leaf_expressions()
+    |> Lens.filter(&Expression.column?/1)
+  end
+
+  defp unselectable_column?(%{name: name, table: table}) do
+    column = Enum.find(table.columns, &(&1.name == name))
+    column.access == :unselectable
   end
 end

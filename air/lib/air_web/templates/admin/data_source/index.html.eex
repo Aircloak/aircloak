@@ -1,6 +1,12 @@
-<h2>Data sources</h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+  <h1>Data Sources</h1>
+</header>
 
-<table class="table table-striped">
+
+<table class="table table-striped table-no-top-border table-responsive-xl">
   <thead>
     <tr>
       <th>Name</th>
@@ -22,7 +28,7 @@
   <% end %>
   <%= for data_source <- @data_sources do %>
     <tr class="<%= severity_class(@data_source_problem_severity[data_source.id]) %>">
-      <td><%= data_source.name %></td>
+      <td><%= link data_source.name, to: admin_data_source_path(@conn, :show, data_source.name) %></td>
       <td><%= data_source.description %></td>
       <td><%= availability_label(data_source) %></td>
       <td><%= number_of_tables(data_source) %></td>
@@ -31,14 +37,16 @@
       <td><%= AirWeb.Admin.GroupView.names(data_source.groups)%></td>
       <td><%= length(Air.Service.Warnings.problems_for_resource(data_source)) %></td>
       <td>
-        <%= link "Show", to: admin_data_source_path(@conn, :show, data_source.name), class: "btn btn-default btn-xs" %>
-        <%= link "Edit", to: admin_data_source_path(@conn, :edit, data_source.name), class: "btn btn-default btn-xs" %>
-        <%= unless available?(data_source) do %>
-          <%= link "Delete", to: admin_data_source_path(@conn, :delete, data_source.name),
-            method: :delete, class: "btn btn-danger btn-xs",
-            "data-confirm": ~s(Delete the data source "#{data_source.name}"?)
-          %>
+        <div class="btn-group">
+          <%# <%= link "Show", to: admin_data_source_path(@conn, :show, data_source.name), class: "btn btn-outline-secondary btn-sm" %>
+          <%= link "Edit", to: admin_data_source_path(@conn, :edit, data_source.name), class: "btn btn-outline-secondary btn-sm" %>
+          <%= unless available?(data_source) do %>
+            <%= link "Delete", to: admin_data_source_path(@conn, :delete, data_source.name),
+              method: :delete, class: "btn btn-outline-danger btn-sm",
+              "data-confirm": ~s(Delete the data source "#{data_source.name}"?)
+            %>
         <% end %>
+        </div>
       </td>
     </tr>
   <% end %>

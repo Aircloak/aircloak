@@ -1,12 +1,10 @@
 <%= if length(@options) > 0 do %>
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <%= @title %>
-    </div>
+  <section>
+    <h3 class="h5 mt-3"><%= @title %></h3>
     <table class="table">
       <tbody>
         <%= for option <- @options do %>
-          <tr class="<%= if selected?(@conn, @name, option.value), do: "warning", else: "" %>">
+          <tr class="<%= if selected?(@conn, @name, option.value), do: "table-warning", else: "" %>">
             <td>
               <%= link [glyph(selected?(@conn, @name, option.value)), option.label],
                 to: @link.(toggle_item(@conn, @name, option.value)) %>
@@ -15,5 +13,5 @@
         <% end %>
       </tbody>
     </table>
-  </div>
+  </section>
 <% end %>

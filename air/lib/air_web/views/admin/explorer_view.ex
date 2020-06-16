@@ -1,0 +1,57 @@
+defmodule AirWeb.Admin.ExplorerView do
+  use Air.Web, :view
+  alias Air.Service.Explorer
+
+  defp checkbox_mapper(form, field, input_opts, {name, _description}, label_opts, _opts) do
+    content_tag(:div, class: "form-check") do
+      [
+        tag(:input, [{:class, "form-check-input"} | input_opts]),
+        label(form, field, [{:class, "form-check-label"} | label_opts]) do
+          name
+        end
+      ]
+    end
+  end
+
+  defp status_to_badge_class(status) do
+    case status do
+      :new -> "badge-primary"
+      :processing -> "badge-info"
+      :complete -> "badge-success"
+      :error -> "badge-danger"
+      :canceled -> "badge-secondary"
+    end
+  end
+
+  defp metrics(analysis) do
+    Enum.map(Jason.decode!(analysis.metrics), fn %{"name" => k, "value" => v} -> {k, v} end)
+  end
+
+  defp to_pretty_json(val) do
+    Jason.encode!(val, pretty: true)
+  end
+
+  defp time_ago(date_time) do
+    content_tag(:time, Timex.from_now(date_time),
+      datetime: NaiveDateTime.to_iso8601(date_time),
+      title: format_date(date_time)
+    )
+  end
+
+  defp by_table(analyses) do
+    analyses
+    |> Enum.sort_by(& &1.column)
+    |> Enum.group_by(& &1.table_name)
+  end
+
+  defp admin_explorer_failed_queries_path(conn),
+    do:
+      admin_query_path(conn, :failed,
+        users: [Explorer.user().id],
+        data_sources: [conn.assigns.data_source.id],
+        from: format_date(Enum.min_by(conn.assigns.analyses, & &1.inserted_at, fn -> nil end).inserted_at),
+        to: format_date(Enum.max_by(conn.assigns.analyses, & &1.updated_at, fn -> nil end).updated_at)
+      )
+
+  defp format_date(d), do: Timex.format!(d, "{ISOdate} {ISOtime}")
+end

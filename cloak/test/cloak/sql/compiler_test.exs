@@ -24,8 +24,23 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  defmacrop constant(type, value) do
+    quote do
+      %{kind: :constant, type: unquote(type), value: unquote(value)}
+    end
+  end
+
+  defmacrop unselectable_error(column_name \\ "grey", table_name \\ "column_access") do
+    quote do
+      {:error,
+       "Column `#{unquote(column_name)}` from table `#{unquote(table_name)}` cannot appear in this" <>
+         " query context as it has been classified as unselectable by your system administrator." <>
+         " Please consult the section on unselectable columns in the documentation."}
+    end
+  end
+
   test "adds an empty group by" do
-    assert %{group_by: []} = compile!("select * from table", data_source())
+    assert %{group_by: []} = compile!("select count(*) from table", data_source())
   end
 
   test "adds a non-nil condition on user_id for top query" do
@@ -37,18 +52,18 @@ defmodule Cloak.Sql.Compiler.Test do
 
   for operator <- [:>, :>=, :<, :<=] do
     test "rejects inequalities on strings with #{operator}" do
-      {:error, error} = compile("select * from table where string #{unquote(operator)} 'CEO'", data_source())
+      {:error, error} = compile("select count(*) from table where string #{unquote(operator)} 'CEO'", data_source())
       assert error == "Inequalities on `text` values are currently not supported."
     end
 
     test "rejects inequalities on booleans with #{operator}" do
-      {:error, error} = compile("select * from table where bool #{unquote(operator)} true", data_source())
+      {:error, error} = compile("select count(*) from table where bool #{unquote(operator)} true", data_source())
       assert error == "Inequalities on `boolean` values are currently not supported."
     end
   end
 
   test "rejects mistyped where conditions" do
-    {:error, error} = compile("select * from table where numeric = column", data_source())
+    {:error, error} = compile("select count(*) from table where numeric = column", data_source())
 
     assert error == "Arguments of type (`integer`, `datetime`) are incorrect for `=`."
   end
@@ -60,7 +75,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects mistyped like conditions" do
-    {:error, error} = compile("select * from table where numeric like 'something'", data_source())
+    {:error, error} = compile("select count(*) from table where numeric like 'something'", data_source())
 
     assert error ==
              "Function `like` requires arguments of type (`text`, `like_pattern`), " <>
@@ -168,7 +183,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     test "rejects disjunction in anonymizing where" do
       {:error, "Combining boolean expressions with `OR` is not allowed in anonymizing queries" <> _} =
-        compile("select * from table where numeric = 1 or numeric = 2", data_source())
+        compile("select count(*) from table where numeric = 1 or numeric = 2", data_source())
     end
   end
 
@@ -193,7 +208,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects escape strings longer than 1" do
-    {:error, error} = compile("select * from table where string like 'something' escape 'abc'", data_source())
+    {:error, error} = compile("select count(*) from table where string like 'something' escape 'abc'", data_source())
 
     assert error == "Escape string must be one character."
   end
@@ -213,7 +228,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert [_is_not_null_id, function(">=", [column("table", "column"), value]), _lt_date] =
              conditions_list(result.where)
 
-    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2015-01-01 00:00:00.000000]) = value
   end
 
   test "casts datetime - date conditions" do
@@ -225,21 +240,21 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert [_is_not_null_id, function("<>", [column("table", "column"), value])] = conditions_list(result.where)
 
-    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2015-01-01 00:00:00.000000]) = value
   end
 
   test "[Issue #2152] an invalid datetime comparison",
     do:
       assert(
         {:error, "Arguments of type (`datetime`, `integer`) are incorrect for `=`."} =
-          compile("select * from table where column = 1000 - 100", data_source())
+          compile("select count(*) from table where column = 1000 - 100", data_source())
       )
 
   test "[Issue #2562] doesn't cast expressions that are already datetime" do
     result = compile!("select stddev(uid) from table where column = cast('2017-01-01' as datetime)", data_source())
 
     assert [_is_not_null_id, function("=", [column("table", "column"), value])] = conditions_list(result.where)
-    assert value == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2017-01-01 00:00:00.000000]) = value
   end
 
   test "[Issue #2562] doesn't cast expressions that are already datetime in IN" do
@@ -252,12 +267,12 @@ defmodule Cloak.Sql.Compiler.Test do
     assert [_is_not_null_id, function("in", [column("table", "column"), value1, value2])] =
              conditions_list(result.where)
 
-    assert value1 == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
-    assert value2 == Expression.constant(:datetime, ~N[2017-02-02 00:00:00.000000])
+    assert constant(:datetime, ~N[2017-01-01 00:00:00.000000]) = value1
+    assert constant(:datetime, ~N[2017-02-02 00:00:00.000000]) = value2
   end
 
   test "allows comparing datetime columns to other datetime columns" do
-    assert {:ok, _} = compile("select * from table where column = column", data_source())
+    assert {:ok, _} = compile("select count(*) from table where column = column", data_source())
   end
 
   test "casts time where conditions" do
@@ -268,7 +283,7 @@ defmodule Cloak.Sql.Compiler.Test do
              )
 
     assert function("and", [function(">=", [column("table", "column"), value]), _rhs]) = range
-    assert value == Expression.constant(:time, ~T[01:00:00.000000])
+    assert constant(:time, ~T[01:00:00.000000]) = value
   end
 
   test "casts date where conditions" do
@@ -279,7 +294,7 @@ defmodule Cloak.Sql.Compiler.Test do
              )
 
     assert function("and", [function(">=", [column("table", "column"), value]), _rhs]) = range
-    assert value == Expression.constant(:date, ~D[2015-01-01])
+    assert constant(:date, ~D[2015-01-01]) = value
   end
 
   test "casts datetime in `in` conditions" do
@@ -302,7 +317,7 @@ defmodule Cloak.Sql.Compiler.Test do
              function("<>", [column("table", "column"), value])
            ]) = result.where
 
-    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2015-01-01 00:00:00.000000]) = value
   end
 
   test "casts integers to reals in IN" do
@@ -318,7 +333,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "reports malformed datetimes" do
     assert {:error, "Invalid input value supplied for type `datetime`: `something stupid`."} =
-             compile("select * from table where column > 'something stupid'", data_source())
+             compile("select count(*) from table where column > 'something stupid'", data_source())
   end
 
   for function <- ~w(min max sum avg stddev variance) do
@@ -338,7 +353,7 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:ok, _} =
                compile(
                  """
-                   select * from (select uid, #{unquote(function)}(string) from table group by uid) t
+                   select s from (select uid, #{unquote(function)}(string) as s from table group by uid) t
                  """,
                  data_source()
                )
@@ -348,7 +363,7 @@ defmodule Cloak.Sql.Compiler.Test do
       assert {:ok, _} =
                compile(
                  """
-                   select * from (select uid, #{unquote(function)}(column) from table group by uid) t
+                   select dt from (select uid, #{unquote(function)}(column) as dt from table group by uid) t
                  """,
                  data_source()
                )
@@ -608,7 +623,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejecting joins with only one side of a range" do
     assert {:error, "Column `numeric` from table `table` must be limited to a finite, nonempty range."} =
              compile(
-               "SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3",
+               "SELECT COUNT(*) FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3",
                data_source()
              )
   end
@@ -720,19 +735,18 @@ defmodule Cloak.Sql.Compiler.Test do
   test "expands all columns for all tables when joining" do
     result =
       compile!(
-        "SELECT * FROM t1, t2 JOIN t3 on t2.uid = t3.uid WHERE t1.uid = t2.uid",
+        """
+        SELECT * FROM
+          (SELECT COUNT(*) AS c1 FROM t1) AS t1,
+          (SELECT COUNT(*) AS c1, COUNT(c1) AS c2 FROM t2) AS t2
+        """,
         data_source()
       )
 
     assert [
-             %{value: :*},
-             column("__ac_group_0"),
-             column("__ac_group_1"),
-             %{value: :*},
-             column("__ac_group_2"),
-             column("__ac_group_3"),
-             %{value: :*},
-             column("__ac_group_4")
+             column("c1"),
+             column("c1"),
+             column("c2")
            ] = result.columns
   end
 
@@ -843,7 +857,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects inequalities on numeric columns that are not ranges" do
-    assert {:error, error} = compile("select * from table where numeric > 5", data_source())
+    assert {:error, error} = compile("select count(*) from table where numeric > 5", data_source())
 
     assert error == "Column `numeric` from table `table` must be limited to a finite, nonempty range."
   end
@@ -859,7 +873,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects inequalities on numeric columns that are negatives of ranges" do
-    assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
+    assert {:error, error} = compile("select count(*) from table where numeric < 2 and numeric > 5", data_source())
 
     assert error == "Column `numeric` from table `table` must be limited to a finite, nonempty range."
   end
@@ -867,7 +881,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects inequalities on datetime columns that are negatives of ranges" do
     assert {:error, error} =
              compile(
-               "select * from table where column < '2015-01-01' and column > '2016-01-01'",
+               "select count(*) from table where column < '2015-01-01' and column > '2016-01-01'",
                data_source()
              )
 
@@ -875,7 +889,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects inequalities on datetime columns that are not ranges" do
-    assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
+    assert {:error, error} = compile("select count(*) from table where column > '2015-01-01'", data_source())
 
     assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
   end
@@ -883,7 +897,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects inequalities on date columns that are negatives of ranges" do
     assert {:error, error} =
              compile(
-               "select * from table where column < '2015-01-01' and column > '2016-01-01'",
+               "select count(*) from table where column < '2015-01-01' and column > '2016-01-01'",
                date_data_source()
              )
 
@@ -891,7 +905,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects inequalities on date columns that are not ranges" do
-    assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
+    assert {:error, error} = compile("select count(*) from table where column > '2015-01-01'", data_source())
 
     assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
   end
@@ -900,7 +914,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:error, error} =
              compile(
                """
-                 select * from table
+                 select count(*) from table
                  where column between '2017-01-02 12:22:33.010000' and '2017-01-02 12:22:33.020000'
                """,
                data_source()
@@ -910,7 +924,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "accepts inequalities on numeric columns that are ranges" do
-    assert {:ok, _} = compile("select * from table where numeric > 5 and numeric < 8", data_source())
+    assert {:ok, _} = compile("select count(*) from table where numeric > 5 and numeric < 8", data_source())
   end
 
   test "accepts inequalities without a constant side in top-level HAVING" do
@@ -992,7 +1006,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "no message when time alignment does not require fixing" do
     assert compile!(
-             "select * from table where column >= '00:00:00' and column < '00:00:05'",
+             "select count(*) from table where column >= '00:00:00' and column < '00:00:05'",
              time_data_source()
            ).info == []
   end
@@ -1215,7 +1229,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects `FULL OUTER JOINs`" do
     {:error, error} =
       compile(
-        "select * from table full join other_table ON table.uid = other_table.uid",
+        "select count(*) from table full join other_table ON table.uid = other_table.uid",
         data_source()
       )
 
@@ -1302,7 +1316,7 @@ defmodule Cloak.Sql.Compiler.Test do
     do:
       assert(
         {:error, "Table name `a` specified more than once."} ==
-          compile("SELECT a.uid from (select * from t1) a, (select * from t1) a", data_source())
+          compile("SELECT * from (select count(*) as c1 from t1) a, (select count(*) as c2 from t1) a", data_source())
       )
 
   test "real name of an aliased table can't be used as a prefix" do
@@ -1491,8 +1505,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects *-selecting duplicated columns" do
-    {:error, error} =
-      compile("select * from (select uid, count(*), count(numeric) from table group by 1) t", data_source())
+    {:error, error} = compile("select * from (select count(*), count(numeric) from table group by 1) t", data_source())
 
     assert error =~ "Selecting all from subquery `t` is not supported because the column name `count` is ambiguous."
   end
@@ -1505,12 +1518,20 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ "Usage of `x` is ambiguous."
   end
 
-  test "output user ids are censored" do
-    assert %{
-             columns: [%Expression{value: :*}],
-             group_by: [%Expression{value: :*}],
-             order_by: [{%Expression{value: :*}, _, _}]
-           } = compile!("select uid from table group by 1 order by 1", data_source())
+  test "output user ids are rejected" do
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("select * from table", data_source())
+
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("select numeric from table group by uid, numeric", data_source())
+
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("select numeric from table order by uid", data_source())
+  end
+
+  test "processed user ids are allowed" do
+    assert {:ok, _} = compile("select count(uid) from table", data_source())
+    assert {:ok, _} = compile("select uid % 10 from table", data_source())
   end
 
   test "internal queries are validated" do
@@ -1526,14 +1547,14 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects date constant values out of range" do
-    {:error, error} = compile("select count(date '1801-01-01' - interval 'P10Y') from table", data_source())
+    {:error, error} = compile("select count(date '1901-01-01' - interval 'P10Y') from table", data_source())
 
     assert error =~
              "Constant expression is out of valid range: date values have to be inside the interval [`1900-01-01`, `9999-12-31`]."
   end
 
   test "rejects interval constant values out of range" do
-    {:error, error} = compile("select count(- 99 * interval 'P10Y') from table", data_source())
+    {:error, error} = compile("select count(interval 'P101Y') from table", data_source())
 
     assert error =~ "Constant expression is out of valid range: interval values have to be less than `100` years."
   end
@@ -1586,9 +1607,345 @@ defmodule Cloak.Sql.Compiler.Test do
     assert [function("not", [function("in", [column("table", "numeric"), value1, value2, value3])])] =
              conditions_list(result.where)
 
-    assert value1 = Expression.constant(:integer, 1)
-    assert value2 = Expression.constant(:integer, 2)
-    assert value3 = Expression.constant(:integer, 3)
+    assert constant(:integer, 1) = value1
+    assert constant(:integer, 2) = value2
+    assert constant(:integer, 3) = value3
+  end
+
+  test "[Issue #4181] grouping sets over the user id" do
+    assert {:error, "Directly selecting or grouping on the user id column in an anonymizing query is not allowed" <> _} =
+             compile("SELECT uid, numeric FROM table GROUP BY CUBE(1, 2)", data_source())
+  end
+
+  describe "unselectable columns in anonymizing queries" do
+    test "cannot select unselectable columns" do
+      assert unselectable_error() = compile("SELECT grey FROM column_access", data_source())
+    end
+
+    test "unselectable columns' names are normalized" do
+      result = compile("SELECT GrEy FROM column_access", data_source())
+      assert unselectable_error() = result
+    end
+
+    test "cannot select unselectable columns in complex expressions" do
+      assert unselectable_error() = compile("SELECT abs(grey + 1) FROM column_access", data_source())
+    end
+
+    test "columns remain unselectable when aliased" do
+      assert unselectable_error() = compile("SELECT ca.grey AS col FROM column_access ca", data_source())
+    end
+
+    test "can count unselectable columns" do
+      assert {:ok, _} =
+               compile("SELECT count(grey), count(distinct grey), count_noise(grey) FROM column_access", data_source())
+    end
+
+    for aggregator <- ~w(min max sum avg stddev variance) do
+      test "cannot aggregate unselectable columns using #{aggregator}" do
+        assert unselectable_error() = compile("SELECT #{unquote(aggregator)}(grey) FROM column_access", data_source())
+      end
+    end
+
+    test "cannot filter by unselectable columns" do
+      assert unselectable_error() =
+               compile("SELECT white FROM column_access WHERE grey > 0 AND grey < 100 GROUP BY white", data_source())
+    end
+
+    test "cannot filter with = by unselectable columns" do
+      assert unselectable_error() =
+               compile("SELECT white FROM column_access WHERE grey = 100 GROUP BY white", data_source())
+    end
+
+    test "cannot order by unselectable columns" do
+      assert unselectable_error() = compile("SELECT white FROM column_access ORDER BY grey", data_source())
+    end
+
+    test "cannot group by unselectable columns" do
+      assert unselectable_error() = compile("SELECT max(white) FROM column_access GROUP BY grey", data_source())
+    end
+
+    test "can filter by unselectable columns aggregates in having clause" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT white, count(grey)
+                 FROM column_access
+                 GROUP BY white
+                 HAVING count(grey) < 100
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can join with keys of same type" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT column_access.white, count(*)
+                 FROM column_access
+                 INNER JOIN column_access_public
+                 ON column_access.grey = column_access_public.grey
+                 GROUP BY column_access.white
+                 """,
+                 data_source()
+               )
+    end
+
+    test "cannot join with keys of different type" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT column_access.white, count(*)
+                 FROM column_access
+                 INNER JOIN column_access_public
+                 ON column_access.grey = column_access_public.grey AND column_access.grey = column_access_public.id
+                 GROUP BY column_access.white
+                 """,
+                 data_source()
+               )
+    end
+
+    test "cannot join with non-keys" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT column_access.white, count(*)
+                 FROM column_access
+                 INNER JOIN column_access_public
+                 ON column_access.grey = column_access_public.grey AND column_access.grey = column_access_public.white
+                 GROUP BY column_access.white
+                 """,
+                 data_source()
+               )
+    end
+  end
+
+  describe "unselectable columns in non-anonymized restricted queries" do
+    test "can select unselectable columns" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT grey
+                   FROM column_access
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can select unselectable columns in complex expressions" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT abs(grey + 1)
+                   FROM column_access
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "columns remain unselectable when aliased" do
+      assert {:error, error} =
+               compile(
+                 """
+                 SELECT max(x.complex)
+                 FROM (
+                   SELECT uid, abs(grey + 1) as complex
+                   FROM column_access
+                   GROUP BY uid, grey
+                 ) x
+                 """,
+                 data_source()
+               )
+
+      assert error =~
+               "Column `complex` from table `x` cannot appear in this query context as it depends on column" <>
+                 " `grey` from table `column_access`, which has been classified as unselectable"
+    end
+
+    test "can count unselectable columns" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid, count(grey)
+                   FROM column_access
+                   GROUP BY uid
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    for aggregator <- ~w(min max sum avg stddev variance) do
+      test "cannot aggregate unselectable columns using #{aggregator}" do
+        assert unselectable_error() =
+                 compile(
+                   """
+                   SELECT count(*)
+                   FROM (
+                     SELECT uid, #{unquote(aggregator)}(grey)
+                     FROM column_access
+                     GROUP BY uid
+                   ) x
+                   """,
+                   data_source()
+                 )
+      end
+    end
+
+    test "cannot filter by unselectable columns" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid
+                   FROM column_access
+                   WHERE grey > 0 AND GREY < 100
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "cannot order by unselectable columns" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid
+                   FROM column_access
+                   ORDER BY grey
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can group by unselectable columns" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid, grey
+                   FROM column_access
+                   GROUP BY uid, grey
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can filter by unselectable columns count in having clause" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT uid, count(grey)
+                   FROM column_access
+                   GROUP BY uid
+                   HAVING count(grey) > 0 AND count(grey) < 100
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "cannot filter by unselectable columns in having clause" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT grey
+                   FROM column_access
+                   GROUP BY grey
+                   HAVING grey = 100
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "can join with keys of same type" do
+      assert {:ok, _} =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT column_access.uid
+                   FROM column_access
+                   INNER JOIN column_access_public
+                   ON column_access.grey = column_access_public.grey
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "cannot join with keys of different type" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT column_access.uid
+                   FROM column_access
+                   INNER JOIN column_access_public
+                   ON column_access.grey = column_access_public.grey AND column_access.grey = column_access_public.id
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+
+    test "cannot join with non-keys" do
+      assert unselectable_error() =
+               compile(
+                 """
+                 SELECT count(*)
+                 FROM (
+                   SELECT column_access.uid
+                   FROM column_access
+                   INNER JOIN column_access_public
+                   ON column_access.grey = column_access_public.grey AND column_access.grey = column_access_public.white
+                 ) x
+                 """,
+                 data_source()
+               )
+    end
+  end
+
+  test "range with integer and real bounds" do
+    assert {:ok, _} =
+             compile(
+               """
+               select count(*) from table
+               where numeric between 0 and 0.5
+               """,
+               data_source()
+             )
+  end
+
+  test "range with date and datetime bounds" do
+    assert {:error, "Column `column` from table `table` must be limited to a finite, nonempty range."} =
+             compile(
+               """
+               select count(*) from table
+               where column between date '2000-01-01' and datetime '2020-01-01 12:00:00'
+               """,
+               date_data_source()
+             )
   end
 
   defp compile_standard(query_string, data_source) do
@@ -1678,6 +2035,35 @@ defmodule Cloak.Sql.Compiler.Test do
               Table.column("uid", :integer),
               Table.column("c1", :integer)
             ]
+          ),
+        column_access:
+          Cloak.DataSource.Table.new(
+            "column_access",
+            "uid",
+            db_name: "column_access",
+            columns: [
+              Table.column("uid", :integer),
+              Table.column("white", :integer),
+              Table.column("grey", :integer, access: :unselectable)
+            ],
+            keys: %{
+              "grey" => :join_key
+            }
+          ),
+        column_access_public:
+          Cloak.DataSource.Table.new(
+            "column_access_public",
+            nil,
+            db_name: "column_access_public",
+            columns: [
+              Table.column("id", :integer),
+              Table.column("white", :integer),
+              Table.column("grey", :integer, access: :unselectable)
+            ],
+            keys: %{
+              "id" => :id,
+              "grey" => :join_key
+            }
           )
       }
     }

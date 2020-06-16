@@ -323,46 +323,46 @@ defmodule Cloak.Query.DBEmulatorTest do
 
     test "min/max with numbers" do
       assert_query(
-        "select * from #{@vt}",
+        "select min, max from #{@vt}",
         """
           select user_id, min(length(dec_b64(value))), max(length(dec_b64(value)))
           from #{@emulated} group by user_id
         """,
-        %{rows: [%{occurrences: 20, row: [:*, 1, 5]}]}
+        %{rows: [%{occurrences: 20, row: [1, 5]}]}
       )
     end
 
     test "min/max with text" do
       assert_query(
-        "select * from #{@vt}",
+        "select min, max from #{@vt}",
         """
           select user_id, min(dec_b64(value)), max(dec_b64(value))
             from #{@emulated} group by user_id
         """,
-        %{rows: [%{occurrences: 20, row: [:*, "1234", "xyz"]}]}
+        %{rows: [%{occurrences: 20, row: ["1234", "xyz"]}]}
       )
     end
 
     test "min/max with date" do
       assert_query(
-        "select * from #{@vt}",
+        "select min, max, count from #{@vt}",
         """
           select user_id, min(cast(date as date)),
-            max(cast(date as date)), count(dec_b64(value)) as c
+            max(cast(date as date)), count(dec_b64(value))
           from #{@emulated} group by user_id
         """,
-        %{rows: [%{occurrences: 20, row: [:*, "2013-02-08", "2016-11-02", 5]}]}
+        %{rows: [%{occurrences: 20, row: ["2013-02-08", "2016-11-02", 5]}]}
       )
     end
 
     test "selecting a grouped column under an alias" do
       assert_query(
-        "select * from #{@vt}",
+        "select v, alias from #{@vt}",
         """
           select user_id, dec_b64(value) as v, dec_b64(value) as alias
             from #{@emulated} where v = 'x' group by user_id, v
         """,
-        %{rows: [%{occurrences: 20, row: [:*, "x", "x"]}]}
+        %{rows: [%{occurrences: 20, row: ["x", "x"]}]}
       )
     end
   end
@@ -586,12 +586,12 @@ defmodule Cloak.Query.DBEmulatorTest do
           """
           select count(v), avg(age) from
           #{@vt} as t1 inner join
-          (select user_id as uid, age + 1 as age from
-            (select user_id, age * 2 as age from #{@joined}) as t
+          (select user_id as uid, floor(age) as age from
+            (select user_id, ceil(age) as age from #{@joined}) as t
           ) as t2 on user_id = uid
           """,
           "select user_id, dec_b64(value) as v from #{@emulated}",
-          %{rows: [%{occurrences: 1, row: [10, 61.0]}]}
+          %{rows: [%{occurrences: 1, row: [10, 30.0]}]}
         )
 
     test "left join with filter in subquery" do

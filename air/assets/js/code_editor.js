@@ -1,9 +1,8 @@
 // @flow
 
 import React from "react";
-import { UnControlled as Codemirror } from "react-codemirror2";
-import _ from "lodash";
-import Editor from "codemirror";
+import { Controlled as Codemirror } from "react-codemirror2";
+import type { Editor, EditorChange } from "codemirror";
 
 import completions from "./code_editor/completion";
 
@@ -14,10 +13,10 @@ require("./code_editor/mode");
 
 type Props = {
   onRun: () => void,
-  onChange: string => void,
+  onChange: (string) => void,
   tableNames: string[],
   columnNames: string[],
-  statement: string
+  statement: string,
 };
 
 export default class CodeEditor extends React.Component<Props> {
@@ -42,7 +41,9 @@ export default class CodeEditor extends React.Component<Props> {
     editor.showHint({ hint: this.completionList });
   };
 
-  onChange = (editor: Editor) => this.props.onChange(editor.getValue());
+  onBeforeChange = (_editor: Editor, _data: EditorChange, value: string) => {
+    this.props.onChange(value);
+  };
 
   editorDidMount = (editor: Editor) => {
     this.editor = editor;
@@ -54,7 +55,7 @@ export default class CodeEditor extends React.Component<Props> {
     return completions(
       cm.getLine(cm.getCursor().line),
       cm.getCursor().ch,
-      pos => _.merge({}, cm.getCursor(), { ch: pos }),
+      (pos) => ({ ...cm.getCursor(), ch: pos }),
       tableNames,
       columnNames,
       statement
@@ -102,8 +103,8 @@ export default class CodeEditor extends React.Component<Props> {
         "Ctrl-Enter": this.run,
         "Cmd-Enter": this.run,
         "Ctrl-Space": this.showHint,
-        "Cmd-Space": this.showHint
-      }
+        "Cmd-Space": this.showHint,
+      },
     };
 
     const { statement } = this.props;
@@ -111,7 +112,7 @@ export default class CodeEditor extends React.Component<Props> {
       <Codemirror
         value={statement}
         editorDidMount={this.editorDidMount}
-        onChange={this.onChange}
+        onBeforeChange={this.onBeforeChange}
         options={options}
         className="editable"
       />

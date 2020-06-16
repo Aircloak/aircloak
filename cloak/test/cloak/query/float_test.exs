@@ -70,15 +70,15 @@ defmodule Cloak.Query.FloatTest do
   end
 
   test "aggregating a function" do
-    :ok = insert_rows(_user_ids = 1..10, "floats", ["value"], [4])
-    :ok = insert_rows(_user_ids = 11..20, "floats", ["value"], [9])
+    :ok = insert_rows(_user_ids = 1..10, "floats", ["value"], [1.2])
+    :ok = insert_rows(_user_ids = 11..20, "floats", ["value"], [1.8])
 
-    assert_query("select avg(sqrt(value)) from floats", %{
+    assert_query("select avg(round(value)) from floats", %{
       columns: ["avg"],
       rows: [%{row: [value], occurrences: 1}]
     })
 
-    assert_in_delta value, 2.5, 0.01
+    assert_in_delta value, 1.5, 0.01
   end
 
   test "aggregating invalid values" do

@@ -17,6 +17,7 @@ defmodule Air.Schemas.Group do
     field(:source, Air.Schemas.Source)
     field(:ldap_dn, :string)
     field(:admin, :boolean)
+    field(:system, :boolean)
 
     many_to_many(
       :users,

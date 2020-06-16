@@ -50,17 +50,16 @@ defmodule AirWeb.Admin.GroupView do
   end
 
   def available_groups() do
-    Repo.all(Group)
+    import Ecto.Query
+    Repo.all(from(g in Group, where: not g.system))
   end
 
   defp checkbox_mapper(form, field, input_opts, {name, description}, label_opts, _opts) do
-    content_tag(:tr) do
+    content_tag(:div, class: "form-check") do
       [
-        content_tag(:td, class: "col-md-1") do
-          tag(:input, input_opts)
-        end,
-        content_tag(:td, class: "col-md-11") do
-          label(form, field, label_opts) do
+        tag(:input, [{:class, "form-check-input"} | input_opts]),
+        label(form, field, [{:class, "form-check-label"} | label_opts]) do
+          [
             if description do
               [
                 name,
@@ -71,7 +70,7 @@ defmodule AirWeb.Admin.GroupView do
             else
               name
             end
-          end
+          ]
         end
       ]
     end
@@ -83,4 +82,6 @@ defmodule AirWeb.Admin.GroupView do
   def can_manage?(_new_group = %{source: nil}), do: true
   def can_manage?(%{source: :native}), do: true
   def can_manage?(%{source: :ldap}), do: false
+
+  defp is_explorer?(group), do: group.name == "Diffix Explorer" && group.system
 end

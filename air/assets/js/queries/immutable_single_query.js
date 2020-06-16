@@ -14,7 +14,7 @@ type Props = {
   insertedAt: string,
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
-  authentication: Authentication
+  authentication: Authentication,
 };
 
 export default ({
@@ -23,7 +23,7 @@ export default ({
   insertedAt,
   numberFormat,
   debugModeEnabled,
-  authentication
+  authentication,
 }: Props) => {
   return (
     <div>

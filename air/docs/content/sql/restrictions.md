@@ -53,6 +53,54 @@ which of the anonymized data to display, not how that data is obtained.  Because
 described in the following sections don't apply to the top-level `HAVING` clause.
 
 
+## CASE statements
+
+`CASE` statements over personal data have multiple restrictions:
+
+  - They are only allowed in the `SELECT` or `GROUP BY` clauses of anonymizing queries;
+  - They can not be post-processed in any way, other than aggregation;
+  - The `WHEN` clauses can only consist of a single equality condition between a clear expression and a constant.
+  - The `THEN`/`ELSE` clauses can only return constant values; furthermore, when aggregated, they can only return
+    the values 0, 1 or NULL.
+
+A few examples:
+
+```sql
+-- Correct - conditional selection and grouping:
+SELECT
+  CASE
+    WHEN column = 'aaa' THEN 1
+    WHEN column = 'bbb' THEN 2
+    ELSE NULL
+  END,
+  COUNT(*)
+FROM table
+GROUP BY 1
+
+-- Correct - conditional aggregation:
+SELECT SUM(CASE WHEN column = 'aaa' THEN 1 END) FROM table
+
+-- Incorrect - multiple conditions are used in the same `WHEN` clause:
+SELECT CASE WHEN column = 'aaa' AND column = 'bbb' THEN TRUE END FROM table
+
+-- Incorrect - an unsupported condition is used in the `WHEN` clause:
+SELECT CASE WHEN column <> 'aaa' THEN TRUE END FROM table
+
+-- Incorrect - the `THEN` clause doesn't return a constant value:
+SELECT CASE WHEN column = 'aaa' THEN other_column END FROM table
+
+-- Incorrect - the `ELSE` clause returns an unsupported constant during aggregation:
+SELECT AVG(CASE WHEN column = 'aaa' THEN 0 ELSE 1000 END) FROM table
+
+-- Incorrect - `CASE` statement is not used in the `SELECT` or `GROUP BY` clauses:
+SELECT COUNT(*) FROM table WHERE CASE WHEN column = 3 THEN TRUE ELSE FALSE END
+
+```
+
+__Note__: For safety reasons, support for `CASE` statements in anonymizing queries is not enabled by default.
+Check the `Insights Cloak configuration` section for information on how to enable it.
+
+
 ## Math and function application restrictions
 
 The usage of some functions is restricted. The scenarios when the restrictions come into effect are when a database
@@ -126,6 +174,14 @@ Below is an example of the restrictions in action:
 SELECT age / (age + 1) FROM table
 ```
 
+## Constant values
+
+In order to prevent overflow errors, the following restrictions on constant values are in place:
+
+  - Numeric values are limited to the range `[-10^18, 10^18]`.
+  - Date and datetime years are limited to the range `[1900, 9999]`.
+  - Intervals are limited to `100` years.
+
 ## Clear expressions
 
 A clear expression is a simple expression that:
@@ -138,6 +194,30 @@ A clear expression is a simple expression that:
     - any aggregator (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`).
 
 Such expressions are considered to be safe in general and are exempt from many of the following restrictions.
+
+### Aggregated expressions
+
+All aggregated expressions have to be clear.
+
+```sql
+-- Correct - aggregated expression is clear:
+SELECT SUM(round(column)) FROM table
+
+-- Incorrect - aggregated expression is not clear:
+SELECT SUM(1 / column) FROM table
+```
+
+### `IS [NOT] NULL` conditions
+
+The subject of an `IS [NOT] NULL` condition has to be a clear expression.
+
+```sql
+-- Correct - subject is a clear expression:
+SELECT COUNT(*) FROM table WHERE column IS NOT NULL
+
+-- Incorrect - subject is not a clear expression:
+SELECT COUNT(*) FROM table WHERE 1 / column IS NULL
+```
 
 ## Constant ranges
 

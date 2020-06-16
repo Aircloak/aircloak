@@ -1,6 +1,6 @@
-# Attacks on Diffix Cedar
+# Attacks on Diffix Dogwood
 
-This section describes a variety of attacks against anonymization mechanisms. Some of the attacks are general in nature (can be used against multiple mechanisms). Some are specific to Diffix overall, and others specific to [Diffix Cedar](diffix.md). In what follows, the *cloak* is the device that implements Diffix.
+This section describes a variety of attacks against anonymization mechanisms. Some of the attacks are general in nature (can be used against multiple mechanisms). Some are specific to Diffix overall, and others specific to [Diffix Dogwood](diffix.md). In what follows, the *cloak* is the device that implements Diffix.
 
 ## Table Of Contents
 
@@ -8,6 +8,7 @@ This section describes a variety of attacks against anonymization mechanisms. So
   - [Trackers](#trackers)
   - [Attribute value inspection attacks](#attribute-value-inspection-attacks)
   - [Suppression signal attacks](#suppression-signal-attacks)
+  - [Noise signal attacks](#noise-signal-attacks)
   - [Noise averaging attacks](#noise-averaging-attacks)
     - [Naive averaging](#naive-averaging)
     - [Different syntax but same semantics, with floating](#different-syntax-but-same-semantics-with-floating)
@@ -24,12 +25,16 @@ This section describes a variety of attacks against anonymization mechanisms. So
       - [Through chaff conditions](#through-chaff-conditions)
     - [Range creep with averaging](#range-creep-with-averaging)
     - [Multiple isolating negands](#multiple-isolating-negands)
+    - [Shadow table exploitation attack](#shadow-table-exploitation-attack)
   - [SQL backdoor attacks](#sql-backdoor-attacks)
   - [Side Channel attacks](#side-channel-attacks)
     - [Error generation attacks](#error-generation-attacks)
       - [Divide by zero](#divide-by-zero)
       - [Overflow](#overflow)
       - [Square root of a negative number](#square-root-of-a-negative-number)
+    - [NULL producing safe function attacks](#null-producing-safe-function-attacks)
+      - [IS NOT NULL](#is-not-null)
+      - [NULL within aggregation](#null-within-aggregation)
     - [Timing attacks](#timing-attacks)
       - [JOIN timing attack](#join-timing-attack)
 
@@ -169,6 +174,24 @@ An attacker may be able to learn about individual users from whether a given buc
 
 To prevent this, Diffix uses a noisy threshold using sticky layered noise. Because the threshold itself can vary, in the previous example the attacker would be uncertain as to whether there were 2 or 3 users.
 
+## Noise signal attack
+
+Diffix can report the amount of noise added to the aggregates `count()`, `sum()`, `avg()`, and `stddev()`. This is reported as the standard deviation of the noise. In Diffix Dogwood, the amount of noise is influenced by the `min` and `max` values. If a user has an extreme value (say 2x or 3x greater than the next highest value), then the presence or absence of that user in a bucket may have a significant effect on the amount of noise added.
+
+This opens an attack whereby the attacker can determine which bucket the extreme user is in by noting which bucket reports the most noise (for instance, using `sum_noise()`).
+
+For instance, if one user (the victimm) has a salary that far exceeds the second highest salary, then `gender` could be learned with the following query:
+
+```sql
+SELECT gender, sum(salary), sum_noise(salary)
+FROM table
+GROUP BY 1
+```
+
+Whichever gender bucket reports the highest `sum_noise(salary)` is the bucket that contains the victim.
+
+To defend against this, the cloak does not precisely report the standard deviation of the noise, but rather an approximation based on a formulation that eliminates the effect of the `min` and `max` values.
+
 ## Noise averaging attacks
 
 Averaging attacks attempt to remove noise through multiple queries that somehow generate different noise samples (overcome the noise stickiness) and average away the noise.
@@ -217,7 +240,7 @@ Text datatypes for instance are all converted to lower case for the purpose of s
 
 ### Different syntax and semantics, but same result
 
-In Diffix Cedar, an analyst can obtain multiple samples for `<>` text conditions using `substring()`. For instance, suppose that a text column contains two values, 'ABCDE' and 'FGHIJ'. Each of the following conditions would generate a different seed even though the underlying answers are the same:
+In Diffix Dogwood, an analyst can obtain multiple samples for `<>` text conditions using `substring()`. For instance, suppose that a text column contains two values, 'ABCDE' and 'FGHIJ'. Each of the following conditions would generate a different seed even though the underlying answers are the same:
 
 ```
 WHERE substring(col for 1) <> 'A'
@@ -273,7 +296,7 @@ WHERE floor(5 * pow((client_id * 2),0.5) + 0.5) = floor(5 * pow((client_id * 2),
 
 where different constants were used to effectly select different users.
 
-The current defense is to force `clear` conditions (no math) on columns that have a substantial fraction of user-unique values.
+The current defense is twofold: to force `clear` conditions (no math) on columns that have a substantial fraction of user-unique values, and to force `clear` conditions on all implicit ranges (for instance `round()`, `date_trunc()`).
 
 ### JOINs with non-personal tables
 
@@ -284,7 +307,7 @@ A typical non-personal table might contain a numeric identifier and a text field
 Suppose an analyst wished to remove noise associated with the condition `age = 20`, and there are multiple non-personal tables of various sorts. The analyst could then build a set of queries with different `JOIN` conditions as follows:
 
 ```
-JOIN (...) ON users.age = product_names.id - 28788 WHERE product_names.value = 'Juice Squeezer'
+JOIN (...) ON users.age = product_names.id - 28788 WHERE product_names.value = 'pears'
 JOIN (...) ON users.age = error_codes.id - 232 WHERE error_codes.value = 'Bad Input'
 JOIN (...) ON users.age = cc_types.id + 16 WHERE cc_types.value = 'VISA'
 etc.
@@ -395,15 +418,17 @@ To prevent this, the cloak removes a small number of the most extreme values in 
 
 #### Through chaff conditions
 
-In this difference attack, the attacker exploits the uid-based noise by intentionally adding conditions that have no impact on the true underlying answer, but increase the cumulative amount of noise. The bucket pair that differs the most is most likely the one containing the user.
+In this difference attack, the attacker tries to exploit the uid-based noise by intentionally adding conditions that have no impact on the true underlying answer, but increase the cumulative amount of noise. The bucket pair that differs the most is most likely the one containing the user.
 
-A simple way to do this is to add conditions like `age <> 1000`, `age <> 1001` and so on. These are called chaff conditions. In pairs where the underlying set of users is the same, the uid-based noise values are the same for each query of the pair. In pairs where the underlying set of users is different, the uid-based noise value is different.
+A simple way to do this would be to add conditions like `age <> 1000`, `age <> 1001` and so on. These are called chaff conditions. In pairs where the underlying set of users is the same, the uid-based noise values are the same for each query of the pair. In pairs where the underlying set of users is different, the uid-based noise value is different.
 
 Alternatively, a range condition such as `age BETWEEN 0 and 1000` can also be a chaff condition. Likewise the implicit ranges `round()` and `trunc()` can be chaff conditions. This is because these functions can span the entire number range of a column with one bucket.
 
 The chaff conditions can either all be added to the same query, or added one at a time to multiple pairs, and then summing the results across the first queries of each pair and separately the second queries.
 
-Chaff using negative conditions is normally prevented by disallowing negative conditions for rare values (those not found in the shadow table). The attack is prevented for chaff conditions using ranges by not including the static noise layer for ranges.
+The attack using range conditions is prevented by not using uid-based noise layers for range conditions.
+
+The attack using negative conditions is prevented by disallowing negative conditions for rare values (those not found in the shadow table). Specifically, any value in the shadow table has at least 10 users associated with it. If such a value is used in a negative condition, then the selected users will cause a difference in multiple bucket pairs, and the attacker cannot be sure which are associated with the victim.
 
 ### Range creep with averaging
 
@@ -416,6 +441,25 @@ To defend against this, the cloak forces ranges to fall within preset range offs
 If an analyst could make multiple different negative ANDed conditions (negands) isolating the same individual user, then they could be averaged out in the context of a difference attack. For instance, `account_number <> 12345`, `social_security_number <> 123-45-6789`, `login_name <> 'alex433`, `email_address <> 'alex433@gmail.com` are all values that can isolate a single user. If each were used as the single negand, then the negands could be averaged away.
 
 This negands are rejected by virtue of not being represented in the shadow table.
+
+### Shadow table exploitation attack
+
+For each column, the shadow table contains the up-to-200 column values assigned to the largest number of distinct users. Any value must have at least 10 distinct users to be included in the shadow table. Column values for negands (negative conditions  such as `age <> 1000`) and `IN` expressions (`age NOT IN (1000,1001,1002)`) that are not in the shadow table are disallowed.
+
+It is possible, however, for a negand from the shadow table to isolate a single user in a difference attack.  This can happen when the other query conditions reduce the number of users sufficiently so that all other users with the same value are excluded from both queries.
+
+For instance, suppose that around 30 users have a zip code of 12345. The negand `zip <> 12345` would then exclude those users. Suppose in addition that some other attribute value, say `profession = 'stylist'`, applies to a relatively small fraction of the population, for instance 1 in 500 people, but nevertheless is in the shadow table. Finally, suppose that the attacker knows that the victim is a stylist and lives in zip code 12345. Chances are then high that two queries with the following two conditions:
+
+```
+Q1: profession = 'stylist'
+Q1: profession = 'stylist' AND `zip <> 12345`
+```
+
+would differ by only one user, the victim. This is because it is statistically unlikely that another one of the 15 users in zip 12345 is a stylist.
+
+A [first derivative difference attack](#first-derivative-difference-attack) using only the above sets of conditions would fail because of the added noise. However, if the attacker could come up with 4 or 5 different pairs of conditions that have the above isolating characteristics, then the noise due to each of the negands could be averaged away.
+
+However, it is quite rare that the necessary criteria exists even once for a given user, and virtually impossible that the criteria exists 4 or 5 times (and even less likely that the attacker would know the appropriate information about the victim). Therefore, while theortically possible, this attack is in practice essentially impossible.
 
 ## SQL backdoor attacks
 
@@ -489,12 +533,61 @@ WHERE lastname = 'Zamora' AND
 
 The third condition in the `WHERE` clause causes an overflow if it is executed.  Assuming that there is only a single user with the lastname 'Zamora', if Zamora does not have the indicated birthdate, then the third condition won't be executed and a suppressed output is given. If Zamora does have that birthdate, then the third condition throws an exception. The exception is transmitted to the analyst as an execution error.
 
+A similar attack against `date`, `time`, and `datetime` column types is also possible.
+
 The cloak defends against this by installing and executing "safe" math routines in the database. The safe routines capture exceptions and returns NULL rather than throwing an exception. As a result there is no error signal transmitted to the analyst, and therefore the analyst doesn't know if an exception took place or not.
 
 Unfortunately the safe math routines slow down query execution. To minimize this performance hit, the cloak also makes a conservative estimate as to whether or not a given math expression *might* result in an exception. If not, then the safe math routine is not executed.
 
-
 #### Square root of a negative number
+
+It may be possible to execute an error generating attack by forcing the square root of a negative number. The cloak defends against this by checking if the operand of the square root function is negative.
+
+### NULL producing safe function attacks
+
+#### IS NOT NULL
+
+The defense against [Error generation attacks](#error-generation-attacks) is to install or use a safe math routine that inserts a `NULL` value rather than throw and exception. This mechanism leads to attacks that exploits the insertion of a `NULL` value.
+ghi
+[ghi4091](https://github.com/Aircloak/aircloak/issues/4091)
+
+An example of this attack is the following two queries:
+
+```sql
+SELECT cli_district_id, sum(acct_district_id)
+FROM transactions
+WHERE 1/(amount - 24615) IS NOT NULL
+GROUP BY 1
+```
+
+```sql
+SELECT cli_district_id, sum(acct_district_id)
+FROM transactions
+WHERE 1/(amount - 24615.3333) IS NOT NULL
+GROUP BY 1
+```
+
+The victim in the attack is a user that has a unique value for the `amount` column of 24615. No user has an `amount` value of 24615.3333. The goal of the attack is to learn the `cli_district_id` value of the user.
+
+In the first query, the term `1/(amount - 24615)` has a divide-by-zero error for the victim, which gets converted to `NULL` and is therefore filtered by the `WHERE` condition. The `WHERE` clause of the second query doesn't filter any rows. At the same time, the noise layers for the two `WHERE` clauses are with high probability identical, because the seed would be based on the floated max and min `amount`, which are likely the same.
+
+The victim's `cli_district_id` then is recorded as that where the sums from the first and second queries differ.
+
+The defense against this attack is to force `IS NOT NULL` expressions to be `clear`.
+
+#### NULL within aggregation
+
+The following query attacks the same victim as the previous example.
+
+```
+SELECT cli_district_id, count(amount), count(1/(amount - 24615))
+FROM transactions
+GROUP BY 1
+```
+
+The first `count()` counts all rows (assuming no `NULL` values in the `amount` column). Because the victim's row has a divide-by-zero which becomes `NULL`, the second `count()` counts all rows except that of the victim. There is no noise layer associated with the expression within the aggregation, and so the victim's `cli_district_id` is simply that where the two counts differ.
+
+The defense is similar: to force expressions within aggregation functions to be clear.
 
 ### Timing attacks
 

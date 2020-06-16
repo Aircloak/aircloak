@@ -100,7 +100,7 @@ defmodule Cloak.Query.AnonymizationTest do
     end
 
     test "stats BUG: counting and grouping same column" do
-      assert_query("select number, count(distinct 1 + number) from anonymizations group by 1 order by 1", %{
+      assert_query("select number, count(distinct round(number)) from anonymizations group by 1 order by 1", %{
         rows: [
           %{row: [160.0, 1]},
           %{row: [170.0, 1]},
@@ -109,21 +109,6 @@ defmodule Cloak.Query.AnonymizationTest do
           %{row: [190.0, 1]}
         ]
       })
-    end
-
-    test "stats BUG: counting complex expression" do
-      assert_query(
-        "select number, count(distinct length(string) + number) from anonymizations group by 1 order by 1",
-        %{
-          rows: [
-            %{row: [160.0, 0]},
-            %{row: [170.0, 0]},
-            %{row: [175.0, 0]},
-            %{row: [180.0, 0]},
-            %{row: [190.0, 0]}
-          ]
-        }
-      )
     end
   end
 
@@ -184,7 +169,7 @@ defmodule Cloak.Query.AnonymizationTest do
       %{rows: [%{row: [1.0, 1.0, distinct_noise]}]}
     )
 
-    assert_in_delta distinct_noise, 0.5, 0.01
+    assert_in_delta distinct_noise, 1.0, 0.01
 
     assert_query(
       """
@@ -198,19 +183,19 @@ defmodule Cloak.Query.AnonymizationTest do
   end
 
   test "stddev with large values" do
-    :ok = insert_rows(_user_ids = 1..10, "anonymizations", ["number"], [50])
+    :ok = insert_rows(_user_ids = 1..10, "anonymizations", ["number"], [1.7976931348623157e308])
 
     assert_query(
-      "select stddev(1000000^number) from anonymizations",
+      "select stddev(number) from anonymizations",
       %{rows: [%{row: [nil]}]}
     )
   end
 
   test "uid-based sum with large values" do
-    :ok = insert_rows(_user_ids = 1..1000, "anonymizations", ["number"], [51])
+    :ok = insert_rows(_user_ids = 1..1000, "anonymizations", ["number"], [1.7976931348623157e308])
 
     assert_query(
-      "select sum(1000000^number), stddev(1) from anonymizations",
+      "select sum(number), stddev(1) from anonymizations",
       %{rows: [%{row: [nil, 0.0]}]}
     )
   end

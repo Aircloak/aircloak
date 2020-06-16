@@ -436,18 +436,17 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("like", [subject, {_pattern, regex, _regex_ci}]), do: subject =~ regex
   defp do_apply("ilike", [subject, {_pattern, _regex, regex_ci}]), do: subject =~ regex_ci
 
+  defp do_apply("!<>", [arg1, arg2]), do: arg1 == arg2
+
   defp do_apply("extract_words", [nil]), do: [nil]
   defp do_apply("extract_words", [string]), do: String.split(string)
   defp do_apply("unsafe_pow", [x, y]) when x >= 0, do: do_apply("^", [x, y])
   defp do_apply("checked_pow", [x, y]) when x >= 0, do: do_apply("^", [x, y])
   defp do_apply("^", [x, y]) when x >= 0, do: :math.pow(x, y)
   defp do_apply("unsafe_mul", [x, y]), do: do_apply("*", [x, y])
-  defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
-  defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])
   defp do_apply("*", [x, y]), do: x * y
   defp do_apply("unsafe_div", [x, y]), do: do_apply("/", [x, y])
   defp do_apply("checked_div", [x, y, epsilon]), do: if(abs(y) < epsilon, do: nil, else: x / y)
-  defp do_apply("/", [x = %Duration{}, y]), do: Duration.scale(x, 1 / y)
   defp do_apply("/", [x, y]), do: x / y
   defp do_apply("unsafe_add", [x, y]), do: do_apply("+", [x, y])
 
@@ -455,7 +454,6 @@ defmodule Cloak.Sql.Expression do
     do: x |> Timex.to_naive_datetime() |> Timex.add(y) |> Cloak.Time.max_precision()
 
   defp do_apply("+", [x = %NaiveDateTime{}, y = %Duration{}]), do: Timex.add(x, y) |> Cloak.Time.max_precision()
-  defp do_apply("+", [x = %Duration{}, y = %Duration{}]), do: Duration.add(x, y)
   defp do_apply("+", [x = %Duration{}, y]), do: do_apply("+", [y, x])
   defp do_apply("+", [x = %Time{}, y = %Duration{}]), do: add_to_time(x, y)
   defp do_apply("+", [x, y]), do: x + y

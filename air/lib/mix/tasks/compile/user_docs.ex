@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
       update_version_numbers_in_guide()
       copy_and_clean_diffix_docs()
 
-      if stale?() do
+      if Mix.env() == :prod or stale?() do
         conditionally_compile_offline_docs()
         cmd!("yarn", ~w(run gitbook build))
         File.mkdir_p!("priv/static")

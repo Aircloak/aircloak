@@ -52,8 +52,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     # Recomputing these for every condition becomes far too slow in the presence of nested analyst tables
 
     update_in(query, [Query.Lenses.all_queries() |> Lens.filter(& &1.analyst_table)], fn query ->
-      {:ok, cloak_table, columns} = Cloak.AnalystTable.to_cloak_table_with_columns(query.analyst_table, query.views)
-      %{query | analyst_table: {query.analyst_table, cloak_table, columns}}
+      {:ok, cloak_table} = Cloak.AnalystTable.to_cloak_table(query.analyst_table, query.views)
+      %{query | analyst_table: {query.analyst_table, cloak_table}}
     end)
   end
 
@@ -192,11 +192,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp min_of_min(%Expression{kind: :constant} = constant), do: constant
   defp min_of_min(%Expression{type: :boolean} = min), do: min |> cast(:integer) |> min_of_min() |> cast(:boolean)
-  defp min_of_min(min), do: Expression.function("min", [Expression.unalias(min)], min.type)
+  defp min_of_min(min), do: Expression.function("min", [Expression.unalias(min)], min.type) |> mark_synthetic()
 
   defp max_of_max(%Expression{kind: :constant} = constant), do: constant
   defp max_of_max(%Expression{type: :boolean} = max), do: max |> cast(:integer) |> max_of_max() |> cast(:boolean)
-  defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type)
+  defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type) |> mark_synthetic()
 
   defp float_potential_uid_expression(%Query{anonymization_type: :statistics, type: :restricted}, [
          %Expression{kind: :function, name: "case", args: [condition, uid, _null]}
@@ -204,16 +204,20 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     casted_condition = Expression.function({:cast, :integer}, [condition], :integer)
     condition_max = Expression.function("max", [casted_condition], :integer)
     aggregated_condition = Expression.function("=", [condition_max, Expression.constant(:integer, 1)], :boolean)
-    [Expression.function("case", [aggregated_condition, uid, Expression.constant(nil, nil)], uid.type)]
+
+    [
+      Expression.function("case", [aggregated_condition, uid, Expression.constant(nil, nil)], uid.type)
+      |> mark_synthetic()
+    ]
   end
 
   defp float_potential_uid_expression(%Query{anonymization_type: :statistics, type: :restricted}, [
          %Expression{user_id?: false} = conditional_uid
        ]) do
     [
-      Expression.function("count", [{:distinct, conditional_uid}], :integer),
-      Expression.function("min", [conditional_uid], conditional_uid.type),
-      Expression.function("max", [conditional_uid], conditional_uid.type)
+      Expression.function("count", [{:distinct, conditional_uid}], :integer) |> mark_synthetic(),
+      Expression.function("min", [conditional_uid], conditional_uid.type) |> mark_synthetic(),
+      Expression.function("max", [conditional_uid], conditional_uid.type) |> mark_synthetic()
     ]
   end
 
@@ -227,6 +231,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp float_potential_uid_expression(query, [%Expression{user_id?: true}]), do: [Helpers.id_column(query)]
 
   defp float_potential_uid_expression(_query, potential_uid_expression), do: potential_uid_expression
+
+  defp mark_synthetic(expression), do: %Expression{expression | synthetic?: true}
 
   # -------------------------------------------------------------------
   # Computing base noise layers
@@ -248,25 +254,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     %Query{query | noise_layers: finalize(noise_layers, query)}
   end
 
-  defp finalize(noise_layers, query) do
-    noise_layers
-    |> adjust_for_analyst_tables(query)
-    |> drop_redundant_noise_layers_columns(query)
-  end
-
-  defp adjust_for_analyst_tables(noise_layers, %{analyst_table: {_, table, columns}}),
-    do: update_in(noise_layers, [noise_layer_expressions()], &do_adjust_for_analyst_tables(&1, table, columns))
-
-  defp adjust_for_analyst_tables(noise_layers, _query), do: noise_layers
-
-  defp do_adjust_for_analyst_tables(expression, table, columns) do
-    columns
-    |> Enum.find_index(&Expression.equals?(&1, expression))
-    |> case do
-      nil -> expression
-      found -> %{Expression.column(table.columns |> Enum.at(found), table) | user_id?: expression.user_id?}
-    end
-  end
+  defp finalize(noise_layers, query), do: drop_redundant_noise_layers_columns(noise_layers, query)
 
   defp drop_redundant_noise_layers_columns(noise_layers, query) do
     all_expressions =
@@ -279,7 +267,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     update_in(noise_layers, [noise_layer_expressions()], &set_noise_layer_expression_alias(&1, all_expressions, query))
   end
 
-  defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: {_, table, _}}) do
+  defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: {_, table}}) do
     if Enum.any?(table.columns, &(&1.name == expression.name)) do
       expression
     else
@@ -408,7 +396,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         %Expression{kind: :function, name: "=", args: [column, constant]} = condition
         uid = Helpers.id_column(query)
 
-        conditional_uid = Expression.function("case", [condition, uid, Expression.constant(nil, nil)], uid.type)
+        conditional_uid =
+          Expression.function("case", [condition, uid, Expression.constant(nil, nil)], uid.type) |> mark_synthetic()
 
         [
           static_noise_layer(column, constant, nil, {:aggregator, index}),

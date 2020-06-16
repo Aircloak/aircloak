@@ -26,8 +26,7 @@ defmodule Aircloak.Functions do
                [:datetime, :interval] => :datetime,
                [:interval, :date] => :datetime,
                [:interval, :time] => :time,
-               [:interval, :datetime] => :datetime,
-               [:interval, :interval] => :interval
+               [:interval, :datetime] => :datetime
              })
   @sub_specs Map.merge(arithmetic_operation, %{
                [:date, :date] => :interval,
@@ -35,20 +34,12 @@ defmodule Aircloak.Functions do
                [:datetime, :datetime] => :interval,
                [:date, :interval] => :datetime,
                [:time, :interval] => :time,
-               [:datetime, :interval] => :datetime,
-               [:interval, :interval] => :interval
+               [:datetime, :interval] => :datetime
              })
 
-  @mul_specs Map.merge(arithmetic_operation, %{
-               [:interval, numeric] => :interval,
-               [numeric, :interval] => :interval
-             })
+  @mul_specs arithmetic_operation
 
-  @div_specs %{
-    [numeric, numeric] => :real,
-    [:interval, {:or, [:integer, :real]}] => :interval
-  }
-
+  @div_specs %{[numeric, numeric] => :real}
   @mod_specs %{[:integer, :integer] => :integer}
 
   @functions %{
@@ -106,7 +97,7 @@ defmodule Aircloak.Functions do
                },
                ~w(floor ceil) => %{
                  type_specs: %{[numeric] => :integer},
-                 attributes: [:math, :restricted]
+                 attributes: [:implicit_range, :math, :restricted]
                },
                ~w(round trunc) => %{
                  attributes: [:implicit_range, :math, :restricted],

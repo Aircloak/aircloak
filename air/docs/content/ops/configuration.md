@@ -342,8 +342,12 @@ The general shape of `config.json` is:
   "concurrency": integer,
   "lcf_buckets_aggregation_limit": integer,
   "max_parallel_queries": positive_integer,
-  "connection_keep_time": integer,
-  "connect_timeout": integer
+  "enable_case_support": boolean,
+  "connection_timeouts": {
+    "idle": integer,
+    "connect": integer,
+    "request": integer
+  }
 }
 ```
 
@@ -372,15 +376,25 @@ The `lcf_buckets_aggregation_limit` is optional and controls the maximum number 
 of low-count filtered rows is done. The default value is 3. This setting can be overridden per data-source. More details
 can be found in the [Low-count filtering](../sql/query-results.md#low-count-filtering) section.
 
-The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run simultaneously. The default value is 10.
+The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run
+simultaneously. The default value is 10.
 
-The `connection_keep_time` field is optional and it determines how many minutes idle database connections are kept
-before they are closed. It needs to be an integer value between 1 and 1 440 (1 day). If not set, a default
-timeout value of 1 minute is used.
+The `enable_case_support` field is optional and controls whether restricted `CASE` statements are allowed or not in
+anonymizing queries. The default value is false.
 
-The `connect_timeout` field is optional and it determines how many seconds the Insights Cloak waits for a database
-connection to be established. It needs to be an integer value between 1 and 3 600 (1 hour). If not set, a default
-timeout value of 5 seconds is used.
+The `connection_timeouts` field is optional and it controls various database connection timeouts.
+
+The `connection_timeouts.idle` field is optional and it determines how many seconds idle database connections are kept
+before they are closed. It needs to be an integer value between 1 and 86400 (1 day). If not set, a default timeout
+value of 60 seconds (1 minute) is used.
+
+The `connection_timeouts.connect` field is optional and it determines how many seconds the Insights Cloak waits for a
+database connection to be established. It needs to be an integer value between 1 and 3600 (1 hour). If not set, a
+default timeout value of 5 seconds is used.
+
+The `connection_timeouts.request` field is optional and it determines how many seconds the Insights Cloak waits for a
+database request to complete. It needs to be an integer value between 1 and 86400 (1 day). If not set, a default
+timeout value of 43200 seconds (12 hours) is used.
 
 ### Data source configuration
 
@@ -426,9 +440,9 @@ If not present, the global setting is used.
 The `lcf_buckets_aggregation_limit` field is optional and controls the maximum number of columns for which partial
 aggregation of low-count filtered rows is done. If not present, the global setting is used.
 
-The `max_rare_negative_conditions` affects how many negative conditions containing rare values are allowed per anonymizing query.
-It defaults to a safe value of 1 and should under most circumstances not be altered.
-Setting it to 0 rejects all rare negative conditions.
+The `max_rare_negative_conditions` affects how many negative conditions containing rare values are allowed per
+anonymizing query. It defaults to a safe value of 0, which rejects all rare negative conditions, and should,
+under most circumstances, not be altered.
 Increasing the value above the default should only be done if it has been deemed safe.
 
 The `analyst_tables_enabled` can be set to true to enable creation of analyst tables. By default, this parameter is set to false. See the [Analyst tables](#analyst-tables) section for more details.
@@ -442,7 +456,9 @@ The database tables that should be made available for querying are defined in th
   "table_name_1": {
     "db_name" | "query": string,
     "content_type": "personal" | "non-personal",
-    "keys": [{"key_type_1": "column_name_1"}, ...]
+    "keys": [{"key_type_1": "column_name_1"}, ...],
+    "exclude_columns": ["column1", "column2", ...],
+    "unselectable_columns": ["column1", "column2", ...]
   },
   "table_name_2": ...
 }
@@ -489,6 +505,13 @@ or projected tables from the configuration file).
 If the virtual table contains columns with duplicated names, only the first one is kept and the rest are dropped.
 Constant columns are also dropped from the table.
 
+The `exclude_columns` is an optional parameter. It takes the form of an array and specifies columns to exclude from the underlying table.
+Excluded columns will not appear in the data source and cannot be referenced in any way from queries.
+
+The `unselectable_columns` is an optional parameter for personal tables.
+It takes the form of an array and marks columns as unselectable.
+Unselectable columns can only be joined together, counted, and/or grouped by.
+
 ##### Keys
 
 Entities in a dataset, whether they be persons, transactions, or products, are usually identifiable by a single column
@@ -529,7 +552,7 @@ products might look like this:
     ]
   },
   "products": {
-    "type": "non-personal",
+    "content_type": "non-personal",
     "keys": [
       {"product_id": "id"}
     ]

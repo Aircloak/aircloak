@@ -6,13 +6,14 @@ defmodule Cloak.DataSourceTest do
   import ExUnit.CaptureLog
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("test", "value INTEGER")
+    :ok =
+      Cloak.Test.DB.create_table("test", "value INTEGER, ignored_column INTEGER", exclude_columns: ["ignored_column"])
 
     :ok =
-      Cloak.Test.DB.insert_data("test", ["user_id", "value"], [
-        ["user1", 10],
-        ["user1", 20],
-        ["user1", 30]
+      Cloak.Test.DB.insert_data("test", ["user_id", "value", "ignored_column"], [
+        ["user1", 10, 100],
+        ["user1", 20, 200],
+        ["user1", 30, 300]
       ])
 
     :ok
@@ -25,8 +26,8 @@ defmodule Cloak.DataSourceTest do
       assert(
         DataSource.table(data_source, :test).columns ==
           [
-            %{name: "user_id", type: :text, visible?: true},
-            %{name: "value", type: :integer, visible?: true}
+            %{name: "user_id", type: :text, access: :visible},
+            %{name: "value", type: :integer, access: :visible}
           ]
       )
     end

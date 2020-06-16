@@ -19,7 +19,8 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
              {:updated, 0},
-             {:selected, ['relname', 'nspname', 'relkind'], [{'integers', 'public', 'r'}, {'users', 'public', 'r'}]}
+             {:selected, ['relname', 'nspname', 'relkind'],
+              [{'column_access', 'public', 'r'}, {'integers', 'public', 'r'}, {'users', 'public', 'r'}]}
            ]
   end
 
@@ -138,7 +139,8 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
              {:updated, 0},
-             {:selected, ['name', 'type'], [{'integers', 'personal'}, {'users', 'personal'}]}
+             {:selected, ['name', 'type'],
+              [{'column_access', 'personal'}, {'integers', 'personal'}, {'users', 'personal'}]}
            ]
   end
 
@@ -148,7 +150,8 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
              {:updated, 0},
-             {:selected, ['name', 'type'], [{'integers', 'personal'}, {'users', 'personal'}]}
+             {:selected, ['name', 'type'],
+              [{'column_access', 'personal'}, {'integers', 'personal'}, {'users', 'personal'}]}
            ]
   end
 
@@ -158,7 +161,8 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
              {:updated, 0},
-             {:selected, ['name', 'type'], [{'integers', 'personal'}, {'users', 'personal'}]}
+             {:selected, ['name', 'type'],
+              [{'column_access', 'personal'}, {'integers', 'personal'}, {'users', 'personal'}]}
            ]
   end
 

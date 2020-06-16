@@ -219,11 +219,12 @@ defmodule Cloak.Regressions.TeamBank.Test do
 
   test "bianca 8" do
     query = """
-    SELECT avg(income)
+    SELECT avg(income) / avg(months)
     FROM(
       SELECT
         subInhaberId,
-        SUM(betrag) / count(distinct month) AS income
+        sum(betrag) as income,
+        count(distinct month) as months
       FROM (
         SELECT
           subInhaberId,
@@ -548,7 +549,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
 
   test "sebastian 12" do
     query = """
-    SELECT users.uid
+    SELECT count(users.uid)
     FROM (
       SELECT inhaberId as uid, sum(betrag) as monthly_income
       FROM umsatz
@@ -556,7 +557,6 @@ defmodule Cloak.Regressions.TeamBank.Test do
       GROUP BY uid
     ) as users
     WHERE users.monthly_income >= 5000 and users.monthly_income < 10000
-    GROUP BY 1
     """
 
     assert_compiles_successfully(query, data_source_scaffold())
@@ -616,12 +616,12 @@ defmodule Cloak.Regressions.TeamBank.Test do
     query = """
     SELECT
       bucket(income by 200 align middle) as income_class,
-      avg(monthly_savings)
+      avg(income) + avg(expenses)
     FROM (
       SELECT
         expenses_by_month.inhaberId,
         avg(monthly_income) as income,
-        avg(monthly_income) + avg(monthly_expenses) as monthly_savings
+        avg(monthly_expenses) as expenses
       FROM (
         SELECT
           inhaberId,
@@ -655,7 +655,6 @@ defmodule Cloak.Regressions.TeamBank.Test do
   test "sebastian 19" do
     query = """
     SELECT
-      expenses_by_month.inhaberId,
       income_by_month.year,
       income_by_month.month,
       monthly_income as income,
@@ -691,7 +690,6 @@ defmodule Cloak.Regressions.TeamBank.Test do
   test "sebastian 20" do
     query = """
     SELECT
-      expenses_by_month.inhaberId,
       avg(monthly_income) as avg_income,
       avg(monthly_expenses) as avg_expenses,
       avg(monthly_income) + avg(monthly_expenses) as avg_savings
@@ -717,7 +715,6 @@ defmodule Cloak.Regressions.TeamBank.Test do
       income_by_month.inhaberId = expenses_by_month.inhaberId and
       income_by_month.year = expenses_by_month.year and
       income_by_month.month = expenses_by_month.month
-    GROUP BY expenses_by_month.inhaberId
     """
 
     assert_compiles_successfully(query, data_source_scaffold())
@@ -769,23 +766,23 @@ defmodule Cloak.Regressions.TeamBank.Test do
   #   assert_compiles_successfully(query, data_source_scaffold())
   # end
 
-  test "comparison of months with math" do
-    query = """
-      SELECT umsatz1.Monat, count(distinct umsatz1.inhaberId) FROM
-      (SELECT inhaberId, MONTH(buchungsDatum) AS Monat FROM umsatz
-      WHERE UPPER(umsatzeigenschaften.spezifizierung) = 'EASYCREDIT' AND
-      buchungsDatum BETWEEN '2017-01-01' AND '2018-01-01' GROUP BY 1,2) AS umsatz1
-      LEFT JOIN
-      (SELECT inhaberId, MONTH(buchungsDatum) AS Monat FROM umsatz
-      WHERE UPPER(umsatzeigenschaften.spezifizierung) = 'EASYCREDIT' AND
-      buchungsDatum BETWEEN '2017-01-01' AND '2018-01-01' GROUP BY 1,2) AS umsatz2
-      ON umsatz1.inhaberId = umsatz2.inhaberId AND umsatz1.Monat = umsatz2.Monat - 1
-      WHERE umsatz2.inhaberId IS NULL
-      GROUP BY 1
-    """
-
-    assert_compiles_successfully(query, data_source_scaffold())
-  end
+  # test "comparison of months with math" do
+  #  query = """
+  #    SELECT umsatz1.Monat, count(distinct umsatz1.inhaberId) FROM
+  #    (SELECT inhaberId, MONTH(buchungsDatum) AS Monat FROM umsatz
+  #    WHERE UPPER(umsatzeigenschaften.spezifizierung) = 'EASYCREDIT' AND
+  #    buchungsDatum BETWEEN '2017-01-01' AND '2018-01-01' GROUP BY 1,2) AS umsatz1
+  #    LEFT JOIN
+  #    (SELECT inhaberId, MONTH(buchungsDatum) AS Monat FROM umsatz
+  #    WHERE UPPER(umsatzeigenschaften.spezifizierung) = 'EASYCREDIT' AND
+  #    buchungsDatum BETWEEN '2017-01-01' AND '2018-01-01' GROUP BY 1,2) AS umsatz2
+  #    ON umsatz1.inhaberId = umsatz2.inhaberId AND umsatz1.Monat = umsatz2.Monat - 1
+  #    WHERE umsatz2.inhaberId IS NULL
+  #    GROUP BY 1
+  #  """
+  #
+  #  assert_compiles_successfully(query, data_source_scaffold())
+  # end
 
   defp data_source_scaffold() do
     %{

@@ -35,23 +35,6 @@ defmodule Cloak.DataSource.Bounds.Compute do
     end
   end
 
-  @doc """
-  Extends money-aligned bounds by around 10x.
-
-  It will preserve the relative position of both bounds to 0. Note that if both bounds have the same sign and the
-  smaller absolute value is below 10, then the resulting bounds will include 0.
-  """
-  @spec extend({integer, integer}) :: {integer, integer}
-  def extend({min, max}) when max < min, do: extend({max, min})
-
-  def extend({min, max}) do
-    cond do
-      min <= 0 and max <= 0 -> {min * 10, div(max, 10)}
-      min >= 0 and max >= 0 -> {div(min, 10), max * 10}
-      true -> {min * 10, max * 10}
-    end
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

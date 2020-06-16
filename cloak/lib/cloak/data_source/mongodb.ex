@@ -252,7 +252,7 @@ defmodule Cloak.DataSource.MongoDB do
     cast_boolean_to_text cast_text_to_boolean cast_integer_to_real cast_datetime_to_text
     ^ abs ceil floor round sqrt trunc quarter div cast_real_to_integer min max avg
     length left right substring cast_real_to_text cast_integer_to_text coalesce case
-    < > <= >= = <> and or not in is_null !<>
+    < > <= >= = <> and or not in is_null !<> stddev
   )
 
   @supported_functions_42 @supported_functions_36 ++ ~w(like ilike)
@@ -287,7 +287,9 @@ defmodule Cloak.DataSource.MongoDB do
       end)
 
   # Offloaded global aggregators do not work properly as the `$group` operator return an empty output on empty input.
-  defp supports_aggregators?(%Query{aggregators: [_ | _], implicit_count?: false, type: :standard}), do: false
+  defp supports_aggregators?(%Query{aggregators: [_ | _], implicit_count?: false, type: :standard, subquery?: false}),
+    do: false
+
   defp supports_aggregators?(_query), do: true
 
   defp supports_grouping?(query), do: query.type == :anonymized or length(query.grouping_sets) <= 1

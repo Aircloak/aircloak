@@ -35,12 +35,6 @@ defmodule IntegrationTest.ShadowDbTest do
   """
 
   setup do
-    enable_shadowdb_synchronization()
-
-    on_exit(fn ->
-      disable_shadowdb_synchronization()
-    end)
-
     user = Manager.create_admin_user()
     {:ok, conn} = connect(user)
     [user: user, conn: conn]
@@ -54,7 +48,7 @@ defmodule IntegrationTest.ShadowDbTest do
 
       assert {:ok, _table} = create_analyst_table(context.user, name, "select user_id, name from users")
 
-      assert soon(table_exists?(context.conn, name))
+      assert table_exists?(context.conn, name)
 
       assert [
                ["user_id", "text"],
@@ -69,8 +63,8 @@ defmodule IntegrationTest.ShadowDbTest do
       assert {:ok, table} = create_analyst_table(context.user, name, "select user_id, name from users")
       assert {:ok, _} = Air.Service.AnalystTable.update(table.id, context.user, new_name, "select user_id from users")
 
-      assert soon(not table_exists?(context.conn, name))
-      assert soon(table_exists?(context.conn, new_name))
+      assert not table_exists?(context.conn, name)
+      assert table_exists?(context.conn, new_name)
       assert [["user_id", "text"]] = table_columns(context.conn, new_name)
     end
 
@@ -81,7 +75,7 @@ defmodule IntegrationTest.ShadowDbTest do
 
       assert {:ok, _view} = create_view(context.user, name, "select user_id, name from users")
 
-      assert soon(table_exists?(context.conn, name))
+      assert table_exists?(context.conn, name)
 
       assert [
                ["user_id", "text"],
@@ -96,8 +90,8 @@ defmodule IntegrationTest.ShadowDbTest do
       assert {:ok, view} = create_view(context.user, name, "select user_id, name from users")
       assert {:ok, _} = Air.Service.View.update(view.id, context.user, new_name, "select user_id from users")
 
-      assert soon(not table_exists?(context.conn, name))
-      assert soon(table_exists?(context.conn, new_name))
+      assert not table_exists?(context.conn, name)
+      assert table_exists?(context.conn, new_name)
       assert [["user_id", "text"]] = table_columns(context.conn, new_name)
     end
 
@@ -108,18 +102,16 @@ defmodule IntegrationTest.ShadowDbTest do
       assert {:ok, _table} = create_analyst_table(context.user, table_name, "select user_id, name from users")
       assert {:ok, _view} = create_view(context.user, view_name, "select user_id, name from users")
 
-      assert soon(table_exists?(context.conn, table_name))
-      assert soon(table_exists?(context.conn, view_name))
+      assert table_exists?(context.conn, table_name)
+      assert table_exists?(context.conn, view_name)
 
       Cloak.DataSource.reinitialize_all_data_sources()
       Manager.restart_cloak()
 
       # Wait for updates to settle.
-      Air.PsqlServer.ShadowDb.SchemaSynchronizer.wait_for_synchronization()
-      Air.PsqlServer.ShadowDb.Manager.wait_until_initialized(context.user, Manager.data_source_name())
 
-      assert soon(table_exists?(context.conn, table_name))
-      assert soon(table_exists?(context.conn, view_name))
+      assert table_exists?(context.conn, table_name)
+      assert table_exists?(context.conn, view_name)
     end
   end
 
@@ -174,17 +166,5 @@ defmodule IntegrationTest.ShadowDbTest do
       database: Manager.data_source_name(),
       ssl: true
     )
-  end
-
-  defp enable_shadowdb_synchronization() do
-    Supervisor.start_child(Air.PsqlServer, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
-    :ok
-  end
-
-  defp disable_shadowdb_synchronization() do
-    Air.PsqlServer.ShadowDb.SchemaSynchronizer.wait_for_synchronization()
-    Supervisor.terminate_child(Air.PsqlServer, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
-    Supervisor.delete_child(Air.PsqlServer, Air.PsqlServer.ShadowDb.SchemaSynchronizer)
-    :ok
   end
 end

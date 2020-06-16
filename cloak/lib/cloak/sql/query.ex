@@ -173,9 +173,16 @@ defmodule Cloak.Sql.Query do
   @doc "Creates a table definition which corresponds to the given select query."
   @spec to_table(t, String.t(), [DataSource.Table.option()]) :: DataSource.Table.t()
   def to_table(%__MODULE__{command: :select} = query, name, opts \\ []) do
+    query
+    |> selected_columns()
+    |> Compiler.Helpers.create_table_from_columns(name, opts)
+  end
+
+  @doc "Returns the list of properly-aliased columns from the `SELECT` clause."
+  @spec selected_columns(t) :: [Expression.t()]
+  def selected_columns(%__MODULE__{command: :select} = query) do
     Enum.zip(query.column_titles, query.columns)
     |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
-    |> Compiler.Helpers.create_table_from_columns(name, opts)
   end
 
   @doc "Adds one or more info messages to the query."
@@ -392,12 +399,9 @@ defmodule Cloak.Sql.Query do
   defp include_required_expressions(query), do: Enum.reduce(required_expressions(query), query, &add_db_column(&2, &1))
 
   defp required_expressions(%__MODULE__{command: :select, emulated?: false, type: type} = query)
-       when type != :anonymized do
-    # non-emulated, non-anonymized subquery -> the selected columns are all selected expressions
-    query.column_titles
-    |> Enum.zip(query.columns)
-    |> Enum.map(fn {column_alias, column} -> %Expression{column | alias: column_alias} end)
-  end
+       when type != :anonymized,
+       # non-emulated, non-anonymized subquery -> the selected columns are all selected expressions
+       do: selected_columns(query)
 
   defp required_expressions(%__MODULE__{command: :select} = query) do
     # anonymized query or emulated subquery -> we're only fetching columns,

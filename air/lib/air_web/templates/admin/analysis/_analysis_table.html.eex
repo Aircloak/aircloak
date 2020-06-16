@@ -1,14 +1,14 @@
-<table class="table table-striped">
+<table class="table table-striped table-responsive-xl">
   <thead>
     <tr>
-      <th>Source</th>
-      <th>Columns</th>
-      <th>Analyzed</th>
-      <th>Processing</th>
-      <th>Failed</th>
-      <th>Isolators</th>
-      <th>Rare values</th>
-      <th>Bounds</th>
+      <th class="border-top-0">Source</th>
+      <th class="border-top-0">Columns</th>
+      <th class="border-top-0">Analyzed</th>
+      <th class="border-top-0">Processing</th>
+      <th class="border-top-0">Failed</th>
+      <th class="border-top-0">Isolators</th>
+      <th class="border-top-0">Rare values</th>
+      <th class="border-top-0">Bounds</th>
     </tr>
 
     <tr>

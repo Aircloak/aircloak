@@ -2,6 +2,7 @@ defmodule Air.Service.LDAP.Client do
   @moduledoc "This module provides functions for interacting with an LDAP server."
 
   require Aircloak.DeployConfig
+  require Logger
 
   alias Air.Service.LDAP.{User, Group, FilterParser}
 
@@ -74,8 +75,22 @@ defmodule Air.Service.LDAP.Client do
 
   defp search(conn, options) do
     case :eldap.search(conn, options) do
-      {:ok, {:eldap_search_result, results, _}} -> {:ok, results}
-      _ -> {:error, :search_failed}
+      {:ok, {:eldap_search_result, results, _}} ->
+        {:ok, results}
+
+      {:ok, {:referral, _referrals}} ->
+        Logger.error(fn ->
+          "Unsupported LDAP referral search result. The search parameters were: #{inspect(options)}"
+        end)
+
+        {:error, :search_failed}
+
+      {:error, reason} ->
+        Logger.error(fn ->
+          "LDAP search failed with error: #{reason}. The search parameters were: #{inspect(options)}"
+        end)
+
+        {:error, :search_failed}
     end
   end
 
@@ -157,13 +172,11 @@ defmodule Air.Service.LDAP.Client do
     end
   end
 
-  defp open_connection({:ok, config = %{"host" => host, "encryption" => "ssl"}}) do
-    :eldap.open([to_charlist(host)], port: port(config), ssl: true, sslopts: ssl_options(config), timeout: @timeout)
-  end
+  defp open_connection({:ok, config = %{"host" => host, "encryption" => "ssl"}}),
+    do: :eldap.open([to_charlist(host)], port: port(config), ssl: true, sslopts: ssl_options(config), timeout: @timeout)
 
-  defp open_connection({:ok, config = %{"host" => host}}) do
-    :eldap.open([to_charlist(host)], port: port(config), timeout: @timeout)
-  end
+  defp open_connection({:ok, config = %{"host" => host}}),
+    do: :eldap.open([to_charlist(host)], port: port(config), timeout: @timeout)
 
   defp open_connection(_), do: {:error, :invalid_config}
 

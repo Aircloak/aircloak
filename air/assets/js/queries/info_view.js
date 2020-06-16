@@ -5,7 +5,7 @@ import React from "react";
 import pagedown from "pagedown";
 
 const mdToHtml = (text: string) => ({
-  __html: pagedown.getSanitizingConverter().makeHtml(text)
+  __html: pagedown.getSanitizingConverter().makeHtml(text),
 });
 
 export default ({ info }: { info: string[] }) => {

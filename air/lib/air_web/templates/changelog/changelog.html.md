@@ -2,13 +2,54 @@
 
 ### __Breaking changes__
 
+- Default value for `max_rare_negative_conditions` is now 0.
+- The `IS [NOT] NULL` operator is restricted to clear expressions.
+- Aggregators are restricted to clear expressions.
+- Dropped support for non-datetime/interval arithmetic.
+- `floor`, `ceil` and `cast(real as integer)` are now considered implicit ranges.
+
 ### New features
 
 ### Enhancements
 
+- Added overflow protection for date arithmetic. Oracle UDFs have to be reloaded.
+
 ### Bugfixes
 
+- Fixed filtering of censored values in standard queries.
+- Verify implicit range usage on both sides of a condition.
+
 ### Changes
+
+- Increased the minimum threshold for non-count stats-based aggregators.
+
+## Version 20.1.3
+
+### Bugfixes
+
+- Fixed duplication of noise layers when using `count(distinct column)` aggregators.
+- Fixed incorrect rounding in Oracle when using `bucket` functions.
+
+## Version 20.1.2
+
+### Bugfixes
+
+- Fixed crash when executing query over analyst table.
+- Fixed crash when using ranges with different boundary types.
+
+## Version 20.1.1
+
+### New features
+
+- Support for excluding columns from a data source table. This can be done using the `exclude_columns` parameter.
+- Support for marking columns as unselectable. This can be done using the `unselectable_columns` parameter.
+
+### Bugfixes
+
+- Fixed handling of dotted table names and aliases.
+- Fixed performance degradation bug introduced in version 20.1.0.
+- Fixed periodically occurring bug that would prevent queries from being run.
+- Fixed high CPU usage after startup caused by shadow values cache initialization.
 
 ## Version 20.1.0
 
@@ -22,7 +63,9 @@
 - The minimum supported version of Postgres is now 9.6 (dropping support for version 9.1 through 9.5).
 - Support for the `auto_aircloak_export` configuration parameter in the Insights Air config was removed.
   Consult the [Upgrade guide](docs/ops/upgrading.html) for additional information.
-- Support for some obsolete data source configuration features was removed: decoders, projections, explicit user_id-field.
+- Support for some obsolete data source configuration features was removed: decoders, projections, explicit
+  user_id-field.
+- Anonymizing queries using raw user_id columns are rejected instead of automatically censoring the user_id column.
 
 ### New features
 
@@ -36,13 +79,11 @@
   `select_hints` field in the `parameters` section.
 - The Oracle Instant Client version 18.3 is bundled with the container and no longer needs to be
   provided separately.
-- The timeout for idle connections can now be adjusted in the Cloak config file, under the `connection_keep_time` field.
-- The timeout for connecting to a data source can now be adjusted in the Cloak config file, under the `connect_timeout`
-  field.
+- Various data source connection timeouts can now be adjusted in the Cloak config file, under the `timeouts` field.
 - Improved support for boolean expressions.
 - Allowed inequalities between datetime columns and the current date.
-- Added support for `CASE` statements in [standard queries](sql#query-and-subquery-types). 
-  Experimental support for [restricted queries](sql#query-and-subquery-types) can be enabled 
+- Added support for `CASE` statements in [standard queries](sql#query-and-subquery-types).
+  Experimental support for [restricted queries](sql#query-and-subquery-types) can be enabled
   in the Cloak config using the `enable_case_support` flag.
 - The HTTP REST API query result endpoint no longer returns internal logging data.
 - The number of analysis queries needed when multiple copies of a data source exist was reduced.
@@ -51,10 +92,11 @@
 ### Bugfixes
 
 - Fixed detection of recursive aggregators usage inside the `HAVING` clause.
-- Various fixes for Oracle data source: 
+- Various fixes for Oracle data source:
   - the parameter order of the `trim` function in the generated SQL was fixed
   - date/time conversion was not always correct
 - Views and analyst tables now appear in popular analytics tools such as Tableau.
+- Fixed verification of isolated columns usage in non-clear expressions in the `SELECT` clause.
 
 ### Changes
 

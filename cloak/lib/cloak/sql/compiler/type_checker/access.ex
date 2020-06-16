@@ -5,18 +5,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   definitions.
   """
 
-  use Lens.Macros
   alias Cloak.Sql.{Condition, Query, Expression, LikePattern}
   alias Cloak.Sql.Compiler.TypeChecker.Type
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Returns a lens focusing on all queries (sub- and root-) with the type :anonymized."
-  deflens anonymized_queries() do
-    Query.Lenses.all_queries() |> Lens.filter(&(&1.type == :anonymized))
-  end
 
   @doc "Returns a stream of `{subquery, negative_condition}` pairs that require a shadow table check."
   @spec negative_conditions(Query.t()) :: Enumerable.t({Query.t(), Query.where_clause()})
@@ -41,14 +35,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   @spec potential_unclear_isolator_usages(Query.t()) :: [Query.where_clause()]
   def potential_unclear_isolator_usages(query) do
     conditions(query, &unclear_isolator_condition?(&1, query)) ++
-      group_by_expressions(query, &unclear_isolator_expression?(&1, query))
+      group_expressions(query, &unclear_isolator_expression?(&1, query))
   end
 
   # -------------------------------------------------------------------
   # Negative conditions
   # -------------------------------------------------------------------
 
-  deflensp do_negative_conditions() do
+  defp do_negative_conditions() do
     Query.Lenses.pre_anonymization_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.filter(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
@@ -81,12 +75,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   # Isolators
   # -------------------------------------------------------------------
 
-  defp group_by_expressions(query, predicate) do
-    Lens.key(:group_by)
-    |> Lens.all()
-    |> Lens.filter(predicate)
-    |> Lens.to_list(query)
-  end
+  defp group_expressions(query, predicate),
+    do: Query.Lenses.group_expressions() |> Lens.filter(predicate) |> Lens.to_list(query)
 
   defp unclear_isolator_condition?(%Expression{kind: :function, name: "not", args: [condition]}, query),
     do: unclear_isolator_condition?(condition, query)

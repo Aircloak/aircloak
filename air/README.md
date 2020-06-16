@@ -4,21 +4,21 @@ The `air` is the entity through which our users interact with their cloaks.
 It contains the interfaces for adding and administering users to those
 needed to create, update and run tasks.
 
-----------------------
+---
 
 - [What it does](#what-it-does)
 - [What is it made up of](#what-is-it-made-up-of)
 - [Getting started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Running](#running)
-    - [Local docker container](#local-docker-container)
-    - [Other common tasks](#other-common-tasks)
-    - [Deploying](#deploying)
+  - [Prerequisites](#prerequisites)
+  - [Running](#running)
+  - [Local docker container](#local-docker-container)
+  - [Other common tasks](#other-common-tasks)
+  - [Deploying](#deploying)
 - [Frontend](#frontend)
   - [Analyst pages](#analyst-pages)
   - [Admin pages](#admin-pages)
 
-----------------------
+---
 
 ## What it does
 
@@ -31,14 +31,12 @@ This repository contains the Air system, which provides HTTPS endpoints that all
 This application also provides API endpoints that can be used by analysts to programmatically interact with
 the system, as well as the end-points used by the cloaks when they communicate with the `air`.
 
-
 ## What is it made up of
 
 The air is written as a single [elixir](elixir-lang.org/) [phoenix](www.phoenixframework.org) website. It
 contains both the front end facing as well as the backend services needed to operate the system.
 
 Additionally to run it relies on `Postgres` for datastorage.
-
 
 ## Getting started
 
@@ -62,11 +60,10 @@ with `make recreate-db`
 The cloak is configured to connect to `air` on `insights.air-local`. To make this work you will need
 to edit your `/etc/hosts` file to point `insights.air-local` to `127.0.0.1` by adding the line.
 
-
 ### Running
 
 First, make sure the dependencies are started by running `../start_dependencies.sh`. To start the development server, you run: `make start`. Now you can access the
-site at http://localhost:8080/. In development there is a default admin user with username: `admin@aircloak.com` and password: `password1234`.
+site at http://localhost:8080/. In development there is a default admin user with username: `admin@aircloak.com` and password: `psswrd12`.
 
 Note that there's no need to migrate the database. This will happen automatically when the application starts.
 However, if you do need to manually migrate/rollback (for example while creating a new migration), you can do
@@ -90,7 +87,7 @@ One of the dependencies is an LDAP server. In fact two instances are started - o
 can be modified freely.
 
 Both servers are seeded with the contents of the file `ldap/bootstrap.ldif`, creating two users `alice` and `bob` with
-passwords `password1234`. The dev environment is configured to sync with the dev server, so assuming the server is
+passwords `psswrd12`. The dev environment is configured to sync with the dev server, so assuming the server is
 running it should be possible to login with those credentials. The LDAP administrator credentials are
 `cn=admin,dc=example,dc=com` with password `admin`.
 
@@ -98,11 +95,11 @@ running it should be possible to login with those credentials. The LDAP administ
 
 To start a local docker container, you need to first build the image with `./build-image.sh`. Then you can start the container with `./container.sh console`. Once the container is started you can access it at http://localhost:8080/ and https://insights.air-local:8443. Since different ports are used, the container can run side-by-side to the local site.
 
-__Linux developers__: Scripts in this project use docker in the context of the logged in user (without root
+**Linux developers**: Scripts in this project use docker in the context of the logged in user (without root
 privileges). To enable this, you need to add yourself to the `docker` group. See
 [here](http://askubuntu.com/a/477554) for explanation.
 
-__macOS users__: see [here](../macos_docker.md) for additional instructions.
+**macOS users**: see [here](../macos_docker.md) for additional instructions.
 
 ### Other common tasks
 
@@ -129,11 +126,11 @@ layout or broken up into multiple lines.
 On screens 360px and wider these pages should be at least functional. This means that all basic tasks can be
 accomplished, however some non-key elements can be collapsed or hidden entirely. The basic tasks are:
 
-* logging in
-* changing your password (in case you need to do that on the go due to a breach)
-* selecting a data source
-* write and run a query
-* see the results of a query
+- logging in
+- changing your password (in case you need to do that on the go due to a breach)
+- selecting a data source
+- write and run a query
+- see the results of a query
 
 ### Admin pages
 

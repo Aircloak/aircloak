@@ -14,6 +14,7 @@ defmodule IntegrationTest.QueryTest do
     assert result.selected_types == ["text", "text"]
 
     assert result.buckets == [
+             %{"occurrences" => 1, "row" => ["column_access", "personal"]},
              %{"occurrences" => 1, "row" => ["integers", "personal"]},
              %{"occurrences" => 1, "row" => ["users", "personal"]}
            ]
@@ -32,6 +33,16 @@ defmodule IntegrationTest.QueryTest do
              [isolator1, isolator2, isolator3],
              &(&1 in ["true", "false", "pending", "failed"])
            )
+  end
+
+  test "show columns ignores excluded columns", context do
+    {:ok, result} = run_query(context.user, "show columns from column_access")
+
+    assert [
+             %{"occurrences" => 1, "row" => ["user_id", "text", _, "user_id"]},
+             %{"occurrences" => 1, "row" => ["white", "integer", _, nil]},
+             %{"occurrences" => 1, "row" => ["grey", "integer", _, nil]}
+           ] = result.buckets
   end
 
   test "select", context do

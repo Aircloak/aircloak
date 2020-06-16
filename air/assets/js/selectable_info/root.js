@@ -1,15 +1,14 @@
 // @flow
 
 import React from "react";
-import _ from "lodash";
 import Channel from "phoenix";
 
 import { SelectableView } from "./selectable";
 import NewSelectableToolbarView from "./new_selectable_toolbar";
-import { Filter, EmptyFilter } from "./filter";
 import FilterView from "./filter_view";
 import FrontendSocket from "../frontend_socket";
 import type { Selectable } from "./selectable";
+import type { NumberFormat } from "../number_format";
 
 type Props = {
   selectables: Selectable[],
@@ -22,14 +21,15 @@ type Props = {
   dataSourceStatus: string,
   frontendSocket: FrontendSocket,
   supportsCreateTable: boolean,
-  selectableToExclude: number
+  selectableToExclude: number,
+  numberFormat: NumberFormat,
 };
 
 type State = {
   expanded: Set<string>,
-  filter: Filter,
+  filter: string,
   selectables: Selectable[],
-  dataSourceStatus: string
+  dataSourceStatus: string,
 };
 
 export default class SelectableInfo extends React.Component<Props, State> {
@@ -39,14 +39,14 @@ export default class SelectableInfo extends React.Component<Props, State> {
       dataSourceStatus,
       frontendSocket,
       dataSourceName,
-      userId
+      userId,
     } = this.props;
 
     this.state = {
       expanded: new Set(),
-      filter: new EmptyFilter(),
+      filter: "",
       selectables: props.selectables,
-      dataSourceStatus
+      dataSourceStatus,
     };
 
     this.toggleExpand = this.toggleExpand.bind(this);
@@ -57,24 +57,24 @@ export default class SelectableInfo extends React.Component<Props, State> {
       dataSourceName,
       userId,
       {
-        handleEvent: event => this.updateSelectables(event),
-        joined: event => this.updateSelectables(event)
+        handleEvent: (event) => this.updateSelectables(event),
+        joined: (event) => this.updateSelectables(event),
       }
     );
 
     frontendSocket.joinDataSourceChannel(dataSourceName, {
-      handleEvent: event => this.dataSourceStatusReceived(event)
+      handleEvent: (event) => this.dataSourceStatusReceived(event),
     });
   }
 
   channel: Channel;
 
-  onFilterChange = (filter: Filter) => {
+  onFilterChange = (filter: string) => {
     this.setState({ filter });
   };
 
   toggleExpand = (selectable: Selectable) => () => {
-    this.setState(state => {
+    this.setState((state) => {
       const expanded = state.expanded;
       if (this.expanded(selectable)) {
         expanded.delete(selectable.id);
@@ -91,11 +91,10 @@ export default class SelectableInfo extends React.Component<Props, State> {
 
   expanded = (selectable: Selectable) => this.state.expanded.has(selectable.id);
 
-  selectables = () =>
-    _.reject(
-      this.state.selectables,
-      selectable =>
-        selectable.internal_id ===
+  selectables = (): Array<Selectable> =>
+    this.state.selectables.filter(
+      (selectable) =>
+        selectable.internal_id !==
         (this.props.selectableToExclude || "don't exclude any")
     );
 
@@ -105,24 +104,25 @@ export default class SelectableInfo extends React.Component<Props, State> {
   renderAvailabilityLabel = () => {
     switch (this.state.dataSourceStatus) {
       case "online":
-        return <span className="label label-success pull-right">Online</span>;
+        return <span className="badge badge-success ml-2">Online</span>;
       case "offline":
-        return <span className="label label-danger pull-right">Offline</span>;
+        return <span className="badge badge-danger ml-2">Offline</span>;
       case "analyzing":
         return this.analyzing();
       default:
-        return <span className="label label-warning pull-right">Broken</span>;
+        return <span className="badge badge-warning ml-2">Broken</span>;
     }
   };
 
   analyzing = () => (
-    <span className="label label-success pull-right">
+    <span className="badge badge-success ml-2">
       Online
       <a
         href="/docs/sql/restrictions.html#column-analysis"
         target="blank"
         data-toggle="tooltip"
         data-placement="bottom"
+        className="text-white"
         title="Some features unavailable pending analysis"
       >
         *
@@ -145,40 +145,57 @@ export default class SelectableInfo extends React.Component<Props, State> {
       selectablesEditUrl,
       newTableURL,
       newViewURL,
-      supportsCreateTable
+      supportsCreateTable,
+      numberFormat,
     } = this.props;
     const { filter } = this.state;
     return (
-      <div className="panel panel-default selectable-info">
-        <div className="panel-heading selectable-heading">
-          <strong>{dataSourceName}</strong>
-          {this.renderAvailabilityLabel()}
+      <div
+        id="sidebar"
+        className="sidebar fixed-right border-left navbar-expand-md collapse"
+      >
+        <div className="d-flex flex-column h-100">
+          <div className="sidebar-header d-flex justify-content-between align-items-baseline">
+            <h1 className="h3">{dataSourceName}</h1>
+            {this.renderAvailabilityLabel()}
+
+            <button
+              type="button"
+              className="btn d-block d-md-none"
+              data-toggle="collapse"
+              data-target="#sidebar"
+              aria-expanded="false"
+            >
+              <i className="fas fa-times" aria-label="Hide sidebar"></i>
+            </button>
+          </div>
           {this.renderDataSourceDescription()}
-        </div>
 
-        <FilterView onFilterChange={this.onFilterChange} />
+          <FilterView filter={filter} onFilterChange={this.onFilterChange} />
 
-        <div className="selectable-info-content">
-          {this.selectables().map((selectable, i) => (
-            <SelectableView
-              // eslint-disable-next-line react/no-array-index-key
-              key={i}
-              filter={filter}
-              selectable={selectable}
-              selectablesEditUrl={selectablesEditUrl}
-              channel={this.channel}
-              expanded={this.expanded(selectable)}
-              onClick={this.toggleExpand(selectable)}
+          <div className="selectable-info-content flex-grow-1 overflow-auto list-group list-group-flush mx-n4">
+            {this.selectables().map((selectable, i) => (
+              <SelectableView
+                // eslint-disable-next-line react/no-array-index-key
+                key={i}
+                filter={filter}
+                selectable={selectable}
+                selectablesEditUrl={selectablesEditUrl}
+                channel={this.channel}
+                expanded={this.expanded(selectable)}
+                onClick={this.toggleExpand(selectable)}
+                numberFormat={numberFormat}
+              />
+            ))}
+          </div>
+
+          <div className="d-flex justify-content-around mt-2">
+            <NewSelectableToolbarView
+              newTableURL={newTableURL}
+              newViewURL={newViewURL}
+              supportsCreateTable={supportsCreateTable}
             />
-          ))}
-        </div>
-
-        <div className="panel-footer">
-          <NewSelectableToolbarView
-            newTableURL={newTableURL}
-            newViewURL={newViewURL}
-            supportsCreateTable={supportsCreateTable}
-          />
+          </div>
         </div>
       </div>
     );

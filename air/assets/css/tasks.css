@@ -60,7 +60,7 @@ div#task-menu button.selection {
 }
 
 div#task-menu button.selection:hover {
-  background-color: #F0F0F0;
+  background-color: #f0f0f0;
 }
 
 div#task-menu button.active {
@@ -73,7 +73,6 @@ div#task-menu button.active:hover {
   background-color: #ccc;
   color: black;
 }
-
 
 /********************************************************************
  * Side pane
@@ -140,7 +139,6 @@ div#task-side-content table {
   margin-bottom: 0px;
 }
 
-
 /********************************************************************
  * CodeEditor
  *******************************************************************/
@@ -149,7 +147,6 @@ div#task-editor-container div.react-codemirror2 {
   width: 100%;
   overflow: auto;
 }
-
 
 /********************************************************************
  * Tables
@@ -163,15 +160,14 @@ div#task-editor-container div.react-codemirror2 {
   margin-right: 5px;
 }
 
-
 /********************************************************************
  * Results
  *******************************************************************/
 
- .error {
-   color: red;
- }
+.error {
+  color: red;
+}
 
- .old-result:before {
-   content: "*";
- }
+.old-result:before {
+  content: "*";
+}

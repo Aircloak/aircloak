@@ -12,10 +12,11 @@ type Props = {
   graphConfig: GraphConfig,
   addX: ColumnAction,
   addY: ColumnAction,
-  remove: ColumnAction
+  remove: ColumnAction,
 };
 
-const activeClass = active => (active ? "btn btn-info" : "btn btn-default");
+const activeClass = (active) =>
+  active ? "btn btn-outline-info active" : "btn btn-outline-info";
 
 const noneClass = (graphConfig, column) =>
   activeClass(
@@ -33,33 +34,35 @@ export default ({ graphInfo, graphConfig, remove, addX, addY }: Props) => {
   return (
     <form className="form-horizontal">
       {graphInfo.xColumns().map((column, columnIndex) => (
-        <div key={column} className="form-group">
-          <span className="col-sm-3 control-label">{column}</span>
-          <div className="col-sm-9 btn-group" role="group">
-            <button
-              type="button"
-              className={noneClass(graphConfig, columnIndex)}
-              onClick={remove(columnIndex)}
-            >
-              None
-            </button>
+        <div key={column} className="form-group row">
+          <span className="col-sm-3 control-label label-right">{column}</span>
+          <div className="col-sm-9">
+            <div className="btn-group" role="group">
+              <button
+                type="button"
+                className={noneClass(graphConfig, columnIndex)}
+                onClick={remove(columnIndex)}
+              >
+                None
+              </button>
 
-            <button
-              type="button"
-              className={xClass(graphConfig, columnIndex)}
-              onClick={addX(columnIndex)}
-            >
-              X
-            </button>
+              <button
+                type="button"
+                className={xClass(graphConfig, columnIndex)}
+                onClick={addX(columnIndex)}
+              >
+                X
+              </button>
 
-            <button
-              type="button"
-              className={yClass(graphConfig, columnIndex)}
-              onClick={addY(columnIndex)}
-              disabled={!graphInfo.usableAsY(columnIndex)}
-            >
-              Y
-            </button>
+              <button
+                type="button"
+                className={yClass(graphConfig, columnIndex)}
+                onClick={addY(columnIndex)}
+                disabled={!graphInfo.usableAsY(columnIndex)}
+              >
+                Y
+              </button>
+            </div>
           </div>
         </div>
       ))}

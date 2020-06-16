@@ -1,4 +1,4 @@
-<table class="table table-striped">
+<table class="table table-striped table-no-top-border table-responsive-lg">
   <thead>
     <tr>
       <th>Name</th>
@@ -15,11 +15,15 @@
         <td><%= length(group.users) %></td>
         <td><%= length(group.data_sources) %></td>
         <td>
-          <%= link "Edit", to: admin_group_path(@conn, :edit, group), class: "btn btn-xs btn-default" %>
+          <%= if is_explorer?(group) do %>
+            <%= link "Manage", to: admin_explorer_path(@conn, :index) %>
+          <% else %>
+            <%= link "Edit", to: admin_group_path(@conn, :edit, group), class: "btn btn-sm btn-secondary", disabled: group.system %>
 
-          <%= if can_delete?(group) do %>
-            <%= link "Delete", to: admin_group_path(@conn, :delete, group), method: :delete,
-              class: "btn btn-danger btn-xs", "data-confirm": ~s(Delete the group "#{group.name}"?) %>
+            <%= if can_delete?(group) do %>
+              <%= link "Delete", to: admin_group_path(@conn, :delete, group), method: :delete,
+                class: "btn btn-danger btn-sm", "data-confirm": ~s(Delete the group "#{group.name}"?) %>
+            <% end %>
           <% end %>
         </td>
       </tr>

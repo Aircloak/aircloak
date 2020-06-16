@@ -73,8 +73,14 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     grouping_id = column_from_synthetic_table(uid_grouping_table, "__ac_grouping_id")
     groups = [grouping_id | aggregation_groups(uid_grouping_query, uid_grouping_table)]
 
+    statistics =
+      query.aggregators
+      |> Enum.map(fn %Expression{args: [arg]} -> arg end)
+      |> Enum.reject(&match?({:distinct, _}, &1))
+      |> Enum.flat_map(&aggregation_statistics/1)
+
     {count_duid, min_uid, max_uid} = uid_statistics(uid_grouping_table)
-    aggregators = [count_duid, min_uid, max_uid | aggregation_statistics(query.aggregators)]
+    aggregators = [count_duid, min_uid, max_uid | statistics]
 
     inner_columns = Enum.uniq(groups ++ aggregators)
 
@@ -111,12 +117,12 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
 
     user_id = Helpers.id_column(query)
     min_user_id = Expression.function("min", [user_id], user_id.type)
-    count_distinct_user_id = Expression.function("count", [{:distinct, user_id}], :integer)
+    max_user_id = Expression.function("max", [user_id], user_id.type)
 
-    low_count_user_id? = Expression.function("<", [count_distinct_user_id, Expression.constant(:integer, 3)], :boolean)
+    low_count_user_id? = Expression.function("=", [min_user_id, max_user_id], :boolean)
 
     # The user id is valid only for at-risk values in the target column.
-    user_id_aggregator =
+    user_id_for_at_risk_values =
       Expression.function("case", [low_count_user_id?, min_user_id, Expression.null()], user_id.type)
       |> set_fields(alias: "__ac_user_id", synthetic?: true, user_id?: true)
 
@@ -129,14 +135,14 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
         do: add_column_index_to_grouping_sets(query.grouping_sets, Enum.count(base_columns)),
         else: Helpers.default_grouping_sets(grouped_columns)
 
-    aggregated_columns = [user_id_aggregator]
+    aggregated_columns = [user_id_for_at_risk_values]
     inner_columns = [grouping_id | grouped_columns ++ aggregated_columns]
 
     distinct_values_query = %Query{
       query
       | subquery?: true,
         type: :restricted,
-        aggregators: aggregated_columns,
+        aggregators: [min_user_id, max_user_id],
         columns: inner_columns,
         column_titles: Enum.map(inner_columns, &Expression.title/1),
         group_by: Enum.map(grouped_columns, &Expression.unalias/1),
@@ -155,12 +161,18 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     grouping_id = column_from_synthetic_table(distinct_values_table, "__ac_grouping_id")
     target_column = column_from_synthetic_table(distinct_values_table, "__ac_target")
 
-    count_distinct_values =
-      Expression.function("count", [target_column], :integer)
-      |> set_fields(alias: "__ac_count_distinct", synthetic?: true)
+    count_target_column = Expression.function("count", [target_column], :integer)
+    count_distinct_values = set_fields(count_target_column, alias: "__ac_count_distinct", synthetic?: true)
+
+    low_count_user_id? = Expression.function("not", [Expression.function("is_null", [user_id], :boolean)], :boolean)
+    low_count_user_id_as_integer = Expression.function({:cast, :integer}, [low_count_user_id?], :integer)
+
+    noise_factor =
+      Expression.function("unsafe_mul", [low_count_user_id_as_integer, count_target_column], :integer)
+      |> set_fields(alias: "__ac_noise_factor", synthetic?: true)
 
     grouped_columns = [grouping_id, user_id | base_columns]
-    aggregated_columns = [count_distinct_values]
+    aggregated_columns = [count_distinct_values, noise_factor]
     inner_columns = grouped_columns ++ aggregated_columns
 
     uid_grouping_query =
@@ -179,24 +191,16 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
 
     uid_grouping_table = Helpers.create_table_from_columns(uid_grouping_query.columns, "__ac_uid_grouping")
 
-    user_id = column_from_synthetic_table(uid_grouping_table, "__ac_user_id")
+    noise_factor = column_from_synthetic_table(uid_grouping_table, "__ac_noise_factor")
     grouping_id = column_from_synthetic_table(uid_grouping_table, "__ac_grouping_id")
     count_distinct = column_from_synthetic_table(uid_grouping_table, "__ac_count_distinct")
-
-    low_count_user_id? = Expression.function("not", [Expression.function("is_null", [user_id], :boolean)], :boolean)
-    low_count_user_id_as_integer = Expression.function({:cast, :integer}, [low_count_user_id?], :integer)
-    noise_factor = Expression.function("unsafe_mul", [low_count_user_id_as_integer, count_distinct], :integer)
-
-    max_noise_factor =
-      Expression.function("max", [noise_factor], :integer)
-      |> set_fields(alias: "__ac_noise_factor", synthetic?: true)
 
     global_count_distinct =
       Expression.function("sum", [count_distinct], :integer)
       |> set_fields(alias: "__ac_count_distinct", synthetic?: true)
 
     grouped_columns = [grouping_id | base_columns]
-    aggregated_columns = [max_noise_factor, global_count_distinct]
+    aggregated_columns = [global_count_distinct | aggregation_statistics(noise_factor)]
     inner_columns = grouped_columns ++ aggregated_columns
 
     %Query{
@@ -211,6 +215,9 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
         where: nil
     }
     |> update_base_columns(grouped_columns, uid_grouping_table)
+    # We mark these subqueries as `standard` because we don't want them to generate
+    # additional noise layers (even though they will be deduplicated in end).
+    |> Helpers.apply_bottom_up(&%Query{&1 | type: :standard})
   end
 
   @doc "Offloads grouping sets from an anonymizing query into the subquery that groups by user id."
@@ -332,26 +339,18 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     {count_duid, min_uid, max_uid}
   end
 
-  defp aggregation_statistics(aggregators) do
-    aggregators
-    |> Enum.map(fn %Expression{args: [arg]} -> arg end)
-    |> Enum.flat_map(fn
-      {:distinct, _} ->
-        []
-
-      column ->
-        for {function, type} <- [
-              {"count", :integer},
-              {"sum", column.type},
-              {"min", column.type},
-              {"max", column.type},
-              {"stddev", :real}
-            ] do
-          function
-          |> Expression.function([column], type)
-          |> set_fields(alias: "#{column.name}_#{function}", synthetic?: true)
-        end
-    end)
+  defp aggregation_statistics(column) do
+    for {function, type} <- [
+          {"count", :integer},
+          {"sum", column.type},
+          {"min", column.type},
+          {"max", column.type},
+          {"stddev", :real}
+        ] do
+      function
+      |> Expression.function([column], type)
+      |> set_fields(alias: "#{column.name}_#{function}", synthetic?: true)
+    end
   end
 
   defp statistics_buckets_filter(query, count_duid) do

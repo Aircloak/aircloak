@@ -4,18 +4,18 @@ import React from "react";
 
 export default ({
   id,
-  debugModeEnabled
+  debugModeEnabled,
 }: {
   id: string,
-  debugModeEnabled: boolean
+  debugModeEnabled: boolean,
 }) => {
   if (debugModeEnabled) {
     return (
       <a
-        className="btn btn-default btn-xs"
+        className="btn btn-outline-secondary btn-sm"
         href={`/queries/${id}/debug_export`}
       >
-        Download debug export
+        <i className="fas fa-file-medical-alt"></i> Download debug export
       </a>
     );
   } else {

@@ -94,8 +94,9 @@ defmodule Air.Mixfile do
       {:parent, "~> 0.4.0"},
       {:combine, "~> 0.10.0"},
       {:epgsql, "~> 4.1"},
-      {:jobs, "~> 0.7"},
-      {:bom, path: "../bom", runtime: false, only: :dev}
+      {:bom, path: "../bom", runtime: false, only: :dev},
+      {:zxcvbn, "~> 0.1.3"},
+      {:httpoison, "~> 1.6"}
     ]
   end
 

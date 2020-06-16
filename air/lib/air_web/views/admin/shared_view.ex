@@ -30,7 +30,7 @@ defmodule AirWeb.Admin.SharedView do
     Map.put(query_params, normalized_name, values_for_name)
   end
 
-  defp glyph(true), do: {:safe, "<span class='glyphicon glyphicon-remove' aria-hidden='true'></span> "}
+  defp glyph(true), do: {:safe, "<span class='fas fa-times' aria-hidden='true'></span> "}
 
   defp glyph(false), do: {:safe, ""}
 end

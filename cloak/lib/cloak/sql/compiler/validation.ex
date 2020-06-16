@@ -36,10 +36,12 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   @doc "Checks that the query specification respects the anonymization restrictions."
-  @spec verify_anonymization_restrictions(Query.t()) :: Query.t()
-  def verify_anonymization_restrictions(%Query{command: :show} = query), do: query
+  @spec verify_anonymization_restrictions(Query.t(), Keyword.t()) :: Query.t()
+  def verify_anonymization_restrictions(query, opts \\ [])
 
-  def verify_anonymization_restrictions(%Query{command: :select} = query) do
+  def verify_anonymization_restrictions(%Query{command: :show} = query, _opts), do: query
+
+  def verify_anonymization_restrictions(%Query{command: :select} = query, opts) do
     verify_user_id_usage(query, nil)
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
     Helpers.each_subquery(query, &verify_conditions_usage/1)
@@ -47,6 +49,14 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_case_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
     Helpers.each_subquery(query, &verify_grouping_sets_uid/1)
+    Helpers.each_subquery(query, &verify_unselectable_columns_filtering/1)
+
+    if Keyword.get(opts, :analyst_table_compilation?, false) do
+      Lens.each(Lenses.subqueries(), query, &verify_unselectable_columns_selection/1)
+    else
+      Helpers.each_subquery(query, &verify_unselectable_columns_selection/1)
+    end
+
     query
   end
 
@@ -270,6 +280,63 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_constant(_expression), do: :ok
+
+  # -------------------------------------------------------------------
+  # Unselectable columns
+  # -------------------------------------------------------------------
+
+  defp verify_unselectable_columns_selection(query) do
+    do_verify_unselectable_columns(
+      Lenses.unselectable_selected_columns(),
+      query
+    )
+  end
+
+  defp verify_unselectable_columns_filtering(query) do
+    do_verify_unselectable_columns(
+      Lenses.unselectable_filtering_columns(),
+      query
+    )
+  end
+
+  defp do_verify_unselectable_columns(lens, query) do
+    lens
+    |> Lens.to_list(query)
+    |> case do
+      [column | _] ->
+        column_display = unselectable_column_display(column)
+        source_column_display = unselectable_db_column(query, column) |> unselectable_column_display()
+
+        message =
+          if column_display == source_column_display do
+            "Column #{column_display} cannot appear in this query context as it has been classified as unselectable by your system administrator."
+          else
+            "Column #{column_display} cannot appear in this query context as it depends on" <>
+              " column #{source_column_display}, which has been classified as unselectable by your system administrator."
+          end <>
+            " Please consult the section on unselectable columns in the documentation."
+
+        raise CompilationError,
+          source_location: column.source_location,
+          message: message
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp unselectable_column_display(%{name: name, table: table}),
+    do: "`#{name}` from table `#{table.db_name || table.name}`"
+
+  defp unselectable_db_column(query, column) do
+    case Helpers.unselectable_db_columns(query, column) do
+      [source_column | _] ->
+        source_column
+
+      _ ->
+        column
+    end
+  end
 
   # -------------------------------------------------------------------
   # GROUP BY
@@ -631,11 +698,13 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   # -------------------------------------------------------------------
-  # UserId usage
+  # User ID usage verification
   # -------------------------------------------------------------------
 
   defp verify_user_id_usage(query, alias) do
     unless valid_user_id?(query), do: raise(CompilationError, missing_uid_error_message(query, alias))
+
+    verify_user_id_references(query)
 
     Lens.each(
       Lenses.direct_subqueries(),
@@ -682,6 +751,30 @@ defmodule Cloak.Sql.Compiler.Validation do
       Aircloak.OxfordComma.join(user_id_tables, "or")
     end
   end
+
+  defp verify_user_id_references(%Query{type: :anonymized} = query) do
+    Lens.multiple([
+      Lens.keys([:columns, :group_by]) |> Lens.all(),
+      Lens.key(:order_by) |> Lens.all() |> Lens.at(0)
+    ])
+    |> Lens.filter(& &1.user_id?)
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        :ok
+
+      [uid_expression | _rest] ->
+        raise CompilationError,
+          message:
+            "Directly selecting or grouping on the user id column in an anonymizing query is not allowed, as it " <>
+              "would lead to a fully censored result.\nAnonymizing queries can reference user id columns either " <>
+              "by filtering on them, aggregating them, or processing them so that they have a chance to create " <>
+              "anonymized buckets.",
+          source_location: uid_expression.source_location
+    end
+  end
+
+  defp verify_user_id_references(_query), do: :ok
 
   # -------------------------------------------------------------------
   # Division by zero

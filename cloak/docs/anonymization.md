@@ -620,7 +620,7 @@ a `null` value will be returned.
 For computing the anonymized count of distinct values we need the real count of distinct values and the noise factor.
 The noise factor is the maximum count of distinct at-risk values any single user has. It represents the potential change
 to the count that would occur as a result of the user being excluded by the query. An at-risk value is a value that is
-associated with fewer than 3 users. The anonymized count is `real_count + noise_factor * 0.5 * noise`. If there are no 
+associated with fewer than 2 users. The anonymized count is `real_count + noise_factor * noise`. If there are no
 at-risk values (noise factor is `null`), the real count is returned.
 
 For each expression referenced by a `COUNT(DISTINCT value)` aggregator we create a sub-query to compute the real count
@@ -655,7 +655,7 @@ FROM (
     SELECT
       column1 AS group_0,
       column2 AS target,
-      CASE WHEN (COUNT(DISTINCT user_id) < 3) THEN MIN(user_id) ELSE NULL END AS user_id
+      CASE WHEN MIN(user_id) = MAX(user_id) THEN MIN(user_id) ELSE NULL END AS user_id
       FROM table
       GROUP BY 1, 2
   ) AS distinct_values

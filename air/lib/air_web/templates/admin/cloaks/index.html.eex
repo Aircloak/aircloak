@@ -1,4 +1,10 @@
-<h2>Cloaks</h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+  <h1>Cloaks</h1>
+</header>
+
 
 <%= if @count == 0 do %>
   <div><b>There are currently no cloaks registered.</b></div>
@@ -6,44 +12,27 @@
   <%= for group <- @cloak_groups do %>
     <div class="row">
       <%= for cloak <- group do %>
-        <div class="col-md-9">
-          <div class="panel panel-default">
-            <div class="panel-heading">
-              <h1 class="panel-title">
-                <%= cloak.name %>
-              </h1>
+        <div class="col-lg-6">
+          <div class="card mb-3">
+            <h4 class="card-header"><%= cloak.name %></h4>
+            <div class="card-body pb-0">
+              <p>
+                This cloak is online since <%= time_ago(cloak.online_since) %>
+              </p>
+
+              <h5 class="card-title">Data sources</h5>
+              <%= if length(cloak.data_sources) == 0 do %>
+                <p class="card-text mb-3">This cloak doesn't serve any data sources.</p>
+              <% end %>
             </div>
-            <p class="panel-body">
-              This cloak is online since <%= time_ago(cloak.online_since) %>
-            </p>
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Data sources</th>
-                  <th></th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
+
+             <ul class="list-group list-group-flush">
                 <%= for data_source <- cloak.data_sources do %>
-                  <tr>
-                    <td><%= data_source.name %></td>
-                    <td><%= availability_label(data_source) %></td>
-                    <td>
-                      <%= link "Show", to: admin_data_source_path(@conn, :show, data_source.name),
-                        class: "btn btn-default btn-xs" %>
-                    </td>
-                  </tr>
+                  <li class="align-items-center d-flex flex-row justify-content-between list-group-item list-group-item-action">
+                    <%= link data_source.name, to: admin_data_source_path(@conn, :show, data_source.name), class: "stretched-link"%>
+                    <%=  availability_label(data_source) %>
                 <% end %>
-                <%= if length(cloak.data_sources) == 0 do %>
-                  <tr>
-                    <td colspan=2>
-                      This cloak doesn't serve any data sources.
-                    </td>
-                  <tr>
-                <% end %>
-              </tbody>
-            </table>
+             </ul>
           </div>
         </div>
       <% end %>

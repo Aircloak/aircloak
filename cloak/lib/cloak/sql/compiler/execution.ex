@@ -36,7 +36,6 @@ defmodule Cloak.Sql.Compiler.Execution do
   def prepare(%Query{command: :select} = query),
     do:
       query
-      |> Helpers.apply_bottom_up(&censor_selected_uids/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&reject_null_user_ids/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&compute_aggregators/1, analyst_tables?: false)
       |> Helpers.apply_bottom_up(&expand_virtual_tables/1, analyst_tables?: false)
@@ -54,30 +53,6 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp reject_null_user_ids(query), do: query
-
-  defp censor_selected_uids(%Query{type: :anonymized} = query) do
-    # In an anonymized query, we're replacing all selected expressions which depend on uid columns with the `:*`
-    # constant. This allows us to reduce the amount of anonymized values, without compromising the privacy.
-    # For example, consider the query `select uid, name from users`. Normally, this would return only `(*, *)`
-    # rows. However, with this replacement, we can return names which are frequent enough, without revealing
-    # any sensitive information. For example, we could return: `(*, Alice), (*, Bob), (*, *)`, which is
-    # not possible without this replacement.
-    Lens.multiple([
-      Lens.keys([:columns, :group_by]) |> Lens.all(),
-      Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
-      Lens.key(:having) |> Lenses.conditions() |> Lenses.operands()
-    ])
-    |> Lens.filter(&non_aggregated_uid_expression?/1)
-    |> Lens.map(query, &Expression.constant(&1.type, :*))
-  end
-
-  defp censor_selected_uids(query), do: query
-
-  # returns true if the column contains an expression with non-aggregated user ids
-  defp non_aggregated_uid_expression?(column),
-    do:
-      [column] |> get_in([Lenses.all_expressions()]) |> Enum.all?(&(not Function.aggregator?(&1))) and
-        [column] |> extract_columns() |> Enum.any?(& &1.user_id?)
 
   # -------------------------------------------------------------------
   # Bucket alignment
@@ -267,8 +242,12 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp valid_range?(comparisons) do
     case Enum.sort_by(comparisons, &Condition.direction/1, &Kernel.>/2) do
       [cmp1, cmp2] ->
+        [_subject, target1] = Condition.targets(cmp1)
+        [_subject, target2] = Condition.targets(cmp2)
+
         Condition.direction(cmp1) != Condition.direction(cmp2) and
-          Cloak.Data.lt(Condition.value(cmp1), Condition.value(cmp2))
+          compatible_types?(target1.type, target2.type) and
+          Cloak.Data.lt(Expression.const_value(target1), Expression.const_value(target2))
 
       [cmp] ->
         cmp |> Condition.value() |> current_date?()
@@ -291,7 +270,10 @@ defmodule Cloak.Sql.Compiler.Execution do
     NaiveDateTime.from_erl!({date, {0, 0, 0}}) |> Cloak.Time.max_precision()
   end
 
-  defp extract_columns(columns), do: Query.Lenses.leaf_expressions() |> Lens.to_list(columns)
+  defp compatible_types?(:integer, :real), do: true
+  defp compatible_types?(:real, :integer), do: true
+  defp compatible_types?(type, type), do: true
+  defp compatible_types?(_type1, _type2), do: false
 
   # -------------------------------------------------------------------
   # Virtual tables

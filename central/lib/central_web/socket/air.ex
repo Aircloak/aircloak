@@ -2,7 +2,7 @@ defmodule CentralWeb.Socket.Air do
   @moduledoc """
   Implements websocket interface for airs.
 
-  An air needs to provide its token as request query parameters in URL.
+  An air needs to provide its license as request query parameters in URL.
 
   The socket supports following topics:
 
@@ -36,7 +36,7 @@ defmodule CentralWeb.Socket.Air do
       {:ok, socket}
     else
       _ ->
-        Logger.info("Connection refused - invalid params or customer token")
+        Logger.info("Connection refused - invalid params")
         :error
     end
   end
@@ -47,10 +47,6 @@ defmodule CentralWeb.Socket.Air do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp customer_from_params(%{"token" => token, "air_name" => air_name}),
-    do: with({:ok, customer} <- Customer.from_token(token), do: {:ok, customer, air_name})
-
   defp customer_from_params(%{"license" => license, "air_name" => air_name}) do
     with {:ok, license} <- License.decrypt(license),
          {:ok, customer} <- Customer.from_license(license) do

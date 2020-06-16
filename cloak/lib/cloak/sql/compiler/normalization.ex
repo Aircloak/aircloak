@@ -17,6 +17,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     do:
       query
       |> Helpers.apply_bottom_up(&rewrite_distinct/1)
+      |> Helpers.apply_bottom_up(&rewrite_casts_from_real_to_integer/1)
       |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
       |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
       |> Helpers.apply_bottom_up(&normalize_non_anonymizing_noise/1)
@@ -64,6 +65,20 @@ defmodule Cloak.Sql.Compiler.Normalization do
         other ->
           other
       end)
+
+  # -------------------------------------------------------------------
+  # Rewrite `cast(real as integer)` to `round(real)`
+  # -------------------------------------------------------------------
+
+  defp rewrite_casts_from_real_to_integer(query) do
+    update_in(query, [Query.Lenses.terminals()], fn
+      %Expression{kind: :function, name: {:cast, :integer}, args: [%Expression{type: :real}]} = expr ->
+        %Expression{expr | name: "round"}
+
+      other ->
+        other
+    end)
+  end
 
   # -------------------------------------------------------------------
   # Removing useless round/trunc
