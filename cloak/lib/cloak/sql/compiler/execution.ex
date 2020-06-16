@@ -296,20 +296,30 @@ defmodule Cloak.Sql.Compiler.Execution do
   # For details, see `docs/anonymization.md`.
   # -------------------------------------------------------------------
 
-  defp protect_against_join_timing_attacks(query), do: %Query{query | from: protect_joins(query.from)}
+  defp protect_against_join_timing_attacks(%Query{from: {:join, %{type: :inner_join}}} = query) do
+    %Query{query | from: protect_joins(query.from, query, :invalid_row)}
+    # Since we are potentially generating additional subqueries here, we need to re-optimize the query
+    # to make sure all filters are pushed downstream, so that the invalid row is not prematurely dropped.
+    |> Cloak.Sql.Compiler.Optimizer.optimize()
+  end
 
-  defp protect_joins({:join, join}) do
+  defp protect_against_join_timing_attacks(%Query{from: {:join, _}} = query),
+    do: %Query{query | from: protect_joins(query.from, query, :not_exists)}
+
+  defp protect_against_join_timing_attacks(query), do: query
+
+  defp protect_joins({:join, join}, query, method) do
     {lhs, rhs} =
       if join.type == :right_outer_join do
-        {protect_joins(join.lhs), protect_join_branch(join.rhs)}
+        {protect_joins(join.lhs, query, method), protect_join_branch(join.rhs, query, method)}
       else
-        {protect_join_branch(join.lhs), protect_joins(join.rhs)}
+        {protect_join_branch(join.lhs, query, method), protect_joins(join.rhs, query, method)}
       end
 
     {:join, %{join | lhs: lhs, rhs: rhs}}
   end
 
-  defp protect_joins(from), do: from
+  defp protect_joins(from, _query, _method), do: from
 
   defp query_has_non_key_filters?(query) do
     Lens.both(Lens.root(), simple_subquery_lens())
@@ -324,7 +334,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     Lens.key(:from)
     |> Lens.filter(&match?({:subquery, _}, &1))
     |> Lens.at(1)
-    |> Lens.reject(&(&1[:join_timing_protection?] == true))
+    |> Lens.reject(&(&1[:join_timing_protection] != nil))
     |> Lens.key(:ast)
     |> Lens.recur()
   end
@@ -336,34 +346,73 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp query_needs_protection?(query), do: query_has_non_key_filters?(query)
 
-  defp protect_join_branch({:subquery, subquery}),
-    do: {:subquery, Map.put(subquery, :join_timing_protection?, query_needs_protection?(subquery.ast))}
+  defp protect_join_branch({:subquery, subquery}, _query, method) do
+    subquery =
+      if query_needs_protection?(subquery.ast),
+        do: Map.put(subquery, :join_timing_protection, method),
+        else: subquery
 
-  defp protect_join_branch({:join, join}) do
-    lhs = protect_join_branch(join.lhs)
-    rhs = protect_join_branch(join.rhs)
+    {:subquery, subquery}
+  end
+
+  defp protect_join_branch({:join, join}, query, :invalid_row) do
+    lhs = protect_join_branch(join.lhs, query, :invalid_row)
+    rhs = protect_join_branch(join.rhs, query, :invalid_row)
 
     {lhs, rhs} =
-      if branch_has_timing_protection?(lhs) or branch_has_timing_protection?(rhs),
-        do: {force_timing_protection(lhs), force_timing_protection(rhs)},
-        else: {lhs, rhs}
+      if branch_has_timing_protection?(lhs) or branch_has_timing_protection?(rhs) do
+        lhs = add_invalid_row_to_leafs(lhs, query)
+        rhs = add_invalid_row_to_leafs(rhs, query)
+        {lhs, rhs}
+      else
+        {lhs, rhs}
+      end
 
     {:join, %{join | lhs: lhs, rhs: rhs}}
   end
 
-  defp protect_join_branch(table), do: table
+  defp protect_join_branch({:join, join}, query, :not_exists) do
+    lhs = protect_join_branch(join.lhs, query, :not_exists)
+    rhs = protect_join_branch(join.rhs, query, :not_exists)
+    {:join, %{join | lhs: lhs, rhs: rhs}}
+  end
+
+  defp protect_join_branch(table, _query, _method), do: table
 
   defp branch_has_timing_protection?({:join, join}),
     do: branch_has_timing_protection?(join.lhs) or branch_has_timing_protection?(join.rhs)
 
-  defp branch_has_timing_protection?({:subquery, subquery}), do: subquery[:join_timing_protection?] == true
+  defp branch_has_timing_protection?({:subquery, subquery}), do: subquery[:join_timing_protection] != nil
   defp branch_has_timing_protection?(_), do: false
 
-  defp force_timing_protection({:join, join}),
-    do: {:join, %{join | lhs: force_timing_protection(join.lhs), rhs: force_timing_protection(join.rhs)}}
+  defp add_invalid_row_to_leafs({:join, join}, query) do
+    lhs = add_invalid_row_to_leafs(join.lhs, query)
+    rhs = add_invalid_row_to_leafs(join.rhs, query)
+    {:join, %{join | lhs: lhs, rhs: rhs}}
+  end
 
-  defp force_timing_protection({:subquery, subquery}),
-    do: {:subquery, Map.put(subquery, :join_timing_protection?, true)}
+  defp add_invalid_row_to_leafs({:subquery, subquery}, _query),
+    do: {:subquery, Map.put(subquery, :join_timing_protection, :invalid_row)}
 
-  defp force_timing_protection(table), do: table
+  defp add_invalid_row_to_leafs(table_name, query) do
+    table =
+      query.table_aliases
+      |> Enum.find(fn {alias, _table} -> alias == table_name end)
+      |> case do
+        {^table_name, table} -> table
+        nil -> Enum.find(query.selected_tables, &(&1.name == table_name))
+      end
+
+    ast = %Query{
+      command: :select,
+      type: :standard,
+      data_source: query.data_source,
+      columns: Enum.map(table.columns, &Expression.column(&1, table)),
+      column_titles: Enum.map(table.columns, & &1.name),
+      from: table.name,
+      selected_tables: [table]
+    }
+
+    {:subquery, %{ast: ast, join_timing_protection: :invalid_row, alias: table_name}}
+  end
 end

@@ -304,14 +304,14 @@ defmodule Cloak.Query.JoinTest do
 
     assert_query(
       """
-        SELECT sum(t2.age)
+        SELECT sum(t2.age), min(t2.age)
         FROM
           (SELECT user_id FROM heights_join) as t1
         RIGHT JOIN
           (SELECT user_id, age FROM children_join WHERE age = 20) AS t2
         ON t1.user_id = t2.user_id
       """,
-      %{rows: [%{row: [300], occurrences: 1}]}
+      %{rows: [%{row: [300, 20], occurrences: 1}]}
     )
   end
 end

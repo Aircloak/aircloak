@@ -418,7 +418,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   # Build subquery with join-timing protection
   # -------------------------------------------------------------------
 
-  defp build_subquery(%{ast: query, join_timing_protection?: true}) do
+  defp build_subquery(%{ast: query, join_timing_protection: :invalid_row}) do
     dialect = sql_dialect_module(query)
 
     from =
@@ -440,7 +440,25 @@ defmodule Cloak.DataSource.SqlBuilder do
     ]
   end
 
+  defp build_subquery(%{ast: query, join_timing_protection: :not_exists}) do
+    [
+      "(",
+      build_fragments(query),
+      ") UNION ALL (SELECT * FROM (",
+      build_fragments(%Query{strip_filters(query) | limit: 1, offset: 0, order_by: []}),
+      ") t WHERE NOT EXISTS(",
+      build_fragments(%Query{query | order_by: []}),
+      "))"
+    ]
+  end
+
   defp build_subquery(subquery), do: build_fragments(subquery.ast)
+
+  defp strip_filters(query) do
+    Query.Lenses.all_queries()
+    |> Lens.filter(&(&1.type == :restricted))
+    |> Lens.map(query, &%Query{&1 | where: nil, having: nil})
+  end
 
   # -------------------------------------------------------------------
   # Mark boolean expressions
