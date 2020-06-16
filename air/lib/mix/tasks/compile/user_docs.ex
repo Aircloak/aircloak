@@ -95,7 +95,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
 
   # Strips out markdown links of the type [ghiXXXX](...)
   defp strip_github_links(content),
-    do: String.replace(content, ~r/\[ghi\d*\]\(.*\) ?/, "", global: true)
+    do: String.replace(content, ~r/\[ghi\d+\]\(.+?\) ?/, "", global: true)
 
   # Stripping out the markdown links might have left an enourmous amount of empty lines. Remove these
   defp strip_superfluous_empty_lines(content),
