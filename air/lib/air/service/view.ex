@@ -61,11 +61,12 @@ defmodule Air.Service.View do
           DataSource.t(),
           String.t(),
           String.t(),
+          String.t() | nil,
           revalidation_timeout: non_neg_integer,
           skip_revalidation: boolean
         ) :: {:ok, View.t()} | {:error, Ecto.Changeset.t()}
-  def create(user, data_source, name, sql, options \\ []) do
-    changes = %{data_source_id: data_source.id, user_id: user.id, name: name, sql: sql}
+  def create(user, data_source, name, sql, comment, options \\ []) do
+    changes = %{data_source_id: data_source.id, user_id: user.id, name: name, sql: sql, comment: comment}
 
     with {:ok, changeset} <- validated_view_changeset(%View{}, user, changes, :insert),
          {:ok, view} <- Repo.insert(changeset) do
@@ -82,14 +83,21 @@ defmodule Air.Service.View do
   end
 
   @doc "Updates the existing view in the database."
-  @spec update(integer, User.t(), String.t(), String.t(), revalidation_timeout: non_neg_integer) ::
+  @spec update(
+          integer,
+          User.t(),
+          String.t(),
+          String.t(),
+          String.t() | nil,
+          revalidation_timeout: non_neg_integer
+        ) ::
           {:ok, View.t()} | {:error, Ecto.Changeset.t()} | {:error, :not_allowed}
-  def update(view_id, user, name, sql, options \\ []) do
+  def update(view_id, user, name, sql, comment, options \\ []) do
     view = Repo.get!(View, view_id)
 
     # view must be owned by the user
     if view.user_id == user.id do
-      changes = %{name: name, sql: sql}
+      changes = %{name: name, sql: sql, comment: comment}
 
       with {:ok, changeset} <- validated_view_changeset(view, user, changes, :update) do
         {:ok, view} = Repo.update(changeset)
@@ -289,7 +297,7 @@ defmodule Air.Service.View do
   defp apply_view_changeset(view, changes),
     do:
       view
-      |> Ecto.Changeset.cast(changes, ~w(name sql user_id data_source_id broken)a)
+      |> Ecto.Changeset.cast(changes, ~w(name sql comment user_id data_source_id broken)a)
       |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
       |> Ecto.Changeset.unique_constraint(:name, name: :user_selectables_user_id_data_source_id_name_index)
 

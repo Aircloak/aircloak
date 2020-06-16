@@ -20,29 +20,35 @@ defmodule Air.Service.AnalystTable do
   # -------------------------------------------------------------------
 
   @doc "Creates the new analyst table, and stores it in cloak and in air."
-  @spec create(Air.Schemas.User.t(), DataSource.t(), String.t(), String.t()) ::
+  @spec create(Air.Schemas.User.t(), DataSource.t(), String.t(), String.t(), String.t() | nil) ::
           {:ok, AnalystTable.t()} | {:error, Ecto.ChangeSet.t()}
-  def create(user, data_source, name, sql) do
-    changes = %{data_source_id: data_source.id, user_id: user.id, name: name, sql: sql}
+  def create(user, data_source, name, sql, comment) do
+    changes = %{
+      data_source_id: data_source.id,
+      user_id: user.id,
+      name: name,
+      sql: sql,
+      comment: comment
+    }
 
     %AnalystTable{}
-    |> Ecto.Changeset.cast(changes, ~w(name sql user_id data_source_id)a)
+    |> Ecto.Changeset.cast(changes, ~w(name sql comment user_id data_source_id)a)
     |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
     |> Map.put(:action, :insert)
     |> transactional_store(nil, user, data_source)
   end
 
   @doc "Updates the existing analyst table, and stores it in cloak and in air."
-  @spec update(pos_integer, User.t(), String.t(), String.t()) ::
+  @spec update(pos_integer, User.t(), String.t(), String.t(), String.t() | nil) ::
           {:ok, AnalystTable.t()} | {:error, Ecto.ChangeSet.t() | :not_allowed}
-  def update(table_id, user, name, sql) do
+  def update(table_id, user, name, sql, comment) do
     table = AnalystTable |> Repo.get!(table_id) |> Repo.preload([:user, :data_source])
 
     if table.user_id == user.id do
       table
       |> Ecto.Changeset.cast(
-        %{name: name, sql: sql, creation_status: :pending},
-        ~w(name sql creation_status)a
+        %{name: name, sql: sql, comment: comment, creation_status: :pending},
+        ~w(name sql comment creation_status)a
       )
       |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
       |> Map.put(:action, :update)

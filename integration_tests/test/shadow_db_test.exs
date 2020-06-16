@@ -2,7 +2,6 @@ defmodule IntegrationTest.ShadowDbTest do
   use ExUnit.Case, async: false
 
   alias IntegrationTest.Manager
-  import Aircloak.AssertionHelper
   import IntegrationTest.Helpers
 
   # The following query is an intercepted \dt request.
@@ -61,7 +60,9 @@ defmodule IntegrationTest.ShadowDbTest do
       new_name = unique_name(:table)
 
       assert {:ok, table} = create_analyst_table(context.user, name, "select user_id, name from users")
-      assert {:ok, _} = Air.Service.AnalystTable.update(table.id, context.user, new_name, "select user_id from users")
+
+      assert {:ok, _} =
+               Air.Service.AnalystTable.update(table.id, context.user, new_name, "select user_id from users", "comment")
 
       assert not table_exists?(context.conn, name)
       assert table_exists?(context.conn, new_name)
@@ -88,7 +89,7 @@ defmodule IntegrationTest.ShadowDbTest do
       new_name = unique_name(:view)
 
       assert {:ok, view} = create_view(context.user, name, "select user_id, name from users")
-      assert {:ok, _} = Air.Service.View.update(view.id, context.user, new_name, "select user_id from users")
+      assert {:ok, _} = Air.Service.View.update(view.id, context.user, new_name, "select user_id from users", "comment")
 
       assert not table_exists?(context.conn, name)
       assert table_exists?(context.conn, new_name)
@@ -116,11 +117,11 @@ defmodule IntegrationTest.ShadowDbTest do
   end
 
   defp create_analyst_table(user, name, sql) do
-    Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql)
+    Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql, "analyst table comment")
   end
 
   defp create_view(user, name, sql) do
-    Air.Service.View.create(user, Manager.data_source(), name, sql)
+    Air.Service.View.create(user, Manager.data_source(), name, sql, "view comment")
   end
 
   defp table_columns(conn, table_name) do
