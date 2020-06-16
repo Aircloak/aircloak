@@ -12,14 +12,14 @@ field_expression :=
   * | table_name.* | column_expression [AS alias]
 
 grouping_expression := 
-  regular_grouping |
+  group [, ...] |
   GROUPING SETS (groups) |
   ROLLUP (groups) | 
   CUBE (groups)
 
-regular_grouping := (column_expression | position) [, ...]
+groups := group | (group [, ...]) [, ...]
 
-groups := (regular_grouping | (regular_grouping)) [, ...]
+group := column_expression | position | ()
 
 column_expression :=
   [table_name.]column_name |
