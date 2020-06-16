@@ -9,8 +9,10 @@ defmodule Mix.Tasks.Compile.UserDocs do
 
   @impl Mix.Task
   def run(_args) do
-    unless System.get_env("INTEGRATION_TESTS") == "true" or System.get_env("COMPILE_USER_DOCS") == "false" do
+    unless System.get_env("INTEGRATION_TESTS") == "true" or
+             System.get_env("COMPILE_USER_DOCS") == "false" do
       update_version_numbers_in_guide()
+      copy_and_clean_diffix_docs()
 
       if Mix.env() == :prod or stale?() do
         conditionally_compile_offline_docs()
@@ -91,6 +93,34 @@ defmodule Mix.Tasks.Compile.UserDocs do
     end
   end
 
+  # Strips out markdown links of the type [aircloak/aircloak#XXXX](...)
+  defp strip_github_links(content),
+    do: String.replace(content, ~r/\[aircloak\/aircloak#\d+\]\(.+?\) ?/, "", global: true)
+
+  defp write_processed_contents(content, file_name) do
+    case File.write("docs/content/#{file_name}", content) do
+      :ok ->
+        :ok
+
+      {:error, posix_error} ->
+        Mix.raise("Error failed to write #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}")
+    end
+  end
+
+  defp copy_and_clean_diffix_docs() do
+    ~w(diffix.md attacks.md)
+    |> Enum.each(fn file_name ->
+      with {:ok, contents} <- File.read("../cloak/docs/#{file_name}") do
+        contents
+        |> strip_github_links()
+        |> write_processed_contents(file_name)
+      else
+        {:error, posix_error} ->
+          Mix.raise("Error processing cloak doc #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}")
+      end
+    end)
+  end
+
   defp has_ebook_convert_installed() do
     case System.cmd("ebook-convert", ~w(--version)) do
       {_, 0} -> true
@@ -136,7 +166,8 @@ defmodule Mix.Tasks.Compile.UserDocs do
       original_summary
       |> String.split("\n")
       |> Enum.map(fn line ->
-        if String.starts_with?(line, "## Aircloak Insights - version") and not String.ends_with?(line, current_version) do
+        if String.starts_with?(line, "## Aircloak Insights - version") and
+             not String.ends_with?(line, current_version) do
           "## Aircloak Insights - version #{current_version}"
         else
           line

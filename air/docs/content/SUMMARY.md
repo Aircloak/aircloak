@@ -96,3 +96,8 @@
   - [User sessions](ops/administration.md#user-sessions)
   - [Forgotten password](ops/administration.md#forgotten-password)
   - [Analysis status](ops/administration.md#analysis-status)
+
+## Diffix Dogwood
+
+- [Diffix overview](diffix.md)
+- [Attacks](attacks.md)
