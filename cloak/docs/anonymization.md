@@ -155,37 +155,37 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 
 - Input values (with total sum: 14020):
 
-| values |
-|--------|
-| 10 |
-| 500, 500 |
-| 1000 |
-| 2, 7 |
+| values             |
+| ------------------ |
+| 10                 |
+| 500, 500           |
+| 1000               |
+| 2, 7               |
 | 200, 300, 250, 250 |
-| 1000 |
-| 9000, 800, 200 |
+| 1000               |
+| 9000, 800, 200     |
 
 - We sum values per-user:
 
 | values |
-|--------|
-| 10 |
-| 1000 |
-| 1000 |
-| 10 |
-| 1000 |
-| 1000 |
-| 10000 |
+| ------ |
+| 10     |
+| 1000   |
+| 1000   |
+| 10     |
+| 1000   |
+| 1000   |
+| 10000  |
 
 - We compute the noisy value for No: `No = 1 + 2 = 3`.
 - We drop the No users with the biggest values:
 
 | values |
-|--------|
-| 10 |
-| 10 |
-| 1000 |
-| 1000 |
+| ------ |
+| 10     |
+| 10     |
+| 1000   |
+| 1000   |
 
 - We compute the noisy value for Nt: `Nt = 3`.
 - We compute the average of the top Nt remaining users: `TopAverage = (1000 + 1000 + 10) / 3 = 670`.
