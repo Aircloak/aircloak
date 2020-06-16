@@ -97,10 +97,6 @@ defmodule Mix.Tasks.Compile.UserDocs do
   defp strip_github_links(content),
     do: String.replace(content, ~r/\[aircloak\/aircloak#\d+\]\(.+?\) ?/, "", global: true)
 
-  # Stripping out the markdown links might have left an enourmous amount of empty lines. Remove these
-  defp strip_superfluous_empty_lines(content),
-    do: String.replace(content, ~r/\n{3,}/, "\n\n", global: true)
-
   defp write_processed_contents(content, file_name) do
     case File.write("docs/content/#{file_name}", content) do
       :ok ->
@@ -117,7 +113,6 @@ defmodule Mix.Tasks.Compile.UserDocs do
       with {:ok, contents} <- File.read("../cloak/docs/#{file_name}") do
         contents
         |> strip_github_links()
-        |> strip_superfluous_empty_lines()
         |> write_processed_contents(file_name)
       else
         {:error, posix_error} ->
