@@ -66,6 +66,7 @@ section is as follows:
 "site": {
   "auth_secret": secret_string,
   "endpoint_key_base": secret_string,
+  "endpoint_public_url": string,
   "cloak_secret": secret_string,
   "master_password": string,
   "certfile": string,
@@ -98,6 +99,8 @@ The `master_password` parameter specifies the password (in clear text) which is 
 in the Insights Air web interface. If you attempt to access the Insights Air interface while no administrative user has been setup,
 you will be prompted to create one. To do so you have to type in the `master_password` the system is configured with.
 This password will no longer be needed once the first administrator has been created.
+
+The `endpoint_public_url` should be the root of the URL that the Air instance is accessible on the internet. It is used to generate correct URLs. 
 
 The `cloak_secret` setting is optional. If not set (default) all Insights Cloak instances will be allowed to connect to
 the Insights Air instance. If set, then only instances with the same `cloak_secret` set in their configuration files
