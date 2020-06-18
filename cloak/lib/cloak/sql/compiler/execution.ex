@@ -297,10 +297,13 @@ defmodule Cloak.Sql.Compiler.Execution do
   # -------------------------------------------------------------------
 
   defp protect_against_join_timing_attacks(%Query{from: {:join, %{type: :inner_join}}} = query) do
-    %Query{query | from: protect_joins(query.from, query, :invalid_row)}
-    # Since we are potentially generating additional subqueries here, we need to re-optimize the query
-    # to make sure all filters are pushed downstream, so that the invalid row is not prematurely dropped.
-    |> Cloak.Sql.Compiler.Optimizer.optimize()
+    query = %Query{query | from: protect_joins(query.from, query, :invalid_row)}
+
+    if branch_has_timing_protection?(query.from),
+      # Since we are potentially generating additional subqueries here, we need to re-optimize the query
+      # to make sure all filters are pushed downstream, so that the invalid row is not prematurely dropped.
+      do: Cloak.Sql.Compiler.Optimizer.optimize(query),
+      else: query
   end
 
   defp protect_against_join_timing_attacks(%Query{from: {:join, _}} = query),
