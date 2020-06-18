@@ -49,6 +49,13 @@ types not natively supported, and performing table joins where no such support e
 For more information about the supported datastores and what query features are emulated, please have a look at the
 [datastore](datastores.md) page.
 
+### Diffix Explorer
+
+[Diffix Explorer](https://github.com/diffix/explorer) is an *optional* open source component backed by Max Planck Institute, 
+which integrates with Insights Air to provide actionable information to analysts without the need to manually write queries.
+Insights Air provides a built-in UI integration to manage and display these results, but Diffix Explorer can also be used
+through it's API to derive useful information for other interfaces.
+
 ## Components provided by the customer
 
 ### PostgreSQL database
@@ -84,7 +91,7 @@ The following diagram shows the possible ways in which the components interact. 
 [deployment guide](deployment.md).
 
 ![Shows an overview of different ways in which the Aircloak Insights components interact. IA: Insights Air, IC: Insights
-Cloak, IDC: Insights Datasource connector, DS: Datasource](components/interactions.png)
+Cloak, IDC: Insights Datasource connector, DS: Datasource, DE: Diffix Explorer](components/interactions.png)
 
 In the diagram above the arrows point to the component being connected to.
 For example it shows that Insights Cloak connects to Insights Air,

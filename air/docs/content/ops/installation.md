@@ -1,13 +1,15 @@
 # Overview
 
-The Aircloak system consists of two components:
+The Aircloak system consists of several components:
 
 - Insights Air
 - Insights Cloak
+- Diffix Explorer *(optional)*
 
 For an explanation of these components, see [Components provided by Aircloak](/components.md#components-provided-by-aircloak).
 
-These components should run on separate machines. In addition, the access to the Insights Cloak component should be highly restricted, since this component has complete read access to the sensitive data. The Insights Air component does not require such privileges, so you can optionally run it in another network, as long as Insights Cloak can connect to the Insights Air.
+These components should run on separate machines. In addition, the access to the Insights Cloak component should be highly restricted, since this component has complete read access to the sensitive data. The Insights Air component does not require such privileges, so you can optionally run it in another network, as long as Insights Cloak can connect to the Insights Air. 
+Diffix Explorer needs even fewer privileges as it only needs to connect to Insights Air.
 
 Before installing components, make sure that the following prerequisites are met:
 
@@ -111,3 +113,7 @@ docker run ... \
 ```
 
 Mounting of the persisted folder is optional. If you don't mount this folder, the cloak will simply recompute the data during boot. Note that in this case the boot time of the cloak component might increase.
+
+## Diffix Explorer
+
+Please follow the [project documentation](https://github.com/diffix/explorer#getting-started).
