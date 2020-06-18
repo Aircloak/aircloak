@@ -521,9 +521,9 @@ The `unselectable_columns` is an optional parameter for personal tables.
 It takes the form of an array and marks columns as unselectable.
 Unselectable columns can only be joined together, counted, and/or grouped by.
 
-The `comments` is an optional field which can be used to attach metadata to tables and columns.
-Comments are visible in the `air` interface and are also returned from `SHOW` statements.
-Database-level comments are automatically retrieved and loaded to tables.
+The `comments` field is optional and can be used to attach a description to tables and columns.
+Comments are visible in the Insights Air interface and are also returned from `SHOW` statements.
+Database-level comments are automatically retrieved and attached to tables.
 
 ##### Keys
 

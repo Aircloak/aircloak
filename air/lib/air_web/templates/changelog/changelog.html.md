@@ -10,7 +10,7 @@
 
 ### New features
 
-- Comments can be added to tables and columns. Database comments are automatically loaded to configured tables.
+- Comments can be added to tables and columns. Database comments are automatically loaded from configured tables.
 
 ### Enhancements
 
