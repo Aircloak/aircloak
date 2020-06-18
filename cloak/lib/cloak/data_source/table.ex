@@ -239,24 +239,11 @@ defmodule Cloak.DataSource.Table do
   end
 
   defp virtual_column_comments(columns) do
-    Enum.reduce(columns, %{}, fn
-      {
-        title,
-        %Cloak.Sql.Expression{
-          kind: :column,
-          name: name,
-          table: table
-        }
-      },
-      acc ->
-        case column_comment(table, name) do
-          nil -> acc
-          comment -> Map.put(acc, title, comment)
-        end
-
-      _, acc ->
-        acc
-    end)
+    columns
+    |> Enum.filter(fn {_name, column} -> Expression.column?(column) end)
+    |> Enum.map(fn {name, column} -> {name, column_comment(column.table, column.name)} end)
+    |> Enum.reject(&match?({_, nil}, &1))
+    |> Enum.into(%{})
   end
 
   defp verify_column_name(table, name) do

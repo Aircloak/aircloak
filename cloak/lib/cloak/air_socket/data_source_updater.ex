@@ -7,6 +7,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   """
   use GenServer
   import Aircloak, only: [in_env: 1]
+  alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
   # API functions
@@ -66,7 +67,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
     do: %{
       id: id,
       columns: Enum.map(table.columns, &column_info(data_source, table, &1)),
-      comment: Cloak.DataSource.Table.table_comment(table)
+      comment: Table.table_comment(table)
     }
 
   defp column_info(data_source, table, column) do
@@ -97,7 +98,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
       isolated: isolated,
       shadow_table: shadow_table,
       shadow_table_size: shadow_table_size,
-      comment: Cloak.DataSource.Table.column_comment(table, column.name)
+      comment: Table.column_comment(table, column.name)
     }
   end
 

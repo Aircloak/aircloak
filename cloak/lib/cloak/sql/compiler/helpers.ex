@@ -181,21 +181,11 @@ defmodule Cloak.Sql.Compiler.Helpers do
   # -------------------------------------------------------------------
 
   defp column_comments(columns) do
-    Enum.reduce(columns, %{}, fn
-      %Cloak.Sql.Expression{
-        kind: :column,
-        name: name,
-        table: table
-      } = expr,
-      acc ->
-        case Table.column_comment(table, name) do
-          nil -> acc
-          comment -> Map.put(acc, Expression.title(expr), comment)
-        end
-
-      _, acc ->
-        acc
-    end)
+    columns
+    |> Enum.filter(&Expression.column?/1)
+    |> Enum.map(&{Expression.title(&1), Table.column_comment(&1.table, &1.name)})
+    |> Enum.reject(&match?({_, nil}, &1))
+    |> Enum.into(%{})
   end
 
   defp unselectable_selected_expression?(expr), do: unselectable_selected_columns(expr) != []
