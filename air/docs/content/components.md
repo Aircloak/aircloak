@@ -51,7 +51,7 @@ For more information about the supported datastores and what query features are 
 
 ### Diffix Explorer
 
-[Diffix Explorer](https://github.com/diffix/explorer) is an *optional* open source component backed by Max Planck Institute, 
+[Diffix Explorer](https://github.com/diffix/explorer) is an *optional* open source component backed by the [Max Planck Institute for Software Systems](https://mpi-sws.org), 
 which integrates with Insights Air to provide actionable information to analysts without the need to manually write queries.
 Insights Air provides a built-in UI integration to manage and display these results, but Diffix Explorer can also be used
 through it's API to derive useful information for other interfaces.

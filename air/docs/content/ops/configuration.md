@@ -332,7 +332,7 @@ In that case you'd use a configuration like this:
 
 ### Diffix Explorer Configuration
 
-Here you may optionally configure a Diffix Explorer instance this Insights Air instances will connect to. The configuration looks like this:
+The Diffix Explorer integration is optional. You can activate it by including the `explorer` parameter in your configuration. It specifies the Diffix Explorer instance Insights Air will connect to. The configuration looks like this:
 
 ```
 "explorer": {
