@@ -127,23 +127,20 @@ defmodule Cloak.DataSource.PostgreSQL do
       |> select("""
         SELECT
           cols.column_name,
-          (
-            SELECT
-              pg_catalog.col_description(c.oid, cols.ordinal_position::int)
-            FROM pg_catalog.pg_class c
-            WHERE
-              c.oid     = (SELECT cols.table_name::regclass::oid) AND
-              c.relname = cols.table_name
-          ) AS column_comment
+          pg_catalog.col_description(c.oid, cols.ordinal_position::int) AS column_comment
         FROM information_schema.columns cols
+        INNER JOIN pg_catalog.pg_class c
+        ON
+          c.oid     = cols.table_name::regclass::oid AND
+          c.relname = cols.table_name
         WHERE
           cols.table_schema = '#{schema_name}' AND
-          cols.table_name   = '#{table_name}'
+          cols.table_name   = '#{table_name}' AND
+          pg_catalog.col_description(c.oid, cols.ordinal_position::int) IS NOT NULL
       """)
       |> case do
         {:ok, results} ->
           results
-          |> Enum.reject(fn [_name, comment] -> is_nil(comment) end)
           |> Enum.map(&List.to_tuple/1)
           |> Enum.into(%{})
 

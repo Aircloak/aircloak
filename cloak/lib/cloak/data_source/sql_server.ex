@@ -63,11 +63,11 @@ defmodule Cloak.DataSource.SQLServer do
       |> select("""
         SELECT objname, value
         FROM fn_listextendedproperty('MS_Description', 'SCHEMA', '#{schema_name}', 'TABLE', '#{table_name}', 'COLUMN', NULL)
+        WHERE value IS NOT NULL
       """)
       |> case do
         {:ok, results} ->
           results
-          |> Enum.reject(fn [_name, comment] -> is_nil(comment) end)
           |> Enum.map(&List.to_tuple/1)
           |> Enum.into(%{})
 
