@@ -49,21 +49,21 @@ defmodule IntegrationTest.OdbcTest do
         # errors when ssl is required
         {"disable", %{"require_ssl" => true}, false},
         {"allow", %{"require_ssl" => true, "certfile" => "invalid_file"}, false},
-        {"allow", %{"require_ssl" => true, "certfile" => nil}, false},
+        {"allow", %{"require_ssl" => true, "certfile" => :null}, false},
         {"allow", %{"require_ssl" => true, "keyfile" => "invalid_file"}, false},
-        {"allow", %{"require_ssl" => true, "keyfile" => nil}, false},
+        {"allow", %{"require_ssl" => true, "keyfile" => :null}, false},
         {"prefer", %{"require_ssl" => true, "certfile" => "invalid_file"}, false},
-        {"prefer", %{"require_ssl" => true, "certfile" => nil}, false},
+        {"prefer", %{"require_ssl" => true, "certfile" => :null}, false},
         {"prefer", %{"require_ssl" => true, "keyfile" => "invalid_file"}, false},
-        {"prefer", %{"require_ssl" => true, "keyfile" => nil}, false},
+        {"prefer", %{"require_ssl" => true, "keyfile" => :null}, false},
         {"require", %{"require_ssl" => true, "certfile" => "invalid_file"}, false},
-        {"require", %{"require_ssl" => true, "certfile" => nil}, false},
+        {"require", %{"require_ssl" => true, "certfile" => :null}, false},
         {"require", %{"require_ssl" => false, "certfile" => "invalid_file"}, false},
-        {"require", %{"require_ssl" => false, "certfile" => nil}, false},
+        {"require", %{"require_ssl" => false, "certfile" => :null}, false},
         {"require", %{"require_ssl" => true, "keyfile" => "invalid_file"}, false},
-        {"require", %{"require_ssl" => true, "keyfile" => nil}, false},
+        {"require", %{"require_ssl" => true, "keyfile" => :null}, false},
         {"require", %{"require_ssl" => false, "keyfile" => "invalid_file"}, false},
-        {"require", %{"require_ssl" => false, "keyfile" => nil}, false}
+        {"require", %{"require_ssl" => false, "keyfile" => :null}, false}
       ] do
     test "connecting when client sslmode=`#{client_ssl_mode}`, server config #{inspect(ssl_config)}",
          context do
@@ -117,7 +117,7 @@ defmodule IntegrationTest.OdbcTest do
         assert(
           :odbc.sql_query(context.conn, 'show tables') ==
             {:selected, ['name', 'type', 'comment'],
-             [{'column_access', 'personal', ''}, {'integers', 'personal', ''}, {'users', 'personal', ''}]}
+             [{'column_access', 'personal', :null}, {'integers', 'personal', :null}, {'users', 'personal', :null}]}
         )
     )
 
@@ -129,9 +129,9 @@ defmodule IntegrationTest.OdbcTest do
           :odbc.sql_query(context.conn, 'show columns from users') ==
             {:selected, ['name', 'data type', 'isolator?', 'key type', 'comment'],
              [
-               {'user_id', 'text', 'true', 'user_id', ''},
-               {'name', 'text', 'failed', :null, ''},
-               {'height', 'integer', 'failed', :null, ''}
+               {'user_id', 'text', 'true', 'user_id', :null},
+               {'name', 'text', 'failed', :null, :null},
+               {'height', 'integer', 'failed', :null, :null}
              ]}
         )
     )

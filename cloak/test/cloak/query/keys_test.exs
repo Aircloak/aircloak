@@ -41,9 +41,9 @@ defmodule Cloak.Query.KeysTest do
 
   test "show tables" do
     assert_query("show tables", %{rows: rows})
-    assert Enum.find(rows, &(&1.row == ["keys_accounts", "personal", ""])) != nil
-    assert Enum.find(rows, &(&1.row == ["keys_transactions", "personal", ""])) != nil
-    assert Enum.find(rows, &(&1.row == ["keys_products", "non-personal", ""])) != nil
+    assert Enum.find(rows, &(&1.row == ["keys_accounts", "personal", nil])) != nil
+    assert Enum.find(rows, &(&1.row == ["keys_transactions", "personal", nil])) != nil
+    assert Enum.find(rows, &(&1.row == ["keys_products", "non-personal", nil])) != nil
   end
 
   test "simple select" do

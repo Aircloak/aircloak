@@ -75,7 +75,7 @@ defmodule Cloak.Query.Runner.Engine do
         &[
           to_string(&1.name),
           display_content_type(&1.content_type),
-          Cloak.DataSource.Table.table_comment(&1) || ""
+          Cloak.DataSource.Table.table_comment(&1)
         ]
       )
 
@@ -85,7 +85,7 @@ defmodule Cloak.Query.Runner.Engine do
         &[
           to_string(&1.name),
           display_content_type(&1.content_type),
-          get_in(selectables_metadata, [:analyst_tables, to_string(&1.name), :comment]) || ""
+          get_in(selectables_metadata, [:analyst_tables, to_string(&1.name), :comment])
         ]
       )
 
@@ -96,7 +96,7 @@ defmodule Cloak.Query.Runner.Engine do
         &[
           to_string(&1),
           "view",
-          get_in(selectables_metadata, [:views, &1, :comment]) || ""
+          get_in(selectables_metadata, [:views, &1, :comment])
         ]
       )
 
@@ -115,7 +115,7 @@ defmodule Cloak.Query.Runner.Engine do
           to_string(&1.type),
           isolator_status(query.data_source, table, &1.name),
           table.keys[&1.name],
-          Cloak.DataSource.Table.column_comment(table, &1.name) || ""
+          Cloak.DataSource.Table.column_comment(table, &1.name)
         ]
       }
     )

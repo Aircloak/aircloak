@@ -90,8 +90,8 @@ defmodule Cloak.Query.VirtualTableTest do
 
     assert_query("show columns from vtt_fake", %{
       rows: [
-        %{row: ["user_id", "text", _isolator1 = "false", :user_id, ""]},
-        %{row: ["ival", "integer", _isolator2 = "false", nil, ""]}
+        %{row: ["user_id", "text", _isolator1 = "false", :user_id, nil]},
+        %{row: ["ival", "integer", _isolator2 = "false", nil, nil]}
       ]
     })
   end
@@ -101,8 +101,8 @@ defmodule Cloak.Query.VirtualTableTest do
 
     assert_query("show columns from vtt_fake", %{
       rows: [
-        %{row: ["user_id", "text", _isolator1 = "false", :user_id, ""]},
-        %{row: ["ival", "integer", _isolator2 = "false", nil, ""]}
+        %{row: ["user_id", "text", _isolator1 = "false", :user_id, nil]},
+        %{row: ["ival", "integer", _isolator2 = "false", nil, nil]}
       ]
     })
   end
@@ -112,7 +112,7 @@ defmodule Cloak.Query.VirtualTableTest do
 
     assert_query("show columns from vtt_fake", %{
       rows: [
-        %{row: ["user_id", "text", _isolator = "false", :user_id, ""]}
+        %{row: ["user_id", "text", _isolator = "false", :user_id, nil]}
       ]
     })
   end
@@ -323,10 +323,10 @@ defmodule Cloak.Query.VirtualTableTest do
     test "show columns from a projected table" do
       assert_query("show columns from projected_transactions", %{
         rows: [
-          %{row: ["user_id", "text", _isolator1 = "false", :user_id, ""]},
-          %{row: ["id", "integer", _isolator2 = "false", nil, ""]},
-          %{row: ["account_id", "integer", _isolator3 = "false", nil, ""]},
-          %{row: ["amount", "integer", _isolator4 = "false", nil, ""]}
+          %{row: ["user_id", "text", _isolator1 = "false", :user_id, nil]},
+          %{row: ["id", "integer", _isolator2 = "false", nil, nil]},
+          %{row: ["account_id", "integer", _isolator3 = "false", nil, nil]},
+          %{row: ["amount", "integer", _isolator4 = "false", nil, nil]}
         ]
       })
     end
@@ -334,9 +334,9 @@ defmodule Cloak.Query.VirtualTableTest do
     test "show columns from a multiply projected table" do
       assert_query("show columns from projected_notes", %{
         rows: [
-          %{row: ["uid", "text", _isolator1 = "false", :user_id, ""]},
-          %{row: ["transaction_id", "integer", _isolator2 = "false", nil, ""]},
-          %{row: ["note", "text", _isolator3 = "false", nil, ""]}
+          %{row: ["uid", "text", _isolator1 = "false", :user_id, nil]},
+          %{row: ["transaction_id", "integer", _isolator2 = "false", nil, nil]},
+          %{row: ["note", "text", _isolator3 = "false", nil, nil]}
         ]
       })
     end

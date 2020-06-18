@@ -140,7 +140,7 @@ defmodule IntegrationTest.TableauTest do
              {:updated, 0},
              {:updated, 0},
              {:selected, ['name', 'type', 'comment'],
-              [{'column_access', 'personal', ''}, {'integers', 'personal', ''}, {'users', 'personal', ''}]}
+              [{'column_access', 'personal', :null}, {'integers', 'personal', :null}, {'users', 'personal', :null}]}
            ]
   end
 
@@ -151,7 +151,7 @@ defmodule IntegrationTest.TableauTest do
              {:updated, 0},
              {:updated, 0},
              {:selected, ['name', 'type', 'comment'],
-              [{'column_access', 'personal', ''}, {'integers', 'personal', ''}, {'users', 'personal', ''}]}
+              [{'column_access', 'personal', :null}, {'integers', 'personal', :null}, {'users', 'personal', :null}]}
            ]
   end
 
@@ -162,7 +162,7 @@ defmodule IntegrationTest.TableauTest do
              {:updated, 0},
              {:updated, 0},
              {:selected, ['name', 'type', 'comment'],
-              [{'column_access', 'personal', ''}, {'integers', 'personal', ''}, {'users', 'personal', ''}]}
+              [{'column_access', 'personal', :null}, {'integers', 'personal', :null}, {'users', 'personal', :null}]}
            ]
   end
 
@@ -173,12 +173,12 @@ defmodule IntegrationTest.TableauTest do
              {:updated, 0},
              {:updated, 0},
              {:selected, ['name', 'data type', 'isolator?', 'key type', 'comment'],
-              [{'user_id', 'text', 'true', 'user_id', ''}]}
+              [{'user_id', 'text', 'true', 'user_id', :null}]}
            ]
 
     assert :odbc.sql_query(context.conn, 'fetch 2 in "my_cursor"') ==
              {:selected, ['name', 'data type', 'isolator?', 'key type', 'comment'],
-              [{'name', 'text', 'failed', :null, ''}, {'height', 'integer', 'failed', :null, ''}]}
+              [{'name', 'text', 'failed', :null, :null}, {'height', 'integer', 'failed', :null, :null}]}
 
     assert :odbc.sql_query(context.conn, 'fetch 1 in "my_cursor"') ==
              {:selected, ['name', 'data type', 'isolator?', 'key type', 'comment'], []}

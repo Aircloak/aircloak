@@ -39,12 +39,12 @@ defmodule Cloak.Query.BasicTest do
     rows = Enum.map(rows, & &1.row)
 
     [
-      ["children", "personal", ""],
-      ["heights", "personal", ""],
-      ["weird things", "personal", ""],
-      ["dotted.table", "personal", ""],
-      ["dates", "personal", ""],
-      ["v1", "view", ""]
+      ["children", "personal", nil],
+      ["heights", "personal", nil],
+      ["weird things", "personal", nil],
+      ["dotted.table", "personal", nil],
+      ["dates", "personal", nil],
+      ["v1", "view", nil]
     ]
     |> Enum.each(&assert(Enum.member?(rows, &1)))
   end
@@ -63,10 +63,10 @@ defmodule Cloak.Query.BasicTest do
     })
 
     assert Enum.sort_by(rows, & &1[:row]) == [
-             %{occurrences: 1, row: ["isolates", "integer", "true", nil, ""]},
-             %{occurrences: 1, row: ["pending", "boolean", "pending", nil, ""]},
-             %{occurrences: 1, row: ["regular", "text", "false", nil, ""]},
-             %{occurrences: 1, row: ["user_id", "text", "false", :user_id, ""]}
+             %{occurrences: 1, row: ["isolates", "integer", "true", nil, nil]},
+             %{occurrences: 1, row: ["pending", "boolean", "pending", nil, nil]},
+             %{occurrences: 1, row: ["regular", "text", "false", nil, nil]},
+             %{occurrences: 1, row: ["user_id", "text", "false", :user_id, nil]}
            ]
   end
 
@@ -84,8 +84,8 @@ defmodule Cloak.Query.BasicTest do
     })
 
     assert Enum.sort_by(rows, & &1[:row]) == [
-             %{occurrences: 1, row: ["height", "integer", nil, nil, ""]},
-             %{occurrences: 1, row: ["user_id", "text", nil, :user_id, ""]}
+             %{occurrences: 1, row: ["height", "integer", nil, nil, nil]},
+             %{occurrences: 1, row: ["user_id", "text", nil, :user_id, nil]}
            ]
   end
 
