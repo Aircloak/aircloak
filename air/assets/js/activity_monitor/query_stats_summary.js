@@ -34,7 +34,7 @@ export default ({ queries }: Props) => {
           </tr>
         </thead>
         <tbody>
-          {Object.entries(queryStats(queries)).map(([count, queryState]) => (
+          {Object.entries(queryStats(queries)).map(([queryState, count]) => (
             <tr key={(queryState: any)}>
               <td>
                 <StateView queryState={(queryState: any)} />
