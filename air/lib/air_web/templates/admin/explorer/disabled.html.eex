@@ -7,7 +7,7 @@
   <div class="row">
     <div class="col-lg-4">
       <h3 class="h4 font-weight-light">How it works?</h3>
-      <p>Diffix Explorer automatically queries tables in your database through AirCloak. It gathers this anonymized data into clever statistical insights. We'll show you these insights to help you write queries and get actionable information quicker.</p>
+      <p>Diffix Explorer automatically queries tables in your database through Aircloak. It gathers this anonymized data into statistical insights. We'll show you these insights to help you write queries and get actionable information quicker.</p>
     </div>
 
     <div class="col-lg-4">
@@ -18,10 +18,9 @@
     <div class="col-lg-4">
       <h3 class="h4  font-weight-light">How to get started?</h3>
       <p>Setting up Diffix Explorer is easy:</p>
-      <!-- TODO: Add links to relevant documentation. -->
       <ol>
-        <li>Deploy Diffix Explorer in you infrastructure.</li>
-        <li>Add a config key to your Air deployment config.</li>
+        <li><a href="/docs/ops/installation.html#diffix-explorer" target="_blank">Deploy Diffix Explorer in you infrastructure.</a></li>
+        <li><a href="/docs/ops/configuration.html#diffix-explorer-configuration" target="_blank">Add a config key to your Air deployment config.</a></li>
         <li>Come back to configure which tables to analyze.</li>
       </ol>
     </div>

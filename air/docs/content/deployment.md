@@ -2,7 +2,7 @@
 
 ## Overview
 
-All Aircloak-provided components (Insights Air, Insights Cloak, and Insights Datasource Connector) are deployed as
+All Aircloak-provided components (Insights Air, Insights Cloak, Insights Datasource Connector, and Diffix Explorer) are deployed as
 docker containers. As such they can be deployed in physical as well as virtualized environments. They also lend
 themselves to be deployed in managed docker environments like Kubernetes and Mesos.
 

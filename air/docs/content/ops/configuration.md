@@ -11,6 +11,7 @@ The Insights Air configuration needs to provide the following information:
 - Insights Air PostgreSQL interface parameters (optional) - see [Insights Air Postgresql interface
   configuration](#insights-air-postgresql-interface-configuration)
 - LDAP configuration (optional) - see [LDAP configuration](#ldap-configuration)
+- Configuration for connecting to Diffix Explorer (optional) - see [Diffix Explorer configuration](#diffix-explorer-configuration)
 
 The general shape of `config.json` is therefore:
 
@@ -27,6 +28,9 @@ The general shape of `config.json` is therefore:
     ...
   },
   "ldap": {
+    ...
+  },
+  "explorer": {
     ...
   }
 }
@@ -325,6 +329,19 @@ In that case you'd use a configuration like this:
   }
 }
 ```
+
+### Diffix Explorer Configuration
+
+The Diffix Explorer integration is optional. You can activate it by including the `explorer` parameter in your configuration. It specifies the Diffix Explorer instance Insights Air will connect to. The configuration looks like this:
+
+```
+"explorer": {
+  "url": string
+}
+```
+
+The single property `url` is the URL where Insights Air can find a running version of Diffix Explorer. Note that for the integration to 
+work properly, you will also need to fill out the optional [`site.endpoint_public_url`](#web-site-configuration) setting.
 
 ## Insights Cloak configuration
 
