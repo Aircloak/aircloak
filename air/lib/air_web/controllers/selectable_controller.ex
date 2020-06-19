@@ -3,7 +3,7 @@ defmodule AirWeb.SelectableController do
 
   use Air.Web, :controller
 
-  alias Air.Service.{View, AnalystTable}
+  alias Air.Service.{View, AnalystTable, User}
   alias AirWeb.Socket.Frontend.UserChannel
 
   plug(:load_data_source)
@@ -27,7 +27,7 @@ defmodule AirWeb.SelectableController do
         kind: kind,
         changeset: new_changeset_of_kind(kind),
         data_source: conn.assigns.data_source,
-        number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
+        number_format: User.number_format_settings(conn.assigns.current_user)
       )
 
   def edit(conn, %{"id" => id, "kind" => kind}),
@@ -38,7 +38,7 @@ defmodule AirWeb.SelectableController do
         kind: kind,
         changeset: existing_changeset_of_kind(id, kind),
         data_source: conn.assigns.data_source,
-        number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
+        number_format: User.number_format_settings(conn.assigns.current_user)
       )
 
   def create(conn, %{"kind" => kind} = params) do
@@ -52,7 +52,7 @@ defmodule AirWeb.SelectableController do
           kind: kind,
           changeset: changeset,
           data_source: conn.assigns.data_source,
-          number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
+          number_format: User.number_format_settings(conn.assigns.current_user)
         )
     end
   end
@@ -73,7 +73,7 @@ defmodule AirWeb.SelectableController do
           kind: kind,
           changeset: changeset,
           data_source: conn.assigns.data_source,
-          number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
+          number_format: User.number_format_settings(conn.assigns.current_user)
         )
     end
   end
