@@ -9,8 +9,8 @@ type Props = {
   queries: Query[],
 };
 
-const queryStats = (queries) => {
-  const queryStats = {};
+const queryStats = (queries: Query[]) => {
+  const queryStats: {[string]: number} = {};
   queries.forEach((query) => {
     if (queryStats[query.state]) {
       queryStats[query.state] += 1;
@@ -34,14 +34,22 @@ export default ({ queries }: Props) => {
           </tr>
         </thead>
         <tbody>
-          {Object.entries(queryStats(queries)).map(([queryState, count]) => (
-            <tr key={(queryState: any)}>
-              <td>
-                <StateView queryState={(queryState: any)} />
-              </td>
-              <td>{count}</td>
-            </tr>
-          ))}
+          {Object.entries(queryStats(queries)).map(([queryState: string, count: number]) => {
+            // Object.entries returns an array of [string, mixed] values.
+            // We know the mixed values to all be number, but the only way to
+            // convince Flow of this is by doing a type refinement:
+            if (typeof count !== "number") {
+              return <React.Fragment />;
+            }
+            return (
+              <tr key={(queryState: string)}>
+                <td>
+                  <StateView queryState={(queryState: string)} />
+                </td>
+                <td>{count}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
