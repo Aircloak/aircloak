@@ -7,9 +7,9 @@ defmodule Air.Service.View do
   import Ecto.Query
   require Logger
 
-  @type view_map :: %{optional(String.t()) => String.t()}
-  @type view_metadata_map :: %{
+  @type view_map :: %{
           String.t() => %{
+            sql: String.t(),
             comment: String.t() | nil
           }
         }
@@ -142,24 +142,13 @@ defmodule Air.Service.View do
     :ok
   end
 
-  @doc "Returns a %{name => sql} map of all the views the given user defined for the given data source."
+  @doc "Returns a map of all the views the given user defined for the given data source."
   @spec user_views_map(User.t(), integer) :: view_map
   def user_views_map(user, data_source_id) do
     View
     |> by_user_id(user.id)
     |> by_data_source_id(data_source_id)
-    |> select([v], {v.name, v.sql})
-    |> Repo.all()
-    |> Enum.into(%{})
-  end
-
-  @doc "Returns a map containing metadata of all the views the given user defined for the given data source."
-  @spec user_views_metadata(User.t(), integer) :: view_metadata_map
-  def user_views_metadata(user, data_source_id) do
-    View
-    |> by_user_id(user.id)
-    |> by_data_source_id(data_source_id)
-    |> select([v], {v.name, %{comment: v.comment}})
+    |> select([v], {v.name, %{sql: v.sql, comment: v.comment}})
     |> Repo.all()
     |> Enum.into(%{})
   end

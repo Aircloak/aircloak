@@ -8,18 +8,12 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   require Aircloak.DeployConfig
 
   alias Air.CentralClient.Socket
-  alias Air.Service.AnalystTable
+  alias Air.Service.{View, AnalystTable}
 
-  @type views :: %{String.t() => String.t()}
   @type parameters :: nil | [map]
   @type described_columns :: [%{name: String.t(), type: String.t(), key_type: String.t()}]
   @type validated_views :: %{String.t() => validation_result}
   @type validation_result :: {:ok, described_columns} | {:error, atom, String.t()}
-
-  @type metadata :: %{
-          views: Air.Service.View.view_metadata_map(),
-          analyst_tables: Air.Service.AnalystTable.analyst_table_metadata_map()
-        }
 
   @short_timeout :timer.seconds(20)
 
@@ -40,8 +34,8 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
           String.t(),
           String.t(),
           parameters,
-          views,
-          metadata
+          View.view_map(),
+          AnalystTable.analyst_table_map()
         ) ::
           :ok | {:error, any}
   def run_query(
@@ -52,7 +46,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
         data_source_name,
         parameters,
         views,
-        metadata
+        analyst_tables
       ) do
     payload = %{
       id: query_id,
@@ -61,7 +55,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       data_source: data_source_name,
       parameters: parameters,
       views: views,
-      metadata: metadata
+      analyst_tables: analyst_tables
     }
 
     with {:ok, _} <- call(channel_pid, "run_query", encode(payload), @short_timeout), do: :ok
@@ -73,7 +67,15 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   Unlike `run_query/2`, this function is synchronous, meaning it waits for the
   cloak to respond, and returns the result obtained by the cloak.
   """
-  @spec describe_query(pid, pos_integer, String.t(), String.t(), parameters, views) :: {:ok, map} | {:error, any}
+  @spec describe_query(
+          pid,
+          pos_integer,
+          String.t(),
+          String.t(),
+          parameters,
+          View.view_map()
+        ) ::
+          {:ok, map} | {:error, any}
   def describe_query(channel_pid, analyst_id, statement, data_source_name, parameters, views) do
     payload = %{
       analyst_id: analyst_id,
@@ -87,7 +89,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   @doc "Validates the view on the cloak."
-  @spec validate_views(pid, String.t(), String.t(), views) :: validated_views
+  @spec validate_views(pid, String.t(), String.t(), View.view_map()) :: validated_views
   def validate_views(channel_pid, analyst_id, data_source_name, views) do
     payload = %{analyst_id: analyst_id, data_source: data_source_name, views: views}
     {:ok, results} = call(channel_pid, "validate_views", payload, @short_timeout)
@@ -116,7 +118,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
           String.t(),
           String.t(),
           parameters,
-          views
+          View.view_map()
         ) :: {:ok, {described_columns, validated_views}} | {:error, String.t()}
   def create_or_update_analyst_table(
         channel_pid,
@@ -145,7 +147,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   @doc "Removes the given analyst table on the cloak."
-  @spec drop_analyst_table(pid, pos_integer, String.t(), String.t(), views) ::
+  @spec drop_analyst_table(pid, pos_integer, String.t(), String.t(), View.view_map()) ::
           {:ok, validated_views} | {:error, String.t()}
   def drop_analyst_table(channel_pid, analyst_id, table_name, data_source_name, views) do
     payload = %{analyst_id: analyst_id, table_name: table_name, data_source: data_source_name, views: views}

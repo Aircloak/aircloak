@@ -20,10 +20,10 @@ Export by <%= get_in(@data, [:metadata, :user]) %> (<%= get_in(@data, [:metadata
 
 <%= if Enum.count(get_in(@data, [:views])) > 0 do %>
 <%= banner("VIEWS", "=") %>
-<%= for {name, statement} <- get_in(@data, [:views]) do %>
+<%= for {name, %{sql: sql}} <- get_in(@data, [:views]) do %>
 <%= banner(name, "-") %>
 
-<%= statement %>
+<%= sql %>
 
 <% end %>
 <% end %>

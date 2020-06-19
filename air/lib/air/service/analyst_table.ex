@@ -7,7 +7,7 @@ defmodule Air.Service.AnalystTable do
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query
 
-  @type analyst_table_metadata_map :: %{
+  @type analyst_table_map :: %{
           String.t() => %{
             comment: String.t() | nil
           }
@@ -167,9 +167,9 @@ defmodule Air.Service.AnalystTable do
     end
   end
 
-  @doc "Returns a map containing metadata of all the analyst tables the given user defined for the given data source."
-  @spec user_analyst_tables_metadata(User.t(), integer) :: analyst_table_metadata_map
-  def user_analyst_tables_metadata(user, data_source_id) do
+  @doc "Returns a map of all the analyst tables the given user defined for the given data source."
+  @spec user_analyst_tables_map(User.t(), integer) :: analyst_table_map
+  def user_analyst_tables_map(user, data_source_id) do
     AnalystTable
     |> by_user_id(user.id)
     |> by_data_source_id(data_source_id)
