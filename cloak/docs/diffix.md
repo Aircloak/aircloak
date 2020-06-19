@@ -126,7 +126,7 @@ This section outlines the major differences between versions.
 ### From Birch to Cedar
 
 * The method for computing noise and flattening was changed from a UID-based approach to a stats-based approach (see [Value flattening and noise addition](#value-flattening-and-noise-addition)).
-* Several mechanisms to defend against side-channel attacks were added ([JOIN timing](#add-protection-against-join-timing-attack), [divide-by-zero](#add-protection-against-divide-by-zero-attacks), [square root of negative numbers](#add-protection-against-square-root-of-negative-numbers)).
+* Several mechanisms to defend against side-channel attacks were added ([JOIN timing](#add-protection-against-join-timing-attack), [divide-by-zero](#add-protection-against-divide-by-zero-attacks), [square root of negative numbers](#add-protection-against-square-root-of-negative-numbers), [overflow/underflow](#determine-if-safe-math-functions-needed)).
 * Added [internal state](#initialization-of-internal-state) ([shadow table](#shadow-table), [isolating columns](#isolating-column-label), [column min and max](#per-column-min-and-max-values)) and related restrictions.
 * Numerous restrictions were added.
 
