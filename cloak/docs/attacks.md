@@ -1,6 +1,6 @@
-# Attacks on Diffix Dogwood
+# List of Known Defended Attacks
 
-This section describes a variety of attacks against anonymization mechanisms. Some of the attacks are general in nature (can be used against multiple mechanisms). Some are specific to Diffix overall, and others specific to [Diffix Dogwood](diffix.md). In what follows, the *cloak* is the device that implements Diffix.
+This section describes a variety of attacks against anonymization mechanisms. Some of the attacks are general in nature (can be used against multiple mechanisms). Many are specific to Diffix. This list is current to [Diffix Dogwood](diffix.md). In what follows, the *cloak* is the device that implements Diffix.
 
 ## Table Of Contents
 

@@ -155,37 +155,37 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 
 - Input values (with total sum: 14020):
 
-| values |
-|--------|
-| 10 |
-| 500, 500 |
-| 1000 |
-| 2, 7 |
+| values             |
+| ------------------ |
+| 10                 |
+| 500, 500           |
+| 1000               |
+| 2, 7               |
 | 200, 300, 250, 250 |
-| 1000 |
-| 9000, 800, 200 |
+| 1000               |
+| 9000, 800, 200     |
 
 - We sum values per-user:
 
 | values |
-|--------|
-| 10 |
-| 1000 |
-| 1000 |
-| 10 |
-| 1000 |
-| 1000 |
-| 10000 |
+| ------ |
+| 10     |
+| 1000   |
+| 1000   |
+| 10     |
+| 1000   |
+| 1000   |
+| 10000  |
 
 - We compute the noisy value for No: `No = 1 + 2 = 3`.
 - We drop the No users with the biggest values:
 
 | values |
-|--------|
-| 10 |
-| 10 |
-| 1000 |
-| 1000 |
+| ------ |
+| 10     |
+| 10     |
+| 1000   |
+| 1000   |
 
 - We compute the noisy value for Nt: `Nt = 3`.
 - We compute the average of the top Nt remaining users: `TopAverage = (1000 + 1000 + 10) / 3 = 670`.
@@ -687,12 +687,18 @@ follows:
 
 ## Protection against join timing attacks
 
-Backends will execute a join branch only when needed.
+Backends will execute a join node only when needed.
 This can be used to detect when a condition matches a row or not by measuring the execution time of a query which
 joins a subquery with filters with another long running subquery.
+
 We detect and mark such vulnerable subqueries and we make sure, when offloading them to the backend, that they always
-return at least one valid row. This ensures that all subqueries always execute, making the running time consistent.
-We rely on the fact that the low-count filter will drop any result that matches only one user.
+return at least one row. This ensures that all nodes always execute, making the running time consistent.
+
+We use two different methods to ensure all nodes are executed:
+  - If the last node is an `INNER JOIN`, we add an invalid row unconditionally to all leafs, except the last one,
+    to avoid leaking that invalid row into the final output; this method creates simpler offloaded queries.
+  - Otherwise, when we have an `OUTER JOIN` as the final node, we add a random row to vulnerable subqueries when they
+    return nothing; we rely on the fact that the low-count filter will drop any result that matches only one user.
 
 ## Overflow protection and bound analysis
 

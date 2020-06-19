@@ -9,6 +9,9 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
   - [Deployment](#deployment)
   - [Main Pipeline](#main-pipeline)
   - [Database configuration](#database-configuration)
+  - [Version Differences](#version-differences)
+    - [From Cedar to Dogwood](#from-cedar-to-dogwood)
+    - [From Birch to Cedar](#from-birch-to-cedar)
 - [Initialization of internal state](#initialization-of-internal-state)
     - [Shadow table](#shadow-table)
     - [Isolating column label](#isolating-column-label)
@@ -112,6 +115,21 @@ When queries include one or more personal tables, the cloak must be able to asso
 
 The cloak allows `JOIN (...) ON` operations using the configured `key` or `user_id` columns only (see [Illegal JOINs](#illegal-joins)).
 
+## Version Differences
+
+This section outlines the major differences between versions.
+
+### From Cedar to Dogwood
+
+* The functions `floor`, `ceil`, and `cast to int` were defined as implicit ranges, with the effect that clear restrictions are applied to them.
+
+### From Birch to Cedar
+
+* The method for computing noise and flattening was changed from a UID-based approach to a stats-based approach (see [Value flattening and noise addition](#value-flattening-and-noise-addition)).
+* Several mechanisms to defend against side-channel attacks were added ([JOIN timing](#add-protection-against-join-timing-attack), [divide-by-zero](#add-protection-against-divide-by-zero-attacks), [square root of negative numbers](#add-protection-against-square-root-of-negative-numbers), [overflow/underflow](#determine-if-safe-math-functions-needed)).
+* Added [internal state](#initialization-of-internal-state) ([shadow table](#shadow-table), [isolating columns](#isolating-column-label), [column min and max](#per-column-min-and-max-values)) and related restrictions.
+* Numerous restrictions were added.
+
 # Initialization of internal state
 
 The cloak establishes cached internal state that it uses to determine which SQL operations are allowed on which columns. They are:
@@ -119,22 +137,22 @@ The cloak establishes cached internal state that it uses to determine which SQL 
 ### Shadow table
 
 Holds a list of the X values that occur most frequently in the column (X=200), so long as the value has at least 10 distinct users. These constants are evaluated as exact (not noisy) counts. (Note it would be slightly better to use noisy counts here, but this is not an important issue.) Values in this list may be used in negands (negative AND conditions) and posors (positive OR conditions) without limitations.
-[ghi2486](https://github.com/Aircloak/aircloak/issues/2486)
-[ghi2972](https://github.com/Aircloak/aircloak/issues/2972)
-[ghi3322](https://github.com/Aircloak/aircloak/issues/3322)
+[aircloak/aircloak#2486](https://github.com/Aircloak/aircloak/issues/2486)
+[aircloak/aircloak#2972](https://github.com/Aircloak/aircloak/issues/2972)
+[aircloak/aircloak#3322](https://github.com/Aircloak/aircloak/issues/3322)
 
 This table is refreshed every 30 days.
-[ghi3357](https://github.com/Aircloak/aircloak/issues/3357)
+[aircloak/aircloak#3357](https://github.com/Aircloak/aircloak/issues/3357)
 
 ### Isolating column label
 
 The cloak labels columns as isolating if 80% or more of the values in the column are associated with only a single user.
-[ghi2485](https://github.com/Aircloak/aircloak/issues/2485)
-[ghi2738](https://github.com/Aircloak/aircloak/issues/2738)
-[ghi3396](https://github.com/Aircloak/aircloak/issues/3396)
+[aircloak/aircloak#2485](https://github.com/Aircloak/aircloak/issues/2485)
+[aircloak/aircloak#2738](https://github.com/Aircloak/aircloak/issues/2738)
+[aircloak/aircloak#3396](https://github.com/Aircloak/aircloak/issues/3396)
 
 This table is refreshed every 60 days.
-[ghi3357](https://github.com/Aircloak/aircloak/issues/3357)
+[aircloak/aircloak#3357](https://github.com/Aircloak/aircloak/issues/3357)
 
 ### Safe math functions
 
@@ -147,7 +165,7 @@ If the database allows user-defined exception handlers, then these are installed
 The [safe math functions](#safe-math-functions) unfortunately slow down query execution. To mitigate this, the cloak conservatively estimates when a math function *might* result in an exception, and only executes the safe functions in these cases.
 
 In order to make this estimate for numeric and date/time/datetime [overflow](./attacks.md#overflow) exceptions, the cloak records an anonymized minimum and maximum value for each numeric and date/time/datetime column. These recorded values are not the true minimum and maximum values, because an attacker could then detect these values through a series of queries that detect when a safe function was executed through a timing attack.
-[ghi3780](https://github.com/Aircloak/aircloak/issues/3780)
+[aircloak/aircloak#3780](https://github.com/Aircloak/aircloak/issues/3780)
 
 With high (but not 100%) probability, the approximated min and max exceed the true min and max. For numeric columns they are computed as follows:
 
@@ -167,7 +185,7 @@ With high (but not 100%) probability, the approximated min and max exceed the tr
 The procedure for `date`, `time`, and `datetime` columns is similar but differs in the following two ways:
 1. In step 5, the closest snapped value is computed from '1900-01-01' (rather than zero, as is the case with numeric columns).
 2. In step 6, the max is expanded by adding 50 years (rather than multiplying by 10).
-[ghi3794](https://github.com/Aircloak/aircloak/issues/3794)
+[aircloak/aircloak#3794](https://github.com/Aircloak/aircloak/issues/3794)
 
 # Handle incoming SQL
 
@@ -207,22 +225,22 @@ The column in a range can be floated. However, by generating the seed materials 
 The term "clear" implies that it is clear from SQL inspection alone what the semantics of the conditions are, and therefore how to seed the corresponding noise layers.
 
 Clear conditions also have the effect of reducing the attack surface since it gives an attacker fewer mechanisms to work with. For isolating columns, the cloak forces clear conditions for all operators.
-[ghi4091](https://github.com/Aircloak/aircloak/issues/4091)
+[aircloak/aircloak#4091](https://github.com/Aircloak/aircloak/issues/4091)
 
 In earlier versions of Diffix, clear conditions were limited to only columns on the left-hand-side: no column functions were allowed (for instance `col = val`). This restriction was subsequently relaxed to allow operators that are on one hand frequently useful to analysts, but on the other hand do not give analysts an adequately large attack surface (for instance `lower(col) = val`).
-[ghi2982](https://github.com/Aircloak/aircloak/issues/2982)
+[aircloak/aircloak#2982](https://github.com/Aircloak/aircloak/issues/2982)
 
 `IN` and [range](#inequalities) are limited to only constants on the right-hand-side. Negative conditions may additionally have columns on the right-hand-side.
 
 The left-hand-side can have either the native column (no transformations), or the native column with a single instance of the following functions:
 
 For text columns, or columns that have been cast as text: `lower`, `upper`, `trim`, `ltrim`, `btrim`, and `substring`.
-[ghi2039](https://github.com/Aircloak/aircloak/issues/2039)
-[ghi2091](https://github.com/Aircloak/aircloak/issues/2091)
+[aircloak/aircloak#2039](https://github.com/Aircloak/aircloak/issues/2039)
+[aircloak/aircloak#2091](https://github.com/Aircloak/aircloak/issues/2091)
 
 For date, datetime, and time columns: `hour`, `minute`, `second`, `year`, `quarter`, `month`, `day`, `weekday`, and `dow`.
-[ghi2881](https://github.com/Aircloak/aircloak/issues/2881)
-[ghi2982](https://github.com/Aircloak/aircloak/issues/2982)
+[aircloak/aircloak#2881](https://github.com/Aircloak/aircloak/issues/2881)
+[aircloak/aircloak#2982](https://github.com/Aircloak/aircloak/issues/2982)
 
 A column in a clear condition cannot have undergone transformations prior to the condition. For instance, in the following query, the `IN` condition must be clear, but since there is a prior transformation (`numeric + 1` in the sub-query), the condition is unclear and the query rejected.
 
@@ -263,20 +281,20 @@ In order to generally reduce the attack surface available with string functions 
 ### Datetime intervals
 
 The cloak allows `date`, `time`, and `datetime` math using intervals (for instance, `datetime_col + interval 'PT1H2M3S'`). In order to limit the number of cases that need to be checked for datetime overflow, the cloak limits overflow math to `datetime_col + interval` and `datetime_col = interval`. Math operations involving multiple intervals (`interval + interval`) or intervals and constants `integer * real` are prohibited.
-[ghi3794](https://github.com/Aircloak/aircloak/issues/3794)
+[aircloak/aircloak#3794](https://github.com/Aircloak/aircloak/issues/3794)
 
 ### LIKE and NOT LIKE
 
 `[NOT] [I]LIKE` have similar restrictions as string functions. The first two restrictions that apply to [String functions](#string-functions) apply to `[NOT] [I]LIKE` as well (cannot be combined with other transformations, cannot be used with columns that have mutiple casts).
 
 For isolating columns, the `%_` wildcards associated with `[NOT] [I]LIKE` is limited to using only the `%` wildcard (`_` is not allowed), and only in the first or last position of the string. For example, `col LIKE '%stuff%'` is allowed, but not `col LIKE 'stu%ff'`. Non-isolating columns have no limitation on the `[NOT] [I]LIKE` wildcards.
-[ghi2973](https://github.com/Aircloak/aircloak/issues/2973)
+[aircloak/aircloak#2973](https://github.com/Aircloak/aircloak/issues/2973)
 
 ### Limitations due to shadow table
 
 To mitigate [noise exploitation attacks through chaff conditions](./attacks.md#through-chaff-conditions), negative conditions and `IN` right-hand-side elements are disallowed if the corresponding constant does not appear in the shadow table.
-[ghi2273](https://github.com/Aircloak/aircloak/issues/2273)
-[ghi3557](https://github.com/Aircloak/aircloak/issues/3557)
+[aircloak/aircloak#2273](https://github.com/Aircloak/aircloak/issues/2273)
+[aircloak/aircloak#3557](https://github.com/Aircloak/aircloak/issues/3557)
 
 Note that this mechanism does not prevent isolation in all cases. The shadow table is based on the complete column. Any given query, however, may have conditions that cover only part of the column.  A constant may therefore appear in the shadow table and still not have any matching rows in the context of a given query. For instance, the condition `gender <> 'F'` may not be chaff in the `pro_football_players` table, but may be chaff when combined with `tournament = 'fifa world cup'`. However, executing an effective attack by exploiting this mechanism is essentially not possible (see [Shadow table exploitation attack](./attacks.md#shadow-table-exploitation-attack)).
 
@@ -289,8 +307,8 @@ Two-column conditions with inequalities do not require that the condition be a r
 ### Illegal JOINs
 
 The cloak rejects any queries that has `JOIN (...) ON` conditions that are not explicitly allowed (see [Database configuration](#database-configuration)). All `JOIN (...) ON` conditions must be simple `column1 = column2` expressions. This prevents attacks that would otherwise try to exploit known relationships between columns to generate extra noise samples.
-[ghi898](https://github.com/Aircloak/aircloak/issues/898)
-[ghi2704](https://github.com/Aircloak/aircloak/issues/2704)
+[aircloak/aircloak#898](https://github.com/Aircloak/aircloak/issues/898)
+[aircloak/aircloak#2704](https://github.com/Aircloak/aircloak/issues/2704)
 
 ## Modifying queries
 
@@ -320,7 +338,7 @@ In the case of datetime types, the widths must correspond to natural datetime bo
 * `[1, 2, 5, 15, 30, 60]` seconds
 
 In addition, the cloak has a number of current date/time functions, including `current_date`, `current_time`, `current_datetime`, `now` and `current_timestamp`. These can be used in inequalities with columns, for instance `now() < col` and `now() between col1 and col2`. Current date/time functions are snapped by truncating to the current day (time `00:00:00`).
-[ghi3474](https://github.com/Aircloak/aircloak/issues/3474)
+[aircloak/aircloak#3474](https://github.com/Aircloak/aircloak/issues/3474)
 
 # Aggregation functions sum, min, max, count
 
@@ -391,7 +409,7 @@ The seed material for both the UID-noise and the static-noise contain the values
 In our running example, there are two filter conditions. One is in the `WHERE` clause (`ABS(acct_distrit_id) = 1`, line 19), and one is the selected column `frequency` (line 1). The selected column `frequency` is a filter condition because each resulting bucket has only a single `frequency` value.  The cloak does not interpret the filtered value for the `WHERE` condition by inspection, but instead floats the column `acct_district_id`.
 
 The static-noise is seeded by the minimum and maximum column values, and so these must be floated. In the running example, lines 15 and 16 select the per-UID per-bucket min and max for column `acct_district_id`, and lines 10 and 11 select the per-bucket min and max.
-[ghi3274](https://github.com/Aircloak/aircloak/issues/3274)
+[aircloak/aircloak#3274](https://github.com/Aircloak/aircloak/issues/3274)
 
 The UID-noise is seeded by (among other things):
 1. the minimum UID (line 4),
@@ -402,7 +420,7 @@ The UID-noise is seeded by (among other things):
 ### Determine if safe math functions needed
 
 A conservative analysis is run to determine if a given math expression in the query might result in an exception. Examples would be determining if a column in a divisor could be zero, or determining whether a `pow()` function on a column could lead to overflow. The analysis makes the assumption that the column value from the database does not exceed the approximated min and max (see [Per column min and max values](#per-column-min-and-max-values)). 
-[ghi3689](https://github.com/Aircloak/aircloak/issues/3689)
+[aircloak/aircloak#3689](https://github.com/Aircloak/aircloak/issues/3689)
 
 If a math function might lead to an exception, then the function in the query is replaced with a safe version (see [Safe math functions](#safe-math-functions)).
 
@@ -422,9 +440,9 @@ For simplicity, these substitutions are not shown in the [example database query
 ### Add protection against JOIN timing attack
 
 As described in the [JOIN timing attack](./attacks.md#join-timing-attack), an analyst can strongly influence query execution time in the database by including `JOIN` expressions that may return an empty table.
-[ghi3691](https://github.com/Aircloak/aircloak/issues/3691)
-[ghi4083](https://github.com/Aircloak/aircloak/issues/4083)
-[ghi4164](https://github.com/Aircloak/aircloak/issues/4164)
+[aircloak/aircloak#3691](https://github.com/Aircloak/aircloak/issues/3691)
+[aircloak/aircloak#4083](https://github.com/Aircloak/aircloak/issues/4083)
+[aircloak/aircloak#4164](https://github.com/Aircloak/aircloak/issues/4164)
 
 To prevent this, the cloak modifies all but the last JOIN expression so that at least one row is always returned. This is done with a `UNION` operation:
 
@@ -516,12 +534,12 @@ In addition, there is a generic noise layer for queries that otherwise have no n
 The aggregation function `count(col)` is given an additional UID-noise layer. The purpose of this noise layer is to defend against the [Difference attack with counting NULL](./attacks.md#difference-attack-with-counting-null).
 
 Ranges, as well as the implicit ranges `bucket()`, `round()`, and `trunc()`, do not have a UID-noise layer, only a static noise layer. This is to defend against noise exploitation attacks [through chaff conditions](attacks.md#through-chaff-conditions).
-[ghi3931](https://github.com/Aircloak/aircloak/issues/3931)
-[ghi4110](https://github.com/Aircloak/aircloak/issues/4110)
+[aircloak/aircloak#3931](https://github.com/Aircloak/aircloak/issues/3931)
+[aircloak/aircloak#4110](https://github.com/Aircloak/aircloak/issues/4110)
 
 Conditions comparing two columns (`col1 <>|<|<=|>|>= col2`) have no noise layers.  `JOIN (...) ON` conditions have also no noise layers. In both cases, the conditions are constrained to the point where there are no known attacks that can effectively exploit these conditions.
-[ghi3930](https://github.com/Aircloak/aircloak/issues/3930)
-[ghi2704](https://github.com/Aircloak/aircloak/issues/2704)
+[aircloak/aircloak#3930](https://github.com/Aircloak/aircloak/issues/3930)
+[aircloak/aircloak#2704](https://github.com/Aircloak/aircloak/issues/2704)
 
 The `IN` operator (with more than one element) has a single static noise layer for the entire expression, and a UID-noise layer for each element.
 
@@ -533,7 +551,7 @@ I'm not sure about how implicit ranges are seeded, for instance.
 ---->
 
 Upon receiving the database answer, for each one-column condition, the cloak knows the following information:
-[ghi4018](https://github.com/Aircloak/aircloak/issues/4018)
+[aircloak/aircloak#4018](https://github.com/Aircloak/aircloak/issues/4018)
 
 1. column name
 2. table name
@@ -587,8 +605,8 @@ If the number of distinct UIDs is less than the threshold value, then the bucket
 ### Value flattening and noise addition
 
 The cloak perturbs aggregate function values. This section describes how the `sum(col)`, `count(*)`, `count(col)`, `count(DISTINCT uid)`, `min(col)`, and `max(col)` aggregates are perturbed.
-[ghi2561](https://github.com/Aircloak/aircloak/issues/2561)
-[ghi2807](https://github.com/Aircloak/aircloak/issues/2807)
+[aircloak/aircloak#2561](https://github.com/Aircloak/aircloak/issues/2561)
+[aircloak/aircloak#2807](https://github.com/Aircloak/aircloak/issues/2807)
 
 The magnitude of perturbation is related to how much individual users contribute to the aggregate. The magnitude depends on two types of users, *heavy contributors*, and *extreme contributors*.
 
@@ -712,7 +730,7 @@ sum_sd = max(
 ```
 
 Remembering that `avg_scale=1` and `top_scale=0.5`, the above computation was found to reduce overall noise while keeping attacker confidence low.
-[ghi3013](https://github.com/Aircloak/aircloak/issues/3013)
+[aircloak/aircloak#3013](https://github.com/Aircloak/aircloak/issues/3013)
 
 #### Operation of avg
 
@@ -721,9 +739,9 @@ The average aggregator is computed as the `sum(col)`/`count(col)`.
 #### Operation of min and max
 
 The aggregators `min(col)` and `max(col)` are set to the `edge_below` and `edge_above` values from [Operation of Sum](#operation-of-sum), with the exception that `min(col)` may never be greater than `avg(col)`, `max(col)` may never be less than `avg(col)`, and `min(col)` may never be greater than `max(col)`. 
-[ghi3642](https://github.com/Aircloak/aircloak/issues/3642)
-[ghi3643](https://github.com/Aircloak/aircloak/issues/3643)
-[ghi3392](https://github.com/Aircloak/aircloak/issues/3392)
+[aircloak/aircloak#3642](https://github.com/Aircloak/aircloak/issues/3642)
+[aircloak/aircloak#3643](https://github.com/Aircloak/aircloak/issues/3643)
+[aircloak/aircloak#3392](https://github.com/Aircloak/aircloak/issues/3392)
 
 ### Reporting suppression
 
@@ -817,7 +835,7 @@ Although this example used the star symbol for both the text and integer column,
 #### Bucket merging
 
 Merged buckets are processed like any other bucket: they are [checked for suppression](#low-count-suppression) and [aggregate answers are perturbed](#value-flattening-and-noise-addition). As such, the information needed for this processing must be preserved when buckets are merged (lines 2-9 in the [example query](#generate-db-query)).
-[ghi3368](https://github.com/Aircloak/aircloak/issues/3368)
+[aircloak/aircloak#3368](https://github.com/Aircloak/aircloak/issues/3368)
 
 It is not possible to preserve this information perfectly. Merging is essentially an `OR` operation, and as such any users that happen to be in both buckets cannot be accounted for because the cloak does not have per-user information. Therefore the merge is designed to produce approximate values.
 
@@ -878,8 +896,8 @@ By contrast, when computing `count(DISTINCT column)`, it is not always necessary
 Suppose on the other hand the column is `purchase_time`, that there are many thousands of different purchase times, and that many of the purchase times are unique to a single user. In this case, the presence or absence of a single user can easily change the true answer, and so noise is needed to hide such users.
 
 To deal with this, the cloak generates a query that first determines, for each UID, the count of column values `count_distinct_vals_per_uid` that are unique to that UID. The cloak then computes the `min`, `max`, `avg`, and `stddev` statistics across all `count_distinct_vals_per_uid`, and uses the same algorithm as with `sum()` to [compute noise and flattening](#value-flattening-and-noise-addition). If there are zero column values that have a single UID associated with them, then no noise is added.
-[ghi3563](https://github.com/Aircloak/aircloak/issues/3563)
-[ghi4080](https://github.com/Aircloak/aircloak/issues/4080)
+[aircloak/aircloak#3563](https://github.com/Aircloak/aircloak/issues/3563)
+[aircloak/aircloak#4080](https://github.com/Aircloak/aircloak/issues/4080)
 
 The following example shows how this is done.
 

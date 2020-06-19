@@ -83,6 +83,7 @@
 - [Installing the system](ops/installation.md)
   - [Insights Air](ops/installation.md#insights-air)
   - [Insights Cloak](ops/installation.md#insights-cloak)
+  - [Diffix Explorer](ops/installation.md#diffix-explorer)
 - [Configuring the system](ops/configuration.md)
   - [Overview](ops/configuration.md#overview)
   - [Insights Air](ops/configuration.md#insights-air-configuration)
@@ -96,3 +97,8 @@
   - [User sessions](ops/administration.md#user-sessions)
   - [Forgotten password](ops/administration.md#forgotten-password)
   - [Analysis status](ops/administration.md#analysis-status)
+
+## Diffix Dogwood
+
+- [Diffix overview](diffix.md)
+- [Attacks](attacks.md)

@@ -99,9 +99,20 @@ defmodule Air do
       &Keyword.merge(
         &1,
         secret_key_base: site_setting!("endpoint_key_base"),
-        https: https_config(Keyword.get(&1, :https, []))
+        https: https_config(Keyword.get(&1, :https, [])),
+        url: endpoint_url()
       )
     )
+  end
+
+  defp endpoint_url() do
+    with {:ok, url} <- site_setting("endpoint_public_url"),
+         %URI{host: host, path: path, port: port, scheme: scheme} <-
+           URI.parse(url) do
+      [host: host, path: path, port: port, scheme: scheme]
+    else
+      _ -> []
+    end
   end
 
   defp https_config(previous_https_config) do

@@ -89,10 +89,11 @@ export const ColumnsView = ({
             title={item.comment}
           >
             <button
-              className="btn"
+              className="btn text-truncate"
+              style={{ textAlign: "left" }}
               onClick={(event) => {
                 event.preventDefault();
-                window.insertWordInEditor(item.name);
+                window.insertWordInEditor(`"${item.name}"`);
               }}
             >
               {columnIcon(item)}

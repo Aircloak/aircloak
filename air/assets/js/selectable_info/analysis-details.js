@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { formatNumber } from "../number_format";
 import moment from "moment-timezone";
 import { VegaLite } from "react-vega";
@@ -17,7 +17,7 @@ const range = (numberFormat, type) => (min, max) => (
 
 const exactValues = (data) => (
   <VegaLite
-    width={180}
+    width={Math.min(250, document.body.clientWidth - 200)}
     padding={10}
     actions={false}
     spec={{
@@ -46,7 +46,7 @@ const exactValues = (data) => (
 
 const bucketed = (data) => (
   <VegaLite
-    width={180}
+    width={Math.min(250, document.body.clientWidth - 200)}
     padding={10}
     actions={false}
     spec={{
@@ -82,7 +82,7 @@ const bucketed = (data) => (
 
 const boxplot = ([q1, q2, q3], min, max) => (
   <VegaLite
-    width={230}
+    width={Math.min(300, document.body.clientWidth - 150)}
     padding={10}
     actions={false}
     spec={{
@@ -175,7 +175,7 @@ const simpleField = (title, formatter = (a) => a) => (value) => (
   </p>
 );
 
-const AnalysisDetails = ({ numberFormat, analysis, type }) => {
+const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
   const renderIfPrereqs = (cb, ...keys) => {
     const match = analysis.filter((an) => keys.includes(an.name));
     if (match.length === keys.length) {
@@ -185,6 +185,10 @@ const AnalysisDetails = ({ numberFormat, analysis, type }) => {
   };
 
   const formatNum = (num) => formatNumber(num, numberFormat);
+
+  useEffect(() => {
+    popper.scheduleUpdate();
+  }, [popper]);
 
   return (
     <div>
@@ -216,7 +220,7 @@ const AnalysisDetails = ({ numberFormat, analysis, type }) => {
       )}
       {renderIfPrereqs(simpleField("Null", formatNum), "distinct.null_count")}
       {renderIfPrereqs(
-        simpleField("Last updated", (date) => moment(date).fromNow()),
+        simpleField("Last updated", (date) => moment.utc(date).fromNow()),
         "updated_at"
       )}
     </div>
