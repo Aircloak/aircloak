@@ -128,15 +128,25 @@ defmodule AirWeb.QueryController do
   end
 
   def delete(conn, %{"id" => query_id}) do
-    case Air.Service.Query.delete_as_user(conn.assigns.current_user, query_id) do
-      :ok ->
-        json(conn, %{success: true})
+    with {:ok, query} <- Air.Service.Query.get_as_user(conn.assigns.current_user, query_id),
+         query <- Repo.preload(query, :data_source),
+         :ok <- Air.Service.Query.delete_as_user(conn.assigns.current_user, query_id) do
+      audit_log(conn, "Deleted query",
+        query_id: query_id,
+        statement: query.statement,
+        data_source: query.data_source.name
+      )
 
+      json(conn, %{success: true})
+    else
       {:error, :query_running} ->
         send_resp(conn, Status.code(:conflict), "A running query must be cancelled first")
 
-      _ ->
+      {:error, reason} when reason in [:not_found, :invalid_id] ->
         send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
+
+      _ ->
+        send_resp(conn, Status.code(:internal_server_error), "Failed to delete the query")
     end
   end
 
