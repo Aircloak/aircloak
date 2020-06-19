@@ -17,7 +17,7 @@ defmodule PerfTest do
   defp run_query(statement, data_source) do
     {duration, _result} =
       :timer.tc(fn ->
-        :ok = Cloak.Query.Runner.start("1", nil, data_source, statement, [], %{}, nil, result_target: self())
+        :ok = Cloak.Query.Runner.start("1", nil, data_source, statement, [], %{}, result_target: self())
 
         receive do
           {:result, %{rows: rows}} -> rows |> Enum.map(&"#{&1.occurrences} x #{inspect(&1.row)}") |> Enum.join(", ")

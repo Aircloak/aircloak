@@ -20,9 +20,11 @@ defmodule Cloak.Query.Runner do
 
   @type start_opts :: [result_target: :air_socket | pid()]
 
-  @type selectables_metadata :: %{
-          views: %{String.t() => %{comment: String.t() | nil}},
-          analyst_tables: %{String.t() => %{comment: String.t() | nil}}
+  @type selectables :: %{
+          optional(:views) => Query.view_map(),
+          optional(:analyst_tables) => %{
+            String.t() => %{comment: String.t() | nil}
+          }
         }
 
   @type args :: %{
@@ -31,8 +33,7 @@ defmodule Cloak.Query.Runner do
           data_source: Cloak.DataSource.t(),
           statement: String.t(),
           parameters: [Cloak.DataSource.field()],
-          views: [Cloak.Sql.Query.view_map()],
-          selectables_metadata: selectables_metadata(),
+          selectables: selectables,
           state_updater: (Cloak.ResultSender.query_state() -> any),
           metadata_updater: (Cloak.Query.metadata() -> any)
         }
@@ -56,8 +57,7 @@ defmodule Cloak.Query.Runner do
           DataSource.t(),
           String.t(),
           [DataSource.field()],
-          Query.view_map(),
-          selectables_metadata() | nil,
+          selectables,
           start_opts
         ) :: :ok | {:error, :too_many_queries}
   def start(
@@ -66,8 +66,7 @@ defmodule Cloak.Query.Runner do
         data_source,
         statement,
         parameters,
-        views,
-        selectables_metadata,
+        selectables,
         start_opts \\ []
       ) do
     runner_args =
@@ -79,8 +78,7 @@ defmodule Cloak.Query.Runner do
         data_source: data_source,
         statement: statement,
         parameters: parameters,
-        views: views,
-        selectables_metadata: selectables_metadata || %{views: %{}, analyst_tables: %{}}
+        selectables: selectables
       })
 
     # Starting of a query is serialized (queries are started one at a time). This makes it possible to reliably decide
@@ -118,8 +116,7 @@ defmodule Cloak.Query.Runner do
           DataSource.t(),
           String.t(),
           [DataSource.field()],
-          Query.view_map(),
-          selectables_metadata() | nil
+          selectables
         ) ::
           any
   def run_sync(
@@ -128,8 +125,7 @@ defmodule Cloak.Query.Runner do
         data_source,
         statement,
         parameters,
-        views,
-        selectables_metadata \\ nil
+        selectables
       ) do
     :ok =
       start(
@@ -138,8 +134,7 @@ defmodule Cloak.Query.Runner do
         data_source,
         statement,
         parameters,
-        views,
-        selectables_metadata,
+        selectables,
         result_target: self()
       )
 

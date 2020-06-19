@@ -13,7 +13,9 @@ defmodule Cloak.Sql.Query do
 
   @type filter_clause :: nil | Expression.t()
 
-  @type view_map :: %{(view_name :: String.t()) => view_sql :: String.t()}
+  @type view_map :: %{
+          String.t() => String.t() | %{sql: String.t(), comment: String.t() | nil}
+        }
 
   @type row_index :: non_neg_integer
 

@@ -189,8 +189,8 @@ defmodule Cloak.Sql.Compiler.Specification do
     alias = alias || name
 
     case Map.fetch(query.views, name) do
-      {:ok, view_sql} ->
-        view_to_subquery(name, view_sql, alias, query)
+      {:ok, view} ->
+        view_to_subquery(name, view, alias, query)
 
       :error ->
         case Map.fetch(query.analyst_tables, name) do
@@ -200,17 +200,20 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp view_to_subquery(view_name, view_sql, alias, query) do
+  defp view_to_subquery(view_name, view, alias, query) do
     if Enum.any?(query.data_source.tables, fn {_id, table} -> insensitive_equal?(table.name, view_name) end) do
       raise CompilationError,
         message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
     end
 
-    case Cloak.Sql.Parser.parse(view_sql) do
+    case Cloak.Sql.Parser.parse(view_sql(view)) do
       {:ok, parsed_view} -> {:subquery, %{ast: Map.put(parsed_view, :view?, true), alias: alias}}
       {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
     end
   end
+
+  defp view_sql(view) when is_binary(view), do: view
+  defp view_sql(%{sql: sql}), do: sql
 
   defp analyst_table_to_subquery(analyst_table, alias) do
     case Cloak.Sql.Parser.parse(analyst_table.statement) do

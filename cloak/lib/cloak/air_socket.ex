@@ -261,8 +261,10 @@ defmodule Cloak.AirSocket do
              data_source,
              serialized_query.statement || "",
              decode_params(serialized_query.parameters),
-             serialized_query.views,
-             serialized_query.metadata
+             %{
+               views: serialized_query[:views] || %{},
+               analyst_tables: serialized_query[:analyst_tables] || %{}
+             }
            ),
          do: respond_to_air(from, :ok),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))
@@ -455,9 +457,9 @@ defmodule Cloak.AirSocket do
   end
 
   defp validate_views(analyst_id, data_source, views) do
-    for {name, sql} <- views do
+    for {name, view} <- views do
       Task.async(fn ->
-        case Cloak.Sql.Query.validate_view(analyst_id, data_source, name, sql, views) do
+        case Cloak.Sql.Query.validate_view(analyst_id, data_source, name, view_sql(view), views) do
           {:ok, columns} -> %{name: name, valid: true, columns: columns}
           {:error, field, reason} -> %{name: name, valid: false, field: field, error: reason}
         end
@@ -465,6 +467,9 @@ defmodule Cloak.AirSocket do
     end
     |> Enum.map(&Task.await/1)
   end
+
+  defp view_sql(view) when is_binary(view), do: view
+  defp view_sql(%{sql: sql}), do: sql
 
   defp get_salt_hash(), do: :crypto.hash(:sha256, Cloak.Query.Anonymizer.config(:salt)) |> Base.encode16()
 

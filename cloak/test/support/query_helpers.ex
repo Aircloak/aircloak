@@ -13,7 +13,10 @@ defmodule Cloak.Test.QueryHelpers do
             timeout: Keyword.get(options, :timeout, :timer.hours(1)),
             delta: Keyword.get(options, :delta, 0.0001)
           ] do
-      run_query = &Cloak.Query.Runner.run_sync("1", analyst_id, &1, query, parameters, views)
+      run_query =
+        &Cloak.Query.Runner.run_sync("1", analyst_id, &1, query, parameters, %{
+          views: views
+        })
 
       data_sources
       |> Task.async_stream(
@@ -41,7 +44,10 @@ defmodule Cloak.Test.QueryHelpers do
             timeout: Keyword.get(options, :timeout, :timer.hours(1)),
             delta: Keyword.get(options, :delta, 0.0001)
           ] do
-      run_query = &Cloak.Query.Runner.run_sync("1", analyst_id, &1, query, parameters, views)
+      run_query =
+        &Cloak.Query.Runner.run_sync("1", analyst_id, &1, query, parameters, %{
+          views: views
+        })
 
       results =
         data_sources

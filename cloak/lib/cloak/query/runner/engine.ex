@@ -24,7 +24,7 @@ defmodule Cloak.Query.Runner.Engine do
 
     result =
       query
-      |> run_statement(runner_args.selectables_metadata, runner_args.state_updater)
+      |> run_statement(runner_args.selectables, runner_args.state_updater)
       |> Query.Result.new(query.column_titles, metadata)
 
     runtime = :erlang.monotonic_time(:milli_seconds) - start_time
@@ -61,14 +61,14 @@ defmodule Cloak.Query.Runner.Engine do
       runner_args.analyst_id,
       runner_args.data_source,
       runner_args.parameters,
-      runner_args.views
+      runner_args.selectables[:views] || %{}
     )
   end
 
   defp display_content_type(:private), do: "personal"
   defp display_content_type(:public), do: "non-personal"
 
-  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, selectables_metadata, _state_updater) do
+  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, selectables, _state_updater) do
     tables =
       Cloak.DataSource.tables(query.data_source)
       |> Enum.map(
@@ -85,7 +85,9 @@ defmodule Cloak.Query.Runner.Engine do
         &[
           to_string(&1.name),
           display_content_type(&1.content_type),
-          get_in(selectables_metadata, [:analyst_tables, to_string(&1.name), :comment])
+          selectables
+          |> get_in([:analyst_tables, to_string(&1.name)])
+          |> selectable_comment()
         ]
       )
 
@@ -96,14 +98,16 @@ defmodule Cloak.Query.Runner.Engine do
         &[
           to_string(&1),
           "view",
-          get_in(selectables_metadata, [:views, &1, :comment])
+          selectables
+          |> get_in([:views, &1])
+          |> selectable_comment()
         ]
       )
 
     Enum.map(tables ++ analyst_tables ++ views, &%{occurrences: 1, row: &1})
   end
 
-  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, _selectables_metadata, _state_updater) do
+  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, _selectables, _state_updater) do
     [table] = query.selected_tables
 
     Enum.map(
@@ -121,8 +125,11 @@ defmodule Cloak.Query.Runner.Engine do
     )
   end
 
-  defp run_statement(%Sql.Query{command: :select} = query, _selectables_metadata, state_updater),
+  defp run_statement(%Sql.Query{command: :select} = query, _selectables, state_updater),
     do: Query.DbEmulator.select(query, state_updater)
+
+  defp selectable_comment(%{comment: comment}), do: comment
+  defp selectable_comment(_), do: nil
 
   defp isolator_status(_data_source, %{type: :subquery}, _column), do: nil
   defp isolator_status(_data_source, %{type: :analyst}, _column), do: nil
