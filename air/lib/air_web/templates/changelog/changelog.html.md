@@ -12,6 +12,8 @@
 
 ### Enhancements
 
+- We've built an integration to take advantage of [Diffix Explorer](https://github.com/diffix/explorer). If you [enable it](/docs/ops/installation.html#diffix-explorer), you will be able to get a nice overview of the anonymized content of columns in your data source.
+- New redesigned user interface. The interface should be easier to navigate, use and read and should work better on mobile devices.
 - Added overflow protection for date arithmetic. Oracle UDFs have to be reloaded.
 
 ### Bugfixes
