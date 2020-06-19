@@ -43,9 +43,9 @@ export default ({ queries }: Props) => {
                 return <React.Fragment />;
               }
               return (
-                <tr key={(queryState: string)}>
+                <tr key={queryState}>
                   <td>
-                    <StateView queryState={(queryState: string)} />
+                    <StateView queryState={queryState} />
                   </td>
                   <td>{count}</td>
                 </tr>
