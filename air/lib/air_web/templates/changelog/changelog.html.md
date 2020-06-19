@@ -13,6 +13,7 @@
 ### Enhancements
 
 - Added overflow protection for date arithmetic. Oracle UDFs have to be reloaded.
+- Improved performance for join-timing protection.
 
 ### Bugfixes
 

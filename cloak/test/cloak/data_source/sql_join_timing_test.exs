@@ -6,10 +6,10 @@ defmodule Cloak.DataSource.SQLJoinTimingTest do
   @moduletag :exclude_in_dev
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("jt_left", "id INTEGER")
+    :ok = Cloak.Test.DB.create_table("jt_left", "id INTEGER, val INTEGER")
     :ok = Cloak.Test.DB.create_table("jt_right", "id INTEGER")
 
-    :ok = insert_rows(_user_ids = 1..10, "jt_left", ["id"], [1])
+    :ok = insert_rows(_user_ids = 1..10, "jt_left", ["id", "val"], [1, 0])
     :ok = insert_rows(_user_ids = 1..30_000, "jt_right", ["id"], [1])
     :ok = insert_rows(_user_ids = 1..30_000, "jt_right", ["id"], [2])
     :ok = insert_rows(_user_ids = 1..30_000, "jt_right", ["id"], [3])
@@ -39,6 +39,28 @@ defmodule Cloak.DataSource.SQLJoinTimingTest do
       INNER JOIN
         (SELECT DISTINCT user_id, id FROM jt_right) t3
       ON t2.user_id = t3.user_id
+    """,
+    """
+      SELECT count(t3.id) FROM
+        jt_left t1
+      INNER JOIN
+        (SELECT user_id FROM jt_left WHERE id = <matched_id>) t2
+      ON t1.user_id = t2.user_id
+      INNER JOIN
+        (SELECT DISTINCT user_id, id FROM jt_right) t3
+      ON t2.user_id = t3.user_id
+      WHERE val = 0
+    """,
+    """
+      SELECT count(t3.id) FROM
+        jt_left t1
+      INNER JOIN
+        (SELECT user_id FROM jt_left WHERE id = <matched_id>) t2
+      ON t1.user_id = t2.user_id
+      LEFT JOIN
+        (SELECT DISTINCT user_id, id FROM jt_right) t3
+      ON t2.user_id = t3.user_id
+      WHERE val = 0
     """
   ]
 

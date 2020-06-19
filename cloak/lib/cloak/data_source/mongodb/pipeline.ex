@@ -364,7 +364,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp move_root_to(path), do: [%{"$replaceRoot": %{newRoot: %{path => "$$ROOT"}}}]
 
-  defp add_join_timing_protection(pipeline, %{ast: query, join_timing_protection?: true}) do
+  defp add_join_timing_protection(pipeline, %{ast: query, join_timing_protection: _}) do
     [
       %{
         "$facet": %{

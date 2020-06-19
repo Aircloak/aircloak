@@ -418,7 +418,29 @@ defmodule Cloak.DataSource.SqlBuilder do
   # Build subquery with join-timing protection
   # -------------------------------------------------------------------
 
-  defp build_subquery(%{ast: query, join_timing_protection?: true}) do
+  defp build_subquery(%{ast: query, join_timing_protection: :invalid_row}) do
+    dialect = sql_dialect_module(query)
+
+    from =
+      case dialect do
+        Cloak.DataSource.SqlBuilder.Oracle -> " FROM dual"
+        _ -> ""
+      end
+
+    [
+      "(",
+      build_fragments(query),
+      ") UNION ALL (SELECT ",
+      query.db_columns
+      |> Enum.map(&Table.invalid_value(&1.type))
+      |> Enum.map(&constant_to_fragment(&1, dialect))
+      |> Enum.join(", "),
+      from,
+      ")"
+    ]
+  end
+
+  defp build_subquery(%{ast: query, join_timing_protection: :not_exists}) do
     [
       "(",
       build_fragments(query),
