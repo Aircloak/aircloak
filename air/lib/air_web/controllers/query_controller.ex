@@ -129,9 +129,8 @@ defmodule AirWeb.QueryController do
 
   def delete(conn, %{"id" => query_id}) do
     with {:ok, query} <- Air.Service.Query.get_as_user(conn.assigns.current_user, query_id),
-        query <- Repo.preload(query, :data_source),
+         query <- Repo.preload(query, :data_source),
          :ok <- Air.Service.Query.delete_as_user(conn.assigns.current_user, query_id) do
-
       audit_log(conn, "Deleted query",
         query_id: query_id,
         statement: query.statement,
