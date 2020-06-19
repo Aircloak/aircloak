@@ -26,7 +26,8 @@ defmodule AirWeb.SelectableController do
         "new.html",
         kind: kind,
         changeset: new_changeset_of_kind(kind),
-        data_source: conn.assigns.data_source
+        data_source: conn.assigns.data_source,
+        number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
       )
 
   def edit(conn, %{"id" => id, "kind" => kind}),
@@ -36,7 +37,8 @@ defmodule AirWeb.SelectableController do
         "edit.html",
         kind: kind,
         changeset: existing_changeset_of_kind(id, kind),
-        data_source: conn.assigns.data_source
+        data_source: conn.assigns.data_source,
+        number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
       )
 
   def create(conn, %{"kind" => kind} = params) do
@@ -46,7 +48,12 @@ defmodule AirWeb.SelectableController do
         redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.name))
 
       {:error, changeset} ->
-        render(conn, "new.html", kind: kind, changeset: changeset, data_source: conn.assigns.data_source)
+        render(conn, "new.html",
+          kind: kind,
+          changeset: changeset,
+          data_source: conn.assigns.data_source,
+          number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
+        )
     end
   end
 
@@ -65,7 +72,8 @@ defmodule AirWeb.SelectableController do
           "edit.html",
           kind: kind,
           changeset: changeset,
-          data_source: conn.assigns.data_source
+          data_source: conn.assigns.data_source,
+          number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
         )
     end
   end
