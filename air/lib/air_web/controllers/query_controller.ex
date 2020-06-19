@@ -146,7 +146,7 @@ defmodule AirWeb.QueryController do
         send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
 
       _ ->
-        send_resp(conn, Status.code(:expectation_failed), "Failed to delete the query")
+        send_resp(conn, Status.code(:internal_server_error), "Failed to delete the query")
     end
   end
 
