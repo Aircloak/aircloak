@@ -9,6 +9,9 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
   - [Deployment](#deployment)
   - [Main Pipeline](#main-pipeline)
   - [Database configuration](#database-configuration)
+  - [Version Differences](#version-differences)
+    - [From Cedar to Dogwood](#from-cedar-to-dogwood)
+    - [From Birch to Cedar](#from-birch-to-cedar)
 - [Initialization of internal state](#initialization-of-internal-state)
     - [Shadow table](#shadow-table)
     - [Isolating column label](#isolating-column-label)
@@ -111,6 +114,21 @@ When queries include one or more personal tables, the cloak must be able to asso
 2. The personal table can be linked to a personal table with a `user_id` through one or more `JOIN` operations. The columns that may be used for this linking, known as `key` columns, must be explicitly configured.
 
 The cloak allows `JOIN (...) ON` operations using the configured `key` or `user_id` columns only (see [Illegal JOINs](#illegal-joins)).
+
+## Version Differences
+
+This section outlines the major differences between versions.
+
+### From Cedar to Dogwood
+
+* The functions `floor`, `ceil`, and `cast to int` were defined as implicit ranges, with the effect that clear restrictions are applied to them.
+
+### From Birch to Cedar
+
+* The method for computing noise and flattening was changed from a UID-based approach to a stats-based approach (see [Value flattening and noise addition](#value-flattening-and-noise-addition)).
+* Several mechanisms to defend against side-channel attacks were added ([JOIN timing](#add-protection-against-join-timing-attack), [divide-by-zero](#add-protection-against-divide-by-zero-attacks), [square root of negative numbers](#add-protection-against-square-root-of-negative-numbers)).
+* Added [internal state](#initialization-of-internal-state) ([shadow table](#shadow-table), [isolating columns](#isolating-column-label), [column min and max](#per-column-min-and-max-values)) and related restrictions.
+* Numerous restrictions were added.
 
 # Initialization of internal state
 
