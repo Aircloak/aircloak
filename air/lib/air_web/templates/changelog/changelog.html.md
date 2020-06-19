@@ -14,7 +14,7 @@
 
 ### Enhancements
 
-- New redesigned user interface. The interface should be easier to navigate, use and read and should work better on mobile devices.
+- Redesigned user interface. The interface is easier to navigate, use and read and works better on mobile devices.
 - Added overflow protection for date arithmetic. Oracle UDFs have to be reloaded.
 
 ### Bugfixes

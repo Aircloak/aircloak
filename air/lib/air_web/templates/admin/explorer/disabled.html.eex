@@ -7,7 +7,7 @@
   <div class="row">
     <div class="col-lg-4">
       <h3 class="h4 font-weight-light">How it works?</h3>
-      <p>Diffix Explorer automatically queries tables in your database through Aircloak. It gathers this anonymized data into clever statistical insights. We'll show you these insights to help you write queries and get actionable information quicker.</p>
+      <p>Diffix Explorer automatically queries tables in your database through Aircloak. It gathers this anonymized data into statistical insights. We'll show you these insights to help you write queries and get actionable information quicker.</p>
     </div>
 
     <div class="col-lg-4">
