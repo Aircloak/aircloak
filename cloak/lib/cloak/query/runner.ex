@@ -20,7 +20,7 @@ defmodule Cloak.Query.Runner do
 
   @type start_opts :: [result_target: :air_socket | pid()]
 
-  @type selectables :: %{
+  @type user_selectables :: %{
           optional(:views) => Query.user_views(),
           optional(:analyst_tables) => %{
             String.t() => %{comment: String.t() | nil}
@@ -33,7 +33,7 @@ defmodule Cloak.Query.Runner do
           data_source: Cloak.DataSource.t(),
           statement: String.t(),
           parameters: [Cloak.DataSource.field()],
-          selectables: selectables,
+          user_selectables: user_selectables,
           state_updater: (Cloak.ResultSender.query_state() -> any),
           metadata_updater: (Cloak.Query.metadata() -> any)
         }
@@ -57,7 +57,7 @@ defmodule Cloak.Query.Runner do
           DataSource.t(),
           String.t(),
           [DataSource.field()],
-          selectables,
+          user_selectables,
           start_opts
         ) :: :ok | {:error, :too_many_queries}
   def start(
@@ -66,7 +66,7 @@ defmodule Cloak.Query.Runner do
         data_source,
         statement,
         parameters,
-        selectables,
+        user_selectables,
         start_opts \\ []
       ) do
     runner_args =
@@ -78,7 +78,7 @@ defmodule Cloak.Query.Runner do
         data_source: data_source,
         statement: statement,
         parameters: parameters,
-        selectables: selectables
+        user_selectables: user_selectables
       })
 
     # Starting of a query is serialized (queries are started one at a time). This makes it possible to reliably decide
@@ -116,7 +116,7 @@ defmodule Cloak.Query.Runner do
           DataSource.t(),
           String.t(),
           [DataSource.field()],
-          selectables
+          user_selectables
         ) ::
           any
   def run_sync(
@@ -125,7 +125,7 @@ defmodule Cloak.Query.Runner do
         data_source,
         statement,
         parameters,
-        selectables
+        user_selectables
       ) do
     :ok =
       start(
@@ -134,7 +134,7 @@ defmodule Cloak.Query.Runner do
         data_source,
         statement,
         parameters,
-        selectables,
+        user_selectables,
         result_target: self()
       )
 
