@@ -275,7 +275,7 @@ defmodule Air.Service.View do
   defp validate_view(user, view) do
     views =
       user_views(user, view.data_source_id)
-      |> Map.put(view.name, view.sql)
+      |> Map.put(view.name, %{sql: view.sql})
 
     case validate_views(view.data_source_id, user, views) do
       {:ok, results} -> Map.fetch!(results, view.name)

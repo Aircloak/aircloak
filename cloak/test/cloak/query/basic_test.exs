@@ -31,7 +31,7 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "show tables and views" do
-    assert_query("show tables", [views: %{"v1" => "select user_id, height from heights"}], %{
+    assert_query("show tables", [views: %{"v1" => %{sql: "select user_id, height from heights"}}], %{
       columns: ["name", "type", "comment"],
       rows: rows
     })
@@ -77,7 +77,7 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "show columns from a view" do
-    assert_query("show columns from v1", [views: %{"v1" => "select user_id, height from heights"}], %{
+    assert_query("show columns from v1", [views: %{"v1" => %{sql: "select user_id, height from heights"}}], %{
       query_id: "1",
       columns: _,
       rows: rows
@@ -1381,7 +1381,7 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query(
       "select height from heights_view",
-      [views: %{"heights_view" => "select user_id, height from heights"}],
+      [views: %{"heights_view" => %{sql: "select user_id, height from heights"}}],
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
     )
   end
@@ -1391,7 +1391,7 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query(
       "select height from heights_view view_alias",
-      [views: %{"heights_view" => "select user_id, height from heights"}],
+      [views: %{"heights_view" => %{sql: "select user_id, height from heights"}}],
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
     )
   end
@@ -1403,8 +1403,8 @@ defmodule Cloak.Query.BasicTest do
       "select height from v1",
       [
         views: %{
-          "v1" => "select user_id, height from v2",
-          "v2" => "select user_id, height from heights"
+          "v1" => %{sql: "select user_id, height from v2"},
+          "v2" => %{sql: "select user_id, height from heights"}
         }
       ],
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
@@ -1416,7 +1416,7 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query(
       "select heights_view.height from heights_view",
-      [views: %{"heights_view" => "select user_id, height from heights"}],
+      [views: %{"heights_view" => %{sql: "select user_id, height from heights"}}],
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
     )
   end
@@ -1427,7 +1427,7 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query(
       "select height from heights_view",
-      [views: %{"heights_view" => "select distinct user_id, height from heights"}],
+      [views: %{"heights_view" => %{sql: "select distinct user_id, height from heights"}}],
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
     )
   end

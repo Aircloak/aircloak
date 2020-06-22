@@ -206,14 +206,11 @@ defmodule Cloak.Sql.Compiler.Specification do
         message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
     end
 
-    case Cloak.Sql.Parser.parse(view_sql(view)) do
+    case Cloak.Sql.Parser.parse(view.sql) do
       {:ok, parsed_view} -> {:subquery, %{ast: Map.put(parsed_view, :view?, true), alias: alias}}
       {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
     end
   end
-
-  defp view_sql(view) when is_binary(view), do: view
-  defp view_sql(%{sql: sql}), do: sql
 
   defp analyst_table_to_subquery(analyst_table, alias) do
     case Cloak.Sql.Parser.parse(analyst_table.statement) do

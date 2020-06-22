@@ -209,7 +209,7 @@ defmodule Cloak.Query.SubqueryTest do
   test "using view in a subquery" do
     assert_query(
       "select height from (select user_id, height from heights_view) alias",
-      [views: %{"heights_view" => "select user_id, height from heights_sq"}],
+      [views: %{"heights_view" => %{sql: "select user_id, height from heights_sq"}}],
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
     )
   end

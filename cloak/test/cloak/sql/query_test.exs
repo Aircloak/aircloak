@@ -67,7 +67,7 @@ defmodule Cloak.Sql.QueryTest do
   test "successful validation of a view which uses another view" do
     assert {:ok, [col1, col2]} =
              validate_view("v1", "select user_id, name from table_view", %{
-               "table_view" => "select user_id, name from feat_users"
+               "table_view" => %{sql: "select user_id, name from feat_users"}
              })
 
     assert col1 == %{name: "user_id", type: "text", key_type: "user_id", comment: nil}

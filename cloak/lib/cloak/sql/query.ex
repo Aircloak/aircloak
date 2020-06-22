@@ -14,7 +14,10 @@ defmodule Cloak.Sql.Query do
   @type filter_clause :: nil | Expression.t()
 
   @type user_views :: %{
-          String.t() => String.t() | %{sql: String.t(), comment: String.t() | nil}
+          String.t() => %{
+            :sql => String.t(),
+            optional(:comment) => String.t() | nil
+          }
         }
 
   @type row_index :: non_neg_integer
