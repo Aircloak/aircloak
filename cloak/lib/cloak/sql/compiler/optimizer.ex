@@ -56,6 +56,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       |> Enum.filter(fn {column, column_name} ->
         column.user_id? or column_name in required_column_names
       end)
+      |> Enum.uniq_by(fn {_column, column_name} -> column_name end)
       |> Enum.unzip()
 
     if subquery.group_by == [] and columns == [] and Enum.any?(subquery.columns, &Helpers.aggregated_column?/1) do
