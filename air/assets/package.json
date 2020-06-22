@@ -31,6 +31,7 @@
   "devDependencies": {
     "@babel/core": "^7.9.0",
     "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/preset-env": "^7.10.3",
     "@babel/preset-flow": "^7.9.0",
     "@babel/preset-react": "^7.9.1",
     "@babel/register": "^7.9.0",
@@ -70,7 +71,5 @@
   "staticFiles": {
     "staticPath": "static"
   },
-  "browserslist": [
-    ">5%"
-  ]
+  "browserslist": ">5%, firefox >= 60, chrome >= 72, last 1 safari version, last 1 edge version"
 }
