@@ -256,4 +256,11 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["count"], rows: [%{row: [100], occurrences: 1}]}
     )
   end
+
+  test "[BUG] subquery star selecting identical user_id columns" do
+    assert_query(
+      "SELECT stddev(0) FROM (SELECT * FROM heights_sq t1 JOIN heights_sq t2 ON t1.user_id = t2.user_id) t",
+      %{rows: [%{row: [0.0], occurrences: 1}]}
+    )
+  end
 end

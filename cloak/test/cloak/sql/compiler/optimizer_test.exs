@@ -24,7 +24,7 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
                data_source()
              )
 
-    assert ["n", "uid", "uid"] = subquery.column_titles
+    assert ["n", "uid"] = subquery.column_titles
   end
 
   test "grouped by columns selected in subquery are kept" do
