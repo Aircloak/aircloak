@@ -46,7 +46,7 @@ the links to Github issues must be removed.
 
 By convention, these links take the form:
 
-`[ghiXXXX](https://github.com/Aircloak/aircloak/issues/XXXX)`
+`[aircloak/aircloak#XXXX](https://github.com/Aircloak/aircloak/issues/XXXX)`
 
 and always appear on a separate line so that an auto-scrubber can
 remove the links before copy.
