@@ -214,7 +214,13 @@ defmodule Cloak.DataSource.Table do
 
     comments =
       Aircloak.deep_merge(
-        %{table: virtual_table_comment(data_source), columns: virtual_column_comments(zipped_columns)},
+        %{
+          table: virtual_table_comment(data_source),
+          columns:
+            zipped_columns
+            |> Enum.map(fn {name, column} -> %Expression{column | alias: name} end)
+            |> Compiler.Helpers.column_comments()
+        },
         config[:comments] || %{}
       )
 
@@ -236,14 +242,6 @@ defmodule Cloak.DataSource.Table do
       [table] -> table_comment(table)
       _ -> nil
     end
-  end
-
-  defp virtual_column_comments(columns) do
-    columns
-    |> Enum.filter(fn {_name, column} -> Expression.column?(column) end)
-    |> Enum.map(fn {name, column} -> {name, column_comment(column.table, column.name)} end)
-    |> Enum.reject(&match?({_, nil}, &1))
-    |> Enum.into(%{})
   end
 
   defp verify_column_name(table, name) do

@@ -176,17 +176,19 @@ defmodule Cloak.Sql.Compiler.Helpers do
     |> Enum.map(&elem(&1, 1))
   end
 
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp column_comments(columns) do
+  @doc "Returns a map of comments for the given columns."
+  @spec column_comments([Expression.t()]) :: %{String.t() => String.t() | nil}
+  def column_comments(columns) do
     columns
     |> Enum.filter(&Expression.column?/1)
     |> Enum.map(&{Expression.title(&1), Table.column_comment(&1.table, &1.name)})
     |> Enum.reject(&match?({_, nil}, &1))
     |> Enum.into(%{})
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp unselectable_selected_expression?(expr), do: unselectable_selected_columns(expr) != []
 
