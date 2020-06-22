@@ -15,7 +15,7 @@ defmodule Cloak.Sql.Compiler.Specification do
           Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
-          Query.view_map()
+          Query.user_views()
         ) :: Query.t()
   def compile(parsed_query, analyst_id, data_source, parameters, views) do
     %Query{

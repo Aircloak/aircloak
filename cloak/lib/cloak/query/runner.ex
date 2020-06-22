@@ -21,7 +21,7 @@ defmodule Cloak.Query.Runner do
   @type start_opts :: [result_target: :air_socket | pid()]
 
   @type selectables :: %{
-          optional(:views) => Query.view_map(),
+          optional(:views) => Query.user_views(),
           optional(:analyst_tables) => %{
             String.t() => %{comment: String.t() | nil}
           }

@@ -7,7 +7,7 @@ defmodule Air.Service.AnalystTable do
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query
 
-  @type analyst_table_map :: %{
+  @type user_analyst_tables :: %{
           String.t() => %{
             comment: String.t() | nil
           }
@@ -103,7 +103,7 @@ defmodule Air.Service.AnalystTable do
                  table.user.id,
                  table.name,
                  table.data_source.name,
-                 Air.Service.View.user_views_map(user, table.data_source.id)
+                 Air.Service.View.user_views(user, table.data_source.id)
                )
              ) do
         Air.Service.View.store_view_validation_results(user, table.data_source.id, validated_views)
@@ -168,8 +168,8 @@ defmodule Air.Service.AnalystTable do
   end
 
   @doc "Returns a map of all the analyst tables the given user defined for the given data source."
-  @spec user_analyst_tables_map(User.t(), integer) :: analyst_table_map
-  def user_analyst_tables_map(user, data_source_id) do
+  @spec user_analyst_tables(User.t(), integer) :: user_analyst_tables
+  def user_analyst_tables(user, data_source_id) do
     AnalystTable
     |> by_user_id(user.id)
     |> by_data_source_id(data_source_id)
@@ -236,7 +236,7 @@ defmodule Air.Service.AnalystTable do
                table.sql,
                data_source.name,
                nil,
-               Air.Service.View.user_views_map(user, data_source.id)
+               Air.Service.View.user_views(user, data_source.id)
              )
            ),
          do: {:error, add_cloak_error(table, reason)}

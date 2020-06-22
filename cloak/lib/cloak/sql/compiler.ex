@@ -15,7 +15,7 @@ defmodule Cloak.Sql.Compiler do
           Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
-          Query.view_map()
+          Query.user_views()
         ) :: {:ok, Query.t()} | {:error, String.t()}
   def compile(parsed_query, analyst_id, data_source, parameters, views) do
     {:ok, compile!(parsed_query, analyst_id, data_source, parameters, views)}
@@ -29,7 +29,7 @@ defmodule Cloak.Sql.Compiler do
           Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
-          Query.view_map()
+          Query.user_views()
         ) :: Query.t()
   def compile!(parsed_query, analyst_id, data_source, parameters, views) do
     parsed_query
@@ -45,7 +45,7 @@ defmodule Cloak.Sql.Compiler do
           Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
-          Query.view_map(),
+          Query.user_views(),
           Keyword.t()
         ) :: Query.t()
   def core_compile!(parsed_query, analyst_id, data_source, parameters, views, opts \\ []) do
@@ -68,7 +68,7 @@ defmodule Cloak.Sql.Compiler do
           Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
-          Query.view_map()
+          Query.user_views()
         ) :: Query.t()
   def compile_standard!(parsed_query, analyst_id, data_source, parameters \\ nil, views \\ %{}),
     do:
@@ -87,7 +87,7 @@ defmodule Cloak.Sql.Compiler do
           Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
-          Query.view_map()
+          Query.user_views()
         ) :: Query.t()
   def compile_direct!(parsed_query, analyst_id, data_source, parameters \\ nil, views \\ %{}) do
     compile_standard!(parsed_query, analyst_id, data_source, parameters, views)
@@ -107,7 +107,7 @@ defmodule Cloak.Sql.Compiler do
           Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
-          Query.view_map()
+          Query.user_views()
         ) :: {:ok, Query.t()} | {:error, String.t()}
   def compile_direct(parsed_query, analyst_id, data_source, parameters, views) do
     {:ok, compile_direct!(parsed_query, analyst_id, data_source, parameters, views)}
@@ -116,7 +116,7 @@ defmodule Cloak.Sql.Compiler do
   end
 
   @doc "Validates a user-defined view."
-  @spec validate_view(Query.analyst_id(), DataSource.t(), Parser.parsed_query(), Query.view_map()) ::
+  @spec validate_view(Query.analyst_id(), DataSource.t(), Parser.parsed_query(), Query.user_views()) ::
           {:ok, Query.t()} | {:error, String.t()}
   def validate_view(analyst_id, data_source, parsed_query, views),
     do: parsed_query |> Map.put(:subquery?, true) |> compile(analyst_id, data_source, [], views)

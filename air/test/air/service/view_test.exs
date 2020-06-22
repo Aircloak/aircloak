@@ -45,7 +45,7 @@ defmodule Air.Service.ViewTest do
   end
 
   test "fetching the view map", context do
-    assert View.user_views_map(context.u1, context.ds1.id) == %{
+    assert View.user_views(context.u1, context.ds1.id) == %{
              "view_1" => %{comment: nil, sql: "sql for view_1"},
              "view_2" => %{comment: nil, sql: "sql for view_2"}
            }

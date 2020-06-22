@@ -71,7 +71,7 @@ defmodule Air.PsqlServer.CloakQuery do
         statement,
         &1.data_source.name,
         parameters,
-        Air.Service.View.user_views_map(user, &1.data_source.id)
+        Air.Service.View.user_views(user, &1.data_source.id)
       )
     )
   end

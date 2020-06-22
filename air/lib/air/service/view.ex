@@ -143,8 +143,8 @@ defmodule Air.Service.View do
   end
 
   @doc "Returns a map of all the views the given user defined for the given data source."
-  @spec user_views_map(User.t(), integer) :: view_map
-  def user_views_map(user, data_source_id) do
+  @spec user_views(User.t(), integer) :: view_map
+  def user_views(user, data_source_id) do
     View
     |> by_user_id(user.id)
     |> by_data_source_id(data_source_id)
@@ -212,7 +212,7 @@ defmodule Air.Service.View do
   defp sync_revalidate_views!(user, data_source_id) do
     Logger.info("revalidating views for user #{user.id}, data source #{data_source_id}")
 
-    {:ok, results} = validate_views(data_source_id, user, user_views_map(user, data_source_id))
+    {:ok, results} = validate_views(data_source_id, user, user_views(user, data_source_id))
     store_view_validation_results(user, data_source_id, results)
   end
 
@@ -274,7 +274,7 @@ defmodule Air.Service.View do
 
   defp validate_view(user, view) do
     views =
-      user_views_map(user, view.data_source_id)
+      user_views(user, view.data_source_id)
       |> Map.put(view.name, view.sql)
 
     case validate_views(view.data_source_id, user, views) do
