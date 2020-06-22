@@ -1,5 +1,5 @@
-<div class="container-fluid mt-3 full-height">
-  <div class="content-wrapper container-with-sidebar-wide">
+<div class="container-fluid mt-3 full-height d-flex justify-content-end">
+  <div class="container-with-sidebar-wide">
     <header class="page-header">
       <ol class="breadcrumb bg-white">
         <li class="breadcrumb-item"><%= link "Data sources", to: data_source_path(@conn, :index), class: "text-muted" %></li>
@@ -37,9 +37,11 @@
         <kbd>Ctrl + Enter</kbd>
       </div>
     <% end %>
+
+    <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
+
   </div>
-  <div id="selectable-info"></div>
-  <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
+  <div id="selectable-info" class="sidebar-container"></div>
 </div>
 
 

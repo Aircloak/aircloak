@@ -1,5 +1,5 @@
-<div class="container-fluid mt-3 full-height">
-  <div class="content-wrapper container-with-sidebar-fluid">
+<div class="container-fluid mt-3 full-height d-flex">
+  <div class="container-with-sidebar-fluid">
     <%= if get_flash(@conn, :warn) do %>
       <p class="alert alert-warning alert-dismissible" role="alert">
         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -9,11 +9,11 @@
       </p>
     <% end %>
 
-    <div id="query-view"></div>
+    <div id="query-view" class="mb-3"></div>
+    <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
   </div>
 
-  <div id="selectable-info"></div>
-  <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
+  <div id="selectable-info" class="sidebar-container"></div>
 </div>
 <script>
   window.pageConfig = {
