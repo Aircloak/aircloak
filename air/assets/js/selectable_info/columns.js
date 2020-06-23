@@ -4,6 +4,7 @@ import React from "react";
 
 import { filterColumns, Higlighted } from "./filter";
 import ExplorerResultButton from "./explorer-result-button.js";
+import CommentIcon from "./comment-icon";
 import type { NumberFormat } from "../number_format";
 
 export type Column = {
@@ -86,7 +87,6 @@ export const ColumnsView = ({
               item
             )} d-flex justify-content-between align-items-center`}
             key={item.name}
-            title={item.comment}
           >
             <button
               className="btn text-truncate"
@@ -106,9 +106,12 @@ export const ColumnsView = ({
                 </>
               )}
             </button>
-            {item.analysis && (
-              <ExplorerResultButton item={item} numberFormat={numberFormat} />
-            )}
+            <span className="align-items-baseline d-flex">
+              {item.comment && <CommentIcon comment={item.comment} />}
+              {item.analysis && (
+                <ExplorerResultButton item={item} numberFormat={numberFormat} />
+              )}
+            </span>
           </li>
         );
       })}

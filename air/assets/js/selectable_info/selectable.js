@@ -9,6 +9,7 @@ import type { Column } from "./columns";
 import activateTooltips from "../tooltips";
 import loader from "../../static/images/loader.gif";
 import type { NumberFormat } from "../number_format";
+import CommentIcon from "./comment-icon";
 
 export type Selectable = {
   id: string,
@@ -174,10 +175,7 @@ export class SelectableView extends React.Component<Props> {
       className,
     } = this.brokenMetaData();
     return (
-      <div
-        className="list-group-item px-4 py-1 bg-transparent"
-        title={selectable.comment}
-      >
+      <div className="list-group-item px-4 py-1 bg-transparent">
         {this.isAnalystCreatedSelectable()
           ? this.renderSelectableActionMenu()
           : null}
@@ -189,13 +187,14 @@ export class SelectableView extends React.Component<Props> {
           className={`${className} btn ml-n2`}
         >
           {this.renderIcon()}
-          <span className="pl-2">
+          <span className="pl-2 pr-2">
             <Higlighted
               table={selectable.id}
               column={searchResult}
               field="table"
             />
           </span>
+          {selectable.comment && <CommentIcon comment={selectable.comment} />}
         </button>
 
         {(() => {

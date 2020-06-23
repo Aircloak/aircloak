@@ -53,7 +53,7 @@ const ExplorerResultButton = ({ numberFormat, item }) => {
         />
       }
     >
-      <button className="btn btn-outline-secondary">
+      <button className="btn">
         <i
           className="fas fa-chart-bar"
           aria-label="Explorer Analysis Results"
