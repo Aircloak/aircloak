@@ -1249,7 +1249,7 @@ defmodule Cloak.Sql.Compiler.Test do
              compile(
                "select foo from table_view",
                data_source(),
-               views: %{"table_view" => "select"}
+               views: %{"table_view" => %{sql: "select"}}
              )
 
     assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
@@ -1260,7 +1260,7 @@ defmodule Cloak.Sql.Compiler.Test do
              compile(
                "show columns from table_view",
                data_source(),
-               views: %{"table_view" => "select"}
+               views: %{"table_view" => %{sql: "select"}}
              )
 
     assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
@@ -1271,7 +1271,7 @@ defmodule Cloak.Sql.Compiler.Test do
              compile(
                "select numeric from table",
                data_source(),
-               views: %{"table" => "select numeric from table"}
+               views: %{"table" => %{sql: "select numeric from table"}}
              )
 
     assert error == "There is both a table, and a view named `table`. Rename the view to resolve the conflict."
@@ -1282,7 +1282,7 @@ defmodule Cloak.Sql.Compiler.Test do
              compile(
                "select numeric from table_view",
                data_source(),
-               views: %{"table_view" => "select numeric from table group by numeric"}
+               views: %{"table_view" => %{sql: "select numeric from table group by numeric"}}
              )
   end
 

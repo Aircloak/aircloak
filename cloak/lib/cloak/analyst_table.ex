@@ -54,7 +54,7 @@ defmodule Cloak.AnalystTable do
           String.t(),
           DataSource.t(),
           [Query.parameter()] | nil,
-          Query.view_map()
+          Query.user_views()
         ) :: {:ok, Query.described_columns()} | {:error, String.t()}
   def create_or_update(analyst, table_name, old_table_name, statement, data_source, parameters, views) do
     if old_table_name not in [nil, table_name], do: drop_tables(analyst, data_source.name, [old_table_name])
@@ -130,7 +130,7 @@ defmodule Cloak.AnalystTable do
   end
 
   @doc "Returns the cloak table structs which describe analyst tables for the given analyst in the given data source."
-  @spec cloak_tables(Query.analyst_id(), DataSource.t(), Query.view_map()) :: [DataSource.Table.t()]
+  @spec cloak_tables(Query.analyst_id(), DataSource.t(), Query.user_views()) :: [DataSource.Table.t()]
   def cloak_tables(analyst, data_source, views) do
     analyst
     |> analyst_tables(data_source)
@@ -140,7 +140,7 @@ defmodule Cloak.AnalystTable do
   end
 
   @doc "Returns the cloak table structure which describes the given table."
-  @spec to_cloak_table(t, Query.view_map(), name: String.t()) :: {:ok, DataSource.Table.t()} | {:error, String.t()}
+  @spec to_cloak_table(t, Query.user_views(), name: String.t()) :: {:ok, DataSource.Table.t()} | {:error, String.t()}
   def to_cloak_table(table, views, opts \\ []) do
     with {:ok, data_source} <- fetch_data_source(table),
          {:ok, query} <- Compiler.compile(table.name, table.statement, table.analyst, data_source, nil, views) do
@@ -154,7 +154,7 @@ defmodule Cloak.AnalystTable do
   def refresh(), do: GenServer.cast(__MODULE__, :refresh)
 
   @doc "Verify if the table can be used in a query."
-  @spec validate_query_usage(t, Query.view_map()) :: :ok | {:error, String.t()}
+  @spec validate_query_usage(t, Query.user_views()) :: :ok | {:error, String.t()}
   def validate_query_usage(table, views) do
     case table.status do
       :creating -> {:error, "analyst table `#{table.name}` is still being created"}

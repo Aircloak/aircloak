@@ -14,7 +14,7 @@ defmodule Cloak.AnalystTable.Compiler do
           Query.analyst_id(),
           Cloak.DataSource.t(),
           [Query.parameters()] | nil,
-          Query.view_map()
+          Query.user_views()
         ) :: {:ok, Query.t()} | {:error, String.t()}
   def compile(table_name, statement, analyst, data_source, parameters, views) do
     with :ok <- verify_table_name(table_name, data_source),

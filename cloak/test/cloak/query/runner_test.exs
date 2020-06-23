@@ -58,7 +58,7 @@ defmodule Cloak.Query.RunnerTest do
   defp start_runner() do
     query_id = :erlang.unique_integer()
 
-    with :ok <- Runner.start(query_id, nil, nil, nil, nil, nil, result_target: self(), runner_fun: runner_fun()),
+    with :ok <- Runner.start(query_id, nil, nil, nil, nil, %{}, result_target: self(), runner_fun: runner_fun()),
          do: {:ok, query_id}
   end
 

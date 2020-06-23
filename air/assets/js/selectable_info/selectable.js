@@ -18,6 +18,7 @@ export type Selectable = {
   delete_html: string,
   broken: boolean,
   creation_status: string,
+  comment: string | null,
 };
 
 type Props = {
@@ -173,7 +174,10 @@ export class SelectableView extends React.Component<Props> {
       className,
     } = this.brokenMetaData();
     return (
-      <div className="list-group-item px-4 py-1 bg-transparent">
+      <div
+        className="list-group-item px-4 py-1 bg-transparent"
+        title={selectable.comment}
+      >
         {this.isAnalystCreatedSelectable()
           ? this.renderSelectableActionMenu()
           : null}

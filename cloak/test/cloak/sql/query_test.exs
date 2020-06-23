@@ -60,18 +60,18 @@ defmodule Cloak.Sql.QueryTest do
 
   test "successful view validation" do
     assert {:ok, [col1, col2]} = validate_view("v1", "select user_id, name from feat_users")
-    assert col1 == %{name: "user_id", type: "text", key_type: "user_id"}
-    assert col2 == %{name: "name", type: "text", key_type: nil}
+    assert col1 == %{name: "user_id", type: "text", key_type: "user_id", comment: nil}
+    assert col2 == %{name: "name", type: "text", key_type: nil, comment: nil}
   end
 
   test "successful validation of a view which uses another view" do
     assert {:ok, [col1, col2]} =
              validate_view("v1", "select user_id, name from table_view", %{
-               "table_view" => "select user_id, name from feat_users"
+               "table_view" => %{sql: "select user_id, name from feat_users"}
              })
 
-    assert col1 == %{name: "user_id", type: "text", key_type: "user_id"}
-    assert col2 == %{name: "name", type: "text", key_type: nil}
+    assert col1 == %{name: "user_id", type: "text", key_type: "user_id", comment: nil}
+    assert col2 == %{name: "name", type: "text", key_type: nil, comment: nil}
   end
 
   test "view can't have the same name as the table",

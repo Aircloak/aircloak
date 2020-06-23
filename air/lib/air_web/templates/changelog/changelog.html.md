@@ -11,6 +11,7 @@
 ### New features
 
 - We've built an integration to take advantage of [Diffix Explorer](https://github.com/diffix/explorer). If you [enable it](/docs/ops/installation.html#diffix-explorer), you will be able to get a nice overview of the anonymized content of columns in your data source.
+- Comments can be added to tables and columns. Database comments are automatically loaded from configured tables.
 
 ### Enhancements
 

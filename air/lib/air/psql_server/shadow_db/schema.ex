@@ -12,12 +12,43 @@ defmodule Air.PsqlServer.ShadowDb.Schema do
   def create_table_statements(user, data_source_name) do
     data_source_tables(user, data_source_name)
     |> Enum.reject(& &1.broken?)
-    |> Enum.map(&~s/CREATE TABLE "#{sanitize_name(&1.id)}" (#{columns_sql(&1.columns)});/)
+    |> Enum.flat_map(&[table_sql(&1) | comments(&1)])
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp table_sql(table),
+    do: ~s/CREATE TABLE "#{sanitize_name(table.id)}" (#{columns_sql(table.columns)});/
+
+  defp comments(table) do
+    [table_comment(table) | Enum.map(table.columns, &column_comment(table, &1))]
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp table_comment(table) do
+    case table.comment do
+      nil -> nil
+      "" -> nil
+      comment -> ~s/COMMENT ON TABLE "#{sanitize_name(table.id)}" IS '#{sanitize_string(comment)}';/
+    end
+  end
+
+  defp column_comment(table, column) do
+    case column.comment do
+      nil ->
+        nil
+
+      "" ->
+        nil
+
+      comment ->
+        ~s/COMMENT ON COLUMN "#{sanitize_name(table.id)}"."#{sanitize_name(column.name)}" IS '#{
+          sanitize_string(comment)
+        }';/
+    end
+  end
 
   defp data_source_tables(user, data_source_name) do
     case Air.Service.DataSource.fetch_as_user({:name, data_source_name}, user) do
@@ -63,7 +94,8 @@ defmodule Air.PsqlServer.ShadowDb.Schema do
     %{
       id: table.id,
       columns: table.columns,
-      broken?: false
+      broken?: false,
+      comment: table.comment
     }
   end
 
@@ -71,7 +103,8 @@ defmodule Air.PsqlServer.ShadowDb.Schema do
     %{
       id: selectable.name,
       columns: selectable.columns,
-      broken?: selectable.broken or Enum.empty?(selectable.columns)
+      broken?: selectable.broken or Enum.empty?(selectable.columns),
+      comment: selectable.comment
     }
   end
 
@@ -89,4 +122,6 @@ defmodule Air.PsqlServer.ShadowDb.Schema do
   defp type_sql("unknown"), do: "text"
 
   defp sanitize_name(name), do: Regex.replace(~r/"/, name, ~s/""/)
+
+  defp sanitize_string(name), do: Regex.replace(~r/'/, name, ~s/''/)
 end

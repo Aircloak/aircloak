@@ -555,12 +555,12 @@ You can check the isolator status of a table by using the `SHOW COLUMNS` stateme
 ```sql
 SHOW COLUMNS FROM users
 
-| name       | type    | isolator? |
-| ---------- | ------- | --------- |
-| uid        | integer | true      |
-| first_name | text    | false     |
-| last_name  | text    | true      |
-| email      | text    | pending   |
+| name       | type    | isolator? | comment |
+| ---------- | ------- | --------- | ------- |
+| uid        | integer | true      |         |
+| first_name | text    | false     |         |
+| last_name  | text    | true      |         |
+| email      | text    | pending   |         |
 ```
 
 In this case the columns `uid` and `last_name` are isolating, while the column `first_name` is not. The status of the

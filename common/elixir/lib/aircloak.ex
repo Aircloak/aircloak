@@ -159,12 +159,23 @@ defmodule Aircloak do
     stacktrace
   end
 
+  @doc """
+  Performs a deep merge on maps.
+
+  For conflicting keys, values from `map2` have precedence over the ones in `map1`.
+  """
+  @spec deep_merge(Map.t(), Map.t()) :: Map.t()
+  def deep_merge(map1, map2), do: Map.merge(map1, map2, &deep_resolve/3)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp atomize_key(key) when is_binary(key), do: String.to_atom(key)
   defp atomize_key(key), do: key
+
+  defp deep_resolve(_key, left = %{}, right = %{}), do: deep_merge(left, right)
+  defp deep_resolve(_key, _left, right), do: right
 
   # -------------------------------------------------------------------
   # Application callbacks

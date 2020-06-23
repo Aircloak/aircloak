@@ -4,12 +4,18 @@ defmodule Air.Schemas.View do
   require Logger
   require EctoEnum
 
-  @type t :: %__MODULE__{}
+  @type t :: %__MODULE__{
+          name: String.t(),
+          comment: String.t(),
+          sql: String.t(),
+          columns: [Air.Schemas.SelectableColumn.t()]
+        }
 
   EctoEnum.defenum(CreationStatus, :creation_status, [:succeeded])
 
   schema "views" do
     field(:name, :string)
+    field(:comment, :string)
     field(:sql, :string)
     field(:broken, :boolean, default: false)
     field(:creation_status, CreationStatus, default: :succeeded)

@@ -6,6 +6,7 @@ defmodule Air.Schemas.AnalystTable do
 
   @type t :: %__MODULE__{
           name: String.t(),
+          comment: String.t(),
           sql: String.t(),
           columns: [Air.Schemas.SelectableColumn.t()]
         }
@@ -14,6 +15,7 @@ defmodule Air.Schemas.AnalystTable do
 
   schema "analyst_tables" do
     field(:name, :string)
+    field(:comment, :string)
     field(:sql, :string)
     field(:broken, :boolean, default: false)
     field(:creation_status, CreationStatus, default: :pending)

@@ -7,7 +7,12 @@ defmodule Air.Service.View do
   import Ecto.Query
   require Logger
 
-  @type view_map :: %{optional(String.t()) => String.t()}
+  @type view_map :: %{
+          String.t() => %{
+            sql: String.t(),
+            comment: String.t() | nil
+          }
+        }
 
   @cloak_validations_sup __MODULE__.CloakValidationsSup
   @notifications_registry __MODULE__.NotificationsRegistry
@@ -56,11 +61,12 @@ defmodule Air.Service.View do
           DataSource.t(),
           String.t(),
           String.t(),
+          String.t() | nil,
           revalidation_timeout: non_neg_integer,
           skip_revalidation: boolean
         ) :: {:ok, View.t()} | {:error, Ecto.Changeset.t()}
-  def create(user, data_source, name, sql, options \\ []) do
-    changes = %{data_source_id: data_source.id, user_id: user.id, name: name, sql: sql}
+  def create(user, data_source, name, sql, comment, options \\ []) do
+    changes = %{data_source_id: data_source.id, user_id: user.id, name: name, sql: sql, comment: comment}
 
     with {:ok, changeset} <- validated_view_changeset(%View{}, user, changes, :insert),
          {:ok, view} <- Repo.insert(changeset) do
@@ -77,14 +83,21 @@ defmodule Air.Service.View do
   end
 
   @doc "Updates the existing view in the database."
-  @spec update(integer, User.t(), String.t(), String.t(), revalidation_timeout: non_neg_integer) ::
+  @spec update(
+          integer,
+          User.t(),
+          String.t(),
+          String.t(),
+          String.t() | nil,
+          revalidation_timeout: non_neg_integer
+        ) ::
           {:ok, View.t()} | {:error, Ecto.Changeset.t()} | {:error, :not_allowed}
-  def update(view_id, user, name, sql, options \\ []) do
+  def update(view_id, user, name, sql, comment, options \\ []) do
     view = Repo.get!(View, view_id)
 
     # view must be owned by the user
     if view.user_id == user.id do
-      changes = %{name: name, sql: sql}
+      changes = %{name: name, sql: sql, comment: comment}
 
       with {:ok, changeset} <- validated_view_changeset(view, user, changes, :update) do
         {:ok, view} = Repo.update(changeset)
@@ -129,13 +142,13 @@ defmodule Air.Service.View do
     :ok
   end
 
-  @doc "Returns a %{name => sql} map of all the views the given user defined for the given data source."
-  @spec user_views_map(User.t(), integer) :: view_map
-  def user_views_map(user, data_source_id) do
+  @doc "Returns a map of all the views the given user defined for the given data source."
+  @spec user_views(User.t(), integer) :: view_map
+  def user_views(user, data_source_id) do
     View
     |> by_user_id(user.id)
     |> by_data_source_id(data_source_id)
-    |> select([v], {v.name, v.sql})
+    |> select([v], {v.name, %{sql: v.sql, comment: v.comment}})
     |> Repo.all()
     |> Enum.into(%{})
   end
@@ -199,7 +212,7 @@ defmodule Air.Service.View do
   defp sync_revalidate_views!(user, data_source_id) do
     Logger.info("revalidating views for user #{user.id}, data source #{data_source_id}")
 
-    {:ok, results} = validate_views(data_source_id, user, user_views_map(user, data_source_id))
+    {:ok, results} = validate_views(data_source_id, user, user_views(user, data_source_id))
     store_view_validation_results(user, data_source_id, results)
   end
 
@@ -261,8 +274,8 @@ defmodule Air.Service.View do
 
   defp validate_view(user, view) do
     views =
-      user_views_map(user, view.data_source_id)
-      |> Map.put(view.name, view.sql)
+      user_views(user, view.data_source_id)
+      |> Map.put(view.name, %{sql: view.sql})
 
     case validate_views(view.data_source_id, user, views) do
       {:ok, results} -> Map.fetch!(results, view.name)
@@ -273,7 +286,7 @@ defmodule Air.Service.View do
   defp apply_view_changeset(view, changes),
     do:
       view
-      |> Ecto.Changeset.cast(changes, ~w(name sql user_id data_source_id broken)a)
+      |> Ecto.Changeset.cast(changes, ~w(name sql comment user_id data_source_id broken)a)
       |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
       |> Ecto.Changeset.unique_constraint(:name, name: :user_selectables_user_id_data_source_id_name_index)
 

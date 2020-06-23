@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.MySQL do
     column_info_mapper = fn [name, type | _others] -> Table.column(name, parse_type(type)) end
 
     case run_query(connection, query, column_info_mapper, &Enum.concat/1) do
-      {:ok, columns} -> [%{table | columns: columns}]
+      {:ok, columns} -> [load_comments(connection, %{table | columns: columns})]
       {:error, reason} -> raise ExecutionError, message: "`#{reason}`"
     end
   end
@@ -99,6 +99,52 @@ defmodule Cloak.DataSource.MySQL do
     )
   rescue
     error in Mariaex.Error -> {:error, Exception.message(error)}
+  end
+
+  defp load_comments(connection, table) do
+    filter = table_filter(table)
+
+    table_comments =
+      connection
+      |> select("""
+        SELECT TABLE_COMMENT
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE #{filter}
+      """)
+      |> case do
+        {:ok, [[comment]]} -> comment
+        _ -> nil
+      end
+
+    column_comments =
+      connection
+      |> select("""
+        SELECT COLUMN_NAME, COLUMN_COMMENT
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE #{filter} AND COLUMN_COMMENT IS NOT NULL
+      """)
+      |> case do
+        {:ok, results} ->
+          results
+          |> Enum.map(&List.to_tuple/1)
+          |> Enum.into(%{})
+
+        {:error, _} ->
+          %{}
+      end
+
+    comments =
+      %{table: table_comments, columns: column_comments}
+      |> Aircloak.deep_merge(Map.get(table, :comments, %{}))
+
+    Map.put(table, :comments, comments)
+  end
+
+  defp table_filter(table) do
+    case SqlBuilder.table_name_parts(table.db_name) do
+      [table_name] -> "TABLE_NAME = '#{table_name}'"
+      [table_schema, table_name] -> "TABLE_SCHEMA = '#{table_schema}' AND TABLE_NAME = '#{table_name}'"
+    end
   end
 
   defp parse_type("varchar" <> _size), do: :text

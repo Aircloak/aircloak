@@ -29,6 +29,10 @@ defmodule Cloak.DataSource.Table do
           :status => :created | :creating | :create_error,
           :user_id_join_chain => [join_link] | nil,
           :type => type,
+          optional(:comments) => %{
+            optional(:table) => String.t(),
+            optional(:columns) => Map.t()
+          },
           optional(:exclude_columns) => [String.t()],
           optional(:unselectable_columns) => [String.t()],
           optional(:warnings) => [String.t()],
@@ -125,6 +129,14 @@ defmodule Cloak.DataSource.Table do
   @spec key?(t, String.t()) :: boolean
   def key?(table, column_name), do: Map.has_key?(table.keys, column_name)
 
+  @doc "Returns the table's comment or nil if the table has no comment."
+  @spec table_comment(t) :: String.t() | nil
+  def table_comment(table), do: get_in(table, [:comments, :table])
+
+  @doc "Returns a column's comment in the table or nil if the column has no comment."
+  @spec column_comment(t, String.t()) :: String.t() | nil
+  def column_comment(table, column), do: get_in(table, [:comments, :columns, column])
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -196,16 +208,41 @@ defmodule Cloak.DataSource.Table do
 
     Enum.each(compiled_query.column_titles, &verify_column_name(name, &1))
 
-    columns =
-      Enum.zip(compiled_query.column_titles, compiled_query.columns)
-      |> Enum.map(fn {title, column} -> %{name: title, type: column.type, access: :visible} end)
+    zipped_columns = Enum.zip(compiled_query.column_titles, compiled_query.columns)
 
-    table = new(to_string(name), config[:user_id], Map.merge(config, %{query: compiled_query, columns: columns}))
+    columns = Enum.map(zipped_columns, fn {title, column} -> %{name: title, type: column.type, access: :visible} end)
+
+    comments =
+      Aircloak.deep_merge(
+        %{
+          table: virtual_table_comment(data_source),
+          columns:
+            zipped_columns
+            |> Enum.map(fn {name, column} -> %Expression{column | alias: name} end)
+            |> Compiler.Helpers.column_comments()
+        },
+        config[:comments] || %{}
+      )
+
+    table =
+      new(
+        to_string(name),
+        config[:user_id],
+        Map.merge(config, %{query: compiled_query, columns: columns, comments: comments})
+      )
+
     verify_columns(data_source, table)
     {name, table}
   end
 
   defp compile_virtual_table(table, _data_source), do: table
+
+  defp virtual_table_comment(virtual_data_source) do
+    case Map.values(virtual_data_source.tables) do
+      [table] -> table_comment(table)
+      _ -> nil
+    end
+  end
 
   defp verify_column_name(table, name) do
     if not Expression.valid_alias?(name) do
@@ -411,6 +448,7 @@ defmodule Cloak.DataSource.Table do
   defp map_table({name, table}) do
     {name, table}
     |> map_isolators()
+    |> map_comments()
     |> map_keys()
     |> map_content_type()
   end
@@ -419,6 +457,11 @@ defmodule Cloak.DataSource.Table do
     do: {name, update_in(table, [Lens.key(:isolating_columns) |> Lens.map_keys()], &to_string/1)}
 
   def map_isolators({name, table}), do: {name, table}
+
+  def map_comments({name, %{comments: _} = table}),
+    do: {name, update_in(table, [Lens.key(:comments) |> Lens.key?(:columns) |> Lens.map_keys()], &to_string/1)}
+
+  def map_comments({name, table}), do: {name, table}
 
   defp map_content_type({name, %{user_id: nil}}) do
     raise ExecutionError,

@@ -480,7 +480,14 @@ The database tables that should be made available for querying are defined in th
     "content_type": "personal" | "non-personal",
     "keys": [{"key_type_1": "column_name_1"}, ...],
     "exclude_columns": ["column1", "column2", ...],
-    "unselectable_columns": ["column1", "column2", ...]
+    "unselectable_columns": ["column1", "column2", ...],
+    "comments": {
+      "table": "Comment on table 1.",
+      "columns": {
+        "column1": "Comment on column 1",
+        "column2": "Comment on column 2"
+      }
+    }
   },
   "table_name_2": ...
 }
@@ -533,6 +540,10 @@ Excluded columns will not appear in the data source and cannot be referenced in 
 The `unselectable_columns` is an optional parameter for personal tables.
 It takes the form of an array and marks columns as unselectable.
 Unselectable columns can only be joined together, counted, and/or grouped by.
+
+The `comments` field is optional and can be used to attach a description to tables and columns.
+Comments are visible in the Insights Air interface and are also returned from `SHOW` statements.
+Database-level comments are automatically retrieved and attached to tables.
 
 ##### Keys
 

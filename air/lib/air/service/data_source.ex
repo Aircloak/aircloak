@@ -480,6 +480,7 @@ defmodule Air.Service.DataSource do
       &%{
         analyst_created: true,
         id: &1.name,
+        comment: &1.comment,
         kind: :view,
         broken: &1.broken,
         creation_status: &1.creation_status,
@@ -495,6 +496,7 @@ defmodule Air.Service.DataSource do
       &%{
         analyst_created: true,
         id: &1.name,
+        comment: &1.comment,
         kind: :analyst_table,
         broken: &1.broken,
         creation_status: &1.creation_status,

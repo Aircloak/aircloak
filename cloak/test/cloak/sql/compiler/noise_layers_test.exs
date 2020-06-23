@@ -1111,7 +1111,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       %{noise_layers: [%{base: base}, %{base: base}]} =
         compile!(
           "SELECT count(*) FROM foo WHERE bar = 3",
-          views: %{"foo" => "SELECT uid, numeric AS bar FROM table"}
+          views: %{"foo" => %{sql: "SELECT uid, numeric AS bar FROM table"}}
         )
 
       assert {"table", "numeric", nil} = base
