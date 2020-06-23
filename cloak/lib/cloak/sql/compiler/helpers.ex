@@ -177,7 +177,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   end
 
   @doc "Returns a map of comments for the given columns."
-  @spec column_comments([Expression.t()]) :: %{String.t() => String.t() | nil}
+  @spec column_comments([Expression.t()]) :: %{String.t() => String.t()}
   def column_comments(columns) do
     columns
     |> Enum.filter(&Expression.column?/1)
