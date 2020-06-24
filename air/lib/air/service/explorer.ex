@@ -241,8 +241,15 @@ defmodule Air.Service.Explorer do
          {:ok, analysis} <- upsert_analysis(data_source, table_name, column_name, result: decoded) do
       {:ok, analysis}
     else
-      {:error, _err} ->
+      err ->
         upsert_analysis(data_source, table_name, column_name, status: :error)
+
+        Logger.error(
+          "Explorer encountered an unexpected error when requesting an analysis for #{data_source.name}/#{table_name}/#{
+            column_name
+          }: #{inspect(err)}"
+        )
+
         :error
     end
   end
@@ -284,7 +291,7 @@ defmodule Air.Service.Explorer do
       {:ok, %HTTPoison.Response{status_code: 500}} ->
         handle_poll_error(explorer_analysis, "Something went wrong in Diffix Explorer")
 
-      {:error, err} ->
+      err ->
         handle_poll_error(explorer_analysis, err)
     end
   end
@@ -295,7 +302,7 @@ defmodule Air.Service.Explorer do
     Logger.warn(
       "Explorer returned 404 for previously created job (#{explorer_analysis.data_source.name}/#{
         explorer_analysis.table_name
-      }/%{explorer_analysis.column}). Retrying."
+      }/#{explorer_analysis.column}). Retrying."
     )
 
     {_, token} = find_or_create_explorer_creds()
@@ -313,6 +320,12 @@ defmodule Air.Service.Explorer do
   end
 
   defp handle_poll_error(explorer_analysis, error) do
+    Logger.error(
+      "Polling for results for {explorer_analysis.data_source.name}/#{explorer_analysis.table_name}/#{
+        explorer_analysis.column
+      } errored with #{inspect(error)}."
+    )
+
     explorer_analysis
     |> ExplorerAnalysis.changeset(%{status: :error})
     |> Air.Repo.update()

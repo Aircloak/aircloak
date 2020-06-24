@@ -44,14 +44,15 @@ defmodule AirWeb.Admin.ExplorerView do
     |> Enum.group_by(& &1.table_name)
   end
 
-  defp admin_explorer_failed_queries_path(conn),
+  defp admin_explorer_failed_queries_path(%{assigns: %{analyses: analyses, data_source: data_source}} = conn),
     do:
       admin_query_path(conn, :failed,
         users: [Explorer.user().id],
-        data_sources: [conn.assigns.data_source.id],
-        from: format_date(Enum.min_by(conn.assigns.analyses, & &1.inserted_at, fn -> nil end).inserted_at),
-        to: format_date(Enum.max_by(conn.assigns.analyses, & &1.updated_at, fn -> nil end).updated_at)
+        data_sources: [data_source.id],
+        from: analyses |> Enum.map(& &1.inserted_at) |> Enum.min(fn -> nil end) |> format_date(),
+        to: analyses |> Enum.map(& &1.updated_at) |> Enum.max(fn -> nil end) |> format_date()
       )
 
+  defp format_date(nil), do: nil
   defp format_date(d), do: Timex.format!(d, "{ISOdate} {ISOtime}")
 end
