@@ -486,14 +486,12 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
 
-  # This is needed for data sources that support dotted names for fields (MongoDB)
-  defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}, _}, selected_tables),
-    do:
-      if(
-        find_table(selected_tables, {:unquoted, table}) == nil,
-        do: "#{table}.#{column}",
-        else: column
-      )
+  # If the table doesn't exist, we assume we have a dotted column name.
+  defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}, _}, selected_tables) do
+    if find_table(selected_tables, {:unquoted, table}) == nil,
+      do: "#{table}.#{column}",
+      else: column
+  end
 
   defp column_title({:identifier, _table, {_, column}, _}, _selected_tables), do: column
   defp column_title(:null, _selected_tables), do: nil

@@ -39,7 +39,7 @@ defmodule Cloak.ConfigValidationTest do
       )
 
       Enum.each(
-        ~w(db_name sample_rate query),
+        ~w(db_name query),
         &refute_missing_field_reported("tables/foo/#{&1}", datasource_validator())
       )
     end

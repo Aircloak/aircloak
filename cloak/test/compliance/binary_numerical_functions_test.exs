@@ -27,7 +27,6 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} parameter 1 subquery"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
           context
-          |> disable_divide_by_zero(unquote(function))
           |> disable_modulo(unquote(function), {unquote(column), unquote(table)})
           |> assert_consistent_and_not_failing("""
             SELECT
@@ -46,7 +45,6 @@ Enum.each(
           @tag compliance: "#{function} #{column} #{table} parameter 2 subquery"
           test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
             context
-            |> disable_divide_by_zero(unquote(function))
             |> disable_modulo(unquote(function), {unquote(column), unquote(table)})
             |> assert_consistent_and_not_failing("""
               SELECT
@@ -65,7 +63,6 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} parameter 1 query"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
           context
-          |> disable_divide_by_zero(unquote(function))
           |> disable_modulo(unquote(function), {unquote(column), unquote(table)})
           |> assert_consistent_and_not_failing("""
             SELECT
@@ -79,7 +76,6 @@ Enum.each(
           @tag compliance: "#{function} #{column} #{table} parameter 2 query"
           test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
             context
-            |> disable_divide_by_zero(unquote(function))
             |> disable_modulo(unquote(function), {unquote(column), unquote(table)})
             |> assert_consistent_and_not_failing("""
               SELECT
@@ -91,14 +87,8 @@ Enum.each(
         end
       end)
 
-      def disable_divide_by_zero(context, function) do
-        disable_for(context, Cloak.DataSource.MongoDB, function =~ ~r/\/.*-/)
-      end
-
       def disable_modulo(context, function, column) do
-        context
-        |> disable_for(:all, function =~ ~r/%/ and column in float_columns())
-        |> disable_for(Cloak.DataSource.MongoDB, function =~ ~r/%/)
+        disable_for(context, :all, function =~ ~r/%/ and column in float_columns())
       end
     end
   end

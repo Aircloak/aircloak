@@ -21,8 +21,6 @@ Enum.each(
       use ComplianceCase, async: true
 
       @moduletag :"#{aggregate}"
-      @integer_columns for {column, _table} <- integer_columns(), do: column
-
       Enum.each(numerical_columns(), fn {column, table} ->
         if allowed_in_subquery do
           @tag compliance: "#{aggregate} #{column} #{table} subquery"
@@ -45,14 +43,7 @@ Enum.each(
 
         @tag compliance: "#{aggregate} #{column} #{table} query"
         test "aggregate #{aggregate} on input #{column} in query on #{table}", context do
-          [function | _] = String.split(unquote(aggregate), "(")
-
-          context
-          |> disable_for(
-            Cloak.DataSource.MongoDB,
-            function in ~w(min max) and unquote(column) in @integer_columns
-          )
-          |> assert_consistent_and_not_failing("""
+          assert_consistent_and_not_failing(context, """
             SELECT #{on_column(unquote(aggregate), unquote(column))}
             FROM #{unquote(table)}
           """)

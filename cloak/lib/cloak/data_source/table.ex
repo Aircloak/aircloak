@@ -148,14 +148,14 @@ defmodule Cloak.DataSource.Table do
     virtual_tables =
       tables
       |> Enum.flat_map(&get_db_tables_for_virtual_query/1)
-      |> Enum.uniq_by(fn {id, _} -> id end)
-      |> Enum.reduce(%{}, fn {id, table}, acc ->
-        if id in Map.keys(acc) do
+      |> Enum.uniq()
+      |> Enum.reduce(%{}, fn table_id, acc ->
+        if table_id in Map.keys(acc) do
           acc
         else
-          case data_source.tables[id] do
-            %{columns: [_ | _]} = loaded_table -> Map.put(acc, id, Map.put(loaded_table, :query, nil))
-            _ -> data_source |> load_tables(connection, {id, table}) |> Enum.into(acc)
+          case data_source.tables[table_id] do
+            %{columns: [_ | _]} = loaded_table -> Map.put(acc, table_id, Map.put(loaded_table, :query, nil))
+            _ -> data_source |> load_tables(connection, {table_id, %{}}) |> Enum.into(acc)
           end
         end
       end)
@@ -177,12 +177,12 @@ defmodule Cloak.DataSource.Table do
 
   defp parse_virtual_table(table), do: table
 
-  defp get_db_tables_for_virtual_query({_, %{query: parsed_query} = table}) when parsed_query != nil,
+  defp get_db_tables_for_virtual_query({_, %{query: parsed_query}}) when parsed_query != nil,
     do:
       Lenses.all_queries()
       |> Lenses.ast_tables()
       |> Lens.to_list(parsed_query)
-      |> Enum.map(&{&1 |> ast_table_name() |> String.to_atom(), Map.take(table, [:sample_rate])})
+      |> Enum.map(&(&1 |> ast_table_name() |> String.to_atom()))
 
   defp get_db_tables_for_virtual_query(_), do: []
 

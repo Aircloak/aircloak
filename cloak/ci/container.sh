@@ -25,7 +25,7 @@ function prepare_for_compliance {
   container_name=$1
   ensure_database_containers
 
-  for db_container in oracle-db12ee postgres9.6 mongo3.6 mysql5.7 sqlserver2017 quickstart.cloudera; do
+  for db_container in oracle-db12ee postgres9.6 mysql5.7 sqlserver2017 quickstart.cloudera; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container
   done
@@ -41,8 +41,6 @@ function ensure_database_containers {
   ensure_supporting_container postgres9.6 --tmpfs=/ramdisk:rw,size=2G -e PGDATA=/ramdisk \
     -e POSTGRES_HOST_AUTH_METHOD=trust \
     postgres:9.6 -c "listen_addresses=*"
-
-  ensure_supporting_container mongo3.6 --tmpfs=/data/db:rw,size=4G mongo:3.6
 
   ensure_supporting_container mysql5.7 --tmpfs=/var/lib/mysql:rw,size=2G \
     -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 \

@@ -446,7 +446,7 @@ The configuration takes the following form:
 
 The `name` parameter is a string which will be used to identify the data source throughout the Insights Air interface and APIs.
 
-The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `sqlserver`, `oracle`. The `parameters` json, then specifies the database connection parameters.
+The `driver` parameter can be one of the following: `postgresql`, `mysql`, `sqlserver`, `oracle`. The `parameters` json, then specifies the database connection parameters.
 
 Some of these drivers use the ODBC protocol to talk to the database. These drivers are `sqlserver`, and `oracle`.
 Since they rely on ODBC, they accept some additional connection parameters:
@@ -661,22 +661,6 @@ create table "UserData"(uid integer, ...)
 ```
 
 In this case, you need to provide `"UserData"` as the `db_name` property.
-
-##### Table sample rate (only for MongoDb)
-
-For MongoDb databases, every collection is initially scanned to determine the collection schema. This can take a long time for larger collections, which might lead to increased cloak startup times. You can instruct the cloak to analyze only a fraction of the data in the MongoDb collection by providing the `sample_rate` option:
-
-```
-"tables": {
-  "some_table": {
-    "sample_rate": sample_rate,
-    ...
-  },
-  ...
-}
-```
-
-Where `sample_rate` is an integer between 1 and 100, representing the percentage of data which is going to be sampled.
 
 ##### Manually classifying isolating columns
 

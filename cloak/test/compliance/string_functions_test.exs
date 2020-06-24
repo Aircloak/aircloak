@@ -67,7 +67,6 @@ Enum.each(
       defp disable_unicode(context, function, column) do
         if column == "name_unicode" do
           context
-          |> disable_for(Cloak.DataSource.MongoDB, String.starts_with?(function, ~w(lower lcase upper ucase)))
           |> disable_for(Cloak.DataSource.SQLServer, String.starts_with?(function, ~w(lower lcase upper ucase)))
           |> disable_for(
             Cloak.DataSource.ClouderaImpala,

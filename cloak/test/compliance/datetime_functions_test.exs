@@ -60,7 +60,6 @@ Enum.each(
       defp disable_unsupported_on_dates(context, function, column) do
         context
         |> disable_for(:all, column in date_columns() and unsupported_on_dates?(function))
-        |> disable_for(Cloak.DataSource.MongoDB, column in date_columns())
         # Impala maps dates to datetime (TIMESTAMP). The returned results will be equivalent,
         # but tests will fail because other databases return results as date only.
         |> disable_for(Cloak.DataSource.ClouderaImpala, column in date_columns())
