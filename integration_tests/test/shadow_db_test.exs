@@ -152,6 +152,9 @@ defmodule IntegrationTest.ShadowDbTest do
   end
 
   defp table_exists?(conn, table_name) do
+    # We simulate a timeout to get the shadow db to clear its cache.
+    send(Air.PsqlServer.ShadowDb, :timeout)
+
     result = Postgrex.query!(conn, @dt_query, [])
 
     result.rows
