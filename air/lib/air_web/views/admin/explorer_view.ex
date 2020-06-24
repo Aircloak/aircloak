@@ -49,8 +49,8 @@ defmodule AirWeb.Admin.ExplorerView do
       admin_query_path(conn, :failed,
         users: [Explorer.user().id],
         data_sources: [data_source.id],
-        from: analyses |> Enum.map(& &1.inserted_at) |> Enum.min(fn -> nil  end) |> format_date(),
-        to: analyses |> Enum.map(& &1.updated_at) |> Enum.max(fn -> nil  end) |> format_date()
+        from: analyses |> Enum.map(& &1.inserted_at) |> Enum.min(fn -> nil end) |> format_date(),
+        to: analyses |> Enum.map(& &1.updated_at) |> Enum.max(fn -> nil end) |> format_date()
       )
 
   defp format_date(nil), do: nil
