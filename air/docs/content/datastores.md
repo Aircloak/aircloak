@@ -9,7 +9,6 @@ please consult the [feature emulation](#emulation-overview) overview.
 Aircloak Insights ships with Insights Datasource Connectors for the following datastores:
 
 - Microsoft SQL Server, versions 2012 R2 and newer
-- MongoDB, versions 3.4 and newer
 - MySQL, version 5 and newer, and MariaDB, version 10.1 and newer
 - PostgreSQL, version 9.6 and newer
 - Oracle 12c
@@ -125,16 +124,6 @@ This section lists the functions which will cause a query to be emulated.
   - `date_trunc`
   - `trim`
 
-#### MongoDB
-
-- `btrim`
-- `cast` - in some cases
-- `date_trunc`
-- `hex`
-- `ltrim`
-- `rtrim`
-- `trim`
-
 __Notes__
 
 The following constructs are not natively supported on this data source and will require emulation:
@@ -157,65 +146,6 @@ The following constructs are not natively supported on this data source and will
 ## Database-specific notes
 
 This section provides additional notes specific for each supported database.
-
-### MongoDB
-
-#### Schema detection
-
-Collections in MongoDB do not have a fixed schema, whereas schemas are required by Aircloak Insights. In order to
-establish a schema that can be used, Aircloak Insights will traverse the collections of a database upon boot. This
-produces a best effort estimate of the available fields and their data types.
-
-#### Mapping from documents to tables
-
-##### Nested documents
-
-Aircloak Insights flattens nested documents.
-Fields that in MongoDB are part of a sub-document are in Aircloak Insights
-given hierarchical names instead.
-
-For example, the following document:
-
-```json
-{
-  "person": {
-    "sibling": {
-      "name": <...>
-    }
-  }
-}
-```
-
-would result in a column named: `person.sibling.name`.
-
-
-##### Arrays
-
-Aircloak Insights creates an additional table per array contained within a document.
-These tables contain the columns of the parent table, as well as those of the objects
-contained within the array.
-
-For example, the following document in a collection called `users`:
-
-```json
-{
-  "name": <...>,
-  "siblings": [
-    {
-      "name": <...>
-    }
-  ]
-}
-```
-
-would result in a table called `users` with the single column `name`, as well as the additional
-table `users_siblings` containing a `siblings.name` in addition to the `name` column.
-
-
-#### JOINs
-
-MongoDB only supports `INNER JOIN` natively. Aircloak Insights will emulate all other JOIN-types. Furthermore, when a
-collection is sharded, even `INNER JOIN` has to be emulated.
 
 ### Oracle
 

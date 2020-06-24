@@ -22,7 +22,6 @@
         "db_name": {"type": "string", "minLength": 1},
         "content_type": {"type": "string", "enum": ["personal", "non-personal"]},
         "keys": {"type": "array", "items": {"type": "object"}},
-        "sample_rate": {"type": "integer", "minimum": 1, "maximum": 100},
         "query": {"type": "string", "minLength": 1},
         "auto_isolating_column_classification": {"type": "boolean"},
         "maintain_shadow_db": {"type": "boolean"},

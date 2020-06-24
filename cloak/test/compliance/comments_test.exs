@@ -54,9 +54,5 @@ defmodule Compliance.CommentsTest do
     end
   end
 
-  defp data_sources(context) do
-    context
-    |> disable_for(Cloak.DataSource.MongoDB)
-    |> Map.fetch!(:data_sources)
-  end
+  defp data_sources(context), do: Map.fetch!(context, :data_sources)
 end

@@ -27,6 +27,7 @@
 ### Changes
 
 - Increased the minimum threshold for non-count stats-based aggregators.
+- Removed support for MongoDB backends.
 
 ## Version 20.1.3
 

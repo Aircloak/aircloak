@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.Bounds.Query do
   @moduledoc "Implements querying the database to find the bounds of a column."
 
   alias Cloak.Sql.{Parser, Compiler, Expression}
-  alias Cloak.DataSource.{SQLServer, MongoDB, SqlBuilder, Table}
+  alias Cloak.DataSource.{SQLServer, SqlBuilder, Table}
   alias Cloak.DataSource.Bounds.Compute
   alias Cloak.Query.DbEmulator
 
@@ -135,7 +135,7 @@ defmodule Cloak.DataSource.Bounds.Query do
     end
   end
 
-  defp overflow_safe?(data_source), do: data_source.driver in [SQLServer, MongoDB]
+  defp overflow_safe?(data_source), do: data_source.driver == SQLServer
 
   defp config(name), do: Application.get_env(:cloak, :bound_size_cutoff) |> Keyword.fetch!(name)
 end

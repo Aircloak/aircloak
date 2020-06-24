@@ -2110,7 +2110,7 @@ defmodule Cloak.Sql.Compiler.Test do
   def dotted_data_source do
     %{
       name: "compiler_test_data_source",
-      driver: Cloak.DataSource.MongoDB,
+      driver: Cloak.DataSource.PostgreSQL,
       driver_info: "3.6.0",
       tables: %{
         table:
