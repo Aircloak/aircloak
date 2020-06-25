@@ -115,8 +115,7 @@ defmodule Air.PsqlServer.ShadowDb do
     %{conn: conn, last_db: {user, data_source_name}}
   end
 
-  defp prepare_connection(user, data_source_name, %{last_db: {last_user, last_data_source_name}} = state)
-       when user == last_user and data_source_name == last_data_source_name do
+  defp prepare_connection(user, data_source_name, %{last_db: {user, data_source_name}} = state) do
     state
   end
 
