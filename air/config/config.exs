@@ -17,7 +17,10 @@ config :air, AirWeb.Endpoint,
   http: [port: 8080],
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
-  pubsub_server: AirWeb.PubSub
+  pubsub_server: AirWeb.PubSub,
+  live_view: [
+    signing_salt: "xHLT7Pf+zED1w1yKvqav/q77bf9qi/z3"
+  ]
 
 config :air, AirWeb.MonitoringEndpoint,
   check_origin: false,

@@ -26,6 +26,7 @@ defmodule Air.Web do
 
       import AirWeb.Router.Helpers
       import AirWeb.Gettext
+      import Phoenix.LiveView.Controller
 
       # Each controller must verify permissions
       @behaviour AirWeb.VerifyPermissions
@@ -96,12 +97,14 @@ defmodule Air.Web do
       import AirWeb.ErrorHelpers
       import AirWeb.ViewHelpers
       import AirWeb.Gettext
+      import Phoenix.LiveView.Helpers
     end
   end
 
   def router do
     quote do
       use Phoenix.Router
+      import Phoenix.LiveView.Router
     end
   end
 

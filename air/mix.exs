@@ -97,7 +97,10 @@ defmodule Air.Mixfile do
       {:bom, path: "../bom", runtime: false, only: :dev},
       {:zxcvbn, "~> 0.1.3"},
       {:httpoison, "~> 1.6"},
-      {:jason, "~> 1.0"}
+      {:jason, "~> 1.0"},
+      {:phoenix_live_view, "~> 0.13.3"},
+      {:phoenix_live_dashboard, "~> 0.2"},
+      {:floki, ">= 0.0.0", only: :test}
     ]
   end
 
