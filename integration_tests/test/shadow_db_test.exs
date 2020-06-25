@@ -2,6 +2,7 @@ defmodule IntegrationTest.ShadowDbTest do
   use ExUnit.Case, async: false
 
   alias IntegrationTest.Manager
+  import Aircloak.AssertionHelper
   import IntegrationTest.Helpers
 
   # The following query is an intercepted \dt request.
@@ -111,8 +112,8 @@ defmodule IntegrationTest.ShadowDbTest do
 
       # Wait for updates to settle.
 
-      assert table_exists?(context.conn, table_name)
-      assert table_exists?(context.conn, view_name)
+      assert soon(table_exists?(context.conn, table_name))
+      assert soon(table_exists?(context.conn, view_name))
     end
   end
 
