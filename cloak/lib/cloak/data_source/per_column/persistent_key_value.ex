@@ -107,7 +107,7 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
   defp restore_cache(name, persisted_cache_version) do
     Logger.info("Reading cache for #{name} ...")
 
-    with {:ok, serialized_cache} <- File.read(cache_file(name)),
+    with {:ok, serialized_cache} when serialized_cache != "" <- File.read(cache_file(name)),
          {^name, ^persisted_cache_version, cache_contents} <- :erlang.binary_to_term(serialized_cache),
          do: Enum.each(cache_contents, &:ets.insert(name, &1))
   catch
