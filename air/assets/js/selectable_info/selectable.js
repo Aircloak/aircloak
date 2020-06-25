@@ -187,16 +187,15 @@ export class SelectableView extends React.Component<Props> {
           className={`${className} btn ml-n2`}
         >
           {this.renderIcon()}
-          <span className="pl-2 pr-2">
+          <span className="pl-2">
             <Higlighted
               table={selectable.id}
               column={searchResult}
               field="table"
             />
           </span>
-          {selectable.comment && <CommentIcon comment={selectable.comment} />}
         </button>
-
+        {selectable.comment && <CommentIcon comment={selectable.comment} />}
         {(() => {
           if (expanded) {
             return (
