@@ -17,7 +17,7 @@ config :air, AirWeb.Endpoint,
   http: [port: 8080],
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
-  pubsub: [name: Air.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub_server: AirWeb.PubSub
 
 config :air, AirWeb.MonitoringEndpoint,
   check_origin: false,
@@ -35,6 +35,8 @@ config :logger, :console,
 config :phoenix, :generators,
   migration: true,
   binary_id: false
+
+config :phoenix, :json_library, Jason
 
 # configure markdown compiler
 config :phoenix, :template_engines, md: Air.Phoenix.MarkdownEngine

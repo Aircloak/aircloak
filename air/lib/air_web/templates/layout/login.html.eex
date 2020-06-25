@@ -14,7 +14,7 @@
 
   <body id="login" class="<%= background_img_class() %> <%= if @login_message not in ["", nil], do: "with-message" %>">
     <main role="main" id="login-container">
-      <%= render @view_module, @view_template, assigns %>
+      <%= @inner_content %>
     </main>
 
     <footer>

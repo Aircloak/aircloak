@@ -130,7 +130,14 @@ defmodule Air.Web do
   @doc false
   def child_spec(_arg) do
     Aircloak.ChildSpec.supervisor(
-      [AirWeb.Endpoint, AirWeb.Socket.Frontend.DataSourceChannel],
+      [
+        {Phoenix.PubSub, name: AirWeb.PubSub},
+        AirWeb.Endpoint,
+        Periodic.child_spec(
+          run: {AirWeb.Socket.Frontend.DataSourceChannel, :push_updates, []},
+          every: :timer.seconds(10)
+        )
+      ],
       name: __MODULE__,
       strategy: :rest_for_one
     )

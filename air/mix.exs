@@ -66,20 +66,20 @@ defmodule Air.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 3.1.7", override: true},
-      {:ecto_sql, "~> 3.1.6"},
+      {:ecto, "~> 3.4.5"},
+      {:ecto_sql, "~> 3.4.4"},
       {:earmark, "~> 1.2", override: true},
       {:postgrex, "~> 0.14.3", override: true},
       {:poolboy, "~> 1.5.2"},
-      {:phoenix, "~> 1.4.1", override: true},
-      {:phoenix_pubsub, "~> 1.1"},
-      {:phoenix_ecto, "~> 4.0"},
-      {:phoenix_html, "~> 2.10.0"},
+      {:phoenix, "~> 1.5.0", override: true},
+      {:phoenix_pubsub, "~> 2.0"},
+      {:phoenix_ecto, "~> 4.1"},
+      {:phoenix_html, "~> 2.14"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_gen_socket_client, "~> 2.1"},
       {:websocket_client, "~> 1.2.4"},
       {:gettext, "~> 0.9"},
-      {:plug_cowboy, "~> 1.0"},
+      {:plug_cowboy, "~> 2.1"},
       {:comeonin, "~> 2.5"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
@@ -89,14 +89,15 @@ defmodule Air.Mixfile do
       {:scrivener_html, "~> 1.1"},
       {:decimal, "~> 1.4"},
       {:remote_ip, "~> 0.1.4"},
-      {:ecto_enum, "~> 1.0.0"},
+      {:ecto_enum, "~> 1.4"},
       {:jiffy, "~> 0.14.1"},
       {:parent, "~> 0.4.0"},
       {:combine, "~> 0.10.0"},
       {:epgsql, "~> 4.1"},
       {:bom, path: "../bom", runtime: false, only: :dev},
       {:zxcvbn, "~> 0.1.3"},
-      {:httpoison, "~> 1.6"}
+      {:httpoison, "~> 1.6"},
+      {:jason, "~> 1.0"}
     ]
   end
 

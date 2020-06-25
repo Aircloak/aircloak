@@ -86,9 +86,13 @@ defmodule Air.PsqlServer.RanchServer do
 
     :ranch_listener_sup.start_link(
       {__MODULE__, port},
-      Keyword.get(opts, :num_acceptors, 10),
       :ranch_tcp,
-      [port: port, max_connections: max_connections, backlog: Keyword.fetch!(opts, :backlog)],
+      %{
+        port: port,
+        max_connections: max_connections,
+        backlog: Keyword.fetch!(opts, :backlog),
+        num_acceptors: Keyword.get(opts, :num_acceptors, 10)
+      },
       __MODULE__,
       {opts, behaviour_mod, behaviour_init_arg}
     )
