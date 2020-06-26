@@ -19,6 +19,8 @@ config :central, CentralWeb.Endpoint,
   render_errors: [accepts: ~w(html json)],
   pubsub_server: CentralWeb.PubSub
 
+config :phoenix, :json_library, Jason
+
 config :central, :https_port, 7443
 
 # Configures Elixir's Logger
