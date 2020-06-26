@@ -2,6 +2,7 @@ defmodule IntegrationTest.ShadowDbTest do
   use ExUnit.Case, async: false
 
   alias IntegrationTest.Manager
+  import Aircloak.AssertionHelper
   import IntegrationTest.Helpers
 
   # The following query is an intercepted \dt request.
@@ -111,8 +112,8 @@ defmodule IntegrationTest.ShadowDbTest do
 
       # Wait for updates to settle.
 
-      assert table_exists?(context.conn, table_name)
-      assert table_exists?(context.conn, view_name)
+      assert soon(table_exists?(context.conn, table_name))
+      assert soon(table_exists?(context.conn, view_name))
     end
   end
 
@@ -152,6 +153,9 @@ defmodule IntegrationTest.ShadowDbTest do
   end
 
   defp table_exists?(conn, table_name) do
+    # We simulate a timeout to get the shadow db to clear its cache.
+    send(Air.PsqlServer.ShadowDb, :timeout)
+
     result = Postgrex.query!(conn, @dt_query, [])
 
     result.rows
