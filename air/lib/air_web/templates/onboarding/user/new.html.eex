@@ -50,7 +50,6 @@
     <%= label f, :password, class: "col-sm-3 control-label" %>
     <div class="col-sm-9">
       <div id="password-field"></div>
-      <%= error_tag f, :password %>
     </div>
   </div>
 
@@ -72,7 +71,9 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      App.passwordField({}, document.getElementById("password-field"));
+      App.passwordField({
+        initialError: <%= @changeset.errors[:password] |> translate_error() |> to_json() %>
+      }, document.getElementById("password-field"));
     }
   };
 </script>

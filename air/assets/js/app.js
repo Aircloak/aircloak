@@ -77,6 +77,7 @@ const App = {
       dataSourceName,
       dataSourceStatus,
       debugModeEnabled,
+      initialError,
       lastQuery,
       newTableURL,
       newViewURL,
@@ -165,7 +166,7 @@ const App = {
       case "audit_log":
         return <AuditLogView auditLogs={auditLogs} />;
       case "password_field":
-        return <PasswordField />;
+        return <PasswordField initialError={initialError || null} />;
       default:
         throw new Error("Unknown page");
     }

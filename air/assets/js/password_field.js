@@ -2,11 +2,14 @@
 
 import React from "react";
 
-type Props = {};
+type Props = {
+  initialError: string | null,
+};
 
 type State = {
   value: string,
   score: number,
+  error: string | null,
 };
 
 export default class PasswordField extends React.Component<Props, State> {
@@ -14,7 +17,7 @@ export default class PasswordField extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    this.state = { value: "", score: 0 };
+    this.state = { value: "", score: 0, error: props.initialError };
 
     import("zxcvbn").then((mod) => {
       this.zxcvbn = mod.default;
@@ -26,12 +29,16 @@ export default class PasswordField extends React.Component<Props, State> {
     this.setState({
       value,
       score: this.zxcvbn ? this.zxcvbn(value, ["AirCloak"]).score : 0,
+      error: null,
     });
   };
 
   renderScore = () => {
-    const { value, score } = this.state;
-    if (value === "") {
+    const { value, score, error } = this.state;
+
+    if (error) {
+      return <div className="invalid-feedback">{error}</div>;
+    } else if (value === "") {
       return null;
     } else if (score <= 1) {
       return <div className="invalid-feedback">weak</div>;
@@ -49,9 +56,11 @@ export default class PasswordField extends React.Component<Props, State> {
   };
 
   highlightClass = () => {
-    const { value, score } = this.state;
+    const { value, score, error } = this.state;
 
-    if (value === "") {
+    if (error) {
+      return "is-invalid";
+    } else if (value === "") {
       return "";
     } else if (score <= 1) {
       return "is-invalid";

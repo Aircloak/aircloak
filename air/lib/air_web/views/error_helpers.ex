@@ -103,6 +103,8 @@ defmodule AirWeb.ErrorHelpers do
     end
   end
 
+  def translate_error(nil), do: nil
+
   def translate_error(msg) do
     Gettext.dgettext(AirWeb.Gettext, "errors", msg)
   end
