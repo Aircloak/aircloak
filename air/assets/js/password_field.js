@@ -17,7 +17,7 @@ export default class PasswordField extends React.Component<Props, State> {
     this.state = { value: "", score: 0 };
 
     import("zxcvbn").then((mod) => {
-      this.zxcvbn = mod;
+      this.zxcvbn = mod.default;
     });
   }
 
