@@ -14,7 +14,7 @@ config :air, AirWeb.Endpoint,
   server: true,
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
-  pubsub: [name: Air.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub_server: AirWeb.PubSub
 
 config :air, Air.Service.Version, version_expiry: ~D[2100-01-01]
 
