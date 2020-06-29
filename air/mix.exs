@@ -66,8 +66,8 @@ defmodule Air.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 3.4.5"},
-      {:ecto_sql, "~> 3.4.4"},
+      {:ecto, "~> 3.1.7"},
+      {:ecto_sql, "~> 3.1.6"},
       {:earmark, "~> 1.2", override: true},
       {:postgrex, "~> 0.14.3", override: true},
       {:poolboy, "~> 1.5.2"},
@@ -85,7 +85,7 @@ defmodule Air.Mixfile do
       {:inflex, "~> 1.5.0"},
       {:csv, "~> 1.4.2"},
       {:phoenix_mtm, "~> 1.0.0"},
-      {:scrivener_ecto, "~> 2.4"},
+      {:scrivener_ecto, "~> 2.2", override: true},
       {:decimal, "~> 1.4"},
       {:remote_ip, "~> 0.1.4"},
       {:ecto_enum, "~> 1.4"},
