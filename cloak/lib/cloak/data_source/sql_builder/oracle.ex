@@ -142,7 +142,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def function_sql("date_trunc", [arg1, arg2]), do: function_sql("TRUNC", [arg2, arg1])
 
   def function_sql("btrim", [arg]), do: ["TRIM(", arg, ")"]
-  def function_sql("btrim", [arg1, arg2]), do: ["TRIM(", arg2, " FROM ", arg1, ")"]
+  def function_sql("btrim", [arg1, arg2]), do: ["LTRIM(RTRIM(", arg1, ", ", arg2, "), ", arg2, ")"]
 
   def function_sql("boolean_expression", [expression]),
     do: ["(CASE WHEN ", expression, " THEN 1 WHEN NOT (", expression, ") THEN 0 ELSE NULL END)"]
