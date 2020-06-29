@@ -38,7 +38,7 @@ config :air, :central,
   max_reconnect_interval: 1000
 
 # Use smaller pools in dev for endpoints and repo. We shouldn't issue a huge load in dev mode anyway, and
-# less processes makes the supervision tree view in observer nicer.
+# less processes makes the supervision tree view in observer easier to read.
 config :air, AirWeb.Endpoint,
   http: [transport_options: [num_acceptors: 2]],
   https: [transport_options: [num_acceptors: 2]]
