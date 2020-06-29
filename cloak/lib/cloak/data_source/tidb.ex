@@ -14,27 +14,27 @@ defmodule Cloak.DataSource.TiDB do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def connect(parameters), do: MySQL.connect(parameters)
+  defdelegate connect(parameters), to: MySQL
 
   @impl Driver
-  def load_tables(connection, table), do: MySQL.load_tables(connection, table)
+  defdelegate load_tables(connection, table), to: MySQL
 
   @impl Driver
-  def select(connection, sql_query, result_processor), do: MySQL.select(connection, sql_query, result_processor)
+  defdelegate select(connection, sql_query, result_processor), to: MySQL
 
   @impl Driver
-  def driver_info(connection), do: MySQL.driver_info(connection)
+  defdelegate driver_info(connection), to: MySQL
 
   @impl Driver
-  def supports_query?(query), do: MySQL.supports_query?(query)
+  defdelegate supports_query?(query), to: MySQL
 
   # -------------------------------------------------------------------
   # DataSource.Driver.SQL callbacks
   # -------------------------------------------------------------------
 
   @impl Driver.SQL
-  def execute(connection, sql), do: MySQL.execute(connection, sql)
+  defdelegate execute(connection, sql), to: MySQL
 
   @impl Driver.SQL
-  def select(connection, sql), do: MySQL.select(connection, sql)
+  defdelegate select(connection, sql), to: MySQL
 end

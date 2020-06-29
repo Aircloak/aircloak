@@ -8,19 +8,19 @@ defmodule Cloak.DataSource.SqlBuilder.TiDB do
   alias Cloak.DataSource.SqlBuilder.MySQL
   use Cloak.DataSource.SqlBuilder.Dialect
 
-  def supported_functions(), do: MySQL.supported_functions()
+  defdelegate supported_functions(), to: MySQL
 
   def function_sql("stddev", [arg]), do: function_sql("sqrt", [function_sql("variance", [arg])])
   def function_sql("variance", [arg]), do: ["VAR_POP(", arg, ")"]
   def function_sql(name, args), do: MySQL.function_sql(name, args)
 
-  def limit_sql(limit, offset), do: MySQL.limit_sql(limit, offset)
+  defdelegate limit_sql(limit, offset), to: MySQL
 
-  def cast_sql(value, from, to), do: MySQL.cast_sql(value, from, to)
+  defdelegate cast_sql(value, from, to), to: MySQL
 
-  def literal(value), do: MySQL.literal(value)
+  defdelegate literal(value), to: MySQL
 
-  def order_by(column, direction, option), do: MySQL.order_by(column, direction, option)
+  defdelegate order_by(column, direction, option), to: MySQL
 
-  def quote_char(), do: ?`
+  defdelegate quote_char(), to: MySQL
 end
