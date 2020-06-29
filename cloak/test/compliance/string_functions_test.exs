@@ -32,7 +32,6 @@ Enum.each(
     "substring(<col> FROM 10)",
     "substring(<col> FOR 10)",
     "substring(<col> FOR 1000)",
-    "trim(<col>)",
     "ucase(<col>)",
     "upper(<col>)"
   ],
