@@ -1,0 +1,11 @@
+{
+  "driver": "tidb",
+  "name": "tidb4",
+  "parameters": {
+    "hostname": "tidb4",
+    "username": "root",
+    "database": "cloak_compliance"
+  },
+  "tables": {
+  }
+}
