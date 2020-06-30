@@ -13,7 +13,7 @@ defmodule BOM.Whitelist do
       {"excoveralls", "0.5.7"} => %{type: :mit, text: :standard},
       {"file_system", "0.2.8"} => %{type: :wtfpl, text: :standard},
       {"makeup_elixir", "0.14.1"} => %{type: :bsd_4_clause, text: :standard},
-      {"scrivener_ecto", "2.4.0"} => %{type: :mit, text: :provided},
+      {"scrivener_ecto", "2.2.0"} => %{type: :mit, text: :provided},
       {"scrivener", "2.7.0"} => %{type: :mit, text: :provided}
     },
     :node => %{
