@@ -292,8 +292,6 @@ defmodule Air.PsqlServer.RanchServer do
     Aircloak.ChildSpec.supervisor(
       [
         {ConnectionLimiter, Keyword.fetch!(opts, :max_connections)},
-        # %{id: {:ranch_sup, __MODULE__, port}, start: {:ranch_sup, :start_link, []}},
-        # {:ranch_sup, {:ranch_sup, :start_link, []}, :permanent, 5000, :supervisor, [:ranch_sup]},
         :ranch.child_spec(
           {__MODULE__, port},
           Keyword.get(opts, :num_acceptors, 10),
