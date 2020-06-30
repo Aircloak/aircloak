@@ -10,11 +10,12 @@ export default ({ time }: { time: string | number }) => {
 
   const inserted = moment.utc(time);
   return (
-    <span
-      className="result-time"
+    <time
+      className="small text-muted ml-1"
+      datetime={inserted.toISOString()}
       title={inserted.local().format("YYYY-MM-DD HH:mm:ss")}
     >
       {inserted.fromNow()}
-    </span>
+    </time>
   );
 };
