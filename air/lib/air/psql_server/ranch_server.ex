@@ -69,35 +69,6 @@ defmodule Air.PsqlServer.RanchServer do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Starts the TCP server as the linked child of the caller process."
-  @spec start_embedded_server(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.on_start()
-  def start_embedded_server(port, behaviour_mod, behaviour_init_arg, opts \\ []) do
-    Logger.info("Accepting PostgreSQL requests on port #{port}")
-
-    # The `max_connections` we're setting in ranch is a bit higher then the one configured by the admin. This allows us
-    # to accept overloaded connections, so we can immediately refuse them. Without this, the connections might be left
-    # in the pending state indefinitely.
-    #
-    # The reason why we're still using `max_connections` is to ensure that we're not accepting too many connections at
-    # once (useful if the system is being DoS-ed).
-    #
-    # For more details on why we need our own application-level limiter, see the documentation of `ConnectionLimiter`.
-    max_connections = Keyword.fetch!(opts, :max_connections) + 10
-
-    :ranch_listener_sup.start_link(
-      {__MODULE__, port},
-      :ranch_tcp,
-      %{
-        port: port,
-        max_connections: max_connections,
-        backlog: Keyword.fetch!(opts, :backlog),
-        num_acceptors: Keyword.get(opts, :num_acceptors, 10)
-      },
-      __MODULE__,
-      {opts, behaviour_mod, behaviour_init_arg}
-    )
-  end
-
   @doc "Stores an arbitrary key-value pair into a connection state."
   @spec assign(t, any, any) :: t
   def assign(conn, key, value), do: put_in(conn.assigns[key], value)
@@ -314,20 +285,29 @@ defmodule Air.PsqlServer.RanchServer do
 
   @doc false
   def child_spec({port, behaviour_mod, behaviour_init_arg, opts}) do
+    Logger.info("Accepting PostgreSQL requests on port #{port}")
+
+    max_connections = Keyword.fetch!(opts, :max_connections) + 10
+
     Aircloak.ChildSpec.supervisor(
       [
         {ConnectionLimiter, Keyword.fetch!(opts, :max_connections)},
-        ranch_server(port, behaviour_mod, behaviour_init_arg, opts)
+        # %{id: {:ranch_sup, __MODULE__, port}, start: {:ranch_sup, :start_link, []}},
+        # {:ranch_sup, {:ranch_sup, :start_link, []}, :permanent, 5000, :supervisor, [:ranch_sup]},
+        :ranch.child_spec(
+          {__MODULE__, port},
+          Keyword.get(opts, :num_acceptors, 10),
+          :ranch_tcp,
+          [
+            port: port,
+            max_connections: max_connections,
+            backlog: Keyword.fetch!(opts, :backlog)
+          ],
+          __MODULE__,
+          {opts, behaviour_mod, behaviour_init_arg}
+        )
       ],
       strategy: :rest_for_one
-    )
-  end
-
-  defp ranch_server(port, behaviour_mod, behaviour_init_arg, opts) do
-    Aircloak.ChildSpec.supervisor(
-      __MODULE__,
-      :start_embedded_server,
-      [port, behaviour_mod, behaviour_init_arg, opts]
     )
   end
 end
