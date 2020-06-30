@@ -19,6 +19,12 @@
   z-index: -1;
 }
 
+.result-time {
+  color: gray;
+  font-size: 0.7em;
+  margin-left: 4px;
+}
+
 .result-table {
   padding-top: 10px;
   overflow-x: auto;

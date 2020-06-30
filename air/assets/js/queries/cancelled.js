@@ -5,6 +5,7 @@ import React from "react";
 import CodeViewer from "../code_viewer";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
+import ResultTime from "./result_time";
 
 import type { CancelledResult } from "./result";
 
@@ -19,7 +20,8 @@ export default ({
 }) => {
   return (
     <div className="card border-warning mb-3">
-      <div className="card-header border-danger bg-warning">
+      <div className="card-header border-warning bg-white">
+        <ResultTime time={result.inserted_at} />
         {onDeleteClick && (
           <button
             type="button"

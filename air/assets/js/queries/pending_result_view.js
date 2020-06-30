@@ -6,6 +6,7 @@ import type { PendingResult } from "./result";
 import type { Authentication } from "../authentication_provider";
 
 import CodeViewer from "../code_viewer";
+import ResultTime from "./result_time";
 import { pendingStates, later, format } from "./state";
 import { cancel } from "../request";
 import loader from "../../static/images/loader.gif";
@@ -28,7 +29,8 @@ const stateItem = (state, currentState) => {
 export default ({ result, authentication }: Props) => {
   return (
     <div className="card border-info mb-3">
-      <div className="card-header border-info">
+      <div className="card-header border-info bg-white">
+        <ResultTime time={result.inserted_at} />
         <CodeViewer statement={result.statement} />
       </div>
       <div className="card-body">
