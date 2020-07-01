@@ -63,17 +63,22 @@ defmodule Cloak.DataSource.MySQL do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp absolute_filepath(filepath), do: Application.app_dir(:cloak, ["priv", "config", filepath]) |> Path.expand()
+
   defp do_connect(parameters) do
     self = self()
 
     parameters =
-      Enum.to_list(parameters) ++
-        [
-          types: true,
-          after_connect: fn _ -> send(self, :connected) end,
-          backoff_type: :stop,
-          timeout: Driver.timeout()
-        ]
+      %{
+        types: true,
+        after_connect: fn _ -> send(self, :connected) end,
+        backoff_type: :stop,
+        timeout: Driver.timeout()
+      }
+      |> Map.merge(parameters)
+      |> update_in([Lens.key?(:ssl_opts) |> Lens.keys?([:certfile, :keyfile, :cacertfile])], &absolute_filepath/1)
+      |> update_in([Lens.key?(:ssl_opts)], &Enum.to_list/1)
+      |> Enum.to_list()
 
     case MyXQL.start_link(parameters) do
       {:ok, connection} ->
