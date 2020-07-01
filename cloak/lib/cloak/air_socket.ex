@@ -261,7 +261,10 @@ defmodule Cloak.AirSocket do
              data_source,
              serialized_query.statement || "",
              decode_params(serialized_query.parameters),
-             serialized_query.views
+             %{
+               views: serialized_query[:views] || %{},
+               analyst_tables: serialized_query[:analyst_tables] || %{}
+             }
            ),
          do: respond_to_air(from, :ok),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))
@@ -454,9 +457,9 @@ defmodule Cloak.AirSocket do
   end
 
   defp validate_views(analyst_id, data_source, views) do
-    for {name, sql} <- views do
+    for {name, view} <- views do
       Task.async(fn ->
-        case Cloak.Sql.Query.validate_view(analyst_id, data_source, name, sql, views) do
+        case Cloak.Sql.Query.validate_view(analyst_id, data_source, name, view.sql, views) do
           {:ok, columns} -> %{name: name, valid: true, columns: columns}
           {:error, field, reason} -> %{name: name, valid: false, field: field, error: reason}
         end

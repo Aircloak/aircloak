@@ -1,84 +1,70 @@
 <%= if @main_message not in ["", nil] do %>
-  <div id="info-message" class="panel">
+  <div id="info-message" class="mb-5">
     <%= raw(Earmark.as_html!(@main_message)) %>
   </div>
 <% end %>
 
-<h2>Data sources</h2>
-
 <%= if length(@user_data_sources) == 0 do %>
+  <h2>No data sources</h2>
+  <%= if @data_source_count == 0 do %>
+    <%= if admin?(@conn) do %>
+      <p>
+        Please verify that your <strong>cloaks</strong> are running and have been configured to make
+        one or more data sources available.
+      </p>
 
-  <div class="panel panel-info">
-    <div class="panel-heading">
-      <h1 class="panel-title">No data sources</h1>
-    </div>
-    <div class="panel-body">
-      <%= if @data_source_count == 0 do %>
-        <%= if admin?(@conn) do %>
-          <p>
-            Please verify that your <strong>cloaks</strong> are running and have been configured to make
-            one or more data sources available.
-          </p>
+      <p>
+        Inspecting the logs of your <strong>cloaks</strong> might help in debugging the problem.
+        If you are running the <strong>cloak</strong> using plain docker, and you have access to
+        the host on which the docker container runs, you can view the log using:
+        <pre><code>docker logs -f cloak</code></pre>
+      </p>
 
-          <p>
-            Inspecting the logs of your <strong>cloaks</strong> might help in debugging the problem.
-            If you are running the <strong>cloak</strong> using plain docker, and you have access to
-            the host on which the docker container runs, you can view the log using:
-            <pre>docker logs -f cloak</pre>
-          </p>
+      <p>
+        Please contact support on <a href="mailto:support@aircloak.com">support@aircloak.com</a> if the problem persists.
+      </p>
 
-          <p>
-            Please contact support on <a href="mailto:support@aircloak.com">support@aircloak.com</a> if the problem persists.
-          </p>
-
-        <% else %>
-          <p>
-            The setup of your Aircloak system is not yet complete.
-            Please consult your administrator for more information about when you will be able to
-            query your data sources using this platform.
-          </p>
-        <% end %>
-      <% else %>
-        <p>
-          Your user account does not currently have access to any data sources.
-          <%= unless admin?(@conn) do %>
-            Please ask your administrator to give you access to one or more data sources.
-          <% end %>
-        </p>
+    <% else %>
+      <p>
+        The setup of your Aircloak system is not yet complete.
+        Please consult your administrator for more information about when you will be able to
+        query your data sources using this platform.
+      </p>
+    <% end %>
+  <% else %>
+    <p>
+      Your user account does not currently have access to any data sources.
+      <%= unless admin?(@conn) do %>
+        Please ask your administrator to give you access to one or more data sources.
       <% end %>
-    </div>
-  </div>
+    </p>
+  <% end %>
 
 <% else %>
+  <h1 class="h2">Data sources</h1>
   <%= render "_data_sources.html", data_sources: @user_data_sources, conn: @conn %>
 <% end %>
 
 <%= if admin?(@conn) and length(@user_data_sources) < @data_source_count do %>
+  <div class="alert alert-info mt-5">
+    <h4 class="alert-heading">Notice</h4>
+    <p>
+      If the list of data sources does not include the data sources you expect to see there,
+      this might be due to one of the following reasons:
+    </p>
 
-  <div class="panel panel-info">
-    <div class="panel-heading">
-      <h1 class="panel-title">Notice</h1>
-    </div>
-    <div class="panel-body">
-      <p>
-        If the list of data sources does not include the data sources you expect to see there,
-        this might be due to one of the following reasons:
-      </p>
-
-      <ol>
-        <li>
-          You have not granted your user account the right access privileges.
-          Your user needs to have a <strong>group</strong> in common with a data source in order to see it.
-          You can adjust the group settings on the
-          <%= link "data source administration page", to: admin_data_source_path(@conn, :index) %>
-        </li>
-        <li>
-          Your cloaks do not make the data sources available, and the Aircloak system
-          therefore doesn't know about them.
-          This can be solved by adding additional data sources to your cloak config.
-        </li>
-      </ol>
-    </div>
+    <ol>
+      <li>
+        You have not granted your user account the right access privileges.
+        Your user needs to have a <strong>group</strong> in common with a data source in order to see it.
+        You can adjust the group settings on the
+        <%= link "data source administration page", to: admin_data_source_path(@conn, :index) %>
+      </li>
+      <li>
+        Your cloaks do not make the data sources available, and the Aircloak system
+        therefore doesn't know about them.
+        This can be solved by adding additional data sources to your cloak config.
+      </li>
+    </ol>
   </div>
-
 <% end %>

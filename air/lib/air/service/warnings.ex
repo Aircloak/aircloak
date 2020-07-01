@@ -67,7 +67,9 @@ defmodule Air.Service.Warnings do
       failed_isolator(data_sources, :medium) ++
       failed_shadow_tables(data_sources, :medium) ++
       failed_bounds(data_sources, :medium) ++
-      broken_datasources(data_sources, :medium) ++ no_group(data_sources, :low) ++ no_users(data_sources, :low)
+      broken_datasources(data_sources, :medium) ++
+      no_group(data_sources, :low) ++
+      no_users(data_sources, :low)
   end
 
   defp offline_datasources(data_sources, severity),

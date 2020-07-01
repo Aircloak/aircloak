@@ -6,14 +6,14 @@ objectClass: simpleSecurityObject
 objectClass: organizationalRole
 cn: alice
 description: An Alice
-# password1234
+# psswrd12
 userPassword: {SHA}5ravvW12u10gQVQtfS4/rFuwVZM=
 
 dn: cn=bob,ou=users,dc=example,dc=org
 objectClass: simpleSecurityObject
 objectClass: organizationalRole
 cn: bob
-# password1234
+# psswrd12
 userPassword: {SHA}5ravvW12u10gQVQtfS4/rFuwVZM=
 
 dn: ou=groups,dc=example,dc=org

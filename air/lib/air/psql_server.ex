@@ -16,9 +16,8 @@ defmodule Air.PsqlServer do
        system.
 
     - `Air.PsqlServer.ShadowDb` module implements the shadow db functionality. A shadow db is a local database which
-       corresponds in structure to a cloak datasource. There is one shadow db per each user for any known datasource.
-       These databases are used by `Air.PsqlServer.QueryExecution` to execute meta queries (statements which are
-       querying the database structure).
+       corresponds in structure to a cloak datasource. These databases are used by `Air.PsqlServer.QueryExecution`
+       to execute meta queries (statements which are querying the database structure).
 
     - `Air.PsqlServer.ConnectionRegistry` is responsible for tracking connection processes, mostly for the purpose of
        query cancellation.

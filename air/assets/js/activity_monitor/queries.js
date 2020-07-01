@@ -7,7 +7,7 @@ import QueryStatsSummaryView from "./query_stats_summary";
 import type { Query } from "./query";
 
 type Props = {
-  queries: Query[]
+  queries: Query[],
 };
 
 const MAX_QUERIES_TO_SHOW = 20;
@@ -16,7 +16,7 @@ const renderQueries = (queries: Query[]) => {
   if (queries.length > 0) {
     return queries
       .slice(0, MAX_QUERIES_TO_SHOW)
-      .map(query => <QueryView key={query.id} query={query} />);
+      .map((query) => <QueryView key={query.id} query={query} />);
   } else {
     return (
       <tr>
@@ -54,7 +54,7 @@ export default class QueriesView extends React.PureComponent<Props> {
       <div>
         <h3>Queries</h3>
         {renderNumActiveQueriesShown(queries)}
-        <table className="table">
+        <table className="table table-responsive-lg">
           <thead>
             <tr>
               <th>Data source</th>

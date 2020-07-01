@@ -1,7 +1,9 @@
 // @flow
 
 import React from "react";
-import _ from "lodash";
+import debounce from "lodash/debounce";
+import takeWhile from "lodash/takeWhile";
+import uniqBy from "lodash/uniqBy";
 import Mousetrap from "mousetrap";
 import Channel from "phoenix";
 import uuidv4 from "uuid/v4";
@@ -18,7 +20,7 @@ import { HistoryLoader } from "./history_loader";
 import type { History } from "./history_loader";
 import Disconnected from "../disconnected";
 import { isFinished } from "./state";
-import { startQuery, loadHistory } from "../request";
+import { startQuery, loadHistory, deleteQueryResult } from "../request";
 import activateTooltips from "../tooltips";
 
 type Props = {
@@ -31,7 +33,7 @@ type Props = {
   pendingQueries: Result[],
   frontendSocket: FrontendSocket,
   numberFormat: NumberFormat,
-  debugModeEnabled: boolean
+  debugModeEnabled: boolean,
 };
 
 type State = {
@@ -39,7 +41,7 @@ type State = {
   sessionResults: Result[],
   history: History,
   connected: boolean,
-  dataSourceStatus: string
+  dataSourceStatus: string,
 };
 
 const upgradeRequired = 426;
@@ -53,7 +55,7 @@ const historyPageSize = 10;
 const emptyHistory = {
   before: "",
   loaded: false,
-  loading: false
+  loading: false,
 };
 
 export default class QueriesView extends React.PureComponent<Props, State> {
@@ -65,7 +67,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       pendingQueries,
       dataSourceName,
       dataSourceStatus,
-      frontendSocket
+      frontendSocket,
     } = props;
 
     this.state = {
@@ -73,13 +75,13 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       sessionResults: pendingQueries,
       connected: true,
       dataSourceStatus,
-      history: emptyHistory
+      history: emptyHistory,
     };
 
     this.setStatement = this.setStatement.bind(this);
-    this.runQuery = _.debounce(this.runQuery.bind(this), runQueryTimeout, {
+    this.runQuery = debounce(this.runQuery.bind(this), runQueryTimeout, {
       leading: true,
-      trailing: false
+      trailing: false,
     });
     this.queryData = this.queryData.bind(this);
     this.setResults = this.setResults.bind(this);
@@ -93,10 +95,10 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
     this.bindKeysWithoutEditorFocus();
     frontendSocket.joinDataSourceChannel(dataSourceName, {
-      handleEvent: event => this.dataSourceStatusReceived(event)
+      handleEvent: (event) => this.dataSourceStatusReceived(event),
     });
     this.channel = frontendSocket.joinUserQueriesChannel(userId, {
-      handleEvent: event => this.resultReceived(event)
+      handleEvent: (event) => this.resultReceived(event),
     });
     this.connectedInterval = setInterval(
       this.updateConnected,
@@ -140,18 +142,18 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
   setResults = (results: Result[]) => {
     let completed = 0;
-    const recentResults = _.takeWhile(results, result => {
+    const recentResults = takeWhile(results, (result) => {
       if (isFinished(result.query_state)) {
         completed += 1;
       }
       return completed <= recentResultsToShow;
     });
 
-    if (_.isEmpty(recentResults)) {
+    if (recentResults.length === 0) {
       this.setState({ sessionResults: recentResults });
     } else {
-      const history = _.assign({}, emptyHistory, {
-        before: _.last(recentResults).inserted_at
+      const history = Object.assign({}, emptyHistory, {
+        before: recentResults[recentResults.length - 1].inserted_at,
       });
       this.setState({ sessionResults: recentResults, history });
     }
@@ -159,7 +161,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
   replaceResult = (result: Result) => {
     const { sessionResults } = this.state;
-    const processedSessionResults = sessionResults.map(item => {
+    const processedSessionResults = sessionResults.map((item) => {
       if (item.id === result.id) {
         return result;
       } else {
@@ -194,10 +196,18 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
   alreadyDisplayed = (result: Result) => {
     const { sessionResults } = this.state;
-    return _.some(
-      sessionResults,
-      sessionResult => sessionResult.id === result.id
+    return sessionResults.some(
+      (sessionResult) => sessionResult.id === result.id
     );
+  };
+
+  deleteResult = (queryId: string) => {
+    if (window.confirm("Do you want to permanently delete this result?")) {
+      deleteQueryResult(queryId, this.context.authentication);
+      this.setState((state) => ({
+        sessionResults: state.sessionResults.filter((r) => r.id !== queryId),
+      }));
+    }
   };
 
   addPendingResult = (queryId: string, statement: string) => {
@@ -211,7 +221,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       private_permalink: null,
       public_permalink: null,
       inserted_at: null,
-      data_source: { name: dataSourceName }
+      data_source: { name: dataSourceName },
     };
     this.setResults([pendingResult].concat(sessionResults));
   };
@@ -232,7 +242,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       public_permalink: null,
       inserted_at: null,
       session_id: sessionId,
-      data_source: { name: dataSourceName }
+      data_source: { name: dataSourceName },
     };
     this.replaceResult(errorResult);
   };
@@ -249,8 +259,8 @@ export default class QueriesView extends React.PureComponent<Props, State> {
         id: queryId,
         statement,
         data_source_name: dataSourceName,
-        session_id: sessionId
-      }
+        session_id: sessionId,
+      },
     });
   };
 
@@ -266,7 +276,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     this.addPendingResult(queryId, statement);
 
     startQuery(this.queryData(queryId), authentication, {
-      success: response => {
+      success: (response) => {
         if (!response.success) {
           this.replacePendingResultWithError(
             queryId,
@@ -276,7 +286,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
         }
       },
 
-      error: error => {
+      error: (error) => {
         this.replacePendingResultWithError(
           queryId,
           statement,
@@ -285,7 +295,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
         if (error.status === upgradeRequired) {
           window.location.reload();
         }
-      }
+      },
     });
   };
 
@@ -299,54 +309,54 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   };
 
   handleLoadHistory = () => {
-    this.setState(state => ({
-      history: { before: state.history.before, loaded: false, loading: true }
+    this.setState((state) => ({
+      history: { before: state.history.before, loaded: false, loading: true },
     }));
 
     const { dataSourceName } = this.props;
     const { authentication } = this.context;
     loadHistory(dataSourceName, this.state.history.before, authentication, {
-      success: response => {
+      success: (response) => {
         const successHistory =
           response.length < historyPageSize
             ? {
                 before: "",
                 loaded: true,
-                loading: false
+                loading: false,
               }
             : {
                 before: response[response.length - 1].inserted_at,
                 loaded: false,
-                loading: false
+                loading: false,
               };
-        this.setState(state => ({
-          sessionResults: _.uniqBy(state.sessionResults.concat(response), "id"),
-          history: successHistory
+        this.setState((state) => ({
+          sessionResults: uniqBy(state.sessionResults.concat(response), "id"),
+          history: successHistory,
         }));
       },
 
       // eslint-disable-next-line no-unused-vars
-      error: _error => {
+      error: (_error) => {
         const errorHistory = {
           before: "",
           loaded: true,
           loading: false,
-          error: true
+          error: true,
         };
         this.setState({ history: errorHistory });
-      }
+      },
     });
   };
 
   tableNames = () => {
     const { selectables } = this.props;
-    return selectables.map<string>(table => table.id);
+    return selectables.map<string>((table) => table.id);
   };
 
-  columnNames = () => {
+  columnNames = (): Array<string> => {
     const { selectables } = this.props;
-    return _.flatMap(selectables, table =>
-      table.columns.map<string>(column => column.name)
+    return selectables.flatMap((table) =>
+      table.columns.map<string>((column) => column.name)
     );
   };
 
@@ -356,28 +366,39 @@ export default class QueriesView extends React.PureComponent<Props, State> {
         <CodeEditor
           onRun={this.runQuery}
           onChange={this.setStatement}
-          statement={this.initialStatement()}
+          statement={this.state.statement}
           tableNames={this.tableNames()}
           columnNames={this.columnNames()}
         />
       );
     } else {
-      return <CodeViewer statement={this.initialStatement()} />;
+      return <CodeViewer statement={this.state.statement} />;
     }
   };
 
   renderButton = () => (
-    <button
-      className="btn btn-primary"
-      onClick={this.runQuery}
-      disabled={!this.runEnabled()}
-      data-toggle="tooltip"
-      data-placement="left"
-      title="or press Ctrl + Enter"
-      type="button"
-    >
-      Run
-    </button>
+    <div>
+      <button
+        className="btn btn-primary"
+        onClick={this.runQuery}
+        disabled={!this.runEnabled()}
+        data-toggle="tooltip"
+        data-placement="left"
+        title="or press Ctrl + Enter"
+        type="button"
+      >
+        Run
+      </button>
+      <button
+        type="button"
+        className="btn d-block d-md-none"
+        data-toggle="collapse"
+        data-target="#sidebar"
+        aria-expanded="false"
+      >
+        <i className="fas fa-list" aria-label="Show sidebar"></i>
+      </button>
+    </div>
   );
 
   render = () => {
@@ -401,6 +422,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
           numberFormat={numberFormat}
           debugModeEnabled={debugModeEnabled}
           authentication={authentication}
+          onDeleteClick={this.deleteResult}
         />
 
         <HistoryLoader

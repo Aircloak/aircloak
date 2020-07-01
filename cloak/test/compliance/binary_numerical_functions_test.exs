@@ -7,8 +7,8 @@ Enum.each(
     "<col1> / <col2>",
     "<col1> ^ <col2>",
     "<col1> / (<col2> - 15)",
-    "cast(<col1>, integer) % cast(<col2>, integer)",
-    "cast(<col1>, integer) % cast(<col2> - 15, integer)",
+    "<col1> % <col2>",
+    "<col1> % (<col2> - 15)",
     "pow(<col1>, <col2>)",
     "bucket(<col1> by <col2>)",
     "bucket(<col1> by <col2> align lower)",
@@ -27,8 +27,7 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} parameter 1 subquery"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
           context
-          |> disable_divide_by_zero(unquote(function))
-          |> disable_signed_pow(unquote(column), unquote(function))
+          |> disable_modulo(unquote(function), {unquote(column), unquote(table)})
           |> assert_consistent_and_not_failing("""
             SELECT
               output
@@ -38,8 +37,7 @@ Enum.each(
                 #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
               FROM #{unquote(table)}
             ) table_alias
-            WHERE output IS NOT NULL
-            ORDER BY output
+            ORDER BY output NULLS FIRST
           """)
         end
 
@@ -47,8 +45,7 @@ Enum.each(
           @tag compliance: "#{function} #{column} #{table} parameter 2 subquery"
           test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
             context
-            |> disable_divide_by_zero(unquote(function))
-            |> disable_signed_pow(unquote(column), unquote(function))
+            |> disable_modulo(unquote(function), {unquote(column), unquote(table)})
             |> assert_consistent_and_not_failing("""
               SELECT
                 output
@@ -58,8 +55,7 @@ Enum.each(
                   #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
                 FROM #{unquote(table)}
               ) table_alias
-              WHERE output IS NOT NULL
-              ORDER BY output
+              ORDER BY output NULLS FIRST
             """)
           end
         end
@@ -67,14 +63,12 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} parameter 1 query"
         test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
           context
-          |> disable_divide_by_zero(unquote(function))
-          |> disable_signed_pow(unquote(column), unquote(function))
+          |> disable_modulo(unquote(function), {unquote(column), unquote(table)})
           |> assert_consistent_and_not_failing("""
             SELECT
               #{on_columns(unquote(function), ["#{unquote(column)}", "1"])} as output
             FROM #{unquote(table)}
-            WHERE output IS NOT NULL
-            ORDER BY output
+            ORDER BY output NULLS FIRST
           """)
         end
 
@@ -82,30 +76,19 @@ Enum.each(
           @tag compliance: "#{function} #{column} #{table} parameter 2 query"
           test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
             context
-            |> disable_divide_by_zero(unquote(function))
-            |> disable_signed_pow(unquote(column), unquote(function))
+            |> disable_modulo(unquote(function), {unquote(column), unquote(table)})
             |> assert_consistent_and_not_failing("""
               SELECT
                 #{on_columns(unquote(function), ["1", "#{unquote(column)}"])} as output
               FROM #{unquote(table)}
-              WHERE output IS NOT NULL
-              ORDER BY output
+              ORDER BY output NULLS FIRST
             """)
           end
         end
       end)
 
-      def disable_divide_by_zero(context, function) do
-        disable_for(context, Cloak.DataSource.MongoDB, function =~ ~r/\/|%.*-/)
-      end
-
-      def disable_signed_pow(context, column, function) do
-        # SQL Server is not consistent with negative bases.
-        disable_for(
-          context,
-          Cloak.DataSource.SQLServer,
-          function in ["<col1> ^ <col2>", "pow(<col1>, <col2>)"] and column in ["signed_integer", "signed_float"]
-        )
+      def disable_modulo(context, function, column) do
+        disable_for(context, :all, function =~ ~r/%/ and column in float_columns())
       end
     end
   end

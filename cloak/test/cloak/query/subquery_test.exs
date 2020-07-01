@@ -209,7 +209,7 @@ defmodule Cloak.Query.SubqueryTest do
   test "using view in a subquery" do
     assert_query(
       "select height from (select user_id, height from heights_view) alias",
-      [views: %{"heights_view" => "select user_id, height from heights_sq"}],
+      [views: %{"heights_view" => %{sql: "select user_id, height from heights_sq"}}],
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
     )
   end
@@ -254,6 +254,13 @@ defmodule Cloak.Query.SubqueryTest do
     assert_query(
       "select count(height) from (select user_id, height from heights_sq) \"x.y\"",
       %{columns: ["count"], rows: [%{row: [100], occurrences: 1}]}
+    )
+  end
+
+  test "[BUG] subquery star selecting identical user_id columns" do
+    assert_query(
+      "SELECT stddev(0) FROM (SELECT * FROM heights_sq t1 JOIN heights_sq t2 ON t1.user_id = t2.user_id) t",
+      %{rows: [%{row: [0.0], occurrences: 1}]}
     )
   end
 end

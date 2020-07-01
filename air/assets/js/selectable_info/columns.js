@@ -2,20 +2,55 @@
 
 import React from "react";
 
-import { Filter } from "./filter";
+import { filterColumns, Higlighted } from "./filter";
+import ExplorerResultButton from "./explorer-result-button.js";
+import type { NumberFormat } from "../number_format";
 
 export type Column = {
   name: string,
   type: string,
-  key_type: string
+  key_type: string,
+  analysis?: any,
+  comment: string | null,
 };
 
-const potentiallyRenderColumnIcon = (column: Column) => {
+const typeColors = {
+  boolean: "#fffbc6",
+  integer: "#e8ffdd",
+  real: "#e7f9cf",
+  text: "#fff2f2",
+  date: "#e8f2ff",
+  datetime: "#e9e8ff",
+};
+
+const columnIcon = (column: Column) => {
   if (column.key_type) {
     const icon = column.key_type === "user_id" ? "user" : "link";
-    return <span className={`glyphicon glyphicon-${icon}`}>&nbsp;</span>;
+    return (
+      <span
+        className={`type-icon ${icon}-icon`}
+        data-toggle="tooltip"
+        style={{
+          backgroundColor: typeColors[column.type] || "transparent",
+        }}
+        title={`${column.key_type}:${column.type}`}
+      >
+        <span className={`fas fa-${icon}`}>&nbsp;</span>
+      </span>
+    );
   } else {
-    return null;
+    return (
+      <span
+        className="type-icon native-type"
+        style={{
+          backgroundColor: typeColors[column.type] || "transparent",
+        }}
+        data-toggle="tooltip"
+        title={`${column.type}`}
+      >
+        {column.type[0].toUpperCase()}
+      </span>
+    );
   }
 };
 
@@ -33,45 +68,50 @@ const columnClassName = (column: Column) => {
 
 export const ColumnsView = ({
   filter,
-  columns
+  columns,
+  table,
+  numberFormat,
 }: {
-  filter: Filter,
-  columns: Column[]
+  table: string,
+  filter: string,
+  columns: Column[],
+  numberFormat: NumberFormat,
 }) => {
   return (
-    <table className="table table-condensed">
-      <thead>
-        <tr>
-          <th>Column</th>
-          <th>Type</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {filter.filterColumns(columns).map(column => (
-          <tr key={column.name}>
-            {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions,
-                               jsx-a11y/click-events-have-key-events */}
-            <td
-              onClick={event => {
+    <ul className="list-group list-group-flush">
+      {filterColumns(table, columns, filter).map((item) => {
+        return (
+          <li
+            className={`list-group-item p-1 bg-transparent pr-3 ${columnClassName(
+              item
+            )} d-flex justify-content-between align-items-center`}
+            key={item.name}
+            title={item.comment}
+          >
+            <button
+              className="btn text-truncate"
+              style={{ textAlign: "left" }}
+              onClick={(event) => {
                 event.preventDefault();
-                window.insertWordInEditor(column.name);
+                window.insertWordInEditor(`"${item.name}"`);
               }}
-              className={columnClassName(column)}
             >
-              {potentiallyRenderColumnIcon(column)}
-              {column.name}
-            </td>
-            {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions,
-                               jsx-a11y/click-events-have-key-events */}
-            <td>
-              {column.key_type
-                ? `${column.key_type} (${column.type})`
-                : column.type}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+              {columnIcon(item)}
+              <Higlighted table={table} column={item} field="name" />{" "}
+              {item.key_type && (
+                <>
+                  {" ("}
+                  <Higlighted table={table} column={item} field="key_type" />
+                  {")"}
+                </>
+              )}
+            </button>
+            {item.analysis && (
+              <ExplorerResultButton item={item} numberFormat={numberFormat} />
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 };

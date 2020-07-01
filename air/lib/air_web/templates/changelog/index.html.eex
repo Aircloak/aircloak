@@ -1,4 +1,6 @@
-<h1>Changelog</h1>
+<header class="page-header">
+  <h1>Changelog</h1>
+</header>
 
 <div class="changelog">
   <%= render "changelog.html" %>

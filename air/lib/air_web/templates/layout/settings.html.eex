@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <%= if @conn.assigns[:refresh] do %>
+      <meta http-equiv="refresh" content="1;url=<%= @conn.assigns[:refresh] %>">
+    <% end %>
+
+    <title>Aircloak – Admin - Air control</title>
+    <link rel="shortcut icon" href="<%= static_path(@conn, "/frontend/images/favicon.ico") %>" type="image/x-icon">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/frontend/app.css") %>">
+  </head>
+
+  <body>
+    <%= render "_navbar.html", conn: @conn, admin: true %>
+    <div class="container-fluid full-height">
+      <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-light border-right collapse navbar-collapse align-items-start py-0 my-0" id="sidebarCollapse">
+        <div class="container-fluid d-block">
+            <h1 class="h3 d-flex flex-column align-items-center my-3 font-weight-light" style="text-align: center">
+                <i class="fas fa-user-circle fa-2x"></i>
+                <span class="mt-2"><%= @current_user.name %></span>
+            </h1>
+            <ul class="navbar-nav">
+                <%= sidebar_link(@conn, "Profile", "user-cog", settings_path(@conn, :profile)) %>
+                <%= sidebar_link(@conn, "Security", "lock", settings_path(@conn,  :security)) %>
+                <%= sidebar_link(@conn, "Privacy", "user-secret", settings_path(@conn,  :privacy)) %>
+            </ul>
+            <hr class="navbar-divider my-3 w-100" />
+            <ul class="navbar-nav">
+                <%= sidebar_link(@conn, "API Tokens", "network-wired", api_token_path(@conn, :index)) %>
+                <%= sidebar_link(@conn, "App Logins", "user-lock", app_login_path(@conn, :index)) %>
+            </ul>
+        </div>
+      </nav>
+
+      <main>
+        <div class="container-fluid">
+          <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
+          <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
+          <%= render @view_module, @view_template, assigns %>
+        </div>
+      </main>
+    </div> <!-- /container-fluid -->
+    <div class="admin-footer mt-auto"><%= render AirWeb.SharedView, "footer.html", conn: @conn %></div>
+    <script src="<%= static_path(@conn, "/frontend/app.js") %>"></script>
+  </body>
+</html>

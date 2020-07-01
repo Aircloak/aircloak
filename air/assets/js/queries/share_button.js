@@ -1,16 +1,17 @@
 // @flow
 
 import React from "react";
-import { Modal, Button } from "react-bootstrap";
+import Modal from "react-bootstrap/Modal";
+import Button from "react-bootstrap/Button";
 
 import type { Result } from "./result";
 
 type Props = {
-  result: Result
+  result: Result,
 };
 
 type State = {
-  showModal: boolean
+  showModal: boolean,
 };
 
 export default class ShareButton extends React.Component<Props, State> {
@@ -47,13 +48,13 @@ export default class ShareButton extends React.Component<Props, State> {
     const { showModal } = this.state;
     if (this.isEnabled()) {
       return (
-        <span>
+        <>
           <button
             type="button"
-            className="btn btn-default btn-xs"
+            className="btn btn-outline-secondary btn-sm"
             onClick={() => this.setState({ showModal: true })}
           >
-            Share
+            <i className="fas fa-share"></i> Share
           </button>
 
           <Modal
@@ -100,7 +101,7 @@ export default class ShareButton extends React.Component<Props, State> {
               </Button>
             </Modal.Footer>
           </Modal>
-        </span>
+        </>
       );
     } else {
       return null;

@@ -5,16 +5,18 @@ defmodule AirWeb.Admin.UserView do
   alias Air.Repo
 
   defp checkbox_mapper(form, field, input_opts, group, label_opts, _opts) do
-    content_tag(:div, class: "checkbox") do
-      label(form, field, label_opts) do
-        [
-          tag(:input, input_opts),
-          Air.Utils.CheckboxMapper.group_label_text(group),
-          content_tag(:small, class: "newline") do
-            data_sources_given_access_to(group)
-          end
-        ]
-      end
+    content_tag(:div, class: "form-check") do
+      [
+        tag(:input, [{:class, "form-check-input"} | input_opts]),
+        label(form, field, [{:class, "form-check-label"} | label_opts]) do
+          [
+            Air.Utils.CheckboxMapper.group_label_text(group),
+            content_tag(:small, class: "newline") do
+              data_sources_given_access_to(group)
+            end
+          ]
+        end
+      ]
     end
   end
 
@@ -30,7 +32,7 @@ defmodule AirWeb.Admin.UserView do
 
       names when length(names) <= @num_to_take ->
         [
-          raw("Gives access to #{length(names)} data_sources: ")
+          raw("Gives access to #{length(names)} data #{Inflex.inflect("source", length(names))}: ")
           | Air.Utils.CheckboxMapper.highlighted_and_comma_separated(names, @num_to_take)
         ]
 
@@ -77,4 +79,6 @@ defmodule AirWeb.Admin.UserView do
   defp can_edit?(%{source: :native}), do: true
 
   defp is_self?(conn, user), do: conn.assigns.current_user.id == user.id
+
+  defp is_explorer?(user), do: user.name == "Diffix Explorer" && user.system
 end

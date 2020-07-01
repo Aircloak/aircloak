@@ -51,7 +51,6 @@ defmodule Cloak.DataSource.Utility do
   end
 
   @driver_name_to_module_mappings [
-    {"mongodb", Cloak.DataSource.MongoDB},
     {"mysql", Cloak.DataSource.MySQL},
     {"postgresql", Cloak.DataSource.PostgreSQL},
     {"sqlserver", Cloak.DataSource.SQLServer},

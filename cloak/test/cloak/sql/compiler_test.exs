@@ -24,6 +24,12 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  defmacrop constant(type, value) do
+    quote do
+      %{kind: :constant, type: unquote(type), value: unquote(value)}
+    end
+  end
+
   defmacrop unselectable_error(column_name \\ "grey", table_name \\ "column_access") do
     quote do
       {:error,
@@ -222,7 +228,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert [_is_not_null_id, function(">=", [column("table", "column"), value]), _lt_date] =
              conditions_list(result.where)
 
-    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2015-01-01 00:00:00.000000]) = value
   end
 
   test "casts datetime - date conditions" do
@@ -234,7 +240,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert [_is_not_null_id, function("<>", [column("table", "column"), value])] = conditions_list(result.where)
 
-    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2015-01-01 00:00:00.000000]) = value
   end
 
   test "[Issue #2152] an invalid datetime comparison",
@@ -248,7 +254,7 @@ defmodule Cloak.Sql.Compiler.Test do
     result = compile!("select stddev(uid) from table where column = cast('2017-01-01' as datetime)", data_source())
 
     assert [_is_not_null_id, function("=", [column("table", "column"), value])] = conditions_list(result.where)
-    assert value == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2017-01-01 00:00:00.000000]) = value
   end
 
   test "[Issue #2562] doesn't cast expressions that are already datetime in IN" do
@@ -261,8 +267,8 @@ defmodule Cloak.Sql.Compiler.Test do
     assert [_is_not_null_id, function("in", [column("table", "column"), value1, value2])] =
              conditions_list(result.where)
 
-    assert value1 == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
-    assert value2 == Expression.constant(:datetime, ~N[2017-02-02 00:00:00.000000])
+    assert constant(:datetime, ~N[2017-01-01 00:00:00.000000]) = value1
+    assert constant(:datetime, ~N[2017-02-02 00:00:00.000000]) = value2
   end
 
   test "allows comparing datetime columns to other datetime columns" do
@@ -277,7 +283,7 @@ defmodule Cloak.Sql.Compiler.Test do
              )
 
     assert function("and", [function(">=", [column("table", "column"), value]), _rhs]) = range
-    assert value == Expression.constant(:time, ~T[01:00:00.000000])
+    assert constant(:time, ~T[01:00:00.000000]) = value
   end
 
   test "casts date where conditions" do
@@ -288,7 +294,7 @@ defmodule Cloak.Sql.Compiler.Test do
              )
 
     assert function("and", [function(">=", [column("table", "column"), value]), _rhs]) = range
-    assert value == Expression.constant(:date, ~D[2015-01-01])
+    assert constant(:date, ~D[2015-01-01]) = value
   end
 
   test "casts datetime in `in` conditions" do
@@ -311,7 +317,7 @@ defmodule Cloak.Sql.Compiler.Test do
              function("<>", [column("table", "column"), value])
            ]) = result.where
 
-    assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
+    assert constant(:datetime, ~N[2015-01-01 00:00:00.000000]) = value
   end
 
   test "casts integers to reals in IN" do
@@ -1243,7 +1249,7 @@ defmodule Cloak.Sql.Compiler.Test do
              compile(
                "select foo from table_view",
                data_source(),
-               views: %{"table_view" => "select"}
+               views: %{"table_view" => %{sql: "select"}}
              )
 
     assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
@@ -1254,7 +1260,7 @@ defmodule Cloak.Sql.Compiler.Test do
              compile(
                "show columns from table_view",
                data_source(),
-               views: %{"table_view" => "select"}
+               views: %{"table_view" => %{sql: "select"}}
              )
 
     assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
@@ -1265,7 +1271,7 @@ defmodule Cloak.Sql.Compiler.Test do
              compile(
                "select numeric from table",
                data_source(),
-               views: %{"table" => "select numeric from table"}
+               views: %{"table" => %{sql: "select numeric from table"}}
              )
 
     assert error == "There is both a table, and a view named `table`. Rename the view to resolve the conflict."
@@ -1276,7 +1282,7 @@ defmodule Cloak.Sql.Compiler.Test do
              compile(
                "select numeric from table_view",
                data_source(),
-               views: %{"table_view" => "select numeric from table group by numeric"}
+               views: %{"table_view" => %{sql: "select numeric from table group by numeric"}}
              )
   end
 
@@ -1541,14 +1547,14 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects date constant values out of range" do
-    {:error, error} = compile("select count(date '1801-01-01' - interval 'P10Y') from table", data_source())
+    {:error, error} = compile("select count(date '1901-01-01' - interval 'P10Y') from table", data_source())
 
     assert error =~
              "Constant expression is out of valid range: date values have to be inside the interval [`1900-01-01`, `9999-12-31`]."
   end
 
   test "rejects interval constant values out of range" do
-    {:error, error} = compile("select count(- 99 * interval 'P10Y') from table", data_source())
+    {:error, error} = compile("select count(interval 'P101Y') from table", data_source())
 
     assert error =~ "Constant expression is out of valid range: interval values have to be less than `100` years."
   end
@@ -1601,9 +1607,9 @@ defmodule Cloak.Sql.Compiler.Test do
     assert [function("not", [function("in", [column("table", "numeric"), value1, value2, value3])])] =
              conditions_list(result.where)
 
-    assert value1 = Expression.constant(:integer, 1)
-    assert value2 = Expression.constant(:integer, 2)
-    assert value3 = Expression.constant(:integer, 3)
+    assert constant(:integer, 1) = value1
+    assert constant(:integer, 2) = value2
+    assert constant(:integer, 3) = value3
   end
 
   test "[Issue #4181] grouping sets over the user id" do
@@ -1632,10 +1638,6 @@ defmodule Cloak.Sql.Compiler.Test do
     test "can count unselectable columns" do
       assert {:ok, _} =
                compile("SELECT count(grey), count(distinct grey), count_noise(grey) FROM column_access", data_source())
-    end
-
-    test "can count unselectable columns in complex expression" do
-      assert {:ok, _} = compile("SELECT count(abs(grey) + 1) FROM column_access", data_source())
     end
 
     for aggregator <- ~w(min max sum avg stddev variance) do
@@ -1773,21 +1775,6 @@ defmodule Cloak.Sql.Compiler.Test do
                  SELECT count(*)
                  FROM (
                    SELECT uid, count(grey)
-                   FROM column_access
-                   GROUP BY uid
-                 ) x
-                 """,
-                 data_source()
-               )
-    end
-
-    test "can count unselectable columns in complex expression" do
-      assert {:ok, _} =
-               compile(
-                 """
-                 SELECT count(*)
-                 FROM (
-                   SELECT uid, count(abs(grey + 1))
                    FROM column_access
                    GROUP BY uid
                  ) x
@@ -2123,7 +2110,7 @@ defmodule Cloak.Sql.Compiler.Test do
   def dotted_data_source do
     %{
       name: "compiler_test_data_source",
-      driver: Cloak.DataSource.MongoDB,
+      driver: Cloak.DataSource.PostgreSQL,
       driver_info: "3.6.0",
       tables: %{
         table:

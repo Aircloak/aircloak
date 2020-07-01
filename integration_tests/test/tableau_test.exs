@@ -139,8 +139,8 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
              {:updated, 0},
-             {:selected, ['name', 'type'],
-              [{'column_access', 'personal'}, {'integers', 'personal'}, {'users', 'personal'}]}
+             {:selected, ['name', 'type', 'comment'],
+              [{'column_access', 'personal', :null}, {'integers', 'personal', :null}, {'users', 'personal', :null}]}
            ]
   end
 
@@ -150,8 +150,8 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
              {:updated, 0},
-             {:selected, ['name', 'type'],
-              [{'column_access', 'personal'}, {'integers', 'personal'}, {'users', 'personal'}]}
+             {:selected, ['name', 'type', 'comment'],
+              [{'column_access', 'personal', :null}, {'integers', 'personal', :null}, {'users', 'personal', :null}]}
            ]
   end
 
@@ -161,8 +161,8 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
              {:updated, 0},
-             {:selected, ['name', 'type'],
-              [{'column_access', 'personal'}, {'integers', 'personal'}, {'users', 'personal'}]}
+             {:selected, ['name', 'type', 'comment'],
+              [{'column_access', 'personal', :null}, {'integers', 'personal', :null}, {'users', 'personal', :null}]}
            ]
   end
 
@@ -172,15 +172,16 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
              {:updated, 0},
-             {:selected, ['name', 'data type', 'isolator?', 'key type'], [{'user_id', 'text', 'true', 'user_id'}]}
+             {:selected, ['name', 'data type', 'isolator?', 'key type', 'comment'],
+              [{'user_id', 'text', 'true', 'user_id', :null}]}
            ]
 
     assert :odbc.sql_query(context.conn, 'fetch 2 in "my_cursor"') ==
-             {:selected, ['name', 'data type', 'isolator?', 'key type'],
-              [{'name', 'text', 'failed', :null}, {'height', 'integer', 'failed', :null}]}
+             {:selected, ['name', 'data type', 'isolator?', 'key type', 'comment'],
+              [{'name', 'text', 'failed', :null, :null}, {'height', 'integer', 'failed', :null, :null}]}
 
     assert :odbc.sql_query(context.conn, 'fetch 1 in "my_cursor"') ==
-             {:selected, ['name', 'data type', 'isolator?', 'key type'], []}
+             {:selected, ['name', 'data type', 'isolator?', 'key type', 'comment'], []}
 
     assert :odbc.sql_query(context.conn, 'close "my_cursor"') == {:updated, 0}
   end

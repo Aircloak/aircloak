@@ -6,7 +6,6 @@ defmodule Compliance.GroupByTest do
     test "group by #{column} in query on #{table}", context do
       context
       |> disable_unicode(unquote(table), unquote(column))
-      |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
       |> disable_for(Cloak.DataSource.ClouderaImpala, unquote(column) == "birthday")
       |> disable_for(:all, unquote(table) == "users_public" and unquote(column) == "name_unicode")
       |> assert_consistent_and_not_failing("""
@@ -50,7 +49,6 @@ defmodule Compliance.GroupByTest do
     test "grouping sets for #{column} in uid-based query on #{table}", context do
       context
       |> disable_unicode(unquote(table), unquote(column))
-      |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
       |> disable_for(Cloak.DataSource.ClouderaImpala, unquote(column) == "birthday")
       |> disable_for(
         Cloak.DataSource.Oracle,
@@ -68,7 +66,6 @@ defmodule Compliance.GroupByTest do
     test "grouping sets for #{column} in stats-based query on #{table}", context do
       context
       |> disable_unicode(unquote(table), unquote(column))
-      |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
       # Impala maps dates to datetime (TIMESTAMP). The returned results will be equivalent,
       # but tests will fail because other databases return results as date only.
       |> disable_for(Cloak.DataSource.ClouderaImpala, unquote(column) == "birthday")

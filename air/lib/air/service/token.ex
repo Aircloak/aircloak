@@ -25,6 +25,18 @@ defmodule Air.Service.Token do
     end
   end
 
+  @doc "Given a user and a description, it attempts to find and sign a token matching these criteria."
+  @spec find_token_for_user(User.t(), String.t()) :: {:error, :not_found} | {:ok, String.t()}
+  def find_token_for_user(user, description) do
+    import Ecto.Query
+
+    case from(token in Air.Schemas.ApiToken, where: token.user_id == ^user.id and token.description == ^description)
+         |> Repo.one() do
+      nil -> {:error, :not_found}
+      token -> {:ok, Phoenix.Token.sign(Endpoint, api_token_salt(), token.id)}
+    end
+  end
+
   @doc "Will return the user associated with a token, assuming the token is valid"
   @spec user_for_token(String.t(), ApiToken.Access.t(), max_age: pos_integer | :infinity) :: User.t() | :error
   def user_for_token(token, access, opts \\ []) do

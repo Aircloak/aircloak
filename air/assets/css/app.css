@@ -1,9 +1,10 @@
 @import "./vendor.css";
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
 }
 
 a {
@@ -12,16 +13,13 @@ a {
 
 .body-wrapper {
   min-height: 100%;
-  /* For the navbar */
-  padding-top: 70px;
   /* For the footer */
+  padding-top: 1rem;
   padding-bottom: 50px;
   position: relative;
 }
 
 .footer {
-  position: absolute;
-  bottom: 0;
   width: 100%;
 }
 
@@ -35,19 +33,22 @@ a {
 }
 
 /* Phoenix flash messages */
-.alert:empty { display: none; }
+.alert:empty {
+  display: none;
+}
 
 /* Phoenix inline forms in links and buttons */
-form.link, form.button {
+form.link,
+form.button {
   display: inline;
 }
 
 .logo {
-  margin: 10px;
+  margin-left: 10px;
   width: 160px;
   height: 30px;
   display: inline-block;
-  background-image: url("/images/aircloak_web.png");
+  background-image: url("../static/images/aircloak_web.svg");
   background-repeat: no-repeat;
   background-size: 160 30;
 }
@@ -62,7 +63,7 @@ form.link, form.button {
 }
 
 .table-hover tbody tr:hover td {
-  background: rgb(225,240,255);
+  background: rgb(225, 240, 255);
 }
 
 /* Customize container */
@@ -114,18 +115,12 @@ form.link, form.button {
 a.suggested-reading {
   z-index: 99999999999;
   color: black;
-  background-color: rgba(254,251,0,0.2);
+  background-color: rgba(254, 251, 0, 0.2);
 }
 
 a.suggested-reading:hover {
   background-color: yellow;
   color: black;
-}
-
-h2 {
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgb(238, 238, 238);
-  margin-bottom: 20px;
 }
 
 .mode-select {
@@ -141,6 +136,13 @@ h2 {
 
 .footer small:last-of-type {
   border-right: none;
+}
+
+@media (max-width: 576px) {
+  .dropdown-menu-centerish {
+    right: -20%;
+    left: auto;
+  }
 }
 
 /********************************************************************
@@ -195,6 +197,10 @@ h2 {
  * Formatting of user provided information screens
  ***************************************************************** */
 
+#info-message > *:first-child {
+  margin-top: 0;
+}
+
 #info-message h1 {
   font-size: 2em;
   border: unset;
@@ -216,15 +222,53 @@ h2 {
   margin: 1em 0 0.2em 0;
 }
 
+.table-no-top-border > thead:first-child > tr:first-child > th {
+  border-top: none;
+}
+
+@media (min-width: 576px) {
+  .card-columns-responsive {
+    column-count: 1;
+  }
+}
+
+@media (min-width: 768px) {
+  .card-columns-responsive {
+    column-count: 1;
+  }
+}
+
+@media (min-width: 992px) {
+  .card-columns-responsive {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1200px) {
+  .card-columns-responsive {
+    column-count: 3;
+  }
+
+  .border-xl-left {
+    border-left: 1px solid #dee2e6 !important;
+  }
+}
+
+@media (min-width: 1500px) {
+  .card-columns-responsive {
+    column-count: 4;
+  }
+}
+
 @import "./activity-monitor.css";
 @import "./admin.css";
 @import "./audit_log.css";
 @import "./changelog.css";
 @import "./data_source.css";
 @import "./login.css";
-@import "./navbar.css";
 @import "./privacy-policy.css";
 @import "./queries.css";
 @import "./selectable_info.css";
+@import "./sidebar.css";
 @import "./tasks.css";
 @import "./users.css";

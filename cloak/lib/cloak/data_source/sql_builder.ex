@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   use Combine
   alias Cloak.Sql.{Query, Expression, Compiler, Function}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, Oracle, ClouderaImpala}
+  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, ClouderaImpala}
   alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
@@ -37,6 +37,9 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   iex> SqlBuilder.quote_table_name("long.full.name")
   ~s/"long"."full"."name"/
+
+  iex> SqlBuilder.quote_table_name("name", ?`)
+  ~s/`name`/
   ```
   """
   @spec quote_table_name(String.t(), integer) :: String.t()
@@ -163,15 +166,17 @@ defmodule Cloak.DataSource.SqlBuilder do
     )
   end
 
-  defp column_sql(%Expression{kind: :function, name: fun_name, type: type, args: args}, dialect)
-       when fun_name in ["+", "-"] and type in [:time, :date, :datetime],
-       do: dialect.time_arithmetic_expression(fun_name, Enum.map(args, &to_fragment(&1, dialect)))
+  defp column_sql(%Expression{kind: :function, name: fun_name, type: type, args: [arg1, arg2]}, dialect)
+       when fun_name in ~w(+ - unsafe_add unsafe_sub) and type in [:time, :date, :datetime] do
+    args = if arg1.type == :interval, do: [arg2, arg1], else: [arg1, arg2]
+    dialect.time_arithmetic_expression(fun_name, Enum.map(args, &to_fragment(&1, dialect)))
+  end
 
-  defp column_sql(%Expression{kind: :function, name: "/", type: :interval, args: args}, dialect),
-    do: dialect.interval_division(Enum.map(args, &to_fragment(&1, dialect)))
-
-  defp column_sql(%Expression{kind: :function, name: "-", type: :interval, args: args}, dialect),
-    do: dialect.date_subtraction_expression(Enum.map(args, &to_fragment(&1, dialect)))
+  defp column_sql(%Expression{kind: :function, name: fun_name, type: :interval, args: args}, dialect)
+       when fun_name in ~w(- unsafe_sub) do
+    [%Expression{type: type}, %Expression{type: type}] = args
+    dialect.date_subtraction_expression(type, Enum.map(args, &to_fragment(&1, dialect)))
+  end
 
   defp column_sql(%Expression{kind: :function, name: {:cast, to_type}, args: [arg]}, dialect),
     do: arg |> to_fragment(dialect) |> dialect.cast_sql(arg.type, to_type)
@@ -338,10 +343,6 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp dot_terminate(%Expression{type: :text} = expression),
     do: Expression.function("concat", [expression, Expression.constant(:text, ".")], :text)
 
-  defp join([], _joiner), do: []
-  defp join([el], _joiner), do: [el]
-  defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
-
   defp group_by_fragments(%Query{subquery?: true, grouping_sets: [_ | _]} = query) do
     dialect = sql_dialect_module(query)
 
@@ -417,12 +418,12 @@ defmodule Cloak.DataSource.SqlBuilder do
   # Build subquery with join-timing protection
   # -------------------------------------------------------------------
 
-  defp build_subquery(%{ast: query, join_timing_protection?: true}) do
+  defp build_subquery(%{ast: query, join_timing_protection: :invalid_row}) do
     dialect = sql_dialect_module(query)
 
     from =
       case dialect do
-        Oracle -> " FROM dual"
+        Cloak.DataSource.SqlBuilder.Oracle -> " FROM dual"
         _ -> ""
       end
 
@@ -433,15 +434,31 @@ defmodule Cloak.DataSource.SqlBuilder do
       query.db_columns
       |> Enum.map(&Table.invalid_value(&1.type))
       |> Enum.map(&constant_to_fragment(&1, dialect))
-      |> join(", "),
+      |> Enum.join(", "),
       from,
-      " WHERE NOT EXISTS(",
+      ")"
+    ]
+  end
+
+  defp build_subquery(%{ast: query, join_timing_protection: :not_exists}) do
+    [
+      "(",
       build_fragments(query),
+      ") UNION ALL (SELECT * FROM (",
+      build_fragments(%Query{strip_filters(query) | limit: 1, offset: 0, order_by: []}),
+      ") t WHERE NOT EXISTS(",
+      build_fragments(%Query{query | order_by: []}),
       "))"
     ]
   end
 
   defp build_subquery(subquery), do: build_fragments(subquery.ast)
+
+  defp strip_filters(query) do
+    Query.Lenses.all_queries()
+    |> Lens.filter(&(&1.type == :restricted))
+    |> Lens.map(query, &%Query{&1 | where: nil, having: nil})
+  end
 
   # -------------------------------------------------------------------
   # Mark boolean expressions

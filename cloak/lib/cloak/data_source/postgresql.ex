@@ -25,11 +25,7 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @impl Driver
   def load_tables(connection, table) do
-    {schema_name, table_name} =
-      case SqlBuilder.table_name_parts(table.db_name) do
-        [full_table_name] -> {"public", full_table_name}
-        [schema_name, table_name] -> {schema_name, table_name}
-      end
+    {schema_name, table_name} = table_name_parts(table)
 
     query =
       "SELECT column_name, udt_name FROM information_schema.columns " <>
@@ -39,7 +35,7 @@ defmodule Cloak.DataSource.PostgreSQL do
 
     case run_query(connection, query, row_mapper, &Enum.concat/1) do
       {:ok, []} -> raise ExecutionError, message: "Table `#{table.db_name}` does not exist"
-      {:ok, columns} -> [%{table | columns: columns}]
+      {:ok, columns} -> [load_comments(connection, %{table | columns: columns})]
       {:error, reason} -> raise ExecutionError, message: "`#{reason}`"
     end
   end
@@ -115,6 +111,57 @@ defmodule Cloak.DataSource.PostgreSQL do
     )
   end
 
+  defp load_comments(connection, table) do
+    {schema_name, table_name} = table_name_parts(table)
+
+    table_comments =
+      connection
+      |> select(~s/SELECT obj_description('"#{schema_name}"."#{table_name}"'::regclass)/)
+      |> case do
+        {:ok, [[comment]]} -> comment
+        _ -> nil
+      end
+
+    column_comments =
+      connection
+      |> select("""
+        SELECT
+          cols.column_name,
+          pg_catalog.col_description(c.oid, cols.ordinal_position::int) AS column_comment
+        FROM information_schema.columns cols
+        INNER JOIN pg_catalog.pg_class c
+        ON
+          c.oid     = cols.table_name::regclass::oid AND
+          c.relname = cols.table_name
+        WHERE
+          cols.table_schema = '#{schema_name}' AND
+          cols.table_name   = '#{table_name}' AND
+          pg_catalog.col_description(c.oid, cols.ordinal_position::int) IS NOT NULL
+      """)
+      |> case do
+        {:ok, results} ->
+          results
+          |> Enum.map(&List.to_tuple/1)
+          |> Enum.into(%{})
+
+        {:error, _} ->
+          %{}
+      end
+
+    comments =
+      %{table: table_comments, columns: column_comments}
+      |> Aircloak.deep_merge(Map.get(table, :comments, %{}))
+
+    Map.put(table, :comments, comments)
+  end
+
+  defp table_name_parts(table) do
+    case SqlBuilder.table_name_parts(table.db_name) do
+      [full_table_name] -> {"public", full_table_name}
+      [schema_name, table_name] -> {schema_name, table_name}
+    end
+  end
+
   defp parse_type("varchar"), do: :text
   defp parse_type("char"), do: :text
   defp parse_type("bpchar"), do: :text
@@ -170,7 +217,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     end
   end
 
-  defp udfs(), do: @cast_udfs ++ math_udfs()
+  defp udfs(), do: @cast_udfs ++ math_udfs() ++ date_udfs()
 
   defp math_udfs() do
     operators = [{"ac_mul", "*"}, {"ac_add", "+"}, {"ac_sub", "-"}, {"ac_div", "/"}, {"ac_pow", "^"}]
@@ -178,6 +225,25 @@ defmodule Cloak.DataSource.PostgreSQL do
 
     for type <- number_types, {name, operator} <- operators do
       {"#{name}(a #{type}, b #{type}) RETURNS #{type}", "CAST(a #{operator} b AS #{type})"}
+    end
+  end
+
+  defp date_udfs() do
+    date_functions = [
+      {"ac_add(a DATE, b INTERVAL) RETURNS TIMESTAMP", "a + b"},
+      {"ac_add(a TIMESTAMP, b INTERVAL) RETURNS TIMESTAMP", "a + b"},
+      {"ac_sub(a DATE, b INTERVAL) RETURNS TIMESTAMP", "a - b"},
+      {"ac_sub(a TIMESTAMP, b INTERVAL) RETURNS TIMESTAMP", "a - b"}
+    ]
+
+    for {header, expression} <- date_functions do
+      # Postgrex library crashes when reading values outside the valid Elixir range.
+      body = """
+        CASE WHEN EXTRACT(year FROM #{expression}) BETWEEN #{Cloak.Time.year_lower_bound()}
+          AND #{Cloak.Time.year_upper_bound()} THEN #{expression} ELSE NULL END
+      """
+
+      {header, body}
     end
   end
 

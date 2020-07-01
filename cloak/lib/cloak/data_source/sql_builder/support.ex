@@ -9,7 +9,9 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
 
   @doc "Generates SQL for a function invocation. Provided arguments list must contain SQL fragments."
   @spec function_sql(String.t(), [iodata], atom) :: iodata
-  def function_sql(name, [arg], dialect) when name in ~w(round floor ceil trunc),
+  def function_sql("round", [arg], dialect), do: dialect.cast_sql(arg, :real, :integer)
+
+  def function_sql(name, [arg], dialect) when name in ~w(floor ceil trunc),
     do: name |> dialect.function_sql([arg]) |> dialect.cast_sql(:real, :integer)
 
   def function_sql(name, args, dialect), do: dialect.function_sql(name, args)

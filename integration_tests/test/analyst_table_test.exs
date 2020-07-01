@@ -23,9 +23,10 @@ defmodule IntegrationTest.AnalystTableTest do
 
   test "successful table creation", context do
     name = unique_name(:table)
-    assert {:ok, table} = create_table(context.user, name, "select user_id, name from users")
+    assert {:ok, table} = create_table(context.user, name, "select user_id, name from users", "table comment")
     assert table.name == name
     assert table.sql == "select user_id, name from users"
+    assert table.comment == "table comment"
     assert [column1, column2] = Enum.sort_by(table.columns, & &1.name)
     assert %{name: "name", type: "text", key_type: nil} = column1
     assert %{name: "user_id", type: "text", key_type: "user_id"} = column2
@@ -103,12 +104,15 @@ defmodule IntegrationTest.AnalystTableTest do
     name = unique_name(:table)
     new_name = unique_name(:table)
 
-    {:ok, table} = create_table(context.user, name, "select user_id, name from users")
-    assert {:ok, updated_table} = update_table(table.id, context.user, new_name, "select user_id from users")
+    {:ok, table} = create_table(context.user, name, "select user_id, name from users", "old comment")
+
+    assert {:ok, updated_table} =
+             update_table(table.id, context.user, new_name, "select user_id from users", "new comment")
 
     assert updated_table.id == table.id
     assert updated_table.name == new_name
     assert updated_table.sql == "select user_id from users"
+    assert updated_table.comment == "new comment"
     assert [%{name: "user_id", type: "text", key_type: "user_id"}] = updated_table.columns
 
     assert {:ok, result} = run_query(context.user, "select from #{new_name}")
@@ -195,7 +199,13 @@ defmodule IntegrationTest.AnalystTableTest do
     name = unique_name(:table)
 
     {:ok, _} =
-      Air.Service.View.create(context.user, Manager.data_source(), "some_view", "select user_id, name from users")
+      Air.Service.View.create(
+        context.user,
+        Manager.data_source(),
+        "some_view",
+        "select user_id, name from users",
+        "view comment"
+      )
 
     {:ok, _table} = create_table(context.user, name, "select * from some_view")
 
@@ -207,7 +217,14 @@ defmodule IntegrationTest.AnalystTableTest do
   test "analyst table name can't be the same as a name of an existing view", context do
     name = unique_name(:table)
 
-    {:ok, _} = Air.Service.View.create(context.user, Manager.data_source(), name, "select user_id, name from users")
+    {:ok, _} =
+      Air.Service.View.create(
+        context.user,
+        Manager.data_source(),
+        name,
+        "select user_id, name from users",
+        "view comment"
+      )
 
     assert {:error, changeset} = create_table(context.user, name, "select * from some_view")
     assert {"has already been taken", _} = changeset.errors[:name]
@@ -218,7 +235,15 @@ defmodule IntegrationTest.AnalystTableTest do
     {:ok, table} = create_table(context.user, table_name, "select * from users")
 
     view_name = unique_name(:table)
-    {:ok, view} = Air.Service.View.create(context.user, Manager.data_source(), view_name, "select * from #{table_name}")
+
+    {:ok, view} =
+      Air.Service.View.create(
+        context.user,
+        Manager.data_source(),
+        view_name,
+        "select * from #{table_name}",
+        "view comment"
+      )
 
     :ok = Air.Service.AnalystTable.delete(table.id, context.user)
 
@@ -236,7 +261,8 @@ defmodule IntegrationTest.AnalystTableTest do
         context.user,
         Manager.data_source(),
         view_name,
-        "select user_id, name from #{table_name}"
+        "select user_id, name from #{table_name}",
+        "view comment"
       )
 
     {:ok, _table} = update_table(table.id, context.user, table_name, "select user_id from users")
@@ -298,15 +324,15 @@ defmodule IntegrationTest.AnalystTableTest do
     end)
   end
 
-  defp create_table(user, name, sql) do
-    with {:ok, table} <- Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql) do
+  defp create_table(user, name, sql, comment \\ nil) do
+    with {:ok, table} <- Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql, comment) do
       assert soon(table_created?(user.id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
       {:ok, table}
     end
   end
 
-  defp update_table(table_id, user, name, sql) do
-    with {:ok, table} <- Air.Service.AnalystTable.update(table_id, user, name, sql) do
+  defp update_table(table_id, user, name, sql, comment \\ nil) do
+    with {:ok, table} <- Air.Service.AnalystTable.update(table_id, user, name, sql, comment) do
       assert soon(table_created?(table.user_id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
       {:ok, table}
     end

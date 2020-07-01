@@ -3,7 +3,7 @@ defmodule AirWeb.SelectableController do
 
   use Air.Web, :controller
 
-  alias Air.Service.{View, AnalystTable}
+  alias Air.Service.{View, AnalystTable, User}
   alias AirWeb.Socket.Frontend.UserChannel
 
   plug(:load_data_source)
@@ -26,7 +26,8 @@ defmodule AirWeb.SelectableController do
         "new.html",
         kind: kind,
         changeset: new_changeset_of_kind(kind),
-        data_source: conn.assigns.data_source
+        data_source: conn.assigns.data_source,
+        number_format: User.number_format_settings(conn.assigns.current_user)
       )
 
   def edit(conn, %{"id" => id, "kind" => kind}),
@@ -36,22 +37,28 @@ defmodule AirWeb.SelectableController do
         "edit.html",
         kind: kind,
         changeset: existing_changeset_of_kind(id, kind),
-        data_source: conn.assigns.data_source
+        data_source: conn.assigns.data_source,
+        number_format: User.number_format_settings(conn.assigns.current_user)
       )
 
   def create(conn, %{"kind" => kind} = params) do
-    case create_selectable(conn, kind, get_name_and_sql(params, kind)) do
+    case create_selectable(conn, kind, get_values(params, kind)) do
       {:ok, _selectable} ->
         broadcast_changes(conn)
         redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.name))
 
       {:error, changeset} ->
-        render(conn, "new.html", kind: kind, changeset: changeset, data_source: conn.assigns.data_source)
+        render(conn, "new.html",
+          kind: kind,
+          changeset: changeset,
+          data_source: conn.assigns.data_source,
+          number_format: User.number_format_settings(conn.assigns.current_user)
+        )
     end
   end
 
   def update(conn, %{"id" => id, "kind" => kind} = params) do
-    case update_selectable(conn, kind, id, get_name_and_sql(params, kind)) do
+    case update_selectable(conn, kind, id, get_values(params, kind)) do
       {:ok, _selectable} ->
         broadcast_changes(conn)
 
@@ -65,7 +72,8 @@ defmodule AirWeb.SelectableController do
           "edit.html",
           kind: kind,
           changeset: changeset,
-          data_source: conn.assigns.data_source
+          data_source: conn.assigns.data_source,
+          number_format: User.number_format_settings(conn.assigns.current_user)
         )
     end
   end
@@ -134,22 +142,22 @@ defmodule AirWeb.SelectableController do
   defp existing_changeset_of_kind(id, "analyst_table"), do: AnalystTable.changeset(id)
   defp existing_changeset_of_kind(id, "view"), do: View.changeset(id)
 
-  defp get_name_and_sql(params, kind) do
-    %{"name" => name, "sql" => sql} = params[kind]
-    {name, sql}
+  defp get_values(params, kind) do
+    %{"name" => name, "sql" => sql, "comment" => comment} = params[kind]
+    {name, sql, comment}
   end
 
-  defp create_selectable(conn, "analyst_table", {name, sql}),
-    do: AnalystTable.create(conn.assigns.current_user, conn.assigns.data_source, name, sql)
+  defp create_selectable(conn, "analyst_table", {name, sql, comment}),
+    do: AnalystTable.create(conn.assigns.current_user, conn.assigns.data_source, name, sql, comment)
 
-  defp create_selectable(conn, "view", {name, sql}),
-    do: View.create(conn.assigns.current_user, conn.assigns.data_source, name, sql)
+  defp create_selectable(conn, "view", {name, sql, comment}),
+    do: View.create(conn.assigns.current_user, conn.assigns.data_source, name, sql, comment)
 
-  defp update_selectable(conn, "analyst_table", id, {name, sql}),
-    do: AnalystTable.update(id, conn.assigns.current_user, name, sql)
+  defp update_selectable(conn, "analyst_table", id, {name, sql, comment}),
+    do: AnalystTable.update(id, conn.assigns.current_user, name, sql, comment)
 
-  defp update_selectable(conn, "view", id, {name, sql}),
-    do: View.update(id, conn.assigns.current_user, name, sql, revalidation_timeout: :timer.seconds(5))
+  defp update_selectable(conn, "view", id, {name, sql, comment}),
+    do: View.update(id, conn.assigns.current_user, name, sql, comment, revalidation_timeout: :timer.seconds(5))
 
   defp delete_selectable(conn, "view", id),
     do: View.delete(id, conn.assigns.current_user, revalidation_timeout: :timer.seconds(5))

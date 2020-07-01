@@ -21,7 +21,11 @@ defmodule Cloak.Query.Runner.Engine do
     metadata = Sql.Query.metadata(query)
 
     runner_args.metadata_updater.(metadata)
-    result = query |> run_statement(runner_args.state_updater) |> Query.Result.new(query.column_titles, metadata)
+
+    result =
+      query
+      |> run_statement(runner_args.user_selectables, runner_args.state_updater)
+      |> Query.Result.new(query.column_titles, metadata)
 
     runtime = :erlang.monotonic_time(:milli_seconds) - start_time
 
@@ -57,38 +61,75 @@ defmodule Cloak.Query.Runner.Engine do
       runner_args.analyst_id,
       runner_args.data_source,
       runner_args.parameters,
-      runner_args.views
+      runner_args.user_selectables[:views] || %{}
     )
   end
 
   defp display_content_type(:private), do: "personal"
   defp display_content_type(:public), do: "non-personal"
 
-  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, _state_updater) do
+  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, user_selectables, _state_updater) do
     tables =
       Cloak.DataSource.tables(query.data_source)
-      |> Stream.concat(Cloak.AnalystTable.cloak_tables(query.analyst_id, query.data_source, query.views))
-      |> Enum.map(&[to_string(&1.name), display_content_type(&1.content_type)])
+      |> Enum.map(
+        &[
+          to_string(&1.name),
+          display_content_type(&1.content_type),
+          Cloak.DataSource.Table.table_comment(&1)
+        ]
+      )
 
-    views = query.views |> Map.keys() |> Enum.map(&[to_string(&1), "view"])
+    analyst_tables =
+      Cloak.AnalystTable.cloak_tables(query.analyst_id, query.data_source, query.views)
+      |> Enum.map(
+        &[
+          to_string(&1.name),
+          display_content_type(&1.content_type),
+          user_selectables
+          |> get_in([:analyst_tables, to_string(&1.name)])
+          |> selectable_comment()
+        ]
+      )
 
-    Enum.map(tables ++ views, &%{occurrences: 1, row: &1})
+    views =
+      query.views
+      |> Map.keys()
+      |> Enum.map(
+        &[
+          to_string(&1),
+          "view",
+          user_selectables
+          |> get_in([:views, &1])
+          |> selectable_comment()
+        ]
+      )
+
+    Enum.map(tables ++ analyst_tables ++ views, &%{occurrences: 1, row: &1})
   end
 
-  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, _state_updater) do
+  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, _user_selectables, _state_updater) do
     [table] = query.selected_tables
 
     Enum.map(
       table.columns,
       &%{
         occurrences: 1,
-        row: [&1.name, to_string(&1.type), isolator_status(query.data_source, table, &1.name), table.keys[&1.name]]
+        row: [
+          &1.name,
+          to_string(&1.type),
+          isolator_status(query.data_source, table, &1.name),
+          table.keys[&1.name],
+          Cloak.DataSource.Table.column_comment(table, &1.name)
+        ]
       }
     )
   end
 
-  defp run_statement(%Sql.Query{command: :select} = query, state_updater),
+  defp run_statement(%Sql.Query{command: :select} = query, _user_selectables, state_updater),
     do: Query.DbEmulator.select(query, state_updater)
+
+  defp selectable_comment(%{comment: comment}), do: comment
+  defp selectable_comment(_), do: nil
 
   defp isolator_status(_data_source, %{type: :subquery}, _column), do: nil
   defp isolator_status(_data_source, %{type: :analyst}, _column), do: nil

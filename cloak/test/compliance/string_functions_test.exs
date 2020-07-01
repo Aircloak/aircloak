@@ -3,6 +3,7 @@ Enum.each(
     "<col> || 'text-value'",
     "'text-value' || <col>",
     "btrim(<col>)",
+    "btrim(<col>, 'AESrui')",
     "concat('_', <col>, '_')",
     "hex(<col>)",
     "lcase(<col>)",
@@ -15,6 +16,7 @@ Enum.each(
     "length(<col>)",
     "lower(<col>)",
     "ltrim(<col>)",
+    "ltrim(<col>, 'AESrui')",
     "right(<col>, 1)",
     "right(<col>, 10)",
     "right(<col>, 1000000)",
@@ -22,6 +24,7 @@ Enum.each(
     "right(<col>, -10)",
     "right(<col>, -1000000)",
     "rtrim(<col>)",
+    "rtrim(<col>, 'AESrui')",
     "substring(<col> FROM 1 FOR 1)",
     "substring(<col> FROM 1 FOR 1000)",
     "substring(<col> FROM 10 FOR 10)",
@@ -29,7 +32,6 @@ Enum.each(
     "substring(<col> FROM 10)",
     "substring(<col> FOR 10)",
     "substring(<col> FOR 1000)",
-    "trim(<col>)",
     "ucase(<col>)",
     "upper(<col>)"
   ],
@@ -67,7 +69,6 @@ Enum.each(
       defp disable_unicode(context, function, column) do
         if column == "name_unicode" do
           context
-          |> disable_for(Cloak.DataSource.MongoDB, String.starts_with?(function, ~w(lower lcase upper ucase)))
           |> disable_for(Cloak.DataSource.SQLServer, String.starts_with?(function, ~w(lower lcase upper ucase)))
           |> disable_for(
             Cloak.DataSource.ClouderaImpala,

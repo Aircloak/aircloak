@@ -45,14 +45,14 @@ defmodule Air.Service.ViewTest do
   end
 
   test "fetching the view map", context do
-    assert View.user_views_map(context.u1, context.ds1.id) == %{
-             context.v1.name => context.v1.sql,
-             context.v2.name => context.v2.sql
+    assert View.user_views(context.u1, context.ds1.id) == %{
+             "view_1" => %{comment: nil, sql: "sql for view_1"},
+             "view_2" => %{comment: nil, sql: "sql for view_2"}
            }
   end
 
   test "cloak not available error", context do
-    assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1, "name", "sql")
+    assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1, "name", "sql", "comment")
 
     assert {error, _} = Keyword.fetch!(errors, :sql)
 
@@ -67,7 +67,7 @@ defmodule Air.Service.ViewTest do
 
       task =
         Task.async(fn ->
-          View.create(context.u1, context.ds1, "some view", "some sql", skip_revalidation: true)
+          View.create(context.u1, context.ds1, "some view", "some sql", "some comment", skip_revalidation: true)
         end)
 
       TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
@@ -81,7 +81,7 @@ defmodule Air.Service.ViewTest do
     test "failure", context do
       socket = data_source_socket(context.ds1)
 
-      task = Task.async(fn -> View.create(context.u1, context.ds1, "some view", "some sql") end)
+      task = Task.async(fn -> View.create(context.u1, context.ds1, "some view", "some sql", "some comment") end)
 
       TestSocketHelper.respond_to_validate_views!(socket, fn _ ->
         [%{name: "some view", valid: false, field: :sql, error: "some error"}]
@@ -100,6 +100,7 @@ defmodule Air.Service.ViewTest do
             context.ds1,
             "some view",
             "some sql",
+            "some comment",
             revalidation_timeout: :timer.seconds(1)
           )
         end)
@@ -121,7 +122,7 @@ defmodule Air.Service.ViewTest do
       View.subscribe_to(:revalidated_views)
       socket = data_source_socket(context.ds1)
 
-      task = Task.async(fn -> View.update(context.v1.id, context.u1, "some view", "some sql") end)
+      task = Task.async(fn -> View.update(context.v1.id, context.u1, "some view", "some sql", "some comment") end)
       TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
       TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
 
@@ -139,7 +140,7 @@ defmodule Air.Service.ViewTest do
     test "failure", context do
       socket = data_source_socket(context.ds1)
 
-      task = Task.async(fn -> View.update(context.v1.id, context.u1, "some view", "some sql") end)
+      task = Task.async(fn -> View.update(context.v1.id, context.u1, "some view", "some sql", "some comment") end)
 
       TestSocketHelper.respond_to_validate_views!(socket, fn _ ->
         [%{name: "some view", valid: false, field: :sql, error: "some error"}]
@@ -159,6 +160,7 @@ defmodule Air.Service.ViewTest do
             context.u1,
             "some view",
             "some sql",
+            "some comment",
             revalidation_timeout: :timer.seconds(1)
           )
         end)
@@ -172,6 +174,18 @@ defmodule Air.Service.ViewTest do
       Task.await(task)
 
       assert Repo.get(Air.Schemas.View, context.v2.id).broken
+    end
+
+    test "fails if different user", context do
+      assert {:error, :not_allowed} ==
+               View.update(
+                 context.v1.id,
+                 context.u2,
+                 "some view",
+                 "some sql",
+                 "some comment",
+                 revalidation_timeout: :timer.seconds(1)
+               )
     end
   end
 
@@ -187,6 +201,14 @@ defmodule Air.Service.ViewTest do
       assert nil == Repo.get(Air.Schemas.View, context.v1.id)
 
       assert_receive {:revalidated_views, _}
+    end
+
+    test "fails if different user", context do
+      assert {:error, :not_allowed} ==
+               View.delete(
+                 context.v1.id,
+                 context.u2
+               )
     end
 
     test "revalidating other views", context do

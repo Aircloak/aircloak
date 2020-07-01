@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.Bounds.Query do
   @moduledoc "Implements querying the database to find the bounds of a column."
 
   alias Cloak.Sql.{Parser, Compiler, Expression}
-  alias Cloak.DataSource.{SQLServer, MongoDB, SqlBuilder, Table}
+  alias Cloak.DataSource.{SQLServer, SqlBuilder, Table}
   alias Cloak.DataSource.Bounds.Compute
   alias Cloak.Query.DbEmulator
 
@@ -19,16 +19,18 @@ defmodule Cloak.DataSource.Bounds.Query do
   users). Returns `:unknown` for all non-numeric columns.
   """
   @spec bounds(Cloak.DataSource.t(), String.t(), String.t()) :: Expression.bounds()
-  def bounds(data_source, table_name, column) do
+  def bounds(data_source, table_name, column_name) do
     table_name = String.to_existing_atom(table_name)
     table = data_source.tables[table_name]
 
     with false <- overflow_safe?(data_source),
-         false <- Table.key?(table, column),
-         true <- numeric?(data_source, table_name, column) do
+         false <- Table.key?(table, column_name),
+         boundary_type when boundary_type != nil <- boundary_type(data_source, table_name, column_name) do
+      boundary_expression = boundary_expression(boundary_type, table_name, column_name)
+
       case table.content_type do
-        :public -> public_bounds(data_source, table_name, column)
-        _ -> private_bounds(data_source, table_name, column)
+        :public -> public_bounds(boundary_type, data_source, table_name, boundary_expression)
+        _ -> private_bounds(boundary_type, data_source, table_name, boundary_expression)
       end
     else
       _ -> :unknown
@@ -39,43 +41,54 @@ defmodule Cloak.DataSource.Bounds.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp public_bounds(data_source, table_name, column) do
-    with {:ok, min, max} <- min_max(data_source, table_name, column) do
-      Compute.extend({min |> :math.floor() |> round(), max |> :math.ceil() |> round()})
+  defp public_bounds(type, data_source, table_name, expression) do
+    with {:ok, min, max} <- min_max(data_source, table_name, expression) do
+      extend(type, {floor(min), ceil(max)})
     else
       _ -> :unknown
     end
   end
 
-  defp private_bounds(data_source, table_name, column) do
-    with cutoff = cutoff(table_name, column),
-         {:ok, max} <- Compute.max(maxes(data_source, table_name, column), cutoff),
-         {:ok, min} <- Compute.min(mins(data_source, table_name, column), cutoff) do
-      Compute.extend({min, max})
+  defp private_bounds(type, data_source, table_name, expression) do
+    cutoff = cutoff(expression)
+
+    with {:ok, max} <- maxes(data_source, table_name, expression) |> Compute.max(cutoff),
+         {:ok, min} <- mins(data_source, table_name, expression) |> Compute.min(cutoff) do
+      extend(type, {min, max})
     else
       _ -> :unknown
     end
   end
 
-  defp numeric?(data_source, table_name, column) do
+  defp boundary_type(data_source, table_name, column_name) do
     column =
       data_source.tables[table_name].columns
-      |> Enum.find(&(&1.name == column))
+      |> Enum.find(&(&1.name == column_name))
 
-    column.type in [:integer, :real]
+    cond do
+      column.type in [:integer, :real] -> :numeric
+      column.type in [:date, :datetime] -> :year
+      true -> nil
+    end
   end
 
-  defp maxes(data_source, table_name, column), do: extremes(data_source, table_name, column, "DESC", &max/2)
+  # We make the year values relative to lowest valid year, so we get tighter bounds after alignment.
+  defp boundary_expression(:year, table_name, column_name),
+    do: ~s[YEAR("#{table_name}"."#{column_name}") - #{Cloak.Time.year_lower_bound()}]
 
-  defp mins(data_source, table_name, column), do: extremes(data_source, table_name, column, "ASC", &min/2)
+  defp boundary_expression(:numeric, table_name, column_name), do: ~s["#{table_name}"."#{column_name}"]
 
-  defp extremes(data_source, table_name, column, sort_order, comparison_function) do
+  defp maxes(data_source, table_name, expression), do: extremes(data_source, table_name, expression, "DESC", &max/2)
+
+  defp mins(data_source, table_name, expression), do: extremes(data_source, table_name, expression, "ASC", &min/2)
+
+  defp extremes(data_source, table_name, expression, sort_order, comparison_function) do
     {user_id, table_chain} = SqlBuilder.build_table_chain_with_user_id(data_source.tables, table_name)
 
     """
-      SELECT #{user_id}, "#{table_name}"."#{column}"
+      SELECT #{user_id}, #{expression}
       FROM #{table_chain}
-      WHERE "#{table_name}"."#{column}" IS NOT NULL
+      WHERE #{expression} IS NOT NULL
       ORDER BY 2 #{sort_order}
       LIMIT #{@query_limit}
     """
@@ -84,10 +97,9 @@ defmodule Cloak.DataSource.Bounds.Query do
     |> Enum.map(fn {_user_id, values} -> Enum.reduce(values, comparison_function) end)
   end
 
-  defp min_max(data_source, table_name, column) do
+  defp min_max(data_source, table_name, expression) do
     """
-    SELECT MIN("#{table_name}"."#{column}"), MAX("#{table_name}"."#{column}")
-    FROM "#{table_name}"
+      SELECT MIN(#{expression}), MAX(#{expression}) FROM "#{table_name}"
     """
     |> run_query(data_source)
     |> case do
@@ -104,14 +116,26 @@ defmodule Cloak.DataSource.Bounds.Query do
     |> DbEmulator.select()
   end
 
-  defp cutoff(table_name, column_name) do
-    {cutoff, _rng} =
-      {table_name, column_name} |> Cloak.RNG.term_to_rng() |> Cloak.RNG.gauss(config(:mean), config(:std_dev))
+  defp cutoff(expression) do
+    {cutoff, _rng} = expression |> Cloak.RNG.term_to_rng() |> Cloak.RNG.gauss(config(:mean), config(:std_dev))
 
     cutoff |> round() |> max(config(:min))
   end
 
-  defp overflow_safe?(data_source), do: data_source.driver in [SQLServer, MongoDB]
+  # For date columns, we extend the interval by 50 years and we make the year bounds absolute.
+  defp extend(:year, {min, max}) when max >= min,
+    do: {Cloak.Time.year_lower_bound() + min - 25, Cloak.Time.year_lower_bound() + max + 25}
+
+  # For numeric columns, we extend the interval by 10x towards infinity or 0.1x towards 0.
+  defp extend(:numeric, {min, max}) when max >= min do
+    cond do
+      min <= 0 and max <= 0 -> {min * 10, div(max, 10)}
+      min >= 0 and max >= 0 -> {div(min, 10), max * 10}
+      true -> {min * 10, max * 10}
+    end
+  end
+
+  defp overflow_safe?(data_source), do: data_source.driver == SQLServer
 
   defp config(name), do: Application.get_env(:cloak, :bound_size_cutoff) |> Keyword.fetch!(name)
 end

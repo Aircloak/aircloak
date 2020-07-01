@@ -120,8 +120,8 @@ defmodule Compliance.AnalystTableTest do
           {:ok, columns} = create_or_update(1, "table17", "select user_id, height from users", data_source)
 
           assert Enum.sort_by(columns, & &1.name) == [
-                   %{name: "height", type: "real", key_type: nil},
-                   %{name: "user_id", type: "integer", key_type: "user_id"}
+                   %{name: "height", type: "real", key_type: nil, comment: "This is column height."},
+                   %{name: "user_id", type: "integer", key_type: "user_id", comment: "This is column user_id."}
                  ]
         end
       end
@@ -268,7 +268,7 @@ defmodule Compliance.AnalystTableTest do
       test "table can't be created if the driver doesn't support analyst tables" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
              true <- String.starts_with?(data_source.name, "postgresql") do
-          data_source = %{data_source | driver: Cloak.DataSource.MongoDB}
+          data_source = %{data_source | driver: Cloak.DataSource.MySQL}
 
           assert_raise(
             RuntimeError,
@@ -363,7 +363,7 @@ defmodule Compliance.AnalystTableTest do
           {:ok, _} = create_or_update(1, "table38", "select * from users", data_source)
 
           assert_query("show tables", [analyst_id: 1, data_sources: [data_source]], %{rows: rows})
-          assert Enum.any?(rows, &(&1.row == ["table38", "personal"]))
+          assert Enum.any?(rows, &(&1.row == ["table38", "personal", nil]))
         end
       end
 
@@ -372,7 +372,7 @@ defmodule Compliance.AnalystTableTest do
           {:ok, _} = create_or_update(1, "table39", "select * from users", data_source)
 
           assert_query("show columns from table39", [analyst_id: 1, data_sources: [data_source]], %{rows: rows})
-          names = Enum.map(rows, fn %{row: [name, _type, _isolator_status, _key]} -> name end)
+          names = Enum.map(rows, fn %{row: [name, _type, _isolator_status, _key, _comment]} -> name end)
 
           assert MapSet.new(names) ==
                    MapSet.new(~w/active age birthday column_with_a_very_long_name height id

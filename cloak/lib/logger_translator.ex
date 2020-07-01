@@ -99,6 +99,7 @@ defmodule Cloak.LoggerTranslator do
 
   defp filter_reason({:EXIT, {reason, stacktrace}}), do: {do_filter_reason(reason), do_filter_stacktrace(stacktrace)}
   defp filter_reason({exception, stacktrace}), do: {do_filter_reason(exception), do_filter_stacktrace(stacktrace)}
+  defp filter_reason(reason), do: do_filter_reason(reason)
 
   defp do_filter_stacktrace(stacktrace) when is_list(stacktrace) do
     stacktrace
@@ -120,5 +121,6 @@ defmodule Cloak.LoggerTranslator do
   # We're not filtering `Cloak.Query.ExecutionError` exception, because these errors are considered safe, so keeping
   # them in the log, helps troubleshooting.
   defp do_filter_reason(%Cloak.Query.ExecutionError{} = reason), do: reason
+  defp do_filter_reason(reason) when is_atom(reason), do: reason
   defp do_filter_reason(_other), do: "filtered"
 end

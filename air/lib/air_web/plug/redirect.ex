@@ -32,7 +32,9 @@ defmodule AirWeb.Plug.Redirect do
         conn
 
       {:ok, transformed_path} ->
-        Phoenix.Controller.redirect(conn, to: transformed_path)
+        conn
+        |> Phoenix.Controller.redirect(to: transformed_path)
+        |> Plug.Conn.halt()
     end
   end
 end

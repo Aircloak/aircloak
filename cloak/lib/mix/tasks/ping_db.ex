@@ -154,7 +154,6 @@ defmodule Mix.Tasks.Cloak.PingDb do
       Cloak.DataSource.PostgreSQL -> %{port: 5432}
       Cloak.DataSource.SQLServer -> %{port: 1433}
       Cloak.DataSource.MySQL -> %{port: 3306}
-      Cloak.DataSource.MongoDB -> %{port: 27017}
       Cloak.DataSource.ClouderaImpala -> %{port: 21050}
       _ -> %{}
     end
@@ -179,9 +178,6 @@ defmodule Mix.Tasks.Cloak.PingDb do
       Cloak.DataSource.ClouderaImpala ->
         Map.put_new(parameters, :database, "default")
 
-      Cloak.DataSource.MongoDB ->
-        parameters
-
       _ ->
         parameters
     end
@@ -194,7 +190,6 @@ defmodule Mix.Tasks.Cloak.PingDb do
       Cloak.DataSource.SQLServer -> [:odbc]
       Cloak.DataSource.MySQL -> [:mariaex]
       Cloak.DataSource.ClouderaImpala -> [:odbc]
-      Cloak.DataSource.MongoDB -> [:mongodb]
       _ -> []
     end
   end

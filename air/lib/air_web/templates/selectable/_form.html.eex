@@ -1,55 +1,53 @@
-<div class="data-source body-wrapper">
-  <div class="container">
-    <div class="column col-sm-9">
-      <div class="content-wrapper">
-        <ol class="breadcrumb">
-          <li><a href="/data_sources">Data sources</a></li>
-          <li>
-            <a href="<%= data_source_path(@conn, :show, @data_source.name) %>"><%= @data_source.name %></a>
-          </li>
-          <li class="active"><%= @view_name %></li>
-        </ol>
+<div class="container-fluid mt-3 full-height d-flex justify-content-end">
+  <div class="container-with-sidebar-wide">
+    <header class="page-header">
+      <ol class="breadcrumb bg-white">
+        <li class="breadcrumb-item"><%= link "Data sources", to: data_source_path(@conn, :index), class: "text-muted" %></li>
+        <li class="breadcrumb-item"><%= link @data_source.name, to: data_source_path(@conn, :show, @data_source.name), class: "text-muted" %></li>
+      </ol>
 
-        <h2><%= @view_name %></h2>
+       <button type="button" class="btn btn-primary d-block d-md-none float-right" data-toggle="collapse"
+          data-target="#sidebar" aria-expanded="false">
+        <i class="fas fa-list"></i> Tables
+      </button>
+      <h1><%= @view_name %></h1>
+    </header>
 
-        <%= form_for @changeset, @action, [id: "viewForm", method: @method], fn f -> %>
-          <%= if @changeset.action do %>
-            <div class="alert alert-danger">
-              <p>Oops, something went wrong! Please check the errors below.</p>
-            </div>
-          <% end %>
+    <%= form_for @changeset, @action, [id: "viewForm", method: @method], fn f -> %>
+      <%= if @changeset.action do %>
+        <div class="alert alert-danger">
+          Oops, something went wrong! Please check the errors below.
+        </div>
+      <% end %>
 
-          <div class="form-group">
-            <label>Name</label>
-            <%= text_input f, :name, class: "form-control" %>
-            <%= error_tag f, :name %>
-          </div>
-
-          <div class="form-group">
-            <label>Code</label>
-            <%= textarea f, :sql, id: "sql", class: "form-control", style: "display:none;"%>
-            <div id="viewEditor"></div>
-            <%= error_tag f, :sql %>
-          </div>
-
-          <div class="form-group pull-right">
-            <%= submit @action_name, class: "btn btn-primary" %>
-            or
-            <kbd>Ctrl + Enter</kbd>
-          </div>
-        <% end %>
-
-        <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
+      <div class="form-group">
+        <%= validated_text_input f, :name, "Name" %>
       </div>
-    </div>
 
-    <div class="column col-sm-3">
-      <div data-spy="affix">
-        <div id="selectable-info"></div>
+      <div class="form-group">
+        <%= validated_text_input f, :comment, "Comment (optional)" %>
       </div>
-    </div>
+
+      <div class="form-group">
+        <label>Code</label>
+        <%= textarea f, :sql, id: "sql", class: (if f.errors[:sql], do: "form-control is-invalid", else: "form-control"), style: "display:none;" %>
+        <div id="viewEditor"></div>
+        <%= error_tag f, :sql %>
+      </div>
+
+      <div class="form-group f-flex justify-content-end mb-3">
+        <%= submit @action_name, class: "btn btn-primary" %>
+        or
+        <kbd>Ctrl + Enter</kbd>
+      </div>
+    <% end %>
+
+    <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
+
   </div>
+  <div id="selectable-info" class="sidebar-container"></div>
 </div>
+
 
 <script>
   window.pageConfig = {
@@ -68,7 +66,8 @@
         dataSourceName: @data_source.name,
         socketToken: AirWeb.Plug.Session.current_token(@conn),
         browserSocketTransport: Air.browser_socket_transport(),
-        supportsCreateTable: @data_source.supports_analyst_tables
+        supportsCreateTable: @data_source.supports_analyst_tables,
+        numberFormat: @number_format,
       } %>;
       App.viewEditor(viewEditorProps, document.getElementById("viewEditor"));
       App.selectableInfo(selectableInfoProps, document.getElementById("selectable-info"));

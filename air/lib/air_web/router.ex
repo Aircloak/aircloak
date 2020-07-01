@@ -75,10 +75,9 @@ defmodule AirWeb.Router do
 
     get("/", DataSourceController, :redirect_to_last_used)
 
-    post("/queries", QueryController, :create)
+    resources("/queries", QueryController, only: [:create, :show, :delete])
     post("/queries/:id/cancel", QueryController, :cancel)
     get("/queries/load_history/:data_source_name", QueryController, :load_history)
-    get("/queries/:id", QueryController, :show)
     get("/queries/:id/buckets", QueryController, :buckets)
     get("/queries/:id/debug_export", QueryController, :debug_export)
 
@@ -96,13 +95,20 @@ defmodule AirWeb.Router do
     get("/licenses/:realm/:name", LicenseController, :show)
     get("/licenses/dependencies.zip", LicenseController, :dependencies)
 
-    resources("/profile", ProfileController, singleton: true, only: [:edit, :update]) do
-      delete("/sessions", ProfileController, :delete_sessions)
+    scope "/settings" do
+      get("/privacy", SettingsController, :privacy)
+
+      get("/security", SettingsController, :security)
+      put("/security", SettingsController, :change_password)
+
+      get("/", SettingsController, :profile)
+      put("/", SettingsController, :update)
+      patch("/toggle_debug_mode", SettingsController, :toggle_debug_mode)
+
+      delete("/sessions", SettingsController, :delete_sessions)
     end
 
     get("/export", ExportsController, :show)
-    put("/profile/change_password", ProfileController, :change_password)
-    post("/profile/toggle_debug_mode", ProfileController, :toggle_debug_mode)
 
     get("/changelog", ChangelogController, :index)
   end
@@ -141,6 +147,7 @@ defmodule AirWeb.Router do
 
     resources("/license", LicenseController, only: [:edit, :update], singleton: true)
     resources("/privacy_policy", PrivacyPolicyController)
+    resources("/diffix-explorer", ExplorerController, except: [:delete])
   end
 
   scope "/onboarding", AirWeb.Onboarding, as: :onboarding do

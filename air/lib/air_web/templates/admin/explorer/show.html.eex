@@ -1,0 +1,40 @@
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    <li class="breadcrumb-item"><%= link "Diffix Explorer", to: admin_explorer_path(@conn, :index), class: "text-muted" %></li>
+  </ol>
+  <%= link class: "float-right mt-2", to: admin_explorer_failed_queries_path(@conn) do %>
+    <i class="fas fa-search" aria-label="Search"></i>
+     Failed queries
+  <% end %>
+  <h1>Debug <%=@data_source.name%> analyses</h1>
+  <p class="lead">This page shows the raw metrics for each column that analysis was requested. It can be helpful to explain strange results in the user interface.</p>
+</header>
+
+
+<%= for {table, analyses} <- by_table(@analyses) do %>
+  <h3 class="mt-5 pb-3"><i class="fas fa-table"></i> <%= table %></h3>
+  <div class="card-columns">
+    <%= for analysis <- analyses do %>
+      <div class="card">
+        <div class="card-body">
+          <span class="badge float-right <%= status_to_badge_class(analysis.status) %>"><%= analysis.status %></span>
+          <h5 class="card-title"><%= analysis.column %></h5>
+          <p class="text-muted mb-0"><small><strong>First requested:</strong> <%= time_ago(analysis.inserted_at) %></br>
+          <strong>Last modified:</strong> <%=  time_ago(analysis.updated_at) %></small></p>
+        </div>
+          <ul class="list-group list-group-flush"  style="max-height: 400px; overflow-y: auto">
+            <%= for {key, value} <- metrics(analysis) do %>
+              <li class="list-group-item d-flex <%= if is_number(value), do: "justify-content-between", else: "flex-column"%>"><b><%= key %></b>
+              <%= if is_number(value) do %>
+              <span><%= value %></span>
+              <% else %>
+                  <pre><code><%= to_pretty_json(value) %></code></pre>
+              <% end %></li>
+            <% end %>
+          </ul>
+
+      </div>
+    <% end %>
+  </div>
+<% end %>

@@ -635,38 +635,38 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     for column <- ~w(string uid) do
       test "noise layers when ILIKE has no wildcards (col: #{column})" do
-        result1 = compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE #{unquote(column)} ILIKE 'bob'")
-        result2 = compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE lower(#{unquote(column)}) = 'bob'")
+        result1 = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE #{unquote(column)} ILIKE 'bob'")
+        result2 = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE lower(#{unquote(column)}) = 'bob'")
 
         assert result1.noise_layers == result2.noise_layers
       end
 
       test "noise layers for NOT LIKE (col: #{column})" do
-        result1 = compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE '_bob%'")
-        result2 = compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE trim(#{unquote(column)}) = 'bob'")
+        result1 = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE '_bob%'")
+        result2 = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE trim(#{unquote(column)}) = 'bob'")
 
         assert result1.noise_layers ==
                  update_in(result2.noise_layers, [Lens.all() |> Lens.key(:base) |> Lens.index(2)], fn nil -> :<> end)
       end
 
       test "noise layers for NOT ILIKE (col: #{column})" do
-        result1 = compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE '_bo%'")
-        result2 = compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE trim(#{unquote(column)}) = 'bob'")
+        result1 = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE '_bo%'")
+        result2 = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE trim(#{unquote(column)}) = 'bob'")
 
         assert result1.noise_layers ==
                  update_in(result2.noise_layers, [Lens.all() |> Lens.key(:base) |> Lens.index(2)], fn nil -> :<> end)
       end
 
       test "noise layers when NOT LIKE has no wildcards (col: #{column})" do
-        result1 = compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE 'bob'")
-        result2 = compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE #{unquote(column)} <> 'bob'")
+        result1 = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE 'bob'")
+        result2 = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE #{unquote(column)} <> 'bob'")
 
         assert result1.noise_layers == result2.noise_layers
       end
 
       test "noise layers when NOT ILIKE has no wildcards (col: #{column})" do
-        result1 = compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE 'bOb'")
-        result2 = compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE lower(#{unquote(column)}) <> 'bob'")
+        result1 = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE 'bOb'")
+        result2 = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE lower(#{unquote(column)}) <> 'bob'")
 
         assert result1.noise_layers == result2.noise_layers
       end
@@ -679,18 +679,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         [
           %{base: base1, expressions: [%{name: name}, _]},
           %{base: base2, expressions: [%{name: name}, _, %{name: "uid"}]}
-        ] =
-          compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE #{unquote(column)} IN ('bob')").noise_layers
+        ] = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE #{unquote(column)} IN ('bob')").noise_layers
 
         assert [
                  %{base: ^base1, expressions: [%{name: ^name}, _]},
                  %{base: ^base2, expressions: [%{name: ^name}, _, %{name: "uid"}]}
-               ] =
-                 compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE #{unquote(column)} = 'bob'").noise_layers
+               ] = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE #{unquote(column)} = 'bob'").noise_layers
       end
 
       test "IN (many, values) on column #{column}" do
-        result = compile!("SELECT STDDEV(length(uid)) FROM string_uid_table WHERE #{unquote(column)} IN ('a', 'b')")
+        result = compile!("SELECT STDDEV(0) FROM string_uid_table WHERE #{unquote(column)} IN ('a', 'b')")
 
         assert [
                  %{
@@ -712,7 +710,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         test "#{function}(x) IN (many, values) on column #{column}" do
           result =
             compile!("""
-              SELECT STDDEV(length(uid)) FROM string_uid_table
+              SELECT STDDEV(0) FROM string_uid_table
               WHERE #{unquote(function)}(#{unquote(column)}) IN ('a', 'b')
             """)
 
@@ -1113,7 +1111,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       %{noise_layers: [%{base: base}, %{base: base}]} =
         compile!(
           "SELECT count(*) FROM foo WHERE bar = 3",
-          views: %{"foo" => "SELECT uid, numeric AS bar FROM table"}
+          views: %{"foo" => %{sql: "SELECT uid, numeric AS bar FROM table"}}
         )
 
       assert {"table", "numeric", nil} = base

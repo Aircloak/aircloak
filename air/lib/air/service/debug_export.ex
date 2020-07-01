@@ -25,7 +25,7 @@ defmodule Air.Service.DebugExport do
         user: user.name
       },
       statement: query.statement,
-      views: View.user_views_map(user, query.data_source_id),
+      views: View.user_views(user, query.data_source_id),
       tables: query.data_source.tables |> Jason.decode!() |> Aircloak.atomize_keys(),
       result: Query.buckets(query, :all) |> Jason.encode!(pretty: true),
       log: query.result["log"] || ""

@@ -1,35 +1,25 @@
 // @flow
-//
-// webpack automatically concatenates all files in your
-// watched paths. Those paths can be configured at
-// config.paths.watched in "webpack.config.js".
-//
-// Import dependencies
-//
-// If you no longer want to use a dependency, remember
-// to also remove its path from "config.paths.watched".
 import "../css/app.css";
 import "phoenix_html";
-import "eonasdan-bootstrap-datetimepicker";
 import React from "react";
 import ReactDOM from "react-dom";
 import codeMirror from "codemirror";
-import $ from "jquery";
-
 import QueriesView from "./queries/root";
 import SingleQueryView from "./queries/single_query_root";
 import ImmutableSingleQueryView from "./queries/immutable_single_query";
 import SelectableInfoView from "./selectable_info/root";
-import EditorView from "./view/editor";
+import ViewEditor from "./view/editor";
 import ActivityMonitorView from "./activity_monitor/root";
 import AuthenticationProvider from "./authentication_provider";
 import FrontendSocket from "./frontend_socket";
 import { NumberFormatExampleView } from "./number_format";
 import AuditLogView from "./audit_log/root";
 import PasswordField from "./password_field";
+import activateDatetimePickers from "./datetimepicker";
+import "codemirror/mode/markdown/markdown";
+import activateTooltips from "./tooltips";
 
-require("core-js");
-require("codemirror/mode/markdown/markdown");
+activateTooltips();
 
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
@@ -40,13 +30,16 @@ const App = {
   viewEditor: (props, elem) => App.render("view_editor", props, elem),
   activityMonitor: (props, elem) => App.render("activity_monitor", props, elem),
   numberFormatExample: (props, elem) =>
-    App.render("number_format_example", props, elem),
+    ReactDOM.render(
+      <NumberFormatExampleView numberFormat={props.numberFormat} />,
+      elem
+    ),
   auditLog: (props, elem) => App.render("audit_log", props, elem),
   passwordField: (props, elem) => App.render("password_field", props, elem),
 
   attachCodeMirrorToTextArea: (textArea, targetElement) => {
     const elementEditor = codeMirror(
-      elt => {
+      (elt) => {
         textArea.parentNode.replaceChild(elt, textArea);
       },
       {
@@ -54,10 +47,10 @@ const App = {
         indentWithTabs: false,
         tabSize: 2,
         mode: "markdown",
-        lineNumbers: true
+        lineNumbers: true,
       }
     );
-    elementEditor.on("change", editor => {
+    elementEditor.on("change", (editor) => {
       targetElement.value = editor.getValue(); // eslint-disable-line no-param-reassign
     });
   },
@@ -73,14 +66,7 @@ const App = {
     );
   },
 
-  activateDatetimePickers: () => {
-    $(".datetimepicker").datetimepicker({
-      allowInputToggle: true,
-      showTodayButton: true,
-      showClose: true,
-      format: "YYYY-MM-DD HH:mm:ss"
-    });
-  },
+  activateDatetimePickers,
 
   renderPage: (page, props) => {
     const {
@@ -91,6 +77,7 @@ const App = {
       dataSourceName,
       dataSourceStatus,
       debugModeEnabled,
+      initialError,
       lastQuery,
       newTableURL,
       newViewURL,
@@ -105,7 +92,7 @@ const App = {
       socketToken,
       statement,
       supportsCreateTable,
-      userId
+      userId,
     } = props;
     switch (page) {
       case "queries":
@@ -161,10 +148,11 @@ const App = {
             supportsCreateTable={supportsCreateTable}
             selectableToExclude={selectableToExclude}
             frontendSocket={App.buildSocket(props)}
+            numberFormat={numberFormat}
           />
         );
       case "view_editor":
-        return <EditorView statement={statement} selectables={selectables} />;
+        return <ViewEditor statement={statement} selectables={selectables} />;
       case "activity_monitor":
         return (
           <ActivityMonitorView
@@ -175,19 +163,17 @@ const App = {
             cloakStats={cloakStats}
           />
         );
-      case "number_format_example":
-        return <NumberFormatExampleView numberFormat={numberFormat} />;
       case "audit_log":
         return <AuditLogView auditLogs={auditLogs} />;
       case "password_field":
-        return <PasswordField />;
+        return <PasswordField initialError={initialError || null} />;
       default:
         throw new Error("Unknown page");
     }
   },
 
-  buildSocket: props =>
-    new FrontendSocket(props.browserSocketTransport, props.socketToken)
+  buildSocket: (props) =>
+    new FrontendSocket(props.browserSocketTransport, props.socketToken),
 };
 
 if (window.pageConfig !== undefined) {

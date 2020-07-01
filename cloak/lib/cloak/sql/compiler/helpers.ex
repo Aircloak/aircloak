@@ -156,7 +156,14 @@ defmodule Cloak.Sql.Compiler.Helpers do
       |> Enum.map(&{Expression.title(&1), Expression.key_type(&1)})
       |> Enum.into(%{})
 
-    opts = [type: :subquery] |> Keyword.merge(opts) |> Keyword.merge(columns: table_columns, keys: keys)
+    opts =
+      [type: :subquery]
+      |> Keyword.merge(opts)
+      |> Keyword.merge(
+        columns: table_columns,
+        keys: keys,
+        comments: %{columns: column_comments(selected_columns)}
+      )
 
     Table.new(table_name, user_id_name, opts)
   end
@@ -167,6 +174,16 @@ defmodule Cloak.Sql.Compiler.Helpers do
     {query, expression}
     |> resolve_unselectable_db_columns()
     |> Enum.map(&elem(&1, 1))
+  end
+
+  @doc "Returns a map of comments for the given columns."
+  @spec column_comments([Expression.t()]) :: %{String.t() => String.t()}
+  def column_comments(columns) do
+    columns
+    |> Enum.filter(&Expression.column?/1)
+    |> Enum.map(&{Expression.title(&1), Table.column_comment(&1.table, &1.name)})
+    |> Enum.reject(&match?({_, nil}, &1))
+    |> Enum.into(%{})
   end
 
   # -------------------------------------------------------------------

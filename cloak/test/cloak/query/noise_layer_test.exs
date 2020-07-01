@@ -207,11 +207,11 @@ defmodule Cloak.Query.NoiseLayerTest do
     end
 
     test "condition in query" do
-      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
-      :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [11])
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10.2])
+      :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [9.9])
 
-      query = "SELECT count(column) FROM $subquery WHERE column = 100"
-      subquery = "SELECT user_id, number * number AS column FROM noise_layers"
+      query = "SELECT count(column) FROM $subquery WHERE round(column) = 10"
+      subquery = "SELECT user_id, number AS column FROM noise_layers"
 
       assert_analyst_table_consistent(query, subquery)
     end
@@ -220,8 +220,8 @@ defmodule Cloak.Query.NoiseLayerTest do
       :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
       :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [11])
 
-      query = "SELECT count(*) FROM $subquery"
-      subquery = "SELECT user_id, number * number AS column FROM noise_layers WHERE number = 100"
+      query = "SELECT count(column) FROM $subquery"
+      subquery = "SELECT user_id, number AS column FROM noise_layers WHERE number = 100"
 
       assert_analyst_table_consistent(query, subquery)
     end

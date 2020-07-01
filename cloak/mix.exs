@@ -39,7 +39,6 @@ defmodule Cloak.Mixfile do
       {:phoenix_gen_socket_client, "~> 2.0"},
       {:websocket_client, "~> 1.2.4"},
       {:combine, "~> 0.10"},
-      {:mongodb, github: "sasa1977/mongodb", tag: "0.3.0"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
       {:file_system, "~> 0.2.6"},

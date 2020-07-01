@@ -11,6 +11,7 @@ The Insights Air configuration needs to provide the following information:
 - Insights Air PostgreSQL interface parameters (optional) - see [Insights Air Postgresql interface
   configuration](#insights-air-postgresql-interface-configuration)
 - LDAP configuration (optional) - see [LDAP configuration](#ldap-configuration)
+- Configuration for connecting to Diffix Explorer (optional) - see [Diffix Explorer configuration](#diffix-explorer-configuration)
 
 The general shape of `config.json` is therefore:
 
@@ -27,6 +28,9 @@ The general shape of `config.json` is therefore:
     ...
   },
   "ldap": {
+    ...
+  },
+  "explorer": {
     ...
   }
 }
@@ -66,6 +70,7 @@ section is as follows:
 "site": {
   "auth_secret": secret_string,
   "endpoint_key_base": secret_string,
+  "endpoint_public_url": string,
   "cloak_secret": secret_string,
   "master_password": string,
   "certfile": string,
@@ -98,6 +103,8 @@ The `master_password` parameter specifies the password (in clear text) which is 
 in the Insights Air web interface. If you attempt to access the Insights Air interface while no administrative user has been setup,
 you will be prompted to create one. To do so you have to type in the `master_password` the system is configured with.
 This password will no longer be needed once the first administrator has been created.
+
+The `endpoint_public_url` should be the root of the URL that the Air instance is accessible on the internet. It is used to generate correct URLs. 
 
 The `cloak_secret` setting is optional. If not set (default) all Insights Cloak instances will be allowed to connect to
 the Insights Air instance. If set, then only instances with the same `cloak_secret` set in their configuration files
@@ -323,6 +330,19 @@ In that case you'd use a configuration like this:
 }
 ```
 
+### Diffix Explorer Configuration
+
+The Diffix Explorer integration is optional. You can activate it by including the `explorer` parameter in your configuration. It specifies the Diffix Explorer instance Insights Air will connect to. The configuration looks like this:
+
+```
+"explorer": {
+  "url": string
+}
+```
+
+The single property `url` is the URL where Insights Air can find a running version of Diffix Explorer. Note that for the integration to 
+work properly, you will also need to fill out the optional [`site.endpoint_public_url`](#web-site-configuration) setting.
+
 ## Insights Cloak configuration
 
 The Insights Cloak configuration is used to provide the following information:
@@ -353,7 +373,9 @@ The general shape of `config.json` is:
 
 The `air_site` parameter holds the URL where Insights Air component can be reached. It can be in the form of `"ws://air_host_name:port"` or `"wss://air_host_name:port"`, where `air_host_name` is the address of the machine where the Insights Air component is running. You should use the `ws` prefix if Insights Air is serving traffic over HTTP, while `wss` should be used for the HTTPS protocol.
 
-The `salt` parameter is used for anonymisation purposes. Make sure to create a strongly random secret for this parameter, for example with the following command:
+The `salt` parameter is used for anonymisation purposes. If your Aircloak Insights installation has multiple Insights Cloak instances
+you must make sure they use the same salt. Failing to do so has a negative impact on the quality of the anonymization.
+You can derive a strong `salt` parameter using a command such as:
 
 ```
 cat /dev/urandom |
@@ -424,7 +446,7 @@ The configuration takes the following form:
 
 The `name` parameter is a string which will be used to identify the data source throughout the Insights Air interface and APIs.
 
-The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `sqlserver`, `oracle`. The `parameters` json, then specifies the database connection parameters.
+The `driver` parameter can be one of the following: `postgresql`, `mysql`, `sqlserver`, `oracle`. The `parameters` json, then specifies the database connection parameters.
 
 Some of these drivers use the ODBC protocol to talk to the database. These drivers are `sqlserver`, and `oracle`.
 Since they rely on ODBC, they accept some additional connection parameters:
@@ -440,9 +462,9 @@ If not present, the global setting is used.
 The `lcf_buckets_aggregation_limit` field is optional and controls the maximum number of columns for which partial
 aggregation of low-count filtered rows is done. If not present, the global setting is used.
 
-The `max_rare_negative_conditions` affects how many negative conditions containing rare values are allowed per anonymizing query.
-It defaults to a safe value of 1 and should under most circumstances not be altered.
-Setting it to 0 rejects all rare negative conditions.
+The `max_rare_negative_conditions` affects how many negative conditions containing rare values are allowed per
+anonymizing query. It defaults to a safe value of 0, which rejects all rare negative conditions, and should,
+under most circumstances, not be altered.
 Increasing the value above the default should only be done if it has been deemed safe.
 
 The `analyst_tables_enabled` can be set to true to enable creation of analyst tables. By default, this parameter is set to false. See the [Analyst tables](#analyst-tables) section for more details.
@@ -458,7 +480,14 @@ The database tables that should be made available for querying are defined in th
     "content_type": "personal" | "non-personal",
     "keys": [{"key_type_1": "column_name_1"}, ...],
     "exclude_columns": ["column1", "column2", ...],
-    "unselectable_columns": ["column1", "column2", ...]
+    "unselectable_columns": ["column1", "column2", ...],
+    "comments": {
+      "table": "Comment on table 1.",
+      "columns": {
+        "column1": "Comment on column 1",
+        "column2": "Comment on column 2"
+      }
+    }
   },
   "table_name_2": ...
 }
@@ -511,6 +540,10 @@ Excluded columns will not appear in the data source and cannot be referenced in 
 The `unselectable_columns` is an optional parameter for personal tables.
 It takes the form of an array and marks columns as unselectable.
 Unselectable columns can only be joined together, counted, and/or grouped by.
+
+The `comments` field is optional and can be used to attach a description to tables and columns.
+Comments are visible in the Insights Air interface and are also returned from `SHOW` statements.
+Database-level comments are automatically retrieved and attached to tables.
 
 ##### Keys
 
@@ -628,22 +661,6 @@ create table "UserData"(uid integer, ...)
 ```
 
 In this case, you need to provide `"UserData"` as the `db_name` property.
-
-##### Table sample rate (only for MongoDb)
-
-For MongoDb databases, every collection is initially scanned to determine the collection schema. This can take a long time for larger collections, which might lead to increased cloak startup times. You can instruct the cloak to analyze only a fraction of the data in the MongoDb collection by providing the `sample_rate` option:
-
-```
-"tables": {
-  "some_table": {
-    "sample_rate": sample_rate,
-    ...
-  },
-  ...
-}
-```
-
-Where `sample_rate` is an integer between 1 and 100, representing the percentage of data which is going to be sampled.
 
 ##### Manually classifying isolating columns
 

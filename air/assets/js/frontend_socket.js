@@ -6,14 +6,14 @@ type Callback = (event: any) => void;
 type Callbacks = {
   joined?: Callback,
   failedJoin?: Callback,
-  handleEvent?: Callback
+  handleEvent?: Callback,
 };
 
 export default class FrontendSocket {
   constructor(transportName: string, userToken: string) {
     this.socket = new Socket("/frontend/socket", {
       params: { token: userToken },
-      transport: FrontendSocket.transport(transportName)
+      transport: FrontendSocket.transport(transportName),
     });
 
     this.socket.connect();
@@ -38,7 +38,7 @@ export default class FrontendSocket {
 
   joinUserQueriesChannel(userId: number, callbacks: Callbacks) {
     return this.joinChannel(callbacks, `user_queries:${userId}`, [
-      "state_change"
+      "state_change",
     ]);
   }
 
@@ -52,7 +52,7 @@ export default class FrontendSocket {
 
   joinDataSourceChannel(dataSourceName: string, callbacks: Callbacks) {
     return this.joinChannel(callbacks, `data_source:${dataSourceName}`, [
-      "status"
+      "status",
     ]);
   }
 
@@ -77,11 +77,8 @@ export default class FrontendSocket {
     const noop = () => {};
     const { joined = noop, failedJoin = noop, handleEvent = noop } = callbacks;
 
-    channel
-      .join()
-      .receive("ok", joined)
-      .receive("error", failedJoin);
-    eventNames.forEach(name => {
+    channel.join().receive("ok", joined).receive("error", failedJoin);
+    eventNames.forEach((name) => {
       channel.on(name, handleEvent);
     });
 

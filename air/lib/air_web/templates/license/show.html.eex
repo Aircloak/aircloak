@@ -1,3 +1,8 @@
-<h2><%= @package["name"] %> (<%= @package["version"] %>)</h2>
+<header class="page-header">
+ <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Third party licenses", to: license_path(@conn, :index), class: "text-muted" %></li>
+  </ol>
+  <h1><%= @package["name"] %> (<%= @package["version"] %>)</h1>
+</header>
 
 <pre><%= @package["license"]["text"] %></pre>

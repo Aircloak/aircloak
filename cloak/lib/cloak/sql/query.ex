@@ -13,7 +13,12 @@ defmodule Cloak.Sql.Query do
 
   @type filter_clause :: nil | Expression.t()
 
-  @type view_map :: %{(view_name :: String.t()) => view_sql :: String.t()}
+  @type user_views :: %{
+          String.t() => %{
+            :sql => String.t(),
+            optional(:comment) => String.t() | nil
+          }
+        }
 
   @type row_index :: non_neg_integer
 
@@ -61,7 +66,7 @@ defmodule Cloak.Sql.Query do
           distinct?: boolean,
           emulated?: boolean,
           parameters: [parameter] | nil,
-          views: view_map,
+          views: user_views,
           next_row_index: row_index,
           noise_layers: [NoiseLayer.t()],
           view?: boolean,
@@ -81,7 +86,7 @@ defmodule Cloak.Sql.Query do
           parameter_types: [String.t()]
         }
 
-  @type described_columns :: [%{name: String.t(), type: String.t(), key_type: String.t()}]
+  @type described_columns :: [%{name: String.t(), type: String.t(), key_type: String.t(), comment: String.t() | nil}]
 
   defstruct columns: [],
             where: nil,
@@ -129,7 +134,7 @@ defmodule Cloak.Sql.Query do
   This function will return the description of the result, such as column names
   and types, without executing the query.
   """
-  @spec describe_query(analyst_id, DataSource.t(), String.t(), [parameter] | nil, view_map) ::
+  @spec describe_query(analyst_id, DataSource.t(), String.t(), [parameter] | nil, user_views) ::
           {:ok, [String.t()], metadata} | {:error, String.t()}
   def describe_query(analyst_id, data_source, statement, parameters, views),
     do:
@@ -139,7 +144,7 @@ defmodule Cloak.Sql.Query do
       )
 
   @doc "Validates a user-defined view."
-  @spec validate_view(analyst_id(), DataSource.t(), String.t(), String.t(), view_map) ::
+  @spec validate_view(analyst_id(), DataSource.t(), String.t(), String.t(), user_views) ::
           {:ok, described_columns}
           | {:error, field :: atom, reason :: String.t()}
   def validate_view(analyst_id, data_source, name, sql, views) do
@@ -164,7 +169,8 @@ defmodule Cloak.Sql.Query do
         %{
           name: column.name,
           type: to_string(column.type),
-          key_type: with(key_type when not is_nil(key_type) <- table.keys[column.name], do: to_string(key_type))
+          key_type: with(key_type when not is_nil(key_type) <- table.keys[column.name], do: to_string(key_type)),
+          comment: Cloak.DataSource.Table.column_comment(table, column.name)
         }
       end
     )

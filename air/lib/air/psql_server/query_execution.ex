@@ -66,7 +66,7 @@ defmodule Air.PsqlServer.QueryExecution do
         RanchServer.query_result(conn, {:error, "permission denied"})
 
       internal_query?(query) ->
-        describe_from_shadow_db(conn.assigns.user, conn.assigns.data_source_name, query)
+        describe_from_shadow_db(conn, query)
         conn
 
       true ->
@@ -94,7 +94,9 @@ defmodule Air.PsqlServer.QueryExecution do
 
   defp internal_query?(query) do
     query = strip_comments(query)
-    select_from_any_of?(query, ~w(pg_attribute pg_type pg_catalog)) or simple_select?(query) or internal_show?(query)
+
+    select_from_any_of?(query, ~w(pg_attribute pg_type pg_catalog information_schema)) or
+      simple_select?(query) or internal_show?(query)
   end
 
   defp strip_comments(query), do: String.replace(query, ~r/^\s*--.*$/m, "")
@@ -154,9 +156,9 @@ defmodule Air.PsqlServer.QueryExecution do
     )
   end
 
-  defp describe_from_shadow_db(user, data_source_name, query) do
+  defp describe_from_shadow_db(conn, query) do
     RanchServer.run_async(
-      fn -> Air.PsqlServer.ShadowDb.parse(user, data_source_name, query) end,
+      fn -> Air.PsqlServer.ShadowDb.parse(conn.assigns.user, conn.assigns.data_source_name, query) end,
       on_success: fn
         conn, {:ok, columns, param_types} ->
           RanchServer.describe_result(conn, columns: columns, param_types: param_types)

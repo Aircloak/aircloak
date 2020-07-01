@@ -20,13 +20,20 @@ defmodule Cloak.Query.Runner do
 
   @type start_opts :: [result_target: :air_socket | pid()]
 
+  @type user_selectables :: %{
+          optional(:views) => Query.user_views(),
+          optional(:analyst_tables) => %{
+            String.t() => %{comment: String.t() | nil}
+          }
+        }
+
   @type args :: %{
           query_id: String.t(),
           analyst_id: Query.analyst_id(),
           data_source: Cloak.DataSource.t(),
           statement: String.t(),
           parameters: [Cloak.DataSource.field()],
-          views: [Cloak.Sql.Query.view_map()],
+          user_selectables: user_selectables,
           state_updater: (Cloak.ResultSender.query_state() -> any),
           metadata_updater: (Cloak.Query.metadata() -> any)
         }
@@ -50,10 +57,18 @@ defmodule Cloak.Query.Runner do
           DataSource.t(),
           String.t(),
           [DataSource.field()],
-          Query.view_map(),
+          user_selectables,
           start_opts
         ) :: :ok | {:error, :too_many_queries}
-  def start(query_id, analyst_id, data_source, statement, parameters, views, start_opts \\ []) do
+  def start(
+        query_id,
+        analyst_id,
+        data_source,
+        statement,
+        parameters,
+        user_selectables,
+        start_opts \\ []
+      ) do
     runner_args =
       start_opts
       |> Map.new()
@@ -63,7 +78,7 @@ defmodule Cloak.Query.Runner do
         data_source: data_source,
         statement: statement,
         parameters: parameters,
-        views: views
+        user_selectables: user_selectables
       })
 
     # Starting of a query is serialized (queries are started one at a time). This makes it possible to reliably decide
@@ -95,10 +110,33 @@ defmodule Cloak.Query.Runner do
       end)
 
   @doc "Executes the query synchronously, and returns its result."
-  @spec run_sync(String.t(), Query.analyst_id(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) ::
+  @spec run_sync(
+          String.t(),
+          Query.analyst_id(),
+          DataSource.t(),
+          String.t(),
+          [DataSource.field()],
+          user_selectables
+        ) ::
           any
-  def run_sync(query_id, analyst_id, data_source, statement, parameters, views) do
-    :ok = start(query_id, analyst_id, data_source, statement, parameters, views, result_target: self())
+  def run_sync(
+        query_id,
+        analyst_id,
+        data_source,
+        statement,
+        parameters,
+        user_selectables
+      ) do
+    :ok =
+      start(
+        query_id,
+        analyst_id,
+        data_source,
+        statement,
+        parameters,
+        user_selectables,
+        result_target: self()
+      )
 
     receive do
       {:result, response} -> response

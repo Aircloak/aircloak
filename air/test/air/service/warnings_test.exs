@@ -65,6 +65,12 @@ defmodule Air.Service.WarningsTest do
     assert data_source_problems() == []
   end
 
+  test "warning when cloaks have different salts" do
+    start_cloak_channel(%{name: "cloak1", salt_hash: "foo"}, @data_sources)
+    start_cloak_channel(%{name: "cloak2", salt_hash: "bar"}, @data_sources)
+    refute is_nil(problem_with_description(~r/different salt/))
+  end
+
   test "warning when data source has no groups" do
     start_cloak_channel(@data_sources)
     assert problem_with_description(~r/no groups/i)
@@ -152,13 +158,15 @@ defmodule Air.Service.WarningsTest do
     })
   end
 
-  defp start_cloak_channel(data_sources) do
+  defp start_cloak_channel(cloak_info \\ %{}, data_sources) do
     parent = self()
     ref = make_ref()
 
+    cloak_info = Map.merge(TestRepoHelper.cloak_info(), cloak_info)
+
     pid =
       spawn_link(fn ->
-        Cloak.register(TestRepoHelper.cloak_info(), data_sources)
+        Cloak.register(cloak_info, data_sources)
         send(parent, ref)
         :timer.sleep(:infinity)
       end)

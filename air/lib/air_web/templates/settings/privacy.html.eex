@@ -1,0 +1,33 @@
+<header class="page-header">
+ <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Settings", to: settings_path(@conn, :profile), class: "text-muted" %></li>
+  </ol>
+  <h1>Privacy</h1>
+</header>
+
+<img src="/frontend/images/profiling.svg" alt="" class="d-none d-xl-block float-right" width="280" />
+
+<div class="container-lg px-0 mx-0 mb-5 pt-3">
+
+  <h2 class="h3">Export data</h2>
+
+  <p>
+      By clicking on the button below you can download a machine-readable copy of all the data gathered about you in
+      Aircloak Insights.
+  </p>
+
+  <p>Note that you can only have one such download active at the same time.</p>
+
+  <p><a href="/export" download="<%= export_name() %>"class="btn btn-primary">
+      <span class="fas fa-download" aria-hidden="true"></span> Download</a>
+  </p>
+
+  <hr class="my-5" />
+
+  <h2 class="h3">Privacy policy</h2>
+  <p><i class="fas fa-check text-success mr-2"></i><strong>You have given consent to the privacy policy.</strong></p>
+  <p>
+    You can review the contents of the privacy policy here:
+    <%= link "Privacy policy", to: privacy_policy_path(@conn, :index) %>
+  </p>
+</div>

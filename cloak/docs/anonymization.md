@@ -155,37 +155,37 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 
 - Input values (with total sum: 14020):
 
-| values |
-|--------|
-| 10 |
-| 500, 500 |
-| 1000 |
-| 2, 7 |
+| values             |
+| ------------------ |
+| 10                 |
+| 500, 500           |
+| 1000               |
+| 2, 7               |
 | 200, 300, 250, 250 |
-| 1000 |
-| 9000, 800, 200 |
+| 1000               |
+| 9000, 800, 200     |
 
 - We sum values per-user:
 
 | values |
-|--------|
-| 10 |
-| 1000 |
-| 1000 |
-| 10 |
-| 1000 |
-| 1000 |
-| 10000 |
+| ------ |
+| 10     |
+| 1000   |
+| 1000   |
+| 10     |
+| 1000   |
+| 1000   |
+| 10000  |
 
 - We compute the noisy value for No: `No = 1 + 2 = 3`.
 - We drop the No users with the biggest values:
 
 | values |
-|--------|
-| 10 |
-| 10 |
-| 1000 |
-| 1000 |
+| ------ |
+| 10     |
+| 10     |
+| 1000   |
+| 1000   |
 
 - We compute the noisy value for Nt: `Nt = 3`.
 - We compute the average of the top Nt remaining users: `TopAverage = (1000 + 1000 + 10) / 3 = 670`.
@@ -620,7 +620,7 @@ a `null` value will be returned.
 For computing the anonymized count of distinct values we need the real count of distinct values and the noise factor.
 The noise factor is the maximum count of distinct at-risk values any single user has. It represents the potential change
 to the count that would occur as a result of the user being excluded by the query. An at-risk value is a value that is
-associated with fewer than 3 users. The anonymized count is `real_count + noise_factor * 0.5 * noise`. If there are no 
+associated with fewer than 2 users. The anonymized count is `real_count + noise_factor * noise`. If there are no
 at-risk values (noise factor is `null`), the real count is returned.
 
 For each expression referenced by a `COUNT(DISTINCT value)` aggregator we create a sub-query to compute the real count
@@ -655,7 +655,7 @@ FROM (
     SELECT
       column1 AS group_0,
       column2 AS target,
-      CASE WHEN (COUNT(DISTINCT user_id) < 3) THEN MIN(user_id) ELSE NULL END AS user_id
+      CASE WHEN MIN(user_id) = MAX(user_id) THEN MIN(user_id) ELSE NULL END AS user_id
       FROM table
       GROUP BY 1, 2
   ) AS distinct_values
@@ -687,13 +687,18 @@ follows:
 
 ## Protection against join timing attacks
 
-Backends will execute a join branch only when needed.
+Backends will execute a join node only when needed.
 This can be used to detect when a condition matches a row or not by measuring the execution time of a query which
 joins a subquery with filters with another long running subquery.
+
 We detect and mark such vulnerable subqueries and we make sure, when offloading them to the backend, that they always
-return at least one invalid row that doesn't match anything else. We can't use `NULL` values for the fake row, as the
-optimizer can detect it won't match the filtering conditions and it will drop it prematurely, so we generate values
-with a high chance of not matching any of the key columns that are required by joins in restricted queries.
+return at least one row. This ensures that all nodes always execute, making the running time consistent.
+
+We use two different methods to ensure all nodes are executed:
+  - If the last node is an `INNER JOIN`, we add an invalid row unconditionally to all leafs, except the last one,
+    to avoid leaking that invalid row into the final output; this method creates simpler offloaded queries.
+  - Otherwise, when we have an `OUTER JOIN` as the final node, we add a random row to vulnerable subqueries when they
+    return nothing; we rely on the fact that the low-count filter will drop any result that matches only one user.
 
 ## Overflow protection and bound analysis
 

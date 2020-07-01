@@ -26,6 +26,24 @@ defmodule Compliance.DataSource.SQLServer do
   def create_table(table_name, columns, conn) do
     execute!(conn, "DROP TABLE IF EXISTS #{table_name}")
     execute!(conn, "CREATE TABLE #{table_name} (#{columns_sql(columns)})")
+
+    execute!(conn, """
+      EXEC sp_addextendedproperty
+        @name = 'MS_Description', @value = 'This is table #{table_name}.',
+        @level0type = 'Schema', @level0name = 'dbo',
+        @level1type = 'Table',  @level1name = '#{table_name}'
+    """)
+
+    Enum.each(columns, fn {column_name, _} ->
+      execute!(conn, """
+        EXEC sp_addextendedproperty
+          @name = 'MS_Description', @value = 'This is column #{column_name}.',
+          @level0type = 'Schema', @level0name = 'dbo',
+          @level1type = 'Table',  @level1name = '#{table_name}',
+          @level2type = 'Column', @level2name = '#{column_name}'
+      """)
+    end)
+
     conn
   end
 

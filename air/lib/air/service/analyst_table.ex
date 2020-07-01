@@ -7,51 +7,48 @@ defmodule Air.Service.AnalystTable do
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query
 
+  @type user_analyst_tables :: %{
+          String.t() => %{
+            comment: String.t() | nil
+          }
+        }
+
   @creation_status_supervisor __MODULE__.CreationStatusSupervisor
-  @notifications_registry __MODULE__.NotificationsRegistry
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Subscribes to notifications about asynchronous activities."
-  @spec subscribe_to(:revalidated_analyst_tables) :: :ok
-  def subscribe_to(notification) do
-    Registry.register(@notifications_registry, notification, nil)
-    :ok
-  end
-
-  @doc "Unsubscribes from notifications about asynchronous activities."
-  @spec unsubscribe_from(:revalidated_analyst_tables) :: :ok
-  def unsubscribe_from(notification) do
-    Registry.unregister(@notifications_registry, notification)
-    :ok
-  end
-
   @doc "Creates the new analyst table, and stores it in cloak and in air."
-  @spec create(Air.Schemas.User.t(), DataSource.t(), String.t(), String.t()) ::
+  @spec create(Air.Schemas.User.t(), DataSource.t(), String.t(), String.t(), String.t() | nil) ::
           {:ok, AnalystTable.t()} | {:error, Ecto.ChangeSet.t()}
-  def create(user, data_source, name, sql) do
-    changes = %{data_source_id: data_source.id, user_id: user.id, name: name, sql: sql}
+  def create(user, data_source, name, sql, comment) do
+    changes = %{
+      data_source_id: data_source.id,
+      user_id: user.id,
+      name: name,
+      sql: sql,
+      comment: comment
+    }
 
     %AnalystTable{}
-    |> Ecto.Changeset.cast(changes, ~w(name sql user_id data_source_id)a)
+    |> Ecto.Changeset.cast(changes, ~w(name sql comment user_id data_source_id)a)
     |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
     |> Map.put(:action, :insert)
     |> transactional_store(nil, user, data_source)
   end
 
   @doc "Updates the existing analyst table, and stores it in cloak and in air."
-  @spec update(pos_integer, User.t(), String.t(), String.t()) ::
+  @spec update(pos_integer, User.t(), String.t(), String.t(), String.t() | nil) ::
           {:ok, AnalystTable.t()} | {:error, Ecto.ChangeSet.t() | :not_allowed}
-  def update(table_id, user, name, sql) do
+  def update(table_id, user, name, sql, comment) do
     table = AnalystTable |> Repo.get!(table_id) |> Repo.preload([:user, :data_source])
 
     if table.user_id == user.id do
       table
       |> Ecto.Changeset.cast(
-        %{name: name, sql: sql, creation_status: :pending},
-        ~w(name sql creation_status)a
+        %{name: name, sql: sql, comment: comment, creation_status: :pending},
+        ~w(name sql comment creation_status)a
       )
       |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
       |> Map.put(:action, :update)
@@ -106,7 +103,7 @@ defmodule Air.Service.AnalystTable do
                  table.user.id,
                  table.name,
                  table.data_source.name,
-                 Air.Service.View.user_views_map(user, table.data_source.id)
+                 Air.Service.View.user_views(user, table.data_source.id)
                )
              ) do
         Air.Service.View.store_view_validation_results(user, table.data_source.id, validated_views)
@@ -170,6 +167,17 @@ defmodule Air.Service.AnalystTable do
     end
   end
 
+  @doc "Returns a map of all the analyst tables the given user defined for the given data source."
+  @spec user_analyst_tables(User.t(), integer) :: user_analyst_tables
+  def user_analyst_tables(user, data_source_id) do
+    AnalystTable
+    |> by_user_id(user.id)
+    |> by_data_source_id(data_source_id)
+    |> select([v], {v.name, %{comment: v.comment}})
+    |> Repo.all()
+    |> Enum.into(%{})
+  end
+
   @doc "Returns the changeset representing an empty table."
   @spec new_changeset() :: Changeset.t()
   def new_changeset(), do: Ecto.Changeset.cast(%AnalystTable{}, %{}, [])
@@ -181,12 +189,6 @@ defmodule Air.Service.AnalystTable do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp notify_subscribers(notification, payload),
-    do:
-      Registry.lookup(@notifications_registry, notification)
-      |> Enum.map(fn {pid, nil} -> pid end)
-      |> Enum.each(&send(&1, {notification, payload}))
 
   defp transactional_store(changeset, old_table_name, user, data_source) do
     Repo.transaction(fn ->
@@ -210,7 +212,6 @@ defmodule Air.Service.AnalystTable do
              |> Ecto.Changeset.put_embed(:columns, columns),
            {:ok, table} <- Repo.update(table_changeset) do
         sync_cloaks(table)
-        notify_subscribers(:revalidated_analyst_tables, %{user_id: user.id, data_source_id: data_source.id})
         table
       else
         {:error, error_changeset} ->
@@ -235,7 +236,7 @@ defmodule Air.Service.AnalystTable do
                table.sql,
                data_source.name,
                nil,
-               Air.Service.View.user_views_map(user, data_source.id)
+               Air.Service.View.user_views(user, data_source.id)
              )
            ),
          do: {:error, add_cloak_error(table, reason)}
@@ -275,8 +276,7 @@ defmodule Air.Service.AnalystTable do
     do:
       Aircloak.ChildSpec.supervisor(
         [
-          {Task.Supervisor, name: @creation_status_supervisor},
-          Aircloak.ChildSpec.registry(:duplicate, @notifications_registry)
+          {Task.Supervisor, name: @creation_status_supervisor}
         ],
         strategy: :one_for_one,
         name: __MODULE__

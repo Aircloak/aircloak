@@ -66,6 +66,7 @@ defmodule Air do
       load_license()
       load_privacy_policy()
       load_users_and_datasources()
+      prepare_explorer()
       log_startup()
       result
     end
@@ -87,6 +88,10 @@ defmodule Air do
     Logger.info("Insights Air version #{version} started [name: '#{name()}', instance: '#{instance_name()}']")
   end
 
+  defp prepare_explorer() do
+    Air.Service.Explorer.setup_credentials_if_required()
+  end
+
   defp configure_secrets do
     Air.Utils.update_app_env(
       :air,
@@ -94,9 +99,20 @@ defmodule Air do
       &Keyword.merge(
         &1,
         secret_key_base: site_setting!("endpoint_key_base"),
-        https: https_config(Keyword.get(&1, :https, []))
+        https: https_config(Keyword.get(&1, :https, [])),
+        url: endpoint_url()
       )
     )
+  end
+
+  defp endpoint_url() do
+    with {:ok, url} <- site_setting("endpoint_public_url"),
+         %URI{host: host, path: path, port: port, scheme: scheme} <-
+           URI.parse(url) do
+      [host: host, path: path, port: port, scheme: scheme]
+    else
+      _ -> []
+    end
   end
 
   defp https_config(previous_https_config) do

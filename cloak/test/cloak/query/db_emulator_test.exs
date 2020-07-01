@@ -586,12 +586,12 @@ defmodule Cloak.Query.DBEmulatorTest do
           """
           select count(v), avg(age) from
           #{@vt} as t1 inner join
-          (select user_id as uid, age + 1 as age from
-            (select user_id, age * 2 as age from #{@joined}) as t
+          (select user_id as uid, floor(age) as age from
+            (select user_id, ceil(age) as age from #{@joined}) as t
           ) as t2 on user_id = uid
           """,
           "select user_id, dec_b64(value) as v from #{@emulated}",
-          %{rows: [%{occurrences: 1, row: [10, 61.0]}]}
+          %{rows: [%{occurrences: 1, row: [10, 30.0]}]}
         )
 
     test "left join with filter in subquery" do

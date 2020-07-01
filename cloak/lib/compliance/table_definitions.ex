@@ -92,6 +92,13 @@ defmodule Compliance.TableDefinitions do
         keys: %{
           "user_fk" => :user_fk,
           "id" => :note_id
+        },
+        # We override some comments to verify that they take precedence over DB comments for all data sources.
+        comments: %{
+          table: "Overridden comment on table notes.",
+          columns: %{
+            "title" => "Overridden comment on column notes.title."
+          }
         }
       },
       notes_changes: %{

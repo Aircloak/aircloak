@@ -142,7 +142,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def function_sql("date_trunc", [arg1, arg2]), do: function_sql("TRUNC", [arg2, arg1])
 
   def function_sql("btrim", [arg]), do: ["TRIM(", arg, ")"]
-  def function_sql("btrim", [arg1, arg2]), do: ["TRIM(", arg2, " FROM ", arg1, ")"]
+  def function_sql("btrim", [arg1, arg2]), do: ["LTRIM(RTRIM(", arg1, ", ", arg2, "), ", arg2, ")"]
 
   def function_sql("boolean_expression", [expression]),
     do: ["(CASE WHEN ", expression, " THEN 1 WHEN NOT (", expression, ") THEN 0 ELSE NULL END)"]
@@ -182,9 +182,18 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def cast_sql(value, number, :text) when number in [:integer, :real], do: ["TO_CHAR(", value, ")"]
 
   def cast_sql(value, :date, :text), do: ["TO_CHAR(", value, ", 'YYYY-MM-DD')"]
-  def cast_sql(value, :datetime, :text), do: ["TO_CHAR(", value, ", 'YYYY-MM-DD HH:MI:SS AM')"]
-  def cast_sql(value, :text, :date), do: ["TO_DATE(", value, ", 'YYYY-MM-DD')"]
-  def cast_sql(value, :text, :datetime), do: ["TO_TIMESTAMP(", value, ", 'YYYY-MM-DD HH:MI:SS AM')"]
+  def cast_sql(value, :datetime, :text), do: ["TO_CHAR(", value, ", 'YYYY-MM-DD HH24:MI:SS')"]
+  def cast_sql(value, :time, :text), do: ["TO_CHAR(", value, ", 'HH24:MI:SS')"]
+
+  def cast_sql(value, :text, :date), do: ["CAST(", value, " AS DATE DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD')"]
+
+  def cast_sql(value, :text, :datetime),
+    do: ["CAST(", value, " AS TIMESTAMP DEFAULT NULL ON CONVERSION ERROR, 'YYYY-MM-DD HH24:MI:SS')"]
+
+  def cast_sql(value, :text, :time),
+    do: ["CAST(CAST(", value, " AS TIMESTAMP DEFAULT NULL ON CONVERSION ERROR, 'HH24:MI:SS') AS TIME)"]
+
+  def cast_sql(value, :text, type), do: ["CAST(", value, " AS ", sql_type(type), " DEFAULT NULL ON CONVERSION ERROR)"]
 
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
@@ -210,6 +219,10 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def literal(real) when is_float(real), do: "#{real}d"
 
   def literal(value), do: super(value)
+
+  @impl Dialect
+  def date_subtraction_expression(_type, [arg1, arg2]),
+    do: [?(, cast_sql(arg1, :any, :datetime), " - ", cast_sql(arg2, :any, :datetime), ?)]
 
   @impl Dialect
   def select_table_names(prefix),

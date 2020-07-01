@@ -87,7 +87,8 @@ defmodule Compliance.DataSources do
             db_name: db_name,
             content_type: Map.get(definition, :content_type, :private),
             keys: Map.get(definition, :keys, %{}),
-            user_id: Map.get(definition, :user_id, nil)
+            user_id: Map.get(definition, :user_id, nil),
+            comments: Map.get(definition, :comments, %{})
           }
 
           {name, data_source_definition_template}
@@ -108,7 +109,8 @@ defmodule Compliance.DataSources do
               query: definition.query,
               content_type: Map.get(definition, :content_type, :private),
               keys: Map.get(definition, :keys, %{}),
-              user_id: Map.get(definition, :user_id, nil)
+              user_id: Map.get(definition, :user_id, nil),
+              comments: Map.get(definition, :comments, %{})
             }
 
             {name, data_source_definition_template}
@@ -233,7 +235,6 @@ defmodule Compliance.DataSources do
   defp handler_for_data_source(%{driver: Cloak.DataSource.PostgreSQL}), do: Compliance.DataSource.PostgreSQL
   defp handler_for_data_source(%{driver: Cloak.DataSource.MySQL}), do: Compliance.DataSource.MySQL
   defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServer}), do: Compliance.DataSource.SQLServer
-  defp handler_for_data_source(%{driver: Cloak.DataSource.MongoDB}), do: Compliance.DataSource.MongoDB
   defp handler_for_data_source(%{driver: Cloak.DataSource.Oracle}), do: Compliance.DataSource.Oracle
   defp handler_for_data_source(%{driver: Cloak.DataSource.ClouderaImpala}), do: Compliance.DataSource.ClouderaImpala
 

@@ -15,7 +15,7 @@ defmodule Cloak.Sql.Compiler.Specification do
           Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
-          Query.view_map()
+          Query.user_views()
         ) :: Query.t()
   def compile(parsed_query, analyst_id, data_source, parameters, views) do
     %Query{
@@ -54,7 +54,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp parse_parameter(:time, value), do: Time.from_iso8601(value)
   defp parse_parameter(:interval, value), do: Timex.Duration.parse(value)
 
-  @table_attributes ["name", "type"]
+  @table_attributes ["name", "type", "comment"]
   defp compile_query(%Query{command: :show, show: :tables} = query),
     do: %Query{
       query
@@ -62,7 +62,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         columns: Enum.map(@table_attributes, &Expression.constant(:text, &1))
     }
 
-  @column_attributes ["name", "data type", "isolator?", "key type"]
+  @column_attributes ["name", "data type", "isolator?", "key type", "comment"]
   defp compile_query(%Query{command: :show, show: :columns} = query),
     do: %Query{
       compile_from(query)
@@ -189,8 +189,8 @@ defmodule Cloak.Sql.Compiler.Specification do
     alias = alias || name
 
     case Map.fetch(query.views, name) do
-      {:ok, view_sql} ->
-        view_to_subquery(name, view_sql, alias, query)
+      {:ok, view} ->
+        view_to_subquery(name, view, alias, query)
 
       :error ->
         case Map.fetch(query.analyst_tables, name) do
@@ -200,13 +200,13 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp view_to_subquery(view_name, view_sql, alias, query) do
+  defp view_to_subquery(view_name, view, alias, query) do
     if Enum.any?(query.data_source.tables, fn {_id, table} -> insensitive_equal?(table.name, view_name) end) do
       raise CompilationError,
         message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
     end
 
-    case Cloak.Sql.Parser.parse(view_sql) do
+    case Cloak.Sql.Parser.parse(view.sql) do
       {:ok, parsed_view} -> {:subquery, %{ast: Map.put(parsed_view, :view?, true), alias: alias}}
       {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
     end
@@ -486,14 +486,12 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
 
-  # This is needed for data sources that support dotted names for fields (MongoDB)
-  defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}, _}, selected_tables),
-    do:
-      if(
-        find_table(selected_tables, {:unquoted, table}) == nil,
-        do: "#{table}.#{column}",
-        else: column
-      )
+  # If the table doesn't exist, we assume we have a dotted column name.
+  defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}, _}, selected_tables) do
+    if find_table(selected_tables, {:unquoted, table}) == nil,
+      do: "#{table}.#{column}",
+      else: column
+  end
 
   defp column_title({:identifier, _table, {_, column}, _}, _selected_tables), do: column
   defp column_title(:null, _selected_tables), do: nil

@@ -1,16 +1,20 @@
-<h2>Aircloak license</h2>
+<header class="page-header">
+  <ol class="breadcrumb bg-white">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+  <h1>Aircloak License</h1>
+</header>
+
 
 <%= if license_warning() do %>
   <div class="alert alert-danger"><%= license_warning() %></div>
 <% end %>
 
-<div class="row">
-  <div class="col-sm-8">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h3 class="panel-title">License status</h3>
-      </div>
-      <div class="panel-body">
+<div class="row mb-5">
+  <div class="col-md-7 col-xl-8 mb-3">
+    <div class="card h-100">
+      <h4 class="card-header">License status</h4>
+      <div class="card-body">
         <%= if license_valid?() do %>
             Your Aircloak license is valid until <strong><%= license_expiry() %></strong>.
             <%= if license_auto_renews?() do %>
@@ -33,133 +37,12 @@
         <% end %>
       </div>
     </div>
-
-    <%= if license_present?() do %>
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h3 class="panel-title">Licensed features</h3>
-        </div>
-        <div class="panel-body">
-          <p>Your Aircloak Insights license includes the following features.</p>
-        </div>
-
-        <table class="table">
-          <tbody>
-            <tr>
-              <td colspan="2"><strong>Core functionality</strong></td>
-            </tr>
-            <tr>
-              <td>Insights Air web interface</td>
-              <td>
-                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
-              </td>
-            </tr>
-            <tr>
-              <td>Insights Cloak query and anonymization engine</td>
-              <td>
-                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
-              </td>
-            </tr>
-            <tr>
-              <td>On-premise installation</td>
-              <td>
-                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
-              </td>
-            </tr>
-            <tr>
-              <td>Offline deployment</td>
-              <td><%= conditional_positive_glyph_if_feature(:offline_deployment) %></td>
-            </tr>
-            <tr>
-              <td>Manual user management</td>
-              <td>
-                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
-              </td>
-            </tr>
-            <tr>
-              <td>LDAP/Active Directory integration</td>
-              <td><%= conditional_positive_glyph_if_feature(:ldap) %></td>
-            </tr>
-            <tr>
-              <td>Materialized views</td>
-              <td><%= conditional_positive_glyph_if_feature(:analyst_tables) %></td>
-            </tr>
-
-            <tr>
-              <td colspan="2"><strong>Data sources</strong></td>
-            </tr>
-            <tr>
-              <td>Postgres</td>
-              <td><%= conditional_positive_glyph_if_feature(:ds_postgres) %></td>
-            </tr>
-            <tr>
-              <td>MySQL and MariaDB</td>
-              <td><%= conditional_positive_glyph_if_feature(:ds_mysql) %></td>
-            </tr>
-            <tr>
-              <td>Microsoft SQL Server</td>
-              <td><%= conditional_positive_glyph_if_feature(:ds_sqlserver) %></td>
-            </tr>
-            <tr>
-              <td>MongoDB</td>
-              <td><%= conditional_positive_glyph_if_feature(:ds_mongodb) %></td>
-            </tr>
-            <tr>
-              <td>Oracle DB</td>
-              <td><%= conditional_positive_glyph_if_feature(:ds_oracle) %></td>
-            </tr>
-             <tr>
-              <td>Cloudera Imapala</td>
-              <td><%= conditional_positive_glyph_if_feature(:ds_impala) %></td>
-            </tr>
-
-            <tr>
-              <td colspan="2"><strong>APIs</strong></td>
-            </tr>
-            <tr>
-              <td>Postgres Message Protocol query interface</td>
-              <td>
-                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
-              </td>
-            </tr>
-            <tr>
-              <td>HTTP REST API</td>
-              <td>
-                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
-              </td>
-            </tr>
-            <tr>
-              <td>System monitoring API</td>
-              <td>
-                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
-              </td>
-            </tr>
-
-            <tr>
-              <td colspan="2"><strong>Support</strong></td>
-            </tr>
-            <tr>
-              <td>Community support</td>
-              <td>
-                <span class="glyphicon glyphicon glyphicon-ok-circle" style="color: green" aria-hidden="true"></span>
-              </td>
-            </tr>
-            <tr>
-              <td>Aircloak support</td>
-              <td><%= conditional_positive_glyph_if_feature(:email_support) %></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
   </div>
 
-  <div class="col-sm-4">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h3 class="panel-title">Upload license file</h3>
-      </div>
-      <div class="panel-body">
+  <div class="col-md-5 col-xl-4 mb-3">
+    <div class="card h-100">
+      <h4 class="card-header">Upload license file</h4>
+      <div class="card-body">
         <%= form_for(@conn, admin_license_path(@conn, :update), [as: :license, method: :put, multipart: true], fn(form) -> %>
           <div class="form-group">
             <label>Select license file</label>
@@ -171,3 +54,47 @@
     </div>
   </div>
 </div>
+
+<%= if license_present?() do %>
+  <div class="container-md ml-0 pl-0">
+    <div class="col-xl-8 pl-0">
+      <h3>Licensed features</h3>
+      <p>Your Aircloak Insights license includes the following features.</p>
+
+      <table class="table">
+        <tbody>
+          <tr>
+            <td colspan="2"><strong>Core functionality</strong></td>
+          </tr>
+          <%= feature_row("Insights Air web interface", true) %>
+          <%= feature_row("Insights Cloak query and anonymization engine", true) %>
+          <%= feature_row("On-premise installation", true) %>
+          <%= feature_row("Offline deployment", :offline_deployment) %>
+          <%= feature_row("Manual user management", true) %>
+          <%= feature_row("LDAP/Active Directory integration", :ldap) %>
+          <%= feature_row("Materialized views", :analyst_tables) %>
+          <tr>
+            <td colspan="2"><strong>Data sources</strong></td>
+          </tr>
+          <%= feature_row("Postgres", :ds_postgres) %>
+          <%= feature_row("MySQL and MariaDB", :ds_mysql) %>
+          <%= feature_row("Microsoft SQL Server", :ds_sqlserver) %>
+          <%= feature_row("Oracle DB", :ds_oracle) %>
+          <%= feature_row("Cloudera Imapala", :ds_impala) %>
+          <tr>
+            <td colspan="2"><strong>APIs</strong></td>
+          </tr>
+          <%= feature_row("Postgres Message Protocol query interface", true) %>
+          <%= feature_row("HTTP REST API", true) %>
+          <%= feature_row("System monitoring API", true) %>
+
+          <tr>
+            <td colspan="2"><strong>Support</strong></td>
+          </tr>
+          <%= feature_row("Community support", true) %>
+          <%= feature_row("Aircloak support", :emailds_support) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% end %>

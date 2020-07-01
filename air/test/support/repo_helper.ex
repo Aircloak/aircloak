@@ -23,7 +23,7 @@ defmodule Air.TestRepoHelper do
       end
 
     password_token = User.reset_password_token(user, ldap: :any)
-    password = additional_changes[:password] || "password1234"
+    password = additional_changes[:password] || "psswrd12"
     {:ok, user} = User.reset_password(password_token, %{password: password, password_confirmation: password})
 
     Repo.preload(user, [:groups, :logins])
@@ -34,7 +34,7 @@ defmodule Air.TestRepoHelper do
   def create_login_for_user!(
         user,
         login \\ random_string(),
-        password \\ "password1234",
+        password \\ "psswrd12",
         type \\ :psql
       ) do
     params = %{

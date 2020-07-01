@@ -252,26 +252,6 @@ defmodule Cloak.Sql.Expression.Test do
       do: assert(apply_function("+", [@interval, @value]) == apply_function("+", [@value, @interval]))
   end
 
-  test "interval + interval",
-    do: assert(apply_function("+", [Duration.parse!("P10D"), Duration.parse!("PT10M")]) === Duration.parse!("P10DT10M"))
-
-  test "interval - interval",
-    do:
-      assert(
-        apply_function("-", [Duration.parse!("P10DT10M"), Duration.parse!("P1DT1M")]) === Duration.parse!("P9DT9M")
-      )
-
-  test "interval * number" do
-    assert apply_function("*", [Duration.parse!("P1DT1M"), 10]) === Duration.parse!("P10DT10M")
-    assert apply_function("*", [10, Duration.parse!("P1DT1M")]) === Duration.parse!("P10DT10M")
-    assert apply_function("*", [Duration.parse!("P10DT10M"), 0.5]) === Duration.parse!("P5DT5M")
-  end
-
-  test "interval / number" do
-    assert apply_function("/", [Duration.parse!("P10DT10M"), 2]) === Duration.parse!("P5DT5M")
-    assert apply_function("/", [Duration.parse!("P10DT10M"), 0.5]) === Duration.parse!("P20DT20M")
-  end
-
   test "any function with one of the arguments being :*", do: assert(apply_function("whatever", [1, :*, "thing"]) == :*)
 
   test "cast to integer" do

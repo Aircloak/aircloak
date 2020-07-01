@@ -37,6 +37,7 @@
       "properties": {
         "auth_secret": {"type": "string", "minLength": 60},
         "endpoint_key_base": {"type": "string", "minLength": 64},
+        "endpoint_public_url": {"type": "string"},
         "cloak_secret": {"type": "string", "minLength": 64},
         "api_token_salt": {"type": "string", "$comment": "allowed for backward compatibility"},
         "master_password": {"type": "string", "minLength": 1},
@@ -91,6 +92,16 @@
       },
       "additionalProperties": false,
       "required": ["host", "user_base", "group_base"]
+    },
+
+    "explorer": {
+      "type": "object",
+      "properties": {
+        "url": {"type": "string"}
+      },
+      "additionalProperties": false,
+      "required": ["url"],
+      "uniqueItems": true
     }
   },
   "additionalProperties": false,
