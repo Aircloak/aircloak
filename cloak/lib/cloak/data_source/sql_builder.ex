@@ -253,9 +253,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp force_max_precision(expression = %Expression{kind: :constant}), do: expression
   defp force_max_precision(expression = %Expression{type: type}), do: cast(expression, type)
 
-  defp cast_type(value, :unknown, query), do: sql_dialect_module(query).cast_sql(value, :unknown, :text)
+  defp cast_type(value, :unknown, dialect), do: dialect.cast_sql(value, :unknown, :text)
 
-  defp cast_type(value, _type, _query), do: value
+  defp cast_type(value, _type, _dialect), do: value
 
   defp from_clause({:join, join}, query) do
     [
