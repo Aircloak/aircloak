@@ -287,6 +287,14 @@ defmodule Air.PsqlServer.RanchServer do
   def child_spec({port, behaviour_mod, behaviour_init_arg, opts}) do
     Logger.info("Accepting PostgreSQL requests on port #{port}")
 
+    # The `max_connections` we're setting in ranch is a bit higher then the one configured by the admin. This allows us
+    # to accept overloaded connections, so we can immediately refuse them. Without this, the connections might be left
+    # in the pending state indefinitely.
+    #
+    # The reason why we're still using `max_connections` is to ensure that we're not accepting too many connections at
+    # once (useful if the system is being DoS-ed).
+    #
+    # For more details on why we need our own application-level limiter, see the documentation of `ConnectionLimiter`.
     max_connections = Keyword.fetch!(opts, :max_connections) + 10
 
     Aircloak.ChildSpec.supervisor(
