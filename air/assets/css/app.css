@@ -260,6 +260,10 @@ a.suggested-reading:hover {
   }
 }
 
+.tooltip {
+  pointer-events: none;
+}
+
 @import "./activity-monitor.css";
 @import "./admin.css";
 @import "./audit_log.css";
