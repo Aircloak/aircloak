@@ -73,6 +73,7 @@ defmodule Cloak.DataSource.MySQL do
         types: true,
         after_connect: fn _ -> send(self, :connected) end,
         backoff_type: :stop,
+        max_restarts: 0,
         timeout: Driver.timeout()
       }
       |> Map.merge(parameters)
