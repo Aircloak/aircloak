@@ -359,6 +359,22 @@ defmodule Cloak.Query.NoiseLayerTest do
       assert_analyst_table_consistent(query, subquery)
     end
 
+    test "[Issue #4490] analyst table with select * and unselected grouping" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
+
+      query = "SELECT count(*) FROM $subquery"
+
+      subquery = """
+        SELECT * FROM (
+          SELECT user_id
+          FROM noise_layers
+          GROUP BY user_id, number
+        ) t
+      """
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
     def assert_analyst_table_consistent(query, subquery) do
       regular_query = query |> String.replace("$subquery", "(#{subquery}) AS foo")
       analyst_query = query |> String.replace("$subquery", "foo")
