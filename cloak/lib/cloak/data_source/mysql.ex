@@ -18,8 +18,8 @@ defmodule Cloak.DataSource.MySQL do
   @impl Driver
   def connect(parameters) do
     with {:ok, connection} <- do_connect(parameters) do
-      {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
-      {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET div_precision_increment = 30", [])
+      {:ok, %MyXQL.Result{}} = MyXQL.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
+      {:ok, %MyXQL.Result{}} = MyXQL.query(connection, "SET div_precision_increment = 30", [])
       {:ok, connection}
     end
   end
@@ -54,7 +54,7 @@ defmodule Cloak.DataSource.MySQL do
 
   @impl Driver.SQL
   def execute(connection, sql),
-    do: with({:error, error} <- Mariaex.query(connection, sql), do: {:error, Exception.message(error)})
+    do: with({:error, error} <- MyXQL.query(connection, sql), do: {:error, Exception.message(error)})
 
   @impl Driver.SQL
   def select(connection, sql), do: with({:ok, result} <- execute(connection, sql), do: {:ok, result.rows})
@@ -64,6 +64,8 @@ defmodule Cloak.DataSource.MySQL do
   # -------------------------------------------------------------------
 
   defp do_connect(parameters) do
+    self = self()
+
     parameters =
       Enum.to_list(parameters) ++
         [
@@ -73,32 +75,38 @@ defmodule Cloak.DataSource.MySQL do
           timeout: Driver.timeout()
         ]
 
-    case Mariaex.start_link(parameters) do
-      {:ok, connection} -> {:ok, connection}
-      {:error, {%Mariaex.Error{} = error, _stacktrace}} -> {:error, error.message}
+    case MyXQL.start_link(parameters) do
+      {:ok, connection} ->
+        receive do
+          :connected -> {:ok, connection}
+        after
+          Driver.connect_timeout() -> {:error, "Timeout connecting to server."}
+        end
+
+      {:error, {%MyXQL.Error{} = error, _stacktrace}} ->
+        {:error, error.message}
     end
   end
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
     Logger.debug(fn -> "Executing SQL query: #{statement}" end)
 
-    Mariaex.transaction(
+    MyXQL.transaction(
       pool,
       fn connection ->
-        Mariaex.stream(
+        MyXQL.stream(
           connection,
           statement,
           [],
-          decode_mapper: decode_mapper,
           max_rows: Driver.batch_size()
         )
-        |> Stream.map(fn %Mariaex.Result{rows: rows} -> rows end)
+        |> Stream.map(fn %MyXQL.Result{rows: rows} -> Enum.map(rows, decode_mapper) end)
         |> result_processor.()
       end,
       timeout: Driver.timeout()
     )
   rescue
-    error in Mariaex.Error -> {:error, Exception.message(error)}
+    error in MyXQL.Error -> {:error, Exception.message(error)}
   end
 
   defp load_comments(connection, table) do
@@ -192,23 +200,13 @@ defmodule Cloak.DataSource.MySQL do
   defp real_field_mapper(_), do: nil
 
   defp boolean_field_mapper(nil), do: nil
-  defp boolean_field_mapper(value) when value in [<<0>>, 0, false], do: false
-  defp boolean_field_mapper(value) when value in [<<1>>, 1, true], do: true
-
-  defp generic_field_mapper({{year, month, day}, {hour, min, sec, msec}}),
-    do: NaiveDateTime.new(year, month, day, hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
-
-  defp generic_field_mapper({year, month, day}), do: Date.new(year, month, day) |> error_to_nil()
-
-  defp generic_field_mapper({hour, min, sec, msec}), do: Time.new(hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
+  defp boolean_field_mapper(value) when value in [<<0::size(1)>>, <<0>>, 0, false], do: false
+  defp boolean_field_mapper(value) when value in [<<1::size(1)>>, <<1>>, 1, true], do: true
 
   defp generic_field_mapper(value), do: value
 
   defp interval_field_mapper(nil), do: nil
   defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
-
-  defp error_to_nil({:ok, result}), do: result
-  defp error_to_nil({:error, _reason}), do: nil
 
   # -------------------------------------------------------------------
   # Test functions
@@ -225,7 +223,7 @@ defmodule Cloak.DataSource.MySQL do
     def execute(connection, statement, parameters)
 
     def execute(connection, "DROP SCHEMA " <> _rest = statement, []),
-      do: Mariaex.query(connection, String.replace(statement, "CASCADE", ""))
+      do: MyXQL.query(connection, String.replace(statement, "CASCADE", ""))
 
     def execute(connection, "CREATE TABLE " <> _rest = statement, []) do
       statement =
@@ -233,13 +231,13 @@ defmodule Cloak.DataSource.MySQL do
         |> String.replace(" BOOLEAN", " BIT")
         |> String.replace(" TIMESTAMP", " DATETIME")
 
-      Mariaex.query(connection, statement)
+      MyXQL.query(connection, statement)
     end
 
     def execute(connection, statement, parameters) do
       parameters = Enum.map(parameters, &parameter_mapper/1)
       statement = statement |> to_string() |> String.replace(~r/\$\d+/, "?")
-      Mariaex.query(connection, statement, parameters, timeout: :timer.minutes(2))
+      MyXQL.query(connection, statement, parameters, timeout: :timer.minutes(2))
     end
   end
 end
