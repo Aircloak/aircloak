@@ -70,7 +70,7 @@ defmodule Cloak.DataSource.MySQL do
       Enum.to_list(parameters) ++
         [
           types: true,
-          sync_connect: true,
+          after_connect: fn _ -> send(self, :connected) end,
           backoff_type: :stop,
           timeout: Driver.timeout()
         ]
