@@ -1,3 +1,9 @@
+## Version 20.1.4
+
+### Bugfixes
+
+- Fixed invalid optimization when executing queries over analyst tables.
+
 ## Version 20.1.3
 
 ### Bugfixes
