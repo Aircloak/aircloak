@@ -169,7 +169,7 @@ defmodule Cloak.DataSource.MySQL do
   defp parse_type("decimal" <> _size), do: :real
   defp parse_type("numeric" <> _size), do: :real
   defp parse_type("timestamp"), do: :datetime
-  defp parse_type("datetime"), do: :datetime
+  defp parse_type("datetime" <> _size), do: :datetime
   defp parse_type("time"), do: :time
   defp parse_type("date"), do: :date
   defp parse_type(type), do: {:unsupported, type}
