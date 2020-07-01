@@ -8,6 +8,7 @@ import CodeViewer from "../code_viewer";
 import InfoView from "./info_view";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
+import ResultTime from "./result_time";
 
 import type { ErrorResult } from "./result";
 
@@ -27,6 +28,7 @@ export default ({
   return (
     <div className="card border-danger mb-3">
       <div className="card-header border-danger bg-white">
+        <ResultTime time={result.inserted_at} />
         {onDeleteClick && (
           <button
             type="button"

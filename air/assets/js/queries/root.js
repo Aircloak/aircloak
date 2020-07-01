@@ -220,7 +220,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       session_id: sessionId,
       private_permalink: null,
       public_permalink: null,
-      inserted_at: null,
+      inserted_at: Date.now(),
       data_source: { name: dataSourceName },
     };
     this.setResults([pendingResult].concat(sessionResults));
@@ -240,7 +240,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       info: [],
       private_permalink: null,
       public_permalink: null,
-      inserted_at: null,
+      inserted_at: Date.now(),
       session_id: sessionId,
       data_source: { name: dataSourceName },
     };
