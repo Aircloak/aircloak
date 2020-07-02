@@ -26,6 +26,7 @@ defmodule Air.Web do
 
       import AirWeb.Router.Helpers
       import AirWeb.Gettext
+      import Phoenix.LiveView.Controller
 
       # Each controller must verify permissions
       @behaviour AirWeb.VerifyPermissions
@@ -96,12 +97,14 @@ defmodule Air.Web do
       import AirWeb.ErrorHelpers
       import AirWeb.ViewHelpers
       import AirWeb.Gettext
+      import Phoenix.LiveView.Helpers
     end
   end
 
   def router do
     quote do
       use Phoenix.Router
+      import Phoenix.LiveView.Router
     end
   end
 
@@ -130,7 +133,14 @@ defmodule Air.Web do
   @doc false
   def child_spec(_arg) do
     Aircloak.ChildSpec.supervisor(
-      [AirWeb.Endpoint, AirWeb.Socket.Frontend.DataSourceChannel],
+      [
+        {Phoenix.PubSub, name: AirWeb.PubSub},
+        AirWeb.Endpoint,
+        Periodic.child_spec(
+          run: {AirWeb.Socket.Frontend.DataSourceChannel, :push_updates, []},
+          every: :timer.seconds(10)
+        )
+      ],
       name: __MODULE__,
       strategy: :rest_for_one
     )

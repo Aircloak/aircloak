@@ -1,11 +1,12 @@
 defmodule AirWeb.Router do
   @moduledoc false
   use Air.Web, :router
+  import Phoenix.LiveDashboard.Router
 
   pipeline :browser do
     plug(:accepts, ["html"])
     plug(:fetch_session)
-    plug(:fetch_flash)
+    plug(:fetch_live_flash)
     plug(:protect_from_forgery)
     plug(:put_secure_browser_headers)
   end
@@ -148,6 +149,8 @@ defmodule AirWeb.Router do
     resources("/license", LicenseController, only: [:edit, :update], singleton: true)
     resources("/privacy_policy", PrivacyPolicyController)
     resources("/diffix-explorer", ExplorerController, except: [:delete])
+
+    live_dashboard("/live-dashboard")
   end
 
   scope "/onboarding", AirWeb.Onboarding, as: :onboarding do

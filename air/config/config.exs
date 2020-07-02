@@ -17,7 +17,10 @@ config :air, AirWeb.Endpoint,
   http: [port: 8080],
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
-  pubsub: [name: Air.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub_server: AirWeb.PubSub,
+  live_view: [
+    signing_salt: "xHLT7Pf+zED1w1yKvqav/q77bf9qi/z3"
+  ]
 
 config :air, AirWeb.MonitoringEndpoint,
   check_origin: false,
@@ -36,10 +39,10 @@ config :phoenix, :generators,
   migration: true,
   binary_id: false
 
+config :phoenix, :json_library, Jason
+
 # configure markdown compiler
 config :phoenix, :template_engines, md: Air.Phoenix.MarkdownEngine
-
-config :scrivener_html, routes_helper: AirWeb.Router.Helpers
 
 config :air, Air.Repo,
   pool_size: 10,

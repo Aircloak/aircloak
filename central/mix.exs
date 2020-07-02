@@ -66,14 +66,14 @@ defmodule Central.Mixfile do
     [
       {:ecto, "~> 3.1.7"},
       {:ecto_sql, "~> 3.1.6"},
-      {:phoenix, "~> 1.4.0"},
-      {:phoenix_pubsub, "~> 1.1"},
-      {:postgrex, "~> 0.14.3"},
-      {:phoenix_ecto, "~> 4.0"},
-      {:phoenix_html, "~> 2.10.0"},
+      {:phoenix, "~> 1.5.0"},
+      {:phoenix_pubsub, "~> 2.0"},
+      {:postgrex, "~> 0.15.0"},
+      {:phoenix_ecto, "~> 4.1"},
+      {:phoenix_html, "~> 2.14.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:gettext, "~> 0.9"},
-      {:plug_cowboy, "~> 1.0"},
+      {:plug_cowboy, "~> 2.1"},
       {:comeonin, "~> 2.5"},
       {:guardian, "~> 1.2.1"},
       {:aircloak_common, path: "../common/elixir"},
@@ -81,6 +81,7 @@ defmodule Central.Mixfile do
       {:httpoison, "~> 0.12.0"},
       {:quantum, "~> 2.2.7"},
       {:poolboy, ">= 0.0.0"},
+      {:jason, "~> 1.0"},
       {:phoenix_gen_socket_client, "~> 2.0", only: :test},
       {:websocket_client, "~> 1.2.4", only: :test}
     ]

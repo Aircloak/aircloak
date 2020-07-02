@@ -41,7 +41,7 @@ defmodule Cloak.Mixfile do
       {:combine, "~> 0.10"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
-      {:file_system, "~> 0.2.6"},
+      {:file_system, "~> 0.2.8"},
       {:parent, "~> 0.4.0"},
       {:jobs, "~> 0.7.0"},
 

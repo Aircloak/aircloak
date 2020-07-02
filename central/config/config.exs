@@ -17,7 +17,9 @@ config :central, CentralWeb.Endpoint,
   http: [port: 7080],
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
-  pubsub: [name: CentralWeb.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub_server: CentralWeb.PubSub
+
+config :phoenix, :json_library, Jason
 
 config :central, :https_port, 7443
 

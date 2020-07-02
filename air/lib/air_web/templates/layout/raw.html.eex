@@ -15,7 +15,7 @@
   <body>
     <%= render "_navbar.html", conn: @conn, admin: false %>
 
-    <%= render @view_module, @view_template, assigns %>
+    <%= @inner_content %>
 
     <script src="<%= static_path(@conn, "/frontend/app.js") %>"></script>
   </body>
