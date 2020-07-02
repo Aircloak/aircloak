@@ -287,7 +287,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       {_, nil} ->
         index = Enum.find_index(all_expressions, expression_matcher)
         true = index != nil
-        %Expression{expression | alias: "#{prefix()}#{index}"}
+        %Expression{expression | alias: "#{prefix()}#{index}", synthetic?: true}
 
       {_, _} ->
         existing_expression
