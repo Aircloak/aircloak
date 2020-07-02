@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   use Combine
   alias Cloak.Sql.{Query, Expression, Compiler, Function}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, ClouderaImpala}
+  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, TiDB, ClouderaImpala}
   alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
@@ -193,7 +193,7 @@ defmodule Cloak.DataSource.SqlBuilder do
          %Expression{kind: :function, name: comparator, args: [%Expression{type: :text} = arg1, arg2]},
          dialect
        )
-       when comparator in ~w(> < = <> >= <=) and dialect in [SQLServer, MySQL],
+       when comparator in ~w(> < = <> >= <=) and dialect in [SQLServer, MySQL, TiDB],
        # Some servers ignore trailing spaces during text comparisons.
        do:
          Support.function_sql(
@@ -210,7 +210,7 @@ defmodule Cloak.DataSource.SqlBuilder do
          dialect
        )
        # Some servers ignore trailing spaces during text comparisons.
-       when dialect in [SQLServer, MySQL],
+       when dialect in [SQLServer, MySQL, TiDB],
        do:
          Support.function_sql(
            "in",
@@ -353,7 +353,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       |> Enum.intersperse(", ")
     end)
     |> case do
-      [[]] -> if dialect in [MySQL, ClouderaImpala], do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
+      [[]] -> if dialect in [MySQL, ClouderaImpala, TiDB], do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
       [grouping_set] -> [" GROUP BY ", grouping_set]
       grouping_sets -> [" GROUP BY GROUPING SETS ((", Enum.intersperse(grouping_sets, "), ("), "))"]
     end
