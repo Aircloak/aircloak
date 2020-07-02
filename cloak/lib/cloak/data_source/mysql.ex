@@ -220,6 +220,7 @@ defmodule Cloak.DataSource.MySQL do
 
   defp generic_field_mapper(value = %DateTime{}), do: value |> DateTime.to_naive() |> Cloak.Time.max_precision()
   defp generic_field_mapper(value = %Time{}), do: Cloak.Time.max_precision(value)
+  defp generic_field_mapper(value = %NaiveDateTime{}), do: Cloak.Time.max_precision(value)
   defp generic_field_mapper(value), do: value
 
   defp interval_field_mapper(nil), do: nil
