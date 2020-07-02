@@ -23,4 +23,6 @@ defmodule Cloak.DataSource.SqlBuilder.TiDB do
   defdelegate order_by(column, direction, option), to: MySQL
 
   defdelegate quote_char(), to: MySQL
+
+  def supports_overriding_pattern_escape?(), do: false
 end
