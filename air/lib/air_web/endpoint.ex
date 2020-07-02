@@ -3,12 +3,21 @@ defmodule AirWeb.Endpoint do
 
   use Phoenix.Endpoint, otp_app: :air
 
+  @session_options [
+    store: :cookie,
+    secure: false,
+    key: "_air_key",
+    signing_salt: {Air.Service.Salts, :get, [:session_signing]},
+    encryption_salt: {Air.Service.Salts, :get, [:session_encryption]}
+  ]
+
   # -------------------------------------------------------------------
   # Endpoint HTTP specification
   # -------------------------------------------------------------------
 
   socket("/cloak/socket", AirWeb.Socket.Cloak, websocket: [serializer: [{AirWeb.Socket.Cloak.Serializer, "~> 2.0.0"}]])
   socket("/frontend/socket", AirWeb.Socket.Frontend, websocket: true, longpoll: true)
+  socket("/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]])
 
   plug(
     AirWeb.Plug.Rewrite,
@@ -57,14 +66,7 @@ defmodule AirWeb.Endpoint do
   plug(Plug.MethodOverride)
   plug(Plug.Head)
 
-  plug(
-    Plug.Session,
-    store: :cookie,
-    secure: false,
-    key: "_air_key",
-    signing_salt: {Air.Service.Salts, :get, [:session_signing]},
-    encryption_salt: {Air.Service.Salts, :get, [:session_encryption]}
-  )
+  plug(Plug.Session, @session_options)
 
   # As per the Plug.Conn documentation, the remote_ip parameter is not automatically set
   # but should instead be set manually by a plug.

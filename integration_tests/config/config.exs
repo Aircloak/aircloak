@@ -17,6 +17,8 @@ config :comeonin, :pbkdf2_rounds, 1
 
 config :phoenix, :template_engines, md: Air.Phoenix.MarkdownEngine
 
+config :phoenix, :json_library, Jason
+
 config :aircloak_common, :env, Mix.env()
 
 import_config "air.exs"

@@ -1,7 +1,8 @@
 defmodule Aircloak.ChildSpec do
   @moduledoc "Helpers for specifying supervisor children."
 
-  @type child_spec :: Supervisor.child_spec() | module | {module, any}
+  @type child_spec ::
+          Supervisor.child_spec() | module | {module, any} | {any, any, any, any, any, any}
 
   @doc "Specifies a supervisor child powered by an arbitrary module."
   @spec supervisor(module, atom, [any], Keyword.t()) :: Supervisor.child_spec()

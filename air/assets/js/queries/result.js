@@ -16,6 +16,7 @@ import { formatNumber } from "../number_format";
 import { loadBuckets } from "../request";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
+import ResultTime from "./result_time";
 import activateTooltips from "../tooltips";
 import loader from "../../static/images/loader.gif";
 
@@ -37,6 +38,7 @@ type CommonResultFeatures = {
   private_permalink: ?string,
   public_permalink: ?string,
   session_id: ?string,
+  inserted_at: string | number,
 };
 
 export type SuccessResult = CommonResultFeatures & {
@@ -49,7 +51,6 @@ export type SuccessResult = CommonResultFeatures & {
   user: {
     name: string,
   },
-  inserted_at: string,
   buckets_link: string,
 };
 
@@ -503,6 +504,7 @@ export class ResultView extends React.Component<Props, State> {
     return (
       <div className="card border-success mb-3">
         <div className="card-header border-success bg-white">
+          <ResultTime time={result.inserted_at} />
           {onDeleteClick && (
             <button
               type="button"

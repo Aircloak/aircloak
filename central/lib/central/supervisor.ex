@@ -14,6 +14,7 @@ defmodule Central.Supervisor do
       Central.Repo,
       Central.Repo.Migrator,
       Central.Service.License,
+      {Phoenix.PubSub, name: CentralWeb.PubSub},
       CentralWeb.Endpoint
     ]
 

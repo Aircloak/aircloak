@@ -107,7 +107,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
       |> function.()
       |> update_in(
         [Query.Lenses.direct_subqueries(opts) |> Lens.key(:ast)],
-        &apply_top_down(&1, function)
+        &apply_top_down(&1, function, opts)
       )
 
   @doc "Runs the given function for its side-effects on the given query and all of its subqueries."
