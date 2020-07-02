@@ -92,14 +92,8 @@ defmodule Compliance.DataSource.MySQL do
   defp rows(data, column_names),
     do:
       Enum.map(data, fn entry ->
-        column_names
-        |> Enum.map(&Map.get(entry, &1))
-        |> Enum.map(&cast_types/1)
+        Enum.map(column_names, &Map.get(entry, &1))
       end)
-
-  defp cast_types(%Date{} = date), do: Date.to_erl(date)
-  defp cast_types(%NaiveDateTime{} = datetime), do: NaiveDateTime.to_erl(datetime)
-  defp cast_types(value), do: value
 
   defp escaped_column_names(column_names),
     do:
