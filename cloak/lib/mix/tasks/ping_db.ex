@@ -192,8 +192,8 @@ defmodule Mix.Tasks.Cloak.PingDb do
       Cloak.DataSource.Oracle -> [:odbc]
       Cloak.DataSource.PostgreSQL -> [:postgrex]
       Cloak.DataSource.SQLServer -> [:odbc]
-      Cloak.DataSource.MySQL -> [:mariaex]
-      Cloak.DataSource.TiDB -> [:mariaex]
+      Cloak.DataSource.MySQL -> [:myxql]
+      Cloak.DataSource.TiDB -> [:myxql]
       Cloak.DataSource.ClouderaImpala -> [:odbc]
       _ -> []
     end
