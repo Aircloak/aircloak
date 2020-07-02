@@ -209,7 +209,8 @@ defmodule Cloak.DataSource.MySQL do
   defp boolean_field_mapper(value) when value in [<<0::size(1)>>, <<0>>, 0, false], do: false
   defp boolean_field_mapper(value) when value in [<<1::size(1)>>, <<1>>, 1, true], do: true
 
-  defp generic_field_mapper(%DateTime{} = dt), do: DateTime.to_naive(dt)
+  defp generic_field_mapper(value = %DateTime{}), do: value |> DateTime.to_naive() |> Cloak.Time.max_precision()
+  defp generic_field_mapper(value = %Time{}), do: Cloak.Time.max_precision(value)
   defp generic_field_mapper(value), do: value
 
   defp interval_field_mapper(nil), do: nil
