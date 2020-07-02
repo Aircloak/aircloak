@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.MySQL do
   @impl Driver
   def connect(parameters) do
     with {:ok, connection} <- do_connect(parameters) do
-      MyXQL.query!(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'")
+      MyXQL.query!(connection, "SET sql_mode = 'REAL_AS_FLOAT,PIPES_AS_CONCAT,IGNORE_SPACE,NO_BACKSLASH_ESCAPES'")
       MyXQL.query!(connection, "SET div_precision_increment = 30")
       {:ok, connection}
     end
