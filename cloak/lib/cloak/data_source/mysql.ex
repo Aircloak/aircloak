@@ -89,7 +89,7 @@ defmodule Cloak.DataSource.MySQL do
           Driver.connect_timeout() -> {:error, "Timeout connecting to server."}
         end
 
-      {:error, {%MyXQL.Error{} = error, _stacktrace}} ->
+      {:error, %MyXQL.Error{} = error} ->
         {:error, error.message}
     end
   end
