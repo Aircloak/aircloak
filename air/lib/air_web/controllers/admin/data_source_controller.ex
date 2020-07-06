@@ -7,7 +7,8 @@ defmodule AirWeb.Admin.DataSourceController do
 
   alias Air.Service.{DataSource, User, Warnings, AnalystTable}
 
-  plug(:load_data_source when action in [:show, :edit, :update, :delete])
+  plug(:load_data_source when action in [:show, :edit, :update, :delete, :show_analyst_table])
+  plug(:load_analyst_table when action in [:show_analyst_table])
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -97,6 +98,14 @@ defmodule AirWeb.Admin.DataSourceController do
     |> redirect(to: admin_data_source_path(conn, :index))
   end
 
+  def show_analyst_table(conn, _params) do
+    render(conn, "show_analyst_table.html",
+      conn: conn,
+      analyst_table: conn.assigns.analyst_table,
+      data_source: conn.assigns.data_source
+    )
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -105,6 +114,18 @@ defmodule AirWeb.Admin.DataSourceController do
     case DataSource.by_name(conn.params["id"]) do
       nil -> not_found(conn)
       data_source -> assign(conn, :data_source, data_source)
+    end
+  end
+
+  defp load_analyst_table(conn, _) do
+    analyst_table =
+      Air.Schemas.AnalystTable
+      |> Repo.get(conn.params["table_id"])
+      |> Repo.preload(:user)
+
+    case analyst_table do
+      nil -> not_found(conn)
+      analyst_table -> assign(conn, :analyst_table, analyst_table)
     end
   end
 

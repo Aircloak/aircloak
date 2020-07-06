@@ -212,3 +212,7 @@ label small.newline {
     text-align: right;
   }
 }
+
+#table-sql .CodeMirror-line {
+  padding: 0;
+}

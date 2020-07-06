@@ -130,6 +130,7 @@
             <th>Analyst name</th>
             <th>Creation status</th>
             <th>Broken?</th>
+            <th></th>
           </tr>
         </thead>
 
@@ -140,6 +141,11 @@
               <td><%= analyst_table.user.name %></td>
               <td><%= analyst_table.creation_status %></td>
               <td><%= analyst_table.broken %></td>
+              <td>
+                <div class="btn-group">
+                  <%= link "Show", to: admin_data_source_path(@conn, :show_analyst_table, @data_source.name, analyst_table.id), class: "btn btn-outline-secondary btn-sm" %>
+                </div>
+              </td>
             </tr>
           <% end %>
         </tbody>

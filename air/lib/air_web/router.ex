@@ -133,6 +133,8 @@ defmodule AirWeb.Router do
     post("/groups/sync_ldap", GroupController, :sync_ldap)
 
     resources("/data_sources", DataSourceController)
+    get("/data_sources/:id/analyst_tables/:table_id", DataSourceController, :show_analyst_table)
+
     resources("/analysis", AnalysisController)
     resources("/settings", SettingsController, singleton: true)
 
