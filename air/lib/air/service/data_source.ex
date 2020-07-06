@@ -186,7 +186,7 @@ defmodule Air.Service.DataSource do
     views(user, data_source)
     |> Enum.concat(analyst_tables(user, data_source))
     |> Enum.concat(with_explorer_metrics(data_source))
-    |> Enum.map(&Map.merge(%{analyst_created: false, broken: false, internal_id: nil}, &1))
+    |> Enum.map(&Map.merge(%{analyst_created: false, broken: false, internal_id: nil, kind: :table}, &1))
   end
 
   @doc "Creates a data source, raises on error."

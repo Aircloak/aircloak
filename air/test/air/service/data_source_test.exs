@@ -467,7 +467,8 @@ defmodule Air.Service.DataSourceTest do
                  broken: false,
                  columns: [],
                  id: "my table",
-                 internal_id: nil
+                 internal_id: nil,
+                 kind: :table
                }
              ] = DataSource.selectables(context[:user], data_source)
     end

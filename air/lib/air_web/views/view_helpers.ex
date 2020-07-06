@@ -31,7 +31,6 @@ defmodule AirWeb.ViewHelpers do
   def selectables(user, data_source),
     do:
       Service.DataSource.selectables(user, data_source)
-      |> Enum.map(&Map.merge(%{kind: :table}, &1))
       |> Enum.sort_by(& &1.id)
 
   @doc "Encodes the given term to json which can be safely embedded in .eex templates."
