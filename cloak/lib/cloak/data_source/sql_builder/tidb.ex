@@ -11,7 +11,7 @@ defmodule Cloak.DataSource.SqlBuilder.TiDB do
   defdelegate supported_functions(), to: MySQL
 
   def function_sql("stddev", [arg]), do: function_sql("sqrt", [function_sql("variance", [arg])])
-  def function_sql("variance", [arg]), do: ["VAR_POP(", arg, ") * (1.0 + 1.0 / (COUNT(", arg, ") - 1))"]
+  def function_sql("variance", [arg]), do: ["VAR_POP(", arg, ") * (1.0 + CAST(1.0 AS double) / (COUNT(", arg, ") - 1))"]
 
   def function_sql("checked_div", [arg1, arg2, epsilon]),
     do: [
