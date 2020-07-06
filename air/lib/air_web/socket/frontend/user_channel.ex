@@ -121,9 +121,30 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
   def format_query(query), do: hd(AirWeb.Admin.ActivityMonitorView.format_queries([query]))
 
   defp selectable_payload(user, data_source) do
+    explorer_results = Air.Service.Explorer.results_for_datasource(data_source)
+
     selectables =
       Air.Service.DataSource.selectables(user, data_source)
       |> Enum.sort_by(& &1.id)
+      |> Enum.map(fn table ->
+        update_in(table, [:columns, Access.all()], fn column ->
+          result =
+            Enum.find(explorer_results, fn result -> result.table_name == table.id && column.name == result.column end)
+
+          if result && result.metrics do
+            metrics = Jason.decode!(result.metrics)
+
+            if Enum.empty?(metrics),
+              do: column,
+              else:
+                Map.put(column, :analysis, [
+                  %{name: "updated_at", value: result.updated_at} | Jason.decode!(result.metrics)
+                ])
+          else
+            column
+          end
+        end)
+      end)
 
     %{selectables: selectables}
   end
