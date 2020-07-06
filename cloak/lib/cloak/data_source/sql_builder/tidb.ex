@@ -12,6 +12,18 @@ defmodule Cloak.DataSource.SqlBuilder.TiDB do
 
   def function_sql("stddev", [arg]), do: function_sql("sqrt", [function_sql("variance", [arg])])
   def function_sql("variance", [arg]), do: ["VAR_POP(", arg, ") * (1.0 + 1.0 / (COUNT(", arg, ") - 1))"]
+
+  def function_sql("checked_div", [arg1, arg2, epsilon]),
+    do: [
+      "CASE WHEN ",
+      function_sql("abs", [arg2]),
+      " < ",
+      epsilon,
+      " THEN NULL ELSE ",
+      function_sql("unsafe_div", [arg1, arg2]),
+      " END"
+    ]
+
   def function_sql("unsafe_div", [arg1, arg2]), do: ["(CAST(", arg1, " AS double) / ", arg2, ")"]
   def function_sql("ilike", [subject, pattern]), do: ["(LOWER(", subject, ") LIKE LOWER(", pattern, "))"]
   def function_sql(name, args), do: MySQL.function_sql(name, args)
