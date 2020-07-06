@@ -120,7 +120,13 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
 
   def format_query(query), do: hd(AirWeb.Admin.ActivityMonitorView.format_queries([query]))
 
-  defp selectable_payload(user, data_source), do: %{selectables: AirWeb.ViewHelpers.selectables(user, data_source)}
+  defp selectable_payload(user, data_source) do
+    selectables =
+      Air.Service.DataSource.selectables(user, data_source)
+      |> Enum.sort_by(& &1.id)
+
+    %{selectables: selectables}
+  end
 
   defp user_id_matches_user(user_id_string, socket) when is_binary(user_id_string) do
     case(Integer.parse(user_id_string)) do

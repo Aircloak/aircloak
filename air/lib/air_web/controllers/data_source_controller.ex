@@ -55,6 +55,7 @@ defmodule AirWeb.DataSourceController do
         csrf_token: CSRFProtection.get_csrf_token(),
         last_query: if(last_query != nil, do: AirWeb.Query.for_display(last_query, authenticated?: true)),
         session_id: Ecto.UUID.generate(),
+        selectables: DataSource.selectables(conn.assigns.current_user, data_source),
         number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
         debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled
       )

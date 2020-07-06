@@ -3,10 +3,11 @@ defmodule AirWeb.SelectableController do
 
   use Air.Web, :controller
 
-  alias Air.Service.{View, AnalystTable, User}
+  alias Air.Service.{View, AnalystTable, User, DataSource}
   alias AirWeb.Socket.Frontend.UserChannel
 
   plug(:load_data_source)
+  plug(:load_selectables)
   plug(:put_layout, "raw.html")
 
   # -------------------------------------------------------------------
@@ -27,6 +28,7 @@ defmodule AirWeb.SelectableController do
         kind: kind,
         changeset: new_changeset_of_kind(kind),
         data_source: conn.assigns.data_source,
+        selectables: conn.assigns.selectables,
         number_format: User.number_format_settings(conn.assigns.current_user)
       )
 
@@ -38,6 +40,7 @@ defmodule AirWeb.SelectableController do
         kind: kind,
         changeset: existing_changeset_of_kind(id, kind),
         data_source: conn.assigns.data_source,
+        selectables: conn.assigns.selectables,
         number_format: User.number_format_settings(conn.assigns.current_user)
       )
 
@@ -52,6 +55,7 @@ defmodule AirWeb.SelectableController do
           kind: kind,
           changeset: changeset,
           data_source: conn.assigns.data_source,
+          selectables: conn.assigns.selectables,
           number_format: User.number_format_settings(conn.assigns.current_user)
         )
     end
@@ -73,6 +77,7 @@ defmodule AirWeb.SelectableController do
           kind: kind,
           changeset: changeset,
           data_source: conn.assigns.data_source,
+          selectables: conn.assigns.selectables,
           number_format: User.number_format_settings(conn.assigns.current_user)
         )
     end
@@ -98,7 +103,7 @@ defmodule AirWeb.SelectableController do
   defp load_data_source(conn, _opts) do
     data_source_name = Map.fetch!(conn.params, "data_source_id")
 
-    case Air.Service.DataSource.fetch_as_user(
+    case DataSource.fetch_as_user(
            {:name, data_source_name},
            conn.assigns.current_user
          ) do
@@ -119,6 +124,9 @@ defmodule AirWeb.SelectableController do
         |> redirect(to: data_source_path(conn, :index))
     end
   end
+
+  defp load_selectables(conn, _opts),
+    do: conn |> assign(:selectables, DataSource.selectables(conn.assigns.current_user, conn.assigns.data_source))
 
   defp maybe_broken_message(conn) do
     case View.broken(conn.assigns.current_user, conn.assigns.data_source) do
