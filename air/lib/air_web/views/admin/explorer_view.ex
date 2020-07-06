@@ -13,6 +13,10 @@ defmodule AirWeb.Admin.ExplorerView do
     end
   end
 
+  defp version_link(commit) do
+    link(String.slice(commit, 0, 8), to: "https://github.com/diffix/explorer/tree/#{commit}")
+  end
+
   defp status_to_badge_class(status) do
     case status do
       :new -> "badge-primary"
@@ -21,10 +25,6 @@ defmodule AirWeb.Admin.ExplorerView do
       :error -> "badge-danger"
       :canceled -> "badge-secondary"
     end
-  end
-
-  defp metrics(analysis) do
-    Enum.map(Jason.decode!(analysis.metrics), fn %{"name" => k, "value" => v} -> {k, v} end)
   end
 
   defp to_pretty_json(val) do
@@ -36,12 +36,6 @@ defmodule AirWeb.Admin.ExplorerView do
       datetime: NaiveDateTime.to_iso8601(date_time),
       title: format_date(date_time)
     )
-  end
-
-  defp by_table(analyses) do
-    analyses
-    |> Enum.sort_by(& &1.column)
-    |> Enum.group_by(& &1.table_name)
   end
 
   defp admin_explorer_failed_queries_path(%{assigns: %{analyses: analyses, data_source: data_source}} = conn),

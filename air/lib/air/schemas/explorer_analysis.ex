@@ -8,11 +8,12 @@ defmodule Air.Schemas.ExplorerAnalysis do
   EctoEnum.defenum(Status, :explorer_status, [:new, :processing, :complete, :canceled, :error])
 
   schema "explorer_analyses" do
-    field(:column, :string)
     field(:job_id, :string)
-    field(:metrics, :string)
+    field(:results, :map, default: %{"columns" => [], "sampleData" => []})
     field(:status, __MODULE__.Status)
     field(:table_name, :string)
+    field(:errors, {:array, :string}, default: [])
+    field(:version, :string)
     belongs_to(:data_source, DataSource, on_replace: :delete)
 
     timestamps(type: :naive_datetime_usec)
@@ -21,8 +22,8 @@ defmodule Air.Schemas.ExplorerAnalysis do
   @doc false
   def changeset(explorer_analysis, attrs) do
     explorer_analysis
-    |> cast(attrs, [:table_name, :column, :status, :metrics, :job_id])
-    |> validate_required([:table_name, :column, :status, :metrics, :job_id])
+    |> cast(attrs, [:table_name, :status, :results, :job_id, :errors, :version])
+    |> validate_required([:table_name, :status])
   end
 
   def from_result_json(explorer_analysis, json_struct) do
@@ -30,7 +31,9 @@ defmodule Air.Schemas.ExplorerAnalysis do
     |> changeset(%{
       status: String.downcase(json_struct["status"]),
       job_id: json_struct["id"],
-      metrics: Jason.encode!(json_struct["metrics"])
+      results: Map.take(json_struct, ["columns", "sampleData"]),
+      errors: json_struct["errors"] || [],
+      version: get_in(json_struct, ["versionInfo", "commitHash"])
     })
   end
 end

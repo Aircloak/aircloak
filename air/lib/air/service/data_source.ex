@@ -323,22 +323,28 @@ defmodule Air.Service.DataSource do
     results = Air.Service.Explorer.results_for_datasource(data_source)
 
     Enum.map(tables, fn table ->
-      update_in(table, [:columns, Access.all()], fn column ->
-        result = Enum.find(results, fn result -> result.table_name == table.id && column.name == result.column end)
+      result = Enum.find(results, fn result -> result.table_name == table.id end)
 
-        if result && result.metrics do
-          metrics = Jason.decode!(result.metrics)
+      if result do
+        table
+        |> update_in([:columns, Access.all()], fn column ->
+          column_metrics =
+            Enum.find(result.results["columns"] || [], %{"metrics" => []}, fn %{"column" => column_name} ->
+              column_name == column.name
+            end)["metrics"]
 
-          if Enum.empty?(metrics),
-            do: column,
-            else:
-              Map.put(column, :analysis, [
-                %{name: "updated_at", value: result.updated_at} | Jason.decode!(result.metrics)
-              ])
-        else
-          column
-        end
-      end)
+          if Enum.empty?(column_metrics) do
+            column
+          else
+            Map.put(column, :analysis, [
+              %{name: "updated_at", value: result.updated_at} | column_metrics
+            ])
+          end
+        end)
+        |> put_in([:sample_data], result.results["sampleData"])
+      else
+        table
+      end
     end)
   end
 
