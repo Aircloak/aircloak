@@ -13,8 +13,8 @@ FROM table_name`.
 
 ## Querying the database
 
-The `SELECT` statement can be used to obtain anonymised data from tables. See [Understanding query
-results](sql/query-results.md) for an explanation of the effects of anonymisation on the results.
+The `SELECT` statement can be used to obtain anonymized data from tables. See [Understanding query
+results](sql/query-results.md) for an explanation of the effects of anonymization on the results.
 
 The syntax conforms to the standard SQL syntax (with some exceptions), but only a subset of features is supported. The
 general shape of the query looks like:
@@ -53,15 +53,15 @@ Aircloak Insights supports both queries over `personal` data and queries over `n
 data is data about a single person (or entity, depending on what it is you want to protect through anonymization), as opposed to data that is an aggregate over the data of multiple persons and has been anonymized.
 
 Queries that process `personal` data are subject to various [restrictions](sql/restrictions.md), and are called  
-*restricted queries*. Restricted queries can be arbitrarily nested. The top-most restricted query anonymises the data. 
+*restricted queries*. Restricted queries can be arbitrarily nested. The top-most restricted query anonymizes the data. 
 The anonymization produces a result that is about groups of users rather than individuals, and filters out values that could identify an individual. 
-Such a top-most query is called an *anonymising query*.
+Such a top-most query is called an *anonymizing query*.
 
-An anonymising query can itself be a subquery to another query. In such a case the data processed by the other query is already anonymous and hence `non-personal`. Such a query is called a *standard query*.
+An anonymizing query can itself be a subquery to another query. In such a case the data processed by the other query is already anonymous and hence `non-personal`. Such a query is called a *standard query*.
 A standard query can be used to further process an anonymized result set or for example to combine anonymized data with data from a `non-personal` table such as a fact or lookup table.
 Standard queries have the usual SQL validations applied to them (such as type checking), 
 but the restrictions that are enforced for queries processing personal data do not apply.
-Standard queries can only refer to `non-personal` tables or to other standard or anonymising subqueries.
+Standard queries can only refer to `non-personal` tables or to other standard or anonymizing subqueries.
 
 ### Distinguishing between query types
 
@@ -180,12 +180,12 @@ A standard query is any which does not fall into the other two categories.
 As an example the following query combines all three query types into one:
 
 ```SQL
--- Standard query (only processes anonymised (and hence non-personal) data)
+-- Standard query (only processes anonymized (and hence non-personal) data)
 SELECT
   min(age), max(age),
   count(age), sum(individuals) as num_users
 FROM (
-  -- An anonymising (and restricted) query as it produces an aggregate
+  -- An anonymizing (and restricted) query as it produces an aggregate
   -- that spans the data of multiple persons
   SELECT age, count(*) as individuals FROM (
     -- Restricted query as processes per user data and explicitly

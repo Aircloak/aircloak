@@ -348,7 +348,7 @@ work properly, you will also need to fill out the optional [`site.endpoint_publi
 The Insights Cloak configuration is used to provide the following information:
 
 - URL where the Insights Air component can be reached
-- Anonymisation salt
+- Anonymization salt
 - Data sources which can be queried - see [Data source configuration](#data-source-configuration)
 
 The general shape of `config.json` is:
@@ -373,7 +373,7 @@ The general shape of `config.json` is:
 
 The `air_site` parameter holds the URL where Insights Air component can be reached. It can be in the form of `"ws://air_host_name:port"` or `"wss://air_host_name:port"`, where `air_host_name` is the address of the machine where the Insights Air component is running. You should use the `ws` prefix if Insights Air is serving traffic over HTTP, while `wss` should be used for the HTTPS protocol.
 
-The `salt` parameter is used for anonymisation purposes. If your Aircloak Insights installation has multiple Insights Cloak instances
+The `salt` parameter is used for anonymization purposes. If your Aircloak Insights installation has multiple Insights Cloak instances
 you must make sure they use the same salt. Failing to do so has a negative impact on the quality of the anonymization.
 You can derive a strong `salt` parameter using a command such as:
 
@@ -499,7 +499,7 @@ The `content_type` is an optional field which determines whether the data in the
 of the following values: `personal` (default) and `non-personal`. Tables with data about individuals or entities whose
 anonymity should be preserved must be marked with the content type `personal`. If any such table is included in a query, the
 query will underlie the anonymization restrictions applied by Aircloak Insights and produce anonymized results. If the
-content type field is set to `non-personal`, the table will be classified as not containing data requiring anonymisation.
+content type field is set to `non-personal`, the table will be classified as not containing data requiring anonymization.
 Queries over such tables are not subject to the anonymization restrictions. *No attempts will be made to anonymize the data
 they contain!*
 
@@ -512,7 +512,7 @@ a table under a simpler name, or exposing the same database table multiple times
 
 If the `query` field is present instead, a virtual table is created, similar to an SQL view. The provided query can gather
 data from multiple tables, filter what columns are exposed and pre-process, pre-filter or pre-aggregate the data. The
-supported SQL features are the same as in other Aircloak queries, but the anonymisation-specific restrictions (like
+supported SQL features are the same as in other Aircloak queries, but the anonymization-specific restrictions (like
 requiring a numerical range to have an upper and lower bound, for example) do not apply.
 An example configuration for a virtual table would look like this:
 

@@ -401,7 +401,7 @@ SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = RIGHT(name || 'a', 1)
 Furthermore, the aggregators `min` and `max` cannot be used on data of type `text` in anonymizing queries and
 subqueries (see [Query and subquery types](/sql.md#query-and-subquery-types) for more about this distinction). This is
 due to the mode of operation of these aggregators and the fact that they require estimating the spread in subsets of the
-data. See [Aggregates](/sql/query-results.md#anonymising-aggregation-functions) for more on this topic.
+data. See [Aggregates](/sql/query-results.md#anonymizing-aggregation-functions) for more on this topic.
 
 ## IN, NOT IN, NOT LIKE, and <>
 

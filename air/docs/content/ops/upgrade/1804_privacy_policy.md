@@ -67,7 +67,7 @@ For each query the same metadata recorded by Aircloak Insights is also sent to A
 
 Aircloak GmbH does not record the queries themselves nor the query results.
 
-The information is analysed through an instance of Aircloak Insights. The fully anonymised statistical information of
+The information is analysed through an instance of Aircloak Insights. The fully anonymized statistical information of
 such analyses is subsequently used to assess how well different aspects of the system perform and help prioritise
 future improvements.
 
