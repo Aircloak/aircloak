@@ -17,7 +17,7 @@
     <h3 class="card-header"><i class="fas fa-table"></i> <%= analysis.table_name %> <span class="badge float-right <%= status_to_badge_class(analysis.status) %>"><%= analysis.status %></span></h3>
     <div class="card-body">
       <%= if analysis.version do %>
-        <p class="text-muted float-right">Diffix version: <%= version_link(analysis.version) %></p>
+        <p class="text-muted float-right">Diffix Explorer version: <%= version_link(analysis.version) %></p>
       <% end %>
       <p class="text-muted"><small><strong>First requested:</strong> <%= time_ago(analysis.inserted_at) %></br>
       <strong>Last modified:</strong> <%=  time_ago(analysis.updated_at) %></small></p>
