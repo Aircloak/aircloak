@@ -185,8 +185,8 @@ defmodule Air.Service.DataSource do
   def selectables(user, data_source) do
     views(user, data_source)
     |> Enum.concat(analyst_tables(user, data_source))
-    |> Enum.concat(with_explorer_metrics(data_source))
-    |> Enum.map(&Map.merge(%{analyst_created: false, broken: false, internal_id: nil, kind: :table}, &1))
+    |> Enum.concat(regular_tables(data_source))
+    |> Enum.map(&Map.merge(%{analyst_created: false, broken: false, internal_id: nil}, &1))
   end
 
   @doc "Creates a data source, raises on error."
@@ -314,33 +314,12 @@ defmodule Air.Service.DataSource do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp with_explorer_metrics(data_source) do
-    tables =
+  defp regular_tables(data_source),
+    do:
       data_source
       |> DataSource.tables()
       |> Aircloak.atomize_keys()
-
-    results = Air.Service.Explorer.results_for_datasource(data_source)
-
-    Enum.map(tables, fn table ->
-      update_in(table, [:columns, Access.all()], fn column ->
-        result = Enum.find(results, fn result -> result.table_name == table.id && column.name == result.column end)
-
-        if result && result.metrics do
-          metrics = Jason.decode!(result.metrics)
-
-          if Enum.empty?(metrics),
-            do: column,
-            else:
-              Map.put(column, :analysis, [
-                %{name: "updated_at", value: result.updated_at} | Jason.decode!(result.metrics)
-              ])
-        else
-          column
-        end
-      end)
-    end)
-  end
+      |> Enum.map(&Map.merge(%{kind: :table}, &1))
 
   defp add_group(name, users) do
     case Air.Service.Group.get_by_name(name) do
