@@ -144,6 +144,12 @@
               <td>
                 <div class="btn-group">
                   <%= link "Show", to: admin_data_source_path(@conn, :show_analyst_table, @data_source.name, analyst_table.id), class: "btn btn-outline-secondary btn-sm" %>
+                  <%= if available?(@data_source) do %>
+                    <%= link "Convert to view", to: admin_data_source_path(@conn, :convert_table_to_view, @data_source.name, analyst_table.id),
+                      method: :post, class: "btn btn-outline-danger btn-sm",
+                      "data-confirm": ~s(Convert table "#{analyst_table.name}" to view?)
+                    %>
+                  <% end %>
                 </div>
               </td>
             </tr>
