@@ -12,8 +12,8 @@ defmodule Cloak.DataSource.Driver.SQL do
   @callback select(Driver.connection(), String.t()) :: {:ok, Enumerable.t()} | {:error, String.t()}
 
   defmacro __using__(_opts) do
-    module = __CALLER__.module |> Module.split() |> List.last()
-    dialect = Module.concat(SqlBuilder, module)
+    module = __CALLER__.module
+    dialect = Module.concat(SqlBuilder, module |> Module.split() |> List.last())
 
     quote do
       alias Cloak.DataSource.{Driver, SqlBuilder}
@@ -32,7 +32,7 @@ defmodule Cloak.DataSource.Driver.SQL do
 
       @impl Driver
       def health_check(connection) do
-        case select(connection, "SELECT 1") do
+        case unquote(module).select(connection, "SELECT 1") do
           {:ok, _} -> :ok
           {:error, reason} -> {:error, reason}
         end
@@ -43,7 +43,7 @@ defmodule Cloak.DataSource.Driver.SQL do
 
       @doc false
       def execute!(connection, sql) do
-        case execute(connection, sql) do
+        case unquote(module).execute(connection, sql) do
           {:ok, result} -> result
           {:error, reason} -> raise(RuntimeError, reason)
         end
@@ -51,7 +51,7 @@ defmodule Cloak.DataSource.Driver.SQL do
 
       @doc false
       def select!(connection, sql) do
-        case select(connection, sql) do
+        case unquote(module).select(connection, sql) do
           {:ok, result} -> result
           {:error, reason} -> raise(RuntimeError, reason)
         end

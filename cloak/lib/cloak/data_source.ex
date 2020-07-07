@@ -457,8 +457,7 @@ defmodule Cloak.DataSource do
           ],
           strategy: :rest_for_one
         ),
-        Cloak.DataSource.SerializingUpdater,
-        Cloak.DataSource.PostgrexAutoRepair
+        Cloak.DataSource.SerializingUpdater
       ],
       strategy: :one_for_one,
       name: Cloak.DataSource.Supervisor
