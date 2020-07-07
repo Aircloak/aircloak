@@ -97,13 +97,21 @@ defmodule Mix.Tasks.Compile.UserDocs do
   defp strip_github_links(content),
     do: String.replace(content, ~r/\[aircloak\/aircloak#\d+\]\(.+?\) ?/, "", global: true)
 
-  defp write_processed_contents(content, file_name) do
-    case File.write("docs/content/#{file_name}", content) do
-      :ok ->
-        :ok
+  defp write_processed_contents(content, path) do
+    old_content =
+      case File.read(path) do
+        {:ok, content} -> content
+        _ -> nil
+      end
 
-      {:error, posix_error} ->
-        Mix.raise("Error failed to write #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}")
+    if content != old_content do
+      case File.write(path, content) do
+        :ok ->
+          :ok
+
+        {:error, posix_error} ->
+          Mix.raise("Error failed to write #{path}: #{Aircloak.File.humanize_posix_error(posix_error)}")
+      end
     end
   end
 
@@ -113,7 +121,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
       with {:ok, contents} <- File.read("../cloak/docs/#{file_name}") do
         contents
         |> strip_github_links()
-        |> write_processed_contents(file_name)
+        |> write_processed_contents("docs/content/#{file_name}")
       else
         {:error, posix_error} ->
           Mix.raise("Error processing cloak doc #{file_name}: #{Aircloak.File.humanize_posix_error(posix_error)}")
