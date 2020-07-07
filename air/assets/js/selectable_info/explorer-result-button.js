@@ -12,7 +12,7 @@ const AnalysisDetails = React.forwardRef(
         ref={ref}
         style={{ ...props.style, maxWidth: "min(360px, calc(100vw - 100px))" }}
       >
-        <Popover.Title>{name} - Diffix Explorer Analysis</Popover.Title>
+        <Popover.Title>{name}</Popover.Title>
         <Popover.Content>
           <div style={{ maxHeight: "50vh", overflowY: "auto" }}>
             <React.Suspense

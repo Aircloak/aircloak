@@ -18,7 +18,7 @@ defmodule Compliance.DataSource.MySQL do
   @impl Connector
   def connect(%{parameters: params}) do
     {:ok, conn} =
-      Mariaex.start_link(
+      MyXQL.start_link(
         database: params.database,
         hostname: params.hostname,
         port: Map.get(params, :port, 3306),
@@ -77,10 +77,10 @@ defmodule Compliance.DataSource.MySQL do
 
     query = "INSERT INTO #{table_name}(#{columns}) values #{all_placeholders}"
 
-    Mariaex.query!(conn, query, List.flatten(rows))
+    MyXQL.query!(conn, query, List.flatten(rows))
   end
 
-  defp execute!(conn, query, params \\ []), do: Mariaex.query!(conn, query, params)
+  defp execute!(conn, query, params \\ []), do: MyXQL.query!(conn, query, params)
 
   defp column_names(data),
     do:
@@ -92,14 +92,8 @@ defmodule Compliance.DataSource.MySQL do
   defp rows(data, column_names),
     do:
       Enum.map(data, fn entry ->
-        column_names
-        |> Enum.map(&Map.get(entry, &1))
-        |> Enum.map(&cast_types/1)
+        Enum.map(column_names, &Map.get(entry, &1))
       end)
-
-  defp cast_types(%Date{} = date), do: Date.to_erl(date)
-  defp cast_types(%NaiveDateTime{} = datetime), do: NaiveDateTime.to_erl(datetime)
-  defp cast_types(value), do: value
 
   defp escaped_column_names(column_names),
     do:
@@ -126,7 +120,7 @@ defmodule Compliance.DataSource.MySQL do
 
   defp setup_database(params) do
     {:ok, conn} =
-      Mariaex.start_link(
+      MyXQL.start_link(
         database: "mysql",
         hostname: params.hostname,
         port: Map.get(params, :port, 3306),
@@ -134,7 +128,7 @@ defmodule Compliance.DataSource.MySQL do
         sync_connect: true
       )
 
-    case Mariaex.query!(
+    case MyXQL.query!(
            conn,
            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '#{params.database}'"
          ).rows do
@@ -142,7 +136,7 @@ defmodule Compliance.DataSource.MySQL do
         :ok
 
       [[0]] ->
-        Mariaex.query!(conn, "CREATE DATABASE #{params.database} DEFAULT CHARACTER SET utf8")
+        MyXQL.query!(conn, "CREATE DATABASE #{params.database} DEFAULT CHARACTER SET utf8")
     end
   end
 end

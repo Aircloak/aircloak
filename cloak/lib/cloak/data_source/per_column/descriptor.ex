@@ -13,6 +13,10 @@ defmodule Cloak.DataSource.PerColumn.Descriptor do
   """
   @spec hash({DataSource.t(), String.t(), String.t()}) :: binary
   def hash({data_source, table_name, column_name}), do: hash(data_source, table_name, column_name)
+
+  @doc """
+  Returns a hash suitable for identifying columns across cloaks.
+  """
   @spec hash(DataSource.t(), String.t() | Table.t(), String.t()) :: binary
   def hash(data_source, table_or_table_name, column_name) do
     :crypto.hash(

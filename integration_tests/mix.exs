@@ -30,10 +30,8 @@ defmodule IntegrationTests.Mixfile do
       {:air, path: "../air", runtime: false, env: :dev},
       {:central, path: "../central", runtime: false},
       # resolving clashed dependencies
-      {:mariaex, "~> 0.8", override: true},
-      {:ecto, "~> 3.1.6"},
+      {:myxql, "~> 0.4", override: true},
       {:postgrex, "~> 0.14.3", override: true},
-      {:mongodb, "~> 0.5.1", override: true},
       {:httpoison, "~> 0.12.0", override: true},
       {:hackney, ">= 1.8.6", override: true},
       {:parse_trans, "3.2.0", override: true},
