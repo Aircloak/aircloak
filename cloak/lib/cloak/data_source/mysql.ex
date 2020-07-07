@@ -63,7 +63,7 @@ defmodule Cloak.DataSource.MySQL do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp absolute_filepath(filepath), do: Application.app_dir(:cloak, ["priv", "config", filepath]) |> Path.expand()
+  defp absolute_filepath(filepath), do: Aircloak.File.config_dir_path(:cloak) |> Path.join(filepath) |> Path.expand()
 
   defp do_connect(parameters) do
     self = self()
