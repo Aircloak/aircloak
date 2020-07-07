@@ -45,7 +45,7 @@
               method: :delete, class: "btn btn-outline-danger btn-sm",
               "data-confirm": ~s(Delete the data source "#{data_source.name}"?)
             %>
-        <% end %>
+          <% end %>
         </div>
       </td>
     </tr>
