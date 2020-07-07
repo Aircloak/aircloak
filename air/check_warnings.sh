@@ -2,6 +2,8 @@
 
 set -eo pipefail
 
+export COMPILE_USER_DOCS=false
+
 # --all-warnings prints all warnings to stderr, but returns exit status 0, so we need to capture it and analyze
 #
 # The first compilation ensures that the build is up to date, so the second compilation will only emit something

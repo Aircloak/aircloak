@@ -72,7 +72,7 @@ mocha:
 check-warnings:
 	MIX_ENV=dev mix compile --warnings-as-errors --all-warnings
 	MIX_ENV=test mix compile --warnings-as-errors --all-warnings
-	MIX_ENV=prod mix compile --warnings-as-errors --all-warnings
+	MIX_ENV=prod COMPILE_USER_DOCS=false mix compile --warnings-as-errors --all-warnings
 
 format:
 	mix format --check-equivalent
