@@ -5,6 +5,7 @@ defmodule Air.Service.ExplorerTest do
   alias Air.Schemas.ExplorerAnalysis
   require Aircloak.DeployConfig
   import Aircloak.AssertionHelper
+  @moduletag capture_log: true
 
   defmodule MockServer do
     @moduledoc "Mocks the [Diffix Explorer API](https://github.com/diffix/explorer#usage)."
@@ -14,13 +15,17 @@ defmodule Air.Service.ExplorerTest do
     @initial_state %{
       blocked: false,
       responses: %{
-        foo:
+        foos:
           {:ok,
            %{
              status: "Complete",
-             metrics: [%{value: [32], key: "some-metric"}]
+             columns: [
+               %{column: "user_id", metrics: []},
+               %{column: "foo", metrics: [%{value: [32], key: "some-metric"}]}
+             ],
+             sampleData: []
            }},
-        bar: {:error}
+        bars: {:error}
       }
     }
 
@@ -51,12 +56,12 @@ defmodule Air.Service.ExplorerTest do
 
     # Response control
 
-    def set_reponse(column, resp) do
-      Agent.update(__MODULE__, &put_in(&1, [:responses, column], resp))
+    def set_reponse(table, resp) do
+      Agent.update(__MODULE__, &put_in(&1, [:responses, table], resp))
     end
 
-    def get_response(column) do
-      Agent.get(__MODULE__, &get_in(&1, [:responses, String.to_atom(column)]))
+    def get_response(table) do
+      Agent.get(__MODULE__, &get_in(&1, [:responses, String.to_atom(table)]))
     end
 
     defmodule Controller do
@@ -65,8 +70,13 @@ defmodule Air.Service.ExplorerTest do
       def explore(conn, params) do
         json(conn, %{
           status: "New",
-          metrics: [],
-          id: params["ColumnName"]
+          columns: [],
+          sampleData: [],
+          id: params["Table"],
+          versionInfo: %{
+            commitHash: "7a35d2c8cd661947a6916179b49e6381f4878268",
+            commitRef: "master"
+          }
         })
       end
 
@@ -78,7 +88,16 @@ defmodule Air.Service.ExplorerTest do
             resp(conn, 500, "Something went wrong")
 
           {:ok, data} ->
-            json(conn, Map.put(data, :id, id))
+            json(
+              conn,
+              Map.merge(data, %{
+                id: id,
+                versionInfo: %{
+                  commitHash: "7a35d2c8cd661947a6916179b49e6381f4878268",
+                  commitRef: "master"
+                }
+              })
+            )
         end
       end
     end
@@ -153,6 +172,16 @@ defmodule Air.Service.ExplorerTest do
             name: "foo",
             user_id: false,
             isolated: false
+          }
+        ],
+        id: "foos"
+      },
+      %{
+        columns: [
+          %{
+            name: "user_id",
+            user_id: true,
+            isolated: true
           },
           %{
             name: "bar",
@@ -160,7 +189,7 @@ defmodule Air.Service.ExplorerTest do
             isolated: false
           }
         ],
-        id: "foos"
+        id: "bars"
       }
     ]
 
@@ -258,24 +287,35 @@ defmodule Air.Service.ExplorerTest do
 
       assert_soon(
         [
-          %ExplorerAnalysis{table_name: "foos", column: "bar", status: :new},
-          %ExplorerAnalysis{table_name: "foos", column: "foo", status: :new}
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column),
+          %ExplorerAnalysis{table_name: "bars", status: :new},
+          %ExplorerAnalysis{table_name: "foos", status: :new}
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
         timeout: 200
       )
 
       MockServer.resume()
+
       # Here we wait for polling to happen
       assert_soon(
         [
-          %ExplorerAnalysis{table_name: "foos", column: "bar", status: :error, metrics: "[]"},
+          %ExplorerAnalysis{
+            table_name: "bars",
+            status: :error,
+            results: %{"columns" => [], "sampleData" => []},
+            errors: ["Something went wrong in Diffix Explorer (HTTP 500) when polling: Something went wrong"]
+          },
           %ExplorerAnalysis{
             table_name: "foos",
-            column: "foo",
             status: :complete,
-            metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
+            results: %{
+              "columns" => [
+                %{"column" => "user_id", "metrics" => []},
+                %{"column" => "foo", "metrics" => [%{"key" => "some-metric", "value" => [32]}]}
+              ],
+              "sampleData" => []
+            }
           }
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column),
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
         timeout: 200
       )
     end
@@ -297,17 +337,21 @@ defmodule Air.Service.ExplorerTest do
       assert_soon(
         [
           %ExplorerAnalysis{
-            table_name: "foos",
-            column: "bar",
+            table_name: "bars",
             status: :error
           },
           %ExplorerAnalysis{
             table_name: "foos",
-            column: "foo",
             status: :complete,
-            metrics: "[{\"key\":\"some-metric\",\"value\":[32]}]"
+            results: %{
+              "columns" => [
+                %{"column" => "user_id", "metrics" => []},
+                %{"column" => "foo", "metrics" => [%{"key" => "some-metric", "value" => [32]}]}
+              ],
+              "sampleData" => []
+            }
           }
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.column),
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.table_name),
         timeout: 200
       )
     end
@@ -319,22 +363,26 @@ defmodule Air.Service.ExplorerTest do
       assert_soon(
         [
           %ExplorerAnalysis{
-            table_name: "foos",
-            column: "bar",
+            table_name: "bars",
             status: :error
           },
           %ExplorerAnalysis{}
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column),
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
         timeout: 200
       )
 
       # Now change what the server will have to say about bar
       MockServer.set_reponse(
-        :bar,
+        :bars,
         {:ok,
          %{
            status: "Processing",
-           metrics: [%{value: [10], key: "some-other-metric"}]
+           results: %{
+             "columns" => [
+               %{"column" => "foo", "metrics" => [%{"key" => "some-other-metric", "value" => [10]}]}
+             ],
+             "sampleData" => []
+           }
          }}
       )
 
@@ -345,12 +393,11 @@ defmodule Air.Service.ExplorerTest do
       assert_soon(
         [
           %ExplorerAnalysis{
-            table_name: "foos",
-            column: "bar",
+            table_name: "bars",
             status: :processing
           },
           %ExplorerAnalysis{}
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.column),
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.table_name),
         timeout: 200
       )
 
@@ -358,12 +405,11 @@ defmodule Air.Service.ExplorerTest do
       assert_soon(
         [
           %ExplorerAnalysis{
-            table_name: "foos",
-            column: "bar",
+            table_name: "bars",
             status: :error
           },
           %ExplorerAnalysis{}
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.column),
+        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
         timeout: 200
       )
     end
