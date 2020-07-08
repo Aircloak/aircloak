@@ -67,7 +67,8 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
     do: %{
       id: id,
       columns: Enum.map(table.columns, &column_info(data_source, table, &1)),
-      comment: Table.table_comment(table)
+      comment: Table.table_comment(table),
+      content_type: to_string(table.content_type)
     }
 
   defp column_info(data_source, table, column) do
