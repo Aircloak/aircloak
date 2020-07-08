@@ -437,8 +437,8 @@ defmodule Air.Service.DataSource do
   end
 
   @data_source_fields ~w(
-    name tables errors description columns_count isolated_computed_count isolated_failed shadow_tables_computed_count
-    shadow_tables_failed bounds_computed_count bounds_failed database_host supports_analyst_tables
+    name tables errors description pending_analysis isolated_failed
+    shadow_tables_failed bounds_failed database_host supports_analyst_tables
   )a
   defp data_source_changeset(data_source, params),
     do:
@@ -449,9 +449,8 @@ defmodule Air.Service.DataSource do
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
   defp data_source_to_db_data(data_source_map) do
-    # We're computing total column count, and computed and failed counts for isolators and shadow tables, and storing
-    # them directly. This allows us to have that data ready, without needing to decode the tables json. Since these
-    # counts are frequently needed to determine the column status, we're precomputing them once.
+    # We're pre-computing some commonly used values values here.
+    # This allows us to have that data ready, without needing to decode the tables json.
 
     tables = data_source_map.tables
     errors = Map.get(data_source_map, :errors, [])
@@ -461,13 +460,10 @@ defmodule Air.Service.DataSource do
       tables: Jason.encode!(tables),
       errors: Jason.encode!(errors),
       database_host: data_source_map[:database_host],
-      columns_count: count_columns(tables, fn _ -> true end),
-      isolated_computed_count: count_columns(tables, &is_boolean(&1.isolated)),
       isolated_failed: filter_columns(tables, &(&1.isolated == :failed)),
-      shadow_tables_computed_count: count_columns(tables, &(&1.shadow_table == :ok)),
       shadow_tables_failed: filter_columns(tables, &(&1.shadow_table == :failed)),
-      bounds_computed_count: count_columns(tables, &(&1 |> Map.get(:bounds, :ok) == :ok)),
       bounds_failed: filter_columns(tables, &(&1 |> Map.get(:bounds) == :failed)),
+      pending_analysis: count_columns(tables, &pending?/1) > 0,
       supports_analyst_tables: Map.get(data_source_map, :supports_analyst_tables, false)
     }
   end
@@ -479,6 +475,9 @@ defmodule Air.Service.DataSource do
       "#{table.id}.#{column.name}"
     end
   end
+
+  defp pending?(column),
+    do: column[:shadow_table] == :pending or column[:isolated] == :pending or column[:bounds] == :pending
 
   defp views(user, data_source) do
     Enum.map(
