@@ -4,27 +4,37 @@
     <li class="breadcrumb-item"><%= link "Data sources", to: admin_data_source_path(@conn, :index), class: "text-muted" %></li>
     <li class="breadcrumb-item"><%= link @data_source.name, to: admin_data_source_path(@conn, :show, @data_source.name), class: "text-muted" %></li>
   </ol>
+  <%= if available?(@data_source) do %>
+    <%= link "Convert to view", to: admin_data_source_path(@conn, :convert_table_to_view, @data_source.name, @analyst_table.id),
+      method: :post, class: "btn btn-warning float-md-right",
+      "data-confirm": ~s(Convert table "#{@analyst_table.name}" to view? This cannot be undone.)
+    %>
+  <% end %>
   <h1>Analyst table <%= @analyst_table.name %></h1>
 </header>
 
 <dl class="row">
   <dt class="col-sm-3 col-md-2">Name</dt>
-  <dd class="col-sm-9 col-md-10"><%= @analyst_table.name %></dt>
+  <dd class="col-sm-9 col-md-10"><%= @analyst_table.name %></dd>
 
   <dt class="col-sm-3 col-md-2">Analyst name</dt>
-  <dd class="col-sm-9 col-md-10"><%= @analyst_table.user.name %></dt>
+  <dd class="col-sm-9 col-md-10"><%= @analyst_table.user.name %></dd>
 
   <dt class="col-sm-3 col-md-2">Comment</dt>
-  <dd class="col-sm-9 col-md-10"><%= @analyst_table.comment %></dt>
+  <dd class="col-sm-9 col-md-10"><%= @analyst_table.comment %></dd>
 
   <dt class="col-sm-3 col-md-2">Creation status</dt>
-  <dd class="col-sm-9 col-md-10"><%= @analyst_table.creation_status %></dt>
+  <dd class="col-sm-9 col-md-10"><%= @analyst_table.creation_status %></dd>
 
   <dt class="col-sm-3 col-md-2">Broken?</dt>
-  <dd class="col-sm-9 col-md-10"><%= @analyst_table.broken %></dt>
+  <dd class="col-sm-9 col-md-10"><%= @analyst_table.broken %></dd>
 
   <dt class="col-sm-3 col-md-2">SQL</dt>
-  <dd class="col-sm-9 col-md-10"><div id="table-sql"></div></dt>
+  <dd class="col-sm-9 col-md-10">
+    <div id="table-sql">
+      <pre><%= @analyst_table.sql %></pre>
+    </div>
+  </dd>
 </dl>
 
 <script>
