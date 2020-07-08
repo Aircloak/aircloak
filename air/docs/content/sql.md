@@ -101,6 +101,7 @@ from a table containing personal data:
 ... (
   SELECT uid, count(*) as numTransactions
   FROM transactions
+  GROUP BY uid
 ) subquery
 ...
 ```
@@ -113,6 +114,7 @@ from a combination of tables containing personal data:
 ... (
   SELECT t.uid, count(*) as numTransactions, count(distinct a.id) as numAccounts
   FROM transactions t INNER JOIN accounts a ON t.account_id = a.id
+  GROUP BY t.uid
 ) subquery
 ...
 ```
