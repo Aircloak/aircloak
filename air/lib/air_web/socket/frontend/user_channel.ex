@@ -127,23 +127,28 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
       Air.Service.DataSource.selectables(user, data_source)
       |> Enum.sort_by(& &1.id)
       |> Enum.map(fn table ->
-        update_in(table, [:columns, Access.all()], fn column ->
-          result =
-            Enum.find(explorer_results, fn result -> result.table_name == table.id && column.name == result.column end)
+        result = Enum.find(explorer_results, fn result -> result.table_name == table.id end)
 
-          if result && result.metrics do
-            metrics = Jason.decode!(result.metrics)
+        if result do
+          table
+          |> update_in([:columns, Access.all()], fn column ->
+            column_metrics =
+              Enum.find(result.results["columns"] || [], %{"metrics" => []}, fn %{"column" => column_name} ->
+                column_name == column.name
+              end)["metrics"]
 
-            if Enum.empty?(metrics),
-              do: column,
-              else:
-                Map.put(column, :analysis, [
-                  %{name: "updated_at", value: result.updated_at} | Jason.decode!(result.metrics)
-                ])
-          else
-            column
-          end
-        end)
+            if Enum.empty?(column_metrics) do
+              column
+            else
+              Map.put(column, :analysis, [
+                %{name: "updated_at", value: result.updated_at} | column_metrics
+              ])
+            end
+          end)
+          |> put_in([:sample_data], result.results["sampleData"])
+        else
+          table
+        end
       end)
 
     %{selectables: selectables}

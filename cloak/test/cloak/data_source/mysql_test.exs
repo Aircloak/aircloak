@@ -11,7 +11,7 @@ defmodule Cloak.DataSource.MySQLTest do
 
     assert_raise(
       Cloak.Query.ExecutionError,
-      ~r/Failed to establish a connection to the database/,
+      ~r/Timeout connecting to the database/,
       fn -> Cloak.DataSource.Connection.execute!(data_source, & &1) end
     )
   end

@@ -2,6 +2,7 @@ defmodule Cloak.DataSourceTest do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource
+  doctest DataSource.Validations.Keys
 
   import ExUnit.CaptureLog
 

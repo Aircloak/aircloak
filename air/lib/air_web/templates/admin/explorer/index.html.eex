@@ -25,7 +25,7 @@
   </div>
   <div class="col-xl-5 p-xl-4 border-xl-left">
     <p>The Diffix Explorer integration manages a normal <%= link "user", to: admin_user_path(@conn, :index) %> and <%= link "group", to: admin_group_path(@conn, :index) %> that get permissions to make API requests against these data sources.</p>
-    <p>Once you hit Reanalyze, Diffix Explorer will make a large number of queries about every non-isolating column in every user table. Once we have the results, we'll present them in the query page.</p>
+    <p>Once you hit Reanalyze, Diffix Explorer will make a large number of queries about every user table. Once we have the results, we'll present them in the query page.</p>
   </div>
 </div>
 </div>

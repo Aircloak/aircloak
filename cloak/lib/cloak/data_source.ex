@@ -335,6 +335,7 @@ defmodule Cloak.DataSource do
     |> Map.put_new(:lcf_buckets_aggregation_limit, nil)
     |> Map.put_new(:bound_computation_enabled, true)
     |> Validations.Name.ensure_permitted()
+    |> Validations.Keys.ensure_permitted()
     |> potentially_create_temp_name()
     |> Table.map_tables()
     |> map_driver()
@@ -457,8 +458,7 @@ defmodule Cloak.DataSource do
           ],
           strategy: :rest_for_one
         ),
-        Cloak.DataSource.SerializingUpdater,
-        Cloak.DataSource.PostgrexAutoRepair
+        Cloak.DataSource.SerializingUpdater
       ],
       strategy: :one_for_one,
       name: Cloak.DataSource.Supervisor

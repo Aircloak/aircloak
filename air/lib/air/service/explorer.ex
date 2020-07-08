@@ -29,7 +29,7 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  @doc "Returns counts of columns in various stages grouped by data source."
+  @doc "Returns counts of tables in various stages grouped by data source."
   @spec statistics :: [
           %{
             complete: integer,
@@ -217,51 +217,63 @@ defmodule Air.Service.Explorer do
   end
 
   defp request_analysis_for_table(data_source, %{"id" => table_name, "columns" => columns}, token) do
-    columns
-    |> Enum.reject(fn %{"isolated" => isolating?, "user_id" => uid?} -> isolating? || uid? end)
-    |> Enum.each(fn %{"name" => column_name} ->
-      request_analysis_for_column(data_source, table_name, column_name, token)
-    end)
-  end
-
-  defp request_analysis_for_column(data_source, table_name, column_name, token) do
     body =
       %{
         "ApiUrl" => AirWeb.Endpoint.url() <> "/api/",
         "ApiKey" => token,
-        "DataSourceName" => data_source.name,
-        "TableName" => table_name,
-        "ColumnName" => column_name
+        "DataSource" => data_source.name,
+        "Table" => table_name,
+        "Columns" =>
+          columns
+          |> Enum.reject(fn %{"isolated" => isolating?, "user_id" => uid?} -> isolating? || uid? end)
+          |> Enum.map(fn %{"name" => column_name} ->
+            column_name
+          end)
       }
       |> Jason.encode!()
 
     with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
            HTTPoison.post(base_url() <> "/explore", body, [{"Content-Type", "application/json"}]),
          {:ok, decoded} <- Jason.decode(response),
-         {:ok, analysis} <- upsert_analysis(data_source, table_name, column_name, result: decoded) do
+         {:ok, analysis} <- upsert_analysis(data_source, table_name, result: decoded) do
       {:ok, analysis}
     else
-      err ->
-        upsert_analysis(data_source, table_name, column_name, status: :error)
-
+      {:ok, %HTTPoison.Response{status_code: status_code, body: err}} when status_code >= 400 ->
         Logger.error(
-          "Explorer encountered an unexpected error when requesting an analysis for #{data_source.name}/#{table_name}/#{
-            column_name
-          }: #{inspect(err)}"
+          "Explorer encountered an unexpected error (HTTP: #{status_code}) when requesting an analysis for #{
+            data_source.name
+          }/#{table_name}: #{err}"
         )
+
+        {:ok, _} =
+          upsert_analysis(data_source, table_name,
+            status: :error,
+            errors: ["HTTP #{status_code} during initial request. #{err}"]
+          )
+
+        :error
+
+      err ->
+        Logger.error(
+          "Explorer encountered an unexpected error when requesting an analysis for #{data_source.name}/#{table_name}: #{
+            inspect(err)
+          }"
+        )
+
+        {:ok, _} = upsert_analysis(data_source, table_name, status: :error, errors: [inspect(err)])
 
         :error
     end
   end
 
-  defp upsert_analysis(data_source, table_name, column, opts) do
+  defp upsert_analysis(data_source, table_name, opts) do
     changeset =
       case Repo.one(
              from(ea in ExplorerAnalysis,
-               where: ea.data_source_id == ^data_source.id and ea.table_name == ^table_name and ea.column == ^column
+               where: ea.data_source_id == ^data_source.id and ea.table_name == ^table_name
              )
            ) do
-        nil -> %ExplorerAnalysis{data_source: data_source, table_name: table_name, column: column}
+        nil -> %ExplorerAnalysis{data_source: data_source, table_name: table_name}
         analysis -> analysis
       end
 
@@ -288,11 +300,14 @@ defmodule Air.Service.Explorer do
       {:ok, %HTTPoison.Response{status_code: 404}} ->
         handle_retry(explorer_analysis)
 
-      {:ok, %HTTPoison.Response{status_code: 500}} ->
-        handle_poll_error(explorer_analysis, "Something went wrong in Diffix Explorer")
+      {:ok, %HTTPoison.Response{status_code: 500, body: body}} ->
+        handle_poll_error(
+          explorer_analysis,
+          "Something went wrong in Diffix Explorer (HTTP 500) when polling: " <> body
+        )
 
       err ->
-        handle_poll_error(explorer_analysis, err)
+        handle_poll_error(explorer_analysis, inspect(err))
     end
   end
 
@@ -302,17 +317,16 @@ defmodule Air.Service.Explorer do
     Logger.warn(
       "Explorer returned 404 for previously created job (#{explorer_analysis.data_source.name}/#{
         explorer_analysis.table_name
-      }/#{explorer_analysis.column}). Retrying."
+      }). Retrying."
     )
 
     {_, token} = find_or_create_explorer_creds()
 
     Repo.delete!(explorer_analysis)
 
-    request_analysis_for_column(
+    request_analysis_for_table(
       explorer_analysis.data_source,
       explorer_analysis.table_name,
-      explorer_analysis.column,
       token
     )
 
@@ -320,14 +334,16 @@ defmodule Air.Service.Explorer do
   end
 
   defp handle_poll_error(explorer_analysis, error) do
+    explorer_analysis = Repo.preload(explorer_analysis, :data_source)
+
     Logger.error(
-      "Polling for results for {explorer_analysis.data_source.name}/#{explorer_analysis.table_name}/#{
-        explorer_analysis.column
-      } errored with #{inspect(error)}."
+      "Polling for results for #{explorer_analysis.data_source.name}/#{explorer_analysis.table_name} errored with #{
+        inspect(error)
+      }."
     )
 
     explorer_analysis
-    |> ExplorerAnalysis.changeset(%{status: :error})
+    |> ExplorerAnalysis.changeset(%{status: :error, errors: [error]})
     |> Air.Repo.update()
 
     {:error, error}
