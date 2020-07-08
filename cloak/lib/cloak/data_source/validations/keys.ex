@@ -34,14 +34,13 @@ defmodule Cloak.DataSource.Validations.Keys do
   defp validate_uid_keys(%{tables: tables, errors: existing_errors} = data_source) do
     new_errors =
       tables
-      |> Enum.map(fn {table_name, data} ->
-        {
-          table_name,
+      |> Enum.map(fn {name, table} ->
+        user_id_keys =
           Lens.key?(:keys)
           |> Lens.all()
           |> Lens.filter(&match?(%{user_id: _}, &1))
-          |> Lens.to_list(data)
-        }
+          |> Lens.to_list(table)
+        {name, user_id_keys}
       end)
       |> Enum.filter(&(length(elem(&1, 1)) > 1))
       |> Enum.map(fn {table_name, user_ids} ->
