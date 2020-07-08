@@ -16,7 +16,7 @@
         <td><%= length(group.data_sources) %></td>
         <td>
           <%= if is_explorer?(group) do %>
-            <%= link "Manage", to: admin_explorer_path(@conn, :index) %>
+            <%#= link "Manage", to: admin_explorer_path(@conn, :index) %>
           <% else %>
             <%= link "Edit", to: admin_group_path(@conn, :edit, group), class: "btn btn-sm btn-secondary", disabled: group.system %>
 

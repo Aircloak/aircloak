@@ -13,6 +13,7 @@
     <title>Aircloak – Admin - Air control</title>
     <link rel="shortcut icon" href="<%= static_path(@conn, "/frontend/images/favicon.ico") %>" type="image/x-icon">
     <link rel="stylesheet" href="<%= static_path(@conn, "/frontend/app.css") %>">
+    <%= csrf_meta_tag() %>
   </head>
 
   <body>
@@ -36,7 +37,7 @@
             <ul class="navbar-nav">
               <%= sidebar_link(@conn, "Users", "user", admin_user_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Groups", "user-friends", admin_group_path(@conn, :index)) %>
-              <%= sidebar_link(@conn, "Diffix Explorer", "compass", admin_explorer_path(@conn, :index)) %>
+              <%#= sidebar_link(@conn, "Diffix Explorer", "compass", admin_explorer_path(@conn, :index)) %>
             </ul>
             <hr class="navbar-divider my-3 w-100" />
             <ul class="navbar-nav">

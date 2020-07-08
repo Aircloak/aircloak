@@ -148,7 +148,8 @@ defmodule AirWeb.Router do
 
     resources("/license", LicenseController, only: [:edit, :update], singleton: true)
     resources("/privacy_policy", PrivacyPolicyController)
-    resources("/diffix-explorer", ExplorerController, except: [:delete])
+    live("/diffix-explorer", ExplorerLive.Index, layout: {AirWeb.LayoutView, :admin})
+    resources("/diffix-explorer", ExplorerController, except: [:delete, :index])
 
     live_dashboard("/live-dashboard")
   end

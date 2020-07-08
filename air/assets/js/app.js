@@ -1,6 +1,8 @@
 // @flow
 import "../css/app.css";
 import "phoenix_html";
+import { Socket } from "phoenix";
+import LiveSocket from "phoenix_live_view";
 import React from "react";
 import ReactDOM from "react-dom";
 import codeMirror from "codemirror";
@@ -36,6 +38,16 @@ const App = {
     ),
   auditLog: (props, elem) => App.render("audit_log", props, elem),
   passwordField: (props, elem) => App.render("password_field", props, elem),
+  liveView: (props) => {
+    const _csrf_token = document
+      .querySelector("meta[name='csrf-token']")
+      .getAttribute("content");
+    const liveSocket = new LiveSocket("/live", Socket, {
+      params: { _csrf_token },
+    });
+    liveSocket.connect();
+    window.live = liveSocket;
+  },
 
   attachCodeMirrorToTextArea: (textArea, targetElement) => {
     const elementEditor = codeMirror(

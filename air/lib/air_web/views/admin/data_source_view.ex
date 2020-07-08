@@ -25,7 +25,8 @@ defmodule AirWeb.Admin.DataSourceView do
 
   defp link_unless_explorer(conn, title, thing, opts) do
     if thing.system && thing.name == "Diffix Explorer" do
-      link("Manage", to: admin_explorer_path(conn, :index))
+      # link("Manage", to: admin_explorer_path(conn, :index))
+      link(title, opts)
     else
       link(title, opts)
     end

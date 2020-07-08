@@ -16,6 +16,15 @@ defmodule Air.Web do
   below.
   """
 
+  def live_view do
+    quote do
+      use Phoenix.LiveView,
+        layout: {AirWeb.LayoutView, "live.html"}
+
+      unquote(view_helpers())
+    end
+  end
+
   def controller do
     quote do
       use Phoenix.Controller, namespace: AirWeb
@@ -90,14 +99,7 @@ defmodule Air.Web do
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1]
 
-      # Use all HTML functionality (forms, tags, etc)
-      use Phoenix.HTML
-
-      import AirWeb.Router.Helpers
-      import AirWeb.ErrorHelpers
-      import AirWeb.ViewHelpers
-      import AirWeb.Gettext
-      import Phoenix.LiveView.Helpers
+      unquote(view_helpers())
     end
   end
 
@@ -144,5 +146,18 @@ defmodule Air.Web do
       name: __MODULE__,
       strategy: :rest_for_one
     )
+  end
+
+  defp view_helpers do
+    quote do
+      # Use all HTML functionality (forms, tags, etc)
+      use Phoenix.HTML
+
+      import AirWeb.Router.Helpers
+      import AirWeb.ErrorHelpers
+      import AirWeb.ViewHelpers
+      import AirWeb.Gettext
+      import Phoenix.LiveView.Helpers
+    end
   end
 end

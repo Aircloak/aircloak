@@ -284,7 +284,9 @@ defmodule Air.Service.Explorer do
         ExplorerAnalysis.changeset(changeset, Enum.into(opts, %{}))
       end
 
-    Repo.insert_or_update(modified)
+    result = Repo.insert_or_update(modified)
+    AirWeb.Endpoint.broadcast!("explorer", "analysis_updated", %{result: result})
+    result
   end
 
   defp poll_for_update(explorer_analysis) do
@@ -295,6 +297,7 @@ defmodule Air.Service.Explorer do
            explorer_analysis
            |> ExplorerAnalysis.from_result_json(decoded)
            |> Air.Repo.update() do
+      AirWeb.Endpoint.broadcast!("explorer", "analysis_updated", %{result: analysis})
       {:ok, analysis}
     else
       {:ok, %HTTPoison.Response{status_code: 404}} ->
@@ -345,6 +348,8 @@ defmodule Air.Service.Explorer do
     explorer_analysis
     |> ExplorerAnalysis.changeset(%{status: :error, errors: [error]})
     |> Air.Repo.update()
+
+    AirWeb.Endpoint.broadcast!("explorer", "analysis_updated", %{})
 
     {:error, error}
   end
