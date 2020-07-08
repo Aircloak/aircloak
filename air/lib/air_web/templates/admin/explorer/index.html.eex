@@ -32,7 +32,18 @@
 
 <%= if length(@data_sources) > 0 do %>
   <section>
-    <h3 class="mt-5 pb-2">Analysis Progress</h3>
+    <h3 class="mt-5 pb-2">
+      Analysis Progress
+      <%= if @current_user.debug_mode_enabled and length(@data_sources) > 1 do %>
+      <%= link to: admin_explorer_path(@conn, :reanalyze_all),
+          method: "POST",
+          class: "btn btn-sm float-right btn-primary",
+          "data-confirm": "Reanalyzing all data sources can dramatically increase the load on your system. Are you sure?" do %>
+        <i class="fas fa-redo fa-sm"></i>
+        Reanalyze all data sources
+      <% end %>
+      <% end %>
+    </h3>
     <div class="card-columns card-columns-responsive">
       <%= for data_source <- @data_sources do %>
         <div class="card">

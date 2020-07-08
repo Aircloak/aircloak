@@ -51,6 +51,16 @@ defmodule AirWeb.Admin.ExplorerController do
     redirect(conn, to: admin_explorer_path(conn, :index))
   end
 
+  def reanalyze_all(conn, _params) do
+    Air.Service.DataSource.all()
+    |> Enum.filter(&Explorer.data_source_enabled?/1)
+    |> Enum.each(&Explorer.reanalyze_datasource/1)
+
+    conn
+    |> put_flash(:info, "Reanalyzing all data sources.")
+    |> redirect(to: admin_explorer_path(conn, :index))
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
