@@ -40,9 +40,10 @@ defmodule Cloak.DataSource.Validations.Keys do
           |> Lens.all()
           |> Lens.filter(&match?(%{user_id: _}, &1))
           |> Lens.to_list(table)
+
         {name, user_id_keys}
       end)
-      |> Enum.filter(&(length(elem(&1, 1)) > 1))
+      |> Enum.filter(&(length(elem(&1, 1)) >= 2))
       |> Enum.map(fn {table_name, user_ids} ->
         user_id_columns = user_ids |> Enum.map(&"`#{&1.user_id}`") |> Aircloak.OxfordComma.join()
 
