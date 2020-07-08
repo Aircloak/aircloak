@@ -709,7 +709,6 @@ defmodule Air.Service.UserTest do
 
     test "fails if changing non-password related fields" do
       user = TestRepoHelper.create_user!(%{password: "psswrd12"})
-      session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       assert {:error, _} = User.update_password(user, %{"name" => "foobar"})
       {:ok, updated_user, _} = User.update_password(user, %{"name" => "foobar", "old_password" => "psswrd12"})

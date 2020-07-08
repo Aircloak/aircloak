@@ -95,7 +95,7 @@ defmodule Air.Mixfile do
       {:epgsql, "~> 4.1"},
       {:bom, path: "../bom", runtime: false, only: :dev},
       {:zxcvbn, "~> 0.1.3"},
-      {:httpoison, "~> 1.6"},
+      {:httpoison, "~> 1.7"},
       {:jason, "~> 1.0"},
       {:phoenix_live_view, "~> 0.13.3"},
       {:phoenix_live_dashboard, "~> 0.2"},

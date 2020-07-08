@@ -120,7 +120,39 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
 
   def format_query(query), do: hd(AirWeb.Admin.ActivityMonitorView.format_queries([query]))
 
-  defp selectable_payload(user, data_source), do: %{selectables: AirWeb.ViewHelpers.selectables(user, data_source)}
+  defp selectable_payload(user, data_source) do
+    explorer_results = Air.Service.Explorer.results_for_datasource(data_source)
+
+    selectables =
+      Air.Service.DataSource.selectables(user, data_source)
+      |> Enum.sort_by(& &1.id)
+      |> Enum.map(fn table ->
+        result = Enum.find(explorer_results, fn result -> result.table_name == table.id end)
+
+        if result do
+          table
+          |> update_in([:columns, Access.all()], fn column ->
+            column_metrics =
+              Enum.find(result.results["columns"] || [], %{"metrics" => []}, fn %{"column" => column_name} ->
+                column_name == column.name
+              end)["metrics"]
+
+            if Enum.empty?(column_metrics) do
+              column
+            else
+              Map.put(column, :analysis, [
+                %{name: "updated_at", value: result.updated_at} | column_metrics
+              ])
+            end
+          end)
+          |> put_in([:sample_data], result.results["sampleData"])
+        else
+          table
+        end
+      end)
+
+    %{selectables: selectables}
+  end
 
   defp user_id_matches_user(user_id_string, socket) when is_binary(user_id_string) do
     case(Integer.parse(user_id_string)) do

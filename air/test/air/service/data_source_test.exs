@@ -449,6 +449,29 @@ defmodule Air.Service.DataSourceTest do
       assert [%{id: ^analyst_table_name, analyst_created: true, kind: :analyst_table}] =
                DataSource.selectables(context[:user], context[:data_source])
     end
+
+    test "lists native data source tables as part of selectables", context do
+      tables =
+        Jason.encode!([
+          %{
+            id: "my table",
+            columns: []
+          }
+        ])
+
+      data_source = DataSource.update!(context[:data_source], %{tables: tables})
+
+      assert [
+               %{
+                 analyst_created: false,
+                 broken: false,
+                 columns: [],
+                 id: "my table",
+                 internal_id: nil,
+                 kind: :table
+               }
+             ] = DataSource.selectables(context[:user], data_source)
+    end
   end
 
   describe ".add_preconfigured_datasource" do
