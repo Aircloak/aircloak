@@ -8,6 +8,10 @@ defmodule AirWeb.Admin.DataSourceView do
   defdelegate availability_label(data_source), to: AirWeb.DataSourceView
   defdelegate number_of_tables(data_source), to: AirWeb.DataSourceView
 
+  def nil_or_empty?(nil), do: true
+  def nil_or_empty?(""), do: true
+  def nil_or_empty?(_), do: false
+
   def number_of_analyst_tables(data_source), do: length(AnalystTable.all_for_data_source(data_source))
 
   def available?(data_source), do: Air.Service.DataSource.available?(data_source.name)
