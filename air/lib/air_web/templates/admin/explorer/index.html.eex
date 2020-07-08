@@ -34,7 +34,7 @@
   <section>
     <h3 class="mt-5 pb-2">
       Analysis Progress
-      <%= if length(@data_sources) > 1 do %>
+      <%= if @current_user.debug_mode_enabled and length(@data_sources) > 1 do %>
       <%= link to: admin_explorer_path(@conn, :reanalyze_all),
           method: "POST",
           class: "btn btn-sm float-right btn-primary",
