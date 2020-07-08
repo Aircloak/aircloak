@@ -62,19 +62,15 @@ defmodule AirWeb.Admin.AnalysisController do
         analysis_pending: Enum.count(table["columns"], &Column.analysis_pending?/1),
         analysis_failed: Enum.count(table["columns"], &Column.analysis_failed?/1),
         isolators_computed: Enum.count(table["columns"], &Column.isolators_computed?/1),
+        isolators_pending: Enum.count(table["columns"], &Column.isolators_pending?/1),
         isolators_failed: Enum.count(table["columns"], &Column.isolators_failed?/1),
         rare_values_computed: Enum.count(table["columns"], &Column.shadow_computed?/1),
+        rare_values_pending: Enum.count(table["columns"], &Column.shadow_pending?/1),
         rare_values_failed: Enum.count(table["columns"], &Column.shadow_failed?/1),
         bounds_computed: Enum.count(table["columns"], &Column.bounds_computed?/1),
+        bounds_pending: Enum.count(table["columns"], &Column.bounds_pending?/1),
         bounds_failed: Enum.count(table["columns"], &Column.bounds_failed?/1)
       }
     end
-    |> Enum.map(fn table ->
-      Map.merge(table, %{
-        isolators_pending: table.columns - table.isolators_computed - table.isolators_failed,
-        rare_values_pending: table.columns - table.rare_values_computed - table.rare_values_failed,
-        bounds_pending: table.columns - table.bounds_computed - table.bounds_failed
-      })
-    end)
   end
 end
