@@ -1,6 +1,6 @@
 # Best practises
 
-Because Aircloak Insights anonymises query results, it must be queried in a slightly different way
+Because Aircloak Insights anonymizes query results, it must be queried in a slightly different way
 than one would query a normal database. This guide will explain some of the peculiarities and show
 best practises which allow you to gain the most value from the system.
 
@@ -18,9 +18,9 @@ raw data:
 | Bob        | Boyle     | 10  | 10000    | M      |
 | Bob        | Buckner   | 10  | 10000    | M      |
 
-## How anonymisation alters results
+## How anonymization alters results
 
-Aircloak Insights' anonymisation does not change the values in the columns you select.
+Aircloak Insights' anonymization does not change the values in the columns you select.
 Instead, it alters the aggregates resulting from your queries.
 
 In other words, if you were to write the query:
@@ -39,7 +39,7 @@ The anonymized result might look something like this:
 | 11000    | F      | 3     |
 | 10000    | M      | 4     |
 
-What is anonymised is the aggregate - in this case the count. Instead of getting a count of 4
+What is anonymized is the aggregate - in this case the count. Instead of getting a count of 4
 for the zip code and gender pair 10000 and M you might see a count between 2 and 6.
 
 Aircloak Insights also filters out values that do not appear frequently enough. We call this low count filtering.
@@ -49,11 +49,11 @@ Instead of giving us an altered count, the system will withold this information 
 More details about how the aggregates get altered can be found in the [understanding query
 results](query-results.md) chapter of these user guides.
 
-## Column selection and its effect on anonymisation
+## Column selection and its effect on anonymization
 
 When querying a traditional database system it is common to run a query such as `SELECT *` or
 otherwise select a wide range of columns. This does not work well with the approach Aircloak
-Insights takes to anonymisation.
+Insights takes to anonymization.
 
 Aircloak Insights filters out rows from the result set where the combination of values in the selected columns
 do not appear for enough distinct individuals in the dataset. Aircloak Insights could give you information
@@ -73,11 +73,11 @@ and while there are quite a number of individuals with the last name Anderson, n
 the same first name. Because of these unique combinations of columns, effectively no results can be shown,
 and, as a general rule, the more columns you select in a query, the lower the probability that
 there is data from sufficiently many distinct users that share the same attribute values and thereby
-won't get anonymised away.
+won't get anonymized away.
 
 Aircloak Insights will attempt to provide some value even in the cases where you select many columns
 while there is not enough unique individuals to provide values for the full set of column combinations.
-It will do so by selectively replacing one column at a time with a `*` (indicating that the value was anonymised away).
+It will do so by selectively replacing one column at a time with a `*` (indicating that the value was anonymized away).
 This process takes place from the rightmost to the leftmost selected column. For the following examples we will assume
 the minimum threshold for the number of individuals needed to pass the low count filter is 3. The reality is somewhat
 more complex, but it's enough for the purposes of this example.
@@ -160,14 +160,14 @@ That leaves us with the final table:
 
 We can take away a number of things from this example:
 
-1. The higher the number of distinct colums you select in your query, the lower the likelihood that
+1. The higher the number of distinct columns you select in your query, the lower the likelihood that
    the set of individual attributes occur frequently enough to pass the low count threshold.
 1. Queries such as `SELECT * ...` will usually not yield useful information in the context of Aircloak Insights.
 1. As an analyst you can directly influence the order in which Aircloak Insights will drop columns.
    The process takes place from right to left. Therefore you should order the columns from most to least important.
 1. Selecting a column that has a unique value per user, or close to it,
    as one of your first columns will automatically lead to all the columns right of it being
-   anonymised away. You are therefore likely better off selecting columns with a high number
+   anonymized away. You are therefore likely better off selecting columns with a high number
    of distinct values as one of your later columns, as chances are they will get dropped.
 
 Let us now revisit the same query again, but looking at what the result would have
@@ -179,7 +179,7 @@ SELECT gender, zip_code, first_name, age, last_name
 FROM table
 ```
 
-Just like last time none of the rows occur frequently enough to pass the anonymiser,
+Just like last time none of the rows occur frequently enough to pass the anonymizer,
 and Aircloak Insights will drop the rightmost column, in this case last name:
 
 | # individuals | gender | zip_code | first_name | age | last_name |
@@ -283,7 +283,7 @@ This value is more likely to pass the low count filter than the high resolution 
 
 In most dialects of SQL all but the `count` aggregate may produce a `null` value. The `count` aggregate would, lacking
 data to produce a count, return 0 rather than `null`. Aircloak Insights behaves similarly. When there is insufficient
-data to produce a properly anonymised aggregate but sufficient data that the set of column values passed the low count
+data to produce a properly anonymized aggregate but sufficient data that the set of column values passed the low count
 filter, then `null` will be returned for all aggregates but the `count`. As tools expect a non-`null` value for `count`s,
 Aircloak Insights will return a hardcoded lower bound value of 2 instead.
 
@@ -305,7 +305,7 @@ to inform you as an analyst that users with the last name of Anderson exist in t
 anomymized average age. The `avg(age)` would therefore be returned as `null`.
 
 In the case of `count` we might have enough distinct users to produce a count for the number of Anderson's, but not enough
-other users to generate a count for the `*` row (the anonymised row). Unlike for `avg` Aircloak Insights cannot
+other users to generate a count for the `*` row (the anonymized row). Unlike for `avg` Aircloak Insights cannot
 report a `null` value as that would be incompatible with most existing tools and would return 2 instead.
 The presence of 2 in a `count` should therefore be considered as information about the fact that there are users with the
 given properties in the dataset, but not enough to produce a proper count. To validate that this is what is going on,
