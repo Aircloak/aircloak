@@ -34,6 +34,7 @@ const exactValues = (data) => (
           axis: {
             title: false,
           },
+          sort: "-x",
         },
         x: {
           field: "count",
