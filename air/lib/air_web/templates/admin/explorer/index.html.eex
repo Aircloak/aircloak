@@ -35,12 +35,14 @@
     <h3 class="mt-5 pb-2">
       Analysis Progress
       <%= if length(@data_sources) > 1 do %>
-      <span class="ml-1">
-        <%= link to: admin_explorer_path(@conn, :reanalyze_all), method: "POST", class: "btn btn-outline-secondary", style: "flex-basis: 50%" do %>
-          <i class="fas fa-redo fa-sm"></i>
-          Reanalyze all data sources
-        <% end %>
-      </span>
+      <%= link to: admin_explorer_path(@conn, :reanalyze_all),
+          method: "POST",
+          class: "btn btn-sm float-right btn-primary",
+          style: "flex-basis: 50%",
+          "data-confirm": "Reanalyzing all data sources can dramatically increase the load on your system. Are you sure?" do %>
+        <i class="fas fa-redo fa-sm"></i>
+        Reanalyze all data sources
+      <% end %>
       <% end %>
     </h3>
     <div class="card-columns card-columns-responsive">
