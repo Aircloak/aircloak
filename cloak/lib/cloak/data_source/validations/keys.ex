@@ -25,10 +25,7 @@ defmodule Cloak.DataSource.Validations.Keys do
       "Only one user-id key is allowed per table. Table `table` declares multiple: `id1` and `id2`"]}
   """
   @spec ensure_permitted(Map.t()) :: Map.t()
-  def ensure_permitted(data_source),
-    do:
-      data_source
-      |> validate_uid_keys()
+  def ensure_permitted(data_source), do: validate_uid_keys(data_source)
 
   # -------------------------------------------------------------------
   # Internal functions
