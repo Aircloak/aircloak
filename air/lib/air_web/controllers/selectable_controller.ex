@@ -8,6 +8,7 @@ defmodule AirWeb.SelectableController do
 
   plug(:load_data_source)
   plug(:load_selectables)
+  plug(:set_number_format)
   plug(:put_layout, "raw.html")
 
   # -------------------------------------------------------------------
@@ -26,10 +27,7 @@ defmodule AirWeb.SelectableController do
         conn,
         "new.html",
         kind: kind,
-        changeset: new_changeset_of_kind(kind),
-        data_source: conn.assigns.data_source,
-        selectables: conn.assigns.selectables,
-        number_format: User.number_format_settings(conn.assigns.current_user)
+        changeset: new_changeset_of_kind(kind)
       )
 
   def edit(conn, %{"id" => id, "kind" => kind}),
@@ -38,10 +36,7 @@ defmodule AirWeb.SelectableController do
         conn,
         "edit.html",
         kind: kind,
-        changeset: existing_changeset_of_kind(id, kind),
-        data_source: conn.assigns.data_source,
-        selectables: conn.assigns.selectables,
-        number_format: User.number_format_settings(conn.assigns.current_user)
+        changeset: existing_changeset_of_kind(id, kind)
       )
 
   def create(conn, %{"kind" => kind} = params) do
@@ -53,10 +48,7 @@ defmodule AirWeb.SelectableController do
       {:error, changeset} ->
         render(conn, "new.html",
           kind: kind,
-          changeset: changeset,
-          data_source: conn.assigns.data_source,
-          selectables: conn.assigns.selectables,
-          number_format: User.number_format_settings(conn.assigns.current_user)
+          changeset: changeset
         )
     end
   end
@@ -75,10 +67,7 @@ defmodule AirWeb.SelectableController do
           conn,
           "edit.html",
           kind: kind,
-          changeset: changeset,
-          data_source: conn.assigns.data_source,
-          selectables: conn.assigns.selectables,
-          number_format: User.number_format_settings(conn.assigns.current_user)
+          changeset: changeset
         )
     end
   end
@@ -127,6 +116,9 @@ defmodule AirWeb.SelectableController do
 
   defp load_selectables(conn, _opts),
     do: conn |> assign(:selectables, DataSource.selectables(conn.assigns.current_user, conn.assigns.data_source))
+
+  defp set_number_format(conn, _opts),
+    do: conn |> assign(:number_format, User.number_format_settings(conn.assigns.current_user))
 
   defp maybe_broken_message(conn) do
     case View.broken(conn.assigns.current_user, conn.assigns.data_source) do
