@@ -44,14 +44,10 @@ defmodule Cloak.DataSource.Validations.Keys do
         }
       end)
       |> Enum.filter(&(length(elem(&1, 1)) > 1))
-      |> Enum.map(fn {table, keys} ->
-        wrapped_keys =
-          keys
-          |> Enum.map(&Map.get(&1, :user_id))
-          |> Enum.map(&"`#{&1}`")
-          |> Aircloak.OxfordComma.join()
+      |> Enum.map(fn {table_name, user_ids} ->
+        user_id_columns = user_ids |> Enum.map(&"`#{&1.user_id}`") |> Aircloak.OxfordComma.join()
 
-        "Only one user-id key is allowed per table. Table `#{table}` declares multiple: #{wrapped_keys}"
+        "Only one user-id key is allowed per table. Table `#{table_name}` declares multiple: #{user_id_columns}"
       end)
 
     %{data_source | errors: new_errors ++ existing_errors}
