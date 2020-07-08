@@ -203,15 +203,14 @@ defmodule IntegrationTest.AnalystTableTest do
 
     db_name = Cloak.AnalystTable.find(context.user.id, name, cloak_data_source).db_name
 
-    assert :ok = Air.Service.AnalystTable.convert_to_view(table.id)
+    assert {:ok, view} = Air.Service.AnalystTable.convert_to_view(table.id)
     assert table_not_in_db?(db_name)
     assert is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
 
-    view = Air.Repo.get(Air.Schemas.View, table.id)
     refute is_nil(view)
     refute view.broken
 
-    fields = [:id, :name, :sql, :columns, :comment]
+    fields = [:name, :sql, :columns, :comment]
     assert Map.take(table, fields) == Map.take(view, fields)
   end
 

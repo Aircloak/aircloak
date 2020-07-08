@@ -1,7 +1,7 @@
 defmodule Air.Service.AnalystTable do
   @moduledoc "Service module for working with analyst tables."
 
-  alias Air.Service.{DataSource, User}
+  alias Air.Service.{DataSource, User, View}
   alias Air.Schemas.AnalystTable
   alias Air.Repo
   alias AirWeb.Socket.Cloak.MainChannel
@@ -88,50 +88,13 @@ defmodule Air.Service.AnalystTable do
     :ok
   end
 
-  @doc "Converts the analyst table to a view."
-  @spec convert_to_view(pos_integer) :: :ok | {:error, term}
+  @doc "Deletes the analyst table and creates an equivalent view."
+  @spec convert_to_view(pos_integer) :: {:ok, Air.Schemas.View.t()} | {:error, term}
   def convert_to_view(table_id) do
     table = Repo.get!(AnalystTable, table_id) |> Repo.preload([:user, :data_source])
 
-    Repo.transaction(fn ->
-      Ecto.Adapters.SQL.query!(
-        Air.Repo,
-        """
-          UPDATE user_selectables
-          SET type = 'view', creation_status = 'succeeded'
-          WHERE id = $1
-        """,
-        [table_id]
-      )
-
-      with {:ok, validated_views} <-
-             DataSource.with_available_cloak(
-               table.data_source,
-               table.user,
-               &MainChannel.drop_analyst_table(
-                 &1.channel_pid,
-                 table.user.id,
-                 table.name,
-                 table.data_source.name,
-                 Air.Service.View.user_views(table.user, table.data_source.id)
-               )
-             ) do
-        Air.Service.View.store_view_validation_results(table.user, table.data_source.id, validated_views)
-
-        Enum.each(
-          Air.Service.Cloak.channel_pids(table.data_source.name),
-          fn {pid, _cloak_info} -> MainChannel.refresh_analyst_tables(pid) end
-        )
-
-        :ok
-      else
-        {:error, error} -> Repo.rollback(error)
-        error -> Repo.rollback(error)
-      end
-    end)
-    |> case do
-      {:ok, :ok} -> :ok
-      other -> other
+    with :ok <- delete(table.id, table.user) do
+      View.create(table.user, table.data_source, table.name, table.sql, table.comment)
     end
   end
 

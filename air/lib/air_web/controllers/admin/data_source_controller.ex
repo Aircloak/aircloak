@@ -7,6 +7,7 @@ defmodule AirWeb.Admin.DataSourceController do
   use Air.Web, :admin_controller
 
   alias Air.Service.{DataSource, User, Warnings, AnalystTable}
+  alias AirWeb.Socket.Frontend.UserChannel
 
   plug(:load_data_source when action in [:show, :edit, :update, :delete, :show_analyst_table, :convert_table_to_view])
   plug(:load_analyst_table when action in [:show_analyst_table, :convert_table_to_view])
@@ -112,15 +113,18 @@ defmodule AirWeb.Admin.DataSourceController do
     analyst_table = conn.assigns.analyst_table
 
     case AnalystTable.convert_to_view(analyst_table.id) do
-      :ok ->
+      {:ok, view} ->
         audit_log(conn, "Analyst table converted to view",
           name: data_source.name,
           id: data_source.id,
           data_source: data_source.name,
           analyst_table_name: analyst_table.name,
           analyst_table_owner: analyst_table.user.name,
-          analyst_table_id: analyst_table.id
+          analyst_table_id: analyst_table.id,
+          view_id: view.id
         )
+
+        UserChannel.broadcast_analyst_selectables_change(analyst_table.user, data_source)
 
         conn
         |> put_flash(:info, ~s(Analyst table "#{analyst_table.name}" has been converted to a view.))
