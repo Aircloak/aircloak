@@ -45,7 +45,7 @@ config :phoenix, :json_library, Jason
 config :phoenix, :template_engines, md: Air.Phoenix.MarkdownEngine
 
 config :air, Air.Repo,
-  pool_size: 10,
+  pool_size: 20,
   # We need it to work with `pgbouncer` (see https://github.com/elixir-ecto/postgrex#pgbouncer)
   prepare: :unnamed,
   loggers: [Ecto.LogEntry]
