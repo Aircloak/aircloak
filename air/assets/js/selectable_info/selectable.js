@@ -14,6 +14,7 @@ import CommentIcon from "./comment-icon";
 export type Selectable = {
   id: string,
   internal_id: number,
+  content_type: "private" | "public" | null,
   kind: string,
   columns: Column[],
   delete_html: string,
