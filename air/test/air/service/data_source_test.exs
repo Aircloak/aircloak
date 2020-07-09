@@ -248,19 +248,18 @@ defmodule Air.Service.DataSourceTest do
         %{
           id: "table_id",
           columns: [
-            %{name: "col1", shadow_table: :ok, isolated: true},
-            %{name: "col2", shadow_table: :ok, isolated: false},
-            %{name: "failure", shadow_table: :ok, isolated: :failed},
-            %{name: "col3", shadow_table: :ok, isolated: :other}
+            %{name: "col1", isolated: true, shadow_table: :ok, bounds: :ok},
+            %{name: "col2", isolated: false, shadow_table: :ok, bounds: :ok},
+            %{name: "pending", isolated: :pending, shadow_table: :ok, bounds: :ok},
+            %{name: "failure", isolated: :failed, shadow_table: :ok, bounds: :ok}
           ]
         }
       ]
 
       data_source = DataSource.create_or_update_data_source(%{name: "new_name", tables: tables})
 
-      assert data_source.columns_count == 4
-      assert data_source.isolated_computed_count == 2
       assert data_source.isolated_failed == ["table_id.failure"]
+      assert data_source.pending_analysis == true
     end
 
     test "should compute and store shadow table status" do
@@ -268,19 +267,18 @@ defmodule Air.Service.DataSourceTest do
         %{
           id: "table_id",
           columns: [
-            %{name: "col1", isolated: true, shadow_table: :ok},
-            %{name: "col2", isolated: true, shadow_table: :ok},
-            %{name: "failure", isolated: true, shadow_table: :failed},
-            %{name: "col3", isolated: true, shadow_table: :other}
+            %{name: "col1", isolated: true, shadow_table: :ok, bounds: :ok},
+            %{name: "col2", isolated: false, shadow_table: :ok, bounds: :ok},
+            %{name: "pending", isolated: true, shadow_table: :pending, bounds: :ok},
+            %{name: "failure", isolated: false, shadow_table: :failed, bounds: :ok}
           ]
         }
       ]
 
       data_source = DataSource.create_or_update_data_source(%{name: "new_name", tables: tables})
 
-      assert data_source.columns_count == 4
-      assert data_source.shadow_tables_computed_count == 2
       assert data_source.shadow_tables_failed == ["table_id.failure"]
+      assert data_source.pending_analysis == true
     end
 
     test "should compute and store bound status" do
@@ -289,19 +287,34 @@ defmodule Air.Service.DataSourceTest do
           id: "table_id",
           columns: [
             %{name: "col1", isolated: true, shadow_table: :ok, bounds: :ok},
-            %{name: "col2", isolated: true, shadow_table: :ok, bounds: :ok},
-            %{name: "failure", isolated: true, shadow_table: :ok, bounds: :failed},
-            %{name: "col3", isolated: true, shadow_table: :ok, bounds: :other}
+            %{name: "col2", isolated: false, shadow_table: :ok, bounds: :ok},
+            %{name: "pending", isolated: true, shadow_table: :ok, bounds: :pending},
+            %{name: "failure", isolated: false, shadow_table: :ok, bounds: :failed}
           ]
         }
       ]
 
       data_source = DataSource.create_or_update_data_source(%{name: "new_name", tables: tables})
 
-      assert data_source.columns_count == 4
-      assert data_source.bounds_computed_count == 2
       assert data_source.bounds_failed == ["table_id.failure"]
+      assert data_source.pending_analysis == true
     end
+  end
+
+  test "should be able to tell when a data source has finished analysis" do
+    tables = [
+      %{
+        id: "table_id",
+        columns: [
+          %{name: "col1", isolated: :failed, shadow_table: :ok, bounds: :ok},
+          %{name: "col2", isolated: true, shadow_table: :failed, bounds: :ok},
+          %{name: "col3", isolated: false, shadow_table: :unknown_column, bounds: :failed}
+        ]
+      }
+    ]
+
+    data_source = DataSource.create_or_update_data_source(%{name: "new_name", tables: tables})
+    assert data_source.pending_analysis == false
   end
 
   test "should be able to tell when a data source is available" do
