@@ -56,6 +56,7 @@ defmodule Cloak.DataSource do
           concurrency: non_neg_integer | nil,
           lcf_buckets_aggregation_limit: non_neg_integer | nil,
           statistics_anonymization: boolean | nil,
+          bound_computation_enabled: boolean | nil,
           # we need to store the initial tables and errors in case we need to re-scan the data source tables later
           initial_tables: %{atom => Table.t()},
           initial_errors: [String.t()],
