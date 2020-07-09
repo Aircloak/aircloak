@@ -35,7 +35,6 @@ defmodule Cloak.Sql.Compiler do
     parsed_query
     |> core_compile!(analyst_id, data_source, parameters, views)
     |> Compiler.Anonymization.compile()
-    |> Compiler.BoundAnalysis.analyze_query()
     |> Compiler.NoiseLayers.compile()
   end
 
@@ -59,6 +58,7 @@ defmodule Cloak.Sql.Compiler do
     |> Compiler.Execution.align()
     |> Compiler.Normalization.postvalidation_normalizations()
     |> Compiler.Optimizer.optimize()
+    |> Compiler.BoundAnalysis.analyze_query()
     |> Compiler.Execution.prepare()
   end
 

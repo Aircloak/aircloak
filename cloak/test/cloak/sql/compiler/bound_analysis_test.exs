@@ -25,8 +25,15 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("bounds_analysis", "col INTEGER")
+
     :ok = insert_rows(_user_ids = 1..5, "bounds_analysis", ["col"], [30])
     :ok = insert_rows(_user_ids = 6..10, "bounds_analysis", ["col"], [70])
+
+    :ok =
+      Cloak.Test.DB.create_table("bounds_analysis_virtual", nil,
+        skip_db_create: true,
+        query: "select user_id, col * 2 as col from cloak_test.bounds_analysis"
+      )
 
     data_sources = Cloak.DataSource.all()
 
@@ -56,19 +63,33 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
 
   describe ".analyze_query" do
     test "sets bounds for each expression in the query", analysis_data_source do
-      query = compile!("SELECT 1 + col FROM bounds_analysis", analysis_data_source)
-      assert({3, 1001} = hd(query.columns).bounds)
+      column = "SELECT 1 + col FROM bounds_analysis" |> compile!(analysis_data_source) |> first_selected_column()
+      assert {3, 1001} = column.bounds
     end
 
     test "sets bounds aliased table", analysis_data_source do
-      query = compile!("SELECT 1 + col FROM bounds_analysis t1", analysis_data_source)
-      assert({3, 1001} = hd(query.columns).bounds)
+      column = "SELECT 1 + col FROM bounds_analysis t1" |> compile!(analysis_data_source) |> first_selected_column()
+      assert {3, 1001} = column.bounds
     end
 
     test "propagates bounds from subqueries", analysis_data_source do
-      query = compile!("SELECT foo FROM (SELECT 1 + col AS foo FROM bounds_analysis) bar", analysis_data_source)
+      column =
+        "SELECT foo FROM (SELECT 1 + col AS foo FROM bounds_analysis) bar"
+        |> compile!(analysis_data_source)
+        |> first_selected_column()
 
-      assert({3, 1001} = hd(query.columns).bounds)
+      assert {3, 1001} = column.bounds
+    end
+
+    test "sets bounds for virtual tables", analysis_data_source do
+      column = "SELECT col FROM bounds_analysis_virtual" |> compile!(analysis_data_source) |> first_selected_column()
+      assert {5, 2000} = column.bounds
+    end
+
+    defp first_selected_column(query) do
+      {:subquery, uid_grouping_query} = query.from
+      [_uid, first_group | _] = uid_grouping_query.ast.columns
+      first_group
     end
   end
 
