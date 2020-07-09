@@ -55,20 +55,8 @@ defmodule Cloak.Test.DB do
         [db_name: db_name, type: :regular] ++ Keyword.drop(opts, [:name, :db_name])
       )
 
-    data_source_names_to_update =
-      case opts[:data_source] do
-        nil -> DataSource.all() |> Enum.map(& &1.name)
-        data_source -> [data_source.name]
-      end
-
     DataSource.all()
-    |> Enum.map(fn %{name: name} = data_source ->
-      if name in data_source_names_to_update do
-        data_source |> put_in([:initial_tables, table_id], table) |> DataSource.add_tables()
-      else
-        data_source
-      end
-    end)
+    |> Enum.map(&(&1 |> put_in([:initial_tables, table_id], table) |> DataSource.add_tables()))
     |> DataSource.replace_all_data_source_configs()
   end
 
