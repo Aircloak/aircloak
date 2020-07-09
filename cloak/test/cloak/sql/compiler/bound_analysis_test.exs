@@ -1,11 +1,11 @@
 defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   use ExUnitProperties
 
   alias Cloak.Sql.Compiler.BoundAnalysis
   alias Cloak.Sql.Expression
-  alias Cloak.DataSource.Table
-  alias Cloak.TestBoundsCache
+
+  import Cloak.Test.QueryHelpers
 
   defmacrop assert_unknown_or_within_bounds(expression, values, function) do
     quote bind_quoted: [expression: expression, values: values, function: function] do
@@ -23,39 +23,47 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     end
   end
 
+  setup_all do
+    :ok = Cloak.Test.DB.create_table("bounds_analysis", "col INTEGER")
+    :ok = insert_rows(_user_ids = 1..5, "bounds_analysis", ["col"], [30])
+    :ok = insert_rows(_user_ids = 6..10, "bounds_analysis", ["col"], [70])
+
+    data_sources = Cloak.DataSource.all()
+
+    analysis_data_source =
+      data_sources
+      |> hd()
+      |> Map.put(:name, "analysis")
+      |> Map.put(:bound_computation_enabled, true)
+      |> Map.put(:statistics_anonymization, false)
+
+    Cloak.DataSource.replace_all_data_source_configs([analysis_data_source | data_sources])
+
+    on_exit(fn -> Cloak.DataSource.replace_all_data_source_configs(data_sources) end)
+
+    {:ok, analysis_data_source}
+  end
+
+  test "columns with known bounds are restricted during offload", analysis_data_source do
+    offloaded_query =
+      "SELECT COUNT(*) FROM bounds_analysis t WHERE col = 10"
+      |> compile!(analysis_data_source)
+      |> Cloak.Sql.Query.resolve_db_columns()
+      |> Cloak.DataSource.SqlBuilder.build()
+
+    assert offloaded_query =~ ~s[CASE WHEN "t"."col" < 2 THEN 2 WHEN "t"."col" > 1000 THEN 1000 ELSE "t"."col" END]
+  end
+
   describe ".analyze_query" do
-    test "sets bounds for each expression in the query" do
-      TestBoundsCache.set(data_source(), "table", "column", {100, 200})
-
-      assert {101, 201} = hd(compile!("SELECT 1 + column FROM table").columns).bounds
+    test "sets bounds for each expression in the query", analysis_data_source do
+      query = compile!("SELECT 1 + col FROM bounds_analysis", analysis_data_source)
+      assert({3, 1001} = hd(query.columns).bounds)
     end
 
-    test "propagates bounds from subqueries" do
-      TestBoundsCache.set(data_source(), "table", "column", {10, 20})
+    test "propagates bounds from subqueries", analysis_data_source do
+      query = compile!("SELECT foo FROM (SELECT 1 + col AS foo FROM bounds_analysis) bar", analysis_data_source)
 
-      compiled = compile!("SELECT foo FROM (SELECT 1 + column AS foo FROM table) bar")
-      assert {11, 21} = hd(compiled.columns).bounds
-    end
-
-    defp compile!(query) do
-      Cloak.Test.QueryHelpers.compile!(query, data_source())
-    end
-
-    defp data_source() do
-      %{
-        name: "bound_analysis_data_source",
-        driver: Cloak.DataSource.PostgreSQL,
-        tables: %{
-          table:
-            Table.new("table", "uid",
-              db_name: "table",
-              columns: [
-                Table.column("uid", :integer),
-                Table.column("column", :integer)
-              ]
-            )
-        }
-      }
+      assert({3, 1001} = hd(query.columns).bounds)
     end
   end
 

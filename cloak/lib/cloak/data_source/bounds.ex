@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.Bounds do
   require Aircloak
   require Cloak.Sql.Expression
 
-  @cache_module Aircloak.in_env(test: Cloak.TestBoundsCache, else: Cloak.DataSource.Bounds.Cache)
+  @cache_module __MODULE__.Cache
 
   # -------------------------------------------------------------------
   # API functions

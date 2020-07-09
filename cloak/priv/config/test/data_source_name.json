@@ -9,5 +9,6 @@
   },
   "tables": {
   },
-  "analyst_tables_enabled": true
+  "analyst_tables_enabled": true,
+  "bound_computation_enabled": false
 }
