@@ -7,22 +7,6 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
 
   import Cloak.Test.QueryHelpers
 
-  defmacrop assert_unknown_or_within_bounds(expression, values, function) do
-    quote bind_quoted: [expression: expression, values: values, function: function] do
-      case BoundAnalysis.set_bounds(expression).bounds do
-        :unknown ->
-          true
-
-        {min, max} ->
-          result = apply(function, values)
-
-          assert result <= max && result >= min,
-                 "Bounds calculated: #{inspect({min, max})}. " <>
-                   "Result of applying #{inspect(function)} to #{inspect(values)} is #{result}."
-      end
-    end
-  end
-
   setup_all do
     :ok = Cloak.Test.DB.create_table("bounds_analysis", "col INTEGER")
 
@@ -94,6 +78,22 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
   end
 
   describe ".set_bounds" do
+    defmacrop assert_unknown_or_within_bounds(expression, values, function) do
+      quote bind_quoted: [expression: expression, values: values, function: function] do
+        case BoundAnalysis.set_bounds(expression).bounds do
+          :unknown ->
+            true
+
+          {min, max} ->
+            result = apply(function, values)
+
+            assert result <= max && result >= min,
+                   "Bounds calculated: #{inspect({min, max})}. " <>
+                     "Result of applying #{inspect(function)} to #{inspect(values)} is #{result}."
+        end
+      end
+    end
+
     test "integer constants" do
       assert {2, 2} = BoundAnalysis.set_bounds(Expression.constant(:integer, 2)).bounds
     end
