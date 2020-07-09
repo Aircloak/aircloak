@@ -3,6 +3,8 @@ import { formatNumber } from "../number_format";
 import moment from "moment-timezone";
 import { VegaLite } from "react-vega";
 
+const OTHER_ITEM = "--OTHER--";
+
 const range = (numberFormat, type) => (min, max) => (
   <p>
     <b>Extent:</b>{" "}
@@ -14,6 +16,58 @@ const range = (numberFormat, type) => (min, max) => (
         )}`}
   </p>
 );
+
+const topValues = (data) => {
+  let totalCount = 0;
+  let topCount = 0;
+  const filteredItems = data.filter((item) => {
+    totalCount += item.count;
+    if (item.value !== OTHER_ITEM) {
+      topCount = item.count;
+      return true;
+    }
+    return false;
+  });
+
+  const numItems = filteredItems.length;
+  const topPercent = Math.round((topCount / totalCount) * 100);
+
+  return (
+    <p>
+      <VegaLite
+        width={Math.min(250, document.body.clientWidth - 200)}
+        padding={10}
+        actions={false}
+        spec={{
+          mark: {
+            type: "bar",
+          },
+          data: {
+            values: filteredItems,
+          },
+          encoding: {
+            y: {
+              field: "value",
+              type: "ordinal",
+              axis: {
+                title: `Top ${numItems} values`,
+              },
+              sort: "-x",
+            },
+            x: {
+              field: "count",
+              type: "quantitative",
+            },
+          },
+        }}
+      />
+      <span>
+        The top {numItems} values account for about {topPercent}% of the total
+        number of records.
+      </span>
+    </p>
+  );
+};
 
 const exactValues = (data) => (
   <VegaLite
@@ -34,7 +88,6 @@ const exactValues = (data) => (
           axis: {
             title: false,
           },
-          sort: "-x",
         },
         x: {
           field: "count",
@@ -208,7 +261,7 @@ const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
         "refined_min",
         "refined_max"
       )}
-      {renderIfPrereqs(exactValues, "distinct.top_values") ||
+      {renderIfPrereqs(topValues, "distinct.top_values") ||
         renderIfPrereqs(exactValues, "distinct.values")}
       {renderIfPrereqs(bucketed, "histogram.buckets")}
       {renderIfPrereqs(
