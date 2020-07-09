@@ -35,8 +35,8 @@ defmodule Cloak.Sql.Compiler do
     parsed_query
     |> core_compile!(analyst_id, data_source, parameters, views)
     |> Compiler.Anonymization.compile()
-    |> Compiler.NoiseLayers.compile()
     |> Compiler.BoundAnalysis.analyze_query()
+    |> Compiler.NoiseLayers.compile()
   end
 
   @doc "Performs the core compilation steps of the parsed query."
