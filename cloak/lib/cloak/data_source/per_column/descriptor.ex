@@ -47,6 +47,6 @@ defmodule Cloak.DataSource.PerColumn.Descriptor do
   end
 
   defp extract_anonymizing_info(_data_source, table) do
-    Map.take(table, [:name, :content_type, :user_id, :user_id_join_chain])
+    Map.take(table, [:initial_name, :content_type, :user_id, :user_id_join_chain])
   end
 end

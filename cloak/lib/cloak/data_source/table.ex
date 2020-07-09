@@ -13,8 +13,10 @@ defmodule Cloak.DataSource.Table do
   @type join_link :: {String.t(), atom, String.t()}
 
   @type t :: %{
-          # table name as seen by the user
+          # table name as seen by the user (can be changed during query execution)
           :name => String.t(),
+          # original name of the table
+          :initial_name => String.t(),
           # table name in the database
           :db_name => String.t() | nil,
           :user_id => String.t(),
@@ -62,6 +64,7 @@ defmodule Cloak.DataSource.Table do
     table =
       %{
         name: name,
+        initial_name: name,
         user_id: user_id_column_name,
         db_name: nil,
         columns: [],

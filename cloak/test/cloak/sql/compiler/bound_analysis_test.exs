@@ -60,6 +60,11 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       assert({3, 1001} = hd(query.columns).bounds)
     end
 
+    test "sets bounds aliased table", analysis_data_source do
+      query = compile!("SELECT 1 + col FROM bounds_analysis t1", analysis_data_source)
+      assert({3, 1001} = hd(query.columns).bounds)
+    end
+
     test "propagates bounds from subqueries", analysis_data_source do
       query = compile!("SELECT foo FROM (SELECT 1 + col AS foo FROM bounds_analysis) bar", analysis_data_source)
 
