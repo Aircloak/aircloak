@@ -15,7 +15,7 @@ export type Selectable = {
   id: string,
   internal_id: number,
   content_type: "private" | "public" | null,
-  kind: string,
+  kind: "table" | "view" | "analyst_table",
   columns: Column[],
   delete_html: string,
   broken: boolean,

@@ -43,7 +43,7 @@ defmodule Air.Service.DataSource do
           analyst_created: boolean,
           # Always nil for views and analyst tables
           content_type: :private | :public | nil,
-          kind: :view | :analyst_table,
+          kind: :table | :view | :analyst_table,
           # Always false for tables
           broken: boolean,
           internal_id: String.t() | nil,
