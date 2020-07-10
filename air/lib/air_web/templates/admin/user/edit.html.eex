@@ -14,5 +14,5 @@
   <%= render "_reset_link.html", conn: @conn, token: token %>
 <% end %>
 
-<%= render "_form.html", changeset: @changeset,
-  action: admin_user_path(@conn, :update, @changeset.data.id), conn: @conn, chosen_groups: @user.groups %>
+<%= render "_form.html", changeset: @changeset, action: admin_user_path(@conn, :update, @changeset.data.id),
+  conn: @conn, available_groups: @available_groups, chosen_groups: @user.groups %>

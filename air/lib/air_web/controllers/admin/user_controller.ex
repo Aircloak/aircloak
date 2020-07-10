@@ -2,10 +2,12 @@ defmodule AirWeb.Admin.UserController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.Service.{User, LDAP}
+  alias Air.Service.{Group, User, LDAP}
 
   plug(:load_user when action in [:edit, :update, :delete, :disable, :enable, :reset_password, :delete_sessions])
   plug(:prevent_action_on_self when action in [:delete, :disable])
+  plug(:load_available_groups_for_new_user when action in [:new, :create])
+  plug(:load_available_groups_for_existing_user when action in [:edit, :update])
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -179,6 +181,11 @@ defmodule AirWeb.Admin.UserController do
       {:error, :not_found} -> not_found(conn)
     end
   end
+
+  defp load_available_groups_for_new_user(conn, _), do: assign(conn, :available_groups, Group.all_native_user_groups())
+
+  defp load_available_groups_for_existing_user(conn, _),
+    do: assign(conn, :available_groups, Group.available_to_user(conn.assigns.user))
 
   defp prevent_action_on_self(conn, _params) do
     %{user: user, current_user: current_user} = conn.assigns
