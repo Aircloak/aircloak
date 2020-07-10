@@ -180,7 +180,7 @@ defmodule Cloak.Test.QueryHelpers do
          {:ok, query} <-
            Compiler.compile(
              parsed_query,
-             nil,
+             Keyword.get(options, :analyst, nil),
              data_source,
              Keyword.get(options, :parameters, []),
              Keyword.get(options, :views, %{})

@@ -30,7 +30,20 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
 
     Cloak.DataSource.replace_all_data_source_configs([analysis_data_source | data_sources])
 
-    on_exit(fn -> Cloak.DataSource.replace_all_data_source_configs(data_sources) end)
+    Cloak.Air.register_air("some air")
+
+    {:ok, _} =
+      Cloak.Test.AnalystTableHelpers.create_or_update(
+        1,
+        "bounds_analysis_analyst",
+        "select user_id as uid, col * 2 as col from bounds_analysis ba where ba.col between 0 and 100",
+        analysis_data_source
+      )
+
+    on_exit(fn ->
+      Cloak.Air.unregister_air()
+      Cloak.DataSource.replace_all_data_source_configs(data_sources)
+    end)
 
     {:ok, analysis_data_source}
   end
@@ -68,6 +81,15 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     test "sets bounds for virtual tables", analysis_data_source do
       column = "SELECT col FROM bounds_analysis_virtual" |> compile!(analysis_data_source) |> first_selected_column()
       assert {5, 2000} = column.bounds
+    end
+
+    test "sets bounds for analyst tables", analysis_data_source do
+      column =
+        "SELECT col FROM bounds_analysis_analyst"
+        |> compile!(analysis_data_source, analyst: 1)
+        |> first_selected_column()
+
+      assert {4, 2000} = column.bounds
     end
 
     defp first_selected_column(query) do

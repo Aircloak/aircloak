@@ -94,6 +94,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
          tag: tag
        }) do
     expression = find_selected_expression_by_name(top_column, query)
+    top_expressions = update_user_id(top_expressions, query)
 
     layers =
       non_case_expressions()
@@ -114,6 +115,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     max = if Expression.column?(expression) and Expression.constant?(max), do: max, else: column
     [min, max | rest]
   end
+
+  defp update_user_id([min, max, %Expression{user_id?: true} = _user_id], query),
+    do: [min, max, Helpers.id_column(query)]
+
+  defp update_user_id(expressions, _query), do: expressions
 
   # -------------------------------------------------------------------
   # Floating noise layers and columns
