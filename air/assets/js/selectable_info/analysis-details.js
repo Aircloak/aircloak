@@ -17,7 +17,7 @@ const range = (numberFormat, type) => (min, max) => (
   </p>
 );
 
-const topValues = (data) => {
+const topValues = (numberFormat) => (data) => {
   let totalCount = 0;
   let topCount = 0;
   const filteredItems = data.filter((item) => {
@@ -30,7 +30,7 @@ const topValues = (data) => {
   });
 
   const numItems = filteredItems.length;
-  const topPercent = Math.round((topCount / totalCount) * 100);
+  const topPercent = formatNumber((topCount / totalCount) * 100, numberFormat);
 
   return (
     <p>
@@ -261,7 +261,7 @@ const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
         "refined_min",
         "refined_max"
       )}
-      {renderIfPrereqs(topValues, "distinct.top_values") ||
+      {renderIfPrereqs(topValues(numberFormat), "distinct.top_values") ||
         renderIfPrereqs(exactValues, "distinct.values")}
       {renderIfPrereqs(bucketed, "histogram.buckets")}
       {renderIfPrereqs(
