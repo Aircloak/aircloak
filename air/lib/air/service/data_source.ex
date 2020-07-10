@@ -41,7 +41,9 @@ defmodule Air.Service.DataSource do
   @type selectable :: %{
           id: String.t(),
           analyst_created: boolean,
-          kind: :view | :analyst_table,
+          # Always nil for views and analyst tables
+          content_type: :private | :public | nil,
+          kind: :table | :view | :analyst_table,
           # Always false for tables
           broken: boolean,
           internal_id: String.t() | nil,
@@ -456,6 +458,7 @@ defmodule Air.Service.DataSource do
     Enum.map(
       View.all(user, data_source),
       &%{
+        content_type: nil,
         analyst_created: true,
         id: &1.name,
         comment: &1.comment,
@@ -472,6 +475,7 @@ defmodule Air.Service.DataSource do
     Enum.map(
       AnalystTable.all(user, data_source),
       &%{
+        content_type: nil,
         analyst_created: true,
         id: &1.name,
         comment: &1.comment,
