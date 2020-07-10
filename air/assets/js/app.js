@@ -70,6 +70,8 @@ const App = {
 
   activateDatetimePickers,
 
+  activateCollapse: () => $(".collapse").collapse(),
+
   renderPage: (page, props) => {
     const {
       auditLogs,

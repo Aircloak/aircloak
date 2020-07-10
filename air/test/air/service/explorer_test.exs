@@ -1,7 +1,7 @@
 defmodule Air.Service.ExplorerTest do
   # because of shared mode
   use Air.SchemaCase, async: false
-  alias Air.Service.{Explorer, Group}
+  alias Air.Service.Explorer
   alias Air.Schemas.ExplorerAnalysis
   require Aircloak.DeployConfig
   import Aircloak.AssertionHelper
@@ -197,9 +197,14 @@ defmodule Air.Service.ExplorerTest do
 
     ds_not_included = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
     Explorer.setup_credentials_if_required()
-    {:ok, group} = Group.get_by_name("Diffix Explorer")
-    group = Group.load(group.id)
-    Group.update!(group, %{data_sources: [ds1.id]})
+
+    Explorer.change_permitted_data_sources(%{
+      "data_sources" => [ds1.id],
+      "tables" => [
+        %{"#{ds1.id}" => "bars"},
+        %{"#{ds1.id}" => "foos"}
+      ]
+    })
 
     %{ds1: ds1, ds_not_included: ds_not_included}
   end
@@ -218,8 +223,8 @@ defmodule Air.Service.ExplorerTest do
 
   describe "statistics" do
     test "returns statistics in various stages", %{ds1: ds1} do
-      Explorer.reanalyze_datasource(ds1)
       MockServer.pause()
+      Explorer.reanalyze_datasource(ds1)
 
       data_source_id = ds1.id
 
@@ -281,9 +286,9 @@ defmodule Air.Service.ExplorerTest do
   end
 
   describe ".reanalyze_datasource" do
-    test "creates analysis records and polls for results", context do
-      assert :ok == Explorer.reanalyze_datasource(context.ds1)
+    test "creates jobs and polls for results", context do
       MockServer.pause()
+      assert :ok == Explorer.reanalyze_datasource(context.ds1)
 
       assert_soon(
         [
@@ -323,16 +328,50 @@ defmodule Air.Service.ExplorerTest do
 
   describe "change_permitted_data_sources" do
     test "it removes all data sources that currently do not have permissions", context do
-      Explorer.reanalyze_datasource(context.ds_not_included)
+      id_ds1 = "#{context.ds1.id}"
+      id_ds_not_included = "#{context.ds_not_included.id}"
+
+      assert {:ok, _} =
+               Explorer.change_permitted_data_sources(%{
+                 "data_sources" => [context.ds1.id, context.ds_not_included.id],
+                 "tables" => [
+                   %{id_ds1 => "bars"},
+                   %{id_ds1 => "foos"},
+                   %{id_ds_not_included => "bars"},
+                   %{id_ds_not_included => "foos"}
+                 ]
+               })
+
       assert soon(not Enum.empty?(Explorer.results_for_datasource(context.ds_not_included)))
 
-      assert {:ok, _} = Explorer.change_permitted_data_sources(%{data_sources: [context.ds1.id]})
+      assert {:ok, _} =
+               Explorer.change_permitted_data_sources(%{
+                 "data_sources" => [context.ds1.id],
+                 "tables" => [
+                   %{id_ds1 => "bars"},
+                   %{id_ds1 => "foos"},
+                   %{id_ds_not_included => "bars"},
+                   %{id_ds_not_included => "foos"}
+                 ]
+               })
+
       assert soon(Enum.empty?(Explorer.results_for_datasource(context.ds_not_included)))
     end
 
     test "it adds results for newly authorized data sources", context do
+      id_ds1 = "#{context.ds1.id}"
+      id_ds_not_included = "#{context.ds_not_included.id}"
+
       assert {:ok, _} =
-               Explorer.change_permitted_data_sources(%{data_sources: [context.ds1.id, context.ds_not_included.id]})
+               Explorer.change_permitted_data_sources(%{
+                 "data_sources" => [context.ds1.id, context.ds_not_included.id],
+                 "tables" => [
+                   %{id_ds1 => "bars"},
+                   %{id_ds1 => "foos"},
+                   %{id_ds_not_included => "bars"},
+                   %{id_ds_not_included => "foos"}
+                 ]
+               })
 
       assert_soon(
         [
@@ -358,7 +397,17 @@ defmodule Air.Service.ExplorerTest do
 
     test "it does not attempt to get results for already existing data sources", context do
       # Setup: make sure we have ds1 one ready and results already fetched
-      Explorer.reanalyze_datasource(context.ds1)
+      id_ds1 = "#{context.ds1.id}"
+      id_ds_not_included = "#{context.ds_not_included.id}"
+
+      assert {:ok, _} =
+               Explorer.change_permitted_data_sources(%{
+                 "data_sources" => [context.ds1.id],
+                 "tables" => [
+                   %{id_ds1 => "bars"},
+                   %{id_ds1 => "foos"}
+                 ]
+               })
 
       assert_soon(
         [
@@ -387,7 +436,15 @@ defmodule Air.Service.ExplorerTest do
       )
 
       assert {:ok, _} =
-               Explorer.change_permitted_data_sources(%{data_sources: [context.ds1.id, context.ds_not_included.id]})
+               Explorer.change_permitted_data_sources(%{
+                 "data_sources" => [context.ds1.id, context.ds_not_included.id],
+                 "tables" => [
+                   %{id_ds1 => "bars"},
+                   %{id_ds1 => "foos"},
+                   %{id_ds_not_included => "bars"},
+                   %{id_ds_not_included => "foos"}
+                 ]
+               })
 
       # Here we wait for ds_not_included to return from polling
       assert_soon(

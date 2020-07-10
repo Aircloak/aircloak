@@ -19,7 +19,7 @@ defmodule AirWeb.Admin.ExplorerController do
     render(conn, "index.html",
       data_sources: Explorer.statistics(),
       changeset: Group.to_changeset(group),
-      all_data_sources: Enum.map(Air.Service.DataSource.all(), &{{&1.name, &1.description}, &1.id})
+      all_data_sources: Enum.map(Air.Service.DataSource.all(), &{{&1, selected_tables(&1)}, &1.id})
     )
   end
 
@@ -64,6 +64,14 @@ defmodule AirWeb.Admin.ExplorerController do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp selected_tables(data_source) do
+    if Explorer.data_source_enabled?(data_source) do
+      Enum.map(Explorer.results_for_datasource(data_source), & &1.table_name)
+    else
+      Explorer.elligible_tables_for_datasource(data_source)
+    end
+  end
 
   defp check_if_enabled(conn, _opts) do
     if Explorer.enabled?() do
