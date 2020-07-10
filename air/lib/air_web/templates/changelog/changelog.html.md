@@ -23,6 +23,7 @@
 
 - Fixed filtering of censored values in standard queries.
 - Verify implicit range usage on both sides of a condition.
+- Native users could accidentally be assigned to LDAP groups which in turn would break the LDAP sync.
 
 ### Changes
 
