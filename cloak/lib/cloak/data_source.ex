@@ -375,10 +375,6 @@ defmodule Cloak.DataSource do
 
   defp replace_data_source_config(data_source), do: GenServer.cast(__MODULE__, {:update_data_source, data_source})
 
-  @doc false
-  def replace_data_source_config_sync(data_source),
-    do: GenServer.call(__MODULE__, {:update_data_source_sync, data_source})
-
   # We need a name for the data source in order for the Air to have something to attach
   # potential errors to. Therefore if none exists, we'll create a dummy name based on
   # the data source parameters.

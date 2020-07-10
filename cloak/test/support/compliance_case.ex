@@ -16,13 +16,6 @@ defmodule ComplianceCase do
   end
 
   setup_all do
-    for data_source <- data_sources(),
-        {_, table} <- data_source.tables,
-        column <- table.columns do
-      Cloak.TestIsolatorsCache.forward_isolator(data_source, table.name, column.name)
-      Cloak.TestShadowCache.forward(data_source, table.name, column.name)
-    end
-
     {:ok, data_sources: data_sources(), disabled: false}
   end
 
@@ -205,9 +198,7 @@ defmodule ComplianceCase do
       :error ->
         data_sources = Compliance.DataSources.all_from_config_initialized(compliance_file)
         Application.put_env(:cloak, :cached_data_sources, Map.put(cached_data_sources, compliance_file, data_sources))
-        for data_source <- data_sources, do: Cloak.DataSource.replace_data_source_config_sync(data_source)
-        Cloak.TestIsolatorsCache.data_sources_changed()
-        Cloak.TestShadowCache.data_sources_changed()
+        Cloak.DataSource.replace_all_data_source_configs(data_sources)
         data_sources
 
       {:ok, data_sources} ->
