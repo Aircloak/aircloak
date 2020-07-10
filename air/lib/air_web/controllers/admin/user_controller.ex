@@ -48,8 +48,7 @@ defmodule AirWeb.Admin.UserController do
     render(
       conn,
       "edit.html",
-      changeset: User.to_changeset(conn.assigns.user),
-      user: conn.assigns.user
+      changeset: User.to_changeset(conn.assigns.user)
     )
   end
 
