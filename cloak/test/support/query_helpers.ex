@@ -189,7 +189,10 @@ defmodule Cloak.Test.QueryHelpers do
     end
   end
 
-  def default_data_source(), do: Cloak.DataSource.all() |> Enum.find(&(&1.name == "default"))
+  def default_data_source() do
+    {:ok, data_source} = Cloak.DataSource.fetch("default")
+    data_source
+  end
 
   defp compare_to_within_delta(map1, map2, trace, delta) when is_map(map1) and is_map(map2) do
     if Map.keys(map1) == Map.keys(map2) do
