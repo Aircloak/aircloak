@@ -3,6 +3,8 @@ defmodule Cloak.DataSource.StreamerTest do
 
   alias Cloak.DataSource.Streamer
 
+  import Cloak.Test.QueryHelpers, only: [default_data_source: 0]
+
   setup_all do
     :ok = Cloak.Test.DB.create_table("test_streamer", "intval INTEGER")
     :ok = Cloak.Test.QueryHelpers.insert_rows(_user_ids = 1..500, "test_streamer", ["intval"], [42])
@@ -118,8 +120,7 @@ defmodule Cloak.DataSource.StreamerTest do
   end
 
   defp data_source(extra_params \\ %{}) do
-    Cloak.DataSource.all()
-    |> hd()
+    default_data_source()
     |> update_in([:parameters], &Map.merge(&1, extra_params))
   end
 end

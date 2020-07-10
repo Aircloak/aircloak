@@ -3,7 +3,7 @@ defmodule Cloak.Query.ParallelStreamingTest do
 
   @table "parallel_streaming"
 
-  import Cloak.Test.QueryHelpers, only: [insert_rows: 4]
+  import Cloak.Test.QueryHelpers, only: [insert_rows: 4, default_data_source: 0]
   alias Cloak.Query.Runner
 
   setup_all do
@@ -16,10 +16,7 @@ defmodule Cloak.Query.ParallelStreamingTest do
     :ok
   end
 
-  defp data_source(concurrency) do
-    data_source = Enum.find(Cloak.DataSource.all(), &(&1.driver === Cloak.DataSource.PostgreSQL))
-    %{data_source | concurrency: concurrency}
-  end
+  defp data_source(concurrency), do: %{default_data_source() | concurrency: concurrency}
 
   defmacrop assert_query(query, expected_response, opts) do
     quote do

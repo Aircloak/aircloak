@@ -3,6 +3,8 @@ defmodule Cloak.AnalystTable.CompilerTest do
 
   alias Cloak.AnalystTable.Compiler
 
+  import Cloak.Test.QueryHelpers, only: [default_data_source: 0]
+
   @moduletag :analyst_tables
 
   setup_all do
@@ -138,10 +140,8 @@ defmodule Cloak.AnalystTable.CompilerTest do
     assert query.type == :restricted
   end
 
-  defp compile(table_name, statement, data_source \\ data_source()),
+  defp compile(table_name, statement, data_source \\ default_data_source()),
     do: Compiler.compile(table_name, statement, 1, data_source, nil, %{})
-
-  defp data_source(), do: hd(Cloak.DataSource.all())
 
   defp db_select(query) do
     create_statement = Cloak.DataSource.Driver.SQL.AnalystTables.create_table_from_query("some_table", query)

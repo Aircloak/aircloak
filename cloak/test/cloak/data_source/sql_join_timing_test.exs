@@ -75,8 +75,7 @@ defmodule Cloak.DataSource.SQLJoinTimingTest do
 
   @iterations 25
   defp benchmark(query) do
-    [data_source | _] = Cloak.DataSource.all()
-    data_source = Map.put(data_source, :statistics_anonymization, false)
+    data_source = default_data_source() |> Map.put(:statistics_anonymization, false)
     warmup(data_source, query)
 
     start_time = :erlang.monotonic_time(:milli_seconds)
