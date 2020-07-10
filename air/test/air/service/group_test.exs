@@ -180,4 +180,25 @@ defmodule Air.Service.Group.Test do
         )
     )
   end
+
+  describe ".all_native_user_groups" do
+    setup do
+      native_group = TestRepoHelper.create_group!()
+      ldap_group = TestRepoHelper.create_group!(%{ldap_dn: "DN"})
+
+      TestRepoHelper.create_group!(%{system: true})
+      TestRepoHelper.create_group!(%{ldap_dn: "DN-system", system: true})
+
+      %{native_group: native_group, ldap_group: ldap_group}
+    end
+
+    test("should only contain native non-system groups",
+      do:
+        assert(
+          Group.all_native_user_groups()
+          |> Enum.all?(&(&1.source == :native and not &1.system)),
+          "Only non-system native groups"
+        )
+    )
+  end
 end

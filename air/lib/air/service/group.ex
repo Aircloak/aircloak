@@ -117,9 +117,18 @@ defmodule Air.Service.Group do
   Returns the groups that a user can belong to.
   Specifically a native user can only belong to native groups,
   an LDAP user only to LDAP groups etc.
+
+  Furthermore no system groups can be assigned to a user.
   """
   @spec available_to_user(User.t()) :: [Group.t()]
   def available_to_user(user), do: Repo.all(from(g in Group, where: g.source == ^user.source and not g.system))
+
+  @doc """
+  Only groups that could be given to a native user.
+  Specifically this means native non-system groups.
+  """
+  @spec all_native_user_groups() :: [Group.t()]
+  def all_native_user_groups(), do: Repo.all(from(g in Group, where: g.source == "native" and not g.system))
 
   # -------------------------------------------------------------------
   # Private functions
