@@ -23,6 +23,7 @@
 
 - Fixed filtering of censored values in standard queries.
 - Verify implicit range usage on both sides of a condition.
+- Fixed interaction between the column analysis cache and aliased tables.
 
 ### Changes
 
