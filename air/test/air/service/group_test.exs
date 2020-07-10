@@ -148,4 +148,33 @@ defmodule Air.Service.Group.Test do
       assert {:ok, _} = Group.get_by_name(group.name)
     end
   end
+
+  describe ".available_to_user" do
+    setup do
+      native_group = TestRepoHelper.create_group!()
+      ldap_group = TestRepoHelper.create_group!(%{ldap_dn: "DN"})
+
+      %{native_group: native_group, ldap_group: ldap_group}
+    end
+
+    test("a native user should only see native groups",
+      do:
+        assert(
+          TestRepoHelper.create_user!()
+          |> Group.available_to_user()
+          |> Enum.all?(&(&1.source == :native)),
+          "Only native groups"
+        )
+    )
+
+    test("an ldap user should only see ldap groups",
+      do:
+        assert(
+          TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+          |> Group.available_to_user()
+          |> Enum.all?(&(&1.source == :ldap)),
+          "Only groups from LDAP"
+        )
+    )
+  end
 end

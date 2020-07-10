@@ -113,6 +113,14 @@ defmodule Air.Service.Group do
     end
   end
 
+  @doc """
+  Returns the groups that a user can belong to.
+  Specifically a native user can only belong to native groups,
+  an LDAP user only to LDAP groups etc.
+  """
+  @spec available_to_user(User.t()) :: [Group.t()]
+  def available_to_user(user), do: Repo.all(from(g in Group, where: g.source == ^user.source))
+
   # -------------------------------------------------------------------
   # Private functions
   # -------------------------------------------------------------------
