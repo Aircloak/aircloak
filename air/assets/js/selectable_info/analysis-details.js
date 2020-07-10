@@ -68,10 +68,10 @@ const topValues = (numberFormat) => (data) => {
           },
         }}
       />
-      <span>
-        The top {processedData.numItems} values account for about
+      <div>
+        The top {processedData.numItems} values account for about{" "}
         {processedData.shownPercent}% of the total number of records.
-      </span>
+      </div>
     </p>
   );
 };
@@ -106,10 +106,10 @@ const exactValues = (numberFormat) => (data) => {
           },
         }}
       />
-      <span>
-        The {processedData.numItems} values shown above account for about
+      <div>
+        The {processedData.numItems} values shown above account for about{" "}
         {processedData.shownPercent}% of the total number of records.
-      </span>
+      </div>
     </p>
   );
 };
