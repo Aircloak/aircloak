@@ -17,7 +17,7 @@ const range = (numberFormat, type) => (min, max) => (
   </p>
 );
 
-const topValues = (numberFormat) => (data) => {
+const filterOtherValue = (numberFormat, data) => {
   let totalCount = 0;
   let topCount = 0;
   const filteredItems = data.filter((item) => {
@@ -29,8 +29,15 @@ const topValues = (numberFormat) => (data) => {
     return false;
   });
 
-  const numItems = filteredItems.length;
-  const topPercent = formatNumber((topCount / totalCount) * 100, numberFormat);
+  return {
+    numItems: filteredItems.length,
+    shownPercent: formatNumber((topCount / totalCount) * 100, numberFormat),
+    data: filteredItems,
+  };
+};
+
+const topValues = (numberFormat) => (data) => {
+  let processedData = filterOtherValue(numberFormat, data);
 
   return (
     <p>
@@ -43,14 +50,14 @@ const topValues = (numberFormat) => (data) => {
             type: "bar",
           },
           data: {
-            values: filteredItems,
+            values: processedData.data,
           },
           encoding: {
             y: {
               field: "value",
               type: "ordinal",
               axis: {
-                title: `Top ${numItems} values`,
+                title: `Top ${processedData.numItems} values`,
               },
               sort: "-x",
             },
@@ -62,41 +69,50 @@ const topValues = (numberFormat) => (data) => {
         }}
       />
       <span>
-        The top {numItems} values account for about {topPercent}% of the total
-        number of records.
+        The top {processedData.numItems} values account for about
+        {processedData.shownPercent}% of the total number of records.
       </span>
     </p>
   );
 };
 
-const exactValues = (data) => (
-  <VegaLite
-    width={Math.min(250, document.body.clientWidth - 200)}
-    padding={10}
-    actions={false}
-    spec={{
-      mark: {
-        type: "bar",
-      },
-      data: {
-        values: data,
-      },
-      encoding: {
-        y: {
-          field: "value",
-          type: "ordinal",
-          axis: {
-            title: false,
+const exactValues = (numberFormat) => (data) => {
+  let processedData = filterOtherValue(numberFormat, data);
+  return (
+    <p>
+      <VegaLite
+        width={Math.min(250, document.body.clientWidth - 200)}
+        padding={10}
+        actions={false}
+        spec={{
+          mark: {
+            type: "bar",
           },
-        },
-        x: {
-          field: "count",
-          type: "quantitative",
-        },
-      },
-    }}
-  />
-);
+          data: {
+            values: processedData.data,
+          },
+          encoding: {
+            y: {
+              field: "value",
+              type: "ordinal",
+              axis: {
+                title: false,
+              },
+            },
+            x: {
+              field: "count",
+              type: "quantitative",
+            },
+          },
+        }}
+      />
+      <span>
+        The {processedData.numItems} values shown above account for about
+        {processedData.shownPercent}% of the total number of records.
+      </span>
+    </p>
+  );
+};
 
 const bucketed = (data) => (
   <VegaLite
@@ -262,7 +278,7 @@ const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
         "refined_max"
       )}
       {renderIfPrereqs(topValues(numberFormat), "distinct.top_values") ||
-        renderIfPrereqs(exactValues, "distinct.values")}
+        renderIfPrereqs(exactValues(numberFormat), "distinct.values")}
       {renderIfPrereqs(bucketed, "histogram.buckets")}
       {renderIfPrereqs(
         simpleField("Total records", formatNum),
