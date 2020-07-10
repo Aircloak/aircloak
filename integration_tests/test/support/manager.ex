@@ -3,7 +3,7 @@ defmodule IntegrationTest.Manager do
   import IntegrationTest.Helpers
 
   alias Air.Repo
-  alias Air.Schemas.{AnalystTable, DataSource, ExportForAircloak, Group, Query, ResultChunk, User, View}
+  alias Air.Schemas.{AnalystTable, DataSource, Group, Query, ResultChunk, User, View}
 
   @admin_group_name "admins"
   @user_password "psswrd12"
