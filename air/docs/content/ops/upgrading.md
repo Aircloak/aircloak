@@ -1,3 +1,23 @@
+# Version 20.2.0
+
+## Insights Air
+
+Due to a bug in earlier versions of Insights Air, it was possible
+to assign a user managed through Insights Air to a group managed
+by LDAP. This would lead to a system state where LDAP sync would
+no longer work.
+
+Insights Air 20.2 contains a bugfix which prevents such a configuration
+from being made. Any users that had mistakenly been assigned to an LDAP
+group by an administrator will automatically be moved out of the group as
+part of migration.
+
+For example let's imagine user `alice` is a user managed through Insights Air.
+She has been assigned to group `ldap-group` giving her access to query
+the data source `my-movies`. After upgrading to Aircloak Insights 20.2 she
+will have been moved from the `ldap-group` to a new group called
+`MIGRATED: ldap-group` giving her continued access to `my-movies`.
+
 # Version 20.1.0
 
 ## Insights Air
@@ -10,12 +30,12 @@ before upgrading to this latest version.
 ### Privacy policy
 
 In versions of Aircloak Insights prior to 20.1 Aircloak would track
-pseudonymized usage information for subsequent anonymized analyses. 
-With version 20.1 this is no longer the case. 
+pseudonymized usage information for subsequent anonymized analyses.
+With version 20.1 this is no longer the case.
 
 The default privacy policy has been updated to reflect this change.
 You might want to alter the privacy policy of your installation to
-reflect these changes as well. 
+reflect these changes as well.
 
 The updated and simplified language of the privacy policy can be found
 here: [20.1.0 privacy policy](upgrade/2001_privacy_policy.md).
