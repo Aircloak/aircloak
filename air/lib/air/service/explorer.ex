@@ -136,7 +136,7 @@ defmodule Air.Service.Explorer do
     user = Repo.preload(user(), :groups)
 
     user.groups
-    |> Enum.find(& &1.name == "Diffix Explorer" && &1.system)
+    |> Enum.find(&(&1.name == "Diffix Explorer" && &1.system))
     |> Repo.preload(:data_sources)
   end
 
