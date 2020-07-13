@@ -9,7 +9,7 @@ type Props = {
 
 const FilterView = ({ filter, onFilterChange }: Props) => (
   <div className="column-filter my-3">
-    <div className="input-group">
+    <div className="input-group input-group-sm">
       <div className="input-group-prepend">
         <span className="input-group-text">
           <i className="fas fa-search"></i>
