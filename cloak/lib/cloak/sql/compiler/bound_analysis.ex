@@ -41,11 +41,9 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   @spec clamp_columns_to_bounds(Query.t()) :: Query.t()
   def clamp_columns_to_bounds(query) do
     Helpers.apply_bottom_up(query, fn subquery ->
-      update_in(
-        subquery,
-        [leaf_expressions() |> Lens.filter(&(&1.table.type in [:regular, :virtual]))],
-        &clamp_values/1
-      )
+      leaf_expressions()
+      |> Lens.filter(&(&1.table.type in [:regular, :virtual]))
+      |> Lens.map(subquery, &clamp_values/1)
     end)
   end
 
