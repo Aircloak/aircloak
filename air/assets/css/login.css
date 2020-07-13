@@ -88,27 +88,27 @@ div#aircloak {
 
   @media only screen and (min-width: 600px) {
     body.img1 {
-      background: url(../static/images/bg1.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood1.jpg) no-repeat center center fixed;
     }
 
     body.img2 {
-      background: url(../static/images/bg2.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood2.jpg) no-repeat center center fixed;
     }
 
     body.img3 {
-      background: url(../static/images/bg3.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood3.jpg) no-repeat center center fixed;
     }
 
     body.img4 {
-      background: url(../static/images/bg4.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood4.jpg) no-repeat center center fixed;
     }
 
     body.img5 {
-      background: url(../static/images/bg5.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood5.jpg) no-repeat center center fixed;
     }
 
     body.img6 {
-      background: url(../static/images/bg6.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood6.jpg) no-repeat center center fixed;
     }
 
     body#login {
