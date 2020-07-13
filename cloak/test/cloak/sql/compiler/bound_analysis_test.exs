@@ -40,6 +40,14 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
         analysis_data_source
       )
 
+    {:ok, _} =
+      Cloak.Test.AnalystTableHelpers.create_or_update(
+        1,
+        "bounds_analysis_analyst_recursive",
+        "select uid, baa.col * 2 as col from bounds_analysis_analyst baa group by 1, 2",
+        analysis_data_source
+      )
+
     on_exit(fn ->
       Cloak.Air.unregister_air()
       Cloak.DataSource.replace_all_data_source_configs(data_sources)
@@ -90,6 +98,15 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
         |> first_selected_column()
 
       assert {4, 2000} = column.bounds
+    end
+
+    test "sets bounds for recursive analyst tables", analysis_data_source do
+      column =
+        "SELECT col FROM bounds_analysis_analyst_recursive"
+        |> compile!(analysis_data_source, analyst: 1)
+        |> first_selected_column()
+
+      assert {8, 4000} = column.bounds
     end
 
     defp first_selected_column(query) do

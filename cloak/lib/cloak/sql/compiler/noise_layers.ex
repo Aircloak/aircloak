@@ -160,22 +160,26 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp float_noise_layers_columns(query), do: query
 
-  defp floated_noise_layers(query),
-    do:
-      Query.Lenses.direct_subqueries()
-      |> Lens.filter(&(&1.ast.type == :restricted))
-      |> Lens.to_list(query)
-      |> Enum.flat_map(fn %{ast: subquery, alias: alias} ->
-        subquery_table = Enum.find(query.selected_tables, &(&1.name == alias))
-        true = subquery_table != nil
+  defp floated_noise_layers(query) do
+    user_id = Helpers.id_column(query)
 
-        noise_layer_expressions()
-        |> non_uid_expressions()
-        |> Lens.map(
-          subquery.noise_layers,
-          &reference_aliased(&1, subquery, subquery_table)
-        )
-      end)
+    Query.Lenses.direct_subqueries()
+    |> Lens.filter(&(&1.ast.type == :restricted))
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn %{ast: subquery, alias: alias} ->
+      subquery_table = Enum.find(query.selected_tables, &(&1.name == alias))
+      true = subquery_table != nil
+
+      Lens.map(
+        noise_layer_expressions(),
+        subquery.noise_layers,
+        fn
+          %Expression{user_id?: true} -> user_id
+          column -> reference_aliased(column, subquery, subquery_table)
+        end
+      )
+    end)
+  end
 
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: expressions}, query) do
     if length(expressions) >= 2 and (Helpers.aggregates?(query) or Helpers.group_by?(query)) do
