@@ -217,9 +217,48 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
       type
     )
     |> Map.put(:bounds, {min, max})
+    |> Map.put(:synthetic?, true)
+  end
+
+  defp clamp_values(%Expression{type: type, bounds: {min, max}} = column) when type in [:date, :datetime] do
+    column_year = Expression.function("year", [column], :integer)
+
+    Expression.function(
+      "case",
+      [
+        Expression.function("<", [column_year, Expression.constant(:integer, min)], :boolean),
+        Expression.constant(type, min_year_to_value(type, min)),
+        Expression.function(">", [column_year, Expression.constant(:integer, max)], :boolean),
+        Expression.constant(type, max_year_to_value(type, max)),
+        column
+      ],
+      type
+    )
+    |> Map.put(:bounds, {min, max})
+    |> Map.put(:synthetic?, true)
   end
 
   defp clamp_values(column), do: column
+
+  defp min_year_to_value(:date, year) do
+    {:ok, value} = Date.new(year, 1, 1)
+    value
+  end
+
+  defp min_year_to_value(:datetime, year) do
+    {:ok, value} = NaiveDateTime.new(year, 1, 1, 0, 0, 0)
+    value
+  end
+
+  defp max_year_to_value(:date, year) do
+    {:ok, value} = Date.new(year, 12, 31)
+    value
+  end
+
+  defp max_year_to_value(:datetime, year) do
+    {:ok, value} = NaiveDateTime.new(year, 12, 31, 23, 59, 59)
+    value
+  end
 
   # -------------------------------------------------------------------
   # Safety analysis

@@ -8,10 +8,10 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("bounds_analysis", "col INTEGER")
+    :ok = Cloak.Test.DB.create_table("bounds_analysis", "col INTEGER, d DATE")
 
-    :ok = insert_rows(_user_ids = 1..5, "bounds_analysis", ["col"], [30])
-    :ok = insert_rows(_user_ids = 6..10, "bounds_analysis", ["col"], [70])
+    :ok = insert_rows(_user_ids = 1..5, "bounds_analysis", ["col", "d"], [30, ~D[2000-05-03]])
+    :ok = insert_rows(_user_ids = 6..10, "bounds_analysis", ["col", "d"], [70, ~D[2010-02-12]])
 
     :ok =
       Cloak.Test.DB.create_table("bounds_analysis_virtual", nil,
@@ -56,7 +56,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     {:ok, analysis_data_source}
   end
 
-  test "columns with known bounds are restricted during offload", analysis_data_source do
+  test "numeric columns with known bounds are restricted during offload", analysis_data_source do
     offloaded_query =
       "SELECT COUNT(*) FROM bounds_analysis t WHERE col = 10"
       |> compile!(analysis_data_source)
@@ -64,6 +64,18 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       |> Cloak.DataSource.SqlBuilder.build()
 
     assert offloaded_query =~ ~s[CASE WHEN ("t"."col" < 2) THEN 2 WHEN ("t"."col" > 1000) THEN 1000 ELSE "t"."col" END]
+  end
+
+  test "date columns with known bounds are restricted during offload", analysis_data_source do
+    offloaded_query =
+      "SELECT COUNT(*) FROM bounds_analysis t WHERE d = '2000-05-03'"
+      |> compile!(analysis_data_source)
+      |> Cloak.Sql.Query.resolve_db_columns()
+      |> Cloak.DataSource.SqlBuilder.build()
+
+    assert offloaded_query =~
+             ~s[CASE WHEN (EXTRACT(year FROM "t"."d") < 1975) THEN date '1975-01-01'] <>
+               ~s[ WHEN (EXTRACT(year FROM "t"."d") > 2125) THEN date '2125-12-31' ELSE "t"."d" END]
   end
 
   describe ".analyze_query" do
