@@ -62,7 +62,7 @@ defmodule AirWeb.LayoutView do
   @background_images [
     %{
       photographer: "LExie Blessing",
-      credit_url: "httpsl://www.pexels.com/photo/photo-of-pink-dogwood-plant-4273058/",
+      credit_url: "https://www.pexels.com/photo/photo-of-pink-dogwood-plant-4273058/",
       motive: "Pink Dogwood, Washington State"
     },
     %{
