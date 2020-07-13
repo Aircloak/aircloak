@@ -268,11 +268,6 @@ defmodule Cloak.DataSource do
     {:reply, :ok, nil, :hibernate}
   end
 
-  def handle_call({:update_data_source_sync, data_source}, _from, state) do
-    {_, state, _} = handle_cast({:update_data_source, data_source}, state)
-    {:reply, :ok, state, :hibernate}
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
