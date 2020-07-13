@@ -3,9 +3,9 @@
 import React from "react";
 
 import { filterColumns, Higlighted } from "./filter";
-import ExplorerResultButton from "./explorer-result-button.js";
-import CommentIcon from "./comment-icon";
+import ColumnInfo from "./column-info.js";
 import type { NumberFormat } from "../number_format";
+import ColumnIcon from "./column-icon";
 
 export type Column = {
   name: string,
@@ -13,58 +13,6 @@ export type Column = {
   key_type: string,
   analysis?: any,
   comment: string | null,
-};
-
-const typeColors = {
-  boolean: "#fffbc6",
-  integer: "#e8ffdd",
-  real: "#e7f9cf",
-  text: "#fff2f2",
-  date: "#e8f2ff",
-  datetime: "#e9e8ff",
-};
-
-const columnIcon = (column: Column) => {
-  if (column.key_type) {
-    const icon = column.key_type === "user_id" ? "user" : "link";
-    return (
-      <span
-        className={`type-icon ${icon}-icon`}
-        data-toggle="tooltip"
-        style={{
-          backgroundColor: typeColors[column.type] || "transparent",
-        }}
-        title={`${column.key_type}:${column.type}`}
-      >
-        <span className={`fas fa-${icon}`}>&nbsp;</span>
-      </span>
-    );
-  } else {
-    return (
-      <span
-        className="type-icon native-type"
-        style={{
-          backgroundColor: typeColors[column.type] || "transparent",
-        }}
-        data-toggle="tooltip"
-        title={`${column.type}`}
-      >
-        {column.type[0].toUpperCase()}
-      </span>
-    );
-  }
-};
-
-const columnClassName = (column: Column) => {
-  if (column.key_type) {
-    if (column.key_type === "user_id") {
-      return "id-column";
-    } else {
-      return "key-column";
-    }
-  } else {
-    return "name-column";
-  }
 };
 
 export const ColumnsView = ({
@@ -83,9 +31,7 @@ export const ColumnsView = ({
       {filterColumns(table, columns, filter).map((item) => {
         return (
           <li
-            className={`list-group-item p-1 bg-transparent pr-3 ${columnClassName(
-              item
-            )} d-flex justify-content-between align-items-center`}
+            className={`list-group-item p-1 bg-transparent pr-3 d-flex justify-content-between align-items-center`}
             key={item.name}
           >
             <button
@@ -96,7 +42,7 @@ export const ColumnsView = ({
                 window.insertWordInEditor(`"${item.name}"`);
               }}
             >
-              {columnIcon(item)}
+              <ColumnIcon column={item} />
               <Higlighted table={table} column={item} field="name" />{" "}
               {item.key_type && (
                 <>
@@ -107,10 +53,7 @@ export const ColumnsView = ({
               )}
             </button>
             <span className="align-items-baseline d-flex">
-              {item.comment && <CommentIcon comment={item.comment} />}
-              {item.analysis && (
-                <ExplorerResultButton item={item} numberFormat={numberFormat} />
-              )}
+              <ColumnInfo item={item} numberFormat={numberFormat} />
             </span>
           </li>
         );

@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { formatNumber } from "../number_format";
 import moment from "moment-timezone";
 import { VegaLite } from "react-vega";
+import { Handler } from "vega-tooltip";
 
 const OTHER_ITEM = "--OTHER--";
 
@@ -17,13 +18,29 @@ const range = (numberFormat, type) => (min, max) => (
   </p>
 );
 
+const plot = (spec) => (
+  <VegaLite
+    width={Math.min(330, document.body.clientWidth - 150)}
+    padding={10}
+    actions={false}
+    tooltip={new Handler().call}
+    spec={{
+      ...spec,
+      autosize: {
+        type: "fit",
+        contains: "padding",
+      },
+    }}
+  />
+);
+
 const filterOtherValue = (numberFormat, data) => {
   let totalCount = 0;
   let topCount = 0;
   const filteredItems = data.filter((item) => {
     totalCount += item.count;
     if (item.value !== OTHER_ITEM) {
-      topCount = item.count;
+      topCount += item.count;
       return true;
     }
     return false;
@@ -40,204 +57,182 @@ const topValues = (numberFormat) => (data) => {
   let processedData = filterOtherValue(numberFormat, data);
 
   return (
-    <p>
-      <VegaLite
-        width={Math.min(250, document.body.clientWidth - 200)}
-        padding={10}
-        actions={false}
-        spec={{
-          mark: {
-            type: "bar",
-          },
-          data: {
-            values: processedData.data,
-          },
-          encoding: {
-            y: {
-              field: "value",
-              type: "ordinal",
-              axis: {
-                title: `Top ${processedData.numItems} values`,
-              },
-              sort: "-x",
+    <>
+      {plot({
+        mark: {
+          type: "bar",
+        },
+        data: {
+          values: processedData.data,
+        },
+        encoding: {
+          y: {
+            field: "value",
+            type: "ordinal",
+            axis: {
+              title: `Top ${processedData.numItems} values`,
             },
-            x: {
-              field: "count",
-              type: "quantitative",
-            },
+            sort: "-x",
           },
-        }}
-      />
-      <div>
+          x: {
+            field: "count",
+            type: "quantitative",
+          },
+        },
+      })}
+      <p>
         The top {processedData.numItems} values account for about{" "}
         {processedData.shownPercent}% of the total number of records.
-      </div>
-    </p>
+      </p>
+    </>
   );
 };
 
 const exactValues = (numberFormat) => (data) => {
   let processedData = filterOtherValue(numberFormat, data);
   return (
-    <p>
-      <VegaLite
-        width={Math.min(250, document.body.clientWidth - 200)}
-        padding={10}
-        actions={false}
-        spec={{
-          mark: {
-            type: "bar",
-          },
-          data: {
-            values: processedData.data,
-          },
-          encoding: {
-            y: {
-              field: "value",
-              type: "ordinal",
-              axis: {
-                title: false,
-              },
-            },
-            x: {
-              field: "count",
-              type: "quantitative",
+    <>
+      {plot({
+        mark: {
+          type: "bar",
+        },
+        data: {
+          values: processedData.data,
+        },
+        encoding: {
+          y: {
+            field: "value",
+            type: "ordinal",
+            axis: {
+              title: false,
             },
           },
-        }}
-      />
-      <div>
+          x: {
+            field: "count",
+            type: "quantitative",
+          },
+        },
+      })}
+      <p>
         The {processedData.numItems} values shown above account for about{" "}
         {processedData.shownPercent}% of the total number of records.
-      </div>
-    </p>
+      </p>
+    </>
   );
 };
 
-const bucketed = (data) => (
-  <VegaLite
-    width={Math.min(250, document.body.clientWidth - 200)}
-    padding={10}
-    actions={false}
-    spec={{
-      mark: {
-        type: "bar",
+const bucketed = (data) =>
+  plot({
+    mark: {
+      type: "bar",
+    },
+    data: {
+      values: data,
+    },
+    transform: [
+      { calculate: "datum.lowerBound + datum.bucketSize", as: "upperBound" },
+    ],
+    encoding: {
+      x: {
+        field: "lowerBound",
+        bin: "binned",
+        type: "quantitative",
+        axis: { title: "value (binned)" },
       },
-      data: {
-        values: data,
-      },
-      transform: [
-        { calculate: "datum.lowerBound + datum.bucketSize", as: "upperBound" },
-      ],
-      encoding: {
-        x: {
-          field: "lowerBound",
-          bin: "binned",
-          type: "quantitative",
-          axis: { title: "value (binned)" },
-        },
-        x2: {
-          field: "upperBound",
+      x2: {
+        field: "upperBound",
 
-          type: "quantitative",
-        },
-        y: {
-          field: "count",
-          type: "quantitative",
-        },
+        type: "quantitative",
       },
-    }}
-  />
-);
+      y: {
+        field: "count",
+        type: "quantitative",
+      },
+    },
+  });
 
-const boxplot = ([q1, q2, q3], min, max) => (
-  <VegaLite
-    width={Math.min(300, document.body.clientWidth - 150)}
-    padding={10}
-    actions={false}
-    spec={{
-      data: {
-        values: [
-          {
-            min,
-            q1,
-            q2,
-            q3,
-            max,
-          },
-        ],
-      },
-      layer: [
+const boxplot = ([q1, q2, q3], min, max) =>
+  plot({
+    data: {
+      values: [
         {
-          mark: {
-            type: "rule",
-            invalid: null,
-            style: "boxplot-rule",
-            aria: false,
-          },
-          encoding: {
-            x: {
-              field: "min",
-              type: "quantitative",
-              axis: { title: "quartiles" },
-              scale: { zero: false },
-            },
-            x2: { field: "q1" },
-          },
-        },
-        {
-          mark: {
-            type: "rule",
-            invalid: null,
-            style: "boxplot-rule",
-            aria: false,
-          },
-          encoding: {
-            x: {
-              field: "q3",
-              type: "quantitative",
-            },
-            x2: { field: "max" },
-          },
-        },
-        {
-          mark: {
-            type: "bar",
-            size: 14,
-            orient: "horizontal",
-            invalid: null,
-            style: "boxplot-box",
-            aria: false,
-          },
-          encoding: {
-            x: {
-              field: "q1",
-              type: "quantitative",
-            },
-            x2: { field: "q3" },
-          },
-        },
-        {
-          mark: {
-            color: "white",
-            type: "tick",
-            invalid: null,
-            size: 14,
-            orient: "vertical",
-            ariaRoleDescription: "box",
-            style: "boxplot-median",
-          },
-          encoding: {
-            x: {
-              field: "q2",
-              type: "quantitative",
-            },
-          },
+          min,
+          q1,
+          q2,
+          q3,
+          max,
         },
       ],
-    }}
-  />
-);
+    },
+    layer: [
+      {
+        mark: {
+          type: "rule",
+          invalid: null,
+          style: "boxplot-rule",
+          aria: false,
+        },
+        encoding: {
+          x: {
+            field: "min",
+            type: "quantitative",
+            axis: { title: "quartiles" },
+            scale: { zero: false },
+          },
+          x2: { field: "q1" },
+        },
+      },
+      {
+        mark: {
+          type: "rule",
+          invalid: null,
+          style: "boxplot-rule",
+          aria: false,
+        },
+        encoding: {
+          x: {
+            field: "q3",
+            type: "quantitative",
+          },
+          x2: { field: "max" },
+        },
+      },
+      {
+        mark: {
+          type: "bar",
+          size: 14,
+          orient: "horizontal",
+          invalid: null,
+          style: "boxplot-box",
+          aria: false,
+        },
+        encoding: {
+          x: {
+            field: "q1",
+            type: "quantitative",
+          },
+          x2: { field: "q3" },
+        },
+      },
+      {
+        mark: {
+          color: "white",
+          type: "tick",
+          invalid: null,
+          size: 14,
+          orient: "vertical",
+          ariaRoleDescription: "box",
+          style: "boxplot-median",
+        },
+        encoding: {
+          x: {
+            field: "q2",
+            type: "quantitative",
+          },
+        },
+      },
+    ],
+  });
 
 const simpleField = (title, formatter = (a) => a) => (value) => (
   <p>
@@ -262,9 +257,6 @@ const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
 
   return (
     <div>
-      <p>
-        <b>Type:</b> {type}
-      </p>
       {renderIfPrereqs(
         range(numberFormat, type),
         "refined_min",
