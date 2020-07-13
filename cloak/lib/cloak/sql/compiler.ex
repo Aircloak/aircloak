@@ -36,6 +36,7 @@ defmodule Cloak.Sql.Compiler do
     |> core_compile!(analyst_id, data_source, parameters, views)
     |> Compiler.Anonymization.compile()
     |> Compiler.NoiseLayers.compile()
+    |> Compiler.BoundAnalysis.clamp_columns_to_bounds()
   end
 
   @doc "Performs the core compilation steps of the parsed query."

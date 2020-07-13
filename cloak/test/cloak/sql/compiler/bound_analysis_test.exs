@@ -63,7 +63,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
       |> Cloak.Sql.Query.resolve_db_columns()
       |> Cloak.DataSource.SqlBuilder.build()
 
-    assert offloaded_query =~ ~s[CASE WHEN "t"."col" < 2 THEN 2 WHEN "t"."col" > 1000 THEN 1000 ELSE "t"."col" END]
+    assert offloaded_query =~ ~s[CASE WHEN ("t"."col" < 2) THEN 2 WHEN ("t"."col" > 1000) THEN 1000 ELSE "t"."col" END]
   end
 
   describe ".analyze_query" do

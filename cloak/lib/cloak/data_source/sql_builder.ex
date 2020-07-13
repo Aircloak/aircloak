@@ -235,20 +235,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{kind: :constant, value: value}, dialect),
     do: constant_to_fragment(value, dialect)
 
-  defp column_sql(%Expression{kind: :column, bounds: bounds} = column, dialect) do
-    sql = column |> column_name(dialect.quote_char()) |> cast_type(column.type, dialect)
-
-    if column.table.type in [:regular, :virtual] do
-      restrict(column.type, sql, bounds)
-    else
-      sql
-    end
-  end
-
-  defp restrict(type, sql, {min, max}) when type in [:integer, :real],
-    do: ["CASE WHEN ", sql, " < #{min} THEN #{min} WHEN ", sql, " > #{max} THEN #{max} ELSE ", sql, " END"]
-
-  defp restrict(_type, sql, _bounds), do: sql
+  defp column_sql(%Expression{kind: :column} = column, dialect),
+    do: column |> column_name(dialect.quote_char()) |> cast_type(column.type, dialect)
 
   defp force_max_precision(expression = %Expression{kind: :constant}), do: expression
   defp force_max_precision(expression = %Expression{type: type}), do: cast(expression, type)

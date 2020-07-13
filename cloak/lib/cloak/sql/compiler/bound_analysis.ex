@@ -37,6 +37,18 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     end)
   end
 
+  @doc "Takes a query and clamps all bounded columns."
+  @spec clamp_columns_to_bounds(Query.t()) :: Query.t()
+  def clamp_columns_to_bounds(query) do
+    Helpers.apply_bottom_up(query, fn subquery ->
+      update_in(
+        subquery,
+        [leaf_expressions() |> Lens.filter(&(&1.table.type in [:regular, :virtual]))],
+        &clamp_values/1
+      )
+    end)
+  end
+
   @doc """
   Sets the `bounds` for the given expression.
 
@@ -188,6 +200,26 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
 
   defp update_bounds(fun, [bounds]) when fun in ~w(floor ceil round trunc min max avg), do: bounds
   defp update_bounds(_, _), do: :unknown
+
+  defp clamp_values(%Expression{type: type, bounds: {min, max}} = column) when type in [:integer, :real] do
+    min_constant = Expression.constant(type, min)
+    max_constant = Expression.constant(type, max)
+
+    Expression.function(
+      "case",
+      [
+        Expression.function("<", [column, min_constant], :boolean),
+        min_constant,
+        Expression.function(">", [column, max_constant], :boolean),
+        max_constant,
+        column
+      ],
+      type
+    )
+    |> Map.put(:bounds, {min, max})
+  end
+
+  defp clamp_values(column), do: column
 
   # -------------------------------------------------------------------
   # Safety analysis
