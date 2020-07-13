@@ -17,7 +17,7 @@ export const format = (state: string) => {
 
 export const isFinished = (state: string) => finalStates.includes(state);
 
-export const pendingStates = [
+export const pendingStates: Array<string> = [
   "created",
   "started",
   "parsing",
@@ -28,6 +28,10 @@ export const pendingStates = [
   "post_processing",
 ];
 
+const completedStates: Array<string> = ["cancelled", "completed"];
+
+export const allStates: Array<string> = pendingStates.concat(completedStates);
+
 export const later = (state1: string, state2: string) =>
-  pendingStates.findIndex((s) => s === state1) >
-  pendingStates.findIndex((s) => s === state2);
+  allStates.findIndex((s) => s === state1) >
+  allStates.findIndex((s) => s === state2);
