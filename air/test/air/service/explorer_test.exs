@@ -320,7 +320,9 @@ defmodule Air.Service.ExplorerTest do
 
   describe "change_permitted_data_sources" do
     test "it removes all data sources that currently do not have permissions", context do
-      Explorer.reanalyze_datasource(context.ds_not_included)
+      assert {:ok, _} = Explorer.change_permitted_data_sources(%{data_sources: [
+        context.ds_not_included.id, context.ds1.id
+      ]})
       assert soon(not Enum.empty?(Explorer.results_for_datasource(context.ds_not_included)))
 
       assert {:ok, _} = Explorer.change_permitted_data_sources(%{data_sources: [context.ds1.id]})
