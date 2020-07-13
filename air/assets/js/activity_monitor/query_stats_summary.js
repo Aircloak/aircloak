@@ -4,13 +4,13 @@ import React from "react";
 
 import type { Query } from "./query";
 import StateView from "./state_view";
-import { pendingStates } from "../queries/state.js"
+import { allStates } from "../queries/state.js";
 
 type Props = {
   queries: Query[],
 };
 
-const queryStats = (queries: Query[]): {[string]: number} => {
+const queryStats = (queries: Query[]): { [string]: number } => {
   const queryStats: { [string]: number } = {};
   queries.forEach((query) => {
     if (queryStats[query.state]) {
@@ -36,7 +36,7 @@ export default ({ queries }: Props) => {
           </tr>
         </thead>
         <tbody>
-          {pendingStates.map((stateName) => {
+          {allStates.map((stateName) => {
             const numQueriesCount = stateStats[stateName] || 0;
             return (
               <tr key={stateName}>
