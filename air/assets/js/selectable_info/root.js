@@ -4,11 +4,11 @@ import React from "react";
 import Channel from "phoenix";
 
 import { SelectableView } from "./selectable";
-import NewSelectableToolbarView from "./new_selectable_toolbar";
 import FilterView from "./filter_view";
 import FrontendSocket from "../frontend_socket";
 import type { Selectable } from "./selectable";
 import type { NumberFormat } from "../number_format";
+import { selectableType } from "./selectable-type";
 
 type Props = {
   selectables: Selectable[],
@@ -91,11 +91,24 @@ export default class SelectableInfo extends React.Component<Props, State> {
 
   expanded = (selectable: Selectable) => this.state.expanded.has(selectable.id);
 
-  selectables = (): Array<Selectable> =>
-    this.state.selectables.filter(
-      (selectable) =>
-        selectable.internal_id !==
-        (this.props.selectableToExclude || "don't exclude any")
+  selectables = (): Array<[string, any]> =>
+    Object.entries(
+      this.state.selectables
+        .filter(
+          (selectable) =>
+            selectable.internal_id !==
+            (this.props.selectableToExclude || "don't exclude any")
+        )
+        .reduce(
+          (groups, selectable) => {
+            const type = selectableType(selectable);
+
+            return { ...groups, [type]: [...(groups[type] || []), selectable] };
+          },
+          this.props.supportsCreateTable
+            ? { View: [], "Analyst Table": [] }
+            : { View: [] }
+        )
     );
 
   dataSourceStatusReceived = (event: { status: string }) =>
@@ -174,27 +187,47 @@ export default class SelectableInfo extends React.Component<Props, State> {
           <FilterView filter={filter} onFilterChange={this.onFilterChange} />
 
           <div className="selectable-info-content flex-grow-1 overflow-auto list-group list-group-flush mx-n4">
-            {this.selectables().map((selectable, i) => (
-              <SelectableView
-                // eslint-disable-next-line react/no-array-index-key
-                key={i}
-                filter={filter}
-                selectable={selectable}
-                selectablesEditUrl={selectablesEditUrl}
-                channel={this.channel}
-                expanded={this.expanded(selectable)}
-                onClick={this.toggleExpand(selectable)}
-                numberFormat={numberFormat}
-              />
+            {this.selectables().map(([category, selectables]) => (
+              <div key={category}>
+                <div className="d-flex justify-content-between px-3 py-2 bg-white sticky-top align-items-baseline border-bottom">
+                  <h4 className="h6 text-uppercase small font-weight-bold text-muted m-0">
+                    {category}
+                  </h4>
+                  {category === "View" && (
+                    <a
+                      href={newViewURL}
+                      className="btn btn-link btn-sm p-0 m-0"
+                    >
+                      <i className="fas fa-plus"></i> New
+                    </a>
+                  )}
+                  {category === "Analyst Table" && (
+                    <a
+                      href={newTableURL}
+                      className="btn btn-link btn-sm p-0 m-0"
+                    >
+                      <i className="fas fa-plus"></i> New
+                    </a>
+                  )}
+                </div>
+                {Array.from(selectables).map((selectable, i) => (
+                  <SelectableView
+                    // eslint-disable-next-line react/no-array-index-key
+                    key={i}
+                    filter={filter}
+                    selectable={selectable}
+                    selectablesEditUrl={selectablesEditUrl}
+                    channel={this.channel}
+                    expanded={this.expanded(selectable)}
+                    onClick={this.toggleExpand(selectable)}
+                    numberFormat={numberFormat}
+                    newTableURL={newTableURL}
+                    newViewURL={newViewURL}
+                    supportsCreateTable={supportsCreateTable}
+                  />
+                ))}
+              </div>
             ))}
-          </div>
-
-          <div className="d-flex justify-content-around mt-2">
-            <NewSelectableToolbarView
-              newTableURL={newTableURL}
-              newViewURL={newViewURL}
-              supportsCreateTable={supportsCreateTable}
-            />
           </div>
         </div>
       </div>
