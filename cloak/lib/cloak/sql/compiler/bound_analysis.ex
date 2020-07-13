@@ -31,7 +31,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   def analyze_query(query) do
     Helpers.apply_bottom_up(query, fn subquery ->
       subquery
-      |> set_leaf_bounds()
+      |> update_in([leaf_expressions()], &set_leaf_bounds(&1, subquery))
       |> update_in([Query.Lenses.query_expressions()], &set_bounds/1)
       |> update_in([Query.Lenses.query_expressions()], &analyze_safety/1)
     end)
@@ -63,16 +63,14 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   # Bound computation
   # -------------------------------------------------------------------
 
-  defp set_leaf_bounds(query) do
-    update_in(query, [leaf_expressions()], fn expression ->
-      case Query.resolve_subquery_column(expression, query) do
-        :database_column ->
-          %{expression | bounds: Bounds.bounds(query.data_source, expression.table, expression.name)}
+  defp set_leaf_bounds(expression, query) do
+    case Query.resolve_subquery_column(expression, query) do
+      :database_column ->
+        %{expression | bounds: Bounds.bounds(query.data_source, expression.table, expression.name)}
 
-        {column, _subquery} ->
-          %{expression | bounds: column.bounds}
-      end
-    end)
+      {column, _subquery} ->
+        %{expression | bounds: column.bounds}
+    end
   end
 
   deflensp leaf_expressions() do
