@@ -31,7 +31,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   def analyze_query(query) do
     Helpers.apply_bottom_up(query, fn subquery ->
       subquery
-      |> update_in([leaf_expressions()], &set_leaf_bounds(&1, subquery))
+      |> update_in([columns_lens()], &set_leaf_bounds(&1, subquery))
       |> update_in([Query.Lenses.query_expressions()], &set_bounds/1)
       |> update_in([Query.Lenses.query_expressions()], &analyze_safety/1)
     end)
@@ -41,7 +41,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   @spec clamp_columns_to_bounds(Query.t()) :: Query.t()
   def clamp_columns_to_bounds(query) do
     Helpers.apply_bottom_up(query, fn subquery ->
-      leaf_expressions()
+      columns_lens()
       |> Lens.filter(&(&1.table.type in [:regular, :virtual]))
       |> Lens.map(subquery, &clamp_values/1)
     end)
@@ -83,9 +83,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     end
   end
 
-  deflensp leaf_expressions() do
-    Query.Lenses.query_expressions() |> Query.Lenses.leaf_expressions() |> Lens.reject(&Expression.constant?/1)
-  end
+  deflensp columns_lens(), do: Query.Lenses.query_expressions() |> Lens.filter(&Expression.column?/1)
 
   defp do_set_bounds(expression = %Expression{kind: :constant, value: value}) when value in [:*, nil],
     do: expression
