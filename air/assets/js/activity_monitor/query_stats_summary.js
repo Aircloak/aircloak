@@ -4,12 +4,13 @@ import React from "react";
 
 import type { Query } from "./query";
 import StateView from "./state_view";
+import { pendingStates } from "../queries/state.js"
 
 type Props = {
   queries: Query[],
 };
 
-const queryStats = (queries: Query[]) => {
+const queryStats = (queries: Query[]): {[string]: number} => {
   const queryStats: { [string]: number } = {};
   queries.forEach((query) => {
     if (queryStats[query.state]) {
@@ -22,6 +23,7 @@ const queryStats = (queries: Query[]) => {
 };
 
 export default ({ queries }: Props) => {
+  const stateStats = queryStats(queries);
   return (
     <div>
       <h4>Snapshot of current query states</h4>
@@ -34,24 +36,17 @@ export default ({ queries }: Props) => {
           </tr>
         </thead>
         <tbody>
-          {Object.entries(queryStats(queries)).map(
-            ([queryState: string, count: number]) => {
-              // Object.entries returns an array of [string, mixed] values.
-              // We know the mixed values to all be number, but the only way to
-              // convince Flow of this is by doing a type refinement:
-              if (typeof count !== "number") {
-                return <React.Fragment />;
-              }
-              return (
-                <tr key={queryState}>
-                  <td>
-                    <StateView queryState={queryState} />
-                  </td>
-                  <td>{count}</td>
-                </tr>
-              );
-            }
-          )}
+          {pendingStates.map((stateName) => {
+            const numQueriesCount = stateStats[stateName] || 0;
+            return (
+              <tr key={stateName}>
+                <td>
+                  <StateView queryState={stateName} />
+                </td>
+                <td>{numQueriesCount}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
