@@ -22,13 +22,12 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     data_sources = Cloak.DataSource.all()
 
     analysis_data_source =
-      data_sources
-      |> hd()
+      default_data_source()
       |> Map.put(:name, "analysis")
       |> Map.put(:bound_computation_enabled, true)
       |> Map.put(:statistics_anonymization, false)
 
-    Cloak.DataSource.replace_all_data_source_configs([analysis_data_source | data_sources])
+    Cloak.DataSource.replace_all_data_source_configs([analysis_data_source])
 
     Cloak.Air.register_air("some air")
 
