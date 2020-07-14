@@ -1,3 +1,32 @@
+# Upgrading
+
+We recommend taking the following steps before upgrading to a new version of Aircloak Insights:
+
+1. Check whether there are incompatibilities or config changes needed by reading the upgrade documentation specific
+  to the version of Aircloak Insights you are upgrading to. It can be found further down in this document.
+2. Take a backup of the Postgres database. This allows you to undo a system upgrade without losing data.
+
+## Postgres backup
+
+Upgrades, with few exceptions, make alterations to the database schema. While some of these are reversible,
+others are not. We recommend taking a database backup before upgrading.
+
+You can use [pg_dump](https://www.postgresql.org/docs/12/app-pgdump.html) and [pg_restore](https://www.postgresql.org/docs/current/app-pgrestore.html)
+to create and restore a backup. These tools come as part of a standard Postgres installation.
+
+Creating and restoring a backup can be done as follows:
+
+```sh
+$ echo "Backing up Insights Air's database"
+$ pg_dump -h hostname -U username -p 5432 -d dbname -Fc > backup.sql
+
+$ echo "Restoring Insights Air's database"
+$ pg_restore -h hostname -U username -p 5432 --clean -d dbname < backup.sql
+```
+
+When issuing these commands you must make sure to replace the parameters (such as `-h` for the hostname and `-U` for the database user)
+with ones specific to your particular installation.
+
 # Version 20.2.0
 
 ## Insights Air

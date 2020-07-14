@@ -154,7 +154,7 @@ defmodule AirWeb.Router do
     post("/diffix-explorer/reanalyze_all", ExplorerController, :reanalyze_all)
     resources("/diffix-explorer", ExplorerController, except: [:delete])
 
-    live_dashboard("/live-dashboard")
+    live_dashboard("/live-dashboard", metrics: AirWeb.Telemetry)
   end
 
   scope "/onboarding", AirWeb.Onboarding, as: :onboarding do

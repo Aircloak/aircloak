@@ -104,7 +104,7 @@ in the Insights Air web interface. If you attempt to access the Insights Air int
 you will be prompted to create one. To do so you have to type in the `master_password` the system is configured with.
 This password will no longer be needed once the first administrator has been created.
 
-The `endpoint_public_url` should be the root of the URL that the Air instance is accessible on the internet. It is used to generate correct URLs. 
+The `endpoint_public_url` should be the root of the URL that the Air instance is accessible on the internet. It is used to generate correct URLs.
 
 The `cloak_secret` setting is optional. If not set (default) all Insights Cloak instances will be allowed to connect to
 the Insights Air instance. If set, then only instances with the same `cloak_secret` set in their configuration files
@@ -340,7 +340,7 @@ The Diffix Explorer integration is optional. You can activate it by including th
 }
 ```
 
-The single property `url` is the URL where Insights Air can find a running version of Diffix Explorer. Note that for the integration to 
+The single property `url` is the URL where Insights Air can find a running version of Diffix Explorer. Note that for the integration to
 work properly, you will also need to fill out the optional [`site.endpoint_public_url`](#web-site-configuration) setting.
 
 ## Insights Cloak configuration
@@ -575,19 +575,19 @@ products might look like this:
   "accounts": {
     "keys": [
       {"user_id": "customer_id"},
-      {"account_id": "id"}
+      {"account_id_key": "id"}
     ]
   },
   "transactions": {
     "keys": [
-      {"account_id": "account_id"},
-      {"product_id": "product_id"}
+      {"account_id_key": "account_id"},
+      {"product_id_key": "product_id"}
     ]
   },
   "products": {
     "content_type": "non-personal",
     "keys": [
-      {"product_id": "id"}
+      {"product_id_key": "id"}
     ]
   }
 }
