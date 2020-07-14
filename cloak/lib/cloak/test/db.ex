@@ -76,6 +76,12 @@ defmodule Cloak.Test.DB do
   def init(_) do
     execute!("DROP SCHEMA IF EXISTS cloak_test CASCADE")
     execute!("CREATE SCHEMA cloak_test")
+
+    # Disable bound computation at runtime for all data sources by default.
+    DataSource.all()
+    |> Enum.map(&%{&1 | bound_computation_enabled: false})
+    |> DataSource.replace_all_data_source_configs()
+
     {:ok, nil}
   end
 
