@@ -127,83 +127,89 @@ div#aircloak {
     }
 
     body.img1 {
-      background: url(../static/images/bg-dogwood1.jpg) no-repeat center center fixed;
-      background-image:
-        image-set(
-          "../static/images/bg-dogwood1.jpg" 1x,
-          "../static/images/bg-dogwood1-large.jpg" 2x
-        );
+      background: url(../static/images/bg-dogwood1.jpg) no-repeat center center
+        fixed;
+      background-image: image-set(
+        "../static/images/bg-dogwood1.jpg" 1x,
+        "../static/images/bg-dogwood1-large.jpg" 2x
+      );
     }
 
     body.img2 {
-      background: url(../static/images/bg-dogwood2.jpg) no-repeat center center fixed;
-      background-image:
-        image-set(
-          "../static/images/bg-dogwood2.jpg" 1x,
-          "../static/images/bg-dogwood2-large.jpg" 2x
-        );
+      background: url(../static/images/bg-dogwood2.jpg) no-repeat center center
+        fixed;
+      background-image: image-set(
+        "../static/images/bg-dogwood2.jpg" 1x,
+        "../static/images/bg-dogwood2-large.jpg" 2x
+      );
     }
 
     body.img3 {
-      background: url(../static/images/bg-dogwood3.jpg) no-repeat center center fixed;
-      background-image:
-        image-set(
-          "../static/images/bg-dogwood3.jpg" 1x,
-          "../static/images/bg-dogwood3-large.jpg" 2x
-        );
+      background: url(../static/images/bg-dogwood3.jpg) no-repeat center center
+        fixed;
+      background-image: image-set(
+        "../static/images/bg-dogwood3.jpg" 1x,
+        "../static/images/bg-dogwood3-large.jpg" 2x
+      );
     }
 
     body.img4 {
-      background: url(../static/images/bg-dogwood4.jpg) no-repeat center center fixed;
-      background-image:
-        image-set(
-          "../static/images/bg-dogwood4.jpg" 1x,
-          "../static/images/bg-dogwood4-large.jpg" 2x
-        );
+      background: url(../static/images/bg-dogwood4.jpg) no-repeat center center
+        fixed;
+      background-image: image-set(
+        "../static/images/bg-dogwood4.jpg" 1x,
+        "../static/images/bg-dogwood4-large.jpg" 2x
+      );
     }
 
     body.img5 {
-      background: url(../static/images/bg-dogwood5.jpg) no-repeat center center fixed;
-      background-image:
-        image-set(
-          "../static/images/bg-dogwood5.jpg" 1x,
-          "../static/images/bg-dogwood5-large.jpg" 2x
-        );
+      background: url(../static/images/bg-dogwood5.jpg) no-repeat center center
+        fixed;
+      background-image: image-set(
+        "../static/images/bg-dogwood5.jpg" 1x,
+        "../static/images/bg-dogwood5-large.jpg" 2x
+      );
     }
 
     body.img6 {
-      background: url(../static/images/bg-dogwood6.jpg) no-repeat center center fixed;
-      background-image:
-        image-set(
-          "../static/images/bg-dogwood6.jpg" 1x,
-          "../static/images/bg-dogwood6-large.jpg" 2x
-        );
+      background: url(../static/images/bg-dogwood6.jpg) no-repeat center center
+        fixed;
+      background-image: image-set(
+        "../static/images/bg-dogwood6.jpg" 1x,
+        "../static/images/bg-dogwood6-large.jpg" 2x
+      );
     }
   }
 
   @media only screen and (min-width: 1920px) {
     body.img1 {
-      background: url(../static/images/bg-dogwood1-large.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood1-large.jpg) no-repeat center
+        center fixed;
     }
 
     body.img2 {
-      background: url(../static/images/bg-dogwood2-large.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood2-large.jpg) no-repeat center
+        center fixed;
     }
 
     body.img3 {
-      background: url(../static/images/bg-dogwood3-large.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood3-large.jpg) no-repeat center
+        center fixed;
     }
 
     body.img4 {
-      background: url(../static/images/bg-dogwood4-large.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood4-large.jpg) no-repeat center
+        center fixed;
     }
 
     body.img5 {
-      background: url(../static/images/bg-dogwood5-large.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood5-large.jpg) no-repeat center
+        center fixed;
     }
 
     body.img6 {
-      background: url(../static/images/bg-dogwood6-large.jpg) no-repeat center center fixed;
+      background: url(../static/images/bg-dogwood6-large.jpg) no-repeat center
+        center fixed;
     }
   }
 }
