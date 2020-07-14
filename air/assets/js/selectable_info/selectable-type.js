@@ -8,5 +8,7 @@ export function selectableType(selectable) {
       return "Analyst Table";
     case "view":
       return "View";
+    default:
+      throw "Unknown selectable kind ${selectable.kind}";
   }
 }
