@@ -37,6 +37,7 @@
   flex-direction: column;
   flex-grow: 1;
   min-height: calc(100vh - 250px);
+  overflow: auto;
 }
 
 @media (min-width: 768px) {
@@ -44,7 +45,6 @@
     max-width: 25vw;
     min-width: 350px;
     position: relative;
-    margin-left: 1rem;
   }
 
   .sidebar.fixed-right {
