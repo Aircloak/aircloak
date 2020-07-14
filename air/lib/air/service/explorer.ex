@@ -42,34 +42,34 @@ defmodule Air.Service.Explorer do
           }
         ]
   def statistics() do
-    from(ea in ExplorerAnalysis,
-      right_join: ds in DataSource,
-      on: ea.data_source_id == ds.id,
-      join: dsg in "data_sources_groups",
-      on: dsg.data_source_id == ds.id,
-      join: g in Air.Schemas.Group,
-      on: g.id == dsg.group_id,
-      where: g.name == "Diffix Explorer" and g.system,
+    from(explorer_analysis in ExplorerAnalysis,
+      right_join: data_source in DataSource,
+      on: explorer_analysis.data_source_id == data_source.id,
+      join: data_source_groups in "data_sources_groups",
+      on: data_source_groups.data_source_id == data_source.id,
+      join: group in Air.Schemas.Group,
+      on: group.id == data_source_groups.group_id,
+      where: group.name == "Diffix Explorer" and group.system,
       select: %{
-        complete: count(ea.status in ["complete"] or nil),
-        processing: count(ea.status in ["new", "processing"] or nil),
-        error: count(ea.status in ["error"] or nil),
-        total: count(ea.id),
-        id: ds.id,
-        name: ds.name,
-        description: ds.description
+        complete: count(explorer_analysis.status in ["complete"] or nil),
+        processing: count(explorer_analysis.status in ["new", "processing"] or nil),
+        error: count(explorer_analysis.status in ["error"] or nil),
+        total: count(explorer_analysis.id),
+        id: data_source.id,
+        name: data_source.name,
+        description: data_source.description
       },
-      group_by: ds.id
+      group_by: data_source.id
     )
     |> Repo.all()
   end
 
   @doc "Is diffix explorer integration enabled for this datasource?"
   @spec data_source_enabled?(DataSource.t()) :: boolean
-  def data_source_enabled?(ds) do
+  def data_source_enabled?(data_source) do
     if enabled?() do
       {user, _} = find_or_create_explorer_creds()
-      match?({:ok, _}, Air.Service.DataSource.fetch_as_user({:id, ds.id}, user))
+      match?({:ok, _}, Air.Service.DataSource.fetch_as_user({:id, data_source.id}, user))
     else
       false
     end
@@ -77,28 +77,28 @@ defmodule Air.Service.Explorer do
 
   @doc "Returns analysis results for a particular data source"
   @spec results_for_datasource(DataSource.t()) :: [ExplorerAnalysis.t()]
-  def results_for_datasource(ds),
+  def results_for_datasource(data_source),
     do:
       Repo.all(
-        from(ea in ExplorerAnalysis,
-          where: ea.data_source_id == ^ds.id,
+        from(explorer_analysis in ExplorerAnalysis,
+          where: explorer_analysis.data_source_id == ^data_source.id,
           preload: [:data_source]
         )
       )
 
   @doc "Requests new analyses for datasource."
   @spec reanalyze_datasource(Air.Schemas.DataSource.t()) :: :ok
-  def reanalyze_datasource(ds) do
+  def reanalyze_datasource(data_source) do
     {_, token} = find_or_create_explorer_creds()
 
-    Enum.each(results_for_datasource(ds), &GenServer.cast(__MODULE__, {:request_analysis, &1, token}))
+    Enum.each(results_for_datasource(data_source), &GenServer.cast(__MODULE__, {:request_analysis, &1, token}))
   end
 
   @doc "Returns a list of tables that are elligible for analysis for a particular datasource"
   @spec elligible_tables_for_datasource(Air.Schemas.DataSource.t()) :: [String.t()]
   def elligible_tables_for_datasource(data_source) do
     DataSource.tables(data_source)
-    |> Enum.filter(fn %{"columns" => columns} -> Enum.any?(columns, fn %{"user_id" => uid} -> uid end) end)
+    |> Enum.filter(fn table -> Enum.any?(table["columns"], & &1["user_id"]) end)
     |> Enum.map(fn %{"id" => table_name} -> table_name end)
   end
 
@@ -114,9 +114,9 @@ defmodule Air.Service.Explorer do
     tables_by_datasource =
       Enum.reduce(params["tables"], %{}, fn input, acc ->
         with true <- is_map(input),
-             [{ds_id_str, table_name}] <- Map.to_list(input),
-             {ds_id, _remainder} <- Integer.parse(ds_id_str) do
-          Map.update(acc, ds_id, [table_name], &[table_name | &1])
+             [{data_source_id_str, table_name}] <- Map.to_list(input),
+             {data_source_id, _remainder} <- Integer.parse(data_source_id_str) do
+          Map.update(acc, data_source_id, [table_name], &[table_name | &1])
         else
           _ -> acc
         end
@@ -127,12 +127,12 @@ defmodule Air.Service.Explorer do
     case Air.Service.Group.update(old_group, params) do
       {:ok, new_group} ->
         new_group.data_sources
-        |> Enum.map(fn ds -> {ds, tables_by_datasource[ds.id] || []} end)
+        |> Enum.map(fn data_source -> {data_source, tables_by_datasource[data_source.id] || []} end)
         |> delete_all_unauthorized()
         |> reject_all_unchanged()
-        |> Enum.each(fn {ds, tables} ->
+        |> Enum.each(fn {data_source, tables} ->
           Enum.each(tables, fn table ->
-            GenServer.cast(__MODULE__, {:request_analysis, create_placeholder_result(ds, table), token})
+            GenServer.cast(__MODULE__, {:request_analysis, create_placeholder_result(data_source, table), token})
           end)
         end)
 
@@ -209,11 +209,15 @@ defmodule Air.Service.Explorer do
 
   defp delete_all_unauthorized(current_datasources) do
     current_datasources
-    |> Enum.reduce(ExplorerAnalysis, fn {ds, tables}, query ->
+    |> Enum.reduce(ExplorerAnalysis, fn {data_source, tables}, query ->
       if Enum.empty?(tables) do
         query
       else
-        where(query, [ea], not (ea.data_source_id == ^ds.id and ea.table_name in ^tables))
+        where(
+          query,
+          [explorer_analysis],
+          not (explorer_analysis.data_source_id == ^data_source.id and explorer_analysis.table_name in ^tables)
+        )
       end
     end)
     |> Repo.delete_all()
@@ -237,7 +241,9 @@ defmodule Air.Service.Explorer do
   end
 
   defp pending_analyses_query() do
-    from(ea in ExplorerAnalysis, where: ea.status in ["new", "processing"] and not is_nil(ea.job_id))
+    from(explorer_analysis in ExplorerAnalysis,
+      where: explorer_analysis.status in ["new", "processing"] and not is_nil(explorer_analysis.job_id)
+    )
   end
 
   defp find_or_create_explorer_creds() do
