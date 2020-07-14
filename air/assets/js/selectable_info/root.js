@@ -210,10 +210,9 @@ export default class SelectableInfo extends React.Component<Props, State> {
                     </a>
                   )}
                 </div>
-                {Array.from(selectables).map((selectable, i) => (
+                {Array.from(selectables).map((selectable) => (
                   <SelectableView
-                    // eslint-disable-next-line react/no-array-index-key
-                    key={i}
+                    key={selectable.id}
                     filter={filter}
                     selectable={selectable}
                     selectablesEditUrl={selectablesEditUrl}
