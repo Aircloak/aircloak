@@ -16,12 +16,12 @@ to create and restore a backup. These tools come as part of a standard Postgres 
 
 Creating and restoring a backup can be done as follows:
 
-```
-echo "Backing up Insights Air's database"
-pg_dump -h hostname -U username -p 5432 -d dbname -Fc > backup.sql
+```sh
+$ echo "Backing up Insights Air's database"
+$ pg_dump -h hostname -U username -p 5432 -d dbname -Fc > backup.sql
 
-echo "Restoring Insights Air's database"
-pg_restore -h hostname -U username -p 5432 --clean -d dbname < backup.sql
+$ echo "Restoring Insights Air's database"
+$ pg_restore -h hostname -U username -p 5432 --clean -d dbname < backup.sql
 ```
 
 When issuing these commands you must make sure to replace the parameters (such as `-h` for the hostname and `-U` for the database user)
