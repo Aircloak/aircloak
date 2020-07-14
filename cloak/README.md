@@ -15,12 +15,10 @@
       - [Running a specific compliance test](#running-a-specific-compliance-test)
       - [Running a local docker container](#running-a-local-docker-container)
       - [Running full compliance CI locally](#running-full-compliance-ci-locally)
-      - [Using CI container to unit test other databases](#using-ci-container-to-unit-test-other-databases)
       - [Running fuzz tests](#running-fuzz-tests)
       - [Deploying](#deploying)
       - [Running performance tests locally](#running-performance-tests-locally)
     - [Installing database servers](#installing-database-servers)
-      - [Mongodb](#mongodb)
       - [MySQL](#mysql)
       - [SQL Server](#sql-server)
       - [Working in a dev container](#working-in-a-dev-container)
@@ -161,13 +159,12 @@ Note that when specifying Erlang modules, you need to provide the name of the re
 example, let's say you have the module `anonymizer` and property tests are residing in the `anonymizer_test` module. The
 corresponding command is `mix proper --module anonymizer` (without the `_test` suffix).
 
-By default, only native PostgreSQL adapter is tested locally, while MongoDB and other drivers are excluded. To change
+By default, only native PostgreSQL adapter is tested locally, while other drivers are excluded. To change
 this you can run following commands:
 
-- `mix test --only mongodb` - to run only MongoDB tests
 - `mix test --only compliance` - to run only the compliance tests
-- `make test_all` - to run all tests which are running on CI: standard tests, MongoDB tests, and tests for all other
-  database adapters (MySQL, PostgreSQL through ODBC, ...). Note however that compliance tests are going to be executed
+- `make test_all` - to run all tests which are running on CI: standard tests, and tests for all other
+  database adapters (MySQL, Oracle, ...). Note however that compliance tests are going to be executed
   on a reduced database set (as specified in `compliance.json`).
 
 In order to have working tests on other drivers, you need to start corresponding database servers locally - see
@@ -210,7 +207,7 @@ run tests with `mix test --only compliance`. The container uses the source files
 easily edit those files and repeatedly run the tests without needing to rebuild the image.
 
 If you want to test some specific databases, you can set the `CLOAK_DATA_SOURCES` env variable. For example, to test
-only PostgreSQL and MongoDB 3.6, you can run the following command:
+only PostgreSQL and Oracle, you can run the following command:
 
 ```
 CLOAK_DATA_SOURCES="postgresql oracle" make ci.compliance
@@ -223,28 +220,6 @@ The default number of generated users is 10. You can change this by setting the 
 
 ```
 COMPLIANCE_USERS=50 make ci.compliance
-```
-
-#### Using CI container to unit test other databases
-
-CI container can also be used to unit test other databases, such as Oracle, or MongoDb. In this configuration, you
-need to explicitly set the data sources to PostgreSQL, when starting the CI container.
-
-```
-CLOAK_DATA_SOURCES="postgresql" make ci.compliance
-```
-
-In the container, you now need to manually start local MongoDb instance:
-
-```
-mongod --fork --logpath /var/log/mongodb.log
-```
-
-Now you can invoke the following commands:
-
-```
-mix test --include exclude_in_dev
-mix test --only mongodb
 ```
 
 #### Running fuzz tests
@@ -288,25 +263,6 @@ Before running the tests you need to prepare the performance database.
 Note that the tests submit results to InfluxDB - it will be started with `start_dependencies.sh`.
 
 ### Installing database servers
-
-#### Mongodb
-
-- `make mongo-server-container` - starts the container
-- Add something like the following section to the appropriate config.json:
-
-```json
-{
-  "driver": "mongodb",
-  "name": "mongodb",
-  "parameters": {
-    "hostname": "localhost",
-    "username": "root",
-    "database": "cloaktest2"
-  },
-  "tables": {
-  }
-}
-```
 
 #### MySQL
 
