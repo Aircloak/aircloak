@@ -471,6 +471,9 @@ defmodule Cloak.DataSource.SqlBuilder do
     ])
   end
 
+  defp mark_boolean_expression({:distinct, expression}, state),
+    do: {:distinct, mark_boolean_expression(expression, state)}
+
   defp mark_boolean_expression(%Expression{kind: :function} = function, state) do
     cond do
       state == :mark and boolean_expression?(function) ->
