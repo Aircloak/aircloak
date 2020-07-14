@@ -14,7 +14,13 @@ defmodule Cloak.DataSource.ClouderaImpala do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
+  def connect(parameters) do
+    with {:ok, connection} <- RODBC.connect(parameters, &conn_params/1) do
+      # Disable expression rewrites. See https://issues.apache.org/jira/browse/IMPALA-7083 for details.
+      :ok = RODBC.Port.execute(connection, "SET ENABLE_EXPR_REWRITES=0")
+      {:ok, connection}
+    end
+  end
 
   @impl Driver
   def select(connection, query, result_processor) do
