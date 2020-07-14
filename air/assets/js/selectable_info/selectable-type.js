@@ -9,6 +9,6 @@ export function selectableType(selectable) {
     case "view":
       return "View";
     default:
-      throw "Unknown selectable kind ${selectable.kind}";
+      throw new Error(`Unknown selectable kind ${selectable.kind}`);
   }
 }

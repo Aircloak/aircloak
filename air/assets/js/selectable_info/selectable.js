@@ -156,7 +156,7 @@ export class SelectableView extends React.Component<Props> {
             title={title}
             data-container={dataContainer}
             data-toggle={dataToggle}
-            className={`${className} btn ml-n2`}
+            className={`${className} btn ml-n2 text-truncate text-left`}
           >
             {this.renderIcon()}
             <span className="pl-2">
