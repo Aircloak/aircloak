@@ -7,6 +7,11 @@ defmodule Cloak.Query.ParallelStreamingTest do
   alias Cloak.Query.Runner
 
   setup_all do
+    data_sources = Cloak.DataSource.all()
+    on_exit(fn -> Cloak.DataSource.replace_all_data_source_configs(data_sources) end)
+    streaming_data_source = default_data_source() |> Map.put(:statistics_anonymization, false)
+    Cloak.DataSource.replace_all_data_source_configs([streaming_data_source])
+
     :ok = Cloak.Test.DB.create_table(@table, "value INTEGER")
     :ok
   end
