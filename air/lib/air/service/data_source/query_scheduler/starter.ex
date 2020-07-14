@@ -17,11 +17,17 @@ defmodule Air.Service.DataSource.QueryScheduler.Starter do
   """
   @spec run() :: :ok
   def run() do
-    {expired, pending} = Enum.split_with(Query.awaiting_start(), &expired?/1)
+    all_cloak_infos = Cloak.all_cloak_infos()
+
+    {expired, pending} =
+      Enum.split_with(
+        Query.awaiting_start(),
+        &expired_or_unavailable?(&1, all_cloak_infos)
+      )
 
     pending
     # shuffling the cloak infos to improve distribution
-    |> Stream.scan(Enum.shuffle(Cloak.all_cloak_infos()), &try_query_start(&2, &1))
+    |> Stream.scan(Enum.shuffle(all_cloak_infos), &try_query_start(&2, &1))
     |> Stream.run()
 
     Enum.each(
@@ -34,9 +40,19 @@ defmodule Air.Service.DataSource.QueryScheduler.Starter do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp expired_or_unavailable?(query, cloak_infos) do
+    expired?(query) or cloak_unavailable?(query, cloak_infos)
+  end
+
   defp expired?(query) do
     expiry_time = NaiveDateTime.add(NaiveDateTime.utc_now(), -:timer.hours(24), :millisecond)
     NaiveDateTime.compare(query.inserted_at, expiry_time) != :gt
+  end
+
+  defp cloak_unavailable?(query, cloak_infos) do
+    cloak_infos
+    |> pop_cloak(query.data_source)
+    |> is_nil()
   end
 
   defp try_query_start(cloak_infos, query) do
