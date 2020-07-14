@@ -4,6 +4,8 @@ defmodule Cloak.DataSource.Bounds do
   require Aircloak
   require Cloak.Sql.Expression
 
+  alias Cloak.Sql.Expression
+
   @cache_module __MODULE__.Cache
 
   # -------------------------------------------------------------------
@@ -11,10 +13,11 @@ defmodule Cloak.DataSource.Bounds do
   # -------------------------------------------------------------------
 
   @doc "Returns the bounds of the given column."
-  @spec bounds(Cloak.DataSource.t(), String.t() | Cloak.DataSource.Table.t(), String.t()) ::
+  @spec bounds(Cloak.DataSource.t(), String.t() | Cloak.DataSource.Table.t(), Expression.t()) ::
           Expression.bounds()
-  def bounds(%{bound_computation_enabled: true} = data_source, table, column),
-    do: cache_value(data_source, table, column)
+  def bounds(%{bound_computation_enabled: true} = data_source, table, %Expression{type: type} = column)
+      when type in [:integer, :real, :date, :datetime],
+      do: cache_value(data_source, table, column.name)
 
   def bounds(_data_source, _table, _column), do: :unknown
 

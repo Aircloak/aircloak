@@ -76,7 +76,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   defp set_leaf_bounds(expression, query) do
     case Query.resolve_subquery_column(expression, query) do
       :database_column ->
-        %{expression | bounds: Bounds.bounds(query.data_source, expression.table, expression.name)}
+        %{expression | bounds: Bounds.bounds(query.data_source, expression.table, expression)}
 
       {column, _subquery} ->
         %{expression | bounds: column.bounds}
