@@ -1,10 +1,13 @@
 defmodule Air.Service.ExplorerTest do
   # because of shared mode
+
   use Air.SchemaCase, async: false
-  alias Air.Service.Explorer
+
+  alias Air.Service.{Explorer, Group}
   alias Air.Schemas.ExplorerAnalysis
   require Aircloak.DeployConfig
   import Aircloak.AssertionHelper
+
   @moduletag capture_log: true
 
   defmodule MockServer do
