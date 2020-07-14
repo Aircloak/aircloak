@@ -36,7 +36,8 @@
       <%= if Enum.empty?(analysis.results["sampleData"]) do %>
         <p class="card-text">No sample data has been produced</p>
       <% else %>
-        <table class="table responsive">
+      <div class="table-responsive">
+        <table class="table">
           <thead>
             <tr>
               <%= for %{"column" => column} <- analysis.results["columns"] do %>
@@ -54,6 +55,7 @@
             <% end %>
           </tbody>
         </table>
+      </div>
       <% end %>
 
       <h4 class="card-title">Column Metrics</h4>
