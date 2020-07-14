@@ -1,6 +1,6 @@
 {
   "driver": "postgresql",
-  "name": "default",
+  "name": "postgresql",
   "parameters": {
     "hostname": "localhost",
     "port": 20002,

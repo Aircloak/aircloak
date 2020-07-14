@@ -190,7 +190,7 @@ defmodule Cloak.Test.QueryHelpers do
   end
 
   def default_data_source() do
-    {:ok, data_source} = Cloak.DataSource.fetch("default")
+    {:ok, data_source} = Cloak.DataSource.fetch("postgresql")
     data_source
   end
 
