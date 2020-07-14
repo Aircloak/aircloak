@@ -4,7 +4,7 @@ We recommend taking the following steps before upgrading to a new version of Air
 
 1. Check whether there are incompatibilities or config changes needed by reading the upgrade documentation specific
   to the version of Aircloak Insights you are upgrading to. It can be found further down in this document.
-2. Take a backup of the Postgres database. This allows you to undo a system upgrade without loosing data.
+2. Take a backup of the Postgres database. This allows you to undo a system upgrade without losing data.
 
 ## Postgres backup
 
