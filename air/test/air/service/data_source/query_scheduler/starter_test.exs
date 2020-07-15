@@ -61,13 +61,13 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     assert query_cloaks(queries) == [cloak2]
   end
 
-  test "query is left in the awaiting state if there's no available cloak" do
+  test "query is rejected if there's no available cloak" do
     user = create_user!()
     data_source = create_data_source!(user)
-    query = create_query!(user, data_source)
+    create_query!(user, data_source)
     Starter.run()
 
-    assert same_queries?(Query.awaiting_start(), [query])
+    assert_soon([] = Query.awaiting_start())
   end
 
   test "query is left in the awaiting state if all cloaks are on maximum capacity" do
