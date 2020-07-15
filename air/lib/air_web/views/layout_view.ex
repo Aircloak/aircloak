@@ -61,40 +61,34 @@ defmodule AirWeb.LayoutView do
 
   @background_images [
     %{
-      photographer: "Kalen Emsley",
-      credit_url:
-        "https://unsplash.com/photos/_LuLiJc1cdo?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText",
-      motive: "Kinney Lake, Canada"
+      photographer: "LExie Blessing",
+      credit_url: "https://www.pexels.com/photo/photo-of-pink-dogwood-plant-4273058/",
+      motive: "Pink Dogwood, Washington State"
     },
     %{
-      photographer: "Victoria Chen",
-      credit_url:
-        "https://unsplash.com/photos/N6nnIx4C-Fo?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText",
-      motive: "Omaha, New Zealand"
+      photographer: "Manfred Richter",
+      credit_url: "https://pixabay.com/photos/dogwood-ornamental-shrub-bush-4142742/",
+      motive: "Dogwood"
     },
     %{
-      photographer: "Riccardo Chiarini",
-      credit_url:
-        "https://unsplash.com/photos/2VDa8bnLM8c?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText",
-      motive: "Lake of Carezza, Carezza, Nova Levante, Italy"
+      photographer: "Melissa Wilt",
+      credit_url: "https://pixabay.com/photos/flower-dogwood-plant-flora-bud-2419960/",
+      motive: "Dogwood"
     },
     %{
-      photographer: "Ivana Cajina",
-      credit_url:
-        "https://unsplash.com/photos/Tp6L7SrCgxU?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText",
-      motive: "Road"
+      photographer: "Susanne Jutzeler",
+      credit_url: "https://pixabay.com/photos/dogwood-spring-bloom-nature-flora-4113098/",
+      motive: "Dogwood"
     },
     %{
-      photographer: "Aaron Burden",
-      credit_url:
-        "https://unsplash.com/photos/Glh5hc9KDaw?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText",
-      motive: "Winter"
+      photographer: "Kendall",
+      credit_url: "https://unsplash.com/photos/RLlwhlh0KpM",
+      motive: "Dogwood, North Carolina, Charlotte, United States"
     },
     %{
-      photographer: "Ishan @seefromthesky",
-      credit_url:
-        "https://unsplash.com/photos/BMJWpck6eQA?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText",
-      motive: "Vaavu Atoll, Maldives"
+      photographer: "Shell Ghostcage",
+      credit_url: "https://pixabay.com/photos/landscape-natural-flowers-arboretum-1345588/",
+      motive: "Dogwood"
     }
   ]
 

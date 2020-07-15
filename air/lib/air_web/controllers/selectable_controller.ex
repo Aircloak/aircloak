@@ -3,10 +3,12 @@ defmodule AirWeb.SelectableController do
 
   use Air.Web, :controller
 
-  alias Air.Service.{View, AnalystTable, User}
+  alias Air.Service.{View, AnalystTable, User, DataSource}
   alias AirWeb.Socket.Frontend.UserChannel
 
   plug(:load_data_source)
+  plug(:load_selectables)
+  plug(:set_number_format)
   plug(:put_layout, "raw.html")
 
   # -------------------------------------------------------------------
@@ -25,9 +27,7 @@ defmodule AirWeb.SelectableController do
         conn,
         "new.html",
         kind: kind,
-        changeset: new_changeset_of_kind(kind),
-        data_source: conn.assigns.data_source,
-        number_format: User.number_format_settings(conn.assigns.current_user)
+        changeset: new_changeset_of_kind(kind)
       )
 
   def edit(conn, %{"id" => id, "kind" => kind}),
@@ -36,9 +36,7 @@ defmodule AirWeb.SelectableController do
         conn,
         "edit.html",
         kind: kind,
-        changeset: existing_changeset_of_kind(id, kind),
-        data_source: conn.assigns.data_source,
-        number_format: User.number_format_settings(conn.assigns.current_user)
+        changeset: existing_changeset_of_kind(id, kind)
       )
 
   def create(conn, %{"kind" => kind} = params) do
@@ -50,9 +48,7 @@ defmodule AirWeb.SelectableController do
       {:error, changeset} ->
         render(conn, "new.html",
           kind: kind,
-          changeset: changeset,
-          data_source: conn.assigns.data_source,
-          number_format: User.number_format_settings(conn.assigns.current_user)
+          changeset: changeset
         )
     end
   end
@@ -71,9 +67,7 @@ defmodule AirWeb.SelectableController do
           conn,
           "edit.html",
           kind: kind,
-          changeset: changeset,
-          data_source: conn.assigns.data_source,
-          number_format: User.number_format_settings(conn.assigns.current_user)
+          changeset: changeset
         )
     end
   end
@@ -98,7 +92,7 @@ defmodule AirWeb.SelectableController do
   defp load_data_source(conn, _opts) do
     data_source_name = Map.fetch!(conn.params, "data_source_id")
 
-    case Air.Service.DataSource.fetch_as_user(
+    case DataSource.fetch_as_user(
            {:name, data_source_name},
            conn.assigns.current_user
          ) do
@@ -119,6 +113,12 @@ defmodule AirWeb.SelectableController do
         |> redirect(to: data_source_path(conn, :index))
     end
   end
+
+  defp load_selectables(conn, _opts),
+    do: conn |> assign(:selectables, DataSource.selectables(conn.assigns.current_user, conn.assigns.data_source))
+
+  defp set_number_format(conn, _opts),
+    do: conn |> assign(:number_format, User.number_format_settings(conn.assigns.current_user))
 
   defp maybe_broken_message(conn) do
     case View.broken(conn.assigns.current_user, conn.assigns.data_source) do

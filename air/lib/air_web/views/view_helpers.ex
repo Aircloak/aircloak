@@ -5,7 +5,6 @@ defmodule AirWeb.ViewHelpers do
   import Phoenix.HTML.Link, only: [link: 2]
 
   alias Air.Service.Warnings
-  alias Air.{Schemas, Service}
 
   @doc "Verifies if the currently logged-in user has permissions on the given action."
   @spec permitted?(Plug.Conn.t(), module, atom) :: boolean
@@ -27,12 +26,8 @@ defmodule AirWeb.ViewHelpers do
   def admin?(%Plug.Conn{} = conn), do: admin?(conn.assigns.current_user)
 
   @doc "Returns an embeddable json representing selectable tables, views, and analyst created tables."
-  @spec selectables(Schemas.User.t(), Schemas.DataSource.t()) :: [Map.t()]
-  def selectables(user, data_source),
-    do:
-      Service.DataSource.selectables(user, data_source)
-      |> Enum.map(&Map.merge(%{kind: :table}, &1))
-      |> Enum.sort_by(& &1.id)
+  @spec order_by_id([Map.t()]) :: [Map.t()]
+  def order_by_id(items), do: Enum.sort_by(items, & &1.id)
 
   @doc "Encodes the given term to json which can be safely embedded in .eex templates."
   @spec to_json(any) :: {:safe, iodata}

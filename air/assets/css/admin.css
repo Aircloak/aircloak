@@ -15,6 +15,15 @@ label small.newline {
   font-size: 0.8em;
 }
 
+.nested-checkboxes {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.nested-checkboxes > div {
+  column-count: 2;
+}
+
 .navbar-vertical.navbar-expand-md.fixed-left {
   left: 0;
   border-width: 0 1px 0 0;
@@ -211,4 +220,8 @@ label small.newline {
   .label-right {
     text-align: right;
   }
+}
+
+#table-sql .CodeMirror-line {
+  padding: 0;
 }

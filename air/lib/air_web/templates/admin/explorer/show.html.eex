@@ -8,33 +8,74 @@
      Failed queries
   <% end %>
   <h1>Debug <%=@data_source.name%> analyses</h1>
-  <p class="lead">This page shows the raw metrics for each column that analysis was requested. It can be helpful to explain strange results in the user interface.</p>
+  <p class="lead">This page shows the raw metrics for each table that analysis was requested. It can be helpful to explain strange results in the user interface.</p>
 </header>
 
 
-<%= for {table, analyses} <- by_table(@analyses) do %>
-  <h3 class="mt-5 pb-3"><i class="fas fa-table"></i> <%= table %></h3>
-  <div class="card-columns">
-    <%= for analysis <- analyses do %>
-      <div class="card">
-        <div class="card-body">
-          <span class="badge float-right <%= status_to_badge_class(analysis.status) %>"><%= analysis.status %></span>
-          <h5 class="card-title"><%= analysis.column %></h5>
-          <p class="text-muted mb-0"><small><strong>First requested:</strong> <%= time_ago(analysis.inserted_at) %></br>
-          <strong>Last modified:</strong> <%=  time_ago(analysis.updated_at) %></small></p>
-        </div>
-          <ul class="list-group list-group-flush"  style="max-height: 400px; overflow-y: auto">
-            <%= for {key, value} <- metrics(analysis) do %>
-              <li class="list-group-item d-flex <%= if is_number(value), do: "justify-content-between", else: "flex-column"%>"><b><%= key %></b>
-              <%= if is_number(value) do %>
-              <span><%= value %></span>
-              <% else %>
-                  <pre><code><%= to_pretty_json(value) %></code></pre>
-              <% end %></li>
-            <% end %>
-          </ul>
+<%= for analysis <- @analyses do %>
+  <div class="card mb-3">
+    <h3 class="card-header"><i class="fas fa-table"></i> <%= analysis.table_name %> <span class="badge float-right <%= status_to_badge_class(analysis.status) %>"><%= analysis.status %></span></h3>
+    <div class="card-body">
+      <%= if analysis.version do %>
+        <p class="text-muted float-right">Diffix Explorer version: <%= version_link(analysis.version) %></p>
+      <% end %>
+      <p class="text-muted"><small><strong>First requested:</strong> <%= time_ago(analysis.inserted_at) %></br>
+      <strong>Last modified:</strong> <%=  time_ago(analysis.updated_at) %></small></p>
 
-      </div>
-    <% end %>
+      <%= unless Enum.empty?(analysis.errors) do %>
+        <div class="alert alert-danger mt-3">
+          <h4 class="alert-title">Last Error</h4>
+          <%= for error <- analysis.errors do %>
+            <pre><code><%= error %></pre></code>
+          <% end %>
+        </div>
+      <% end %>
+
+      <h4 class="card-title">Sample Data</h4>
+
+      <%= if Enum.empty?(analysis.results["sampleData"]) do %>
+        <p class="card-text">No sample data has been produced</p>
+      <% else %>
+        <table class="table responsive">
+          <thead>
+            <tr>
+              <%= for %{"column" => column} <- analysis.results["columns"] do %>
+                <th scope="col"><%= column %></th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for row <- analysis.results["sampleData"] do %>
+              <tr>
+                <%= for column <- row do %>
+                  <td><%= column %></td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+
+      <h4 class="card-title">Column Metrics</h4>
+      <%= for %{"column" => column, "metrics" => metrics} <- analysis.results["columns"] do %>
+        <details class="mx-1">
+          <summary class="p-1"><%= column %> <span class="badge badge-secondary badge-pill"><%= length(metrics) %></span></summary>
+          <div style="max-height: 70vh; overflow-y: auto">
+            <div style="display: table">
+              <%= for %{"name" => metric, "value" => value} <- Enum.sort_by(metrics, fn d -> d["name"] end) do %>
+                <div style="display: table-row">
+                  <strong class="p-2" style="display: table-cell; text-align: right"><%= metric %>:</strong>
+                  <%= if is_number(value) do %>
+                    <span style="display: table-cell"><%= value %></span>
+                  <% else %>
+                    <pre style="display: table-cell"><code><%= to_pretty_json(value) %></code></pre>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </details>
+      <% end %>
+    </div>
   </div>
 <% end %>

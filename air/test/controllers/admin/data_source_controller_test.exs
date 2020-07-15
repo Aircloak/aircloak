@@ -95,6 +95,26 @@ defmodule AirWeb.Admin.DataSourceController.Test do
     assert login(context.admin) |> get("/admin/data_sources/99999") |> response(404)
   end
 
+  test "render 404 on attempting to show non-existent analyst table", context do
+    register_data_source()
+
+    given_data_source(fn data_source ->
+      assert login(context.admin)
+             |> get("/admin/data_sources/#{data_source.name}/analyst_tables/99999")
+             |> response(404)
+    end)
+  end
+
+  test "render 404 on attempting to convert non-existent analyst table to view", context do
+    register_data_source()
+
+    given_data_source(fn data_source ->
+      assert login(context.admin)
+             |> post("/admin/data_sources/#{data_source.name}/analyst_tables/99999/to_view")
+             |> response(404)
+    end)
+  end
+
   test "render 404 on attempting to render edit form for non-existent data source", context do
     assert login(context.admin) |> get("/admin/data_sources/99999/edit") |> response(404)
   end

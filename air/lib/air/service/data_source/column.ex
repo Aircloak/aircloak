@@ -1,14 +1,15 @@
 defmodule Air.Service.DataSource.Column do
   @moduledoc "Contains a couple functions for gathering information about the state of data source columns."
 
-  @doc "Returns true if both the shadow table and isolators have been computed for the column, false otherwise."
+  @doc "Returns true if the shadow table, isolators, and bounds have been computed for the column, false otherwise."
   @spec analyzed_successfully?(map()) :: boolean()
   def analyzed_successfully?(column),
     do: isolators_computed?(column) and shadow_computed?(column) and bounds_computed?(column)
 
-  @doc "Returns true if the column has neither been analyzed correctly nor failed yet, false otherwise."
+  @doc "Returns true if the column is pending any kind of computation, false otherwise."
   @spec analysis_pending?(map()) :: boolean()
-  def analysis_pending?(column), do: not analyzed_successfully?(column) and not analysis_failed?(column)
+  def analysis_pending?(column),
+    do: isolators_pending?(column) or shadow_pending?(column) or bounds_pending?(column)
 
   @doc "Returns true if either the shadow table or isolators have failed to compute for the column, false otherwise."
   @spec analysis_failed?(map()) :: boolean()
@@ -22,6 +23,10 @@ defmodule Air.Service.DataSource.Column do
   @spec isolators_failed?(map()) :: boolean()
   def isolators_failed?(column), do: column["isolated"] == "failed"
 
+  @doc "Returns true if isolators are pending computation for the column, false otherwise."
+  @spec isolators_pending?(map()) :: boolean()
+  def isolators_pending?(column), do: column["isolated"] == "pending"
+
   @doc "Returns true if the shadow table has been computed for the column, false otherwise."
   @spec shadow_computed?(map()) :: boolean()
   def shadow_computed?(column), do: column["shadow_table"] == "ok"
@@ -30,6 +35,10 @@ defmodule Air.Service.DataSource.Column do
   @spec shadow_failed?(map()) :: boolean()
   def shadow_failed?(column), do: column["shadow_table"] == "failed"
 
+  @doc "Returns true if the shadow table is pending computation for the column, false otherwise."
+  @spec shadow_pending?(map()) :: boolean()
+  def shadow_pending?(column), do: column["shadow_table"] == "pending"
+
   @doc "Returns true if the bounds have been computed for the column, false otherwise."
   @spec bounds_computed?(map()) :: boolean()
   def bounds_computed?(column), do: column["bounds"] == "ok"
@@ -37,4 +46,8 @@ defmodule Air.Service.DataSource.Column do
   @doc "Returns true if the bound computation failed for the column, false otherwise."
   @spec bounds_failed?(map()) :: boolean()
   def bounds_failed?(column), do: column["bounds"] == "failed"
+
+  @doc "Returns true if the bound computation is pending for the column, false otherwise."
+  @spec bounds_pending?(map()) :: boolean()
+  def bounds_pending?(column), do: column["bounds"] == "pending"
 end

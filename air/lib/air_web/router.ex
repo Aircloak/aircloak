@@ -133,6 +133,9 @@ defmodule AirWeb.Router do
     post("/groups/sync_ldap", GroupController, :sync_ldap)
 
     resources("/data_sources", DataSourceController)
+    get("/data_sources/:id/analyst_tables/:table_id", DataSourceController, :show_analyst_table)
+    post("/data_sources/:id/analyst_tables/:table_id/to_view", DataSourceController, :convert_table_to_view)
+
     resources("/analysis", AnalysisController)
     resources("/settings", SettingsController, singleton: true)
 
@@ -148,9 +151,10 @@ defmodule AirWeb.Router do
 
     resources("/license", LicenseController, only: [:edit, :update], singleton: true)
     resources("/privacy_policy", PrivacyPolicyController)
+    post("/diffix-explorer/reanalyze_all", ExplorerController, :reanalyze_all)
     resources("/diffix-explorer", ExplorerController, except: [:delete])
 
-    live_dashboard("/live-dashboard")
+    live_dashboard("/live-dashboard", metrics: AirWeb.Telemetry)
   end
 
   scope "/onboarding", AirWeb.Onboarding, as: :onboarding do

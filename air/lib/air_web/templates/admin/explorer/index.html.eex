@@ -25,14 +25,25 @@
   </div>
   <div class="col-xl-5 p-xl-4 border-xl-left">
     <p>The Diffix Explorer integration manages a normal <%= link "user", to: admin_user_path(@conn, :index) %> and <%= link "group", to: admin_group_path(@conn, :index) %> that get permissions to make API requests against these data sources.</p>
-    <p>Once you hit Reanalyze, Diffix Explorer will make a large number of queries about every non-isolating column in every user table. Once we have the results, we'll present them in the query page.</p>
+    <p>Once you hit Reanalyze, Diffix Explorer will make a large number of queries about every user table. Once we have the results, we'll present them in the query page.</p>
   </div>
 </div>
 </div>
 
 <%= if length(@data_sources) > 0 do %>
   <section>
-    <h3 class="mt-5 pb-2">Analysis Progress</h3>
+    <h3 class="mt-5 pb-2">
+      Analysis Progress
+      <%= if @current_user.debug_mode_enabled and length(@data_sources) > 1 do %>
+      <%= link to: admin_explorer_path(@conn, :reanalyze_all),
+          method: "POST",
+          class: "btn btn-sm float-right btn-primary",
+          "data-confirm": "Reanalyzing all data sources can dramatically increase the load on your system. Are you sure?" do %>
+        <i class="fas fa-redo fa-sm"></i>
+        Reanalyze all data sources
+      <% end %>
+      <% end %>
+    </h3>
     <div class="card-columns card-columns-responsive">
       <%= for data_source <- @data_sources do %>
         <div class="card">

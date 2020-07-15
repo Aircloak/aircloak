@@ -95,10 +95,12 @@ defmodule Air.Mixfile do
       {:epgsql, "~> 4.1"},
       {:bom, path: "../bom", runtime: false, only: :dev},
       {:zxcvbn, "~> 0.1.3"},
-      {:httpoison, "~> 1.6"},
+      {:httpoison, "~> 1.7"},
       {:jason, "~> 1.0"},
       {:phoenix_live_view, "~> 0.13.3"},
       {:phoenix_live_dashboard, "~> 0.2"},
+      {:telemetry_poller, "~> 0.4"},
+      {:telemetry_metrics, "~> 0.4"},
       {:floki, ">= 0.0.0", only: :test}
     ]
   end
@@ -125,7 +127,7 @@ defmodule Air.Mixfile do
   defp extra_applications(:dev), do: extra_common_applications() ++ dialyzer_required_deps()
   defp extra_applications(:prod), do: extra_common_applications()
 
-  defp extra_common_applications(), do: [:logger, :inets, :eldap, :jason, :timex]
+  defp extra_common_applications(), do: [:logger, :inets, :eldap, :jason, :timex, :os_mon]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.

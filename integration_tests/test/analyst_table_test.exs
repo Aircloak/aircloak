@@ -195,6 +195,25 @@ defmodule IntegrationTest.AnalystTableTest do
     assert is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
   end
 
+  test "converting analyst table to view", context do
+    name = unique_name(:table)
+
+    {:ok, table} = create_table(context.user, name, "select user_id, name from users", "comment")
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+
+    db_name = Cloak.AnalystTable.find(context.user.id, name, cloak_data_source).db_name
+
+    assert {:ok, view} = Air.Service.AnalystTable.convert_to_view(table.id)
+    assert table_not_in_db?(db_name)
+    assert is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
+
+    refute is_nil(view)
+    refute view.broken
+
+    fields = [:name, :sql, :columns, :comment]
+    assert Map.take(table, fields) == Map.take(view, fields)
+  end
+
   test "analyst table can reference a view", context do
     name = unique_name(:table)
 

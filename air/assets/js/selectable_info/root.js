@@ -122,7 +122,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
         target="blank"
         data-toggle="tooltip"
         data-placement="bottom"
-        className="text-white"
+        className="text-dark"
         title="Some features unavailable pending analysis"
       >
         *

@@ -62,6 +62,42 @@ defmodule Air.Service.UserTest do
       assert {:ok, %{ldap_dn: "some dn"}} = User.create_ldap(%{login: "login", name: "Person", ldap_dn: "some dn"})
     end
 
+    test "cannot assign LDAP group to a native user" do
+      group = TestRepoHelper.create_group!(%{ldap_dn: "some dn"})
+      user = TestRepoHelper.create_user!()
+
+      base_params = %{
+        login: "email@example.com",
+        name: "Person",
+        password: "psswrd12",
+        password_confirmation: "psswrd12"
+      }
+
+      assert errors_on(&User.create/1, Map.merge(%{groups: [group.id]}, base_params))[:groups] ==
+               "cannot assign LDAP group to a native user"
+
+      assert errors_on(&User.update(user, &1), %{groups: [group.id]})[:groups] ==
+               "cannot assign LDAP group to a native user"
+    end
+
+    test "cannot assign native group to an LDAP user" do
+      group = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+
+      base_params = %{
+        login: "email@example.com",
+        name: "Person",
+        ldap_dn: "some dn"
+      }
+
+      assert errors_on(&User.create_ldap/1, Map.merge(%{groups: [group.id]}, base_params))[:groups] ==
+               "cannot assign native group to an LDAP user"
+
+      assert_raise RuntimeError, fn ->
+        User.update(user, %{groups: [group.id]})
+      end
+    end
+
     test "admin update cannot set the password" do
       user = TestRepoHelper.create_user!(%{password: "psswrd12"})
       User.update(user, %{password: "new password", password_confirmation: "new password"})
@@ -709,7 +745,6 @@ defmodule Air.Service.UserTest do
 
     test "fails if changing non-password related fields" do
       user = TestRepoHelper.create_user!(%{password: "psswrd12"})
-      session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       assert {:error, _} = User.update_password(user, %{"name" => "foobar"})
       {:ok, updated_user, _} = User.update_password(user, %{"name" => "foobar", "old_password" => "psswrd12"})
