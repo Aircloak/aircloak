@@ -17,7 +17,8 @@ defmodule Air.Repo.Migrations.RemoveNativeUsersFromLdapGroups do
           name: "MIGRATED: #{group.name}",
           admin: false,
           system: false,
-          users: user_ids_to_transition
+          users: user_ids_to_transition,
+          data_sources: Enum.map(group.data_sources, & &1.id)
         })
 
         # Remove non-LDAP users from the group
