@@ -1,10 +1,13 @@
 defmodule Air.Service.ExplorerTest do
   # because of shared mode
+
   use Air.SchemaCase, async: false
-  alias Air.Service.Explorer
+
+  alias Air.Service.{Explorer, Group}
   alias Air.Schemas.ExplorerAnalysis
   require Aircloak.DeployConfig
   import Aircloak.AssertionHelper
+
   @moduletag capture_log: true
 
   defmodule MockServer do
@@ -194,9 +197,9 @@ defmodule Air.Service.ExplorerTest do
     ]
 
     ds1 = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
+    Group.update!(Explorer.group(), %{data_sources: [ds1.id]})
 
     ds_not_included = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
-    Explorer.setup_credentials_if_required()
 
     Explorer.change_permitted_data_sources(%{
       "data_sources" => [ds1.id],

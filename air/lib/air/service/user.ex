@@ -134,7 +134,7 @@ defmodule Air.Service.User do
   @spec create(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def create(params) do
     %User{}
-    |> user_changeset(params)
+    |> user_changeset(params, ldap: false)
     |> merge(random_password_changeset(%User{}, params))
     |> insert()
   end
@@ -143,7 +143,7 @@ defmodule Air.Service.User do
   @spec create_ldap(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def create_ldap(params) do
     %User{}
-    |> user_changeset(params)
+    |> user_changeset(params, ldap: true)
     |> merge(random_password_changeset(%User{}, params))
     |> merge(ldap_changeset(%User{}, params))
     |> insert()
@@ -152,13 +152,13 @@ defmodule Air.Service.User do
   @doc "Creates the onboarding admin user."
   @spec create_onboarding_admin_user(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def create_onboarding_admin_user(params) do
-    changeset = user_changeset(%User{}, params)
+    changeset = user_changeset(%User{}, params, ldap: false)
 
     if params["master_password"] == Air.site_setting!("master_password") do
       group = get_admin_group()
 
       changeset
-      |> user_changeset(%{groups: [group.id]})
+      |> user_changeset(%{groups: [group.id]}, ldap: false)
       |> merge(change_main_login(%User{}, &full_login_changeset(&1, params)))
       |> insert()
     else
@@ -218,7 +218,7 @@ defmodule Air.Service.User do
 
     AdminGuard.commit_if_active_last_admin(fn ->
       user
-      |> user_changeset(params)
+      |> user_changeset(params, options)
       |> merge(change_main_login(user, &main_login_changeset(&1, params)))
       |> update()
     end)
@@ -252,7 +252,7 @@ defmodule Air.Service.User do
     check_ldap!(user, options)
 
     user
-    |> user_changeset(Map.take(params, ~w(name decimal_sep thousand_sep decimal_digits)))
+    |> user_changeset(Map.take(params, ~w(name decimal_sep thousand_sep decimal_digits)), options)
     |> merge(
       change_main_login(user, fn login ->
         login
@@ -426,7 +426,7 @@ defmodule Air.Service.User do
   def add_preconfigured_user(user_data) do
     changeset =
       %User{}
-      |> user_changeset(%{name: user_data.login})
+      |> user_changeset(%{name: user_data.login}, ldap: false)
       |> merge(
         change_main_login(%User{}, fn login ->
           login
@@ -436,7 +436,7 @@ defmodule Air.Service.User do
       )
 
     if Map.get(user_data, :admin, false) do
-      user_changeset(changeset, %{groups: [get_admin_group().id]})
+      user_changeset(changeset, %{groups: [get_admin_group().id]}, ldap: false)
     else
       changeset
     end
@@ -512,13 +512,25 @@ defmodule Air.Service.User do
 
   defp random_password(), do: :crypto.strong_rand_bytes(64) |> Base.encode64()
 
-  defp user_changeset(user, params) do
+  defp user_changeset(user, params, options) do
     user
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> validate_length(:name, min: 2)
     |> merge(number_format_changeset(user, params))
     |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+    |> validate_change(:groups, &validate_group_source(&1, &2, options))
+  end
+
+  defp validate_group_source(:groups, groups, options) do
+    valid_source = if(Keyword.get(options, :ldap, false), do: :ldap, else: :native)
+    invalid_groups = Enum.filter(groups, &(&1.data.source != valid_source))
+
+    case {valid_source, invalid_groups} do
+      {_, []} -> []
+      {:native, _} -> [groups: "cannot assign LDAP group to a native user"]
+      {:ldap, _} -> [groups: "cannot assign native group to an LDAP user"]
+    end
   end
 
   defp full_login_changeset(login, params) do

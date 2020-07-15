@@ -27,6 +27,21 @@ $ pg_restore -h hostname -U username -p 5432 --clean -d dbname < backup.sql
 When issuing these commands you must make sure to replace the parameters (such as `-h` for the hostname and `-U` for the database user)
 with ones specific to your particular installation.
 
+# Version 20.2.0
+
+## Insights Air
+
+Due to a bug in earlier versions of Insights Air, it was possible to assign a user managed through Insights Air to a
+group managed by LDAP. This would lead to a system state where LDAP sync would no longer work.
+
+Insights Air 20.2 contains a bugfix which prevents such a configuration from being made. Any users that had mistakenly
+been assigned to an LDAP group by an administrator will automatically be moved out of the group as part of migration.
+
+For example let's imagine user `alice` is a user managed through Insights Air. She has been assigned to group
+`ldap-group` giving her access to query the data source `my-movies`. After upgrading to Aircloak Insights 20.2 she
+will have been moved from the `ldap-group` to a new group called `MIGRATED: ldap-group` giving her continued access to
+`my-movies`.
+
 # Version 20.1.0
 
 ## Insights Air

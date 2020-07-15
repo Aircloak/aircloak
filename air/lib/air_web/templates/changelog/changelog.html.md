@@ -23,6 +23,11 @@
 
 - Fixed filtering of censored values in standard queries.
 - Verify implicit range usage on both sides of a condition.
+- Native users could accidentally be assigned to LDAP groups which in turn would break the LDAP sync.
+  As part of upgrading to Aircloak Insights 20.2 all users managed through Insights Air that have been
+  assigned to an LDAP group will be migrated out of the group and into a transitionary group. This ensures
+  all users retain access to all the data sources they expect, but will lead to additional groups being
+  created.
 
 ### Changes
 

@@ -160,8 +160,11 @@ defmodule Air.Service.Explorer do
   @doc "Returns the group which authorizes Diffix Explorer"
   @spec group() :: Air.Schemas.Group.t()
   def group() do
-    group = Enum.find(user().groups, fn group -> group.name == "Diffix Explorer" && group.system end)
-    Group.load(group.id)
+    user = Repo.preload(user(), :groups)
+
+    user.groups
+    |> Enum.find(&(&1.name == "Diffix Explorer" && &1.system))
+    |> Repo.preload(:data_sources)
   end
 
   # -------------------------------------------------------------------
