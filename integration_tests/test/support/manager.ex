@@ -7,7 +7,7 @@ defmodule IntegrationTest.Manager do
 
   @admin_group_name "admins"
   @user_password "psswrd12"
-  @data_source_name "data_source_name"
+  @data_source_name "postgresql"
 
   def start(_type, _args) do
     {:ok, _} = Application.ensure_all_started(:central)
