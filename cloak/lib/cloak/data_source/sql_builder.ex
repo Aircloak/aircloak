@@ -484,6 +484,17 @@ defmodule Cloak.DataSource.SqlBuilder do
       state == :ignore and function.name not in ~w(and not or) ->
         %Expression{function | args: Enum.map(function.args, &mark_boolean_expression(&1, :mark))}
 
+      function.name == "case" ->
+        args =
+          function.args
+          |> Enum.with_index()
+          |> Enum.map(fn {arg, index} ->
+            state = if rem(index, 2) == 0, do: :ignore, else: :mark
+            mark_boolean_expression(arg, state)
+          end)
+
+        %Expression{function | args: args}
+
       true ->
         %Expression{function | args: Enum.map(function.args, &mark_boolean_expression(&1, state))}
     end

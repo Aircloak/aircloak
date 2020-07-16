@@ -88,6 +88,19 @@ defmodule Cloak.DataSource.Oracle.Test do
            """) == translate!("SELECT uid FROM table GROUP BY uid HAVING (MAX(uid) = MIN(uid)) IS NOT NULL")
   end
 
+  test "boolean expression (5)" do
+    assert flatten("""
+           SELECT
+             CASE
+               WHEN (table.uid = 0) THEN 1
+               WHEN ((table.uid >= 0) AND (table.uid < 100)) THEN 2
+               ELSE 0
+             END case
+           FROM table
+           """) ==
+             translate!("SELECT CASE WHEN uid = 0 THEN 1 WHEN uid BETWEEN 0 AND 100 THEN 2 ELSE 0 END FROM table")
+  end
+
   defp translate!(statement) do
     query = compile!(statement, data_source())
 
