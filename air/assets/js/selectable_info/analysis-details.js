@@ -282,7 +282,7 @@ const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
       )}
       {renderIfPrereqs(simpleField("Null", formatNum), "distinct.null_count")}
       {renderIfPrereqs(
-        simpleField("Last updated", (date) => moment.utc(date).fromNow()),
+        simpleField("Last analyzed", (date) => moment.utc(date).fromNow()),
         "updated_at"
       )}
     </div>
