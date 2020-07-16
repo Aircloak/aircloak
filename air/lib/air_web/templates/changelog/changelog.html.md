@@ -23,6 +23,7 @@
 
 - Fixed filtering of censored values in standard queries.
 - Verify implicit range usage on both sides of a condition.
+- Fixed interaction between the column analysis cache and aliased tables.
 - Native users could accidentally be assigned to LDAP groups which in turn would break the LDAP sync.
   As part of upgrading to Aircloak Insights 20.2 all users managed through Insights Air that have been
   assigned to an LDAP group will be migrated out of the group and into a transitionary group. This ensures

@@ -180,13 +180,18 @@ defmodule Cloak.Test.QueryHelpers do
          {:ok, query} <-
            Compiler.compile(
              parsed_query,
-             nil,
+             Keyword.get(options, :analyst, nil),
              data_source,
              Keyword.get(options, :parameters, []),
              Keyword.get(options, :views, %{})
            ) do
       {:ok, Query.resolve_db_columns(query)}
     end
+  end
+
+  def default_data_source() do
+    {:ok, data_source} = Cloak.DataSource.fetch("postgresql")
+    data_source
   end
 
   defp compare_to_within_delta(map1, map2, trace, delta) when is_map(map1) and is_map(map2) do

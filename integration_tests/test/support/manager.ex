@@ -3,11 +3,11 @@ defmodule IntegrationTest.Manager do
   import IntegrationTest.Helpers
 
   alias Air.Repo
-  alias Air.Schemas.{AnalystTable, DataSource, ExportForAircloak, Group, Query, ResultChunk, User, View}
+  alias Air.Schemas.{AnalystTable, DataSource, Group, Query, ResultChunk, User, View}
 
   @admin_group_name "admins"
   @user_password "psswrd12"
-  @data_source_name "data_source_name"
+  @data_source_name "postgresql"
 
   def start(_type, _args) do
     {:ok, _} = Application.ensure_all_started(:central)
@@ -121,10 +121,14 @@ defmodule IntegrationTest.Manager do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp await_data_source() do
+  defp await_data_source(count \\ 0)
+
+  defp await_data_source(1200), do: raise("Timeout while waiting for data source.")
+
+  defp await_data_source(count) do
     if is_nil(data_source()) do
       :timer.sleep(100)
-      await_data_source()
+      await_data_source(count + 1)
     end
   end
 

@@ -4,23 +4,25 @@ defmodule Cloak.DataSource.Bounds do
   require Aircloak
   require Cloak.Sql.Expression
 
-  @cache_module Aircloak.in_env(test: Cloak.TestBoundsCache, else: Cloak.DataSource.Bounds.Cache)
+  alias Cloak.Sql.Expression
+
+  @cache_module __MODULE__.Cache
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Returns the bounds of the given column."
-  @spec bounds(Cloak.DataSource.t(), String.t() | Cloak.DataSource.Table.t(), String.t()) ::
+  @spec bounds(Cloak.DataSource.t(), String.t() | Cloak.DataSource.Table.t(), Expression.t()) ::
           Expression.bounds()
-  def bounds(data_source, table, column) do
-    case cache_lookup(data_source, table, column) do
-      {:ok, result} -> result
-      _ -> :unknown
-    end
-  end
+  def bounds(%{bound_computation_enabled: true} = data_source, table, %Expression{type: type} = column)
+      when type in [:integer, :real, :date, :datetime],
+      do: cache_value(data_source, table, column.name)
+
+  def bounds(_data_source, _table, _column), do: :unknown
 
   defdelegate cache_lookup(data_source, table_name, column_name), to: @cache_module, as: :lookup
+  defdelegate cache_value(data_source, table_name, column_name), to: @cache_module, as: :value
 
   # -------------------------------------------------------------------
   # Supervison tree

@@ -32,7 +32,8 @@ defmodule Cloak.DataSource.SqlBuilder.TiDB do
 
   defdelegate cast_sql(value, from, to), to: MySQL
 
-  defdelegate literal(value), to: MySQL
+  def literal(%NaiveDateTime{} = value), do: ["CAST('", to_string(value), "' AS datetime)"]
+  def literal(value), do: MySQL.literal(value)
 
   defdelegate order_by(column, direction, option), to: MySQL
 
