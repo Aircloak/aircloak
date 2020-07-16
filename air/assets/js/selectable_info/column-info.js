@@ -41,7 +41,7 @@ const AnalysisDetails = React.forwardRef(
                 <strong className="float-right text-muted ml-3 mt-1 font-weight-bold text-uppercase small">
                   Comment
                 </strong>
-                {item.comment}
+                <div style={{ whiteSpace: "pre-line" }}>{item.comment}</div>
               </p>
             </Popover.Content>
           )}
