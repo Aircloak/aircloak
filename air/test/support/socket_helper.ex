@@ -64,6 +64,22 @@ defmodule Air.TestSocketHelper do
     :ok
   end
 
+  @doc "Awaits any type or air call and responds with the result of the given function."
+  @spec respond!(pid, (any -> Map.t())) :: :ok
+  def respond!(socket, fun) do
+    timeout = :timer.seconds(2)
+    {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
+
+    TestSocket.push(
+      socket,
+      "main",
+      "cloak_response",
+      Map.merge(%{request_id: request.request_id, result: nil}, fun.(request))
+    )
+
+    :ok
+  end
+
   @doc "Awaits an is_alive request with the given query_id and responds with the given result."
   @spec respond_to_running_queries!(pid, [String.t()], pos_integer) :: :ok
   def respond_to_running_queries!(socket, result, timeout \\ :timer.seconds(2)) do
