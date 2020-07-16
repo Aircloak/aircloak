@@ -94,9 +94,9 @@ defmodule Cloak.Sql.FixAlign.Test do
 
   test "align datetime interval" do
     assert FixAlign.align_interval({~N[2010-01-01 00:00:00.000000], ~N[2012-10-01 00:00:00.000000]}) ==
-             {~N[2010-01-01 00:00:00.000000], ~N[2015-01-01 00:00:00.000000]}
+             {~N[2010-01-01 00:00:00.000000], ~N[2014-01-01 00:00:00.000000]}
 
-    assert FixAlign.align_interval({~D[2010-01-01], ~D[2012-10-01]}) == {~D[2010-01-01], ~D[2015-01-01]}
+    assert FixAlign.align_interval({~D[2010-01-01], ~D[2012-10-01]}) == {~D[2010-01-01], ~D[2014-01-01]}
 
     assert FixAlign.align_interval({~N[2010-12-30 00:00:00.000000], ~N[2011-01-30 00:00:00.000000]}) ==
              {~N[2010-12-01 00:00:00.000000], ~N[2011-02-01 00:00:00.000000]}
@@ -119,7 +119,7 @@ defmodule Cloak.Sql.FixAlign.Test do
   test "aligning intervals before epoch" do
     assert Cloak.Sql.FixAlign.align_interval({~D[1956-11-25], ~D[1957-11-04]}) == {~D[1956-01-01], ~D[1958-01-01]}
 
-    assert Cloak.Sql.FixAlign.align_interval({~D[1959-09-14], ~D[1963-12-14]}) == {~D[1955-01-01], ~D[1965-01-01]}
+    assert Cloak.Sql.FixAlign.align_interval({~D[1959-09-14], ~D[1963-12-14]}) == {~D[1959-07-01], ~D[1966-07-01]}
   end
 
   test "1900-01-01 is the minimum date" do

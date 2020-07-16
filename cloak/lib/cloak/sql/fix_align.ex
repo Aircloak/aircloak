@@ -142,8 +142,8 @@ defmodule Cloak.Sql.FixAlign do
   defp allow_half?(_, :seconds), do: false
   defp allow_half?(_, _), do: true
 
-  defp size_factors(:years), do: @default_size_factors
-  defp size_factors(:months), do: [1, 2, 6, 12]
+  defp size_factors(:years), do: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  defp size_factors(:months), do: [1, 2, 3, 6, 9, 12]
   defp size_factors(:days), do: @default_size_factors
   defp size_factors(:hours), do: [1, 2, 6, 12, 24]
   defp size_factors(:minutes), do: [1, 2, 5, 15, 30, 60]
@@ -300,7 +300,7 @@ defmodule Cloak.Sql.FixAlign do
     if start < 0, do: Stream.map(start..-1, &:math.pow(10, &1)), else: []
   end
 
-  defp large_sizes, do: Stream.iterate(1, &(&1 * 10))
+  defp large_sizes(), do: Stream.iterate(1, &(&1 * 10))
 
   defp order_of_magnitude(x) do
     floor_log = x |> :math.log10() |> Float.floor()
