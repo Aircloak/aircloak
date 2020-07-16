@@ -69,7 +69,7 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     run_starter()
 
     assert soon(Query.awaiting_start() == [])
-    assert_query_failed(query_id, "The query could not be started because there was no cloak available.")
+    assert_query_failed(query_id, "The query could not be started because the data source is offline.")
   end
 
   test "query is left in the awaiting state if all cloaks are on maximum capacity" do
@@ -137,7 +137,11 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     run_starter()
 
     assert soon(Query.awaiting_start() == [])
-    assert_query_failed(query_id, "The query could not be started because there was no cloak available.")
+
+    assert_query_failed(
+      query_id,
+      "The query could not be started. There was no cloak available with capacity to execute the query."
+    )
   end
 
   defp run_starter() do
@@ -164,10 +168,12 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
       TestSocketHelper.join!(socket, "main", %{data_sources: [%{name: data_source.name, tables: []}]})
       :proc_lib.init_ack({:ok, cloak_name})
 
-      Stream.repeatedly(fn -> TestSocketHelper.respond!(socket, fun) end)
-      |> Stream.run()
-
-      Process.exit(socket, :shutdown)
+      try do
+        Stream.repeatedly(fn -> TestSocketHelper.respond!(socket, fun) end)
+        |> Stream.run()
+      after
+        Process.exit(socket, :shutdown)
+      end
     end
 
     {:ok, cloak_name} = :proc_lib.start_link(Kernel, :apply, [cloak_fun, []])
