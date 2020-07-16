@@ -26,7 +26,7 @@ export const filterColumns = (
     .go(query, columns, {
       threshold: -99999,
       limit: opts.limit != null ? opts.limit : 500,
-      allowTypo: true,
+      allowTypo: false,
       key: "_indexEntry",
     })
     .map(({ obj, indexes }) => ({ _matchIndexes: indexes, ...obj }));

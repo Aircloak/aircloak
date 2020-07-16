@@ -9,7 +9,7 @@ import type { Column } from "./columns";
 import activateTooltips from "../tooltips";
 import loader from "../../static/images/loader.gif";
 import type { NumberFormat } from "../number_format";
-import CommentIcon from "./comment-icon";
+import SelectableInfo from "./selectable-info";
 
 export type Selectable = {
   id: string,
@@ -59,11 +59,6 @@ export class SelectableView extends React.Component<Props> {
     }
   };
 
-  isAnalystCreatedSelectable = () => {
-    const { selectable } = this.props;
-    return selectable.kind === "view" || selectable.kind === "analyst_table";
-  };
-
   searchResult = () => {
     const { filter, selectable } = this.props;
     if (filter !== "") {
@@ -73,11 +68,6 @@ export class SelectableView extends React.Component<Props> {
     } else {
       return {};
     }
-  };
-
-  editLinkUrl = () => {
-    const { selectable, selectablesEditUrl } = this.props;
-    return `${selectablesEditUrl}?kind=${selectable.kind}&id=${selectable.internal_id}`;
   };
 
   triggerDelete = (event: { preventDefault: () => void }) => {
@@ -90,29 +80,6 @@ export class SelectableView extends React.Component<Props> {
       });
     }
     event.preventDefault();
-  };
-
-  renderSelectableActionMenu = () => {
-    if (this.pending()) {
-      return null;
-    } else {
-      return (
-        <span className="float-right">
-          &nbsp;
-          <a className="btn btn-sm btn-secondary" href={this.editLinkUrl()}>
-            Edit
-          </a>
-          &nbsp;
-          <button
-            type="button"
-            className="btn btn-sm btn-danger"
-            onClick={this.triggerDelete}
-          >
-            Delete
-          </button>
-        </span>
-      );
-    }
   };
 
   brokenErrorMessage = () => {
@@ -168,7 +135,13 @@ export class SelectableView extends React.Component<Props> {
   };
 
   renderSelectableView = (searchResult: any) => {
-    const { selectable, expanded, filter, numberFormat } = this.props;
+    const {
+      selectable,
+      expanded,
+      filter,
+      numberFormat,
+      selectablesEditUrl,
+    } = this.props;
     const {
       title,
       dataToggle,
@@ -176,41 +149,39 @@ export class SelectableView extends React.Component<Props> {
       className,
     } = this.brokenMetaData();
     return (
-      <div className="list-group-item px-4 py-1 bg-transparent">
-        {this.isAnalystCreatedSelectable()
-          ? this.renderSelectableActionMenu()
-          : null}
-        <button
-          onClick={this.handleToggleClick}
-          title={title}
-          data-container={dataContainer}
-          data-toggle={dataToggle}
-          className={`${className} btn ml-n2`}
-        >
-          {this.renderIcon()}
-          <span className="pl-2">
-            <Higlighted
-              table={selectable.id}
-              column={searchResult}
-              field="table"
-            />
-          </span>
-        </button>
-        {selectable.comment && <CommentIcon comment={selectable.comment} />}
-        {(() => {
-          if (expanded) {
-            return (
-              <ColumnsView
+      <div className="list-group-item px-4 py-1 bg-transparent border-left-0">
+        <div className="d-flex justify-content-between align-items-baseline">
+          <button
+            onClick={this.handleToggleClick}
+            title={title}
+            data-container={dataContainer}
+            data-toggle={dataToggle}
+            className={`${className} btn ml-n2 text-truncate text-left`}
+          >
+            {this.renderIcon()}
+            <span className="pl-2">
+              <Higlighted
                 table={selectable.id}
-                columns={selectable.columns}
-                filter={filter}
-                numberFormat={numberFormat}
+                column={searchResult}
+                field="table"
               />
-            );
-          } else {
-            return null;
-          }
-        })()}
+            </span>
+          </button>
+          <SelectableInfo
+            selectable={selectable}
+            selectablesEditUrl={selectablesEditUrl}
+            triggerDelete={this.triggerDelete}
+          />
+        </div>
+
+        {expanded && (
+          <ColumnsView
+            table={selectable.id}
+            columns={selectable.columns}
+            filter={filter}
+            numberFormat={numberFormat}
+          />
+        )}
       </div>
     );
   };
