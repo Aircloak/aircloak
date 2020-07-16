@@ -275,19 +275,19 @@ across the wire as a `notice` message.
 
 The grid sizes available depend on the type of the column that is being limited by the range:
 
-* For numerical columns the grid sizes are `[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, ...]`
+* For numerical columns the grid sizes are `[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, ...]`
 * For date/time columns they are:
-  - `[1, 2, 5, 10, 20, 50, ...]` years
-  - `[1, 2, 6, 12]` months
+  - `[1, 2, 3, 4, 5, 6, 7, ...]` years
+  - `[1, 2, 3, 6, 9]` months
   - `[1, 2, 5, 10, 20]` days
-  - `[1, 2, 6, 12, 24]` hours
-  - `[1, 2, 5, 15, 30, 60]` minutes
-  - `[1, 2, 5, 15, 30, 60]` seconds.
+  - `[1, 2, 6, 12]` hours
+  - `[1, 2, 5, 15, 30]` minutes
+  - `[1, 2, 5, 15, 30]` seconds.
 
 The adjusted range will have the smallest size from the ones listed that can contain the full range provided in the
 query. Furthermore the starting point of the range will be changed so that it falls on a multiple of the adjusted
-range's size from a zero point. That zero point is the number 0 for numbers, midnight for times, and `1970-01-01 00:00`
-for dates and datetimes.
+range's size from a zero point. That zero point is the number 0 for numbers, midnight for times, and
+`1900-01-01 00:00:00` for dates and datetimes.
 
 To better fit the range provided in the query the range might also be shifted by half its size, however this will not
 happen in the following cases:
