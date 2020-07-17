@@ -278,7 +278,7 @@ The grid sizes available depend on the type of the column that is being limited 
 * For numerical columns the grid sizes are `[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, ...]`
 * For date/time columns they are:
   - `[1, 2, 3, 6, 9, 12, ...]` months
-  - `[1, 2, 5, 10, 20]` days
+  - `[1, 2, 5, 10, 15, 20]` days
   - `[1, 2, 6, 12]` hours
   - `[1, 2, 5, 15, 30]` minutes
   - `[1, 2, 5, 15, 30]` seconds.
