@@ -204,8 +204,7 @@ defmodule Compliance.AnalystTableTest do
 
                   assert soon(
                            table_created?(1, "table27", data_source, :create_error),
-                           :timer.seconds(5),
-                           repeat_wait_time: 10
+                           timeout: :timer.seconds(5)
                          )
                 end)
 

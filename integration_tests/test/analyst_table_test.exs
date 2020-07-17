@@ -174,7 +174,7 @@ defmodule IntegrationTest.AnalystTableTest do
 
     assert soon(
              not Enum.empty?(Cloak.AnalystTable.analyst_tables(context.user.id, Manager.data_source())),
-             :timer.seconds(5)
+             timeout: :timer.seconds(5)
            )
 
     assert [%{name: ^table_name}] = Cloak.AnalystTable.analyst_tables(context.user.id, Manager.data_source())
@@ -304,8 +304,8 @@ defmodule IntegrationTest.AnalystTableTest do
     Air.Service.User.delete!(user)
 
     Enum.each(tables, fn table ->
-      assert soon(table_not_in_db?(table.db_name), :timer.seconds(5), repeat_wait_time: 10)
-      assert soon(is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id)), :timer.seconds(5), repeat_wait_time: 10)
+      assert soon(table_not_in_db?(table.db_name), timeout: :timer.seconds(5))
+      assert soon(is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id)), timeout: :timer.seconds(5))
     end)
   end
 
@@ -338,21 +338,21 @@ defmodule IntegrationTest.AnalystTableTest do
 
     # verify that created tables are deleted
     Enum.each(tables, fn table ->
-      assert soon(table_not_in_db?(table.db_name), :timer.seconds(5), repeat_wait_time: 10)
-      assert soon(is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id)), :timer.seconds(5), repeat_wait_time: 10)
+      assert soon(table_not_in_db?(table.db_name), timeout: :timer.seconds(5))
+      assert soon(is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id)), timeout: :timer.seconds(5))
     end)
   end
 
   defp create_table(user, name, sql, comment \\ nil) do
     with {:ok, table} <- Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql, comment) do
-      assert soon(table_created?(user.id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
+      assert soon(table_created?(user.id, name, Manager.data_source()), timeout: :timer.seconds(5))
       {:ok, table}
     end
   end
 
   defp update_table(table_id, user, name, sql, comment \\ nil) do
     with {:ok, table} <- Air.Service.AnalystTable.update(table_id, user, name, sql, comment) do
-      assert soon(table_created?(table.user_id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
+      assert soon(table_created?(table.user_id, name, Manager.data_source()), timeout: :timer.seconds(5))
       {:ok, table}
     end
   end
