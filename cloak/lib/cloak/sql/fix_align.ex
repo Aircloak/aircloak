@@ -262,7 +262,8 @@ defmodule Cloak.Sql.FixAlign do
     require Integer
 
     can_halve? = allow_half? or (is_integer(size) and Integer.is_even(size))
-    left = if can_halve?, do: floor_to(x, size / 2), else: floor_to(x, size)
+    left = floor_to(x, size)
+    left = if can_halve?, do: floor_to(x, size / 2) |> max(left), else: left
     right = left + size
 
     if y <= right * (1 + sign(right) * @epsilon), do: {left, right}, else: nil
