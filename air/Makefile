@@ -19,7 +19,7 @@ start: compile
 	iex -S mix phx.server
 
 test: mocha test-migrations
-	mix test.standard
+	mix test
 
 test-migrations:
 	MIX_ENV=test mix recreate_db

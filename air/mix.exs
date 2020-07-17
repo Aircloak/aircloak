@@ -116,7 +116,6 @@ defmodule Air.Mixfile do
       rollback: ["app.start", "ecto.rollback"],
       migrate: ["app.start", "ecto.migrate"],
       seed: ["app.start", "run priv/repo/seeds.exs"],
-      "test.standard": ["test", "eunit"],
       lint: ["credo --strict"]
     ]
   end
