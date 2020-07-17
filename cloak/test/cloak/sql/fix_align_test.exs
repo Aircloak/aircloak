@@ -96,7 +96,7 @@ defmodule Cloak.Sql.FixAlign.Test do
     assert FixAlign.align_interval({~N[2010-01-01 00:00:00.000000], ~N[2012-10-05 00:00:00.000000]}) ==
              {~N[2010-01-01 00:00:00.000000], ~N[2014-01-01 00:00:00.000000]}
 
-    assert FixAlign.align_interval({~D[2010-01-01], ~D[2012-10-01]}) == {~D[2010-01-01], ~D[2012-10-01]}
+    assert FixAlign.align_interval({~D[2010-02-01], ~D[2012-09-30]}) == {~D[2010-01-01], ~D[2012-10-01]}
 
     assert FixAlign.align_interval({~N[2010-12-30 00:00:00.000000], ~N[2011-01-30 00:00:00.000000]}) ==
              {~N[2010-12-01 00:00:00.000000], ~N[2011-02-01 00:00:00.000000]}
@@ -135,7 +135,7 @@ defmodule Cloak.Sql.FixAlign.Test do
   end
 
   test "9999-12-31 is the maximum date" do
-    assert {_, ~D[9999-04-01]} = Cloak.Sql.FixAlign.align_interval({~D[2001-01-01], ~D[9999-02-01]})
+    assert {_, ~D[9999-12-31]} = Cloak.Sql.FixAlign.align_interval({~D[2001-01-01], ~D[9999-11-01]})
 
     assert {_, ~D[9999-12-31]} = Cloak.Sql.FixAlign.align_interval({~D[9999-12-20], ~D[9999-12-31]})
 
@@ -156,7 +156,7 @@ defmodule Cloak.Sql.FixAlign.Test do
     assert FixAlign.align_interval({~T[01:20:00], ~T[02:00:34]}) == {~T[01:00:00.000000], ~T[03:00:00.000000]}
   end
 
-  test "[Issue #2344] months have a 1-2-3-6-9 grid",
+  test "[Issue #2344] months have a 1-2-3-6-9-12 grid",
     do: assert(FixAlign.align_interval({~D[2016-11-01], ~D[2017-07-01]}) == {~D[2016-07-01], ~D[2017-07-01]})
 
   test "[Bug] maximum date alignment is quarter" do
