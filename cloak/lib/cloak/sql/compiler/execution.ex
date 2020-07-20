@@ -227,10 +227,11 @@ defmodule Cloak.Sql.Compiler.Execution do
       right_operator == upper_bound_operator and right_column.value == right
   end
 
+  @max_real :math.pow(10, Cloak.Math.numeric_max_scale())
   @max_datetime FixAlign.epoch_end()
   @max_time FixAlign.epoch_end() |> NaiveDateTime.to_time()
   @max_date FixAlign.epoch_end() |> NaiveDateTime.to_date()
-  @max_values [@max_date, @max_time, @max_datetime]
+  @max_values [@max_real, @max_date, @max_time, @max_datetime]
   defp upper_bound_operator(upper_bound), do: if(upper_bound in @max_values, do: "<=", else: "<")
 
   defp add_clause(query, lens, clause), do: Lens.map(lens, query, &Condition.both(clause, &1))

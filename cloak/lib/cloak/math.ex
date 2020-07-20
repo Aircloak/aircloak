@@ -54,4 +54,9 @@ defmodule Cloak.Math do
     partial = int_pow(base, div(exponent, 2))
     if(rem(exponent, 2) == 0, do: partial * partial, else: partial * partial * base)
   end
+
+  @doc "Maximum magnitude of numeric values."
+  @spec numeric_max_scale() :: pos_integer()
+  # Maximum number of digits a 64-bit integer can contain.
+  def numeric_max_scale(), do: 18
 end
