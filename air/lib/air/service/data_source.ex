@@ -27,11 +27,13 @@ defmodule Air.Service.DataSource do
   @type data_source_status :: :online | :offline | :broken | :analyzing
 
   @type column :: %{
-          name: String.t(),
-          type: String.t(),
-          user_id: boolean,
-          access: :visible | :unselectable,
-          comment: nil | String.t()
+          :name => String.t(),
+          :type => String.t(),
+          :user_id => boolean,
+          :comment => nil | String.t(),
+          # The following do not exist in views and analyst tables
+          optional(:isolated) => boolean | atom | nil,
+          optional(:access) => :visible | :unselectable
         }
 
   @type table :: %{
