@@ -41,7 +41,6 @@ const iconTooltip = (column: Column): string => {
 };
 
 const ColumnIcon = ({ column }: { column: Column }) => {
-  console.log(column);
   const style = {
     color: iconForegroundColor(column),
     backgroundColor: iconBackgroundColor(column),
