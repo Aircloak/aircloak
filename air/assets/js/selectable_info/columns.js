@@ -13,6 +13,7 @@ export type Column = {
   key_type: string,
   analysis?: any,
   comment: string | null,
+  access: "visible" | "unselectable",
 };
 
 export const ColumnsView = ({

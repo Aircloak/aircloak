@@ -3,7 +3,7 @@ defmodule Air.Schemas.SelectableColumn do
   use Air.Schemas.Base
 
   @type t :: %__MODULE__{name: String.t(), type: String.t(), key_type: String.t() | nil, comment: String.t() | nil}
-  @derive {Jason.Encoder, only: [:name, :type, :key_type]}
+  @derive {Jason.Encoder, only: [:name, :type, :key_type, :comment]}
   @primary_key false
 
   embedded_schema do

@@ -99,6 +99,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
       isolated: isolated,
       shadow_table: shadow_table,
       shadow_table_size: shadow_table_size,
+      access: column.access,
       comment: Table.column_comment(table, column.name)
     }
   end

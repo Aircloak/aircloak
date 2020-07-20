@@ -26,16 +26,21 @@ defmodule Air.Service.DataSource do
 
   @type data_source_status :: :online | :offline | :broken | :analyzing
 
+  @type column :: %{
+          :name => String.t(),
+          :type => String.t(),
+          :user_id => boolean,
+          :comment => nil | String.t(),
+          # The following do not exist in views and analyst tables
+          optional(:isolated) => boolean | atom | nil,
+          optional(:access) => :visible | :unselectable
+        }
+
   @type table :: %{
           id: String.t(),
-          columns: [
-            %{
-              name: String.t(),
-              type: String.t(),
-              user_id: boolean,
-              isolated: boolean | atom
-            }
-          ]
+          content_type: :private | :public,
+          columns: [column],
+          comment: nil | String.t()
         }
 
   @type selectable :: %{
@@ -47,13 +52,8 @@ defmodule Air.Service.DataSource do
           # Always false for tables
           broken: boolean,
           internal_id: String.t() | nil,
-          columns: [
-            %{
-              name: String.t(),
-              type: String.t(),
-              user_id: boolean
-            }
-          ]
+          columns: [column],
+          comment: nil | String.t()
         }
 
   @task_supervisor __MODULE__.TaskSupervisor
