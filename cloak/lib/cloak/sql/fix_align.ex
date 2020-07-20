@@ -205,9 +205,9 @@ defmodule Cloak.Sql.FixAlign do
   defp datetime_from_units({x, y}, unit), do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
 
   defp datetime_from_units(x, unit) do
-    less_significant = ((x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit))) |> round()
+    less_significant = ((x - floor(x)) * conversion_factor(unit, lower_unit(unit))) |> round()
 
-    more_significant = x |> Float.floor() |> round()
+    more_significant = floor(x)
 
     epoch_start()
     |> Timex.shift([{unit, more_significant}, {lower_unit(unit), less_significant}])
@@ -262,17 +262,9 @@ defmodule Cloak.Sql.FixAlign do
   defp sign(x) when x < 0, do: -1
   defp sign(_), do: 1
 
-  defp floor_to(x, grid) do
-    floor_epsilon(x / grid) * grid
-  end
+  defp floor_to(x, grid), do: floor_epsilon(x / grid) * grid
 
-  defp floor_epsilon(x) do
-    if abs(Float.round(x) - x) < @epsilon do
-      Float.round(x)
-    else
-      Float.floor(x)
-    end
-  end
+  defp floor_epsilon(x), do: if(abs(Float.round(x) - x) < @epsilon, do: round(x), else: floor(x))
 
   defp numeric_sizes(interval) do
     Stream.concat(small_sizes(interval), large_sizes())
