@@ -59,6 +59,14 @@ defmodule Cloak.Sql.FixAlign do
       |> cap_midnight()
       |> max_precision()
 
+  @doc "Returns the start of the alignment epoch."
+  @spec epoch_start() :: NaiveDateTime.t()
+  def epoch_start(), do: NaiveDateTime.from_erl!({{Cloak.Time.year_lower_bound(), 1, 1}, {0, 0, 0}})
+
+  @doc "Returns the end of the alignment epoch."
+  @spec epoch_end() :: NaiveDateTime.t()
+  def epoch_end(), do: NaiveDateTime.from_erl!({{Cloak.Time.year_upper_bound(), 12, 31}, {23, 59, 59}}, {999_999, 6})
+
   # -------------------------------------------------------------------
   # Internal functions for Dates and NaiveDateTimes
   # -------------------------------------------------------------------
@@ -287,7 +295,4 @@ defmodule Cloak.Sql.FixAlign do
     floor_log = x |> :math.log10() |> Float.floor()
     :math.pow(10, floor_log)
   end
-
-  defp epoch_start(), do: NaiveDateTime.from_erl!({{Cloak.Time.year_lower_bound(), 1, 1}, {0, 0, 0}})
-  defp epoch_end(), do: NaiveDateTime.from_erl!({{Cloak.Time.year_upper_bound(), 12, 31}, {23, 59, 59}}, {999_999, 6})
 end

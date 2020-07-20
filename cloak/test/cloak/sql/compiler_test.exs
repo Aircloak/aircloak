@@ -1004,6 +1004,45 @@ defmodule Cloak.Sql.Compiler.Test do
            ]
   end
 
+  test "includes max datetime value in range" do
+    aligned =
+      compile!(
+        "select stddev(0) from table where column > '2000-01-01' and column < '9999-12-31'",
+        data_source()
+      )
+
+    assert aligned.info == [
+             "The range for column `column` from table `table` has been adjusted to " <>
+               "1900-01-01 00:00:00.000000 <= `column` <= 9999-12-31 23:59:59.999999."
+           ]
+  end
+
+  test "includes max date value in range" do
+    aligned =
+      compile!(
+        "select stddev(0) from table where column > '2000-01-01' and column < '9999-12-31'",
+        date_data_source()
+      )
+
+    assert aligned.info == [
+             "The range for column `column` from table `table` has been adjusted to " <>
+               "1900-01-01 <= `column` <= 9999-12-31."
+           ]
+  end
+
+  test "includes max time value in range" do
+    aligned =
+      compile!(
+        "select stddev(0) from table where column > '00:00:01' and column < '23:59:04'",
+        time_data_source()
+      )
+
+    assert aligned.info == [
+             "The range for column `column` from table `table` has been adjusted to " <>
+               "00:00:00.000000 <= `column` <= 23:59:59.999999."
+           ]
+  end
+
   test "no message when time alignment does not require fixing" do
     assert compile!(
              "select count(*) from table where column >= '00:00:00' and column < '00:00:05'",
