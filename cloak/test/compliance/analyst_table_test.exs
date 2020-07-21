@@ -202,10 +202,10 @@ defmodule Compliance.AnalystTableTest do
                   {:ok, _} =
                     AnalystTable.create_or_update(1, "table27", nil, "select user_id from users", data_source, nil, %{})
 
-                  assert soon(
-                           table_created?(1, "table27", data_source, :create_error),
-                           timeout: :timer.seconds(5)
-                         )
+                  assert_soon(
+                    table_created?(1, "table27", data_source, :create_error),
+                    timeout: :timer.seconds(5)
+                  )
                 end)
 
               assert log =~ ~r/Error creating analyst table.*some error/

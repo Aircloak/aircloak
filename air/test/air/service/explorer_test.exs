@@ -345,7 +345,7 @@ defmodule Air.Service.ExplorerTest do
                  ]
                })
 
-      assert soon(not Enum.empty?(Explorer.results_for_datasource(context.ds_not_included)))
+      assert_soon not Enum.empty?(Explorer.results_for_datasource(context.ds_not_included))
 
       assert {:ok, _} =
                Explorer.change_permitted_data_sources(%{
@@ -358,7 +358,7 @@ defmodule Air.Service.ExplorerTest do
                  ]
                })
 
-      assert soon(Enum.empty?(Explorer.results_for_datasource(context.ds_not_included)))
+      assert_soon Enum.empty?(Explorer.results_for_datasource(context.ds_not_included))
     end
 
     test "it adds results for newly authorized data sources", context do

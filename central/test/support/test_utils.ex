@@ -32,7 +32,7 @@ defmodule Central.TestUtils do
       {termination_callback, pid} = temporary_process()
       ModuleUnderTest.process_pid(pid)
       termination_callback.()
-      assert soon(ModuleUnderTest.detected_process_failure())
+      assert_soon ModuleUnderTest.detected_process_failure()
     end
   """
   def temporary_process() do

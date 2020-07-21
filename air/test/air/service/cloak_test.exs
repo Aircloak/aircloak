@@ -51,7 +51,7 @@ defmodule Air.Service.Cloak.Test do
     Process.unlink(pid)
     Process.exit(pid, :exit)
 
-    assert soon([] == Cloak.channel_pids(@data_source_name))
+    assert_soon [] = Cloak.channel_pids(@data_source_name)
   end
 
   test "should unregister cloak when channel closes, but retain alternative cloaks" do
@@ -61,7 +61,7 @@ defmodule Air.Service.Cloak.Test do
     Process.unlink(pid1)
     Process.exit(pid1, :exit)
 
-    assert soon(match?([{^pid2, _}], Cloak.channel_pids(@data_source_name)))
+    assert_soon [{^pid2, _}] = Cloak.channel_pids(@data_source_name)
   end
 
   test "returns a list of cloaks and their data sources" do
