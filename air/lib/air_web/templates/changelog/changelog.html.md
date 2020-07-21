@@ -20,7 +20,7 @@
 - Improved performance for join-timing protection.
 - Allow tighter date ranges by limiting maximum alignment to quarters.
 - Improve range alignment algorithm to produce tighter bounds.
-- Made top end ranges fully inclusive (max value is included in the range).
+- Ranges that end at the maximum value of a type now include the maximum value.
 
 ### Bugfixes
 
