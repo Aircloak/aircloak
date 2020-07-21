@@ -197,29 +197,42 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> List.to_tuple()
       |> FixAlign.align_interval()
 
-    if implement_range?({left, right}, conditions) do
+    upper_bound_operator = upper_bound_operator(right)
+
+    if implement_range?(left, right, upper_bound_operator, conditions) do
       [lhs, rhs] = conditions
       range = Condition.both(lhs, rhs)
       update_in(query, [lens], &Condition.both(range, &1))
     else
       query
-      |> add_clause(lens, Expression.function("<", [column, Expression.constant(column.type, right)], :boolean))
+      |> add_clause(
+        lens,
+        Expression.function(upper_bound_operator, [column, Expression.constant(column.type, right)], :boolean)
+      )
       |> add_clause(lens, Expression.function(">=", [column, Expression.constant(column.type, left)], :boolean))
       |> Query.add_info(
         "The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= " <>
-          "#{Expression.short_name(column)} < #{right}."
+          "#{Expression.short_name(column)} #{upper_bound_operator} #{right}."
       )
     end
   end
 
-  defp implement_range?({left, right}, conditions) do
+  defp implement_range?(left, right, upper_bound_operator, conditions) do
     [
       %Expression{kind: :function, name: left_operator, args: [_, left_column]},
       %Expression{kind: :function, name: right_operator, args: [_, right_column]}
     ] = Enum.sort_by(conditions, &Condition.value/1, &Cloak.Data.lt_eq/2)
 
-    left_operator == ">=" and left_column.value == left and right_operator == "<" and right_column.value == right
+    left_operator == ">=" and left_column.value == left and
+      right_operator == upper_bound_operator and right_column.value == right
   end
+
+  @max_real :math.pow(10, Cloak.Math.numeric_max_scale())
+  @max_datetime FixAlign.epoch_end()
+  @max_time FixAlign.epoch_end() |> NaiveDateTime.to_time()
+  @max_date FixAlign.epoch_end() |> NaiveDateTime.to_date()
+  @max_values [@max_real, @max_date, @max_time, @max_datetime]
+  defp upper_bound_operator(upper_bound), do: if(upper_bound in @max_values, do: "<=", else: "<")
 
   defp add_clause(query, lens, clause), do: Lens.map(lens, query, &Condition.both(clause, &1))
 

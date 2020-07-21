@@ -940,6 +940,19 @@ defmodule Cloak.Sql.Compiler.Test do
              compile!("select stddev(0) from table where numeric > 0 and numeric < 10", data_source()).where
   end
 
+  test "includes max value into numeric ranges" do
+    aligned = compile!("select stddev(0) from table where float > 1 and float < 10^18-1", data_source())
+    non_aligned = compile!("select stddev(0) from table where float >= 0.0 and float <= 10^18", data_source())
+
+    assert aligned.info == [
+             "The range for column `float` from table `table` has been adjusted to 0.0 <= `float` <= 1.0e18."
+           ]
+
+    assert non_aligned.info == []
+
+    assert aligned.where == non_aligned.where
+  end
+
   test "fixes alignment of datetime ranges" do
     aligned =
       compile!(
@@ -1001,6 +1014,45 @@ defmodule Cloak.Sql.Compiler.Test do
     assert aligned.info == [
              "The range for column `column` from table `table` has been adjusted to 00:00:00.000000 <= " <>
                "`column` < 00:00:05.000000."
+           ]
+  end
+
+  test "includes max datetime value in range" do
+    aligned =
+      compile!(
+        "select stddev(0) from table where column > '2000-01-01' and column < '9999-12-31'",
+        data_source()
+      )
+
+    assert aligned.info == [
+             "The range for column `column` from table `table` has been adjusted to " <>
+               "1900-01-01 00:00:00.000000 <= `column` <= 9999-12-31 23:59:59.999999."
+           ]
+  end
+
+  test "includes max date value in range" do
+    aligned =
+      compile!(
+        "select stddev(0) from table where column > '2000-01-01' and column < '9999-12-31'",
+        date_data_source()
+      )
+
+    assert aligned.info == [
+             "The range for column `column` from table `table` has been adjusted to " <>
+               "1900-01-01 <= `column` <= 9999-12-31."
+           ]
+  end
+
+  test "includes max time value in range" do
+    aligned =
+      compile!(
+        "select stddev(0) from table where column > '00:00:01' and column < '23:59:04'",
+        time_data_source()
+      )
+
+    assert aligned.info == [
+             "The range for column `column` from table `table` has been adjusted to " <>
+               "00:00:00.000000 <= `column` <= 23:59:59.999999."
            ]
   end
 

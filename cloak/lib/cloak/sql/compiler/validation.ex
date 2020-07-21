@@ -246,15 +246,13 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Enum.map(&verify_constant/1)
   end
 
-  # maximum number of digits a 64-bit integer can contain
-  @numeric_constant_max_scale 18
   defp verify_constant(%Expression{value: value, type: type} = expression) when type in [:integer, :real] do
-    if abs(value) > :math.pow(10, @numeric_constant_max_scale) do
+    if abs(value) > :math.pow(10, Cloak.Math.numeric_max_scale()) do
       raise CompilationError,
         source_location: expression.source_location,
         message:
           "Constant expression is out of valid range: numeric values have to be inside the interval " <>
-            "[-10^#{@numeric_constant_max_scale}, 10^#{@numeric_constant_max_scale}]."
+            "[-10^#{Cloak.Math.numeric_max_scale()}, 10^#{Cloak.Math.numeric_max_scale()}]."
     end
   end
 
