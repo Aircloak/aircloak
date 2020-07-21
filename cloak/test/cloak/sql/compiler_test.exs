@@ -941,15 +941,16 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "includes max value into numeric ranges" do
-    aligned = compile!("select stddev(0) from table where numeric > 1 and numeric < 10^18-1", data_source())
+    aligned = compile!("select stddev(0) from table where float > 1 and float < 10^18-1", data_source())
+    non_aligned = compile!("select stddev(0) from table where float >= 0.0 and float <= 10^18", data_source())
 
     assert aligned.info == [
-             "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` <= 1.0e18."
+             "The range for column `float` from table `table` has been adjusted to 0.0 <= `float` <= 1.0e18."
            ]
-  end
 
-  test "no message for aligned top numeric range" do
-    assert compile!("select stddev(0) from table where numeric >= 0 and numeric <= 10^18", data_source()).info == []
+    assert non_aligned.info == []
+
+    assert aligned.where == non_aligned.where
   end
 
   test "fixes alignment of datetime ranges" do
