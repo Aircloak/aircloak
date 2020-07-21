@@ -174,9 +174,12 @@ defmodule IntegrationTest.AnalystTableTest do
     )
 
     assert [%{name: ^table_name}] = Cloak.AnalystTable.analyst_tables(context.user.id, Manager.data_source())
-    assert {:ok, result} = run_query(context.user, "select from #{table_name}")
-    assert result.columns == []
-    assert result.buckets == [%{"occurrences" => 100, "row" => [], "unreliable" => false}]
+
+    soon do
+      assert {:ok, result} = run_query(context.user, "select from #{table_name}")
+      assert result.columns == []
+      assert result.buckets == [%{"occurrences" => 100, "row" => [], "unreliable" => false}]
+    end
   end
 
   test "successful table delete", context do
