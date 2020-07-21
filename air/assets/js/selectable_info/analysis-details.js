@@ -6,28 +6,29 @@ import { Handler } from "vega-tooltip";
 
 const OTHER_ITEM = "--OTHER--";
 
-const range = (numberFormat, type) => (min, max) => (
-  <p>
-    <b>Extent:</b>{" "}
-    {type === "date" || type === "datetime"
-      ? `${moment(min).format("LLL")} - ${moment(max).format("LLL")} `
-      : `${formatNumber(min, numberFormat)} - ${formatNumber(
-          max,
-          numberFormat
-        )}`}
-  </p>
-);
+const range = (numberFormat, type) => {
+  const formatter = (value) =>
+    type === "date" || type === "datetime"
+      ? moment(value).format("LLL")
+      : formatNumber(value, numberFormat);
+  return (min, max) => (
+    <div className="list-group list-group-horizontal mb-3">
+      {niceBox("Minimum", formatter)(min)}
+      {niceBox("Maximum", formatter)(max)}
+    </div>
+  );
+};
 
 const plot = (spec) => (
   <VegaLite
     width={Math.min(330, document.body.clientWidth - 150)}
-    padding={10}
+    padding={0}
     actions={false}
     tooltip={new Handler().call}
     spec={{
       ...spec,
       autosize: {
-        type: "fit",
+        type: "fit-x",
         contains: "padding",
       },
     }}
@@ -57,7 +58,10 @@ const topValues = (numberFormat) => (data) => {
   let processedData = filterOtherValue(numberFormat, data);
 
   return (
-    <>
+    <div>
+      <h4 className="text-muted font-weight-bold text-uppercase small">
+        Top Values
+      </h4>
       {plot({
         mark: {
           type: "bar",
@@ -80,18 +84,21 @@ const topValues = (numberFormat) => (data) => {
           },
         },
       })}
-      <p>
+      <p className="small ml-3">
         The top {processedData.numItems} values account for about{" "}
         {processedData.shownPercent}% of the total number of records.
       </p>
-    </>
+    </div>
   );
 };
 
 const exactValues = (numberFormat) => (data) => {
   let processedData = filterOtherValue(numberFormat, data);
   return (
-    <>
+    <div>
+      <h4 className="text-muted font-weight-bold text-uppercase small">
+        Value Distribution
+      </h4>
       {plot({
         mark: {
           type: "bar",
@@ -113,131 +120,151 @@ const exactValues = (numberFormat) => (data) => {
           },
         },
       })}
-      <p>
+      <p className="small ml-3">
         The {processedData.numItems} values shown above account for about{" "}
         {processedData.shownPercent}% of the total number of records.
       </p>
-    </>
+    </div>
   );
 };
 
-const bucketed = (data) =>
-  plot({
-    mark: {
-      type: "bar",
-    },
-    data: {
-      values: data,
-    },
-    transform: [
-      { calculate: "datum.lowerBound + datum.bucketSize", as: "upperBound" },
-    ],
-    encoding: {
-      x: {
-        field: "lowerBound",
-        bin: "binned",
-        type: "quantitative",
-        axis: { title: "value (binned)" },
+const bucketed = (data) => (
+  <div className="mb-3">
+    <h4 className="text-muted font-weight-bold text-uppercase small">
+      Histogram
+    </h4>
+    {plot({
+      mark: {
+        type: "bar",
       },
-      x2: {
-        field: "upperBound",
+      data: {
+        values: data,
+      },
+      transform: [
+        { calculate: "datum.lowerBound + datum.bucketSize", as: "upperBound" },
+      ],
+      encoding: {
+        x: {
+          field: "lowerBound",
+          bin: "binned",
+          type: "quantitative",
+          axis: { title: "value (binned)" },
+        },
+        x2: {
+          field: "upperBound",
 
-        type: "quantitative",
+          type: "quantitative",
+        },
+        y: {
+          field: "count",
+          type: "quantitative",
+        },
       },
-      y: {
-        field: "count",
-        type: "quantitative",
-      },
-    },
-  });
+    })}
+  </div>
+);
 
-const boxplot = ([q1, q2, q3], min, max) =>
-  plot({
-    data: {
-      values: [
+const boxplot = ([q1, q2, q3], min, max) => (
+  <div className="mb-3">
+    <h4 className="text-muted font-weight-bold text-uppercase small">
+      Quartiles
+    </h4>
+    {plot({
+      data: {
+        values: [
+          {
+            min,
+            q1,
+            q2,
+            q3,
+            max,
+          },
+        ],
+      },
+      layer: [
         {
-          min,
-          q1,
-          q2,
-          q3,
-          max,
+          mark: {
+            type: "rule",
+            invalid: null,
+            style: "boxplot-rule",
+            aria: false,
+          },
+          encoding: {
+            x: {
+              field: "min",
+              type: "quantitative",
+              axis: { title: false },
+              scale: { zero: false },
+            },
+            x2: { field: "q1" },
+          },
+        },
+        {
+          mark: {
+            type: "rule",
+            invalid: null,
+            style: "boxplot-rule",
+            aria: false,
+          },
+          encoding: {
+            x: {
+              field: "q3",
+              type: "quantitative",
+            },
+            x2: { field: "max" },
+          },
+        },
+        {
+          mark: {
+            type: "bar",
+            size: 14,
+            orient: "horizontal",
+            invalid: null,
+            style: "boxplot-box",
+            aria: false,
+          },
+          encoding: {
+            x: {
+              field: "q1",
+              type: "quantitative",
+            },
+            x2: { field: "q3" },
+          },
+        },
+        {
+          mark: {
+            color: "white",
+            type: "tick",
+            invalid: null,
+            size: 14,
+            orient: "vertical",
+            ariaRoleDescription: "box",
+            style: "boxplot-median",
+          },
+          encoding: {
+            x: {
+              field: "q2",
+              type: "quantitative",
+            },
+          },
         },
       ],
-    },
-    layer: [
-      {
-        mark: {
-          type: "rule",
-          invalid: null,
-          style: "boxplot-rule",
-          aria: false,
-        },
-        encoding: {
-          x: {
-            field: "min",
-            type: "quantitative",
-            axis: { title: "quartiles" },
-            scale: { zero: false },
-          },
-          x2: { field: "q1" },
-        },
-      },
-      {
-        mark: {
-          type: "rule",
-          invalid: null,
-          style: "boxplot-rule",
-          aria: false,
-        },
-        encoding: {
-          x: {
-            field: "q3",
-            type: "quantitative",
-          },
-          x2: { field: "max" },
-        },
-      },
-      {
-        mark: {
-          type: "bar",
-          size: 14,
-          orient: "horizontal",
-          invalid: null,
-          style: "boxplot-box",
-          aria: false,
-        },
-        encoding: {
-          x: {
-            field: "q1",
-            type: "quantitative",
-          },
-          x2: { field: "q3" },
-        },
-      },
-      {
-        mark: {
-          color: "white",
-          type: "tick",
-          invalid: null,
-          size: 14,
-          orient: "vertical",
-          ariaRoleDescription: "box",
-          style: "boxplot-median",
-        },
-        encoding: {
-          x: {
-            field: "q2",
-            type: "quantitative",
-          },
-        },
-      },
-    ],
-  });
+    })}
+  </div>
+);
 
 const simpleField = (title, formatter = (a) => a) => (value) => (
-  <p>
-    <b>{title}:</b> {formatter(value)}
+  <p className="d-flex justify-content-between align-items-baseline">
+    <b className="text-muted font-weight-bold text-uppercase small">{title}</b>
+    <span className="font-weight-bold">{formatter(value)}</span>
   </p>
+);
+
+const niceBox = (title, formatter = (a) => a) => (value) => (
+  <div className="list-group-item d-flex flex-column flex-grow-1 align-items-center flex-basis-1 mt-2">
+    <b className="text-muted font-weight-bold text-uppercase small">{title}</b>
+    <span className="font-weight-bold">{formatter(value)}</span>
+  </div>
 );
 
 const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
@@ -272,15 +299,17 @@ const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
       {renderIfPrereqs(topValues(numberFormat), "distinct.top_values") ||
         renderIfPrereqs(exactValues(numberFormat), "distinct.values")}
       {renderIfPrereqs(bucketed, "histogram.buckets")}
-      {renderIfPrereqs(
-        simpleField("Total records", formatNum),
-        "distinct.total_count"
-      )}
-      {renderIfPrereqs(
-        simpleField("Suppressed", formatNum),
-        "distinct.suppressed_count"
-      )}
-      {renderIfPrereqs(simpleField("Null", formatNum), "distinct.null_count")}
+      <div className="list-group list-group-horizontal mb-3">
+        {renderIfPrereqs(
+          niceBox("Total records", formatNum),
+          "distinct.total_count"
+        )}
+        {renderIfPrereqs(
+          niceBox("Suppressed", formatNum),
+          "distinct.suppressed_count"
+        )}
+        {renderIfPrereqs(niceBox("Null", formatNum), "distinct.null_count")}
+      </div>
       {renderIfPrereqs(
         simpleField("Last analyzed", (date) => moment.utc(date).fromNow()),
         "updated_at"
