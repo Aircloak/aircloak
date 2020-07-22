@@ -439,6 +439,7 @@ defmodule Cloak.DataSource do
 
     supervisor(
       [
+        Cloak.DataSource.PerColumn.Limiter,
         supervisor(
           [
             registry(:duplicate, __MODULE__.ChangeListenersRegistry),

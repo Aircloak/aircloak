@@ -58,6 +58,11 @@ config :cloak, :data_source,
 
 config :cloak, :flush_query_log_timeout, 0
 
+config :cloak, :analysis_queries,
+  concurrency: 0,
+  time_between_queries: 0,
+  minimum_memory_required: 0
+
 config :cloak, :connect_retries, 1
 
 config :logger,

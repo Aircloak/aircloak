@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   use Parent.GenServer
   require Logger
-  alias Cloak.DataSource.PerColumn.{PersistentKeyValue, Queue, Descriptor}
+  alias Cloak.DataSource.PerColumn.{PersistentKeyValue, Queue, Descriptor, Limiter}
 
   # -------------------------------------------------------------------
   # API functions
@@ -158,13 +158,15 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   defp start_compute(column, state) do
     Task.start_link(fn ->
-      Logger.debug(fn ->
-        {data_source, table_name, column_name} = column
-        "#{inspect(state.opts.name)} computing for `#{data_source.name}`.`#{table_name}`.`#{column_name}`"
-      end)
+      Limiter.run(fn ->
+        Logger.debug(fn ->
+          {data_source, table_name, column_name} = column
+          "#{inspect(state.opts.name)} computing for `#{data_source.name}`.`#{table_name}`.`#{column_name}`"
+        end)
 
-      property = state.opts.property_fun.(column)
-      PersistentKeyValue.store(state.cache_owner, Descriptor.hash(column), property, expiry(state))
+        property = state.opts.property_fun.(column)
+        PersistentKeyValue.store(state.cache_owner, Descriptor.hash(column), property, expiry(state))
+      end)
     end)
   end
 

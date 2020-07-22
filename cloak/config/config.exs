@@ -87,6 +87,11 @@ config :cloak, :data_source,
 
 config :cloak, :flush_query_log_timeout, 500
 
+config :cloak, :analysis_queries,
+  concurrency: 0,
+  time_between_queries: 500,
+  minimum_memory_required: 0.2
+
 import_config "#{Mix.env()}.exs"
 
 if File.exists?("config/#{Mix.env()}.local.exs") do
