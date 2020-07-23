@@ -41,9 +41,9 @@ defmodule Aircloak.AssertionHelper do
   If a `do` block is passed, it will instead attempt to evaluate it until all assertions in the block pass.
   Returns the value of the last expression in the block.
 
-  Retries up to a total of 10 attempts with a total timeout of `opts[:timeout]`,
-  which is divided evenly between attempts.
-  Default timeout is 200 ms, meaning 20ms between attempts.
+  Retries up to a total of `opts[:attempts]` attempts with a total timeout of `opts[:timeout]`.
+  The timeout is divided evenly between attempts.
+  Defaults to 10 attempts in a 200 ms interval.
 
   Usage:
 
@@ -118,8 +118,9 @@ defmodule Aircloak.AssertionHelper do
 
   def compute_soon_attempts(opts \\ []) do
     timeout = Keyword.get(opts, :timeout, 200)
-    repeat_wait_time = Keyword.get(opts, :repeat_wait_time, div(timeout, 10))
-    attempts = trunc(Float.ceil(timeout / repeat_wait_time))
+    attempts = Keyword.get(opts, :attempts, 10)
+    # We subtract 1 because the first attempt won't have any delay.
+    repeat_wait_time = div(timeout, max(1, attempts - 1))
     {attempts, repeat_wait_time}
   end
 end

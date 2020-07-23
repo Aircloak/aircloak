@@ -67,7 +67,7 @@ defmodule Cloak.DataSource.SQLJoinTimingTest do
 
   for {attack_statement, index} <- Enum.with_index(@attack_statements, 1) do
     test "join timing vulnerability (#{index})" do
-      soon do
+      soon attempts: 2 do
         time1 = unquote(attack_statement) |> String.replace("<matched_id>", "1") |> benchmark()
         time2 = unquote(attack_statement) |> String.replace("<matched_id>", "0") |> benchmark()
 
