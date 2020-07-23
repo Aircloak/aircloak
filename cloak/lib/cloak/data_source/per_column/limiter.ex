@@ -13,13 +13,9 @@ defmodule Cloak.DataSource.PerColumn.Limiter do
   def run(fun) do
     :jobs.run(__MODULE__, fn ->
       config = get_config()
-      time_between_queries = config[:time_between_queries]
-      minimum_memory_required = config[:minimum_memory_required]
-
-      Process.sleep(div(time_between_queries, 2))
-      wait_for_available_memory(minimum_memory_required)
+      wait_for_available_memory(config[:minimum_memory_required])
       fun.()
-      Process.sleep(div(time_between_queries, 2))
+      Process.sleep(config[:time_between_queries])
       :ok
     end)
   end
