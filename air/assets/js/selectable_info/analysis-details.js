@@ -13,8 +13,8 @@ const range = (numberFormat, type) => {
       : formatNumber(value, numberFormat);
   return (min, max) => (
     <div className="list-group list-group-horizontal mb-3">
-      {niceBox("Minimum", formatter)(min)}
-      {niceBox("Maximum", formatter)(max)}
+      {niceBox("Minimum", formatter(min))}
+      {niceBox("Maximum", formatter(max))}
     </div>
   );
 };
@@ -35,65 +35,15 @@ const plot = (spec) => (
   />
 );
 
-const filterOtherValue = (numberFormat, data) => {
-  let totalCount = 0;
-  let topCount = 0;
-  const filteredItems = data.filter((item) => {
-    totalCount += item.count;
-    if (item.value !== OTHER_ITEM) {
-      topCount += item.count;
-      return true;
-    }
-    return false;
-  });
-
-  return {
-    numItems: filteredItems.length,
-    shownPercent: formatNumber((topCount / totalCount) * 100, numberFormat),
-    data: filteredItems,
-  };
-};
-
-const topValues = (numberFormat) => (data) => {
-  let processedData = filterOtherValue(numberFormat, data);
-
-  return (
-    <div>
-      <h4 className="text-muted font-weight-bold text-uppercase small">
-        Top Values
-      </h4>
-      {plot({
-        mark: {
-          type: "bar",
-        },
-        data: {
-          values: processedData.data,
-        },
-        encoding: {
-          y: {
-            field: "value",
-            type: "ordinal",
-            axis: {
-              title: `Top ${processedData.numItems} values`,
-            },
-            sort: "-x",
-          },
-          x: {
-            field: "count",
-            type: "quantitative",
-          },
-        },
-      })}
-      <p className="small ml-3">
-        The top {processedData.numItems} values account for about{" "}
-        {processedData.shownPercent}% of the total number of records.
-      </p>
-    </div>
-  );
-};
-
-const exactValues = (numberFormat) => (data) => {
-  let processedData = filterOtherValue(numberFormat, data);
+const exactValues = (formatNum) => (
+  data,
+  totalCount,
+  nullCount,
+  suppressedCount
+) => {
+  const values = data.filter((item) => item.value !== OTHER_ITEM);
+  const shownCount = data.reduce((sum, item) => sum + item.count, 0);
+  const percentage = (shownCount / totalCount) * 100;
   return (
     <div>
       <h4 className="text-muted font-weight-bold text-uppercase small">
@@ -104,7 +54,7 @@ const exactValues = (numberFormat) => (data) => {
           type: "bar",
         },
         data: {
-          values: processedData.data,
+          values,
         },
         encoding: {
           y: {
@@ -118,17 +68,28 @@ const exactValues = (numberFormat) => (data) => {
             field: "count",
             type: "quantitative",
           },
+          tooltip: {
+            field: "count",
+            type: "quantitative",
+          },
         },
       })}
       <p className="small ml-3">
-        The {processedData.numItems} values shown above account for about{" "}
-        {processedData.shownPercent}% of the total number of records.
+        The {values.length} values shown above account for about{" "}
+        {formatNum(percentage)}% of the total number of records.{" "}
+        {nullCount > 0 &&
+          `There were about ${formatNum(nullCount)} null records.`}
+        {suppressedCount > 0 &&
+          `About ${suppressedCount} records were suppressed when generating this analysis.`}
       </p>
     </div>
   );
 };
 
-const bucketed = (data) => (
+const bucketed = (formatNum) => (
+  data,
+  { nullCount, suppressedCount, suppressedCountRatio }
+) => (
   <div className="mb-3">
     <h4 className="text-muted font-weight-bold text-uppercase small">
       Histogram
@@ -136,6 +97,7 @@ const bucketed = (data) => (
     {plot({
       mark: {
         type: "bar",
+        tooltip: true,
       },
       data: {
         values: data,
@@ -161,6 +123,62 @@ const bucketed = (data) => (
         },
       },
     })}
+    <p className="small ml-3">
+      {nullCount > 0 &&
+        `There were about ${formatNum(
+          nullCount
+        )} null records not shown above. `}
+      {suppressedCount > 0 &&
+        `About ${formatNum(
+          suppressedCountRatio * 100
+        )}% of records were suppressed and are not shown above.`}
+    </p>
+  </div>
+);
+
+const textLenghts = (formatNum) => (
+  data,
+  { nullCount, suppressedCount, suppressedCountRatio }
+) => (
+  <div>
+    <h4 className="text-muted font-weight-bold text-uppercase small">
+      String Length
+    </h4>
+    {plot({
+      mark: {
+        type: "bar",
+      },
+      data: {
+        values: data,
+      },
+      encoding: {
+        y: {
+          field: "value",
+          type: "ordinal",
+          axis: {
+            title: false,
+          },
+        },
+        x: {
+          field: "count",
+          type: "quantitative",
+        },
+        tooltip: {
+          field: "count",
+          type: "quantitative",
+        },
+      },
+    })}
+    <p className="small ml-3">
+      {nullCount > 0 &&
+        `There were about ${formatNum(
+          nullCount
+        )} null records not shown above. `}
+      {suppressedCount > 0 &&
+        `About ${formatNum(
+          suppressedCountRatio * 100
+        )}% of records were suppressed and are not shown above.`}
+    </p>
   </div>
 );
 
@@ -260,14 +278,48 @@ const simpleField = (title, formatter = (a) => a) => (value) => (
   </p>
 );
 
-const niceBox = (title, formatter = (a) => a) => (value) => (
-  <div className="list-group-item d-flex flex-column flex-grow-1 align-items-center flex-basis-1 mt-2">
+const niceBox = (title, value) => (
+  <div className="list-group-item d-flex flex-column flex-grow-1 align-items-center flex-basis-1">
     <b className="text-muted font-weight-bold text-uppercase small">{title}</b>
-    <span className="font-weight-bold">{formatter(value)}</span>
+    <span className="font-weight-bold">{value}</span>
+  </div>
+);
+
+const descriptiveStats = (formatNum) => (
+  { entropy, mean, mode, quartiles, standardDeviation, variance },
+  min,
+  max
+) => (
+  <div className="stats-group mb-3">
+    <h4 className="text-muted font-weight-bold text-uppercase small">
+      Descriptive Stats
+    </h4>
+    <div className="list-group list-group-horizontal">
+      {niceBox("Minimum", formatNum(min))}
+      {niceBox("Median", formatNum(quartiles[1]))}
+      {niceBox("Maximum", formatNum(max))}
+    </div>
+    <div className="list-group list-group-horizontal">
+      {niceBox("Mean", formatNum(mean))}
+      {niceBox("Mode", formatNum(mode))}
+    </div>
+    <div className="list-group list-group-horizontal">
+      {niceBox("Entropy", formatNum(entropy))}
+      {niceBox("StdDev", formatNum(standardDeviation))}
+      {niceBox("Variance", formatNum(variance))}
+    </div>
   </div>
 );
 
 const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
+  /**
+   * This function will call the rendering function passed as the first argument,
+   * with values fetched from the analysis in their respective positions. However,
+   * if the analysis doesn't contain those keys, it will return null.
+   *
+   * Hence this allows us to conditionally render appropriate visualizations if the
+   * analysis containes the necessary data to support that visualization.
+   */
   const renderIfPrereqs = (cb, ...keys) => {
     const match = analysis.filter((an) => keys.includes(an.name));
     if (match.length === keys.length) {
@@ -279,37 +331,48 @@ const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
   const formatNum = (num) => formatNumber(num, numberFormat);
 
   useEffect(() => {
+    // this will resize and reposition the popup.
+    // necessary due to the lazy loading of this code.
     popper.scheduleUpdate();
   }, [popper]);
 
   return (
     <div>
       {renderIfPrereqs(
-        range(numberFormat, type),
+        descriptiveStats(formatNum),
+        "descriptive_stats",
         "refined_min",
         "refined_max"
-      ) || renderIfPrereqs(range(numberFormat, type), "naive_min", "naive_max")}
-      {renderIfPrereqs(simpleField("Average", formatNum), "avg_estimate")}
+      ) ||
+        renderIfPrereqs(
+          range(numberFormat, type),
+          "refined_min",
+          "refined_max"
+        )}
       {renderIfPrereqs(
         boxplot,
         "quartile_estimates",
         "refined_min",
         "refined_max"
       )}
-      {renderIfPrereqs(topValues(numberFormat), "distinct.top_values") ||
-        renderIfPrereqs(exactValues(numberFormat), "distinct.values")}
-      {renderIfPrereqs(bucketed, "histogram.buckets")}
-      <div className="list-group list-group-horizontal mb-3">
-        {renderIfPrereqs(
-          niceBox("Total records", formatNum),
-          "distinct.total_count"
-        )}
-        {renderIfPrereqs(
-          niceBox("Suppressed", formatNum),
-          "distinct.suppressed_count"
-        )}
-        {renderIfPrereqs(niceBox("Null", formatNum), "distinct.null_count")}
-      </div>
+      {renderIfPrereqs(
+        exactValues(formatNum),
+        "distinct.values",
+        "distinct.value_count",
+        "distinct.null_count",
+        "distinct.suppressed_count"
+      )}
+      {renderIfPrereqs(
+        bucketed(formatNum),
+        "histogram.buckets",
+        "histogram.value_counts"
+      )}
+      {renderIfPrereqs(
+        textLenghts(formatNum),
+        "text.length.values",
+        "text.length.counts"
+      )}
+
       {renderIfPrereqs(
         simpleField("Last analyzed", (date) => moment.utc(date).fromNow()),
         "updated_at"
