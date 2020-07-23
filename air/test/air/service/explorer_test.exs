@@ -298,7 +298,7 @@ defmodule Air.Service.ExplorerTest do
           %ExplorerAnalysis{table_name: "bars", status: :new},
           %ExplorerAnalysis{table_name: "foos", status: :new}
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
 
       MockServer.resume()
@@ -324,7 +324,7 @@ defmodule Air.Service.ExplorerTest do
             }
           }
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
     end
   end
@@ -394,7 +394,7 @@ defmodule Air.Service.ExplorerTest do
             }
           }
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
     end
 
@@ -420,7 +420,7 @@ defmodule Air.Service.ExplorerTest do
           },
           %ExplorerAnalysis{}
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
 
       # Now change what the server will have to say about bar
@@ -458,7 +458,7 @@ defmodule Air.Service.ExplorerTest do
           },
           %ExplorerAnalysis{}
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
 
       # The point of this test: notice that status is still error, which shows that this data source was not refreshed
@@ -470,7 +470,7 @@ defmodule Air.Service.ExplorerTest do
           },
           %ExplorerAnalysis{}
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
     end
   end
