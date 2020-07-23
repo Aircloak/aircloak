@@ -5,6 +5,22 @@ import ColumnIcon from "./column-icon";
 
 const AnalysisDetailsContent = React.lazy(() => import("./analysis-details"));
 
+const isolationLabel = (isolated) => {
+  switch (isolated) {
+    case true:
+    case null:
+      return "Yes";
+    case false:
+      return "No";
+    case "pending":
+      return "Pending";
+    case "failed":
+      return "Failed";
+    default:
+      return "Yes";
+  }
+};
+
 const AnalysisDetails = React.forwardRef(
   ({ item, numberFormat, ...props }, ref) => {
     return (
@@ -69,7 +85,7 @@ const AnalysisDetails = React.forwardRef(
                     Isolates
                   </b>
                   <span className="font-weight-bold">
-                    {item.isolated ? "Yes" : "No"}
+                    {isolationLabel(item.isolated)}
                   </span>
                 </div>
               )}
