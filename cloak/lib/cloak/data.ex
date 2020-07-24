@@ -42,17 +42,4 @@ defmodule Cloak.Data do
   def lt_eq(nil, _), do: false
   def lt_eq(_, nil), do: false
   def lt_eq(x, y), do: x <= y
-
-  @doc """
-  Returns a value that's "infinitesimally" larger than the given value. Should only be used to construct an interval
-  of the form `{x, plus_epsilon(x)}`. In those cases when checking the left boundary with `lt_eq` and the right one
-  with `gt` only values equal to `x` will fall into the interval (to a good approximation). Produces denormalized `Time`
-  structs (like `~T[23:59:60]`), which are nevertheless fine when used in conjunction with other functions from this
-  module.
-  """
-  @spec plus_epsilon(t) :: t
-  def plus_epsilon(x = %NaiveDateTime{}), do: Timex.shift(x, seconds: 1)
-  def plus_epsilon(x = %Date{}), do: Timex.shift(x, days: 1)
-  def plus_epsilon(x = %Time{}), do: %{x | second: x.second + 1}
-  def plus_epsilon(x) when is_number(x), do: x + x / 100_000_000_000_000
 end
