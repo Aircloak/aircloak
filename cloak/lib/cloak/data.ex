@@ -13,6 +13,8 @@ defmodule Cloak.Data do
 
   @doc "Returns true if the first value is greater than the second, false otherwise. See `lt_eq/2` for details."
   @spec gt(t, t) :: boolean
+  def gt(nil, _), do: false
+  def gt(_, nil), do: false
   def gt(x, y), do: not lt_eq(x, y)
 
   @doc "Returns true if the first value is greater than the second, false otherwise. See `lt_eq/2` for details."
