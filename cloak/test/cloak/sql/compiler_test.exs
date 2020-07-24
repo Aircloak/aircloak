@@ -1112,6 +1112,40 @@ defmodule Cloak.Sql.Compiler.Test do
            ).info == []
   end
 
+  test "alignes date constant between columns to month intervals" do
+    aligned =
+      compile!(
+        "select stddev(0) from table where date '2020-07-02' between column and column2",
+        date_data_source()
+      )
+
+    unaligned =
+      compile!(
+        "select stddev(0) from table where date '2020-07-01' between column and column2",
+        date_data_source()
+      )
+
+    assert aligned.info == [
+             "The range for the value `2020-07-02` has been adjusted to `column` <= 2020-07-01 < `column2`."
+           ]
+
+    assert unaligned.info == []
+
+    assert aligned.where == unaligned.where
+  end
+
+  test "fixes date constant between columns operators" do
+    aligned =
+      compile!(
+        "select stddev(0) from table where date '2020-07-01' < column2 and date '2020-07-01' > column",
+        date_data_source()
+      )
+
+    assert aligned.info == [
+             "The range for the value `2020-07-01` has been adjusted to `column` <= 2020-07-01 < `column2`."
+           ]
+  end
+
   test "bugfix: allows fully qualified column names when distinct case in column alias" do
     assert %Query{} =
              compile!(
@@ -2152,7 +2186,8 @@ defmodule Cloak.Sql.Compiler.Test do
             db_name: "table",
             columns: [
               Table.column("uid", :integer),
-              Table.column("column", :date)
+              Table.column("column", :date),
+              Table.column("column2", :date)
             ]
           )
       }
