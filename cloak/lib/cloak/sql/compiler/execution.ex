@@ -200,7 +200,8 @@ defmodule Cloak.Sql.Compiler.Execution do
         &add_aligned_constant_date_range(&1, &2, lens)
       )
 
-    Enum.each(invalid_inequalities ++ invalid_date_inequalities, &raise_error_on_invalid_inequality_group/1)
+    Enum.each(invalid_inequalities, &raise_error_on_invalid_inequality_group/1)
+    Enum.each(invalid_date_inequalities, &raise_error_on_invalid_date_inequality_group/1)
 
     query
   end
@@ -284,6 +285,16 @@ defmodule Cloak.Sql.Compiler.Execution do
     raise CompilationError,
       source_location: column.source_location,
       message: "Expression `#{Expression.display(column)}` must be limited to a finite, nonempty range."
+  end
+
+  defp raise_error_on_invalid_date_inequality_group({_, [inequality | _]}) do
+    column = Condition.subject(inequality)
+
+    raise CompilationError,
+      source_location: column.source_location,
+      message:
+        "Date expression `#{Expression.display(column)}` must be limited to a finite, nonempty range " <>
+          "or compared to the current date."
   end
 
   defp valid_column_range?({_column, comparisons}) do

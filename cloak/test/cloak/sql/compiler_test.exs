@@ -882,13 +882,15 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error == "Expression `column` must be limited to a finite, nonempty range."
+    assert error ==
+             "Date expression `column` must be limited to a finite, nonempty range or compared to the current date."
   end
 
   test "rejects inequalities on datetime columns that are not ranges" do
     assert {:error, error} = compile("select count(*) from table where column > '2015-01-01'", data_source())
 
-    assert error == "Expression `column` must be limited to a finite, nonempty range."
+    assert error ==
+             "Date expression `column` must be limited to a finite, nonempty range or compared to the current date."
   end
 
   test "rejects inequalities on date columns that are negatives of ranges" do
@@ -898,13 +900,15 @@ defmodule Cloak.Sql.Compiler.Test do
                date_data_source()
              )
 
-    assert error == "Expression `column` must be limited to a finite, nonempty range."
+    assert error ==
+             "Date expression `column` must be limited to a finite, nonempty range or compared to the current date."
   end
 
   test "rejects inequalities on date columns that are not ranges" do
     assert {:error, error} = compile("select count(*) from table where column > '2015-01-01'", data_source())
 
-    assert error == "Expression `column` must be limited to a finite, nonempty range."
+    assert error ==
+             "Date expression `column` must be limited to a finite, nonempty range or compared to the current date."
   end
 
   test "rejects datetime ranges smaller than 1 second" do
@@ -917,7 +921,8 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error == "Expression `column` must be limited to a finite, nonempty range."
+    assert error ==
+             "Date expression `column` must be limited to a finite, nonempty range or compared to the current date."
   end
 
   test "accepts inequalities on numeric columns that are ranges" do
