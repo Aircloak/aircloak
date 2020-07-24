@@ -46,6 +46,9 @@ defmodule Cloak.Sql.FixAlign do
 
   def align_interval(interval = {x, y}) when is_number(x) and is_number(y), do: align_numeric_interval(interval)
 
+  def align_interval({%Date{} = x, %NaiveDateTime{} = y}), do: align_interval({Cloak.Time.date_to_datetime(x), y})
+  def align_interval({%NaiveDateTime{} = x, %Date{} = y}), do: align_interval({x, Cloak.Time.date_to_datetime(y)})
+
   def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}), do: align_datetime({x, y}) |> max_precision()
 
   def align_interval({%Date{} = x, %Date{} = y}), do: {x, y} |> align_datetime() |> to_date()

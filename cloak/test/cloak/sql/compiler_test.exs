@@ -2023,15 +2023,21 @@ defmodule Cloak.Sql.Compiler.Test do
              )
   end
 
-  test "range with date and datetime bounds" do
-    assert {:error, "Column `column` from table `table` must be limited to a finite, nonempty range."} =
-             compile(
-               """
-               select count(*) from table
-               where column between date '2000-01-01' and datetime '2020-01-01 12:00:00'
-               """,
-               date_data_source()
-             )
+  test "message for unaligned range with date and datetime bounds" do
+    assert compile!(
+             "select count(*) from table where column between date '2000-01-01' and datetime '2020-01-01 12:00:00'",
+             date_data_source()
+           ).info == [
+             "The range for column `column` from table `table` has been adjusted to " <>
+               "1999-01-01 00:00:00.000000 <= `column` < 2021-01-01 00:00:00.000000."
+           ]
+  end
+
+  test "no message for aligned range with date and datetime bounds" do
+    assert compile!(
+             "select count(*) from table where column between date '1999-01-01' and datetime '2021-01-01 00:00:00'",
+             date_data_source()
+           ).info == []
   end
 
   defp compile_standard(query_string, data_source) do

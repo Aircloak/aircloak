@@ -263,8 +263,8 @@ defmodule Cloak.Sql.Compiler.Execution do
       %Expression{kind: :function, name: right_operator, args: [_, right_column]}
     ] = Enum.sort_by(conditions, &Condition.value/1, &Cloak.Data.lt_eq/2)
 
-    left_operator == ">=" and left_column.value == left and
-      right_operator == upper_bound_operator and right_column.value == right
+    left_operator == ">=" and Cloak.Data.eq(left_column.value, left) and
+      right_operator == upper_bound_operator and Cloak.Data.eq(right_column.value, right)
   end
 
   @max_real :math.pow(10, Cloak.Math.numeric_max_scale())
@@ -291,7 +291,6 @@ defmodule Cloak.Sql.Compiler.Execution do
         [_subject, target2] = Condition.targets(cmp2)
 
         Condition.direction(cmp1) != Condition.direction(cmp2) and
-          compatible_types?(target1.type, target2.type) and
           Cloak.Data.lt(Expression.const_value(target1), Expression.const_value(target2))
 
       _ ->
@@ -345,15 +344,8 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp truncate_datetime(%Date{} = value, :day), do: value
   defp truncate_datetime(%Date{} = value, :month), do: Date.from_erl!({value.year, value.month, 1})
 
-  defp truncate_datetime(%NaiveDateTime{} = value, unit) do
-    date = value |> NaiveDateTime.to_date() |> truncate_datetime(unit) |> Date.to_erl()
-    {date, {0, 0, 0}} |> NaiveDateTime.from_erl!() |> Cloak.Time.max_precision()
-  end
-
-  defp compatible_types?(:integer, :real), do: true
-  defp compatible_types?(:real, :integer), do: true
-  defp compatible_types?(type, type), do: true
-  defp compatible_types?(_type1, _type2), do: false
+  defp truncate_datetime(%NaiveDateTime{} = value, unit),
+    do: value |> NaiveDateTime.to_date() |> truncate_datetime(unit) |> Cloak.Time.date_to_datetime()
 
   # -------------------------------------------------------------------
   # Virtual tables

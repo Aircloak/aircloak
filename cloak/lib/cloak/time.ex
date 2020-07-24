@@ -67,13 +67,13 @@ defmodule Cloak.Time do
   def from_integer(nil, _type), do: nil
 
   def from_integer(value, :datetime),
-    do:
-      value
-      |> :calendar.gregorian_seconds_to_datetime()
-      |> NaiveDateTime.from_erl!()
-      |> Cloak.Time.max_precision()
+    do: value |> :calendar.gregorian_seconds_to_datetime() |> NaiveDateTime.from_erl!() |> max_precision()
 
   def from_integer(value, :date), do: value |> :calendar.gregorian_days_to_date() |> Date.from_erl!()
 
   def from_integer(value, :time), do: value |> :calendar.seconds_to_time() |> Time.from_erl!() |> max_precision()
+
+  @doc "Converts a date value to the equivalent datetime value."
+  @spec date_to_datetime(Date.t()) :: NaiveDateTime.t()
+  def date_to_datetime(date), do: {Date.to_erl(date), {0, 0, 0}} |> NaiveDateTime.from_erl!() |> max_precision()
 end
