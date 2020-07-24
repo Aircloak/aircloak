@@ -23,6 +23,7 @@
 - Ranges that end at the maximum value of a type now include the maximum value.
 - Allow month-aligned constant date between columns expressions.
 - Allow ranges with mixed date and datetime boundaries.
+- Improved range alignment messages.
 
 ### Bugfixes
 

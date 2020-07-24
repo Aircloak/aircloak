@@ -225,7 +225,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       query
       |> add_clause(lens, %Expression{condition | args: [column, Expression.constant(column.type, truncated_target)]})
       |> Query.add_info(
-        "The inequality target for column #{Expression.display_name(column)} has been adjusted " <>
+        "The inequality target for expression `#{Expression.display(column)}` has been adjusted " <>
           "to `#{Data.to_string(truncated_target)}`."
       )
     end
@@ -253,8 +253,8 @@ defmodule Cloak.Sql.Compiler.Execution do
       )
       |> add_clause(lens, Expression.function(">=", [column, Expression.constant(column.type, left)], :boolean))
       |> Query.add_info(
-        "The range for column #{Expression.display_name(column)} has been adjusted to #{Data.to_string(left)} <= " <>
-          "#{Expression.short_name(column)} #{upper_bound_operator} #{Data.to_string(right)}."
+        "The range for expression `#{Expression.display(column)}` has been adjusted to " <>
+          "`#{Data.to_string(left)} <= #{Expression.display(column)} #{upper_bound_operator} #{Data.to_string(right)}`."
       )
     end
   end
@@ -283,7 +283,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
     raise CompilationError,
       source_location: column.source_location,
-      message: "Column #{Expression.display_name(column)} must be limited to a finite, nonempty range."
+      message: "Expression `#{Expression.display(column)}` must be limited to a finite, nonempty range."
   end
 
   defp valid_column_range?({_column, comparisons}) do
@@ -325,7 +325,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       )
       |> Query.add_info(
         "The range for the value `#{Data.to_string(target)}` has been adjusted to " <>
-          "#{Expression.short_name(column1)} <= #{Data.to_string(truncated_target)} < #{Expression.short_name(column2)}."
+          "`#{Expression.display(column1)} <= #{Data.to_string(truncated_target)} < #{Expression.display(column2)}`."
       )
     end
   end

@@ -204,7 +204,7 @@ defmodule Cloak.Query.ErrorTest do
       error: error
     })
 
-    assert error =~ ~r/Column `cast` must be limited to a finite, nonempty range./
+    assert error =~ ~r/Expression `cast\(name as integer\)` must be limited to a finite, nonempty range./
     assert error =~ ~r/line 1, column 36/
   end
 

@@ -621,7 +621,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting joins with only one side of a range" do
-    assert {:error, "Column `numeric` from table `table` must be limited to a finite, nonempty range."} =
+    assert {:error, "Expression `numeric` must be limited to a finite, nonempty range."} =
              compile(
                "SELECT COUNT(*) FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3",
                data_source()
@@ -645,7 +645,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert query1.info ==
              [
-               "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` < 10.0."
+               "The range for expression `numeric` has been adjusted to `0.0 <= numeric < 10.0`."
              ]
 
     {:join, %{condition: conditions1}} = query1.from
@@ -859,7 +859,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects inequalities on numeric columns that are not ranges" do
     assert {:error, error} = compile("select count(*) from table where numeric > 5", data_source())
 
-    assert error == "Column `numeric` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Expression `numeric` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on numeric columns that have equal endpoints" do
@@ -869,13 +869,13 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error == "Column `numeric` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Expression `numeric` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on numeric columns that are negatives of ranges" do
     assert {:error, error} = compile("select count(*) from table where numeric < 2 and numeric > 5", data_source())
 
-    assert error == "Column `numeric` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Expression `numeric` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on datetime columns that are negatives of ranges" do
@@ -885,13 +885,13 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Expression `column` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on datetime columns that are not ranges" do
     assert {:error, error} = compile("select count(*) from table where column > '2015-01-01'", data_source())
 
-    assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Expression `column` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on date columns that are negatives of ranges" do
@@ -901,13 +901,13 @@ defmodule Cloak.Sql.Compiler.Test do
                date_data_source()
              )
 
-    assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Expression `column` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on date columns that are not ranges" do
     assert {:error, error} = compile("select count(*) from table where column > '2015-01-01'", data_source())
 
-    assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Expression `column` must be limited to a finite, nonempty range."
   end
 
   test "rejects datetime ranges smaller than 1 second" do
@@ -920,7 +920,7 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Expression `column` must be limited to a finite, nonempty range."
   end
 
   test "accepts inequalities on numeric columns that are ranges" do
@@ -945,7 +945,7 @@ defmodule Cloak.Sql.Compiler.Test do
     non_aligned = compile!("select stddev(0) from table where float >= 0.0 and float <= 10^18", data_source())
 
     assert aligned.info == [
-             "The range for column `float` from table `table` has been adjusted to 0.0 <= `float` <= 1.0e18."
+             "The range for expression `float` has been adjusted to `0.0 <= float <= 1.0e18`."
            ]
 
     assert non_aligned.info == []
@@ -966,8 +966,8 @@ defmodule Cloak.Sql.Compiler.Test do
            ).where == aligned.where
 
     assert aligned.info == [
-             "The range for column `column` from table `table` has been adjusted to " <>
-               "2015-01-01 00:00:00 <= `column` < 2017-01-01 00:00:00."
+             "The range for expression `column` has been adjusted to " <>
+               "`2015-01-01 00:00:00 <= column < 2017-01-01 00:00:00`."
            ]
   end
 
@@ -991,8 +991,7 @@ defmodule Cloak.Sql.Compiler.Test do
            ).where == aligned.where
 
     assert aligned.info == [
-             "The range for column `column` from table `table` has been adjusted to 2015-01-01 <= " <>
-               "`column` < 2017-01-01."
+             "The range for expression `column` has been adjusted to `2015-01-01 <= column < 2017-01-01`."
            ]
   end
 
@@ -1012,8 +1011,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert conditions_list(unaligned.where) == conditions_list(aligned.where)
 
     assert aligned.info == [
-             "The range for column `column` from table `table` has been adjusted to 00:00:00 <= " <>
-               "`column` < 00:00:05."
+             "The range for expression `column` has been adjusted to `00:00:00 <= column < 00:00:05`."
            ]
   end
 
@@ -1025,8 +1023,8 @@ defmodule Cloak.Sql.Compiler.Test do
       )
 
     assert aligned.info == [
-             "The range for column `column` from table `table` has been adjusted to " <>
-               "1900-01-01 00:00:00 <= `column` <= 9999-12-31 23:59:59."
+             "The range for expression `column` has been adjusted to " <>
+               "`1900-01-01 00:00:00 <= column <= 9999-12-31 23:59:59`."
            ]
   end
 
@@ -1038,8 +1036,7 @@ defmodule Cloak.Sql.Compiler.Test do
       )
 
     assert aligned.info == [
-             "The range for column `column` from table `table` has been adjusted to " <>
-               "1900-01-01 <= `column` <= 9999-12-31."
+             "The range for expression `column` has been adjusted to `1900-01-01 <= column <= 9999-12-31`."
            ]
   end
 
@@ -1051,8 +1048,7 @@ defmodule Cloak.Sql.Compiler.Test do
       )
 
     assert aligned.info == [
-             "The range for column `column` from table `table` has been adjusted to " <>
-               "00:00:00 <= `column` <= 23:59:59."
+             "The range for expression `column` has been adjusted to `00:00:00 <= column <= 23:59:59`."
            ]
   end
 
@@ -1070,7 +1066,7 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              ).info
 
-    assert msg == "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` < 2.0."
+    assert msg == "The range for expression `numeric` has been adjusted to `0.0 <= numeric < 2.0`."
   end
 
   test "allows inequality between current date and clear column" do
@@ -1096,7 +1092,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert non_aligned.info == []
 
-    assert ["The inequality target for column `column` from table `table` has been adjusted to " <> _] = aligned.info
+    assert ["The inequality target for expression `column` has been adjusted to " <> _] = aligned.info
   end
 
   test "columns for fetching are not duplicated" do
@@ -1126,7 +1122,7 @@ defmodule Cloak.Sql.Compiler.Test do
       )
 
     assert aligned.info == [
-             "The range for the value `2020-07-02` has been adjusted to `column` <= 2020-07-01 < `column2`."
+             "The range for the value `2020-07-02` has been adjusted to `column <= 2020-07-01 < column2`."
            ]
 
     assert unaligned.info == []
@@ -1142,7 +1138,7 @@ defmodule Cloak.Sql.Compiler.Test do
       )
 
     assert aligned.info == [
-             "The range for the value `2020-07-01` has been adjusted to `column` <= 2020-07-01 < `column2`."
+             "The range for the value `2020-07-01` has been adjusted to `column <= 2020-07-01 < column2`."
            ]
   end
 
@@ -1284,7 +1280,7 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error == "Column `avg` must be limited to a finite, nonempty range."
+    assert error == "Expression `avg(numeric)` must be limited to a finite, nonempty range."
   end
 
   test "having condition ranges are aligned with a message in subqueries" do
@@ -1308,7 +1304,7 @@ defmodule Cloak.Sql.Compiler.Test do
              unaligned |> Map.drop([:info, :column_titles]) |> scrub_locations()
 
     assert unaligned.info == [
-             "The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."
+             "The range for expression `avg(numeric)` has been adjusted to `0.0 <= avg(numeric) < 5.0`."
            ]
   end
 
@@ -2028,8 +2024,7 @@ defmodule Cloak.Sql.Compiler.Test do
              "select count(*) from table where column between date '2000-01-01' and datetime '2020-01-01 12:00:00'",
              date_data_source()
            ).info == [
-             "The range for column `column` from table `table` has been adjusted to " <>
-               "1999-01-01 00:00:00 <= `column` < 2021-01-01 00:00:00."
+             "The range for expression `column` has been adjusted to `1999-01-01 00:00:00 <= column < 2021-01-01 00:00:00`."
            ]
   end
 
