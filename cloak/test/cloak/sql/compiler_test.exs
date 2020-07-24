@@ -108,7 +108,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects having conditions on non grouped by columns" do
-    {:error, "`HAVING` clause can not be applied over column `numeric` from table `table`."} =
+    {:error, "`HAVING` clause can not be applied over expression `numeric`."} =
       compile("select count(*) from table group by column having numeric = 1", data_source())
   end
 
@@ -203,8 +203,7 @@ defmodule Cloak.Sql.Compiler.Test do
     {:error, error} = compile("select string from table having count(numeric) = 2", data_source())
 
     assert error ==
-             "Column `string` from table `table` needs to appear in the `GROUP BY`" <>
-               " clause or be used in an aggregate function."
+             "Column `string` needs to appear in the `GROUP BY` clause or be used in an aggregate function."
   end
 
   test "rejects escape strings longer than 1" do
@@ -517,8 +516,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:error, error} = compile("select column from table group by day(column)", data_source())
 
     assert error ==
-             "Column `column` from table `table` needs to appear in the `GROUP BY` clause" <>
-               " or be used in an aggregate function."
+             "Column `column` needs to appear in the `GROUP BY` clause or be used in an aggregate function."
   end
 
   test "rejecting a function in select when another function is grouped" do
@@ -529,8 +527,7 @@ defmodule Cloak.Sql.Compiler.Test do
              )
 
     assert error ==
-             "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause or be used in an " <>
-               "aggregate function."
+             "Column `numeric` needs to appear in the `GROUP BY` clause or be used in an aggregate function."
   end
 
   test "rejecting concat on non-strings" do
@@ -844,7 +841,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "missing group by in a subquery" do
     assert {:error, error} = compile("select c1 from (select uid, count(*) as c1 from t1) alias", data_source())
 
-    assert error =~ "Column `uid` from table `t1` needs to appear in the `GROUP BY`"
+    assert error =~ "Column `uid` needs to appear in the `GROUP BY`"
   end
 
   test "integer operations are valid on sums of integer columns" do
@@ -1374,17 +1371,17 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting non-aggregated non-selected ORDER BY column in an aggregated function" do
-    assert {:error, "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
+    assert {:error, "Column `float` needs to appear in the `GROUP BY` clause" <> _} =
              compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())
   end
 
   test "rejecting non-aggregated column when an aggregate is in a non-selected ORDER BY" do
-    assert {:error, "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
+    assert {:error, "Column `numeric` needs to appear in the `GROUP BY` clause" <> _} =
              compile("SELECT numeric FROM table ORDER BY max(float)", data_source())
   end
 
   test "rejecting non-aggregated column when count(*) is in a non-selected ORDER BY" do
-    assert {:error, "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
+    assert {:error, "Column `numeric` needs to appear in the `GROUP BY` clause" <> _} =
              compile("SELECT numeric FROM table ORDER BY count(*)", data_source())
   end
 
@@ -1426,7 +1423,7 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert reason == "Expression `count` is not valid in the `WHERE` clause."
+    assert reason == "Expression `count(*)` is not valid in the `WHERE` clause."
   end
 
   describe "key columns" do

@@ -139,21 +139,6 @@ defmodule Cloak.Sql.Expression do
   def key?(expression), do: key_type(expression) != nil
 
   @doc """
-  Returns the name of the expression.
-
-  This function should mostly be used when producing error messages.
-  """
-  @spec display_name(t) :: String.t()
-  def display_name(%__MODULE__{kind: :column, name: name, table: table}),
-    do: "`#{name}` from table `#{table.name}`"
-
-  def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
-  def display_name(%__MODULE__{kind: :function, name: {:cast, _type}}), do: "`cast`"
-  def display_name(%__MODULE__{kind: :function, name: {:bucket, _align}}), do: "`bucket`"
-  def display_name(%__MODULE__{kind: :function, name: function}), do: "`#{function}`"
-  def display_name(%__MODULE__{kind: :constant, value: value}), do: "`#{Cloak.Data.to_string(value)}`"
-
-  @doc """
   Returns the full expression as text.
 
   This function should mostly be used when producing error messages.
