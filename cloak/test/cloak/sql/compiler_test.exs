@@ -967,7 +967,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert aligned.info == [
              "The range for column `column` from table `table` has been adjusted to " <>
-               "2015-01-01 00:00:00.000000 <= `column` < 2017-01-01 00:00:00.000000."
+               "2015-01-01 00:00:00 <= `column` < 2017-01-01 00:00:00."
            ]
   end
 
@@ -1012,8 +1012,8 @@ defmodule Cloak.Sql.Compiler.Test do
     assert conditions_list(unaligned.where) == conditions_list(aligned.where)
 
     assert aligned.info == [
-             "The range for column `column` from table `table` has been adjusted to 00:00:00.000000 <= " <>
-               "`column` < 00:00:05.000000."
+             "The range for column `column` from table `table` has been adjusted to 00:00:00 <= " <>
+               "`column` < 00:00:05."
            ]
   end
 
@@ -1026,7 +1026,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert aligned.info == [
              "The range for column `column` from table `table` has been adjusted to " <>
-               "1900-01-01 00:00:00.000000 <= `column` <= 9999-12-31 23:59:59.999999."
+               "1900-01-01 00:00:00 <= `column` <= 9999-12-31 23:59:59."
            ]
   end
 
@@ -1052,7 +1052,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert aligned.info == [
              "The range for column `column` from table `table` has been adjusted to " <>
-               "00:00:00.000000 <= `column` <= 23:59:59.999999."
+               "00:00:00 <= `column` <= 23:59:59."
            ]
   end
 
@@ -2029,7 +2029,7 @@ defmodule Cloak.Sql.Compiler.Test do
              date_data_source()
            ).info == [
              "The range for column `column` from table `table` has been adjusted to " <>
-               "1999-01-01 00:00:00.000000 <= `column` < 2021-01-01 00:00:00.000000."
+               "1999-01-01 00:00:00 <= `column` < 2021-01-01 00:00:00."
            ]
   end
 

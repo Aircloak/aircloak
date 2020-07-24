@@ -51,6 +51,8 @@ defmodule Cloak.Data do
 
   @doc "Converts values to strings in a standardised way."
   @spec to_string(any) :: String.t()
+  def to_string(value = %NaiveDateTime{}), do: value |> NaiveDateTime.truncate(:second) |> NaiveDateTime.to_string()
+  def to_string(value = %Time{}), do: value |> Time.truncate(:second) |> Time.to_string()
   def to_string(value = %Duration{}), do: Duration.to_string(value)
   def to_string(nil), do: "NULL"
   def to_string(true), do: "TRUE"
