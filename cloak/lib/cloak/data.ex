@@ -1,6 +1,8 @@
 defmodule Cloak.Data do
   @moduledoc "Contains functions for uniformly working with numbers and datetime types."
 
+  alias Timex.Duration
+
   @type t :: %NaiveDateTime{} | %Date{} | %Time{} | number | String.t() | nil
 
   @doc "Returns the smaller of the two values according to the order given by `lt_eq`."
@@ -46,4 +48,12 @@ defmodule Cloak.Data do
   def lt_eq(nil, _), do: false
   def lt_eq(_, nil), do: false
   def lt_eq(x, y), do: x <= y
+
+  @doc "Converts values to strings in a standardised way."
+  @spec to_string(any) :: String.t()
+  def to_string(value = %Duration{}), do: Duration.to_string(value)
+  def to_string(nil), do: "NULL"
+  def to_string(true), do: "TRUE"
+  def to_string(false), do: "FALSE"
+  def to_string(value), do: Kernel.to_string(value)
 end

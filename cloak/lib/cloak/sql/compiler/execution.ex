@@ -9,6 +9,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query, Range}
   alias Cloak.Sql.Compiler.{Helpers, Optimizer}
   alias Cloak.Sql.Query.Lenses
+  alias Cloak.Data
 
   # -------------------------------------------------------------------
   # API functions
@@ -224,7 +225,8 @@ defmodule Cloak.Sql.Compiler.Execution do
       query
       |> add_clause(lens, %Expression{condition | args: [column, Expression.constant(column.type, truncated_target)]})
       |> Query.add_info(
-        "The inequality target for column #{Expression.display_name(column)} has been adjusted to `#{truncated_target}`."
+        "The inequality target for column #{Expression.display_name(column)} has been adjusted " <>
+          "to `#{Data.to_string(truncated_target)}`."
       )
     end
   end
@@ -233,7 +235,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     {left, right} =
       conditions
       |> Enum.map(&Condition.value/1)
-      |> Enum.sort(&Cloak.Data.lt_eq/2)
+      |> Enum.sort(&Data.lt_eq/2)
       |> List.to_tuple()
       |> FixAlign.align_interval()
 
@@ -251,8 +253,8 @@ defmodule Cloak.Sql.Compiler.Execution do
       )
       |> add_clause(lens, Expression.function(">=", [column, Expression.constant(column.type, left)], :boolean))
       |> Query.add_info(
-        "The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= " <>
-          "#{Expression.short_name(column)} #{upper_bound_operator} #{right}."
+        "The range for column #{Expression.display_name(column)} has been adjusted to #{Data.to_string(left)} <= " <>
+          "#{Expression.short_name(column)} #{upper_bound_operator} #{Data.to_string(right)}."
       )
     end
   end
@@ -261,10 +263,10 @@ defmodule Cloak.Sql.Compiler.Execution do
     [
       %Expression{kind: :function, name: left_operator, args: [_, left_column]},
       %Expression{kind: :function, name: right_operator, args: [_, right_column]}
-    ] = Enum.sort_by(conditions, &Condition.value/1, &Cloak.Data.lt_eq/2)
+    ] = Enum.sort_by(conditions, &Condition.value/1, &Data.lt_eq/2)
 
-    left_operator == ">=" and Cloak.Data.eq(left_column.value, left) and
-      right_operator == upper_bound_operator and Cloak.Data.eq(right_column.value, right)
+    left_operator == ">=" and Data.eq(left_column.value, left) and
+      right_operator == upper_bound_operator and Data.eq(right_column.value, right)
   end
 
   @max_real :math.pow(10, Cloak.Math.numeric_max_scale())
@@ -291,7 +293,7 @@ defmodule Cloak.Sql.Compiler.Execution do
         [_subject, target2] = Condition.targets(cmp2)
 
         Condition.direction(cmp1) != Condition.direction(cmp2) and
-          Cloak.Data.lt(Expression.const_value(target1), Expression.const_value(target2))
+          Data.lt(Expression.const_value(target1), Expression.const_value(target2))
 
       _ ->
         false
@@ -322,8 +324,8 @@ defmodule Cloak.Sql.Compiler.Execution do
         Expression.function("<=", [column1, Expression.constant(column1.type, truncated_target)], :boolean)
       )
       |> Query.add_info(
-        "The range for the value `#{target}` has been adjusted to #{Expression.short_name(column1)} <= " <>
-          "#{truncated_target} < #{Expression.short_name(column2)}."
+        "The range for the value `#{Data.to_string(target)}` has been adjusted to " <>
+          "#{Expression.short_name(column1)} <= #{Data.to_string(truncated_target)} < #{Expression.short_name(column2)}."
       )
     end
   end
