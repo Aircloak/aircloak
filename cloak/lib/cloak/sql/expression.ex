@@ -139,15 +139,6 @@ defmodule Cloak.Sql.Expression do
   def key?(expression), do: key_type(expression) != nil
 
   @doc """
-  Returns a shorter version of the display name of the column.
-
-  This function should mostly be used when producing error messages.
-  """
-  @spec short_name(t) :: String.t()
-  def short_name(%__MODULE__{kind: :column, name: name}), do: "`#{name}`"
-  def short_name(x), do: display_name(x)
-
-  @doc """
   Returns the name of the expression.
 
   This function should mostly be used when producing error messages.
