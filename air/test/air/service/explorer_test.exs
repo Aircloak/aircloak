@@ -112,7 +112,7 @@ defmodule Air.Service.ExplorerTest do
         plug(:accepts, ["json"])
       end
 
-      scope "/explorer" do
+      scope "/explorer/api/v1" do
         pipe_through([:my_api])
         post("/explore", Controller, :explore)
         get("/result/:id", Controller, :result)
