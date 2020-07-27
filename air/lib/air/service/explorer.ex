@@ -90,7 +90,7 @@ defmodule Air.Service.Explorer do
   @spec reanalyze_datasource(Air.Schemas.DataSource.t()) :: :ok
   def reanalyze_datasource(data_source) do
     {_, token} = find_or_create_explorer_creds()
-    delete_unused_results(data_source)
+
     Enum.each(results_for_datasource(data_source), &GenServer.cast(__MODULE__, {:request_analysis, &1, token}))
   end
 
@@ -100,6 +100,23 @@ defmodule Air.Service.Explorer do
     DataSource.tables(data_source)
     |> Enum.filter(fn table -> Enum.any?(table["columns"], & &1["user_id"]) end)
     |> Enum.map(fn %{"id" => table_name} -> table_name end)
+  end
+
+  @doc "Removes results for tables which no longer exist in the data source."
+  @spec data_source_updated(Air.Schemas.DataSource.t()) :: :ok
+  def data_source_updated(data_source) do
+    tables =
+      DataSource.tables(data_source)
+      |> Enum.map(fn %{"id" => name} -> name end)
+
+    from(explorer_analysis in ExplorerAnalysis,
+      where:
+        explorer_analysis.data_source_id == ^data_source.id and
+          explorer_analysis.table_name not in ^tables
+    )
+    |> Repo.delete_all()
+
+    :ok
   end
 
   @doc """
@@ -247,19 +264,6 @@ defmodule Air.Service.Explorer do
     from(explorer_analysis in ExplorerAnalysis,
       where: explorer_analysis.status in ["new", "processing"] and not is_nil(explorer_analysis.job_id)
     )
-  end
-
-  defp delete_unused_results(data_source) do
-    tables =
-      DataSource.tables(data_source)
-      |> Enum.map(fn %{"id" => name} -> name end)
-
-    from(explorer_analysis in ExplorerAnalysis,
-      where:
-        explorer_analysis.data_source_id == ^data_source.id and
-          explorer_analysis.table_name not in ^tables
-    )
-    |> Repo.delete_all()
   end
 
   defp find_or_create_explorer_creds() do
