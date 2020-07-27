@@ -390,7 +390,7 @@ defmodule Air.Service.Explorer do
     {:error, error}
   end
 
-  defp base_url(), do: config!("url")
+  defp base_url(), do: config!("url") <> "/api/v1"
 
   defp config!(key), do: Map.fetch!(Aircloak.DeployConfig.fetch!("explorer"), key)
 end
