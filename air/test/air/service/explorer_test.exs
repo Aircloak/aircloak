@@ -3,7 +3,7 @@ defmodule Air.Service.ExplorerTest do
 
   use Air.SchemaCase, async: false
 
-  alias Air.Service.{Explorer, Group}
+  alias Air.Service.{DataSource, Explorer, Group}
   alias Air.Schemas.ExplorerAnalysis
   require Aircloak.DeployConfig
   import Aircloak.AssertionHelper
@@ -146,6 +146,38 @@ defmodule Air.Service.ExplorerTest do
     end
   end
 
+  @foos_table %{
+    columns: [
+      %{
+        name: "user_id",
+        user_id: true,
+        isolated: true
+      },
+      %{
+        name: "foo",
+        user_id: false,
+        isolated: false
+      }
+    ],
+    id: "foos"
+  }
+
+  @bars_table %{
+    columns: [
+      %{
+        name: "user_id",
+        user_id: true,
+        isolated: true
+      },
+      %{
+        name: "bar",
+        user_id: false,
+        isolated: false
+      }
+    ],
+    id: "bars"
+  }
+
   setup do
     config = Application.get_env(:air, Aircloak.DeployConfig)
     start_supervised!(MockServer)
@@ -163,38 +195,7 @@ defmodule Air.Service.ExplorerTest do
 
     start_supervised!(Explorer)
 
-    tables = [
-      %{
-        columns: [
-          %{
-            name: "user_id",
-            user_id: true,
-            isolated: true
-          },
-          %{
-            name: "foo",
-            user_id: false,
-            isolated: false
-          }
-        ],
-        id: "foos"
-      },
-      %{
-        columns: [
-          %{
-            name: "user_id",
-            user_id: true,
-            isolated: true
-          },
-          %{
-            name: "bar",
-            user_id: false,
-            isolated: false
-          }
-        ],
-        id: "bars"
-      }
-    ]
+    tables = [@foos_table, @bars_table]
 
     ds1 = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
     Group.update!(Explorer.group(), %{data_sources: [ds1.id]})
@@ -285,6 +286,23 @@ defmodule Air.Service.ExplorerTest do
       users = Air.Service.User.all()
       assert :ok = Explorer.setup_credentials_if_required()
       assert users == Air.Service.User.all()
+    end
+  end
+
+  describe ".data_source_updated" do
+    test "removes results if table no longer exists in the data source", context do
+      assert [
+               %ExplorerAnalysis{table_name: "bars"},
+               %ExplorerAnalysis{table_name: "foos"}
+             ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name)
+
+      DataSource.update!(context.ds1, %{
+        tables: Jason.encode!([@bars_table])
+      })
+
+      assert [
+               %ExplorerAnalysis{table_name: "bars"}
+             ] = Explorer.results_for_datasource(context.ds1)
     end
   end
 
