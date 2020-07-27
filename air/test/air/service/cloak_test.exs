@@ -7,9 +7,9 @@ defmodule Air.Service.Cloak.Test do
   alias Air.{Repo, TestRepoHelper, TestSocketHelper, Schemas.DataSource, Service.Cloak}
 
   @data_source_name "data_source_name"
-  @data_source %{name: @data_source_name, tables: [%{columns: []}]}
+  @data_source %{name: @data_source_name, tables: [%{id: :some_table, columns: []}]}
   @data_sources [@data_source]
-  @data_source_different %{name: @data_source_name, tables: [%{different: true, columns: []}]}
+  @data_source_different %{name: @data_source_name, tables: [%{id: :other_table, columns: []}]}
   @data_source_empty %{name: @data_source_name, tables: []}
 
   setup do
