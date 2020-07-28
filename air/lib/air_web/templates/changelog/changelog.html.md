@@ -21,6 +21,7 @@
 - Allow tighter date ranges by limiting maximum alignment to quarters.
 - Improve range alignment algorithm to produce tighter bounds.
 - Ranges that end at the maximum value of a type now include the maximum value.
+- The rate at which column analysis queries are executed can be specified in configuration.
 
 ### Bugfixes
 
