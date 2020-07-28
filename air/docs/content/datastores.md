@@ -142,6 +142,10 @@ The following constructs are not natively supported on this data source and will
 - `ltrim` when a custom string is specified as its second argument.
 - `rtrim` when a custom string is specified as its second argument.
 
+__Notes__
+
+Because there is no native data type for intervals in Impala, using intervals as
+standalone expressions (in `SELECT`, `WHERE`, etc.) will cause the query to be emulated.
 
 ## Database-specific notes
 
@@ -189,6 +193,3 @@ user defined functions (UDFs), perform the following steps:
 ### Apache Impala
 
 - Complex types (structs and arrays) are not supported.
-- Because there is no native data type for intervals in Impala,
-  interval literals may only appear when adding or subtracting timestamps.
-  Using intervals as standalone expressions (in `SELECT`, `WHERE`, etc.) results in an error.
