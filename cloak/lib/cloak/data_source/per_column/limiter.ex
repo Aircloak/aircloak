@@ -13,9 +13,17 @@ defmodule Cloak.DataSource.PerColumn.Limiter do
   def run(fun) do
     :jobs.run(__MODULE__, fn ->
       config = get_config()
-      wait_for_available_memory(config[:minimum_memory_required])
+
+      config
+      |> Keyword.get(:minimum_memory_required, 0.0)
+      |> wait_for_available_memory()
+
       fun.()
-      Process.sleep(config[:time_between_queries])
+
+      config
+      |> Keyword.get(:time_between_queries, 0)
+      |> Process.sleep()
+
       :ok
     end)
   end
@@ -24,7 +32,7 @@ defmodule Cloak.DataSource.PerColumn.Limiter do
   # Internal functions
   # -------------------------------------------------------------------
 
-  @memory_poll_interval :timer.seconds(5)
+  @memory_poll_interval :timer.seconds(1)
 
   defp wait_for_available_memory(0), do: :ok
   defp wait_for_available_memory(0.0), do: :ok
@@ -42,17 +50,16 @@ defmodule Cloak.DataSource.PerColumn.Limiter do
     end
   end
 
-  defp get_config(), do: Application.fetch_env!(:cloak, :analysis_queries)
+  defp get_config(), do: Application.get_env(:cloak, :analysis_queries, [])
 
   defp setup_queue() do
     with :undefined <- :jobs.queue_info(__MODULE__) do
-      config = get_config()
-      concurrency = config[:concurrency]
+      concurrency = Keyword.get(get_config(), :concurrency, 3)
 
       :jobs.add_queue(__MODULE__,
         max_time: :undefined,
         max_size: :undefined,
-        regulators: [counter: [limit: if(concurrency > 0, do: concurrency, else: 3)]]
+        regulators: [counter: [limit: concurrency]]
       )
     end
   end

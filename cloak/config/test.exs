@@ -72,9 +72,4 @@ config :cloak, :sanitize_otp_errors, false
 # Using 0 timeout in tests, since due to the log level, log message won't be captured anyway.
 config :cloak, :flush_query_log_timeout, 0
 
-config :cloak, :analysis_queries,
-  concurrency: 0,
-  time_between_queries: 0,
-  minimum_memory_required: 0
-
 config :ex_unit, assert_receive_timeout: 500

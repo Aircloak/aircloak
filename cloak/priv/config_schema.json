@@ -33,9 +33,13 @@
       "additionalProperties": false
     },
     "analysis_queries": {
-      "concurrency": {"type": "integer", "minimum": 0},
-      "time_between_queries": {"type": "integer", "minimum": 0},
-      "minimum_memory_required": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+      "type": "object",
+      "properties": {
+        "concurrency": {"type": "integer", "minimum": 1, "maximum": 3},
+        "time_between_queries": {"type": "integer", "minimum": 0},
+        "minimum_memory_required": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false,
