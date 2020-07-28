@@ -128,8 +128,13 @@ defmodule Cloak.Query.ErrorTest do
     assert error =~ ~r/Function `grouping_id` can not be used in the `WHERE` or `GROUP BY` clauses/
   end
 
-  test "query reports an error when using duplicated grouping sets" do
+  test "query reports an error when using duplicated grouping sets (1)" do
     assert_query("select name, height from test_errors group by grouping sets ((1, 2), (1, 2))", %{error: error})
+    assert error =~ ~r/Duplicated grouping sets used in the `GROUP BY` clause/
+  end
+
+  test "query reports an error when using duplicated grouping sets (2)" do
+    assert_query("select height, height from test_errors group by grouping sets (1, 2)", %{error: error})
     assert error =~ ~r/Duplicated grouping sets used in the `GROUP BY` clause/
   end
 
