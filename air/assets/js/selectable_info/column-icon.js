@@ -40,10 +40,17 @@ const iconTooltip = (column: Column): string => {
   }
 };
 
-const ColumnIcon = ({ column }: { column: Column }) => {
+const ColumnIcon = ({
+  column,
+  highlight,
+}: {
+  column: Column,
+  highlight: boolean,
+}) => {
   const style = {
     color: iconForegroundColor(column),
     backgroundColor: iconBackgroundColor(column),
+    boxShadow: highlight ? "rgb(214 187 43) 0px 0px 3px" : "none",
   };
 
   if (column.key_type) {
