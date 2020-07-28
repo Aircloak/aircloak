@@ -372,7 +372,12 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_grouping_sets_uniqueness(query) do
-    case query.grouping_sets -- Enum.uniq(query.grouping_sets) do
+    expanded_grouping_sets =
+      Enum.map(query.grouping_sets, fn grouping_set ->
+        Enum.map(grouping_set, &(query.group_by |> Enum.at(&1) |> Expression.semantic()))
+      end)
+
+    case expanded_grouping_sets -- Enum.uniq(expanded_grouping_sets) do
       [] ->
         :ok
 
