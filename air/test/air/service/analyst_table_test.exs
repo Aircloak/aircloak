@@ -80,7 +80,7 @@ defmodule Air.Service.AnalystTableTest do
       table = create_analyst_table(context[:ds1], context[:u1], "name")
       refute table.creation_status == :succeeded
       assert :ok == AnalystTable.update_status(context.u1.id, context.ds1.name, table.name, :succeeded)
-      assert soon(Repo.get_by!(Air.Schemas.AnalystTable, id: table.id).creation_status == :succeeded)
+      assert_soon :succeeded = Repo.get_by!(Air.Schemas.AnalystTable, id: table.id).creation_status
     end
   end
 

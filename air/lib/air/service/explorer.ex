@@ -102,6 +102,23 @@ defmodule Air.Service.Explorer do
     |> Enum.map(fn %{"id" => table_name} -> table_name end)
   end
 
+  @doc "Removes results for tables which no longer exist in the data source."
+  @spec data_source_updated(Air.Schemas.DataSource.t()) :: :ok
+  def data_source_updated(data_source) do
+    tables =
+      DataSource.tables(data_source)
+      |> Enum.map(fn %{"id" => name} -> name end)
+
+    from(explorer_analysis in ExplorerAnalysis,
+      where:
+        explorer_analysis.data_source_id == ^data_source.id and
+          explorer_analysis.table_name not in ^tables
+    )
+    |> Repo.delete_all()
+
+    :ok
+  end
+
   @doc """
   Modifies the data source membership of the Diffix Explorer group.
   It then deletes all analysis results belonging to data sources that Diffix Explorer no longer has access to.
@@ -390,7 +407,7 @@ defmodule Air.Service.Explorer do
     {:error, error}
   end
 
-  defp base_url(), do: config!("url")
+  defp base_url(), do: config!("url") <> "/api/v1"
 
   defp config!(key), do: Map.fetch!(Aircloak.DeployConfig.fetch!("explorer"), key)
 end

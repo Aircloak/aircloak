@@ -434,14 +434,14 @@ defmodule Air.Service.UserTest do
       user = TestRepoHelper.create_user!()
 
       assert :ok = delete_async(user)
-      assert soon(!Repo.get(Air.Schemas.User, user.id))
+      assert_soon !Repo.get(Air.Schemas.User, user.id)
     end
 
     test "cannot delete an enabled ldap user" do
       user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
 
       assert {:error, :invalid_ldap_delete} = delete_async(user)
-      refute soon(!Repo.get(Air.Schemas.User, user.id))
+      refute !Repo.get(Air.Schemas.User, user.id)
     end
 
     test "can delete a disabled ldap user" do
@@ -449,7 +449,7 @@ defmodule Air.Service.UserTest do
       {:ok, user} = User.disable(user, ldap: true)
 
       assert :ok = delete_async(user)
-      assert soon(!Repo.get(Air.Schemas.User, user.id))
+      assert_soon !Repo.get(Air.Schemas.User, user.id)
     end
 
     defp delete_async(user) do

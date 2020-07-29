@@ -13,7 +13,7 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     cloak_name = start_cloak(data_source, &respond_ok/1)
     run_starter()
 
-    assert soon(Query.awaiting_start() == [])
+    assert_soon Query.awaiting_start() == []
     assert query_cloaks(queries) == [cloak_name]
   end
 
@@ -24,7 +24,7 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     cloak_names = Enum.map(queries, fn _ -> start_cloak(data_source, &respond_ok/1) end)
     run_starter()
 
-    assert soon(Query.awaiting_start() == [])
+    assert_soon Query.awaiting_start() == []
     assert Enum.sort(query_cloaks(queries)) == Enum.sort(cloak_names)
   end
 
@@ -42,7 +42,7 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
 
     run_starter()
 
-    assert soon(Query.awaiting_start() == [])
+    assert_soon Query.awaiting_start() == []
     assert query_cloaks(queries1) == [cloak1]
     assert query_cloaks(queries2) == [cloak2]
   end
@@ -57,7 +57,7 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
 
     run_starter()
 
-    assert soon(Query.awaiting_start() == [])
+    assert_soon Query.awaiting_start() == []
     assert query_cloaks(queries) == [cloak2]
   end
 
@@ -68,7 +68,7 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     Air.Service.Query.Events.subscribe(query_id)
     run_starter()
 
-    assert soon(Query.awaiting_start() == [])
+    assert_soon Query.awaiting_start() == []
     assert_query_failed(query_id, "The query could not be started because the data source is offline.")
   end
 
@@ -95,7 +95,7 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
 
     run_starter()
 
-    assert soon(Query.awaiting_start() == [])
+    assert_soon Query.awaiting_start() == []
     assert_query_failed(query_id, "The query could not be started due to a communication timeout.")
   end
 
@@ -118,7 +118,7 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
 
     run_starter()
 
-    assert soon(Query.awaiting_start() == [])
+    assert_soon Query.awaiting_start() == []
     assert query_cloaks(queries) == [cloak2]
   end
 
@@ -136,7 +136,7 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     Air.Service.Query.Events.subscribe(query_id)
     run_starter()
 
-    assert soon(Query.awaiting_start() == [])
+    assert_soon Query.awaiting_start() == []
 
     assert_query_failed(
       query_id,
@@ -195,9 +195,9 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
 
   defp assert_query_failed(query_id, message) do
     assert_receive {:query_state_change, %{query_id: ^query_id, state: :query_died}}
-    assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :error)
+    assert_soon :error = Air.Repo.get!(Air.Schemas.Query, query_id).query_state
     assert Air.Repo.get!(Air.Schemas.Query, query_id).result["error"] == message
-    assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
+    assert_soon is_nil(Air.Service.Query.Lifecycle.whereis(query_id))
   end
 
   defp same_queries?(queries_1, queries_2) do

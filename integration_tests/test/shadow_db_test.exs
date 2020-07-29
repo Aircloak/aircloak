@@ -112,8 +112,8 @@ defmodule IntegrationTest.ShadowDbTest do
 
       # Wait for updates to settle.
 
-      assert soon(table_exists?(context.conn, table_name))
-      assert soon(table_exists?(context.conn, view_name))
+      assert_soon table_exists?(context.conn, table_name)
+      assert_soon table_exists?(context.conn, view_name)
     end
   end
 

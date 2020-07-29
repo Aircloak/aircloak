@@ -16,7 +16,7 @@ defmodule Cloak.Test.AnalystTableHelpers do
   def create_or_update(analyst_id, name, old_table_name \\ nil, statement, data_source) do
     with {:ok, columns} <-
            AnalystTable.create_or_update(analyst_id, name, old_table_name, statement, data_source, nil, %{}) do
-      true = soon(table_created?(analyst_id, name, data_source), :timer.seconds(5), repeat_wait_time: 10)
+      true = soon(table_created?(analyst_id, name, data_source), timeout: :timer.seconds(5))
       {:ok, columns}
     end
   end

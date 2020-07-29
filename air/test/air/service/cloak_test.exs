@@ -7,9 +7,9 @@ defmodule Air.Service.Cloak.Test do
   alias Air.{Repo, TestRepoHelper, TestSocketHelper, Schemas.DataSource, Service.Cloak}
 
   @data_source_name "data_source_name"
-  @data_source %{name: @data_source_name, tables: [%{columns: []}]}
+  @data_source %{name: @data_source_name, tables: [%{id: :some_table, columns: []}]}
   @data_sources [@data_source]
-  @data_source_different %{name: @data_source_name, tables: [%{different: true, columns: []}]}
+  @data_source_different %{name: @data_source_name, tables: [%{id: :other_table, columns: []}]}
   @data_source_empty %{name: @data_source_name, tables: []}
 
   setup do
@@ -51,7 +51,7 @@ defmodule Air.Service.Cloak.Test do
     Process.unlink(pid)
     Process.exit(pid, :exit)
 
-    assert soon([] == Cloak.channel_pids(@data_source_name))
+    assert_soon [] = Cloak.channel_pids(@data_source_name)
   end
 
   test "should unregister cloak when channel closes, but retain alternative cloaks" do
@@ -61,7 +61,7 @@ defmodule Air.Service.Cloak.Test do
     Process.unlink(pid1)
     Process.exit(pid1, :exit)
 
-    assert soon(match?([{^pid2, _}], Cloak.channel_pids(@data_source_name)))
+    assert_soon [{^pid2, _}] = Cloak.channel_pids(@data_source_name)
   end
 
   test "returns a list of cloaks and their data sources" do

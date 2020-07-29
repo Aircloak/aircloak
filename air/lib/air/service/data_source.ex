@@ -5,7 +5,7 @@ defmodule Air.Service.DataSource do
   alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.Repo
   alias Air.Service
-  alias Air.Service.{License, Cloak, View, AnalystTable}
+  alias Air.Service.{License, Cloak, View, AnalystTable, Explorer}
   alias Air.Service.DataSource.QueryScheduler
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query, only: [from: 2]
@@ -222,6 +222,7 @@ defmodule Air.Service.DataSource do
       new_users = Repo.preload(data_source, groups: :users).groups |> Stream.flat_map(& &1.users) |> MapSet.new()
       revoked_users = MapSet.difference(old_users, new_users)
       Enum.each(revoked_users, &Air.Service.AnalystTable.delete_all(&1, data_source))
+      Explorer.data_source_updated(data_source)
       {:ok, data_source}
     end
   end

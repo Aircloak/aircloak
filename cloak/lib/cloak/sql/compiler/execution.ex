@@ -9,6 +9,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query, Range}
   alias Cloak.Sql.Compiler.{Helpers, Optimizer}
   alias Cloak.Sql.Query.Lenses
+  alias Cloak.Data
 
   # -------------------------------------------------------------------
   # API functions
@@ -165,18 +166,59 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp align_where(query), do: align_ranges(query, Lens.key(:where))
 
   defp align_ranges(query, lens) do
-    strip_inequalities = fn clause -> Condition.reject(clause, &Range.constant_inequality?/1) end
-    stripped_query = Lens.map(lens, query, strip_inequalities)
+    inequalities = Range.inequalities_by_column(lens, query)
 
-    lens
-    |> Range.inequalities_by_column(query)
-    |> verify_ranges()
-    |> Enum.reduce(stripped_query, &add_aligned_range(&1, &2, lens))
+    strip_inequalities = fn clause -> Condition.reject(clause, &Range.constant_inequality?/1) end
+    query = Lens.map(lens, query, strip_inequalities)
+
+    {query, inequalities} =
+      process_inequalities(
+        query,
+        inequalities,
+        &valid_column_range?/1,
+        &add_aligned_column_range(&1, &2, lens)
+      )
+
+    {date_inequalities, invalid_inequalities} =
+      Enum.split_with(inequalities, fn {column, _} -> column.type in [:date, :datetime] end)
+
+    date_inequalities = group_date_inequalities_by_value(date_inequalities)
+
+    {query, date_inequalities} =
+      process_inequalities(
+        query,
+        date_inequalities,
+        fn {value, _inequalities} -> current_date?(value) end,
+        &add_current_date_inequalities(&1, &2, lens)
+      )
+
+    {query, invalid_date_inequalities} =
+      process_inequalities(
+        query,
+        date_inequalities,
+        &valid_constant_date_range?/1,
+        &add_aligned_constant_date_range(&1, &2, lens)
+      )
+
+    Enum.each(invalid_inequalities, &raise_error_on_invalid_inequality_group/1)
+    Enum.each(invalid_date_inequalities, &raise_error_on_invalid_date_inequality_group/1)
+
+    query
   end
 
-  defp add_aligned_range({column, [condition]}, query, lens) do
+  defp process_inequalities(query, inequalities, filter, processor) do
+    {selected, rejected} = Enum.split_with(inequalities, filter)
+    query = Enum.reduce(selected, query, processor)
+    {query, rejected}
+  end
+
+  defp add_current_date_inequalities({_value, conditions}, query, lens),
+    do: Enum.reduce(conditions, query, &add_current_date_inequality(&1, &2, lens))
+
+  defp add_current_date_inequality(condition, query, lens) do
+    column = Condition.subject(condition)
     target = Condition.value(condition)
-    truncated_target = truncate_datetime(target)
+    truncated_target = truncate_datetime(target, :day)
 
     if target == truncated_target do
       update_in(query, [lens], &Condition.both(condition, &1))
@@ -184,16 +226,17 @@ defmodule Cloak.Sql.Compiler.Execution do
       query
       |> add_clause(lens, %Expression{condition | args: [column, Expression.constant(column.type, truncated_target)]})
       |> Query.add_info(
-        "The inequality target for column #{Expression.display_name(column)} has been adjusted to `#{truncated_target}`."
+        "The inequality target for expression `#{Expression.display(column)}` has been adjusted " <>
+          "to `#{Data.to_string(truncated_target)}`."
       )
     end
   end
 
-  defp add_aligned_range({column, conditions}, query, lens) do
+  defp add_aligned_column_range({column, conditions}, query, lens) do
     {left, right} =
       conditions
       |> Enum.map(&Condition.value/1)
-      |> Enum.sort(&Cloak.Data.lt_eq/2)
+      |> Enum.sort(&Data.lt_eq/2)
       |> List.to_tuple()
       |> FixAlign.align_interval()
 
@@ -211,8 +254,8 @@ defmodule Cloak.Sql.Compiler.Execution do
       )
       |> add_clause(lens, Expression.function(">=", [column, Expression.constant(column.type, left)], :boolean))
       |> Query.add_info(
-        "The range for column #{Expression.display_name(column)} has been adjusted to #{left} <= " <>
-          "#{Expression.short_name(column)} #{upper_bound_operator} #{right}."
+        "The range for expression `#{Expression.display(column)}` has been adjusted to " <>
+          "`#{Data.to_string(left)} <= #{Expression.display(column)} #{upper_bound_operator} #{Data.to_string(right)}`."
       )
     end
   end
@@ -221,10 +264,10 @@ defmodule Cloak.Sql.Compiler.Execution do
     [
       %Expression{kind: :function, name: left_operator, args: [_, left_column]},
       %Expression{kind: :function, name: right_operator, args: [_, right_column]}
-    ] = Enum.sort_by(conditions, &Condition.value/1, &Cloak.Data.lt_eq/2)
+    ] = Enum.sort_by(conditions, &Condition.value/1, &Data.lt_eq/2)
 
-    left_operator == ">=" and left_column.value == left and
-      right_operator == upper_bound_operator and right_column.value == right
+    left_operator == ">=" and Data.eq(left_column.value, left) and
+      right_operator == upper_bound_operator and Data.eq(right_column.value, right)
   end
 
   @max_real :math.pow(10, Cloak.Math.numeric_max_scale())
@@ -236,38 +279,89 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp add_clause(query, lens, clause), do: Lens.map(lens, query, &Condition.both(clause, &1))
 
-  defp verify_ranges(grouped_inequalities) do
-    grouped_inequalities
-    |> Enum.reject(fn {_, comparisons} -> valid_range?(comparisons) end)
-    |> case do
-      [{_, [inequality | _]} | _] ->
-        column = Condition.subject(inequality)
+  defp raise_error_on_invalid_inequality_group({_, [inequality]}) do
+    column = Condition.subject(inequality)
 
-        raise CompilationError,
-          source_location: column.source_location,
-          message: "Column #{Expression.display_name(column)} must be limited to a finite, nonempty range."
-
-      _ ->
-        grouped_inequalities
-    end
+    raise CompilationError,
+      source_location: column.source_location,
+      message: "Expression `#{Expression.display(column)}` must be limited to a finite range."
   end
 
-  defp valid_range?(comparisons) do
+  defp raise_error_on_invalid_inequality_group({_, [inequality | _]}) do
+    column = Condition.subject(inequality)
+
+    raise CompilationError,
+      source_location: column.source_location,
+      message: "Expression `#{Expression.display(column)}` must be limited to a nonempty range."
+  end
+
+  defp raise_error_on_invalid_date_inequality_group({_, [inequality]}) do
+    column = Condition.subject(inequality)
+
+    raise CompilationError,
+      source_location: column.source_location,
+      message:
+        "Date expression `#{Expression.display(column)}` must be limited to a finite range " <>
+          "or compared to the current date."
+  end
+
+  defp raise_error_on_invalid_date_inequality_group({_, [inequality | _]}) do
+    column = Condition.subject(inequality)
+
+    raise CompilationError,
+      source_location: column.source_location,
+      message: "Date expression `#{Expression.display(column)}` must be limited to a nonempty range."
+  end
+
+  defp valid_column_range?({_column, comparisons}) do
     case Enum.sort_by(comparisons, &Condition.direction/1, &Kernel.>/2) do
       [cmp1, cmp2] ->
         [_subject, target1] = Condition.targets(cmp1)
         [_subject, target2] = Condition.targets(cmp2)
 
         Condition.direction(cmp1) != Condition.direction(cmp2) and
-          compatible_types?(target1.type, target2.type) and
-          Cloak.Data.lt(Expression.const_value(target1), Expression.const_value(target2))
-
-      [cmp] ->
-        cmp |> Condition.value() |> current_date?()
+          Data.lt(Expression.const_value(target1), Expression.const_value(target2))
 
       _ ->
         false
     end
+  end
+
+  defp valid_constant_date_range?({_value, [cmp1, cmp2]}), do: Condition.direction(cmp1) != Condition.direction(cmp2)
+  defp valid_constant_date_range?(_), do: false
+
+  defp add_aligned_constant_date_range({target, comparisons}, query, lens) do
+    truncated_target = truncate_datetime(target, :month)
+    [left, right] = Enum.sort_by(comparisons, &Condition.direction/1, &Kernel.</2)
+
+    if left.name == "<=" and right.name == ">" and target == truncated_target do
+      range = Condition.both(left, right)
+      update_in(query, [lens], &Condition.both(range, &1))
+    else
+      column1 = Condition.subject(left)
+      column2 = Condition.subject(right)
+
+      query
+      |> add_clause(
+        lens,
+        Expression.function(">", [column2, Expression.constant(column2.type, truncated_target)], :boolean)
+      )
+      |> add_clause(
+        lens,
+        Expression.function("<=", [column1, Expression.constant(column1.type, truncated_target)], :boolean)
+      )
+      |> Query.add_info(
+        "The range for the value `#{Data.to_string(target)}` has been adjusted to " <>
+          "`#{Expression.display(column1)} <= #{Data.to_string(truncated_target)} < #{Expression.display(column2)}`."
+      )
+    end
+  end
+
+  defp group_date_inequalities_by_value(grouped_date_inequalities) do
+    grouped_date_inequalities
+    |> Enum.flat_map(fn {_column, inequalities} -> inequalities end)
+    |> Enum.group_by(&Condition.value/1)
+    |> Enum.to_list()
   end
 
   defp current_date?(%Date{} = value), do: value == Date.utc_today()
@@ -276,17 +370,11 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp current_date?(_), do: false
 
-  defp truncate_datetime(%Date{} = value), do: value
+  defp truncate_datetime(%Date{} = value, :day), do: value
+  defp truncate_datetime(%Date{} = value, :month), do: Date.from_erl!({value.year, value.month, 1})
 
-  defp truncate_datetime(%NaiveDateTime{} = value) do
-    {date, _time} = NaiveDateTime.to_erl(value)
-    NaiveDateTime.from_erl!({date, {0, 0, 0}}) |> Cloak.Time.max_precision()
-  end
-
-  defp compatible_types?(:integer, :real), do: true
-  defp compatible_types?(:real, :integer), do: true
-  defp compatible_types?(type, type), do: true
-  defp compatible_types?(_type1, _type2), do: false
+  defp truncate_datetime(%NaiveDateTime{} = value, unit),
+    do: value |> NaiveDateTime.to_date() |> truncate_datetime(unit) |> Cloak.Time.date_to_datetime()
 
   # -------------------------------------------------------------------
   # Virtual tables
