@@ -27,6 +27,7 @@
 - Various query interface improvements such as supporting deleting queries and showing when they were run
 - Allow ranges with mixed date and datetime boundaries.
 - Improved range alignment messages.
+- The rate at which column analysis queries are executed can be specified in configuration.
 
 ### Bugfixes
 

@@ -367,6 +367,11 @@ The general shape of `config.json` is:
     "idle": integer,
     "connect": integer,
     "request": integer
+  },
+  "analysis_queries": {
+    "concurrency": positive_integer,
+    "time_between_queries": integer,
+    "minimum_memory_required": number
   }
 }
 ```
@@ -417,6 +422,22 @@ default timeout value of 5 seconds is used.
 The `connection_timeouts.request` field is optional and it determines how many seconds the Insights Cloak waits for a
 database request to complete. It needs to be an integer value between 1 and 86400 (1 day). If not set, a default
 timeout value of 43200 seconds (12 hours) is used.
+
+The `analysis_queries` field is optional and controls the rate of [column analysis](../sql/restrictions.md#column-analysis) queries.
+If Insights Cloak exhausts too many system resources while analyzing columns, then you can specify these parameters to reduce overall load.
+
+The `analysis_queries.concurrency` field is optional and controls the number of maximum concurrent analysis queries issued by Insights Cloak.
+It needs to be an integer value between 1 and 3. The default value is 3.
+
+The `analysis_queries.time_between_queries` field is optional and it determines how many milliseconds to wait before issuing further analysis queries.
+This waiting period can be useful to allow Insights Cloak and databases to release resources before handling subsequent requests.
+It needs to be a non-negative integer value. If not set, a default value of 0 is used, meaning no delay between queries.
+
+The `analysis_queries.minimum_memory_required` field is optional and controls the minimum relative system memory required to run analysis queries.
+If available memory falls below this threshold, then further analysis queries will be suspended until more memory becomes available.
+Requires a decimal value between 0 and 1.
+For example, a value of 0.3 specifies that analysis queries will not run when available memory is under 30%.
+If not set, a default value of 0 is used, meaning analysis queries will run even when the system is low on memory.
 
 ### Data source configuration
 

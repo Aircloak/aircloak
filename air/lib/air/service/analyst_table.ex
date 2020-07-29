@@ -257,6 +257,7 @@ defmodule Air.Service.AnalystTable do
 
   defp cloak_error(:internal_error), do: "Internal error."
   defp cloak_error(:not_connected), do: not_connected_error()
+  defp cloak_error(:timeout), do: "Connection to cloak timed out."
   defp cloak_error(string) when is_binary(string), do: string
 
   defp not_connected_error() do
