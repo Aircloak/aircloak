@@ -108,7 +108,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects having conditions on non grouped by columns" do
-    {:error, "`HAVING` clause can not be applied over expression `numeric`."} =
+    {:error, "Expression `numeric` has to appear in the `GROUP BY` clause or be used in an aggregate function."} =
       compile("select count(*) from table group by column having numeric = 1", data_source())
   end
 
@@ -618,7 +618,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting joins with only one side of a range" do
-    assert {:error, "Expression `numeric` must be limited to a finite, nonempty range."} =
+    assert {:error, "Expression `numeric` must be limited to a finite range."} =
              compile(
                "SELECT COUNT(*) FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3",
                data_source()
@@ -856,7 +856,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects inequalities on numeric columns that are not ranges" do
     assert {:error, error} = compile("select count(*) from table where numeric > 5", data_source())
 
-    assert error == "Expression `numeric` must be limited to a finite, nonempty range."
+    assert error == "Expression `numeric` must be limited to a finite range."
   end
 
   test "rejects inequalities on numeric columns that have equal endpoints" do
@@ -866,13 +866,13 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error == "Expression `numeric` must be limited to a finite, nonempty range."
+    assert error == "Expression `numeric` must be limited to a nonempty range."
   end
 
   test "rejects inequalities on numeric columns that are negatives of ranges" do
     assert {:error, error} = compile("select count(*) from table where numeric < 2 and numeric > 5", data_source())
 
-    assert error == "Expression `numeric` must be limited to a finite, nonempty range."
+    assert error == "Expression `numeric` must be limited to a nonempty range."
   end
 
   test "rejects inequalities on datetime columns that are negatives of ranges" do
@@ -883,14 +883,14 @@ defmodule Cloak.Sql.Compiler.Test do
              )
 
     assert error ==
-             "Date expression `column` must be limited to a finite, nonempty range or compared to the current date."
+             "Date expression `column` must be limited to a finite range or compared to the current date."
   end
 
   test "rejects inequalities on datetime columns that are not ranges" do
     assert {:error, error} = compile("select count(*) from table where column > '2015-01-01'", data_source())
 
     assert error ==
-             "Date expression `column` must be limited to a finite, nonempty range or compared to the current date."
+             "Date expression `column` must be limited to a finite range or compared to the current date."
   end
 
   test "rejects inequalities on date columns that are negatives of ranges" do
@@ -901,14 +901,14 @@ defmodule Cloak.Sql.Compiler.Test do
              )
 
     assert error ==
-             "Date expression `column` must be limited to a finite, nonempty range or compared to the current date."
+             "Date expression `column` must be limited to a finite range or compared to the current date."
   end
 
   test "rejects inequalities on date columns that are not ranges" do
     assert {:error, error} = compile("select count(*) from table where column > '2015-01-01'", data_source())
 
     assert error ==
-             "Date expression `column` must be limited to a finite, nonempty range or compared to the current date."
+             "Date expression `column` must be limited to a finite range or compared to the current date."
   end
 
   test "rejects datetime ranges smaller than 1 second" do
@@ -922,7 +922,7 @@ defmodule Cloak.Sql.Compiler.Test do
              )
 
     assert error ==
-             "Date expression `column` must be limited to a finite, nonempty range or compared to the current date."
+             "Date expression `column` must be limited to a finite range or compared to the current date."
   end
 
   test "accepts inequalities on numeric columns that are ranges" do
@@ -1282,7 +1282,7 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error == "Expression `avg(numeric)` must be limited to a finite, nonempty range."
+    assert error == "Expression `avg(numeric)` must be limited to a finite range."
   end
 
   test "having condition ranges are aligned with a message in subqueries" do

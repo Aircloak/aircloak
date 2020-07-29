@@ -191,7 +191,7 @@ defmodule Cloak.Query.ErrorTest do
       error: error
     })
 
-    assert error =~ ~r/`HAVING` clause can not be applied over expression `height`./
+    assert error =~ ~r/Expression `height` has to appear in the `GROUP BY` clause or be used in an aggregate function./
   end
 
   test "query reports error on invalid where clause" do
@@ -204,7 +204,7 @@ defmodule Cloak.Query.ErrorTest do
       error: error
     })
 
-    assert error =~ ~r/Expression `cast\(name as integer\)` must be limited to a finite, nonempty range./
+    assert error =~ ~r/Expression `cast\(name as integer\)` must be limited to a finite range./
     assert error =~ ~r/line 1, column 36/
   end
 

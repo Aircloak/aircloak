@@ -616,13 +616,13 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
         term <- Condition.targets(condition),
-        not valid_expression_in_aggregate?(query, term),
-        do:
-          raise(
-            CompilationError,
-            source_location: term.source_location,
-            message: "`HAVING` clause can not be applied over expression `#{Expression.display(term)}`."
-          )
+        not valid_expression_in_aggregate?(query, term) do
+      raise CompilationError,
+        source_location: term.source_location,
+        message:
+          "Expression `#{Expression.display(term)}` has to appear in the `GROUP BY` clause " <>
+            "or be used in an aggregate function."
+    end
   end
 
   defp verify_limit(%Query{order_by: [], limit: amount}) when amount != nil,

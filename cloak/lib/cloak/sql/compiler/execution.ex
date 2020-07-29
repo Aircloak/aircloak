@@ -279,12 +279,30 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp add_clause(query, lens, clause), do: Lens.map(lens, query, &Condition.both(clause, &1))
 
+  defp raise_error_on_invalid_inequality_group({_, [inequality]}) do
+    column = Condition.subject(inequality)
+
+    raise CompilationError,
+      source_location: column.source_location,
+      message: "Expression `#{Expression.display(column)}` must be limited to a finite range."
+  end
+
   defp raise_error_on_invalid_inequality_group({_, [inequality | _]}) do
     column = Condition.subject(inequality)
 
     raise CompilationError,
       source_location: column.source_location,
-      message: "Expression `#{Expression.display(column)}` must be limited to a finite, nonempty range."
+      message: "Expression `#{Expression.display(column)}` must be limited to a nonempty range."
+  end
+
+  defp raise_error_on_invalid_date_inequality_group({_, [inequality]}) do
+    column = Condition.subject(inequality)
+
+    raise CompilationError,
+      source_location: column.source_location,
+      message:
+        "Date expression `#{Expression.display(column)}` must be limited to a finite range " <>
+          "or compared to the current date."
   end
 
   defp raise_error_on_invalid_date_inequality_group({_, [inequality | _]}) do
@@ -292,9 +310,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
     raise CompilationError,
       source_location: column.source_location,
-      message:
-        "Date expression `#{Expression.display(column)}` must be limited to a finite, nonempty range " <>
-          "or compared to the current date."
+      message: "Date expression `#{Expression.display(column)}` must be limited to a nonempty range."
   end
 
   defp valid_column_range?({_column, comparisons}) do

@@ -99,7 +99,7 @@ defmodule Cloak.AnalystTable.CompilerTest do
 
     test "unbounded ranges are not allowed" do
       assert {:error, error} = compile("table_name", "select user_id, x from mv1 where x > 10")
-      assert error == "Expression `x` must be limited to a finite, nonempty range."
+      assert error == "Expression `x` must be limited to a finite range."
     end
   end
 
