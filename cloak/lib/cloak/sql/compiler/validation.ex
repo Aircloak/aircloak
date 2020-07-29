@@ -178,7 +178,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           source_location: location,
           message:
-            "Column #{Expression.display_name(column)} needs " <>
+            "Column `#{Expression.display(column)}` needs " <>
               "to appear in the `GROUP BY` clause or be used in an aggregate function."
     end
   end
@@ -568,7 +568,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       [column | _rest] ->
         raise CompilationError,
           source_location: column.source_location,
-          message: "Expression #{Expression.display_name(column)} is not valid in the `WHERE` clause."
+          message: "Expression `#{Expression.display(column)}` is not valid in the `WHERE` clause."
     end
   end
 
@@ -597,7 +597,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       raise CompilationError,
         source_location: column.source_location,
         message:
-          "Column #{Expression.display_name(column)} of type `#{column.type}` " <>
+          "Column `#{Expression.display(column)}` of type `#{column.type}` " <>
             "cannot be used in a #{String.upcase(verb)} expression."
     end
   end
@@ -621,13 +621,13 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
         term <- Condition.targets(condition),
-        not valid_expression_in_aggregate?(query, term),
-        do:
-          raise(
-            CompilationError,
-            source_location: term.source_location,
-            message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
-          )
+        not valid_expression_in_aggregate?(query, term) do
+      raise CompilationError,
+        source_location: term.source_location,
+        message:
+          "Expression `#{Expression.display(term)}` has to appear in the `GROUP BY` clause " <>
+            "or be used in an aggregate function."
+    end
   end
 
   defp verify_limit(%Query{order_by: [], limit: amount}) when amount != nil,
@@ -726,7 +726,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp missing_uid_error_message(query, alias) do
     suggested_fix_message =
       Helpers.all_id_columns_from_tables(query)
-      |> Enum.map(&Expression.display_name/1)
+      |> Enum.map(&"`#{&1.name}`")
       |> case do
         [] -> "join in one of the following tables: #{user_id_tables_hint(query.data_source.tables)}"
         [column] -> "add the column #{column} to the `SELECT` clause"

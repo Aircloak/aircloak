@@ -25,6 +25,8 @@
 - Allow month-aligned constant date between columns expressions.
 - Administrators can now convert analyst tables into views.
 - Various query interface improvements such as supporting deleting queries and showing when they were run
+- Allow ranges with mixed date and datetime boundaries.
+- Improved range alignment messages.
 
 ### Bugfixes
 
