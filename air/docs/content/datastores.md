@@ -144,8 +144,8 @@ The following constructs are not natively supported on this data source and will
 
 __Notes__
 
-Because there is no native data type for intervals in Impala, using intervals as
-standalone expressions (in `SELECT`, `WHERE`, etc.) will cause the query to be emulated.
+Selecting or filtering on intervals causes the query to be emulated.
+The emulation happens because Apache Impala has no native data type for intervals.
 
 ## Database-specific notes
 
