@@ -40,7 +40,7 @@
 ### Changes
 
 - Increased the minimum threshold for non-count stats-based aggregators.
-- To celebrate Difix Dogwood, the most recent version of our anonymization algorithm Diffix, the login screen now shows images of Dogwood trees
+- To celebrate Diffix Dogwood, the most recent version of our anonymization algorithm Diffix, the login screen now shows images of Dogwood trees
 
 ## Version 20.1.4
 
