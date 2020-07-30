@@ -264,10 +264,6 @@ a.suggested-reading:hover {
   pointer-events: none;
 }
 
-.limit-to-100pc {
-  max-width: 100%;
-}
-
 @import "./activity-monitor.css";
 @import "./admin.css";
 @import "./audit_log.css";
