@@ -1,4 +1,4 @@
-## Version 20.2.0-dev
+## Version 20.2.0
 
 ### **Breaking changes**
 
@@ -7,21 +7,27 @@
 - Aggregators are restricted to clear expressions.
 - Dropped support for non-datetime/interval arithmetic.
 - `floor`, `ceil` and `cast(real as integer)` are now considered implicit ranges.
+- Removed support for MongoDB backends
 
 ### New features
 
-- We've built an integration to take advantage of [Diffix Explorer](https://github.com/diffix/explorer). If you [enable it](/docs/ops/installation.html#diffix-explorer), you will be able to get a nice overview of the anonymized content of columns in your data source.
+- Added an integration for [Diffix Explorer](https://github.com/diffix/explorer). [If enabled](/docs/ops/installation.html#diffix-explorer), analysts will be given an anonymized overview of the contents of columns in your data sources.
 - Comments can be added to tables and columns. Database comments are automatically loaded from configured tables.
 
 ### Enhancements
 
-- Redesigned user interface. The interface is easier to navigate, use and read and works better on mobile devices.
+- Redesigned user interface with a focus on consistency and easier navigation.
 - Added overflow protection for date arithmetic. Oracle UDFs have to be reloaded.
 - Improved performance for join-timing protection.
 - Allow tighter date ranges by limiting maximum alignment to quarters.
 - Improve range alignment algorithm to produce tighter bounds.
 - Ranges that end at the maximum value of a type now include the maximum value.
 - Allow month-aligned constant date between columns expressions.
+- Administrators can now convert analyst tables into views.
+- Various query interface improvements such as supporting deleting queries and showing when they were run
+- Allow ranges with mixed date and datetime boundaries.
+- Improved range alignment messages.
+- The rate at which column analysis queries are executed can be specified in configuration.
 
 ### Bugfixes
 
@@ -37,7 +43,7 @@
 ### Changes
 
 - Increased the minimum threshold for non-count stats-based aggregators.
-- Removed support for MongoDB backends.
+- To celebrate Diffix Dogwood, the most recent version of our anonymization algorithm Diffix, the login screen now shows images of Dogwood trees
 
 ## Version 20.1.4
 

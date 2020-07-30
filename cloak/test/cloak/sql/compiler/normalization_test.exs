@@ -144,7 +144,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
                  data_source()
                )
 
-      assert error =~ ~r/Column `numeric` .* needs to appear in the `GROUP BY` clause/
+      assert error =~ ~r/Column `numeric` needs to appear in the `GROUP BY` clause/
     end
 
     test "DISTINCT rewrite does not affect regular warning about missing GROUP BY" do
@@ -157,7 +157,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
                  data_source()
                )
 
-      assert error =~ ~r/Column `numeric` .* needs to appear in the `GROUP BY` clause/
+      assert error =~ ~r/Column `numeric` needs to appear in the `GROUP BY` clause/
     end
 
     test "Rejects DISTINCT with aggregate where additional GROUP BY columns exist" do

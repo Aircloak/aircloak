@@ -223,11 +223,12 @@ SELECT COUNT(*) FROM table WHERE 1 / column IS NULL
 
 Whenever a comparison (`>`, `>=`, `<`, or `<=`) with a constant is used in a `WHERE`-, `JOIN`- or `HAVING`-clause,
 that clause needs to contain two comparisons. These should form a constant range on a single clear expression.
-That is, one `>` or `>=` comparison and one `<` or `<=` comparison, limiting the expression from bottom and top.
+That is, one `>=` comparison and one `<` comparison, limiting the expression from bottom and top.
 
 The following special cases are excluded from this restriction:
   - comparisons with clear expressions on both sides;
-  - datetime comparisons between a clear expression and the current date.
+  - date comparisons between a clear expression and the current date.
+  - date comparisons between a constant, month-aligned date and a range of clear expressions.
 
 ```sql
 -- Correct - a constant range is used:
@@ -252,6 +253,9 @@ SELECT COUNT(*) FROM table WHERE column1 - column1 < column2
 
 -- Correct - comparison between a clear expression and the current date:
 SELECT COUNT(*) FROM table WHERE column <= current_date()
+
+-- Correct - comparison between a month-aligned date and a range of clear expressions:
+SELECT COUNT(*) FROM table WHERE date '2020-01-01' BETWEEN column1 AND column2
 ```
 
 Note that a condition using the `BETWEEN` operator automatically forms a constant range:

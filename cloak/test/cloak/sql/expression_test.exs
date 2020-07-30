@@ -435,21 +435,6 @@ defmodule Cloak.Sql.Expression.Test do
     end
   end
 
-  describe "display_name" do
-    test "bucket" do
-      assert Expression.function(
-               {:bucket, :lower},
-               [Expression.constant(:integer, 1), Expression.constant(:integer, 10)],
-               :integer
-             )
-             |> Expression.display_name() == "`bucket`"
-    end
-
-    test "null" do
-      assert Expression.null() |> Expression.display_name() == "`NULL`"
-    end
-  end
-
   describe "member?" do
     test "false for different expressions" do
       refute Expression.member?([Expression.constant(:integer, 1)], Expression.constant(:integer, 2))

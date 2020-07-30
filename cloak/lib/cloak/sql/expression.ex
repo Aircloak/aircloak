@@ -139,35 +139,6 @@ defmodule Cloak.Sql.Expression do
   def key?(expression), do: key_type(expression) != nil
 
   @doc """
-  Returns a shorter version of the display name of the column.
-
-  This function should mostly be used when producing error messages.
-  """
-  @spec short_name(t) :: String.t()
-  def short_name(%__MODULE__{kind: :column, name: name}), do: "`#{name}`"
-  def short_name(x), do: display_name(x)
-
-  @doc """
-  Returns the name of the expression.
-
-  This function should mostly be used when producing error messages.
-  """
-  @spec display_name(t) :: String.t()
-  def display_name(%__MODULE__{kind: :column, name: name, table: table}),
-    do: "`#{name}` from table `#{table.name}`"
-
-  def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
-  def display_name(%__MODULE__{kind: :function, name: {:cast, _type}}), do: "`cast`"
-  def display_name(%__MODULE__{kind: :function, name: {:bucket, _align}}), do: "`bucket`"
-  def display_name(%__MODULE__{kind: :function, name: function}), do: "`#{function}`"
-
-  def display_name(%__MODULE__{kind: :constant, type: :interval, value: value}),
-    do: "`#{Timex.Duration.to_string(value)}`"
-
-  def display_name(%__MODULE__{kind: :constant, value: nil}), do: "`NULL`"
-  def display_name(%__MODULE__{kind: :constant, value: value}), do: "`#{value}`"
-
-  @doc """
   Returns the full expression as text.
 
   This function should mostly be used when producing error messages.
@@ -193,11 +164,8 @@ defmodule Cloak.Sql.Expression do
 
   def display(%__MODULE__{kind: :constant, type: :text, value: value}), do: "'#{value}'"
 
-  def display(%__MODULE__{kind: :constant, type: :interval, value: value}),
-    do: "interval '#{Duration.to_string(value)}'"
-
-  def display(%__MODULE__{kind: :constant, type: type, value: value}) when type in [:date, :datetime, :time],
-    do: "#{type} '#{to_string(value)}'"
+  def display(%__MODULE__{kind: :constant, type: type, value: value}) when type in [:date, :time, :datetime, :interval],
+    do: "#{type} '#{Cloak.Data.to_string(value)}'"
 
   def display(%__MODULE__{kind: :constant, type: :like_pattern, value: {pattern, _regex, _regex_ci}}),
     do: "'#{pattern}'"
@@ -573,18 +541,8 @@ defmodule Cloak.Sql.Expression do
   end
 
   # cast to text
-  defp cast(true, :text), do: "TRUE"
-  defp cast(false, :text), do: "FALSE"
-  defp cast(value = %Duration{}, :text), do: Duration.to_string(value)
+  defp cast(value, :text), do: Cloak.Data.to_string(value)
 
-  defp cast(value = %NaiveDateTime{}, :text) do
-    case Timex.format(value, "{ISOdate} {ISOtime}") do
-      {:ok, result} -> result
-      {:error, _} -> nil
-    end
-  end
-
-  defp cast(value, :text), do: to_string(value)
   # cast to boolean
   defp cast(value, :boolean) when is_integer(value), do: value != 0
   defp cast(value, :boolean) when is_float(value), do: round(value) != 0

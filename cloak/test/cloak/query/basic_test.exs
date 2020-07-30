@@ -252,7 +252,7 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query("select 1 from heights group by name order by length(name) - height", %{
       error:
-        "Column `height` from table `heights` needs to appear in the `GROUP BY` clause or be used in an aggregate function." <>
+        "Column `height` needs to appear in the `GROUP BY` clause or be used in an aggregate function." <>
           _
     })
   end
