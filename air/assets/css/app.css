@@ -264,6 +264,15 @@ a.suggested-reading:hover {
   pointer-events: none;
 }
 
+.break-word {
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.limit-to-100pc {
+  max-width: 100%;
+}
+
 @import "./activity-monitor.css";
 @import "./admin.css";
 @import "./audit_log.css";
