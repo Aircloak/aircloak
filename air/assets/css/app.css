@@ -264,11 +264,6 @@ a.suggested-reading:hover {
   pointer-events: none;
 }
 
-.break-word {
-  word-wrap: break-word;
-  hyphens: auto;
-}
-
 .limit-to-100pc {
   max-width: 100%;
 }
