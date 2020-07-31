@@ -200,20 +200,12 @@ defmodule Air.Service.Explorer do
 
   @impl GenServer
   def handle_info(:poll, _state) do
-    poll_results =
-      pending_analyses_query()
-      |> Repo.all()
-      |> Enum.map(&poll_analysis/1)
+    pending_analyses_query()
+    |> Repo.all()
+    |> Enum.map(&poll_analysis/1)
 
     if Repo.exists?(pending_analyses_query()) do
-      poll_interval =
-        if Enum.any?(poll_results, &timed_out?/1) do
-          @poll_interval * 10
-        else
-          @poll_interval
-        end
-
-      {:noreply, schedule_poll(poll_interval)}
+      {:noreply, schedule_poll()}
     else
       {:noreply, false}
     end
@@ -227,9 +219,6 @@ defmodule Air.Service.Explorer do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp timed_out?({:error, :timeout}), do: true
-  defp timed_out?(_), do: false
 
   defp schedule_poll(poll_interval \\ @poll_interval), do: poll_unless_already_pending_poll(false, poll_interval)
 
