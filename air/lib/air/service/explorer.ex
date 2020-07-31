@@ -207,7 +207,7 @@ defmodule Air.Service.Explorer do
   def handle_info(:poll, _state) do
     pending_analyses_query()
     |> Repo.all()
-    |> Enum.each(&poll_for_update/1)
+    |> Enum.each(&poll_analysis/1)
 
     if Repo.exists?(pending_analyses_query()) do
       schedule_poll()
@@ -361,31 +361,55 @@ defmodule Air.Service.Explorer do
     Repo.insert_or_update(modified)
   end
 
-  defp poll_for_update(explorer_analysis) do
-    with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
-           HTTPoison.get("#{base_url()}/result/#{explorer_analysis.job_id}"),
-         {:ok, decoded} <- Jason.decode(response),
-         {:ok, _analysis} <-
-           explorer_analysis
-           |> ExplorerAnalysis.from_result_json(decoded)
-           |> Air.Repo.update() do
-      :ok
-    else
-      {:ok, %HTTPoison.Response{status_code: 404}} ->
+  defp poll_analysis(explorer_analysis) do
+    case poll_explorer_for_update(explorer_analysis) do
+      {:ok, decoded_analysis} ->
+        explorer_analysis
+        |> ExplorerAnalysis.from_result_json(decoded_analysis)
+        |> Air.Repo.update()
+
+      {:error, :not_found} ->
+        Logger.warn(
+          "Restarting analysis job (#{explorer_analysis.data_source.name}/#{
+            explorer_analysis.table_name
+          }) due to Diffix Explorer having lost track of it."
+        )
         handle_retry(explorer_analysis)
 
-      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} when status_code >= 500 and status_code < 600 ->
+      {:error, {:internal_error, status_code, body}} ->
         handle_poll_error(
           explorer_analysis,
           "Something went wrong in Diffix Explorer (HTTP #{status_code}) when polling: " <> body
         )
+        {:error, :explorer_error}
 
-      {:error, %HTTPoison.Error{reason: :timeout}} ->
+      {:error, :timeout} ->
         # Note: we are explicitly not marking timed out jobs as errored, because this will in turn
         # mark the job as failed, and prevent it from being re-attempted. A timeout is likely just a temporary glitch.
         Logger.warn(fn ->
           "Polling request for explorer job with id #{explorer_analysis.job_id} timed out. Will attempt again later."
         end)
+
+        {:error, :timeout}
+
+      {:error, unexpected_result} ->
+        handle_poll_error(explorer_analysis, inspect(unexpected_result))
+        {:error, :unexpected_result}
+    end
+  end
+
+  defp poll_explorer_for_update(explorer_analysis) do
+    with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
+           HTTPoison.get("#{base_url()}/result/#{explorer_analysis.job_id}") do
+      Jason.decode(response)
+    else
+      {:ok, %HTTPoison.Response{status_code: 404}} ->
+        {:error, :not_found}
+
+      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} when status_code >= 500 and status_code < 600 ->
+        {:error, {:internal_error, status_code, body}}
+
+      {:error, %HTTPoison.Error{reason: :timeout}} ->
         {:error, :timeout}
 
       err ->
@@ -395,20 +419,11 @@ defmodule Air.Service.Explorer do
 
   defp handle_retry(explorer_analysis) do
     explorer_analysis = Repo.preload(explorer_analysis, :data_source)
-
-    Logger.warn(
-      "Explorer returned 404 for previously created job (#{explorer_analysis.data_source.name}/#{
-        explorer_analysis.table_name
-      }). Retrying."
-    )
-
     {_, token} = find_or_create_explorer_creds()
 
     update_analysis(explorer_analysis, job_id: nil)
 
     request_analysis(explorer_analysis, token)
-
-    {:error, "Job deleted in Explorer"}
   end
 
   defp handle_poll_error(explorer_analysis, error) do
@@ -423,8 +438,6 @@ defmodule Air.Service.Explorer do
     explorer_analysis
     |> ExplorerAnalysis.changeset(%{status: :error, errors: [error]})
     |> Air.Repo.update()
-
-    {:error, error}
   end
 
   defp base_url(), do: config!("url") <> "/api/v1"
