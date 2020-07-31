@@ -365,11 +365,11 @@ defmodule Air.Service.Explorer do
     with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
            HTTPoison.get("#{base_url()}/result/#{explorer_analysis.job_id}"),
          {:ok, decoded} <- Jason.decode(response),
-         {:ok, analysis} <-
+         {:ok, _analysis} <-
            explorer_analysis
            |> ExplorerAnalysis.from_result_json(decoded)
            |> Air.Repo.update() do
-      {:ok, analysis}
+      :ok
     else
       {:ok, %HTTPoison.Response{status_code: 404}} ->
         handle_retry(explorer_analysis)
