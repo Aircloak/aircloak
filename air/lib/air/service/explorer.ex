@@ -191,7 +191,7 @@ defmodule Air.Service.Explorer do
   @impl GenServer
   def init(_) do
     if enabled?() do
-      schedule_poll()
+      {:ok, schedule_poll()}
     else
       {:ok, false}
     end
@@ -200,7 +200,7 @@ defmodule Air.Service.Explorer do
   @impl GenServer
   def handle_cast({:request_analysis, analysis, token}, poll_in_progress?) do
     request_analysis(analysis, token)
-    poll_unless_already_pending_poll(poll_in_progress?)
+    {:noreply, poll_unless_already_pending_poll(poll_in_progress?)}
   end
 
   @impl GenServer
@@ -218,7 +218,7 @@ defmodule Air.Service.Explorer do
           @poll_interval
         end
 
-      schedule_poll(poll_interval)
+      {:noreply, schedule_poll(poll_interval)}
     else
       {:noreply, false}
     end
@@ -226,7 +226,7 @@ defmodule Air.Service.Explorer do
 
   def handle_info({:ssl_closed, {:sslsocket, {:gen_tcp, _port, :tls_connection, :undefined}, _pids}}, state) do
     Logger.warn(fn -> "The SSL connection was unexpectedly terminated by Explorer." end)
-    poll_unless_already_pending_poll(state)
+    {:noreply, poll_unless_already_pending_poll(state)}
   end
 
   # -------------------------------------------------------------------
@@ -243,7 +243,7 @@ defmodule Air.Service.Explorer do
       Process.send_after(self(), :poll, poll_interval)
     end
 
-    {:noreply, true}
+    true
   end
 
   defp create_placeholder_result(data_source, table) do
