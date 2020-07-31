@@ -191,8 +191,7 @@ defmodule Air.Service.Explorer do
   @impl GenServer
   def init(_) do
     if enabled?() do
-      Process.send_after(self(), :poll, @poll_interval)
-      {:ok, true}
+      schedule_poll()
     else
       {:ok, false}
     end
@@ -201,8 +200,7 @@ defmodule Air.Service.Explorer do
   @impl GenServer
   def handle_cast({:request_analysis, analysis, token}, poll_in_progress?) do
     request_analysis(analysis, token)
-    unless poll_in_progress?, do: Process.send_after(self(), :poll, @poll_interval)
-    {:noreply, true}
+    poll_unless_already_pending_poll(poll_in_progress?)
   end
 
   @impl GenServer
@@ -212,21 +210,30 @@ defmodule Air.Service.Explorer do
     |> Enum.each(&poll_for_update/1)
 
     if Repo.exists?(pending_analyses_query()) do
-      Process.send_after(self(), :poll, @poll_interval)
-      {:noreply, true}
+      schedule_poll()
     else
       {:noreply, false}
     end
   end
 
-  def handle_info({:ssl_closed, {:sslsocket, {:gen_tcp, _port, :tls_connection, :undefined}, _pids}}, _state) do
+  def handle_info({:ssl_closed, {:sslsocket, {:gen_tcp, _port, :tls_connection, :undefined}, _pids}}, state) do
     Logger.warn(fn -> "The SSL connection was unexpectedly terminated by Explorer." end)
-    {:noreply, true}
+    poll_unless_already_pending_poll(state)
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp schedule_poll(), do: poll_unless_already_pending_poll(false)
+
+  defp poll_unless_already_pending_poll(poll_in_progress?) do
+    if not poll_in_progress? do
+      Process.send_after(self(), :poll, @poll_interval)
+    end
+
+    {:noreply, true}
+  end
 
   defp create_placeholder_result(data_source, table) do
     Repo.insert!(%ExplorerAnalysis{data_source: data_source, table_name: table, status: :new})
