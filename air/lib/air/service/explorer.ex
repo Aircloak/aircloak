@@ -374,11 +374,18 @@ defmodule Air.Service.Explorer do
       {:ok, %HTTPoison.Response{status_code: 404}} ->
         handle_retry(explorer_analysis)
 
-      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} when status_code >= 500 and status_code < 600->
+      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} when status_code >= 500 and status_code < 600 ->
         handle_poll_error(
           explorer_analysis,
           "Something went wrong in Diffix Explorer (HTTP #{status_code}) when polling: " <> body
         )
+
+      {:error, %HTTPoison.Error{reason: :timeout}} ->
+        # Note: we are explicitly not marking timed out jobs as errored, because this will in turn
+        # mark the job as failed, and prevent it from being re-attempted. A timeout is likely just a temporary glitch.
+        Logger.warn(fn ->
+          "Polling request for explorer job with id #{explorer_analysis.job_id} timed out. Will attempt again later."
+        end)
 
       err ->
         handle_poll_error(explorer_analysis, inspect(err))
