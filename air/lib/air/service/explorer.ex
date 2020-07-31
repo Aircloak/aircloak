@@ -427,7 +427,6 @@ defmodule Air.Service.Explorer do
   end
 
   defp handle_retry(explorer_analysis) do
-    explorer_analysis = Repo.preload(explorer_analysis, :data_source)
     update_analysis(explorer_analysis, job_id: nil)
     request_analysis(explorer_analysis)
   end
