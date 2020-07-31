@@ -274,7 +274,8 @@ defmodule Air.Service.Explorer do
 
   defp pending_analyses_query() do
     from(explorer_analysis in ExplorerAnalysis,
-      where: explorer_analysis.status in ["new", "processing"] and not is_nil(explorer_analysis.job_id)
+      where: explorer_analysis.status in ["new", "processing"] and not is_nil(explorer_analysis.job_id),
+      preload: [:data_source]
     )
   end
 
@@ -413,7 +414,7 @@ defmodule Air.Service.Explorer do
         {:error, :timeout}
 
       err ->
-        handle_poll_error(explorer_analysis, inspect(err))
+        {:error, err}
     end
   end
 
@@ -427,8 +428,6 @@ defmodule Air.Service.Explorer do
   end
 
   defp handle_poll_error(explorer_analysis, error) do
-    explorer_analysis = Repo.preload(explorer_analysis, :data_source)
-
     Logger.error(
       "Polling for results for #{explorer_analysis.data_source.name}/#{explorer_analysis.table_name} errored with #{
         inspect(error)
