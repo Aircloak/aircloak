@@ -207,6 +207,9 @@ This document refers to all inequalities that are bounded on both sides as *rang
 
 In addition to the ranges that can be specified with `BETWEEN` and inequality operators, some functions implicitly define a range. For instance, the function `hour` defines a range of width one hour. The definition of range in this document includes implicit ranges. These are: `hour`, `minute`, `second`, `year`, `quarter`, `month`, `day`, `weekday`, `date_trunc`, `floor`, `ceil`, `cast to int`, `round`, `trunc`, and `bucket`.
 
+Normally the lower bound of a range is inclusive, while the upper bound is exclusive. The exception to this is when the upper bound corresponds to the maximum value allowed by the column type.
+[aircloak/aircloak#4462](https://github.com/Aircloak/aircloak/issues/4462)
+
 Inequalities that are not ranges (not bounded on both sides) are possible in the special case of [Conditions with two columns](#conditions-with-two-columns).
 
 ### Clear conditions (IN, range, negative conditions)
@@ -304,6 +307,9 @@ The cloak allows conditions with two columns. However, each column may appear on
 
 Two-column conditions with inequalities do not require that the condition be a range (have both a lower and upper boundary). For instance, the condition `WHERE col1 < col2` is allowed.
 
+The condition of the form `date_constant BETWEEN date_col1 AND date_col2` is allowed, but the constant must be aligned to the month.
+[aircloak/aircloak#4487](https://github.com/Aircloak/aircloak/issues/4487)
+
 ### Illegal JOINs
 
 The cloak rejects any queries that has `JOIN (...) ON` conditions that are not explicitly allowed (see [Database configuration](#database-configuration)). All `JOIN (...) ON` conditions must be simple `column1 = column2` expressions. This prevents attacks that would otherwise try to exploit known relationships between columns to generate extra noise samples.
@@ -317,6 +323,7 @@ Normally queries with SQL that does not conform to the requirements of the cloak
 ### Snapped Ranges
 
 In order to prevent difference attacks using [range creep with averaging](./attacks.md#range-creep-with-averaging), all ranges must conform to pre-designated widths and offsets.
+[aircloak/aircloak#4486](https://github.com/Aircloak/aircloak/issues/4486)
 
 In the case of numeric data types, the widths must fall within the following infinite sequence of widths: `[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, ...`]. The offset must fall on an even multiple of the width, or an even multiple plus 1/2 of the width. The following are allowed:
 
@@ -330,12 +337,11 @@ The following are not allowed:
 
 In the case of datetime types, the widths must correspond to natural datetime boundaries (year, month, week, day, hour, minute, second). Within each such boundary, the following additional widths are allowed:
 
-* `[1, 2, 5, 10, 20, 50, ...]` years
-* `[1, 2, 6, 12]` months
-* `[1, 2, 5, 10, 20]` days
-* `[1, 2, 6, 12, 24]` hours
-* `[1, 2, 5, 15, 30, 60]` minutes
-* `[1, 2, 5, 15, 30, 60]` seconds
+* `[1, 2, 3, 6, 9, 12, ...]` months
+* `[1, 2, 5, 10, 15, 20]` days
+* `[1, 2, 6, 12]` hours
+* `[1, 2, 5, 15, 30]` minutes
+* `[1, 2, 5, 15, 30]` seconds
 
 In addition, the cloak has a number of current date/time functions, including `current_date`, `current_time`, `current_datetime`, `now` and `current_timestamp`. These can be used in inequalities with columns, for instance `now() < col` and `now() between col1 and col2`. Current date/time functions are snapped by truncating to the current day (time `00:00:00`).
 [aircloak/aircloak#3474](https://github.com/Aircloak/aircloak/issues/3474)
