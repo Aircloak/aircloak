@@ -359,15 +359,18 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  defp update_analysis(changeset, opts) do
-    modified =
-      if Keyword.has_key?(opts, :result) do
-        ExplorerAnalysis.from_decoded_result_json(changeset, Keyword.get(opts, :result))
-      else
-        ExplorerAnalysis.changeset(changeset, Enum.into(opts, %{}))
-      end
+  defp handle_result_changeset(changeset, nil), do: changeset
+  defp handle_result_changeset(changeset, results), do: ExplorerAnalysis.from_decoded_result_json(changeset, results)
 
-    Repo.insert_or_update(modified)
+  defp update_analysis(changeset, opts) do
+    changeset
+    |> handle_result_changeset(Keyword.get(opts, :result))
+    |> ExplorerAnalysis.changeset(
+      opts
+      |> Keyword.delete(:result)
+      |> Enum.into(%{})
+    )
+    |> Repo.insert_or_update()
   end
 
   defp poll_analysis(explorer_analysis) do
