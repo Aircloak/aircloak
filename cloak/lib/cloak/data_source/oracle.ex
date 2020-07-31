@@ -65,6 +65,18 @@ defmodule Cloak.DataSource.Oracle do
   @impl Driver
   def supports_analyst_tables?(), do: true
 
+  @impl Driver
+  def prepare_analyst_table(table_name, query) do
+    quoted_table_name = SqlBuilder.quote_table_name(table_name)
+
+    select_statement =
+      query
+      |> SqlBuilder.build()
+      |> insert_select_hints(query.data_source.parameters[:select_hints])
+
+    "CREATE TABLE #{quoted_table_name} AS #{select_statement}"
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
