@@ -62,6 +62,19 @@ function filterMap<T, U>(arr: Array<T>, fn: (T) => U | null): Array<U> {
 const range = (begin: number, end: number): number[] =>
   Array.from(new Array(end - begin)).map((_, i) => begin + i);
 
+function memoize<A, B>(fn: (A) => B): (A) => B {
+  let lastArg = NaN,
+    lastResult;
+  return (input) => {
+    if (input === lastArg) {
+      return lastResult;
+    }
+    lastArg = input;
+    lastResult = fn(input);
+    return lastResult;
+  };
+}
+
 /**
  * Returns all permutations of length `n`.
  *
@@ -75,7 +88,7 @@ const range = (begin: number, end: number): number[] =>
  *     //   [2, 1, 0],
  *     // ]
  */
-const permutations = (n: number): number[][] => {
+const permutations = memoize((n: number): number[][] => {
   var inputArr = range(0, n);
   var results = [];
 
@@ -95,7 +108,7 @@ const permutations = (n: number): number[][] => {
   }
 
   return permute(inputArr, []);
-};
+});
 
 /**
  * Finds the best assignment of variables in array `as` to variables in array `bs` according to `costFn`.
@@ -107,8 +120,9 @@ const permutations = (n: number): number[][] => {
 function linearBalancedAssignment<T, M>(
   as: Array<T>,
   bs: Array<T>,
-  costFn: (T, T) => [number, M]
-): [number, Array<M>] {
+  costFn: (T, T) => [number, M],
+  threshold: number
+): Array<M> | null {
   // This is a naive algorithm with O(n!) complexity.
   // This can be improved to O(n^3) complexity at the cost of much more complex code.
   // However, we presume that:
@@ -116,27 +130,30 @@ function linearBalancedAssignment<T, M>(
   //  2. `bs` will not be fixed, but should be small (the user won't type too many words)
   //  3. we can limit `bs` to be the same length as `as`, as there is no point in having more
   // As such, we don't need to care about the runtime complexity so much.
-
-  bs = bs.slice(0, as.length);
   const costMatrix = as.map((a) => bs.map((b) => costFn(a, b)));
-  return permutations(as.length).reduce(
-    ([max, metadata], assignment) => {
+  const [maxScore, bestAssignment] = permutations(as.length).reduce(
+    ([max, best], assignment) => {
       let score = 0;
       for (let i = 0; i < bs.length; i++) {
         score += costMatrix[assignment[i]][i][0];
       }
       if (score > max) {
-        let newMetadata = new Array(as.length);
-        for (let i = 0; i < bs.length; i++) {
-          newMetadata[assignment[i]] = costMatrix[assignment[i]][i][1];
-        }
-        return [score, newMetadata];
+        return [score, assignment];
       } else {
-        return [max, metadata];
+        return [max, best];
       }
     },
     [-Infinity, []]
   );
+
+  if (maxScore > threshold) {
+    let newMetadata = new Array(as.length);
+    for (let i = 0; i < bs.length; i++) {
+      newMetadata[bestAssignment[i]] = costMatrix[bestAssignment[i]][i][1];
+    }
+    return newMetadata;
+  }
+  return null;
 }
 
 /**
@@ -165,8 +182,12 @@ const exact = (val: string, q: string): [number, number[]] => {
 const prepareSolver = (
   filter: Filter,
   table: string
-): ((Column) => [number, number[][]]) => {
-  let queries = filter.query.split(/\s+/).filter((q) => q.trim() !== "");
+): ((Column) => number[][] | null) => {
+  // If the user specifies more words than fields, we ignore the rest
+  let queries = filter.query
+    .split(/\W+/)
+    .filter((q) => q.trim() !== "")
+    .slice(0, 4);
   if (filter.fuzzy) {
     queries = queries.map((q) => fuzzysort.prepareSearch(q));
     const tableIndex = fuzzysort.prepare(table);
@@ -177,17 +198,19 @@ const prepareSolver = (
         });
       }
       return linearBalancedAssignment(
-        ([column._indexEntry, tableIndex, column.type]: any[]),
+        ([column._indexEntry, tableIndex, column.type, column.key_type]: any[]),
         (queries: any[]),
-        fuzzy
+        fuzzy,
+        -8000
       );
     };
   } else {
     return (column) =>
       linearBalancedAssignment(
-        ([column.name, table, column.type]: string[]),
+        ([column.name, table, column.type, column.key_type]: string[]),
         (queries: string[]),
-        exact
+        exact,
+        4
       );
   }
 };
@@ -208,17 +231,19 @@ export const filterColumns = (
 
     if (filter.query.trim() === "") return column;
 
-    const [total, [columnIndices, tableIndices, typeIndices]] = solver(column);
+    const result = solver(column);
 
-    return total > -10000
-      ? Object.assign({}, column, {
-          _matchIndexes: {
-            name: columnIndices,
-            table: tableIndices,
-            type: typeIndices,
-          },
-        })
-      : null;
+    return (
+      result &&
+      Object.assign({}, column, {
+        _matchIndexes: {
+          name: result[0],
+          table: result[1],
+          type: result[2],
+          key_type: result[3],
+        },
+      })
+    );
   });
 };
 
