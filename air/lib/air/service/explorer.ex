@@ -386,6 +386,7 @@ defmodule Air.Service.Explorer do
         Logger.warn(fn ->
           "Polling request for explorer job with id #{explorer_analysis.job_id} timed out. Will attempt again later."
         end)
+        {:error, :timeout}
 
       err ->
         handle_poll_error(explorer_analysis, inspect(err))
