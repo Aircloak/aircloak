@@ -219,6 +219,11 @@ defmodule Air.Service.Explorer do
     end
   end
 
+  def handle_info({:ssl_closed, {:sslsocket, {:gen_tcp, _port, :tls_connection, :undefined}, _pids}}, _state) do
+    Logger.warn(fn -> "The SSL connection was unexpectedly terminated by Explorer." end)
+    {:noreply, true}
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
