@@ -88,11 +88,8 @@ defmodule Air.Service.Explorer do
 
   @doc "Requests new analyses for datasource."
   @spec reanalyze_datasource(Air.Schemas.DataSource.t()) :: :ok
-  def reanalyze_datasource(data_source) do
-    {_, token} = find_or_create_explorer_creds()
-
-    Enum.each(results_for_datasource(data_source), &GenServer.cast(__MODULE__, {:request_analysis, &1, token}))
-  end
+  def reanalyze_datasource(data_source),
+    do: Enum.each(results_for_datasource(data_source), &GenServer.cast(__MODULE__, {:request_analysis, &1}))
 
   @doc "Returns a list of tables that are elligible for analysis for a particular datasource"
   @spec elligible_tables_for_datasource(Air.Schemas.DataSource.t()) :: [String.t()]
@@ -139,8 +136,6 @@ defmodule Air.Service.Explorer do
         end
       end)
 
-    {_, token} = find_or_create_explorer_creds()
-
     case Air.Service.Group.update(old_group, params) do
       {:ok, new_group} ->
         new_group.data_sources
@@ -149,7 +144,7 @@ defmodule Air.Service.Explorer do
         |> reject_all_unchanged()
         |> Enum.each(fn {data_source, tables} ->
           Enum.each(tables, fn table ->
-            GenServer.cast(__MODULE__, {:request_analysis, create_placeholder_result(data_source, table), token})
+            GenServer.cast(__MODULE__, {:request_analysis, create_placeholder_result(data_source, table)})
           end)
         end)
 
@@ -198,8 +193,8 @@ defmodule Air.Service.Explorer do
   end
 
   @impl GenServer
-  def handle_cast({:request_analysis, analysis, token}, poll_in_progress?) do
-    request_analysis(analysis, token)
+  def handle_cast({:request_analysis, analysis}, poll_in_progress?) do
+    request_analysis(analysis)
     {:noreply, poll_unless_already_pending_poll(poll_in_progress?)}
   end
 
@@ -308,7 +303,9 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  defp request_analysis(analysis, token) do
+  defp request_analysis(analysis) do
+    {_, token} = find_or_create_explorer_creds()
+
     %{"columns" => columns} =
       DataSource.tables(analysis.data_source)
       |> Enum.find(fn %{"id" => name} -> name == analysis.table_name end)
@@ -431,11 +428,8 @@ defmodule Air.Service.Explorer do
 
   defp handle_retry(explorer_analysis) do
     explorer_analysis = Repo.preload(explorer_analysis, :data_source)
-    {_, token} = find_or_create_explorer_creds()
-
     update_analysis(explorer_analysis, job_id: nil)
-
-    request_analysis(explorer_analysis, token)
+    request_analysis(explorer_analysis)
   end
 
   defp handle_poll_error(explorer_analysis, error) do
