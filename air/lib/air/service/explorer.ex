@@ -374,10 +374,10 @@ defmodule Air.Service.Explorer do
       {:ok, %HTTPoison.Response{status_code: 404}} ->
         handle_retry(explorer_analysis)
 
-      {:ok, %HTTPoison.Response{status_code: 500, body: body}} ->
+      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} when status_code >= 500 and status_code < 600->
         handle_poll_error(
           explorer_analysis,
-          "Something went wrong in Diffix Explorer (HTTP 500) when polling: " <> body
+          "Something went wrong in Diffix Explorer (HTTP #{status_code}) when polling: " <> body
         )
 
       err ->
