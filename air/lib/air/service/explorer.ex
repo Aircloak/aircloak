@@ -365,7 +365,7 @@ defmodule Air.Service.Explorer do
   defp update_analysis(changeset, opts) do
     modified =
       if Keyword.has_key?(opts, :result) do
-        ExplorerAnalysis.from_result_json(changeset, Keyword.get(opts, :result))
+        ExplorerAnalysis.from_decoded_result_json(changeset, Keyword.get(opts, :result))
       else
         ExplorerAnalysis.changeset(changeset, Enum.into(opts, %{}))
       end
@@ -377,7 +377,7 @@ defmodule Air.Service.Explorer do
     case poll_explorer_for_update(explorer_analysis) do
       {:ok, decoded_analysis} ->
         explorer_analysis
-        |> ExplorerAnalysis.from_result_json(decoded_analysis)
+        |> ExplorerAnalysis.from_decoded_result_json(decoded_analysis)
         |> Air.Repo.update()
 
       {:error, :not_found} ->
