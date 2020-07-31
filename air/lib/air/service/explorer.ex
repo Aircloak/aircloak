@@ -371,10 +371,9 @@ defmodule Air.Service.Explorer do
 
       {:error, :not_found} ->
         Logger.warn(
-          "Restarting analysis job (#{explorer_analysis.data_source.name}/#{
-            explorer_analysis.table_name
-          }) due to Diffix Explorer having lost track of it."
+          "Restarting analysis job (#{explorer_analysis.data_source.name}/#{explorer_analysis.table_name}) due to Diffix Explorer having lost track of it."
         )
+
         handle_retry(explorer_analysis)
 
       {:error, {:internal_error, status_code, body}} ->
@@ -382,6 +381,7 @@ defmodule Air.Service.Explorer do
           explorer_analysis,
           "Something went wrong in Diffix Explorer (HTTP #{status_code}) when polling: " <> body
         )
+
         {:error, :explorer_error}
 
       {:error, :timeout} ->
