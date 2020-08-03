@@ -297,7 +297,7 @@ defmodule Air.Service.Explorer do
         "Table" => analysis.table_name,
         "Columns" =>
           columns
-          |> Enum.reject(fn %{"isolated" => isolating?, "user_id" => uid?} -> isolating? || uid? end)
+          |> Enum.reject(&unanalyzable_column?/1)
           |> Enum.map(fn %{"name" => column_name} ->
             column_name
           end)
@@ -337,6 +337,11 @@ defmodule Air.Service.Explorer do
         :error
     end
   end
+
+  defp unanalyzable_column?(column),
+    do:
+      Map.get(column, "isolated", true) || Map.get(column, "user_id", true) ||
+        Map.get(column, "access", "unselectable") == "unselectable"
 
   defp update_analysis(changeset, opts) do
     modified =
