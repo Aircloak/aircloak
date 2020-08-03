@@ -50,6 +50,10 @@ export default class CodeEditor extends React.Component<Props> {
     editor.focus();
   };
 
+  editorWillUnmount = () => {
+    this.editor = null;
+  };
+
   completionList = (cm: Editor) => {
     const { tableNames, columnNames, statement } = this.props;
     return completions(
@@ -63,6 +67,10 @@ export default class CodeEditor extends React.Component<Props> {
   };
 
   insertWordInEditor = (word: String) => {
+    if (!this.editor) {
+      return;
+    }
+
     const doc = this.editor.getDoc();
     doc.replaceSelection(word);
     this.editor.focus();
@@ -112,6 +120,7 @@ export default class CodeEditor extends React.Component<Props> {
       <Codemirror
         value={statement}
         editorDidMount={this.editorDidMount}
+        editorWillUnmount={this.editorWillUnmount}
         onBeforeChange={this.onBeforeChange}
         options={options}
         className="editable"
