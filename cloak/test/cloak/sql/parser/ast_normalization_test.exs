@@ -143,8 +143,8 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
   test "normalizing date_trunc's first argument",
     do:
       assert_equivalent(
-        "SELECT date_trunc('YEAR', column) FROM table",
-        "SELECT date_trunc('year', column) FROM table"
+        "SELECT date_trunc('YEAR', column) FROM table GROUP BY date_trunc('Year', column)",
+        "SELECT date_trunc('year', column) FROM table GROUP BY date_trunc('year', column)"
       )
 
   %{
