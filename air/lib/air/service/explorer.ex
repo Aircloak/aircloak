@@ -202,7 +202,7 @@ defmodule Air.Service.Explorer do
   def handle_info(:poll, _state) do
     pending_analyses_query()
     |> Repo.all()
-    |> Enum.map(&poll_analysis/1)
+    |> Enum.each(&poll_analysis/1)
 
     if Repo.exists?(pending_analyses_query()) do
       {:noreply, schedule_poll()}
