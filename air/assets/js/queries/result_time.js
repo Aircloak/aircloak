@@ -25,7 +25,7 @@ export default ({ time }: { time: string | number }) => {
   return (
     <time
       className="small text-muted ml-1"
-      datetime={inserted.toISOString()}
+      dateTime={inserted.toISOString()}
       title={inserted.local().format("YYYY-MM-DD HH:mm:ss")}
     >
       {relative}
