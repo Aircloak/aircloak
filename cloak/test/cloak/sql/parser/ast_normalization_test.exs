@@ -160,8 +160,11 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
           %{
             columns: [
               {:function, %{canonical_name: unquote(function), synonym_used: unquote(synonym)}, _, _}
+            ],
+            grouping_sets: [
+              [{:function, %{canonical_name: unquote(function), synonym_used: unquote(synonym)}, _, _}]
             ]
-          } = Parser.parse!("SELECT #{unquote(synonym)}(column) FROM table")
+          } = Parser.parse!("SELECT #{unquote(synonym)}(column) FROM table GROUP BY #{unquote(synonym)}(column)")
         )
   end)
 
