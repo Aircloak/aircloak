@@ -298,6 +298,8 @@ defmodule Cloak.Sql.Expression do
   @spec title(t) :: nil | String.t()
   def title(%__MODULE__{alias: alias}) when is_binary(alias), do: alias
   def title(%__MODULE__{kind: :column, name: name}), do: name
+  def title(%__MODULE__{kind: :function, name: {:cast, _}, args: [expression]}), do: title(expression)
+  def title(%__MODULE__{kind: :function, name: name}), do: Function.readable_name(name)
   def title(%__MODULE__{}), do: nil
 
   # -------------------------------------------------------------------
