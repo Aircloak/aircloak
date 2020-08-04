@@ -45,14 +45,14 @@ const SelectableDetails = React.forwardRef(
           <Popover.Content>
             <div style={{ maxHeight: "50vh", overflowY: "auto" }}>
               {selectable.comment && (
-                <p className="border rounded px-2 py-1">
+                <div className="border rounded px-2 py-1">
                   <strong className="float-right text-muted ml-3 mt-1 font-weight-bold text-uppercase small">
                     Comment
                   </strong>
                   <div style={{ whiteSpace: "pre-line" }}>
                     {selectable.comment}
                   </div>
-                </p>
+                </div>
               )}
 
               {isAnalystCreatedSelectable(selectable) && (
