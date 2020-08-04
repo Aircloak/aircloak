@@ -286,9 +286,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
 
   defp set_noise_layer_expression_alias(expression, all_expressions, query) do
-    selected_columns = query.columns
     expression_matcher = &Expression.equals?(&1, expression)
-    existing_expression = Enum.find(selected_columns, expression_matcher)
+    existing_expression = Enum.find(query.columns, expression_matcher)
 
     case {expression, existing_expression} do
       {expression, %{user_id?: true}} ->
