@@ -220,11 +220,11 @@ defmodule Air.Service.Explorer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp schedule_poll(poll_interval \\ @poll_interval), do: poll_unless_already_pending_poll(false, poll_interval)
+  defp schedule_poll(), do: poll_unless_already_pending_poll(false)
 
-  defp poll_unless_already_pending_poll(poll_in_progress?, poll_interval \\ @poll_interval) do
+  defp poll_unless_already_pending_poll(poll_in_progress?) do
     if not poll_in_progress? do
-      Process.send_after(self(), :poll, poll_interval)
+      Process.send_after(self(), :poll, @poll_interval)
     end
 
     true
