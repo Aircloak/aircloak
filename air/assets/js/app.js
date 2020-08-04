@@ -22,9 +22,6 @@ import activateTooltips from "./tooltips";
 
 activateTooltips();
 
-// No-op implementation when no eligible editor is rendered.
-window.insertWordInEditor = () => {};
-
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
   queryShowPage: (props, elem) => App.render("query_show", props, elem),

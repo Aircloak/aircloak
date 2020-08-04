@@ -50,8 +50,8 @@ export default class CodeEditor extends React.Component<Props> {
     editor.focus();
   };
 
-  editorWillUnmount = () => {
-    this.editor = null;
+  componentWillUnmount = () => {
+    window.insertWordInEditor = null;
   };
 
   completionList = (cm: Editor) => {
@@ -67,10 +67,6 @@ export default class CodeEditor extends React.Component<Props> {
   };
 
   insertWordInEditor = (word: String) => {
-    if (!this.editor) {
-      return;
-    }
-
     const doc = this.editor.getDoc();
     doc.replaceSelection(word);
     this.editor.focus();
