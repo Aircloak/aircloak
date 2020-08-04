@@ -212,7 +212,7 @@ defmodule Air.Service.Explorer do
   end
 
   def handle_info({:ssl_closed, {:sslsocket, {:gen_tcp, _port, :tls_connection, :undefined}, _pids}}, state) do
-    Logger.warn("The SSL connection was unexpectedly terminated by Explorer.")
+    Logger.info("The SSL connection was unexpectedly terminated by Explorer.")
     {:noreply, poll_unless_already_pending_poll(state)}
   end
 
@@ -387,9 +387,9 @@ defmodule Air.Service.Explorer do
       {:error, :timeout} ->
         # Note: we are explicitly not marking timed out jobs as errored, because this will in turn
         # mark the job as failed, and prevent it from being re-attempted. A timeout is likely just a temporary glitch.
-        Logger.warn(fn ->
+        Logger.warn(
           "Polling request for explorer job with id #{explorer_analysis.job_id} timed out. Will attempt again later."
-        end)
+        )
 
         {:error, :timeout}
 
