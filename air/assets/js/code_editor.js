@@ -116,7 +116,6 @@ export default class CodeEditor extends React.Component<Props> {
       <Codemirror
         value={statement}
         editorDidMount={this.editorDidMount}
-        editorWillUnmount={this.editorWillUnmount}
         onBeforeChange={this.onBeforeChange}
         options={options}
         className="editable"
