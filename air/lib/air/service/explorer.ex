@@ -376,6 +376,14 @@ defmodule Air.Service.Explorer do
 
         handle_retry(explorer_analysis)
 
+      {:error, {:client_error, status_code, body}} ->
+        handle_poll_error(
+          explorer_analysis,
+          "Diffix Explorer rejected the request (HTTP #{status_code}) when polling: " <> body
+        )
+
+        {:error, :air_error}
+
       {:error, {:internal_error, status_code, body}} ->
         handle_poll_error(
           explorer_analysis,
@@ -406,6 +414,9 @@ defmodule Air.Service.Explorer do
     else
       {:ok, %HTTPoison.Response{status_code: 404}} ->
         {:error, :not_found}
+
+      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} when status_code >= 400 and status_code < 500 ->
+        {:error, {:client_error, status_code, body}}
 
       {:ok, %HTTPoison.Response{status_code: status_code, body: body}} when status_code >= 500 and status_code < 600 ->
         {:error, {:internal_error, status_code, body}}
