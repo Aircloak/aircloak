@@ -39,6 +39,7 @@ const AnalysisDetails = React.forwardRef(
           </h4>
           <button
             className="btn btn-link"
+            disabled={!window.insertWordInEditor}
             onClick={(event) => {
               event.preventDefault();
               window.insertWordInEditor(`"${item.name}"`);

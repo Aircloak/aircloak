@@ -29,6 +29,7 @@ const SelectableDetails = React.forwardRef(
             </h4>
             <button
               className="btn btn-link py-0 pr-0"
+              disabled={!window.insertWordInEditor}
               onClick={(event) => {
                 event.preventDefault();
                 window.insertWordInEditor(`"${selectable.id}"`);

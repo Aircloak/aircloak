@@ -80,7 +80,7 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      var props = <%= to_json(number_format_settings()) %>;
+      var props = <%= to_json(%{numberFormat: number_format_settings()}) %>;
       App.numberFormatExample(props, document.getElementById("example"));
     }
   };
