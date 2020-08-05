@@ -265,9 +265,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     query.columns
     |> Enum.find(expression_matcher)
     |> case do
-      %{user_id?: true} ->
-        expression
-
       nil ->
         index = Enum.find_index(all_expressions, expression_matcher)
         true = index != nil
