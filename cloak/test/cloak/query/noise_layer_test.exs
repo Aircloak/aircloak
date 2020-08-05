@@ -405,6 +405,22 @@ defmodule Cloak.Query.NoiseLayerTest do
       assert_analyst_table_consistent(query, subquery)
     end
 
+    test "analyst table over query with outer join and extra aggregators" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other", "string"], [10, 7, "xxx"])
+      :ok = insert_rows(_user_ids = 1..20, "noise_layers_join", ["number"], [11])
+
+      query = "SELECT sum(other) FROM $subquery"
+
+      subquery = """
+        SELECT t1.user_id, string, other, max(t2.number), min(t1.number) AS x
+        FROM noise_layers t1 LEFT JOIN noise_layers_join t2
+        ON t1.user_id = t2.user_id AND t1.number BETWEEN 0 AND 100 AND t2.number = 11
+        GROUP BY 1, 2, 3
+      """
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
     def assert_analyst_table_consistent(query, subquery) do
       regular_query = query |> String.replace("$subquery", "(#{subquery}) AS foo")
       analyst_query = query |> String.replace("$subquery", "foo")
