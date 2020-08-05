@@ -64,6 +64,7 @@
         newViewURL: data_source_selectable_path(@conn, :new, @data_source.name, :view),
         userId: @current_user.id,
         dataSourceName: @data_source.name,
+        dataSourceStatus: Air.Service.DataSource.status(@data_source),
         socketToken: AirWeb.Plug.Session.current_token(@conn),
         browserSocketTransport: Air.browser_socket_transport(),
         supportsCreateTable: @data_source.supports_analyst_tables,
