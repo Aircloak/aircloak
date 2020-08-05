@@ -40,6 +40,7 @@
   assigned to an LDAP group will be migrated out of the group and into a transitionary group. This ensures
   all users retain access to all the data sources they expect, but will lead to additional groups being
   created.
+- Fixed crash when executing query over analyst table containing filters over the selected columns.
 
 ### Changes
 
