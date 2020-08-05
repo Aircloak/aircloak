@@ -6,6 +6,33 @@ defmodule AirWeb.ViewHelpers do
 
   alias Air.Service.Warnings
 
+  @doc "Produces all the necessary info for setting up the selectables sidebar as a JSON string."
+  @spec selectable_setup(Plug.Conn.t()) :: {:safe, iodata}
+  def selectable_setup(conn) do
+    %{
+      data_source: data_source,
+      selectables: selectables,
+      current_user: current_user,
+      number_format: number_format
+    } = conn.assigns
+
+    to_json(%{
+      selectables: Enum.sort_by(selectables, & &1.id),
+      selectablesEditUrl: AirWeb.Router.Helpers.data_source_selectable_path(conn, :edit, data_source.name),
+      newTableURL: AirWeb.Router.Helpers.data_source_selectable_path(conn, :new, data_source.name, :analyst_table),
+      newViewURL: AirWeb.Router.Helpers.data_source_selectable_path(conn, :new, data_source.name, :view),
+      userId: current_user.id,
+      dataSourceName: data_source.name,
+      dataSourceDescription: data_source.description,
+      dataSourceStatus: Air.Service.DataSource.status(data_source),
+      socketToken: AirWeb.Plug.Session.current_token(conn),
+      browserSocketTransport: Air.browser_socket_transport(),
+      supportsCreateTable: data_source.supports_analyst_tables,
+      selectableToExclude: conn.assigns[:view_to_exclude_from_selectables],
+      numberFormat: number_format
+    })
+  end
+
   @doc "Verifies if the currently logged-in user has permissions on the given action."
   @spec permitted?(Plug.Conn.t(), module, atom) :: boolean
   def permitted?(conn, controller, action) do
