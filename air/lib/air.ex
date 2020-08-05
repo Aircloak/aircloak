@@ -96,22 +96,27 @@ defmodule Air do
     Air.Utils.update_app_env(
       :air,
       AirWeb.Endpoint,
-      &Keyword.merge(
-        &1,
-        secret_key_base: site_setting!("endpoint_key_base"),
-        https: https_config(Keyword.get(&1, :https, [])),
-        url: endpoint_url()
-      )
+      fn env ->
+        env
+        |> Keyword.merge(
+          secret_key_base: site_setting!("endpoint_key_base"),
+          https: https_config(Keyword.get(env, :https, []))
+        )
+        |> conditionally_add_endpoint_url()
+      end
     )
   end
 
-  defp endpoint_url() do
+  defp conditionally_add_endpoint_url(current_env) do
     with {:ok, url} <- site_setting("endpoint_public_url"),
          %URI{host: host, path: path, port: port, scheme: scheme} <-
            URI.parse(url) do
-      [host: host, path: path, port: port, scheme: scheme]
+      Keyword.merge(
+        current_env,
+        url: [host: host, path: path, port: port, scheme: scheme]
+      )
     else
-      _ -> []
+      _ -> current_env
     end
   end
 
