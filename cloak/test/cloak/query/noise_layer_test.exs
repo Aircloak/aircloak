@@ -375,6 +375,21 @@ defmodule Cloak.Query.NoiseLayerTest do
       assert_analyst_table_consistent(query, subquery)
     end
 
+    test "[Issue #4617] analyst table with unaliased aggregator" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
+
+      query = "SELECT count(*) FROM $subquery"
+
+      subquery = """
+        SELECT user_id, max(number)
+        FROM noise_layers
+        WHERE number BETWEEN 0 AND 100
+        GROUP BY user_id
+      """
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
     def assert_analyst_table_consistent(query, subquery) do
       regular_query = query |> String.replace("$subquery", "(#{subquery}) AS foo")
       analyst_query = query |> String.replace("$subquery", "foo")
