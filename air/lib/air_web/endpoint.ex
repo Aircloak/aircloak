@@ -8,7 +8,8 @@ defmodule AirWeb.Endpoint do
     secure: false,
     key: "_air_key",
     signing_salt: {Air.Service.Salts, :get, [:session_signing]},
-    encryption_salt: {Air.Service.Salts, :get, [:session_encryption]}
+    encryption_salt: {Air.Service.Salts, :get, [:session_encryption]},
+    extra: "SameSite=Strict"
   ]
 
   # -------------------------------------------------------------------
