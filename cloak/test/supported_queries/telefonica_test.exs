@@ -58,6 +58,19 @@ defmodule Cloak.Regressions.TeamBank.Test do
     assert_compiles_successfully(query, data_source_party_id())
   end
 
+  test "party id - sanity check query?" do
+    query = """
+    select count(*) as cnt, count_noise(*) as noise, sum(test) as summe from (
+      select contract_id, count_noise(*) as test
+      from dw.w_contracts c
+    where system_stack_id = 11
+      and order_date between DATE'2020-04-01' and DATE'2020-04-12'
+    group by contract_id) t
+    """
+
+    assert_compiles_successfully(query, data_source_party_id())
+  end
+
   test "contract id - data usage by data pack" do
     query = """
     select count(*),count(distinct uub.CONTRACT_ID )
@@ -286,20 +299,6 @@ defmodule Cloak.Regressions.TeamBank.Test do
 
     assert_compiles_successfully(query, data_source_contract_id())
   end
-
-  # This query is missing a table definition. Have requested it from Arnold.
-  # test "contract id - sanity check query?" do
-  #   query = """
-  #   select count(*) as cnt, count_noise(*) as noise, sum(test) as summe from (
-  #     select contract_id, count_noise(*) as test
-  #     from dw.w_contracts c
-  #   where system_stack_id = 11
-  #     and order_date between DATE'2020-04-01' and DATE'2020-04-12'
-  #   group by contract_id) t
-  #   """
-
-  #   assert_compiles_successfully(query, data_source_contract_id())
-  # end
 
   test "contract id - query on dual about ilike usage" do
     query = """
@@ -822,6 +821,33 @@ defmodule Cloak.Regressions.TeamBank.Test do
         {"SA_VERSION_UPD", [type: :integer]},
         {"SORT_ORDER", [type: :integer]},
         {"VALUE_LABEL", [type: :text]}
+      ],
+      "DW.W_CONTRACTS" => [
+        {"PARTY_ID", [type: :integer, uid: true]},
+        {"ACTIVATION_DT", [type: :date]},
+        {"BILLING_ACCOUNT_ID", [type: :integer]},
+        {"BRAND_ID", [type: :integer]},
+        {"CONTRACT_ID", [type: :integer]},
+        {"CONTRACT_PERIOD_ID", [type: :integer]},
+        {"CONTRACT_TYPE_ID", [type: :integer]},
+        {"CREATE_DT", [type: :date]},
+        {"FIRST_CALL_DT", [type: :date]},
+        {"FW_CONTRACT_ID", [type: :integer]},
+        {"HANDSET_TYPE_DESC", [type: :text]},
+        {"HVT_ID", [type: :text]},
+        {"IS_PREPAID", [type: :text]},
+        {"IS_SIM_ONLY", [type: :text]},
+        {"LABEL_ID", [type: :integer]},
+        {"MARKET_TYPE_ID", [type: :integer]},
+        {"MSISDN_VOICE", [type: :text]},
+        {"ORDER_DATE", [type: :date]},
+        {"ORDER_DT", [type: :date]},
+        {"RESELLER_ID", [type: :integer]},
+        {"SERVICE_PROVIDER_ID", [type: :integer]},
+        {"SIMICCID", [type: :text]},
+        {"SOURCE_SUBSCRIPTION_ID", [type: :text]},
+        {"SYSTEM_STACK_ID", [type: :integer]},
+        {"TESTCARD_ID", [type: :integer]}
       ]
     }
 
