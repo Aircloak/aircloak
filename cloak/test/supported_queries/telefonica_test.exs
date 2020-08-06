@@ -1,4 +1,4 @@
-defmodule Cloak.Regressions.TeamBank.Test do
+defmodule Cloak.Regressions.Telefonica.Test do
   use ExUnit.Case, async: true
 
   test "party id – dual: select *", do: assert_compiles_successfully("SELECT * FROM dual", data_source_party_id())
