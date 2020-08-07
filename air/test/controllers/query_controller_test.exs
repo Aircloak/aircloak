@@ -111,7 +111,7 @@ defmodule AirWeb.QueryController.Test do
     query_id = query.id
 
     assert {:ok, {"main", "air_call", %{event: "stop_query", payload: ^query_id}}} = TestSocket.await_message(socket)
-    assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
+    assert_soon is_nil(Air.Service.Query.Lifecycle.whereis(query_id))
   end
 
   describe "deleting a finished query" do

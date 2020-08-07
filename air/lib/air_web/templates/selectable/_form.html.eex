@@ -52,25 +52,12 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      var viewEditorProps = <%= to_json %{
+      App.viewEditor(<%= to_json %{
         statement: @changeset |> statement() || "",
-        selectables: @selectables |> order_by_id,
-      } %>;
-      var selectableInfoProps = <%= to_json %{
-        selectables: @selectables |> order_by_id,
-        selectableToExclude: @view_to_exclude_from_selectables,
-        selectablesEditUrl: data_source_selectable_path(@conn, :edit, @data_source.name),
-        newTableURL: data_source_selectable_path(@conn, :new, @data_source.name, :analyst_table),
-        newViewURL: data_source_selectable_path(@conn, :new, @data_source.name, :view),
-        userId: @current_user.id,
-        dataSourceName: @data_source.name,
-        socketToken: AirWeb.Plug.Session.current_token(@conn),
-        browserSocketTransport: Air.browser_socket_transport(),
-        supportsCreateTable: @data_source.supports_analyst_tables,
-        numberFormat: @number_format,
-      } %>;
-      App.viewEditor(viewEditorProps, document.getElementById("viewEditor"));
-      App.selectableInfo(selectableInfoProps, document.getElementById("selectable-info"));
+        selectables: @selectables |> order_by_id(),
+      } %>, document.getElementById("viewEditor"));
+
+      App.selectableInfo(<%= selectable_setup(@conn) %>, document.getElementById("selectable-info"));
     }
   };
 </script>

@@ -7,9 +7,8 @@ defmodule Cloak.Sql.FixAlign do
   @midnight ~T[00:00:00]
   @just_before_midnight ~T[23:59:59.999999]
   @full_day {@midnight, @just_before_midnight}
-  @time_units [:years, :months, :days, :hours, :minutes, :seconds]
+  @time_units [:months, :days, :hours, :minutes, :seconds]
   @months_in_year 12
-  @days_in_year 365
   @days_in_month 30
   @hours_in_day 24
   @minutes_in_hour 60
@@ -47,18 +46,29 @@ defmodule Cloak.Sql.FixAlign do
 
   def align_interval(interval = {x, y}) when is_number(x) and is_number(y), do: align_numeric_interval(interval)
 
-  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}), do: align_date_time({x, y}) |> max_precision()
+  def align_interval({%Date{} = x, %NaiveDateTime{} = y}), do: align_interval({Cloak.Time.date_to_datetime(x), y})
+  def align_interval({%NaiveDateTime{} = x, %Date{} = y}), do: align_interval({x, Cloak.Time.date_to_datetime(y)})
 
-  def align_interval({%Date{} = x, %Date{} = y}), do: {x, y} |> align_date_time() |> to_date()
+  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}), do: align_datetime({x, y}) |> max_precision()
+
+  def align_interval({%Date{} = x, %Date{} = y}), do: {x, y} |> align_datetime() |> to_date()
 
   def align_interval({%Time{} = x, %Time{} = y}),
     do:
       {x, y}
       |> time_to_datetime()
-      |> align_date_time()
+      |> align_datetime()
       |> datetime_to_time()
       |> cap_midnight()
       |> max_precision()
+
+  @doc "Returns the start of the alignment epoch."
+  @spec epoch_start() :: NaiveDateTime.t()
+  def epoch_start(), do: NaiveDateTime.from_erl!({{Cloak.Time.year_lower_bound(), 1, 1}, {0, 0, 0}})
+
+  @doc "Returns the end of the alignment epoch."
+  @spec epoch_end() :: NaiveDateTime.t()
+  def epoch_end(), do: NaiveDateTime.from_erl!({{Cloak.Time.year_upper_bound(), 12, 31}, {23, 59, 59}}, {999_999, 6})
 
   # -------------------------------------------------------------------
   # Internal functions for Dates and NaiveDateTimes
@@ -97,7 +107,7 @@ defmodule Cloak.Sql.FixAlign do
 
   defp to_date({x, y}), do: {NaiveDateTime.to_date(x), NaiveDateTime.to_date(y)}
 
-  defp align_date_time({x, y}) do
+  defp align_datetime({x, y}) do
     x = apply_datetime_bounds(x)
     y = apply_datetime_bounds(y)
 
@@ -105,26 +115,22 @@ defmodule Cloak.Sql.FixAlign do
       raise "Invalid interval"
     else
       largest_unit = largest_changed_unit({x, y})
-      aligned = align_date_time_once({x, y}, largest_unit)
+      aligned = align_datetime_once({x, y}, largest_unit)
 
       if largest_changed_unit(aligned) == largest_unit do
         aligned
       else
-        align_date_time_once({x, y}, largest_changed_unit(aligned))
+        align_datetime_once({x, y}, largest_changed_unit(aligned))
       end
     end
   end
 
-  defp align_date_time_once(_interval, nil), do: raise("Invalid interval")
+  defp align_datetime_once(_interval, nil), do: raise("Invalid interval")
 
-  defp align_date_time_once({x, y}, unit) do
+  defp align_datetime_once({x, y}, unit) do
     {x, y}
     |> units_since_epoch(unit)
-    |> align_numeric_interval(
-      _allow_fractions? = false,
-      _allow_half? = allow_half?(x, unit),
-      _size_factors = size_factors(unit)
-    )
+    |> align_datetime_interval(unit, allow_half?(x, unit))
     |> datetime_from_units(unit)
   end
 
@@ -137,23 +143,26 @@ defmodule Cloak.Sql.FixAlign do
     end)
   end
 
+  defp align_datetime_interval(interval, unit, allow_half?) do
+    unit
+    |> datetime_sizes()
+    |> Stream.map(&snap(&1, interval, allow_half?))
+    |> Enum.find(& &1)
+  end
+
   defp allow_half?(_, :months), do: false
   defp allow_half?(%Date{}, :days), do: false
   defp allow_half?(_, :seconds), do: false
   defp allow_half?(_, _), do: true
 
-  defp size_factors(:years), do: @default_size_factors
-  defp size_factors(:months), do: [1, 2, 6, 12]
-  defp size_factors(:days), do: @default_size_factors
-  defp size_factors(:hours), do: [1, 2, 6, 12, 24]
-  defp size_factors(:minutes), do: [1, 2, 5, 15, 30, 60]
-  defp size_factors(:seconds), do: [1, 2, 5, 15, 30, 60]
+  defp datetime_sizes(:months), do: Stream.concat([1, 2], Stream.iterate(3, &(&1 + 3)))
+  defp datetime_sizes(:days), do: [1, 2, 5, 10, 15, 20, 30, 60, 90]
+  defp datetime_sizes(:hours), do: [1, 2, 6, 12, 24, 48]
+  defp datetime_sizes(:minutes), do: [1, 2, 5, 15, 30, 60, 120]
+  defp datetime_sizes(:seconds), do: [1, 2, 5, 15, 30, 60, 120]
 
   defp units_since_epoch({x, y}, unit),
     do: {units_since_epoch(x, unit), y |> datetime_ceil(lower_unit(unit)) |> units_since_epoch(unit)}
-
-  defp units_since_epoch(%{year: year, month: month}, :years),
-    do: year - Cloak.Time.year_lower_bound() + (month - 1) / @months_in_year
 
   defp units_since_epoch(datetime = %{year: year, month: month, day: day}, :months),
     do:
@@ -199,22 +208,13 @@ defmodule Cloak.Sql.FixAlign do
   defp datetime_from_units({x, y}, unit), do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
 
   defp datetime_from_units(x, unit) do
-    cond do
-      unit == :years and x < 0 ->
-        epoch_start()
+    less_significant = ((x - floor(x)) * conversion_factor(unit, lower_unit(unit))) |> round()
 
-      unit == :years and Cloak.Time.year_lower_bound() + x > Cloak.Time.year_upper_bound() ->
-        epoch_end()
+    more_significant = floor(x)
 
-      true ->
-        less_significant = ((x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit))) |> round()
-
-        more_significant = x |> Float.floor() |> round()
-
-        epoch_start()
-        |> Timex.shift([{unit, more_significant}, {lower_unit(unit), less_significant}])
-        |> apply_datetime_bounds()
-    end
+    epoch_start()
+    |> Timex.shift([{unit, more_significant}, {lower_unit(unit), less_significant}])
+    |> apply_datetime_bounds()
   end
 
   defp apply_datetime_bounds(datetime) do
@@ -225,7 +225,6 @@ defmodule Cloak.Sql.FixAlign do
     end
   end
 
-  defp conversion_factor(:years, :months), do: @months_in_year
   defp conversion_factor(:months, :days), do: @days_in_month
   defp conversion_factor(:days, :hours), do: @hours_in_day
   defp conversion_factor(:hours, :minutes), do: @minutes_in_hour
@@ -235,7 +234,6 @@ defmodule Cloak.Sql.FixAlign do
   defp lower_unit(:seconds), do: :seconds
   defp lower_unit(unit), do: Enum.at(@time_units, Enum.find_index(@time_units, &(&1 == unit)) + 1)
 
-  defp duration_component(:years, duration), do: Timex.Duration.to_days(duration) / @days_in_year
   defp duration_component(:months, duration), do: Timex.Duration.to_days(duration) / @days_in_month
   defp duration_component(:days, duration), do: Timex.Duration.to_days(duration)
   defp duration_component(:hours, duration), do: Timex.Duration.to_hours(duration)
@@ -246,15 +244,10 @@ defmodule Cloak.Sql.FixAlign do
   # Internal functions for numeric intervals
   # -------------------------------------------------------------------
 
-  defp align_numeric_interval(
-         interval,
-         allow_fractions? \\ true,
-         allow_half? \\ true,
-         size_factors \\ @default_size_factors
-       ) do
+  defp align_numeric_interval(interval) do
     interval
-    |> sizes(size_factors, allow_fractions?)
-    |> Stream.map(&snap(&1, interval, allow_half?))
+    |> numeric_sizes()
+    |> Stream.map(&snap(&1, interval, _allow_half? = true))
     |> Enum.find(& &1)
   end
 
@@ -262,7 +255,8 @@ defmodule Cloak.Sql.FixAlign do
     require Integer
 
     can_halve? = allow_half? or (is_integer(size) and Integer.is_even(size))
-    left = if can_halve?, do: floor_to(x, size / 2), else: floor_to(x, size)
+    left = floor_to(x, size)
+    left = if can_halve?, do: floor_to(x, size / 2) |> max(left), else: left
     right = left + size
 
     if y <= right * (1 + sign(right) * @epsilon), do: {left, right}, else: nil
@@ -271,26 +265,16 @@ defmodule Cloak.Sql.FixAlign do
   defp sign(x) when x < 0, do: -1
   defp sign(_), do: 1
 
-  defp floor_to(x, grid) do
-    floor_epsilon(x / grid) * grid
+  defp floor_to(x, grid), do: floor_epsilon(x / grid) * grid
+
+  defp floor_epsilon(x), do: if(abs(Float.round(x) - x) < @epsilon, do: round(x), else: floor(x))
+
+  defp numeric_sizes(interval) do
+    Stream.concat(small_sizes(interval), large_sizes())
+    |> Stream.flat_map(fn magnitude -> Enum.map(@default_size_factors, &(&1 * magnitude)) end)
   end
 
-  defp floor_epsilon(x) do
-    if abs(Float.round(x) - x) < @epsilon do
-      Float.round(x)
-    else
-      Float.floor(x)
-    end
-  end
-
-  defp sizes(interval, size_factors, allow_fractions?) do
-    Stream.concat(small_sizes(interval, allow_fractions?), large_sizes())
-    |> Stream.flat_map(&for factor <- size_factors, do: &1 * factor)
-  end
-
-  defp small_sizes(_, _allow_fractions? = false), do: []
-
-  defp small_sizes({x, y}, _allow_fractions? = true) do
+  defp small_sizes({x, y}) do
     start =
       ((y - x) / 2)
       |> :math.log10()
@@ -300,13 +284,10 @@ defmodule Cloak.Sql.FixAlign do
     if start < 0, do: Stream.map(start..-1, &:math.pow(10, &1)), else: []
   end
 
-  defp large_sizes, do: Stream.iterate(1, &(&1 * 10))
+  defp large_sizes(), do: Stream.iterate(1, &(&1 * 10))
 
   defp order_of_magnitude(x) do
     floor_log = x |> :math.log10() |> Float.floor()
     :math.pow(10, floor_log)
   end
-
-  defp epoch_start(), do: NaiveDateTime.from_erl!({{Cloak.Time.year_lower_bound(), 1, 1}, {0, 0, 0}})
-  defp epoch_end(), do: NaiveDateTime.from_erl!({{Cloak.Time.year_upper_bound(), 12, 31}, {23, 59, 59}}, {999_999, 6})
 end

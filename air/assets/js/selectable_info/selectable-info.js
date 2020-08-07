@@ -17,7 +17,8 @@ const SelectableDetails = React.forwardRef(
         ref={ref}
         style={{
           ...props.style,
-          width: "250px",
+          minWidth: "250px",
+          maxWidth: "min(360px, calc(100vw - 100px))",
         }}
       >
         <Popover.Title>
@@ -28,6 +29,7 @@ const SelectableDetails = React.forwardRef(
             </h4>
             <button
               className="btn btn-link py-0 pr-0"
+              disabled={!window.insertWordInEditor}
               onClick={(event) => {
                 event.preventDefault();
                 window.insertWordInEditor(`"${selectable.id}"`);
@@ -43,12 +45,14 @@ const SelectableDetails = React.forwardRef(
           <Popover.Content>
             <div style={{ maxHeight: "50vh", overflowY: "auto" }}>
               {selectable.comment && (
-                <p className="border rounded px-2 py-1">
+                <div className="border rounded px-2 py-1">
                   <strong className="float-right text-muted ml-3 mt-1 font-weight-bold text-uppercase small">
                     Comment
                   </strong>
-                  {selectable.comment}
-                </p>
+                  <div style={{ whiteSpace: "pre-line" }}>
+                    {selectable.comment}
+                  </div>
+                </div>
               )}
 
               {isAnalystCreatedSelectable(selectable) && (

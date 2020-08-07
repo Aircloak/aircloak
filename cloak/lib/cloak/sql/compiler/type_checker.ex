@@ -246,7 +246,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         raise CompilationError,
           source_location: offending_column.source_location,
           message: """
-          The column #{Expression.short_name(offending_column)} is isolating and cannot be used in this condition.
+          The column `#{offending_column.name}` is isolating and cannot be used in this condition.
           For more information see the "Restrictions" section of the user guides.
           """
     end

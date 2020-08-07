@@ -95,7 +95,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports an error when mixing aggregated and normal columns" do
     assert_query("select count(*), height from test_errors", %{error: error})
-    assert error =~ ~r/`height` from table `test_errors` needs to appear in the `GROUP BY` clause/
+    assert error =~ ~r/`height` needs to appear in the `GROUP BY` clause/
   end
 
   test "query reports an error when grouping by nonexistent columns" do
@@ -105,7 +105,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports an error when not grouping by some selected columns" do
     assert_query("select name, height from test_errors group by height", %{error: error})
-    assert error =~ ~r/`name` from table `test_errors` needs to appear in the `GROUP BY` clause/
+    assert error =~ ~r/`name` needs to appear in the `GROUP BY` clause/
   end
 
   test "query reports an error when calling `grouping_id` without any arguments" do
@@ -128,8 +128,13 @@ defmodule Cloak.Query.ErrorTest do
     assert error =~ ~r/Function `grouping_id` can not be used in the `WHERE` or `GROUP BY` clauses/
   end
 
-  test "query reports an error when using duplicated grouping sets" do
+  test "query reports an error when using duplicated grouping sets (1)" do
     assert_query("select name, height from test_errors group by grouping sets ((1, 2), (1, 2))", %{error: error})
+    assert error =~ ~r/Duplicated grouping sets used in the `GROUP BY` clause/
+  end
+
+  test "query reports an error when using duplicated grouping sets (2)" do
+    assert_query("select height, height from test_errors group by grouping sets (1, 2)", %{error: error})
     assert error =~ ~r/Duplicated grouping sets used in the `GROUP BY` clause/
   end
 
@@ -191,12 +196,12 @@ defmodule Cloak.Query.ErrorTest do
       error: error
     })
 
-    assert error =~ ~r/`HAVING` clause can not be applied over column `height` from table `test_errors`./
+    assert error =~ ~r/Expression `height` has to appear in the `GROUP BY` clause or be used in an aggregate function./
   end
 
   test "query reports error on invalid where clause" do
     assert_query("select name from test_errors where max(height) >= 100", %{error: error})
-    assert error =~ ~r/Expression `max` is not valid in the `WHERE` clause./
+    assert error =~ ~r/Expression `max\(height\)` is not valid in the `WHERE` clause./
   end
 
   test "query reports error on cast in a where clause" do
@@ -204,7 +209,7 @@ defmodule Cloak.Query.ErrorTest do
       error: error
     })
 
-    assert error =~ ~r/Column `cast` must be limited to a finite, nonempty range./
+    assert error =~ ~r/Expression `cast\(name as integer\)` must be limited to a finite range./
     assert error =~ ~r/line 1, column 36/
   end
 
@@ -282,7 +287,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "complex expression missing aggregate" do
     assert_query("SELECT count(*), minute(cast('19:27:01', time)) + height FROM test_errors", %{
-      error: "Column `height` from table `test_errors` needs to appear in the `GROUP BY` clause" <> _
+      error: "Column `height` needs to appear in the `GROUP BY` clause" <> _
     })
   end
 

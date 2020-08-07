@@ -580,7 +580,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       source_location: column.source_location,
       message:
         "Grouping by unselected columns while using `DISTINCT` is not supported." <>
-          " Try removing #{Expression.display_name(column)} from the `GROUP BY` clause"
+          " Try removing `#{Expression.display(column)}` from the `GROUP BY` clause"
   end
 
   defp any_unselected_group_bys?(query),

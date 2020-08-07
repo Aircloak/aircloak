@@ -13,6 +13,7 @@ export type Column = {
   key_type: string,
   analysis?: any,
   comment: string | null,
+  access: "visible" | "unselectable",
 };
 
 export const ColumnsView = ({
@@ -37,6 +38,7 @@ export const ColumnsView = ({
             <button
               className="btn text-truncate"
               style={{ textAlign: "left" }}
+              disabled={!window.insertWordInEditor}
               onClick={(event) => {
                 event.preventDefault();
                 window.insertWordInEditor(`"${item.name}"`);

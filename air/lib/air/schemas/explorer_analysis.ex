@@ -26,7 +26,7 @@ defmodule Air.Schemas.ExplorerAnalysis do
     |> validate_required([:table_name, :status])
   end
 
-  def from_result_json(explorer_analysis, json_struct) do
+  def from_decoded_result_json(explorer_analysis, json_struct) do
     explorer_analysis
     |> changeset(%{
       status: String.downcase(json_struct["status"]),
