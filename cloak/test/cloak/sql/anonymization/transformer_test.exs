@@ -177,6 +177,57 @@ defmodule Cloak.Sql.TransformerTest do
                """)
     end
 
+    test "select count(uid) from subquery" do
+      assert transform("select count(x) from (select uid as x from table) t", &Transformer.group_by_uid/1) ==
+               flatten("""
+               SELECT
+                SUM(uid_grouping.agg_0) AS count
+               FROM (
+                SELECT
+                  t.x AS x,
+                  SUM(CASE WHEN t.x IS NULL THEN NULL ELSE 1 END) AS agg_0
+                FROM (SELECT table.uid AS x FROM table) AS t
+                WHERE t.x IS NOT NULL
+                GROUP BY t.x
+               ) AS uid_grouping
+               """)
+    end
+
+    test "select count(distinct uid) from subquery" do
+      assert transform("select count(distinct x) from (select uid as x from table) t", &Transformer.group_by_uid/1) ==
+               flatten("""
+               SELECT
+                COUNT(DISTINCT uid_grouping.x) AS count
+               FROM (
+                SELECT
+                  t.x AS x
+                FROM (SELECT table.uid AS x FROM table) AS t
+                WHERE t.x IS NOT NULL
+                GROUP BY t.x
+               ) AS uid_grouping
+               """)
+    end
+
+    test "[Bug] select count(distinct uid) from join" do
+      assert transform(
+               """
+               select count(distinct t2.uid) as dx from
+               table as t1 join table as t2 on t1.uid = t2.uid
+               """,
+               &Transformer.group_by_uid/1
+             ) ==
+               flatten("""
+                SELECT
+                  COUNT(DISTINCT uid_grouping.uid) AS dx
+                FROM (
+                  SELECT
+                    t1.uid AS uid
+                  FROM table AS t1 INNER JOIN table AS t2 ON (t1.uid = t2.uid)
+                  WHERE t1.uid IS NOT NULL GROUP BY t1.uid
+                ) AS uid_grouping
+               """)
+    end
+
     test "offload grouping sets" do
       assert transform(
                "select count(*) from table group by grouping sets (col1, col2)",
