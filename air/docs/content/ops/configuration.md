@@ -332,7 +332,9 @@ In that case you'd use a configuration like this:
 
 ### Diffix Explorer Configuration
 
-The Diffix Explorer integration is optional. You can activate it by including the `explorer` parameter in your configuration. It specifies the Diffix Explorer instance Insights Air will connect to. The configuration looks like this:
+The Diffix Explorer integration is optional. You can activate it by including the `explorer` parameter in your
+configuration. It specifies the Diffix Explorer instance Insights Air will connect to. The configuration looks like
+this:
 
 ```
 "explorer": {
@@ -340,8 +342,12 @@ The Diffix Explorer integration is optional. You can activate it by including th
 }
 ```
 
-The single property `url` is the URL where Insights Air can find a running version of Diffix Explorer. Note that for the integration to
-work properly, you will also need to fill out the optional [`site.endpoint_public_url`](#web-site-configuration) setting.
+The single property `url` is the URL where Insights Air can find a running version of Diffix Explorer.
+Note that if your Diffix Explorer instance is running behind a reverse proxy that sends an HTTP redirect (status code
+301 or equivalent) then the Diffix Explorer integration will fail. Please use the URL being redirect to instead. This
+includes if your reverse proxy redirects from HTTP to HTTPS. In the latter case, please explicitly include `https://`
+in the URL. For the Diffix Explorer integration to work properly, you will also need to configure the
+[`site.endpoint_public_url`](#web-site-configuration) setting.
 
 ## Insights Cloak configuration
 
