@@ -74,15 +74,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   defp supports_statistics_anonymization?(query) do
     Enum.all?(query.aggregators, &aggregator_supports_statistics?/1) and
-      user_id_not_selected?(query) and
       statistics_anonymization_enabled?(query.data_source)
-  end
-
-  defp user_id_not_selected?(query) do
-    Query.Lenses.leaf_expressions()
-    |> Lens.filter(& &1.user_id?)
-    |> Lens.to_list(query.group_by ++ Query.order_by_expressions(query))
-    |> Enum.empty?()
   end
 
   defp aggregator_supports_statistics?(%Expression{kind: :function, name: name, type: type})
