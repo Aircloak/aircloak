@@ -1,23 +1,6 @@
 defmodule Cloak.Regressions.Telefonica.Test do
   use ExUnit.Case, async: true
 
-  test "party id – dual: select *", do: assert_compiles_successfully("SELECT * FROM dual", data_source_party_id())
-
-  test "party id - dual: type casts" do
-    query = """
-    select cast(true as boolean) as col_boolean
-         , current_date() as col_date
-         , current_timestamp() as col_timestamp
-     --    , current_time() as col_time
-         , cast(123456789 as integer) as col_integer
-         , cast(3.141592653589 as real) as col_real
-         , 'text column äöüß' as col_text
-      from dual
-    """
-
-    assert_compiles_successfully(query, data_source_party_id())
-  end
-
   test "party id - vendor counts" do
     query = """
     SELECT dd
@@ -300,14 +283,6 @@ defmodule Cloak.Regressions.Telefonica.Test do
     assert_compiles_successfully(query, data_source_contract_id())
   end
 
-  test "contract id - query on dual about ilike usage" do
-    query = """
-    select *  from dual where dummy ilike '%X%'
-    """
-
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
   test "contract id - count transaction dates by week" do
     query = """
     SELECT count (uub.TRANS_DT),
@@ -458,9 +433,6 @@ defmodule Cloak.Regressions.Telefonica.Test do
 
   defp data_source_contract_id(),
     do: %{
-      "DUAL" => [
-        {"DUMMY", [type: :text]}
-      ],
       "DW.CC_CONTRACTS_DM" => [
         {"CONTRACT_ID", [type: :integer, uid: true]},
         {"ACADEMIC_TITLE_NAME", [type: :text]},
@@ -702,7 +674,6 @@ defmodule Cloak.Regressions.Telefonica.Test do
 
   defp data_source_party_id(),
     do: %{
-      "dual" => [],
       "AIRCLOAK.DDA_ENDRESULT_VENDOR" => [
         {"PARTY_ID", [type: :integer, uid: true]},
         {"DD", [type: :date]},
