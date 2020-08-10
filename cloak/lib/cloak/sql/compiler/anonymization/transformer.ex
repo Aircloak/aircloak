@@ -281,7 +281,7 @@ defmodule Cloak.Sql.Compiler.Anonymization.Transformer do
     |> update_in(
       [
         Lenses.top_down_query_expressions()
-        |> Lens.filter(&Expression.member?(base_columns, &1))
+        |> Lens.filter(&(&1.user_id? or Expression.member?(base_columns, &1)))
         |> Lens.reject(&(&1.table == inner_table))
       ],
       &update_base_column(&1, inner_table, base_columns)

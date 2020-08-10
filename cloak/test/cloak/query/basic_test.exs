@@ -1961,4 +1961,23 @@ defmodule Cloak.Query.BasicTest do
 
     assert [%{row: [10, "Charlie"], occurrences: 1}] = rows
   end
+
+  test "order by over count(distinct uid)" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [100])
+
+    assert_query(
+      "SELECT height FROM heights GROUP BY 1 ORDER BY COUNT(DISTINCT user_id)",
+      %{rows: [%{row: [100]}, %{row: [180]}]}
+    )
+  end
+
+  test "group by over uid expression" do
+    :ok = insert_rows(_user_ids = 1..120, "heights", [], [])
+
+    assert_query(
+      "SELECT COUNT(user_id) AS c FROM heights GROUP BY length(user_id) ORDER BY c",
+      %{rows: [%{row: [9]}, %{row: [21]}, %{row: [90]}]}
+    )
+  end
 end

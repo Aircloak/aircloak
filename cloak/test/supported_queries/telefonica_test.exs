@@ -1,25 +1,13 @@
 defmodule Cloak.Regressions.Telefonica.Test do
   use ExUnit.Case, async: true
 
-  test "party id – dual: select *", do: assert_compiles_successfully("SELECT * FROM dual", data_source_party_id())
+  import Cloak.Test.QueryHelpers
 
-  test "party id - dual: type casts" do
-    query = """
-    select cast(true as boolean) as col_boolean
-         , current_date() as col_date
-         , current_timestamp() as col_timestamp
-     --    , current_time() as col_time
-         , cast(123456789 as integer) as col_integer
-         , cast(3.141592653589 as real) as col_real
-         , 'text column äöüß' as col_text
-      from dual
-    """
+  test "party id" do
+    party_id_tables() |> setup_tables()
 
-    assert_compiles_successfully(query, data_source_party_id())
-  end
-
-  test "party id - vendor counts" do
-    query = """
+    # vendor counts
+    assert_query_not_failing("""
     SELECT dd
            , vendor_name AS vendornames
            , count(*)    AS count_customers
@@ -28,13 +16,10 @@ defmodule Cloak.Regressions.Telefonica.Test do
            , order_by
            , dd
     order by order_by
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_party_id())
-  end
-
-  test "party id - handset stats" do
-    query = """
+    # handset stats
+    assert_query_not_failing("""
     SELECT handset, MIN(tmp.dd) as dd, MIN(tmp.cnt) as count_min, MAX(tmp.cnt) as count_max
     FROM (SELECT c.vendor_name || ' ' || b.model_name AS handset,netw.dd as dd,COUNT(*) as cnt
     FROM dw.cc_handset_type_properties htp
@@ -53,26 +38,24 @@ defmodule Cloak.Regressions.Telefonica.Test do
     GROUP BY handset
     having MIN(tmp.dd) = DATE_TRUNC('month', CURRENT_DATE())
     order by 4 desc
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_party_id())
-  end
-
-  test "party id - sanity check query?" do
-    query = """
+    # sanity check query?
+    assert_query_not_failing("""
     select count(*) as cnt, count_noise(*) as noise, sum(test) as summe from (
       select contract_id, count_noise(*) as test
       from dw.w_contracts c
     where system_stack_id = 11
       and order_date between DATE'2020-04-01' and DATE'2020-04-12'
     group by contract_id) t
-    """
-
-    assert_compiles_successfully(query, data_source_party_id())
+    """)
   end
 
-  test "contract id - data usage by data pack" do
-    query = """
+  test "contract id" do
+    contract_id_tables() |> setup_tables()
+
+    # data usage by data pack
+    assert_query_not_failing("""
     select count(*),count(distinct uub.CONTRACT_ID )
     ,sum(FCT_UNIT_KILOBYTES)
     ,pack.Pack
@@ -97,13 +80,10 @@ defmodule Cloak.Regressions.Telefonica.Test do
     and date_trunc('month', uub.trans_dt) = DATE'2020-05-01'
     and uub.trans_dt >= DATE'2020-05-01' and uub.trans_dt < DATE'2020-06-01'
     group by pack.Pack
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - data usage by data pack / mth" do
-    query = """
+    # data usage by data pack / mth
+    assert_query_not_failing("""
     select count(*),count(distinct uub.CONTRACT_ID )
     ,sum(FCT_UNIT_KILOBYTES)
     ,pack.Pack
@@ -129,23 +109,17 @@ defmodule Cloak.Regressions.Telefonica.Test do
     and date_trunc('month', uub.trans_dt) between DATE'2020-01-01' and DATE'2020-07-01'
     and uub.trans_dt between DATE'2020-01-01' and DATE'2020-07-01'
     group by pack.Pack,date_trunc('month', uub.trans_dt)
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - product desc" do
-    query = """
+    # product desc
+    assert_query_not_failing("""
     select product_id, product_desc
                     from dw.cc_products
                    where lower(PRODUCT_DESC) LIKE '%data%spot%'
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - active contract count for certain date range and data class" do
-    query = """
+    # active contract count for certain date range and data class
+    assert_query_not_failing("""
     select --+ parallel (a 32) parallel (b 32)
                   count(*)
              from dw.cc_contracts_dm a
@@ -163,13 +137,10 @@ defmodule Cloak.Regressions.Telefonica.Test do
               and a.service_provider_id  = 1
               and a.PRODUCT_ID_CURRENT   = b.product_id
     --          and activation_dt         <= trunc(sysdate-32)
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - gigabyte bucket sized usage count" do
-    query = """
+    # gigabyte bucket sized usage count
+    assert_query_not_failing("""
     select bucket(total_usage_in_kilobytes by 1000000 align upper) as bucket_1gb
        , count(*) as cnt
     from
@@ -204,13 +175,10 @@ defmodule Cloak.Regressions.Telefonica.Test do
       ) upc
     group by bucket(total_usage_in_kilobytes by 1000000 align upper)
     order by 1
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - upper aligned gigabyte bucket sized usage count with noise" do
-    query = """
+    # upper aligned gigabyte bucket sized usage count with noise
+    assert_query_not_failing("""
     select
       bucket(total_usage_in_kilobytes by 1000000 align upper) AS u1gb
        , count(*) as cnt
@@ -248,13 +216,10 @@ defmodule Cloak.Regressions.Telefonica.Test do
       ) upc
     group by bucket(total_usage_in_kilobytes by 1000000 align upper)
     order by 1
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - total data usage, contract count by month and pack type" do
-    query = """
+    # total data usage, contract count by month and pack type
+    assert_query_not_failing("""
     select
     count(distinct CONTRACT_ID ),
     sum(FCT_UNIT_KILOBYTES) ,
@@ -295,31 +260,17 @@ defmodule Cloak.Regressions.Telefonica.Test do
     and new.month = DATE'2020-05-01'
     and new.month = DATE'2020-06-01'
     group by month,Pack
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - query on dual about ilike usage" do
-    query = """
-    select *  from dual where dummy ilike '%X%'
-    """
-
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - count transaction dates by week" do
-    query = """
+    # count transaction dates by week
+    assert_query_not_failing("""
     SELECT count (uub.TRANS_DT),
       DATE_TRUNC ('WEEK', MAX (  uub.TRANS_DT)) AS max_trans_dt
                             FROM dw.FCT_UUB_CTR_DD uub
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - count transaction dates by duration and feature id classification" do
-    query = """
+    # count transaction dates by duration and feature id classification
+    assert_query_not_failing("""
     SELECT COUNT (c.contract_id) as count_contracts,
                       DATE_TRUNC ('WEEK', uub.max_trans_dt) as  max_trans_week,
                       DATE_TRUNC ('WEEK', cpf.start_dt)  as start_dt_week,
@@ -345,13 +296,10 @@ defmodule Cloak.Regressions.Telefonica.Test do
                        CASE WHEN cpf.PRD_FEATURE_ID = 2588 THEN 1 ELSE 0 END,
                        uub.max_trans_dt,
                        cpf.start_dt
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - count contracts by whether active for x days and promo" do
-    query = """
+    # count contracts by whether active for x days and promo
+    assert_query_not_failing("""
     select
      count ( sub.count_contracts) ,
      max_trans_week,
@@ -389,13 +337,10 @@ defmodule Cloak.Regressions.Telefonica.Test do
      start_dt_week,
      lief_breits_x_tage,
      promo
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - count contracts by start and end date and whether due to promo" do
-    query = """
+    # count contracts by start and end date and whether due to promo
+    assert_query_not_failing("""
     SELECT COUNT (c.contract_id),
              uub.max_trans_dt_week,
              cpf.start_dt_week,
@@ -419,13 +364,10 @@ defmodule Cloak.Regressions.Telefonica.Test do
           AND c.service_provider_id =1
           AND c.IS_PREPAID = 'Y'
     GROUP BY uub.max_trans_dt_week, cpf.start_dt_week
-    """
+    """)
 
-    assert_compiles_successfully(query, data_source_contract_id())
-  end
-
-  test "contract id - contract termination count by start week" do
-    query = """
+    # contract termination count by start week
+    assert_query_not_failing("""
     SELECT COUNT (c.contract_id),
              uub.max_trans_dt_week,
              date_trunc ('month', cpf.start_dt) AS start_dt_month,
@@ -451,16 +393,19 @@ defmodule Cloak.Regressions.Telefonica.Test do
           AND c.service_provider_id =1
           AND c.IS_PREPAID = 'Y'
     GROUP BY uub.max_trans_dt_week, date_trunc ('month', cpf.start_dt)
-    """
-
-    assert_compiles_successfully(query, data_source_contract_id())
+    """)
   end
 
-  defp data_source_contract_id(),
+  defp setup_tables(tables) do
+    Enum.each(tables, &create_table!/1)
+
+    on_exit(fn ->
+      Enum.each(tables, &delete_table!/1)
+    end)
+  end
+
+  defp contract_id_tables(),
     do: %{
-      "DUAL" => [
-        {"DUMMY", [type: :text]}
-      ],
       "DW.CC_CONTRACTS_DM" => [
         {"CONTRACT_ID", [type: :integer, uid: true]},
         {"ACADEMIC_TITLE_NAME", [type: :text]},
@@ -700,9 +645,8 @@ defmodule Cloak.Regressions.Telefonica.Test do
       ]
     }
 
-  defp data_source_party_id(),
+  defp party_id_tables(),
     do: %{
-      "dual" => [],
       "AIRCLOAK.DDA_ENDRESULT_VENDOR" => [
         {"PARTY_ID", [type: :integer, uid: true]},
         {"DD", [type: :date]},
@@ -851,36 +795,6 @@ defmodule Cloak.Regressions.Telefonica.Test do
       ]
     }
 
-  defp assert_compiles_successfully(query, data_source_scaffold) do
-    parsed_query = Cloak.Sql.Parser.parse!(query)
-    data_source = generate_data_source_config(data_source_scaffold)
-    assert {:ok, _} = Cloak.Sql.Compiler.compile(parsed_query, nil, data_source, nil, %{})
-  end
-
-  defp generate_data_source_config(scaffold) do
-    tables = for {name, _} = table <- scaffold, into: %{}, do: {name, table_from_scaffold(table)}
-
-    %{
-      name: "telefonic_test_data_source",
-      driver: Cloak.DataSource.PostgreSQL,
-      tables: tables
-    }
-  end
-
-  defp table_from_scaffold({table, column_data}) do
-    table = to_string(table)
-    uid_column_name = uid_column_name(column_data)
-
-    columns =
-      Enum.map(column_data, fn {name, params} ->
-        Cloak.DataSource.Table.column(name, Keyword.get(params, :type))
-      end)
-
-    keys = keys_from_columns(column_data)
-
-    Cloak.DataSource.Table.new(table, uid_column_name, db_name: table, columns: columns, keys: keys)
-  end
-
   defp uid_column_name(columns) do
     Enum.find_value(columns, fn {name, params} ->
       case Keyword.get(params, :uid) do
@@ -896,4 +810,19 @@ defmodule Cloak.Regressions.Telefonica.Test do
       |> Enum.filter(fn {_column_name, options} -> Keyword.has_key?(options, :key) end)
       |> Enum.map(fn {column_name, options} -> {column_name, Keyword.get(options, :key)} end)
       |> Enum.into(%{})
+
+  defp create_table!({name, columns}) do
+    columns_statement = columns |> Enum.map(&column_statement/1) |> Enum.join(", ")
+
+    :ok =
+      Cloak.Test.DB.create_table(name, columns_statement,
+        add_user_id: false,
+        user_id: uid_column_name(columns),
+        keys: keys_from_columns(columns)
+      )
+  end
+
+  defp column_statement({name, [{:type, type} | _]}), do: "\"#{name}\" #{type}"
+
+  defp delete_table!({name, _}), do: :ok = Cloak.Test.DB.delete_table(name)
 end
