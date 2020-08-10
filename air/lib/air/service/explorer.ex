@@ -417,6 +417,9 @@ defmodule Air.Service.Explorer do
            HTTPoison.get("#{base_url()}/result/#{explorer_analysis.job_id}") do
       Jason.decode(response)
     else
+      {:error, %HTTPoison.Error{reason: :timeout}} ->
+        {:error, :timeout}
+
       {:ok, %HTTPoison.Response{status_code: 404}} ->
         {:error, :not_found}
 
@@ -425,9 +428,6 @@ defmodule Air.Service.Explorer do
 
       {:ok, %HTTPoison.Response{status_code: status_code, body: body}} when status_code >= 500 and status_code < 600 ->
         {:error, {:internal_error, status_code, body}}
-
-      {:error, %HTTPoison.Error{reason: :timeout}} ->
-        {:error, :timeout}
 
       err ->
         {:error, err}
