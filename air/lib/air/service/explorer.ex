@@ -88,11 +88,8 @@ defmodule Air.Service.Explorer do
 
   @doc "Requests new analyses for datasource."
   @spec reanalyze_datasource(Air.Schemas.DataSource.t()) :: :ok
-  def reanalyze_datasource(data_source) do
-    {_, token} = find_or_create_explorer_creds()
-
-    Enum.each(results_for_datasource(data_source), &GenServer.cast(__MODULE__, {:request_analysis, &1, token}))
-  end
+  def reanalyze_datasource(data_source),
+    do: Enum.each(results_for_datasource(data_source), &GenServer.cast(__MODULE__, {:request_analysis, &1}))
 
   @doc "Returns a list of tables that are elligible for analysis for a particular datasource"
   @spec elligible_tables_for_datasource(Air.Schemas.DataSource.t()) :: [String.t()]
@@ -139,8 +136,6 @@ defmodule Air.Service.Explorer do
         end
       end)
 
-    {_, token} = find_or_create_explorer_creds()
-
     case Air.Service.Group.update(old_group, params) do
       {:ok, new_group} ->
         new_group.data_sources
@@ -149,7 +144,7 @@ defmodule Air.Service.Explorer do
         |> reject_all_unchanged()
         |> Enum.each(fn {data_source, tables} ->
           Enum.each(tables, fn table ->
-            GenServer.cast(__MODULE__, {:request_analysis, create_placeholder_result(data_source, table), token})
+            GenServer.cast(__MODULE__, {:request_analysis, create_placeholder_result(data_source, table)})
           end)
         end)
 
@@ -191,37 +186,49 @@ defmodule Air.Service.Explorer do
   @impl GenServer
   def init(_) do
     if enabled?() do
-      Process.send_after(self(), :poll, @poll_interval)
-      {:ok, true}
+      {:ok, schedule_poll()}
     else
       {:ok, false}
     end
   end
 
   @impl GenServer
-  def handle_cast({:request_analysis, analysis, token}, poll_in_progress?) do
-    request_analysis(analysis, token)
-    unless poll_in_progress?, do: Process.send_after(self(), :poll, @poll_interval)
-    {:noreply, true}
+  def handle_cast({:request_analysis, analysis}, poll_in_progress?) do
+    request_analysis(analysis)
+    {:noreply, poll_unless_already_pending_poll(poll_in_progress?)}
   end
 
   @impl GenServer
   def handle_info(:poll, _state) do
     pending_analyses_query()
     |> Repo.all()
-    |> Enum.each(&poll_for_update/1)
+    |> Enum.each(&poll_analysis/1)
 
     if Repo.exists?(pending_analyses_query()) do
-      Process.send_after(self(), :poll, @poll_interval)
-      {:noreply, true}
+      {:noreply, schedule_poll()}
     else
       {:noreply, false}
     end
   end
 
+  def handle_info({:ssl_closed, {:sslsocket, {:gen_tcp, _port, :tls_connection, :undefined}, _pids}}, state) do
+    Logger.info("The SSL connection was unexpectedly terminated by Explorer.")
+    {:noreply, poll_unless_already_pending_poll(state)}
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp schedule_poll(), do: poll_unless_already_pending_poll(false)
+
+  defp poll_unless_already_pending_poll(poll_in_progress?) do
+    if not poll_in_progress? do
+      Process.send_after(self(), :poll, @poll_interval)
+    end
+
+    true
+  end
 
   defp create_placeholder_result(data_source, table) do
     Repo.insert!(%ExplorerAnalysis{data_source: data_source, table_name: table, status: :new})
@@ -262,7 +269,8 @@ defmodule Air.Service.Explorer do
 
   defp pending_analyses_query() do
     from(explorer_analysis in ExplorerAnalysis,
-      where: explorer_analysis.status in ["new", "processing"] and not is_nil(explorer_analysis.job_id)
+      where: explorer_analysis.status in ["new", "processing"] and not is_nil(explorer_analysis.job_id),
+      preload: [:data_source]
     )
   end
 
@@ -284,7 +292,9 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  defp request_analysis(analysis, token) do
+  defp request_analysis(analysis) do
+    {_, token} = find_or_create_explorer_creds()
+
     %{"columns" => columns} =
       DataSource.tables(analysis.data_source)
       |> Enum.find(fn %{"id" => name} -> name == analysis.table_name end)
@@ -297,7 +307,7 @@ defmodule Air.Service.Explorer do
         "Table" => analysis.table_name,
         "Columns" =>
           columns
-          |> Enum.reject(fn %{"isolated" => isolating?, "user_id" => uid?} -> isolating? || uid? end)
+          |> Enum.reject(&unanalyzable_column?/1)
           |> Enum.map(fn %{"name" => column_name} ->
             column_name
           end)
@@ -338,62 +348,98 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  defp update_analysis(changeset, opts) do
-    modified =
-      if Keyword.has_key?(opts, :result) do
-        ExplorerAnalysis.from_result_json(changeset, Keyword.get(opts, :result))
-      else
-        ExplorerAnalysis.changeset(changeset, Enum.into(opts, %{}))
-      end
+  defp unanalyzable_column?(column),
+    do:
+      Map.get(column, "isolated", true) || Map.get(column, "user_id", true) ||
+        Map.get(column, "access", "unselectable") == "unselectable"
 
-    Repo.insert_or_update(modified)
+  defp handle_result_changeset(changeset, nil), do: changeset
+  defp handle_result_changeset(changeset, results), do: ExplorerAnalysis.from_decoded_result_json(changeset, results)
+
+  defp update_analysis(changeset, opts) do
+    changeset
+    |> handle_result_changeset(Keyword.get(opts, :result))
+    |> ExplorerAnalysis.changeset(
+      opts
+      |> Keyword.delete(:result)
+      |> Enum.into(%{})
+    )
+    |> Repo.insert_or_update()
   end
 
-  defp poll_for_update(explorer_analysis) do
-    with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
-           HTTPoison.get("#{base_url()}/result/#{explorer_analysis.job_id}"),
-         {:ok, decoded} <- Jason.decode(response),
-         {:ok, analysis} <-
-           explorer_analysis
-           |> ExplorerAnalysis.from_result_json(decoded)
-           |> Air.Repo.update() do
-      {:ok, analysis}
-    else
-      {:ok, %HTTPoison.Response{status_code: 404}} ->
-        handle_retry(explorer_analysis)
+  defp poll_analysis(explorer_analysis) do
+    case poll_explorer_for_update(explorer_analysis) do
+      {:ok, decoded_analysis} ->
+        explorer_analysis
+        |> ExplorerAnalysis.from_decoded_result_json(decoded_analysis)
+        |> Air.Repo.update()
 
-      {:ok, %HTTPoison.Response{status_code: 500, body: body}} ->
-        handle_poll_error(
-          explorer_analysis,
-          "Something went wrong in Diffix Explorer (HTTP 500) when polling: " <> body
+      {:error, :not_found} ->
+        Logger.warn(
+          "Restarting analysis job (#{explorer_analysis.data_source.name}/#{explorer_analysis.table_name}) due to Diffix Explorer having lost track of it."
         )
 
+        handle_retry(explorer_analysis)
+
+      {:error, {:client_error, status_code, body}} ->
+        handle_poll_error(
+          explorer_analysis,
+          "Diffix Explorer rejected the request (HTTP #{status_code}) when polling: " <> body
+        )
+
+        {:error, :air_error}
+
+      {:error, {:internal_error, status_code, body}} ->
+        handle_poll_error(
+          explorer_analysis,
+          "Something went wrong in Diffix Explorer (HTTP #{status_code}) when polling: " <> body
+        )
+
+        {:error, :explorer_error}
+
+      {:error, :timeout} ->
+        # Note: we are explicitly not marking timed out jobs as errored, because this will in turn
+        # mark the job as failed, and prevent it from being re-attempted. A timeout is likely just a temporary glitch.
+        Logger.warn(
+          "Polling request for explorer job with id #{explorer_analysis.job_id} timed out. Will attempt again later."
+        )
+
+        {:error, :timeout}
+
+      {:error, unexpected_result} ->
+        handle_poll_error(explorer_analysis, inspect(unexpected_result))
+        {:error, :unexpected_result}
+    end
+  end
+
+  defp poll_explorer_for_update(explorer_analysis) do
+    with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
+           HTTPoison.get("#{base_url()}/result/#{explorer_analysis.job_id}") do
+      Jason.decode(response)
+    else
+      {:error, %HTTPoison.Error{reason: :timeout}} ->
+        {:error, :timeout}
+
+      {:ok, %HTTPoison.Response{status_code: 404}} ->
+        {:error, :not_found}
+
+      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} when status_code >= 400 and status_code < 500 ->
+        {:error, {:client_error, status_code, body}}
+
+      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} when status_code >= 500 and status_code < 600 ->
+        {:error, {:internal_error, status_code, body}}
+
       err ->
-        handle_poll_error(explorer_analysis, inspect(err))
+        {:error, err}
     end
   end
 
   defp handle_retry(explorer_analysis) do
-    explorer_analysis = Repo.preload(explorer_analysis, :data_source)
-
-    Logger.warn(
-      "Explorer returned 404 for previously created job (#{explorer_analysis.data_source.name}/#{
-        explorer_analysis.table_name
-      }). Retrying."
-    )
-
-    {_, token} = find_or_create_explorer_creds()
-
     update_analysis(explorer_analysis, job_id: nil)
-
-    request_analysis(explorer_analysis, token)
-
-    {:error, "Job deleted in Explorer"}
+    request_analysis(explorer_analysis)
   end
 
   defp handle_poll_error(explorer_analysis, error) do
-    explorer_analysis = Repo.preload(explorer_analysis, :data_source)
-
     Logger.error(
       "Polling for results for #{explorer_analysis.data_source.name}/#{explorer_analysis.table_name} errored with #{
         inspect(error)
@@ -403,8 +449,6 @@ defmodule Air.Service.Explorer do
     explorer_analysis
     |> ExplorerAnalysis.changeset(%{status: :error, errors: [error]})
     |> Air.Repo.update()
-
-    {:error, error}
   end
 
   defp base_url(), do: config!("url") <> "/api/v1"

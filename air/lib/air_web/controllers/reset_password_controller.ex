@@ -19,6 +19,8 @@ defmodule AirWeb.ResetPasswordController do
   def update(conn, params) do
     case User.reset_password(params["token"], params["user"]) do
       {:ok, user} ->
+        audit_log_for_user(conn, user, "Password reset")
+
         conn
         |> put_flash(:info, "Your new password has been saved.")
         |> AirWeb.Plug.Session.sign_in(user)

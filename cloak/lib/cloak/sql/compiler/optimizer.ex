@@ -35,7 +35,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   def optimize_columns_from_subqueries(query),
     do:
       Lens.map(
-        Query.Lenses.direct_subqueries(),
+        Query.Lenses.direct_subqueries(analyst_tables?: false),
         query,
         &%{&1 | ast: optimize_subquery_columns(&1.ast, used_columns_from_table(query, &1.alias))}
       )

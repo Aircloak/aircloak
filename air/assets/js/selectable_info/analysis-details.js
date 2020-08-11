@@ -290,25 +290,28 @@ const descriptiveStats = (formatNum) => (
   min,
   max
 ) => (
-  <div className="stats-group mb-3">
-    <h4 className="text-muted font-weight-bold text-uppercase small">
-      Descriptive Stats
-    </h4>
-    <div className="list-group list-group-horizontal">
-      {niceBox("Minimum", formatNum(min))}
-      {niceBox("Median", formatNum(quartiles[1]))}
-      {niceBox("Maximum", formatNum(max))}
+  <>
+    <div className="stats-group mb-3">
+      <h4 className="text-muted font-weight-bold text-uppercase small">
+        Descriptive Stats
+      </h4>
+      <div className="list-group list-group-horizontal">
+        {niceBox("Minimum", formatNum(min))}
+        {niceBox("Median", formatNum(quartiles[1]))}
+        {niceBox("Maximum", formatNum(max))}
+      </div>
+      <div className="list-group list-group-horizontal">
+        {niceBox("Mean", formatNum(mean))}
+        {niceBox("Mode", formatNum(mode))}
+      </div>
+      <div className="list-group list-group-horizontal">
+        {niceBox("Entropy", formatNum(entropy))}
+        {niceBox("StdDev", formatNum(standardDeviation))}
+        {niceBox("Variance", formatNum(variance))}
+      </div>
     </div>
-    <div className="list-group list-group-horizontal">
-      {niceBox("Mean", formatNum(mean))}
-      {niceBox("Mode", formatNum(mode))}
-    </div>
-    <div className="list-group list-group-horizontal">
-      {niceBox("Entropy", formatNum(entropy))}
-      {niceBox("StdDev", formatNum(standardDeviation))}
-      {niceBox("Variance", formatNum(variance))}
-    </div>
-  </div>
+    {boxplot(quartiles, min, max)}
+  </>
 );
 
 const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
@@ -341,20 +344,9 @@ const AnalysisDetails = ({ numberFormat, analysis, type, popper }) => {
       {renderIfPrereqs(
         descriptiveStats(formatNum),
         "descriptive_stats",
-        "refined_min",
-        "refined_max"
-      ) ||
-        renderIfPrereqs(
-          range(numberFormat, type),
-          "refined_min",
-          "refined_max"
-        )}
-      {renderIfPrereqs(
-        boxplot,
-        "quartile_estimates",
-        "refined_min",
-        "refined_max"
-      )}
+        "min",
+        "max"
+      ) || renderIfPrereqs(range(numberFormat, type), "min", "max")}
       {renderIfPrereqs(
         exactValues(formatNum),
         "distinct.values",

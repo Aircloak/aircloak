@@ -61,7 +61,9 @@ defmodule AirWeb.SettingsController do
         |> redirect(to: settings_path(conn, :security))
 
       {:error, changeset} ->
-        render(conn, "security.html", changeset: changeset)
+        conn
+        |> put_status(:unauthorized)
+        |> render("security.html", changeset: changeset)
     end
   end
 

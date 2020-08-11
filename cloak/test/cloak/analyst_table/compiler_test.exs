@@ -37,8 +37,8 @@ defmodule Cloak.AnalystTable.CompilerTest do
 
       assert db_select(query) ==
                ~s/SELECT "mv1"."user_id" AS "user_id","mv2"."x" AS "x" / <>
-                 ~s/FROM  "cloak_test"."mv1" AS "mv1" / <>
-                 ~s/INNER JOIN "cloak_test"."db_name_mv2" AS "mv2" ON ("mv1"."user_id" = "mv2"."user_id") /
+                 ~s/FROM "cloak_test"."mv1" AS "mv1" / <>
+                 ~s/INNER JOIN "cloak_test"."db_name_mv2" AS "mv2" ON ("mv1"."user_id" = "mv2"."user_id")/
     end
 
     test "tables are referenced by the user name" do

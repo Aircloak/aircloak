@@ -104,7 +104,6 @@ const App = {
             sessionId={sessionId}
             socketToken={socketToken}
             dataSourceName={dataSourceName}
-            dataSourceDescription={dataSourceDescription}
             dataSourceStatus={dataSourceStatus}
             selectables={selectables}
             lastQuery={lastQuery}

@@ -39,6 +39,7 @@ const AnalysisDetails = React.forwardRef(
           </h4>
           <button
             className="btn btn-link"
+            disabled={!window.insertWordInEditor}
             onClick={(event) => {
               event.preventDefault();
               window.insertWordInEditor(`"${item.name}"`);
@@ -53,12 +54,12 @@ const AnalysisDetails = React.forwardRef(
         >
           {item.comment && (
             <Popover.Content className="bg-white mb-3">
-              <p className="border rounded px-2 py-1 m-0 ">
+              <div className="border rounded px-2 py-1 m-0 ">
                 <strong className="float-right text-muted ml-3 mt-1 font-weight-bold text-uppercase small">
                   Comment
                 </strong>
                 <div style={{ whiteSpace: "pre-line" }}>{item.comment}</div>
-              </p>
+              </div>
             </Popover.Content>
           )}
           <Popover.Content className="bg-white">

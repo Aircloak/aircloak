@@ -38,6 +38,7 @@ export const ColumnsView = ({
             <button
               className="btn text-truncate"
               style={{ textAlign: "left" }}
+              disabled={!window.insertWordInEditor}
               onClick={(event) => {
                 event.preventDefault();
                 window.insertWordInEditor(`"${item.name}"`);

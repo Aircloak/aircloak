@@ -43,7 +43,7 @@ defmodule AirWeb.Admin.ExplorerView do
     content_tag(:div, class: "form-check") do
       [
         tag(:input, input_opts),
-        label(form, field, [{:class, "form-check-label"} | label_opts]) do
+        label(form, field, [{:class, "form-check-label text-break mw-100"} | label_opts]) do
           table_name
         end
       ]

@@ -36,10 +36,11 @@
 - Ranges that end at the maximum value of a type now include the maximum value.
 - Allow month-aligned constant date between columns expressions.
 - Administrators can now convert analyst tables into views.
-- Various query interface improvements such as supporting deleting queries and showing when they were run
+- Various query interface improvements such as supporting deleting queries and showing when they were run.
 - Allow ranges with mixed date and datetime boundaries.
 - Improved range alignment messages.
 - The rate at which column analysis queries are executed can be specified in configuration.
+- Analyst tables will utilize select hints in Oracle data sources.
 
 ### Bugfixes
 
@@ -51,6 +52,7 @@
   assigned to an LDAP group will be migrated out of the group and into a transitionary group. This ensures
   all users retain access to all the data sources they expect, but will lead to additional groups being
   created.
+- Fixed crash when executing query over analyst table containing filters over the selected columns.
 
 ### Changes
 

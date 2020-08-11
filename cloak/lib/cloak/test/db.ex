@@ -86,15 +86,17 @@ defmodule Cloak.Test.DB do
   end
 
   def handle_call({:create_table, table_name, definition, opts}, _from, state) do
-    db_name = opts[:db_name] || table_name
+    db_name = opts[:db_name] || String.replace(table_name, ".", "_")
     create_db_table(db_name, definition, opts)
     status = register_test_table(String.to_atom(table_name), full_table_name(db_name), opts)
     {:reply, status, state}
   end
 
   def handle_call({:delete_table, table_name}, _from, state) do
-    status = unregister_test_table(String.to_atom(table_name))
-    execute!("DROP TABLE IF EXISTS #{sanitized_table(table_name)}")
+    table_id = String.to_atom(table_name)
+    table = DataSource.all() |> Enum.find_value(& &1.tables[table_id])
+    status = unregister_test_table(table_id)
+    if table, do: execute!("DROP TABLE IF EXISTS #{table.db_name}")
     {:reply, status, state}
   end
 
