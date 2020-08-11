@@ -751,7 +751,7 @@ defmodule Cloak.Regressions.Telefonica.Test do
         {"CREATE_USER", [type: :text]},
         {"DESCRIPTION", [type: :text]},
         {"HST_PROPERTY_ID", [type: :integer, key: :handset_property_id]},
-        {"HST_PROPERTY_VALUE_ID", [type: :integer, keys: :handset_property_value_id]},
+        {"HST_PROPERTY_VALUE_ID", [type: :integer, key: :handset_property_value_id]},
         {"IS_ACTIVE", [type: :text]},
         {"MODIFY_DT", [type: :date]},
         {"MODIFY_USER", [type: :text]},
