@@ -1980,4 +1980,11 @@ defmodule Cloak.Query.BasicTest do
       %{rows: [%{row: [9]}, %{row: [21]}, %{row: [90]}]}
     )
   end
+
+  test "[Issue #4639] stats aggregators over many null values and 1 non-null value" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 1..1, "heights", ["height"], [100])
+
+    assert_query("SELECT max(height), min(height), avg(height) FROM heights", %{rows: [%{row: [nil, nil, nil]}]})
+  end
 end
