@@ -11,11 +11,13 @@
   </div>
 <% end %>
 
-<img src="/frontend/images/online_protection.svg" alt="" class="d-none d-xl-block float-right" width="300" />
+<img src="/frontend/images/online_protection.svg" alt="" class="d-none d-xl-block mt-sm-5 float-right" width="300" />
 
 <div class="container-lg px-0 mx-0 mb-5 pt-3">
   <%= if can_edit?(@changeset.data) do %>
-    <h2 class="h3 offset-lg-3 mb-3">Change password</h2>
+    <div class="row form-group">
+      <h2 class="h3 offset-sm-3 pl-3">Change password</h2>
+    </div>
 
     <%= form_for @changeset, settings_path(@conn, :change_password), fn f -> %>
       <%= validated_password_input f, :old_password, "Current Password", horizontal: {3, 6}, label_class: "label-right", autocomplete: "current-password"  %>
@@ -29,8 +31,10 @@
 
       <%= validated_password_input f, :password_confirmation, "Password Confirmation", horizontal: {3, 6}, label_class: "label-right", autocomplete: "new-password"  %>
 
-      <div class="form-group offset-sm-3 pl-2">
-        <%= submit "Save", class: "btn btn-primary" %>
+      <div class="row form-group">
+        <div class="col-sm-6 offset-sm-3">
+          <%= submit "Save", class: "btn btn-primary" %>
+        </div>
       </div>
     <% end %>
 
