@@ -68,7 +68,7 @@
           </tr>
           <%= feature_row("Insights Air web interface", true) %>
           <%= feature_row("Insights Cloak query and anonymization engine", true) %>
-          <%= feature_row("On-premise installation", true) %>
+          <%= feature_row("On-premises installation", true) %>
           <%= feature_row("Offline deployment", :offline_deployment) %>
           <%= feature_row("Manual user management", true) %>
           <%= feature_row("LDAP/Active Directory integration", :ldap) %>
