@@ -17,7 +17,7 @@
 <div class="container-lg px-0 mx-0 mb-5">
 
   <%= form_for @changeset, settings_path(@conn, :profile), fn f -> %>
-    <%= validated_text_input f, :name, "User Name", horizontal: {2, 6}, label_class: "label-right", disabled: not can_edit?(@changeset.data), help_text: "This is the name you and others can use to indetify your actions in the system." %>
+    <%= validated_text_input f, :name, "Name", horizontal: {2, 6}, label_class: "label-right", disabled: not can_edit?(@changeset.data), help_text: "This is the name you and others can use to indetify your actions in the system." %>
     <%= validated_text_input f, :login, "Login", horizontal: {2, 6}, label_class: "label-right", help_text: "Use this to login in to the sytem. We recommend using your email address.", disabled: not can_edit?(@changeset.data) %>
 
     <div class="form-group offset-sm-2">
