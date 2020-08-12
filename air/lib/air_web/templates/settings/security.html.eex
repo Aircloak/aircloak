@@ -11,7 +11,7 @@
   </div>
 <% end %>
 
-<img src="/frontend/images/online_protection.svg" alt="" class="d-none d-xl-block mt-sm-5 float-right" width="300" />
+<img src="/frontend/images/online_protection.svg" alt="" class="d-none d-xl-block my-5 float-right" width="300" />
 
 <div class="container-lg px-0 mx-0 mb-5 pt-3">
   <%= if can_edit?(@changeset.data) do %>
