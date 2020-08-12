@@ -122,6 +122,8 @@ defmodule Cloak.DataSource.Bounds.Query do
     cutoff |> round() |> max(config(:min))
   end
 
+  defp extend(type, {min, max}) when min > max, do: extend(type, {max, min})
+
   # For date columns, we extend the interval by 50 years and we make the year bounds absolute.
   defp extend(:year, {min, max}) when max >= min,
     do: {Cloak.Time.year_lower_bound() + min - 25, Cloak.Time.year_lower_bound() + max + 25}
