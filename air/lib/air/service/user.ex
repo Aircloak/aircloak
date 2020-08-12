@@ -90,7 +90,8 @@ defmodule Air.Service.User do
 
   @doc "Returns a list of all native users in the system."
   @spec all_native() :: [User.t()]
-  def all_native(), do: Repo.all(from(user in User, where: [source: ^:native, system: false], preload: [:logins, :groups]))
+  def all_native(),
+    do: Repo.all(from(user in User, where: [source: ^:native, system: false], preload: [:logins, :groups]))
 
   @doc "Loads the user with the given id."
   @spec load(pos_integer | binary) :: {:ok, User.t()} | {:error, :not_found}
