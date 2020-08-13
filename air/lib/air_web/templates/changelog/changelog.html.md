@@ -2,6 +2,8 @@
 
 ### **Breaking changes**
 
+- `%` is now considered an implicit range.
+
 ### New features
 
 ### Enhancements

@@ -315,6 +315,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       end
     end
 
+    test "consider % as an implicit range" do
+      assert({:error, narrative} = compile("SELECT (numeric + 1) % 2 FROM table"))
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
+    end
+
     test "allows casts in ranges",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10"))
 

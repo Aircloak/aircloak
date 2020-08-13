@@ -125,7 +125,7 @@ defmodule Aircloak.Functions do
                ~w(unsafe_mul) => %{type_specs: @mul_specs, attributes: [:math, :unsafe]},
                ~w(/) => %{type_specs: @div_specs, attributes: [:math]},
                ~w(unsafe_div checked_div) => %{type_specs: @div_specs, attributes: [:math, :unsafe]},
-               ~w(%) => %{type_specs: @mod_specs, attributes: [:math, :restricted]},
+               ~w(%) => %{type_specs: @mod_specs, attributes: [:math, :restricted, :implicit_range]},
                ~w(unsafe_mod checked_mod) => %{type_specs: @mod_specs, attributes: [:math, :restricted, :unsafe]},
                ~w(length) => %{type_specs: %{[:text] => :integer}, attributes: [:restricted]},
                ~w(lower upper) => %{type_specs: %{[:text] => :text}},
