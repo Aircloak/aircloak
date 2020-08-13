@@ -8,7 +8,6 @@ Enum.each(
     "<col1> ^ <col2>",
     "<col1> / (<col2> - 15)",
     "<col1> % <col2>",
-    "<col1> % (<col2> - 15)",
     "pow(<col1>, <col2>)",
     "bucket(<col1> by <col2>)",
     "bucket(<col1> by <col2> align lower)",
