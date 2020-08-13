@@ -2,7 +2,7 @@
 
 ### **Breaking changes**
 
-- `%` is now considered an implicit range.
+- The `%` operator is now considered an implicit range.
 
 ### New features
 
