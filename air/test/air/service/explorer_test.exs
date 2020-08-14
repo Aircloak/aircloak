@@ -279,16 +279,12 @@ defmodule Air.Service.ExplorerTest do
 
   describe ".setup_credentials_if_required" do
     test "creates a user and group" do
-      {:ok, user} = Air.Service.User.get_by_login("diffix-explorer@aircloak.com")
-      Air.Service.User.delete!(user)
-      {:ok, group} = Air.Service.Group.get_by_name("Diffix Explorer")
-      Air.Service.Group.delete!(group)
       assert :ok = Explorer.setup_credentials_if_required()
       assert {:ok, _} = Air.Service.User.get_by_login("diffix-explorer@aircloak.com")
       assert {:ok, _} = Air.Service.Group.get_by_name("Diffix Explorer")
     end
 
-    test "is indempotent" do
+    test "is idempotent" do
       assert :ok = Explorer.setup_credentials_if_required()
       users = Air.Service.User.all()
       assert :ok = Explorer.setup_credentials_if_required()
