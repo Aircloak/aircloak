@@ -181,10 +181,14 @@ defmodule Air.Service.ExplorerTest do
     id: "bars"
   }
 
+  setup_all do
+    start_supervised!(MockServer.Endpoint)
+    :ok
+  end
+
   setup do
     config = Application.get_env(:air, Aircloak.DeployConfig)
     start_supervised!(MockServer)
-    start_supervised!(MockServer.Endpoint)
 
     MockServer.reset()
 
