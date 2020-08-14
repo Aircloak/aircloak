@@ -138,7 +138,10 @@ defmodule Air.Service.ExplorerTest do
             secret_key_base: "fw34f43",
             http: [port: 3289],
             debug_errors: false,
-            url: [port: 3289, scheme: "http", host: "localhost"]
+            url: [port: 3289, scheme: "http", host: "localhost"],
+            drainer: [
+              shutdown: 100
+            ]
           )
 
         {:ok, res}
