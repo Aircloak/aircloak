@@ -275,21 +275,23 @@ defmodule Air.Service.Explorer do
   end
 
   defp find_or_create_explorer_creds() do
-    login = "diffix-explorer@aircloak.com"
-    token_desc = "Used by Diffix Explorer to issue queries"
-    name = "Diffix Explorer"
+    :global.trans({__MODULE__, self()}, fn ->
+      login = "diffix-explorer@aircloak.com"
+      token_desc = "Used by Diffix Explorer to issue queries"
+      name = "Diffix Explorer"
 
-    case User.get_by_login(login) do
-      {:ok, user} ->
-        {:ok, token} = Token.find_token_for_user(user, token_desc)
-        {user, token}
+      case User.get_by_login(login) do
+        {:ok, user} ->
+          {:ok, token} = Token.find_token_for_user(user, token_desc)
+          {user, token}
 
-      {:error, :not_found} ->
-        user = User.create!(%{name: name, login: login, system: true})
-        Group.create!(%{name: name, admin: false, users: [user.id], system: true})
-        token = Token.create_api_token(user, :api, token_desc)
-        {user, token}
-    end
+        {:error, :not_found} ->
+          user = User.create!(%{name: name, login: login, system: true})
+          Group.create!(%{name: name, admin: false, users: [user.id], system: true})
+          token = Token.create_api_token(user, :api, token_desc)
+          {user, token}
+      end
+    end)
   end
 
   defp request_analysis(analysis) do
