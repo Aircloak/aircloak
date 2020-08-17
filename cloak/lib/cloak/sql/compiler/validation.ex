@@ -5,6 +5,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   alias Cloak.Sql.{CompilationError, Expression, Function, Query, Condition, Function}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
+  alias Cloak.DataSource.Shadows
 
   # -------------------------------------------------------------------
   # API functions
@@ -848,7 +849,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_case_usage(%Query{type: :standard}), do: :ok
 
   defp verify_case_usage(%Query{type: :anonymized} = query) do
-    verify_case_usage_is_allowed(query)
     verify_case_usage_in_filtering_clauses(query)
     verify_post_processing_of_case_expressions(query)
     verify_count_distinct_case_expressions(query)
@@ -870,27 +870,6 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           message: "`case` expressions can not be used in restricted queries.",
           source_location: case_expression.source_location
-    end
-  end
-
-  defp verify_case_usage_is_allowed(query) do
-    unless Application.get_env(:cloak, :enable_case_support) == true do
-      Query.Lenses.query_expressions()
-      |> Lens.filter(&Expression.function?/1)
-      |> Lens.filter(&(&1.name == "case"))
-      |> Lens.to_list(query)
-      |> case do
-        [] ->
-          :ok
-
-        [case_expression | _rest] ->
-          raise CompilationError,
-            message: """
-            Support for anonymizing `case` expressions is experimental and has to be manually enabled by the
-            system administrator. For more information, see the "Configuring the system" section of the user guides.
-            """,
-            source_location: case_expression.source_location
-      end
     end
   end
 
@@ -989,10 +968,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_case_expressions_conditions(%Query{type: :anonymized} = query) do
-    Query.Lenses.query_expressions()
-    |> Query.Lenses.case_when_clauses()
-    |> Lens.reject(&valid_when_clause?/1)
-    |> Lens.to_list(query)
+    when_clauses = Query.Lenses.query_expressions() |> Query.Lenses.case_when_clauses() |> Lens.to_list(query)
+
+    when_clauses
+    |> Enum.reject(&valid_when_clause?/1)
     |> case do
       [] ->
         :ok
@@ -1003,6 +982,24 @@ defmodule Cloak.Sql.Compiler.Validation do
             "`when` clauses from `case` expressions in anonymizing queries can only use a simple " <>
               "equality condition of the form `column = constant`.",
           source_location: invalid_when_clause.source_location
+    end
+
+    unless Application.get_env(:cloak, :allow_any_value_in_when_clauses) == true do
+      when_clauses
+      |> Enum.reject(&match?({:ok, true}, Shadows.safe?(&1, query)))
+      |> case do
+        [] ->
+          :ok
+
+        [unsafe_when_clause | _rest] ->
+          raise CompilationError,
+            message: """
+            The target constants used in `when` clauses from `case` expressions in anonymizing queries have to
+            be in the list of frequent values for that column, unless the Insights Cloak is explicitly configured
+            to allow any value. For more information, see the "Configuring the system" section of the user guides.
+            """,
+            source_location: unsafe_when_clause.source_location
+      end
     end
   end
 

@@ -39,6 +39,10 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  setup_all do
+    Cloak.TestShadowCache.safe(data_source(), "table", "string", ["xxx"])
+  end
+
   test "adds an empty group by" do
     assert %{group_by: []} = compile!("select count(*) from table", data_source())
   end
@@ -1562,6 +1566,13 @@ defmodule Cloak.Sql.Compiler.Test do
     test "test conditions have to be booleans" do
       assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
                compile_standard("select case when bool then 1 when string then 0 else 2 end from table", data_source())
+    end
+
+    test "test conditions have to be safe " do
+      assert {:error,
+              "The target constants used in `when` clauses from `case` expressions in anonymizing queries have to\n" <>
+                "be in the list of frequent values for that column" <> _} =
+               compile("select case when string = 'aaa' then 1 else 0 end from table", data_source())
     end
 
     test "return values have to be identical" do

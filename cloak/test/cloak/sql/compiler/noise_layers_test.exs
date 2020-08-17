@@ -31,6 +31,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  setup_all do
+    Cloak.TestShadowCache.safe(data_source(), "table", "numeric", [0, 1])
+  end
+
   test "overwrites any existing noise layers" do
     compiled = Cloak.Test.QueryHelpers.compile!("SELECT COUNT(*) FROM table", data_source())
 

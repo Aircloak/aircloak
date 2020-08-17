@@ -3,6 +3,10 @@ defmodule Cloak.Regressions.Telefonica.Test do
 
   import Cloak.Test.QueryHelpers
 
+  setup_all do
+    Cloak.TestShadowCache.safe(default_data_source(), "DW.CC_CONTRACTS_PRODUCT_FEATURES", "PRD_FEATURE_ID", [2588])
+  end
+
   test "party id" do
     party_id_tables() |> setup_tables()
 

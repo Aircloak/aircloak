@@ -60,6 +60,8 @@ described in the following sections don't apply to the top-level `HAVING` clause
   - They are only allowed in the `SELECT` or `GROUP BY` clauses of anonymizing queries;
   - They can not be post-processed in any way, other than aggregation;
   - The `WHEN` clauses can only consist of a single equality condition between a clear expression and a constant.
+    The constant has to be from the list of frequent values in that column, unless the system administrator explicitly
+    allows usage of any value. Check the `Insights Cloak configuration` section for information on how to enable it.
   - The `THEN`/`ELSE` clauses can only return constant values; furthermore, when aggregated, they can only return
     the values 0, 1 or NULL.
 
@@ -96,9 +98,6 @@ SELECT AVG(CASE WHEN column = 'aaa' THEN 0 ELSE 1000 END) FROM table
 SELECT COUNT(*) FROM table WHERE CASE WHEN column = 3 THEN TRUE ELSE FALSE END
 
 ```
-
-__Note__: For safety reasons, support for `CASE` statements in anonymizing queries is not enabled by default.
-Check the `Insights Cloak configuration` section for information on how to enable it.
 
 
 ## Math and function application restrictions
