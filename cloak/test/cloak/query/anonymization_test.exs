@@ -6,6 +6,7 @@ defmodule Cloak.Query.AnonymizationTest do
   setup_all do
     :ok = Cloak.Test.DB.create_table("anonymizations", "number REAL, string TEXT")
     :ok = Cloak.Test.DB.create_table("other_table", "dummy BOOLEAN")
+    Cloak.TestShadowCache.safe(default_data_source(), "anonymizations", "number", [1, 2, 3])
   end
 
   setup do

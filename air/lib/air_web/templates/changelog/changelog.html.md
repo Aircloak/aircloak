@@ -3,6 +3,7 @@
 ### **Breaking changes**
 
 - The `%` operator is now considered an implicit range.
+- The `enable_case_support` configuration setting has been removed.
 
 ### New features
 
@@ -11,6 +12,9 @@
 ### Bugfixes
 
 ### Changes
+
+- `CASE` support is now enabled by default. `WHEN` clause constants have to be from the list of frequent values,
+  unless the `allow_any_value_in_when_clauses` setting is enabled in the Insights Cloak configuration file.
 
 ## Version 20.2.0
 
