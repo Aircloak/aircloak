@@ -132,15 +132,22 @@ defmodule Air.Web do
 
   @doc false
   def child_spec(_arg) do
+    import Aircloak, only: [in_env: 1]
+
     Aircloak.ChildSpec.supervisor(
       [
         {Phoenix.PubSub, name: AirWeb.PubSub},
         AirWeb.Endpoint,
-        Periodic.child_spec(
-          run: {AirWeb.Socket.Frontend.DataSourceChannel, :push_updates, []},
-          every: :timer.seconds(10)
+        in_env(
+          test: nil,
+          else:
+            Periodic.child_spec(
+              run: {AirWeb.Socket.Frontend.DataSourceChannel, :push_updates, []},
+              every: :timer.seconds(10)
+            )
         )
-      ],
+      ]
+      |> Enum.reject(&is_nil/1),
       name: __MODULE__,
       strategy: :rest_for_one
     )
