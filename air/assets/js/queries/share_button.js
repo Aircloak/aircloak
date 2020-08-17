@@ -61,7 +61,7 @@ export default class ShareButton extends React.Component<Props, State> {
             show={showModal}
             onHide={() => this.setState({ showModal: false })}
           >
-            <Modal.Header>
+            <Modal.Header closeButton>
               <Modal.Title>Share</Modal.Title>
             </Modal.Header>
 
@@ -94,12 +94,6 @@ export default class ShareButton extends React.Component<Props, State> {
                 />
               </div>
             </Modal.Body>
-
-            <Modal.Footer>
-              <Button onClick={() => this.setState({ showModal: false })}>
-                Close
-              </Button>
-            </Modal.Footer>
           </Modal>
         </>
       );
