@@ -60,6 +60,7 @@ export default class ShareButton extends React.Component<Props, State> {
           <Modal
             show={showModal}
             onHide={() => this.setState({ showModal: false })}
+            size="lg"
             centered
           >
             <Modal.Header closeButton>
