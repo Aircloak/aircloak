@@ -6,6 +6,8 @@ import Button from "react-bootstrap/Button";
 
 import type { Result } from "./result";
 
+import copyToClipboard from "../copy_to_clipboard";
+
 type Props = {
   result: Result,
 };
@@ -42,19 +44,6 @@ export default class ShareButton extends React.Component<Props, State> {
   isEnabled() {
     const { result } = this.props;
     return result.private_permalink || result.public_permalink;
-  }
-
-  copyToClipboard(targetId: string) {
-    let range = document.createRange();
-    let target = document.getElementById(targetId);
-
-    if (target) {
-      range.selectNode(target);
-      window.getSelection().removeAllRanges();
-      window.getSelection().addRange(range);
-      document.execCommand("copy");
-      window.getSelection().removeAllRanges();
-    }
   }
 
   selectAll(event: any) {
@@ -102,7 +91,7 @@ export default class ShareButton extends React.Component<Props, State> {
                   <Button
                     variant="outline-secondary"
                     size="sm"
-                    onClick={() => this.copyToClipboard("public-permalink")}
+                    onClick={() => copyToClipboard("public-permalink")}
                   >
                     Copy link
                   </Button>
@@ -126,7 +115,7 @@ export default class ShareButton extends React.Component<Props, State> {
                   <Button
                     variant="outline-secondary"
                     size="sm"
-                    onClick={() => this.copyToClipboard("private-permalink")}
+                    onClick={() => copyToClipboard("private-permalink")}
                   >
                     Copy link
                   </Button>

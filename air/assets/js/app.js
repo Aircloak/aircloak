@@ -19,8 +19,11 @@ import PasswordField from "./password_field";
 import activateDatetimePickers from "./datetimepicker";
 import "codemirror/mode/markdown/markdown";
 import activateTooltips from "./tooltips";
+import copyToClipboard from "./copy_to_clipboard";
 
 activateTooltips();
+
+window.copyToClipboard = copyToClipboard;
 
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
