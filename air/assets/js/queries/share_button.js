@@ -44,16 +44,20 @@ export default class ShareButton extends React.Component<Props, State> {
     return result.private_permalink || result.public_permalink;
   }
 
-  copyToClipboard(target) {
-    var range = document.createRange();
-    range.selectNode(document.getElementById(target));
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-    document.execCommand("copy");
-    window.getSelection().removeAllRanges();
+  copyToClipboard(targetId: string) {
+    let range = document.createRange();
+    let target = document.getElementById(targetId);
+
+    if (target) {
+      range.selectNode(target);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      document.execCommand("copy");
+      window.getSelection().removeAllRanges();
+    }
   }
 
-  selectAll(event) {
+  selectAll(event: any) {
     event.target.select();
   }
 
