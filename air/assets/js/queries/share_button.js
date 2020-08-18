@@ -80,7 +80,7 @@ export default class ShareButton extends React.Component<Props, State> {
                   Anyone with this link will be able to view the query and its
                   results.
                 </p>
-                <div class="input-group">
+                <div className="input-group">
                   <input
                     id="public-permalink"
                     className="form-control"
@@ -104,7 +104,7 @@ export default class ShareButton extends React.Component<Props, State> {
                   This link requires logging in with an Insights Air account
                   that is allowed to access this data source.
                 </p>
-                <div class="input-group">
+                <div className="input-group">
                   <input
                     id="private-permalink"
                     className="form-control"
