@@ -95,10 +95,13 @@ export default class ShareButton extends React.Component<Props, State> {
                     value={this.publicPermalink()}
                     onFocus={this.selectAll}
                   />
-                  <Button variant="outline-secondary" size="sm"
-                    onClick={() => this.copyToClipboard("public-permalink")}>
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={() => this.copyToClipboard("public-permalink")}
+                  >
                     Copy link
-                </Button>
+                  </Button>
                 </div>
               </div>
 
@@ -116,10 +119,13 @@ export default class ShareButton extends React.Component<Props, State> {
                     value={this.privatePermalink()}
                     onFocus={this.selectAll}
                   />
-                  <Button variant="outline-secondary" size="sm"
-                    onClick={() => this.copyToClipboard("private-permalink")}>
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={() => this.copyToClipboard("private-permalink")}
+                  >
                     Copy link
-                </Button>
+                  </Button>
                 </div>
               </div>
             </Modal.Body>
