@@ -29,6 +29,14 @@ with ones specific to your particular installation.
 
 # Version 20.2.0
 
+## Oracle
+
+If you use the Oracle data source integration, please upgrade the Aircloak UDF functions.
+You can find the latest version here: <a href="/aircloak_udfs.sql" target="_blank">aircloak_udfs.sql</a>.
+The new version contains protection against overflow exceptions that could occur when performing date arithmetic.
+
+Detailed instructions can be found here: <a href="/datastores.html#oracle">Supported datastores / Database specific notes / Oracle</a>.
+
 ## Insights Air
 
 Due to a bug in earlier versions of Insights Air, it was possible to assign a user managed through Insights Air to a

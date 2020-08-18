@@ -30,6 +30,12 @@ function build_release {
   touch -a $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.pdf
   touch -a $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.mobi
 
+  echo "Cleaning caches at $(pwd)/air"
+  # remove stale dependencies in order to not inflate the image
+  rm -f $(pwd)/air/priv/static/*.gz
+  rm -f $(pwd)/air/priv/static/*-*.*
+  rm -rf $(pwd)/air/priv/static/{css,fonts,frontend,js,images}
+
   docker run --rm -i \
     -v $(pwd)/VERSION:/aircloak/VERSION \
     -v $(pwd)/common:/aircloak/common \

@@ -194,6 +194,17 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
     assert_bounds("public bounds", "value", {2, 200})
   end
 
+  test "crash when aligned min greater than aligned max" do
+    :ok =
+      Cloak.Test.DB.insert_data("bounds", ["user_id", "value"], [
+        ["user1", 0],
+        ["user2", nil],
+        ["user3", 3]
+      ])
+
+    assert_bounds("bounds", "value", {0, 20})
+  end
+
   def assert_bounds(table, column, bounds) do
     for data_source <- DataSource.all() do
       assert Query.bounds(data_source, table, column) == bounds

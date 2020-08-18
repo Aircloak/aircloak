@@ -25,7 +25,7 @@
   <hr class="my-5" />
 
   <h2 class="h3">Privacy policy</h2>
-  <p><i class="fas fa-check text-success mr-2"></i><strong>You have given consent to the privacy policy.</strong></p>
+  <p><i class="fas fa-check text-success mr-2"></i><strong>You have implicitly given consent to the privacy policy.</strong></p>
   <p>
     You can review the contents of the privacy policy here:
     <%= link "Privacy policy", to: privacy_policy_path(@conn, :index) %>
