@@ -44,6 +44,15 @@ export default class ShareButton extends React.Component<Props, State> {
     return result.private_permalink || result.public_permalink;
   }
 
+  copyToClipboard(target) {
+    var range = document.createRange();
+    range.selectNode(document.getElementById(target));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand("copy");
+    window.getSelection().removeAllRanges();
+  }
+
   render() {
     const { showModal } = this.state;
     if (this.isEnabled()) {
@@ -74,12 +83,18 @@ export default class ShareButton extends React.Component<Props, State> {
                   Anyone with this link will be able to view the query and its
                   results.
                 </p>
-                <input
-                  id="public-permalink"
-                  className="form-control"
-                  readOnly
-                  value={this.publicPermalink()}
-                />
+                <div class="input-group">
+                  <input
+                    id="public-permalink"
+                    className="form-control"
+                    readOnly
+                    value={this.publicPermalink()}
+                  />
+                  <Button variant="outline-secondary" size="sm"
+                    onClick={() => this.copyToClipboard("public-permalink")}>
+                    Copy link
+                </Button>
+                </div>
               </div>
 
               <div className="form-group">
@@ -88,12 +103,18 @@ export default class ShareButton extends React.Component<Props, State> {
                   This link requires logging in with an Insights Air account
                   that is allowed to access this data source.
                 </p>
-                <input
-                  id="private-permalink"
-                  className="form-control"
-                  readOnly
-                  value={this.privatePermalink()}
-                />
+                <div class="input-group">
+                  <input
+                    id="private-permalink"
+                    className="form-control"
+                    readOnly
+                    value={this.privatePermalink()}
+                  />
+                  <Button variant="outline-secondary" size="sm"
+                    onClick={() => this.copyToClipboard("private-permalink")}>
+                    Copy link
+                </Button>
+                </div>
               </div>
             </Modal.Body>
           </Modal>
