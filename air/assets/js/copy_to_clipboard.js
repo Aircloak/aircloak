@@ -1,8 +1,8 @@
 // @flow
 
 export default (targetId: string) => {
-  let range = document.createRange();
-  let target = document.getElementById(targetId);
+  const range = document.createRange();
+  const target = document.getElementById(targetId);
 
   if (target) {
     range.selectNode(target);
