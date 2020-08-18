@@ -53,6 +53,10 @@ export default class ShareButton extends React.Component<Props, State> {
     window.getSelection().removeAllRanges();
   }
 
+  selectAll(event) {
+    event.target.select();
+  }
+
   render() {
     const { showModal } = this.state;
     if (this.isEnabled()) {
@@ -89,6 +93,7 @@ export default class ShareButton extends React.Component<Props, State> {
                     className="form-control"
                     readOnly
                     value={this.publicPermalink()}
+                    onFocus={this.selectAll}
                   />
                   <Button variant="outline-secondary" size="sm"
                     onClick={() => this.copyToClipboard("public-permalink")}>
@@ -109,6 +114,7 @@ export default class ShareButton extends React.Component<Props, State> {
                     className="form-control"
                     readOnly
                     value={this.privatePermalink()}
+                    onFocus={this.selectAll}
                   />
                   <Button variant="outline-secondary" size="sm"
                     onClick={() => this.copyToClipboard("private-permalink")}>

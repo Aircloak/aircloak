@@ -1,7 +1,7 @@
 <div class="alert alert-info">
   <p>The user can set a new password using the following link. The link will remain valid for 1 week.</p>
   <div class="input-group mb-3">
-    <input readOnly id="reset-link" type="text" class="form-control"/>
+    <input readOnly id="reset-link" type="text" class="form-control" onFocus="this.select()"/>
     <button id="copy-reset-link" class="btn btn-sm btn-outline-secondary">Copy link</button>
   </div>
 </div>
