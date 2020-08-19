@@ -8,10 +8,8 @@
 <%= if get_flash(@conn, :app_login) do %>
 <div class="alert alert-success mt-3 mb-3" role="alert">
   <p>Your new login has been added. Please copy and paste it into your application:</p>
-  <br />
-  <pre>
-login: <%= get_flash(@conn, :app_login) %>
-password: <%= get_flash(@conn, :app_password) %></pre>
+  Login: <%= render AirWeb.SharedView, "copyable_text.html", text: get_flash(@conn, :app_login), name: "api-login"%>
+  Password: <%= render AirWeb.SharedView, "copyable_text.html", text: get_flash(@conn, :app_password), name: "api-password"%>
 </div>
 <% end %>
 
