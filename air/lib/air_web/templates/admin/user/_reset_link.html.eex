@@ -6,7 +6,7 @@
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      const input = document.getElementById("reset-link")
+      var input = document.getElementById("reset-link");
       input.value = window.location.protocol + "//" + window.location.host + input.value;
     }
   };
