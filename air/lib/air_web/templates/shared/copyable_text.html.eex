@@ -1,0 +1,4 @@
+<div class="input-group">
+  <input readonly id="<%= @name %>" type="text" class="form-control" onfocus="this.select()" value="<%= @text %>"/>
+  <button id="copy-<%= @name %>" class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('<%= @name %>')">Copy</button>
+</div>

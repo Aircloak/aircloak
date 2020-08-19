@@ -8,8 +8,7 @@
 <%= if get_flash(@conn, :api_token) do %>
 <div class="alert alert-success mt-2 mb-2" role="alert">
   <p>Your new token has been added. Please copy and paste it into your application:</p>
-  <br />
-  <pre><%= get_flash(@conn, :api_token) %></pre>
+  <%= render AirWeb.SharedView, "copyable_text.html", text: get_flash(@conn, :api_token), name: "api-token" %>
 </div>
 <% end %>
 
