@@ -321,7 +321,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
                %{
-                 base: {"table", "numeric", {0, 10}},
+                 base: {"table", "numeric", {0.0, 10.0}},
                  expressions: [%Expression{name: "numeric"}, _]
                }
              ] = result.noise_layers
@@ -332,10 +332,25 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
                %{
-                 base: {"table", "numeric", {0, 10}},
+                 base: {"table", "numeric", {0.0, 10.0}},
                  expressions: [%Expression{name: "numeric"}, _]
                }
              ] = result.noise_layers
+    end
+
+    test "[Issue #4109] numbers in ranges are normalized" do
+      noise_layers =
+        [
+          {0, 10},
+          {0, 10.0},
+          {0.0, 10},
+          {0.0, 10.0}
+        ]
+        |> Enum.map(fn {a, b} -> compile!("SELECT STDDEV(uid) FROM table WHERE numeric BETWEEN #{a} AND #{b}") end)
+        |> Enum.map(& &1.noise_layers)
+        |> Enum.uniq()
+
+      assert [[%{base: {"table", "numeric", {0.0, 10.0}}}]] = noise_layers
     end
 
     test "noise layer from an implicit range" do
