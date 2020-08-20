@@ -50,6 +50,10 @@ export default class CodeEditor extends React.Component<Props> {
     editor.focus();
   };
 
+  componentWillUnmount = () => {
+    window.insertWordInEditor = null;
+  };
+
   completionList = (cm: Editor) => {
     const { tableNames, columnNames, statement } = this.props;
     return completions(

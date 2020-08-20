@@ -4,6 +4,8 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
   alias Cloak.DataSource
   alias Cloak.DataSource.Bounds.Query
 
+  import Cloak.Test.QueryHelpers, only: [default_data_source: 0]
+
   setup_all do
     :ok = Cloak.Test.DB.create_table("bounds", "value INTEGER, string TEXT, pk INTEGER, date DATE")
 
@@ -59,7 +61,7 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
   end
 
   test "shortcircuits to `:unknown` for totally safe data source: SQLServer" do
-    data_source = Cloak.DataSource.all() |> hd() |> Map.put(:driver, DataSource.SQLServer)
+    data_source = default_data_source() |> Map.put(:driver, DataSource.SQLServer)
     assert Query.bounds(data_source, "bounds", "value") == :unknown
   end
 
@@ -190,6 +192,17 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
       ])
 
     assert_bounds("public bounds", "value", {2, 200})
+  end
+
+  test "crash when aligned min greater than aligned max" do
+    :ok =
+      Cloak.Test.DB.insert_data("bounds", ["user_id", "value"], [
+        ["user1", 0],
+        ["user2", nil],
+        ["user3", 3]
+      ])
+
+    assert_bounds("bounds", "value", {0, 20})
   end
 
   def assert_bounds(table, column, bounds) do

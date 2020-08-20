@@ -55,20 +55,8 @@ defmodule Cloak.Test.DB do
         [db_name: db_name, type: :regular] ++ Keyword.drop(opts, [:name, :db_name])
       )
 
-    data_source_names_to_update =
-      case opts[:data_source] do
-        nil -> DataSource.all() |> Enum.map(& &1.name)
-        data_source -> [data_source.name]
-      end
-
     DataSource.all()
-    |> Enum.map(fn %{name: name} = data_source ->
-      if name in data_source_names_to_update do
-        data_source |> put_in([:initial_tables, table_id], table) |> DataSource.add_tables()
-      else
-        data_source
-      end
-    end)
+    |> Enum.map(&(&1 |> put_in([:initial_tables, table_id], table) |> DataSource.add_tables()))
     |> DataSource.replace_all_data_source_configs()
   end
 
@@ -88,19 +76,27 @@ defmodule Cloak.Test.DB do
   def init(_) do
     execute!("DROP SCHEMA IF EXISTS cloak_test CASCADE")
     execute!("CREATE SCHEMA cloak_test")
+
+    # Disable bound computation at runtime for all data sources by default.
+    DataSource.all()
+    |> Enum.map(&%{&1 | bound_computation_enabled: false})
+    |> DataSource.replace_all_data_source_configs()
+
     {:ok, nil}
   end
 
   def handle_call({:create_table, table_name, definition, opts}, _from, state) do
-    db_name = opts[:db_name] || table_name
+    db_name = opts[:db_name] || String.replace(table_name, ".", "_")
     create_db_table(db_name, definition, opts)
     status = register_test_table(String.to_atom(table_name), full_table_name(db_name), opts)
     {:reply, status, state}
   end
 
   def handle_call({:delete_table, table_name}, _from, state) do
-    status = unregister_test_table(String.to_atom(table_name))
-    execute!("DROP TABLE IF EXISTS #{sanitized_table(table_name)}")
+    table_id = String.to_atom(table_name)
+    table = DataSource.all() |> Enum.find_value(& &1.tables[table_id])
+    status = unregister_test_table(table_id)
+    if table, do: execute!("DROP TABLE IF EXISTS #{table.db_name}")
     {:reply, status, state}
   end
 

@@ -5,7 +5,7 @@ defmodule Air.Service.DataSource do
   alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.Repo
   alias Air.Service
-  alias Air.Service.{License, Cloak, View, AnalystTable}
+  alias Air.Service.{License, Cloak, View, AnalystTable, Explorer}
   alias Air.Service.DataSource.QueryScheduler
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query, only: [from: 2]
@@ -26,32 +26,34 @@ defmodule Air.Service.DataSource do
 
   @type data_source_status :: :online | :offline | :broken | :analyzing
 
+  @type column :: %{
+          :name => String.t(),
+          :type => String.t(),
+          :user_id => boolean,
+          :comment => nil | String.t(),
+          # The following do not exist in views and analyst tables
+          optional(:isolated) => boolean | atom | nil,
+          optional(:access) => :visible | :unselectable
+        }
+
   @type table :: %{
           id: String.t(),
-          columns: [
-            %{
-              name: String.t(),
-              type: String.t(),
-              user_id: boolean,
-              isolated: boolean | atom
-            }
-          ]
+          content_type: :private | :public,
+          columns: [column],
+          comment: nil | String.t()
         }
 
   @type selectable :: %{
           id: String.t(),
           analyst_created: boolean,
-          kind: :view | :analyst_table,
+          # Always nil for views and analyst tables
+          content_type: :private | :public | nil,
+          kind: :table | :view | :analyst_table,
           # Always false for tables
           broken: boolean,
           internal_id: String.t() | nil,
-          columns: [
-            %{
-              name: String.t(),
-              type: String.t(),
-              user_id: boolean
-            }
-          ]
+          columns: [column],
+          comment: nil | String.t()
         }
 
   @task_supervisor __MODULE__.TaskSupervisor
@@ -185,7 +187,7 @@ defmodule Air.Service.DataSource do
   def selectables(user, data_source) do
     views(user, data_source)
     |> Enum.concat(analyst_tables(user, data_source))
-    |> Enum.concat(with_explorer_metrics(data_source))
+    |> Enum.concat(regular_tables(data_source))
     |> Enum.map(&Map.merge(%{analyst_created: false, broken: false, internal_id: nil}, &1))
   end
 
@@ -220,6 +222,7 @@ defmodule Air.Service.DataSource do
       new_users = Repo.preload(data_source, groups: :users).groups |> Stream.flat_map(& &1.users) |> MapSet.new()
       revoked_users = MapSet.difference(old_users, new_users)
       Enum.each(revoked_users, &Air.Service.AnalystTable.delete_all(&1, data_source))
+      Explorer.data_source_updated(data_source)
       {:ok, data_source}
     end
   end
@@ -314,39 +317,12 @@ defmodule Air.Service.DataSource do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp with_explorer_metrics(data_source) do
-    tables =
+  defp regular_tables(data_source),
+    do:
       data_source
       |> DataSource.tables()
       |> Aircloak.atomize_keys()
-
-    results = Air.Service.Explorer.results_for_datasource(data_source)
-
-    Enum.map(tables, fn table ->
-      result = Enum.find(results, fn result -> result.table_name == table.id end)
-
-      if result do
-        table
-        |> update_in([:columns, Access.all()], fn column ->
-          column_metrics =
-            Enum.find(result.results["columns"] || [], %{"metrics" => []}, fn %{"column" => column_name} ->
-              column_name == column.name
-            end)["metrics"]
-
-          if Enum.empty?(column_metrics) do
-            column
-          else
-            Map.put(column, :analysis, [
-              %{name: "updated_at", value: result.updated_at} | column_metrics
-            ])
-          end
-        end)
-        |> put_in([:sample_data], result.results["sampleData"])
-      else
-        table
-      end
-    end)
-  end
+      |> Enum.map(&Map.merge(%{kind: :table}, &1))
 
   defp add_group(name, users) do
     case Air.Service.Group.get_by_name(name) do
@@ -437,8 +413,8 @@ defmodule Air.Service.DataSource do
   end
 
   @data_source_fields ~w(
-    name tables errors description columns_count isolated_computed_count isolated_failed shadow_tables_computed_count
-    shadow_tables_failed bounds_computed_count bounds_failed database_host supports_analyst_tables
+    name tables errors description pending_analysis isolated_failed
+    shadow_tables_failed bounds_failed database_host supports_analyst_tables
   )a
   defp data_source_changeset(data_source, params),
     do:
@@ -449,9 +425,8 @@ defmodule Air.Service.DataSource do
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
   defp data_source_to_db_data(data_source_map) do
-    # We're computing total column count, and computed and failed counts for isolators and shadow tables, and storing
-    # them directly. This allows us to have that data ready, without needing to decode the tables json. Since these
-    # counts are frequently needed to determine the column status, we're precomputing them once.
+    # We're pre-computing some commonly used values values here.
+    # This allows us to have that data ready, without needing to decode the tables json.
 
     tables = data_source_map.tables
     errors = Map.get(data_source_map, :errors, [])
@@ -461,13 +436,10 @@ defmodule Air.Service.DataSource do
       tables: Jason.encode!(tables),
       errors: Jason.encode!(errors),
       database_host: data_source_map[:database_host],
-      columns_count: count_columns(tables, fn _ -> true end),
-      isolated_computed_count: count_columns(tables, &is_boolean(&1.isolated)),
       isolated_failed: filter_columns(tables, &(&1.isolated == :failed)),
-      shadow_tables_computed_count: count_columns(tables, &(&1.shadow_table == :ok)),
       shadow_tables_failed: filter_columns(tables, &(&1.shadow_table == :failed)),
-      bounds_computed_count: count_columns(tables, &(&1 |> Map.get(:bounds, :ok) == :ok)),
       bounds_failed: filter_columns(tables, &(&1 |> Map.get(:bounds) == :failed)),
+      pending_analysis: count_columns(tables, &pending?/1) > 0,
       supports_analyst_tables: Map.get(data_source_map, :supports_analyst_tables, false)
     }
   end
@@ -480,10 +452,14 @@ defmodule Air.Service.DataSource do
     end
   end
 
+  defp pending?(column),
+    do: column[:shadow_table] == :pending or column[:isolated] == :pending or column[:bounds] == :pending
+
   defp views(user, data_source) do
     Enum.map(
       View.all(user, data_source),
       &%{
+        content_type: nil,
         analyst_created: true,
         id: &1.name,
         comment: &1.comment,
@@ -500,6 +476,7 @@ defmodule Air.Service.DataSource do
     Enum.map(
       AnalystTable.all(user, data_source),
       &%{
+        content_type: nil,
         analyst_created: true,
         id: &1.name,
         comment: &1.comment,

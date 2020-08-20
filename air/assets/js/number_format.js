@@ -28,7 +28,7 @@ export const NumberFormatExampleView = ({
 }) => {
   return (
     <div>
-      Format example with the current settings:{" "}
+      Format example with your currently saved settings:{" "}
       <b>{formatNumber(123456789.123456789, numberFormat)}</b>
     </div>
   );

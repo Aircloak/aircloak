@@ -33,7 +33,8 @@ defmodule Cloak.DataSource.Bounds.Cache do
   defp known_columns(data_sources) do
     for data_source = %{bound_computation_enabled: true} <- data_sources,
         {_id, table} <- data_source.tables,
-        column <- table.columns do
+        column <- table.columns,
+        column.type in [:integer, :real, :date, :datetime] do
       {data_source, table.name, column.name}
     end
   end

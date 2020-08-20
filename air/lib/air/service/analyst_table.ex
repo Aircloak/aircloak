@@ -1,7 +1,7 @@
 defmodule Air.Service.AnalystTable do
   @moduledoc "Service module for working with analyst tables."
 
-  alias Air.Service.{DataSource, User}
+  alias Air.Service.{DataSource, User, View}
   alias Air.Schemas.AnalystTable
   alias Air.Repo
   alias AirWeb.Socket.Cloak.MainChannel
@@ -86,6 +86,16 @@ defmodule Air.Service.AnalystTable do
     end)
 
     :ok
+  end
+
+  @doc "Deletes the analyst table and creates an equivalent view."
+  @spec convert_to_view(pos_integer) :: {:ok, Air.Schemas.View.t()} | {:error, term}
+  def convert_to_view(table_id) do
+    table = Repo.get!(AnalystTable, table_id) |> Repo.preload([:user, :data_source])
+
+    with :ok <- delete(table.id, table.user) do
+      View.create(table.user, table.data_source, table.name, table.sql, table.comment)
+    end
   end
 
   @doc "Deletes the analyst table."
@@ -247,6 +257,7 @@ defmodule Air.Service.AnalystTable do
 
   defp cloak_error(:internal_error), do: "Internal error."
   defp cloak_error(:not_connected), do: not_connected_error()
+  defp cloak_error(:timeout), do: "Connection to cloak timed out."
   defp cloak_error(string) when is_binary(string), do: string
 
   defp not_connected_error() do

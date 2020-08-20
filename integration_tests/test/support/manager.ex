@@ -1,13 +1,15 @@
 defmodule IntegrationTest.Manager do
   import Ecto.Query, only: [from: 2]
   import IntegrationTest.Helpers
+  import ExUnit.Assertions
+  import Aircloak.AssertionHelper
 
   alias Air.Repo
-  alias Air.Schemas.{AnalystTable, DataSource, ExportForAircloak, Group, Query, ResultChunk, User, View}
+  alias Air.Schemas.{AnalystTable, DataSource, Group, Query, ResultChunk, User, View}
 
   @admin_group_name "admins"
   @user_password "psswrd12"
-  @data_source_name "data_source_name"
+  @data_source_name "postgresql"
 
   def start(_type, _args) do
     {:ok, _} = Application.ensure_all_started(:central)
@@ -97,7 +99,7 @@ defmodule IntegrationTest.Manager do
     :ok = create_users_table(skip_db_create: true)
     :ok = create_column_access_table(skip_db_create: true)
     :ok = create_integers(skip_db_create: true)
-    ensure_cloak_connected()
+    ensure_cloak_connected(expected_table_count: 3)
   end
 
   def reset_air() do
@@ -121,10 +123,14 @@ defmodule IntegrationTest.Manager do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp await_data_source() do
+  defp await_data_source(count \\ 0)
+
+  defp await_data_source(1200), do: raise("Timeout while waiting for data source.")
+
+  defp await_data_source(count) do
     if is_nil(data_source()) do
       :timer.sleep(100)
-      await_data_source()
+      await_data_source(count + 1)
     end
   end
 
@@ -233,14 +239,19 @@ defmodule IntegrationTest.Manager do
   end
 
   defp ensure_cloak_disconnected() do
-    fn -> Enum.empty?(Air.Service.Cloak.channel_pids(data_source().name)) end
-    |> Stream.repeatedly()
-    |> Enum.find(& &1)
+    assert_soon(
+      [] = Air.Service.Cloak.channel_pids(@data_source_name),
+      timeout: :timer.seconds(5)
+    )
   end
 
-  defp ensure_cloak_connected() do
-    fn -> not Enum.empty?(Air.Service.Cloak.channel_pids(data_source().name)) end
-    |> Stream.repeatedly()
-    |> Enum.find(& &1)
+  defp ensure_cloak_connected(expected_table_count: expected_table_count) do
+    assert_soon(
+      expected_table_count ==
+        Air.Service.DataSource.by_name(@data_source_name)
+        |> DataSource.tables()
+        |> Enum.count(),
+      timeout: :timer.seconds(5)
+    )
   end
 end

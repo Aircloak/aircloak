@@ -32,8 +32,18 @@ defmodule Cloak do
       Application.put_env(:cloak, :data_source, data_source_config)
     end
 
-    with {:ok, true} <- Aircloak.DeployConfig.fetch("enable_case_support"),
-         do: Application.put_env(:cloak, :enable_case_support, true)
+    with {:ok, true} <- Aircloak.DeployConfig.fetch("allow_any_value_in_when_clauses"),
+         do: Application.put_env(:cloak, :allow_any_value_in_when_clauses, true)
+
+    with {:ok, analysis_queries} <- Aircloak.DeployConfig.fetch("analysis_queries") do
+      analysis_queries_config =
+        Enum.map(
+          analysis_queries,
+          fn {key, value} -> {String.to_atom(key), value} end
+        )
+
+      Application.put_env(:cloak, :analysis_queries, analysis_queries_config)
+    end
 
     with {:ok, _} = result <- Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do
       log_startup()

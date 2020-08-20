@@ -3,6 +3,8 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
 
   alias Cloak.DataSource.Connection.Pool
 
+  import Cloak.Test.QueryHelpers, only: [default_data_source: 0]
+
   setup_all do
     :ok = Cloak.Test.DB.create_table("test_pool", "intval INTEGER")
   end
@@ -99,8 +101,7 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
   end
 
   defp data_source(extra_params \\ %{}) do
-    Cloak.DataSource.all()
-    |> hd()
+    default_data_source()
     |> update_in([:parameters], &Map.merge(&1, extra_params))
   end
 

@@ -1,6 +1,16 @@
 defmodule Cloak.Regressions.TeamBank.Test do
   use ExUnit.Case, async: true
 
+  import Cloak.Test.QueryHelpers
+
+  setup_all do
+    tables() |> Enum.each(&create_table!/1)
+
+    on_exit(fn ->
+      tables() |> Enum.each(&delete_table!/1)
+    end)
+  end
+
   test "simple query 1" do
     query = """
     SELECT
@@ -14,7 +24,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     Group By 1,2
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "simple query 2" do
@@ -27,7 +37,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     WHERE bankzugang._id <> VB.subbankzugangId AND bankzugang.blz NOT IN ('90090042','76032000')
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "simple query 3" do
@@ -40,7 +50,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     WHERE bankzugang._id <> VB.subbankzugangId
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "simple query 4" do
@@ -50,7 +60,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     WHERE bankzugang._id <> VB.subbankzugangId Group By 1
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "simple query 5" do
@@ -60,7 +70,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     WHERE bankzugang._id <> VB.subbankzugangId Group By 1
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "bianca 1" do
@@ -88,7 +98,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ORDER BY 3 DESC
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "bianca 2" do
@@ -108,7 +118,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     Order By num_bankzugang DESC;
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "bianca 3" do
@@ -127,7 +137,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     Order By Anzahl_Konten DESC;
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "bianca 4" do
@@ -147,7 +157,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ORDER BY kontostand
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "bianca 5" do
@@ -168,7 +178,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ORDER BY income_class, kontostand
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "bianca 6" do
@@ -193,7 +203,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ORDER BY 2 DESC
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "bianca 7" do
@@ -214,7 +224,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ORDER BY 1,2
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "bianca 8" do
@@ -269,7 +279,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ) AS umsatz
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "bianca 9" do
@@ -324,7 +334,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
       ORDER BY 2,1 DESC
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 1" do
@@ -363,7 +373,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ORDER BY income_class, kontostand
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 2" do
@@ -384,7 +394,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ORDER BY kontostand
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 3" do
@@ -406,7 +416,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ORDER BY income_class, kontostand
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 4" do
@@ -427,7 +437,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ORDER BY kontostand
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 5" do
@@ -443,7 +453,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     GROUP BY bankname, bank_location
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 6" do
@@ -470,7 +480,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     GROUP BY income_class
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 7" do
@@ -496,7 +506,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     GROUP BY num_transactions
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 10" do
@@ -512,7 +522,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     GROUP BY name
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 11" do
@@ -544,7 +554,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     GROUP BY name, income_class
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 12" do
@@ -559,7 +569,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     WHERE users.monthly_income >= 5000 and users.monthly_income < 10000
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 14" do
@@ -582,7 +592,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     GROUP BY income_class
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 15" do
@@ -609,7 +619,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ORDER BY institution, income_class
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 18" do
@@ -649,7 +659,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     GROUP BY income_class
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 19" do
@@ -684,7 +694,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
       income_by_month.month = expenses_by_month.month
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 20" do
@@ -717,7 +727,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
       income_by_month.month = expenses_by_month.month
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   test "sebastian 23" do
@@ -733,7 +743,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ORDER BY year DESC, month DESC
     """
 
-    assert_compiles_successfully(query, data_source_scaffold())
+    assert_query_not_failing(query)
   end
 
   # Related issue: (#2209)
@@ -763,7 +773,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
   #   ) year2015 ON year2016.inhaberId = year2015.inhaberId
   #   GROUP BY diff
   #   """
-  #   assert_compiles_successfully(query, data_source_scaffold())
+  #   assert_query_not_failing(query)
   # end
 
   # test "comparison of months with math" do
@@ -781,12 +791,12 @@ defmodule Cloak.Regressions.TeamBank.Test do
   #    GROUP BY 1
   #  """
   #
-  #  assert_compiles_successfully(query, data_source_scaffold())
+  #  assert_query_not_failing(query)
   # end
 
-  defp data_source_scaffold() do
+  defp tables() do
     %{
-      umsatz: [
+      "umsatz" => [
         {"inhaberId", [type: :text, uid: true]},
         {"_id", [type: :text]},
         {"bankverbindung.bankname", [type: :text]},
@@ -812,7 +822,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
         {"umsatzeigenschaften.hauptgehalt", [type: :text]},
         {"verwendungszweck", [type: :text]}
       ],
-      konto: [
+      "konto" => [
         {"inhaberId", [type: :text, uid: true]},
         {"_id", [type: :text]},
         {"aktiv", [type: :boolean]},
@@ -823,7 +833,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
         {"aeltesterUmsatz.buchungsDatum", [type: :datetime]},
         {"name", [type: :text]}
       ],
-      bankzugang: [
+      "bankzugang" => [
         {"inhaberId", [type: :text, uid: true]},
         {"_id", [type: :text]},
         {"bankname", [type: :text]},
@@ -855,34 +865,6 @@ defmodule Cloak.Regressions.TeamBank.Test do
     """
   end
 
-  defp assert_compiles_successfully(query, data_source_scaffold) do
-    parsed_query = Cloak.Sql.Parser.parse!(query)
-    data_source = generate_data_source_config(data_source_scaffold)
-    assert {:ok, _} = Cloak.Sql.Compiler.compile(parsed_query, nil, data_source, nil, %{})
-  end
-
-  defp generate_data_source_config(scaffold) do
-    tables = for {name, _} = table <- scaffold, into: %{}, do: {name, table_from_scaffold(table)}
-
-    %{
-      name: "teambank_test_data_source",
-      driver: Cloak.DataSource.PostgreSQL,
-      tables: tables
-    }
-  end
-
-  defp table_from_scaffold({table, column_data}) do
-    table = to_string(table)
-    uid_column_name = uid_column_name(column_data)
-
-    columns =
-      Enum.map(column_data, fn {name, params} ->
-        Cloak.DataSource.Table.column(name, Keyword.get(params, :type))
-      end)
-
-    Cloak.DataSource.Table.new(table, uid_column_name, db_name: table, columns: columns)
-  end
-
   defp uid_column_name(columns) do
     Enum.find_value(columns, fn {name, params} ->
       case Keyword.get(params, :uid) do
@@ -891,4 +873,17 @@ defmodule Cloak.Regressions.TeamBank.Test do
       end
     end)
   end
+
+  defp create_table!({name, columns}) do
+    columns_statement = columns |> Enum.map(&column_statement/1) |> Enum.join(", ")
+
+    :ok = Cloak.Test.DB.create_table(name, columns_statement, add_user_id: false, user_id: uid_column_name(columns))
+  end
+
+  defp column_statement({name, [{:type, type} | _]}), do: "\"#{name}\" #{native_type(type)}"
+
+  defp native_type(:datetime), do: :timestamp
+  defp native_type(type), do: type
+
+  defp delete_table!({name, _}), do: :ok = Cloak.Test.DB.delete_table(name)
 end

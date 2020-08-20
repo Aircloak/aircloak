@@ -94,34 +94,25 @@ defmodule Cloak.DataSource.MySQL do
     end
   end
 
-  # defp run_query(pool, statement, decode_mapper, result_processor) do
-  #   Logger.debug(fn -> "Executing SQL query: #{statement}" end)
-
-  #   MyXQL.transaction(
-  #     pool,
-  #     fn connection ->
-  #       MyXQL.stream(
-  #         connection,
-  #         statement,
-  #         [],
-  #         max_rows: Driver.batch_size()
-  #       )
-  #       |> Stream.map(fn %MyXQL.Result{rows: rows} -> Enum.map(rows, decode_mapper) end)
-  #       |> result_processor.()
-  #     end,
-  #     timeout: Driver.timeout()
-  #   )
-  # rescue
-  #   error in MyXQL.Error -> {:error, Exception.message(error)}
-  # end
-
   defp run_query(pool, statement, decode_mapper, result_processor) do
     Logger.debug(fn -> "Executing SQL query: #{statement}" end)
 
-    with {:ok, %MyXQL.Result{rows: rows}} <- MyXQL.query(pool, statement) do
-      batch = [Enum.map(rows, decode_mapper)]
-      {:ok, result_processor.(batch)}
-    end
+    MyXQL.transaction(
+      pool,
+      fn connection ->
+        MyXQL.stream(
+          connection,
+          statement,
+          [],
+          max_rows: Driver.batch_size()
+        )
+        |> Stream.map(fn %MyXQL.Result{rows: rows} -> Enum.map(rows, decode_mapper) end)
+        |> result_processor.()
+      end,
+      timeout: Driver.timeout()
+    )
+  rescue
+    error in MyXQL.Error -> {:error, Exception.message(error)}
   end
 
   defp load_comments(connection, table) do
@@ -194,6 +185,7 @@ defmodule Cloak.DataSource.MySQL do
   # -------------------------------------------------------------------
 
   defp map_fields([], []), do: []
+  defp map_fields([_], []), do: []
 
   defp map_fields([field | rest_fields], [mapper | rest_mappers]),
     do: [mapper.(field) | map_fields(rest_fields, rest_mappers)]

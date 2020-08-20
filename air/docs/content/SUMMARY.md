@@ -4,7 +4,7 @@
 ---- This way the mix task compiling the docs will be able to insert the current
 ---- version number when it changes.
 ---- Please check the automatically adjusted header into version control.
-## Aircloak Insights - version 20.2.0-dev
+## Aircloak Insights - version 20.3.0-dev
 ---- Please only cautiously edit the line above.
 
 - [Introduction](README.md)
@@ -53,8 +53,8 @@
   - [Column bounds](sql/restrictions.md#column-bounds)
   - [Column analysis](sql/restrictions.md#column-analysis)
 - [Best practises](sql/best-practises.md)
-  - [Changes to results](sql/best-practises.md#how-anonymisation-alters-results)
-  - [Effects of column selection](sql/best-practises.md#column-selection-and-its-effect-on-anonymisation)
+  - [Changes to results](sql/best-practises.md#how-anonymization-alters-results)
+  - [Effects of column selection](sql/best-practises.md#column-selection-and-its-effect-on-anonymization)
   - [Grouping values](sql/best-practises.md#grouping-values)
   - [Null values and counts of 2](sql/best-practises.md#null-values-and-counts-of-2)
   - [Implicit aggregation](sql/best-practises.md#implicit-aggregate-count)
@@ -62,7 +62,7 @@
   - [Pro Tips](sql/query-results.md#pro-tips)
   - [Zero-mean noise](sql/query-results.md#zero-mean-noise)
   - [Low-count filtering](sql/query-results.md#low-count-filtering)
-  - [Aggregates](sql/query-results.md#anonymising-aggregation-functions)
+  - [Aggregates](sql/query-results.md#anonymizing-aggregation-functions)
 - [Supported functions](sql/functions.md)
   - [Date/time functions](sql/functions.md#datetime-functions)
   - [Working with intervals](sql/functions.md#working-with-intervals)

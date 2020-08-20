@@ -4,6 +4,9 @@ defmodule Cloak.DataSource.ConnectionTest do
   alias Cloak.DataSource.Connection
   alias Cloak.DataSource.Connection.Pool
 
+  import Cloak.Test.QueryHelpers, only: [default_data_source: 0]
+  import Aircloak.AssertionHelper
+
   setup do
     # Restarting the pool after every test to make sure there are no leftover connections from previous test.
     restart_pool()
@@ -48,7 +51,10 @@ defmodule Cloak.DataSource.ConnectionTest do
   test "reporting connect error on execution" do
     with_short_connection_timeout(fn ->
       error_operation = fn -> Connection.execute!(data_source(%{hostname: "invalid_host"}), & &1) end
-      assert_raise Cloak.Query.ExecutionError, ~r/Failed to establish a connection to the database/, error_operation
+
+      soon do
+        assert_raise Cloak.Query.ExecutionError, ~r/Failed to establish a connection to the database/, error_operation
+      end
     end)
   end
 
@@ -86,8 +92,7 @@ defmodule Cloak.DataSource.ConnectionTest do
   end
 
   defp data_source(extra_params \\ %{}) do
-    Cloak.DataSource.all()
-    |> hd()
+    default_data_source()
     |> update_in([:parameters], &Map.merge(&1, extra_params))
   end
 end

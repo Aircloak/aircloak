@@ -56,6 +56,7 @@ defmodule Cloak.DataSource do
           concurrency: non_neg_integer | nil,
           lcf_buckets_aggregation_limit: non_neg_integer | nil,
           statistics_anonymization: boolean | nil,
+          bound_computation_enabled: boolean | nil,
           # we need to store the initial tables and errors in case we need to re-scan the data source tables later
           initial_tables: %{atom => Table.t()},
           initial_errors: [String.t()],
@@ -267,11 +268,6 @@ defmodule Cloak.DataSource do
     {:reply, :ok, nil, :hibernate}
   end
 
-  def handle_call({:update_data_source_sync, data_source}, _from, state) do
-    {_, state, _} = handle_cast({:update_data_source, data_source}, state)
-    {:reply, :ok, state, :hibernate}
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -335,6 +331,7 @@ defmodule Cloak.DataSource do
     |> Map.put_new(:lcf_buckets_aggregation_limit, nil)
     |> Map.put_new(:bound_computation_enabled, true)
     |> Validations.Name.ensure_permitted()
+    |> Validations.Keys.ensure_permitted()
     |> potentially_create_temp_name()
     |> Table.map_tables()
     |> map_driver()
@@ -373,10 +370,6 @@ defmodule Cloak.DataSource do
   end
 
   defp replace_data_source_config(data_source), do: GenServer.cast(__MODULE__, {:update_data_source, data_source})
-
-  @doc false
-  def replace_data_source_config_sync(data_source),
-    do: GenServer.call(__MODULE__, {:update_data_source_sync, data_source})
 
   # We need a name for the data source in order for the Air to have something to attach
   # potential errors to. Therefore if none exists, we'll create a dummy name based on
@@ -446,6 +439,7 @@ defmodule Cloak.DataSource do
 
     supervisor(
       [
+        Cloak.DataSource.PerColumn.Limiter,
         supervisor(
           [
             registry(:duplicate, __MODULE__.ChangeListenersRegistry),

@@ -15,6 +15,13 @@ defmodule Cloak.MemoryReader do
 
   require Logger
 
+  @type memory_stats :: %{
+          total_memory: non_neg_integer(),
+          available_memory: %{
+            String.t() => non_neg_integer()
+          }
+        }
+
   @large_mem_usage_threshold 500 * 1024 * 1024
 
   # -------------------------------------------------------------------
@@ -24,6 +31,10 @@ defmodule Cloak.MemoryReader do
   @doc "Starts the memory reader server"
   @spec start_link() :: GenServer.on_start()
   def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
+
+  @doc "Gets current memory readings."
+  @spec get_stats :: memory_stats
+  def get_stats(), do: GenServer.call(__MODULE__, :get_stats)
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -58,6 +69,11 @@ defmodule Cloak.MemoryReader do
   end
 
   @impl GenServer
+  def handle_call(:get_stats, _from, state) do
+    {:reply, build_stats(state), state}
+  end
+
+  @impl GenServer
 
   def handle_info(:read_memory, %{memory_projector: projector} = state) do
     reading = ProcMemInfo.read()
@@ -76,12 +92,7 @@ defmodule Cloak.MemoryReader do
   def handle_info(:report_memory_stats, %{last_reading: nil} = state), do: {:noreply, state}
 
   def handle_info(:report_memory_stats, state) do
-    payload = %{
-      total_memory: state.last_reading.total_memory,
-      available_memory: Readings.values(state.readings)
-    }
-
-    Cloak.AirSocket.send_memory_stats(payload)
+    state |> build_stats() |> Cloak.AirSocket.send_memory_stats()
     {:noreply, state}
   end
 
@@ -142,6 +153,12 @@ defmodule Cloak.MemoryReader do
   end
 
   defp schedule_check(%{params: %{check_interval: interval}}), do: Process.send_after(self(), :read_memory, interval)
+
+  defp build_stats(state),
+    do: %{
+      total_memory: state.last_reading.total_memory,
+      available_memory: Readings.values(state.readings)
+    }
 
   def read_params() do
     defaults =

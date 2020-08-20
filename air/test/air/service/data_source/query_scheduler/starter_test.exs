@@ -4,16 +4,16 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
   import Aircloak.AssertionHelper
   alias Air.{TestRepoHelper, TestSocketHelper}
   alias Air.Service.Query
-  alias Air.Service.DataSource.QueryScheduler.Starter
+  alias Air.Service.DataSource.{QueryScheduler, QueryScheduler.Starter}
 
   test "query starting" do
     user = create_user!()
     data_source = create_data_source!(user)
     queries = Enum.map(1..10, fn _ -> create_query!(user, data_source) end)
-    cloak_name = start_cloak(data_source, List.duplicate(:ok, length(queries)))
-    Starter.run()
+    cloak_name = start_cloak(data_source, &respond_ok/1)
+    run_starter()
 
-    assert Query.awaiting_start() == []
+    assert_soon Query.awaiting_start() == []
     assert query_cloaks(queries) == [cloak_name]
   end
 
@@ -21,10 +21,10 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     user = create_user!()
     data_source = create_data_source!(user)
     queries = Enum.map(1..10, fn _ -> create_query!(user, data_source) end)
-    cloak_names = Enum.map(queries, fn _ -> start_cloak(data_source, [:ok]) end)
-    Starter.run()
+    cloak_names = Enum.map(queries, fn _ -> start_cloak(data_source, &respond_ok/1) end)
+    run_starter()
 
-    assert Query.awaiting_start() == []
+    assert_soon Query.awaiting_start() == []
     assert Enum.sort(query_cloaks(queries)) == Enum.sort(cloak_names)
   end
 
@@ -37,12 +37,12 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     ds2 = create_data_source!(user)
     queries2 = Enum.map(1..10, fn _ -> create_query!(user, ds2) end)
 
-    cloak1 = start_cloak(ds1, List.duplicate(:ok, length(queries1)))
-    cloak2 = start_cloak(ds2, List.duplicate(:ok, length(queries2)))
+    cloak1 = start_cloak(ds1, &respond_ok/1)
+    cloak2 = start_cloak(ds2, &respond_ok/1)
 
-    Starter.run()
+    run_starter()
 
-    assert Query.awaiting_start() == []
+    assert_soon Query.awaiting_start() == []
     assert query_cloaks(queries1) == [cloak1]
     assert query_cloaks(queries2) == [cloak2]
   end
@@ -52,30 +52,32 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     data_source = create_data_source!(user)
     queries = Enum.map(1..10, fn _ -> create_query!(user, data_source) end)
 
-    _cloak1 = start_cloak(data_source, [{:error, :too_many_queries}])
-    cloak2 = start_cloak(data_source, List.duplicate(:ok, length(queries)))
+    _cloak1 = start_cloak(data_source, &respond_over_capacity/1)
+    cloak2 = start_cloak(data_source, &respond_ok/1)
 
-    Starter.run()
+    run_starter()
 
-    assert Query.awaiting_start() == []
+    assert_soon Query.awaiting_start() == []
     assert query_cloaks(queries) == [cloak2]
   end
 
-  test "query is left in the awaiting state if there's no available cloak" do
+  test "query is rejected if there's no available cloak" do
     user = create_user!()
     data_source = create_data_source!(user)
-    query = create_query!(user, data_source)
-    Starter.run()
+    %{id: query_id} = create_query!(user, data_source)
+    Air.Service.Query.Events.subscribe(query_id)
+    run_starter()
 
-    assert same_queries?(Query.awaiting_start(), [query])
+    assert_soon Query.awaiting_start() == []
+    assert_query_failed(query_id, "The query could not be started because the data source is offline.")
   end
 
   test "query is left in the awaiting state if all cloaks are on maximum capacity" do
     user = create_user!()
     data_source = create_data_source!(user)
     query = create_query!(user, data_source)
-    Enum.each(1..10, fn _ -> start_cloak(data_source, [{:error, :too_many_queries}]) end)
-    Starter.run()
+    Enum.each(1..10, fn _ -> start_cloak(data_source, &respond_over_capacity/1) end)
+    run_starter()
 
     assert same_queries?(Query.awaiting_start(), [query])
   end
@@ -85,31 +87,39 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     data_source = create_data_source!(user)
     %{id: query_id} = create_query!(user, data_source)
     Air.Service.Query.Events.subscribe(query_id)
-    start_cloak(data_source, [{:error, :timeout}])
-    Starter.run()
 
-    assert_receive {:query_state_change, %{query_id: ^query_id, state: :query_died}}
-    assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :error)
-    assert Query.awaiting_start() == []
-    assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
+    start_cloak(data_source, fn
+      %{event: "run_query"} -> %{status: :error, result: :timeout}
+      %{event: "stop_query"} -> %{status: :ok}
+    end)
+
+    run_starter()
+
+    assert_soon Query.awaiting_start() == []
+    assert_query_failed(query_id, "The query could not be started due to a communication timeout.")
   end
 
   test "scheduler ignores the cloak which times out" do
     user = create_user!()
     data_source = create_data_source!(user)
-    [%{id: query_id} | other_queries] = Enum.map(1..10, fn _ -> create_query!(user, data_source) end)
-    Air.Service.Query.Events.subscribe(query_id)
-    start_cloak(data_source, [{:error, :timeout}])
-    Starter.run()
+    queries = Enum.map(1..10, fn _ -> create_query!(user, data_source) end)
 
-    assert_receive {:query_state_change, %{query_id: ^query_id, state: :query_died}}
-    assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :error)
+    _cloak1 =
+      start_cloak(data_source, fn
+        %{event: "run_query"} -> %{status: :error, result: :timeout}
+        %{event: "stop_query"} -> %{status: :ok}
+      end)
 
-    assert Air.Repo.get!(Air.Schemas.Query, query_id).result["error"] ==
-             "The query could not be started due to a communication timeout."
+    cloak2 =
+      start_cloak(data_source, fn
+        %{event: "run_query"} -> %{status: :ok}
+        %{event: "stop_query"} -> %{status: :ok}
+      end)
 
-    assert same_queries?(Query.awaiting_start(), other_queries)
-    assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
+    run_starter()
+
+    assert_soon Query.awaiting_start() == []
+    assert query_cloaks(queries) == [cloak2]
   end
 
   test "reporting an error if a query has not been succesfully started for too long" do
@@ -124,16 +134,19 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
       |> Air.Repo.update!()
 
     Air.Service.Query.Events.subscribe(query_id)
+    run_starter()
+
+    assert_soon Query.awaiting_start() == []
+
+    assert_query_failed(
+      query_id,
+      "The query could not be started. There was no cloak available with capacity to execute the query."
+    )
+  end
+
+  defp run_starter() do
     Starter.run()
-
-    assert_receive {:query_state_change, %{query_id: ^query_id, state: :query_died}}
-    assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :error)
-
-    assert Air.Repo.get!(Air.Schemas.Query, query_id).result["error"] ==
-             "The query could not be started because there was no cloak available."
-
-    assert Query.awaiting_start() == []
-    assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
+    QueryScheduler.sync()
   end
 
   defp create_user!(), do: TestRepoHelper.create_user!(%{groups: [TestRepoHelper.create_group!().id]})
@@ -148,27 +161,44 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
 
   defp create_query!(user, data_source), do: TestRepoHelper.create_query!(user, %{data_source_id: data_source.id})
 
-  defp start_cloak(data_source, expected_responses) do
+  defp start_cloak(data_source, fun) do
     cloak_fun = fn ->
       cloak_name = "cloak_#{System.unique_integer([:positive, :monotonic])}"
       socket = TestSocketHelper.connect!(%{cloak_name: cloak_name})
       TestSocketHelper.join!(socket, "main", %{data_sources: [%{name: data_source.name, tables: []}]})
       :proc_lib.init_ack({:ok, cloak_name})
 
-      expected_responses
-      |> Stream.map(&with :ok <- &1, do: {:ok, nil})
-      |> Enum.each(fn {status, result} -> TestSocketHelper.respond_to_start_task_request!(socket, status, result) end)
-
-      Process.exit(socket, :shutdown)
+      try do
+        Stream.repeatedly(fn -> TestSocketHelper.respond!(socket, fun) end)
+        |> Stream.run()
+      after
+        Process.exit(socket, :shutdown)
+      end
     end
 
     {:ok, cloak_name} = :proc_lib.start_link(Kernel, :apply, [cloak_fun, []])
     cloak_name
   end
 
-  defp query_cloaks(queries), do: queries |> reload_queries() |> Stream.map(& &1.cloak_id) |> Enum.dedup()
+  defp respond_ok(%{event: "run_query"}), do: %{status: :ok}
+  defp respond_over_capacity(%{event: "run_query"}), do: %{status: :error, result: :too_many_queries}
+
+  defp query_cloaks(queries) do
+    queries
+    |> reload_queries()
+    |> Stream.map(& &1.cloak_id)
+    |> Stream.reject(&is_nil/1)
+    |> Enum.dedup()
+  end
 
   defp reload_queries(queries), do: Enum.map(queries, &Air.Repo.get!(&1.__struct__, &1.id))
+
+  defp assert_query_failed(query_id, message) do
+    assert_receive {:query_state_change, %{query_id: ^query_id, state: :query_died}}
+    assert_soon :error = Air.Repo.get!(Air.Schemas.Query, query_id).query_state
+    assert Air.Repo.get!(Air.Schemas.Query, query_id).result["error"] == message
+    assert_soon is_nil(Air.Service.Query.Lifecycle.whereis(query_id))
+  end
 
   defp same_queries?(queries_1, queries_2) do
     ids1 = Enum.map(queries_1, & &1.id)

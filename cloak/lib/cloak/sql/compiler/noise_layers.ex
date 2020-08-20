@@ -17,13 +17,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   @spec compile(Query.t()) :: Query.t()
   def compile(query = %{command: :select, type: :anonymized}) do
     query
-    |> compile_analyst_table_columns()
     |> Helpers.apply_bottom_up(&calculate_base_noise_layers/1)
     |> Helpers.apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
     |> Helpers.apply_top_down(&normalize_datasource_case/1)
     |> remove_meaningless_negative_noise_layers()
-    |> strip_analyst_table_columns()
   end
 
   def compile(query = %{command: :select, type: :standard}),
@@ -43,22 +41,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   @doc "Returns the alias prefix used for noise layer expressions."
   @spec prefix() :: String.t()
   def prefix(), do: "__ac_nlc__"
-
-  # -------------------------------------------------------------------
-  # Analyst tables
-  # -------------------------------------------------------------------
-
-  defp compile_analyst_table_columns(query) do
-    # Recomputing these for every condition becomes far too slow in the presence of nested analyst tables
-
-    update_in(query, [Query.Lenses.all_queries() |> Lens.filter(& &1.analyst_table)], fn query ->
-      {:ok, cloak_table} = Cloak.AnalystTable.to_cloak_table(query.analyst_table, query.views)
-      %{query | analyst_table: {query.analyst_table, cloak_table}}
-    end)
-  end
-
-  defp strip_analyst_table_columns(query),
-    do: update_in(query, [Query.Lenses.all_queries() |> Lens.key(:analyst_table) |> Lens.filter(& &1)], &elem(&1, 0))
 
   # -------------------------------------------------------------------
   # Pushing layers into subqueries
@@ -94,6 +76,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
          tag: tag
        }) do
     expression = find_selected_expression_by_name(top_column, query)
+    top_expressions = update_user_id(top_expressions, query)
 
     layers =
       non_case_expressions()
@@ -114,6 +97,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     max = if Expression.column?(expression) and Expression.constant?(max), do: max, else: column
     [min, max | rest]
   end
+
+  defp update_user_id([min, max, %Expression{user_id?: true} = _user_id], query),
+    do: [min, max, Helpers.id_column(query)]
+
+  defp update_user_id(expressions, _query), do: expressions
 
   # -------------------------------------------------------------------
   # Floating noise layers and columns
@@ -154,22 +142,26 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp float_noise_layers_columns(query), do: query
 
-  defp floated_noise_layers(query),
-    do:
-      Query.Lenses.direct_subqueries()
-      |> Lens.filter(&(&1.ast.type == :restricted))
-      |> Lens.to_list(query)
-      |> Enum.flat_map(fn %{ast: subquery, alias: alias} ->
-        subquery_table = Enum.find(query.selected_tables, &(&1.name == alias))
-        true = subquery_table != nil
+  defp floated_noise_layers(query) do
+    user_id = Helpers.id_column(query)
 
-        noise_layer_expressions()
-        |> non_uid_expressions()
-        |> Lens.map(
-          subquery.noise_layers,
-          &reference_aliased(&1, subquery, subquery_table)
-        )
-      end)
+    Query.Lenses.direct_subqueries()
+    |> Lens.filter(&(&1.ast.type == :restricted))
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn %{ast: subquery, alias: alias} ->
+      subquery_table = Enum.find(query.selected_tables, &(&1.name == alias))
+      true = subquery_table != nil
+
+      Lens.map(
+        noise_layer_expressions(),
+        subquery.noise_layers,
+        fn
+          %Expression{user_id?: true} -> user_id
+          column -> reference_aliased(column, subquery, subquery_table)
+        end
+      )
+    end)
+  end
 
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: expressions}, query) do
     if length(expressions) >= 2 and (Helpers.aggregates?(query) or Helpers.group_by?(query)) do
@@ -267,29 +259,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     update_in(noise_layers, [noise_layer_expressions()], &set_noise_layer_expression_alias(&1, all_expressions, query))
   end
 
-  defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: {_, table}}) do
-    if Enum.any?(table.columns, &(&1.name == expression.name)) do
-      expression
-    else
-      set_noise_layer_expression_alias(expression, all_expressions, %{query | analyst_table: nil})
-    end
-  end
-
   defp set_noise_layer_expression_alias(expression, all_expressions, query) do
-    selected_columns = query.columns
     expression_matcher = &Expression.equals?(&1, expression)
-    existing_expression = Enum.find(selected_columns, expression_matcher)
 
-    case {expression, existing_expression} do
-      {expression, %{user_id?: true}} ->
-        expression
-
-      {_, nil} ->
+    query.columns
+    |> Enum.find(expression_matcher)
+    |> case do
+      nil ->
         index = Enum.find_index(all_expressions, expression_matcher)
         true = index != nil
         %Expression{expression | alias: "#{prefix()}#{index}", synthetic?: true}
 
-      {_, _} ->
+      existing_expression ->
         existing_expression
     end
   end

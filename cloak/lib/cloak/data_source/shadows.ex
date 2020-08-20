@@ -70,7 +70,7 @@ defmodule Cloak.DataSource.Shadows do
 
   defp any?(condition, shadow) do
     cond do
-      Sql.Condition.not_equals?(condition) ->
+      Sql.Condition.not_equals?(condition) or Sql.Condition.equals?(condition) ->
         value = Sql.Condition.value(condition)
         {:ok, Enum.any?(shadow, &(&1 == value))}
 

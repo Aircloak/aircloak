@@ -6,6 +6,7 @@ import LiveSocket from "phoenix_live_view";
 import React from "react";
 import ReactDOM from "react-dom";
 import codeMirror from "codemirror";
+import CodeViewer from "./code_viewer";
 import QueriesView from "./queries/root";
 import SingleQueryView from "./queries/single_query_root";
 import ImmutableSingleQueryView from "./queries/immutable_single_query";
@@ -20,14 +21,18 @@ import PasswordField from "./password_field";
 import activateDatetimePickers from "./datetimepicker";
 import "codemirror/mode/markdown/markdown";
 import activateTooltips from "./tooltips";
+import copyToClipboard from "./copy_to_clipboard";
 
 activateTooltips();
+
+window.copyToClipboard = copyToClipboard;
 
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
   queryShowPage: (props, elem) => App.render("query_show", props, elem),
   immutableQueryShowPage: (props, elem) =>
     App.render("immutable_query_show", props, elem),
+  codeViewer: (props, elem) => App.render("code_viewer", props, elem),
   selectableInfo: (props, elem) => App.render("selectable_info", props, elem),
   viewEditor: (props, elem) => App.render("view_editor", props, elem),
   activityMonitor: (props, elem) => App.render("activity_monitor", props, elem),
@@ -114,7 +119,6 @@ const App = {
             sessionId={sessionId}
             socketToken={socketToken}
             dataSourceName={dataSourceName}
-            dataSourceDescription={dataSourceDescription}
             dataSourceStatus={dataSourceStatus}
             selectables={selectables}
             lastQuery={lastQuery}
@@ -146,6 +150,8 @@ const App = {
             authentication={authentication}
           />
         );
+      case "code_viewer":
+        return <CodeViewer statement={statement} />;
       case "selectable_info":
         return (
           <SelectableInfoView

@@ -3,11 +3,14 @@ defmodule AirWeb.Admin.DataSourceController do
   Controller for administrators to manage data sources.
   """
 
+  require Logger
   use Air.Web, :admin_controller
 
   alias Air.Service.{DataSource, User, Warnings, AnalystTable}
+  alias AirWeb.Socket.Frontend.UserChannel
 
-  plug(:load_data_source when action in [:show, :edit, :update, :delete])
+  plug(:load_data_source when action in [:show, :edit, :update, :delete, :show_analyst_table, :convert_table_to_view])
+  plug(:load_analyst_table when action in [:show_analyst_table, :convert_table_to_view])
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -97,6 +100,48 @@ defmodule AirWeb.Admin.DataSourceController do
     |> redirect(to: admin_data_source_path(conn, :index))
   end
 
+  def show_analyst_table(conn, _params) do
+    render(conn, "show_analyst_table.html",
+      conn: conn,
+      analyst_table: conn.assigns.analyst_table,
+      data_source: conn.assigns.data_source
+    )
+  end
+
+  def convert_table_to_view(conn, _params) do
+    data_source = conn.assigns.data_source
+    analyst_table = conn.assigns.analyst_table
+
+    case AnalystTable.convert_to_view(analyst_table.id) do
+      {:ok, view} ->
+        audit_log(conn, "Analyst table converted to view",
+          name: data_source.name,
+          id: data_source.id,
+          data_source: data_source.name,
+          analyst_table_name: analyst_table.name,
+          analyst_table_owner: analyst_table.user.name,
+          analyst_table_id: analyst_table.id,
+          view_id: view.id
+        )
+
+        UserChannel.broadcast_analyst_selectables_change(analyst_table.user, data_source)
+
+        conn
+        |> put_flash(:info, ~s(Analyst table "#{analyst_table.name}" has been converted to a view.))
+        |> redirect(to: admin_data_source_path(conn, :show, conn.assigns.data_source.name))
+
+      {:error, error} ->
+        Logger.error("Error converting analyst table to view: #{inspect(error)}")
+
+        conn
+        |> put_flash(
+          :error,
+          ~s(Failed converting analyst table "#{analyst_table.name}" to view. Please try again later.)
+        )
+        |> redirect(to: admin_data_source_path(conn, :show, conn.assigns.data_source.name))
+    end
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -105,6 +150,18 @@ defmodule AirWeb.Admin.DataSourceController do
     case DataSource.by_name(conn.params["id"]) do
       nil -> not_found(conn)
       data_source -> assign(conn, :data_source, data_source)
+    end
+  end
+
+  defp load_analyst_table(conn, _) do
+    analyst_table =
+      Air.Schemas.AnalystTable
+      |> Repo.get(conn.params["table_id"])
+      |> Repo.preload(:user)
+
+    case analyst_table do
+      nil -> not_found(conn)
+      analyst_table -> assign(conn, :analyst_table, analyst_table)
     end
   end
 

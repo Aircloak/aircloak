@@ -6,7 +6,7 @@ defmodule Cloak.Query.KeysTest do
   setup_all do
     :ok =
       Cloak.Test.DB.create_table("keys_accounts", "id INTEGER, name TEXT",
-        keys: %{"user_id" => :user_id, "id" => :account_id}
+        keys: %{"user_id" => :user_id, "id" => :keys_account_id}
       )
 
     for i <- 1..10, do: :ok = insert_rows("keys_accounts", ["user_id", "id", "name"], ["#{i}", i, "Jon"])
@@ -16,7 +16,7 @@ defmodule Cloak.Query.KeysTest do
         user_id: nil,
         add_user_id: false,
         content_type: :private,
-        keys: %{"account_id" => :account_id, "product_id" => :product_id}
+        keys: %{"account_id" => :keys_account_id, "product_id" => :keys_product_id}
       )
 
     for i <- 1..10, do: :ok = insert_rows("keys_transactions", ["account_id", "product_id"], [i, 1])
@@ -26,7 +26,7 @@ defmodule Cloak.Query.KeysTest do
         user_id: nil,
         add_user_id: false,
         content_type: :public,
-        keys: %{"id" => :product_id}
+        keys: %{"id" => :keys_product_id}
       )
 
     :ok = insert_rows("keys_products", ["id", "name"], [1, "car"])
@@ -35,7 +35,7 @@ defmodule Cloak.Query.KeysTest do
 
   test "show columns" do
     assert_query("show columns from keys_transactions", %{
-      rows: [%{row: ["account_id", _, _, :account_id, _]}, %{row: ["product_id", _, _, :product_id, _]}]
+      rows: [%{row: ["account_id", _, _, :keys_account_id, _]}, %{row: ["product_id", _, _, :keys_product_id, _]}]
     })
   end
 
@@ -153,8 +153,8 @@ defmodule Cloak.Query.KeysTest do
     )
 
     assert "The tables `a` and `p` are not joined " <> _ = error
-    assert error =~ "column `id` of type `account_id` or column `user_id` of type `user_id`"
-    assert error =~ "column `id` of type `product_id`"
+    assert error =~ "column `id` of type `keys_account_id` or column `user_id` of type `user_id`"
+    assert error =~ "column `id` of type `keys_product_id`"
   end
 
   test "anonymizing subquery" do

@@ -165,7 +165,7 @@ defmodule Cloak.Sql.QueryTest do
       where: condition,
       selected_tables: [table],
       from: "table",
-      data_source: hd(Cloak.DataSource.all())
+      data_source: default_data_source()
     }
 
     assert ^condition = Query.offloaded_where(query)
@@ -185,7 +185,7 @@ defmodule Cloak.Sql.QueryTest do
       where: condition,
       selected_tables: [table],
       from: "table",
-      data_source: hd(Cloak.DataSource.all())
+      data_source: default_data_source()
     }
 
     assert ^condition = Query.emulated_where(query)
@@ -197,7 +197,7 @@ defmodule Cloak.Sql.QueryTest do
   end
 
   defp describe_query(statement, parameters \\ nil),
-    do: Query.describe_query(nil, hd(Cloak.DataSource.all()), statement, parameters, %{})
+    do: Query.describe_query(nil, default_data_source(), statement, parameters, %{})
 
   defp validate_view(name, sql, views \\ %{}) do
     [first_ds | rest_ds] = Cloak.DataSource.all()

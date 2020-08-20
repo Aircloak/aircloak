@@ -92,6 +92,8 @@ defmodule Air.PsqlServer.QueryExecution do
     end
   end
 
+  defp internal_query?(""), do: true
+
   defp internal_query?(query) do
     query = strip_comments(query)
 

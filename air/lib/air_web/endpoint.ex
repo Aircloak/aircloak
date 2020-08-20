@@ -8,7 +8,8 @@ defmodule AirWeb.Endpoint do
     secure: false,
     key: "_air_key",
     signing_salt: {Air.Service.Salts, :get, [:session_signing]},
-    encryption_salt: {Air.Service.Salts, :get, [:session_encryption]}
+    encryption_salt: {Air.Service.Salts, :get, [:session_encryption]},
+    extra: "SameSite=Strict"
   ]
 
   # -------------------------------------------------------------------
@@ -52,6 +53,11 @@ defmodule AirWeb.Endpoint do
     plug(Phoenix.LiveReloader)
     plug(Phoenix.CodeReloader)
   end
+
+  plug(Phoenix.LiveDashboard.RequestLogger,
+    param_key: "request_logger",
+    cookie_key: "request_logger"
+  )
 
   plug(Plug.RequestId)
   plug(Plug.Logger, log: :debug)

@@ -1,0 +1,11 @@
+{
+  "driver": "postgresql",
+  "name": "postgresql",
+  "parameters": {
+    "hostname": "postgres9.6",
+    "username": "postgres",
+    "database": "cloak_compliance"
+  },
+  "tables": {},
+  "analyst_tables_enabled": true
+}

@@ -142,7 +142,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     end
   end
 
-  # MySQL requires that at least one column is selected; SQL Server requires that the column has a name;
+  # Some backends require that at least one column is selected; A few also require that the column has a name;
   defp columns_sql(%Query{db_columns: []} = query) do
     dialect = sql_dialect_module(query)
     dialect.alias_sql("0", quote_name("__ac_dummy", dialect.quote_char()))
@@ -235,20 +235,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{kind: :constant, value: value}, dialect),
     do: constant_to_fragment(value, dialect)
 
-  defp column_sql(%Expression{kind: :column, bounds: bounds} = column, dialect) do
-    sql = column |> column_name(dialect.quote_char()) |> cast_type(column.type, dialect)
-
-    if column.table.type in [:regular, :virtual] do
-      restrict(column.type, sql, bounds)
-    else
-      sql
-    end
-  end
-
-  defp restrict(type, sql, {min, max}) when type in [:integer, :real],
-    do: ["CASE WHEN ", sql, " < #{min} THEN #{min} WHEN ", sql, " > #{max} THEN #{max} ELSE ", sql, " END"]
-
-  defp restrict(_type, sql, _bounds), do: sql
+  defp column_sql(%Expression{kind: :column} = column, dialect),
+    do: column |> column_name(dialect.quote_char()) |> cast_type(column.type, dialect)
 
   defp force_max_precision(expression = %Expression{kind: :constant}), do: expression
   defp force_max_precision(expression = %Expression{type: type}), do: cast(expression, type)
@@ -259,14 +247,12 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp from_clause({:join, join}, query) do
     [
-      " ",
       from_clause(join.lhs, query),
       " ",
       join_sql(join.type),
       " ",
       from_clause(join.rhs, query),
-      on_clause(join.condition, query),
-      " "
+      on_clause(join.condition, query)
     ]
   end
 
@@ -483,6 +469,9 @@ defmodule Cloak.DataSource.SqlBuilder do
     ])
   end
 
+  defp mark_boolean_expression({:distinct, expression}, state),
+    do: {:distinct, mark_boolean_expression(expression, state)}
+
   defp mark_boolean_expression(%Expression{kind: :function} = function, state) do
     cond do
       state == :mark and boolean_expression?(function) ->
@@ -492,6 +481,17 @@ defmodule Cloak.DataSource.SqlBuilder do
 
       state == :ignore and function.name not in ~w(and not or) ->
         %Expression{function | args: Enum.map(function.args, &mark_boolean_expression(&1, :mark))}
+
+      function.name == "case" ->
+        args =
+          function.args
+          |> Enum.with_index()
+          |> Enum.map(fn {arg, index} ->
+            state = if rem(index, 2) == 0, do: :ignore, else: :mark
+            mark_boolean_expression(arg, state)
+          end)
+
+        %Expression{function | args: args}
 
       true ->
         %Expression{function | args: Enum.map(function.args, &mark_boolean_expression(&1, state))}

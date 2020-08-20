@@ -4,8 +4,8 @@ test = fn
      [
        "MIX_ENV=test ./check_warnings.sh",
        "MIX_ENV=test mix lint",
-       "CLOAK_DATA_SOURCES=postgresql9.6 mix cloak.create_db dockerized_ci",
-       "CLOAK_DATA_SOURCES=postgresql9.6 mix test --include exclude_in_dev"
+       "CLOAK_DATA_SOURCES=postgresql mix cloak.create_db dockerized_ci",
+       "CLOAK_DATA_SOURCES=postgresql mix test --include exclude_in_dev"
      ]}
 
   :dev ->

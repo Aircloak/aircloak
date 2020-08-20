@@ -148,12 +148,8 @@ defmodule IntegrationTest.AnalystTableTest do
 
     :ok = Air.Service.AnalystTable.update_status(context.user.id, data_source.name, name, :succeeded)
 
-    assert soon(
-             match?(
-               {:ok, %{creation_status: :succeeded}},
-               Air.Service.AnalystTable.get_by_name(context.user, data_source, name)
-             )
-           )
+    assert_soon {:ok, %{creation_status: :succeeded}} =
+                  Air.Service.AnalystTable.get_by_name(context.user, data_source, name)
 
     assert {:ok, updated_table} = update_table(table.id, context.user, name, "select user_id from users group by 1")
     assert updated_table.creation_status == :pending
@@ -172,15 +168,18 @@ defmodule IntegrationTest.AnalystTableTest do
     {:ok, _} = create_table(context.user, table_name, "select user_id from users")
     Manager.restart_cloak()
 
-    assert soon(
-             not Enum.empty?(Cloak.AnalystTable.analyst_tables(context.user.id, Manager.data_source())),
-             :timer.seconds(5)
-           )
+    assert_soon(
+      not Enum.empty?(Cloak.AnalystTable.analyst_tables(context.user.id, Manager.data_source())),
+      timeout: :timer.seconds(5)
+    )
 
     assert [%{name: ^table_name}] = Cloak.AnalystTable.analyst_tables(context.user.id, Manager.data_source())
-    assert {:ok, result} = run_query(context.user, "select from #{table_name}")
-    assert result.columns == []
-    assert result.buckets == [%{"occurrences" => 100, "row" => [], "unreliable" => false}]
+
+    soon do
+      assert {:ok, result} = run_query(context.user, "select from #{table_name}")
+      assert result.columns == []
+      assert result.buckets == [%{"occurrences" => 100, "row" => [], "unreliable" => false}]
+    end
   end
 
   test "successful table delete", context do
@@ -193,6 +192,25 @@ defmodule IntegrationTest.AnalystTableTest do
     assert :ok = Air.Service.AnalystTable.delete(table.id, context.user)
     assert table_not_in_db?(db_name)
     assert is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
+  end
+
+  test "converting analyst table to view", context do
+    name = unique_name(:table)
+
+    {:ok, table} = create_table(context.user, name, "select user_id, name from users", "comment")
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+
+    db_name = Cloak.AnalystTable.find(context.user.id, name, cloak_data_source).db_name
+
+    assert {:ok, view} = Air.Service.AnalystTable.convert_to_view(table.id)
+    assert table_not_in_db?(db_name)
+    assert is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
+
+    refute is_nil(view)
+    refute view.broken
+
+    fields = [:name, :sql, :columns, :comment]
+    assert Map.take(table, fields) == Map.take(view, fields)
   end
 
   test "analyst table can reference a view", context do
@@ -247,7 +265,7 @@ defmodule IntegrationTest.AnalystTableTest do
 
     :ok = Air.Service.AnalystTable.delete(table.id, context.user)
 
-    assert soon(Air.Repo.get!(Air.Schemas.View, view.id).broken)
+    assert_soon Air.Repo.get!(Air.Schemas.View, view.id).broken
   end
 
   test "views are revalidated after analyst table is updated", context do
@@ -267,7 +285,7 @@ defmodule IntegrationTest.AnalystTableTest do
 
     {:ok, _table} = update_table(table.id, context.user, table_name, "select user_id from users")
 
-    assert soon(Air.Repo.get!(Air.Schemas.View, view.id).broken)
+    assert_soon Air.Repo.get!(Air.Schemas.View, view.id).broken
   end
 
   test "analyst tables are deleted if the user is deleted" do
@@ -285,8 +303,8 @@ defmodule IntegrationTest.AnalystTableTest do
     Air.Service.User.delete!(user)
 
     Enum.each(tables, fn table ->
-      assert soon(table_not_in_db?(table.db_name), :timer.seconds(5), repeat_wait_time: 10)
-      assert soon(is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id)), :timer.seconds(5), repeat_wait_time: 10)
+      assert_soon table_not_in_db?(table.db_name), timeout: :timer.seconds(5)
+      assert_soon is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id)), timeout: :timer.seconds(5)
     end)
   end
 
@@ -319,21 +337,25 @@ defmodule IntegrationTest.AnalystTableTest do
 
     # verify that created tables are deleted
     Enum.each(tables, fn table ->
-      assert soon(table_not_in_db?(table.db_name), :timer.seconds(5), repeat_wait_time: 10)
-      assert soon(is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id)), :timer.seconds(5), repeat_wait_time: 10)
+      assert_soon table_not_in_db?(table.db_name), timeout: :timer.seconds(5)
+      assert_soon is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id)), timeout: :timer.seconds(5)
     end)
   end
 
   defp create_table(user, name, sql, comment \\ nil) do
     with {:ok, table} <- Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql, comment) do
-      assert soon(table_created?(user.id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
+      assert_soon table_created?(user.id, name, Manager.data_source()), timeout: :timer.seconds(5)
       {:ok, table}
     end
   end
 
   defp update_table(table_id, user, name, sql, comment \\ nil) do
     with {:ok, table} <- Air.Service.AnalystTable.update(table_id, user, name, sql, comment) do
-      assert soon(table_created?(table.user_id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
+      assert_soon(
+        table_created?(table.user_id, name, Manager.data_source()),
+        timeout: :timer.seconds(5)
+      )
+
       {:ok, table}
     end
   end

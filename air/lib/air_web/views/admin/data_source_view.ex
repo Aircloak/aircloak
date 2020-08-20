@@ -8,6 +8,10 @@ defmodule AirWeb.Admin.DataSourceView do
   defdelegate availability_label(data_source), to: AirWeb.DataSourceView
   defdelegate number_of_tables(data_source), to: AirWeb.DataSourceView
 
+  def nil_or_empty?(nil), do: true
+  def nil_or_empty?(""), do: true
+  def nil_or_empty?(_), do: false
+
   def number_of_analyst_tables(data_source), do: length(AnalystTable.all_for_data_source(data_source))
 
   def available?(data_source), do: Air.Service.DataSource.available?(data_source.name)
@@ -60,9 +64,13 @@ defmodule AirWeb.Admin.DataSourceView do
 
   defp total_analyzed(tables), do: tables |> Enum.map(& &1["columns"]) |> List.flatten() |> analyzed()
 
+  defp total_pending(tables), do: tables |> Enum.map(& &1["columns"]) |> List.flatten() |> analysis_pending()
+
   defp total_failed(tables), do: tables |> Enum.map(& &1["columns"]) |> List.flatten() |> analysis_failed()
 
   defp analyzed(columns), do: Enum.count(columns, &Column.analyzed_successfully?/1)
+
+  defp analysis_pending(columns), do: Enum.count(columns, &Column.analysis_pending?/1)
 
   defp analysis_failed(columns), do: Enum.count(columns, &Column.analysis_failed?/1)
 

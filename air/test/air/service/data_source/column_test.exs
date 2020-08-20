@@ -2,78 +2,101 @@ defmodule Air.Service.DataSource.Column.Test do
   use Air.SchemaCase
   alias Air.Service.DataSource.Column
 
+  @tables [
+    "all_ok",
+    "all_pending",
+    "all_failed",
+    "isolated_failed",
+    "isolated_pending",
+    "shadow_failed",
+    "shadow_pending",
+    "bounds_failed",
+    "bounds_pending"
+  ]
+
+  defmacrop true_for(func_name, table_names) do
+    quote do
+      ds = var!(context).data_source
+      assert unquote("all_ok" in table_names) == Column.unquote(func_name)(column("all_ok", ds))
+      assert unquote("all_pending" in table_names) == Column.unquote(func_name)(column("all_pending", ds))
+      assert unquote("all_failed" in table_names) == Column.unquote(func_name)(column("all_failed", ds))
+      assert unquote("isolated_failed" in table_names) == Column.unquote(func_name)(column("isolated_failed", ds))
+      assert unquote("isolated_pending" in table_names) == Column.unquote(func_name)(column("isolated_pending", ds))
+      assert unquote("shadow_failed" in table_names) == Column.unquote(func_name)(column("shadow_failed", ds))
+      assert unquote("shadow_pending" in table_names) == Column.unquote(func_name)(column("shadow_pending", ds))
+      assert unquote("bounds_failed" in table_names) == Column.unquote(func_name)(column("bounds_failed", ds))
+      assert unquote("bounds_pending" in table_names) == Column.unquote(func_name)(column("bounds_pending", ds))
+    end
+  end
+
+  defmacrop false_for(func_name, false_tables) do
+    quote do
+      true_for(unquote(func_name), unquote(@tables -- false_tables))
+    end
+  end
+
   setup do
     {:ok, data_source: data_source()}
   end
 
-  test ".isolators_computed?", %{data_source: data_source} do
-    assert Column.isolators_computed?(column("all_ok", data_source))
-    refute Column.isolators_computed?(column("isolated_failed", data_source))
-    assert Column.isolators_computed?(column("shadow_failed", data_source))
-    refute Column.isolators_computed?(column("pending", data_source))
+  test ".isolators_computed?", context do
+    :isolators_computed?
+    |> false_for(["all_pending", "all_failed", "isolated_pending", "isolated_failed"])
   end
 
-  test ".isolators_failed?", %{data_source: data_source} do
-    refute Column.isolators_failed?(column("all_ok", data_source))
-    assert Column.isolators_failed?(column("isolated_failed", data_source))
-    refute Column.isolators_failed?(column("shadow_failed", data_source))
-    refute Column.isolators_failed?(column("pending", data_source))
+  test ".isolators_pending?", context do
+    :isolators_pending?
+    |> true_for(["all_pending", "isolated_pending"])
   end
 
-  test ".shadow_computed?", %{data_source: data_source} do
-    assert Column.shadow_computed?(column("all_ok", data_source))
-    assert Column.shadow_computed?(column("isolated_failed", data_source))
-    refute Column.shadow_computed?(column("shadow_failed", data_source))
-    refute Column.shadow_computed?(column("pending", data_source))
+  test ".isolators_failed?", context do
+    :isolators_failed?
+    |> true_for(["all_failed", "isolated_failed"])
   end
 
-  test ".shadow_failed?", %{data_source: data_source} do
-    refute Column.shadow_failed?(column("all_ok", data_source))
-    refute Column.shadow_failed?(column("isolated_failed", data_source))
-    assert Column.shadow_failed?(column("shadow_failed", data_source))
-    refute Column.shadow_failed?(column("pending", data_source))
+  test ".shadow_computed?", context do
+    :shadow_computed?
+    |> false_for(["all_pending", "all_failed", "shadow_pending", "shadow_failed"])
   end
 
-  test ".bounds_computed?", %{data_source: data_source} do
-    assert Column.bounds_computed?(column("all_ok", data_source))
-    assert Column.bounds_computed?(column("isolated_failed", data_source))
-    refute Column.bounds_computed?(column("bounds_failed", data_source))
-    refute Column.bounds_computed?(column("pending", data_source))
+  test ".shadow_pending?", context do
+    :shadow_pending?
+    |> true_for(["all_pending", "shadow_pending"])
   end
 
-  test ".bounds_failed?", %{data_source: data_source} do
-    refute Column.bounds_failed?(column("all_ok", data_source))
-    refute Column.bounds_failed?(column("isolated_failed", data_source))
-    assert Column.bounds_failed?(column("bounds_failed", data_source))
-    refute Column.bounds_failed?(column("pending", data_source))
+  test ".shadow_failed?", context do
+    :shadow_failed?
+    |> true_for(["all_failed", "shadow_failed"])
   end
 
-  test ".analyzed_successfully?", %{data_source: data_source} do
-    assert Column.analyzed_successfully?(column("all_ok", data_source))
-    refute Column.analyzed_successfully?(column("isolated_failed", data_source))
-    refute Column.analyzed_successfully?(column("shadow_failed", data_source))
-    refute Column.analyzed_successfully?(column("pending", data_source))
-    refute Column.analyzed_successfully?(column("bounds_pending", data_source))
-    refute Column.analyzed_successfully?(column("bounds_failed", data_source))
+  test ".bounds_computed?", context do
+    :bounds_computed?
+    |> false_for(["all_pending", "all_failed", "bounds_pending", "bounds_failed"])
   end
 
-  test ".analysis_failed?", %{data_source: data_source} do
-    refute Column.analysis_failed?(column("all_ok", data_source))
-    assert Column.analysis_failed?(column("isolated_failed", data_source))
-    assert Column.analysis_failed?(column("shadow_failed", data_source))
-    refute Column.analysis_failed?(column("pending", data_source))
-    refute Column.analysis_failed?(column("bounds_pending", data_source))
-    assert Column.analysis_failed?(column("bounds_failed", data_source))
+  test ".bounds_pending?", context do
+    :bounds_pending?
+    |> true_for(["all_pending", "bounds_pending"])
   end
 
-  test ".analysis_pending?", %{data_source: data_source} do
-    refute Column.analysis_pending?(column("all_ok", data_source))
-    refute Column.analysis_pending?(column("isolated_failed", data_source))
-    refute Column.analysis_pending?(column("shadow_failed", data_source))
-    assert Column.analysis_pending?(column("pending", data_source))
-    assert Column.analysis_pending?(column("one_pending", data_source))
-    assert Column.analysis_pending?(column("bounds_pending", data_source))
-    refute Column.analysis_pending?(column("bounds_failed", data_source))
+  test ".bounds_failed?", context do
+    :bounds_failed?
+    |> true_for(["all_failed", "bounds_failed"])
+  end
+
+  test ".analyzed_successfully?", context do
+    :analyzed_successfully?
+    |> true_for(["all_ok"])
+  end
+
+  test ".analysis_pending?", context do
+    :analysis_pending?
+    |> true_for(["all_pending", "isolated_pending", "shadow_pending", "bounds_pending"])
+  end
+
+  test ".analysis_failed?", context do
+    :analysis_failed?
+    |> true_for(["all_failed", "isolated_failed", "shadow_failed", "bounds_failed"])
   end
 
   defp column(name, data_source) do
@@ -87,12 +110,14 @@ defmodule Air.Service.DataSource.Column.Test do
         id: "table_id",
         columns: [
           %{name: "all_ok", shadow_table: :ok, isolated: true, bounds: :ok},
+          %{name: "all_pending", shadow_table: :pending, isolated: :pending, bounds: :pending},
+          %{name: "all_failed", shadow_table: :failed, isolated: :failed, bounds: :failed},
+          %{name: "isolated_pending", shadow_table: :ok, isolated: :pending, bounds: :ok},
           %{name: "isolated_failed", shadow_table: :ok, isolated: :failed, bounds: :ok},
+          %{name: "shadow_pending", shadow_table: :pending, isolated: true, bounds: :ok},
           %{name: "shadow_failed", shadow_table: :failed, isolated: true, bounds: :ok},
-          %{name: "pending", shadow_table: :pending, isolated: :pending, bounds: :pending},
-          %{name: "one_pending", shadow_table: :ok, isolated: :pending, bounds: :ok},
-          %{name: "bounds_pending", shadow_table: :ok, isolated: :ok, bounds: :ok},
-          %{name: "bounds_failed", shadow_table: :ok, isolated: :ok, bounds: :failed}
+          %{name: "bounds_pending", shadow_table: :ok, isolated: true, bounds: :pending},
+          %{name: "bounds_failed", shadow_table: :ok, isolated: true, bounds: :failed}
         ]
       }
     ]

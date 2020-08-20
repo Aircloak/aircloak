@@ -23,56 +23,56 @@ defmodule AirWeb.Admin.DataSourceController.Test do
     assert login(context.user) |> get(admin_data_source_path(conn, :index)) |> redirected_to() === "/"
     assert login(context.user) |> get(admin_data_source_path(conn, :new)) |> redirected_to() === "/"
 
-    assert soon(
-             given_data_source(fn data_source ->
-               login(context.user)
-               |> get(admin_data_source_path(conn, :edit, data_source.name))
-               |> redirected_to() === "/"
-             end)
-           )
+    assert_soon(
+      given_data_source(fn data_source ->
+        login(context.user)
+        |> get(admin_data_source_path(conn, :edit, data_source.name))
+        |> redirected_to() === "/"
+      end)
+    )
 
-    assert soon(
-             given_data_source(fn data_source ->
-               login(context.user)
-               |> put(admin_data_source_path(conn, :update, data_source.name))
-               |> redirected_to() === "/"
-             end)
-           )
+    assert_soon(
+      given_data_source(fn data_source ->
+        login(context.user)
+        |> put(admin_data_source_path(conn, :update, data_source.name))
+        |> redirected_to() === "/"
+      end)
+    )
 
-    assert soon(
-             given_data_source(fn data_source ->
-               login(context.user)
-               |> delete(admin_data_source_path(conn, :delete, data_source.name))
-               |> redirected_to() === "/"
-             end)
-           )
+    assert_soon(
+      given_data_source(fn data_source ->
+        login(context.user)
+        |> delete(admin_data_source_path(conn, :delete, data_source.name))
+        |> redirected_to() === "/"
+      end)
+    )
   end
 
   test "lists data sources", context do
     register_data_source()
 
-    assert soon(
-             context.admin
-             |> login()
-             |> get(admin_data_source_path(build_conn(), :index))
-             |> response(200) =~ "data_source_name"
-           )
+    assert_soon(
+      context.admin
+      |> login()
+      |> get(admin_data_source_path(build_conn(), :index))
+      |> response(200) =~ "data_source_name"
+    )
   end
 
   test "accessing edit", context do
     register_data_source()
     conn = build_conn()
 
-    assert soon(
-             given_data_source(fn data_source ->
-               html =
-                 login(context.admin)
-                 |> get(admin_data_source_path(conn, :edit, data_source.name))
-                 |> response(200)
+    assert_soon(
+      given_data_source(fn data_source ->
+        html =
+          login(context.admin)
+          |> get(admin_data_source_path(conn, :edit, data_source.name))
+          |> response(200)
 
-               assert html =~ data_source.name
-             end)
-           )
+        assert html =~ data_source.name
+      end)
+    )
   end
 
   test "deleting an unavailable data source", context do
@@ -85,14 +85,34 @@ defmodule AirWeb.Admin.DataSourceController.Test do
              |> delete(admin_data_source_path(conn, :delete, data_source.name))
              |> redirected_to() == admin_data_source_path(conn, :index)
 
-      assert soon([] == Repo.all(DataSource))
+      assert_soon [] == Repo.all(DataSource)
     end)
 
-    assert soon(Air.Repo.get_by(Air.Schemas.AuditLog, event: "Data source removal succeeded"))
+    assert_soon Air.Repo.get_by(Air.Schemas.AuditLog, event: "Data source removal succeeded")
   end
 
   test "render 404 on attempting to show non-existent data source", context do
     assert login(context.admin) |> get("/admin/data_sources/99999") |> response(404)
+  end
+
+  test "render 404 on attempting to show non-existent analyst table", context do
+    register_data_source()
+
+    given_data_source(fn data_source ->
+      assert login(context.admin)
+             |> get("/admin/data_sources/#{data_source.name}/analyst_tables/99999")
+             |> response(404)
+    end)
+  end
+
+  test "render 404 on attempting to convert non-existent analyst table to view", context do
+    register_data_source()
+
+    given_data_source(fn data_source ->
+      assert login(context.admin)
+             |> post("/admin/data_sources/#{data_source.name}/analyst_tables/99999/to_view")
+             |> response(404)
+    end)
   end
 
   test "render 404 on attempting to render edit form for non-existent data source", context do

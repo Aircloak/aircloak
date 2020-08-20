@@ -18,7 +18,7 @@
     },
     "lcf_buckets_aggregation_limit": {"type": "integer", "minimum": 0},
     "sanitize_otp_errors": {"type": "boolean"},
-    "enable_case_support": {"type": "boolean"},
+    "allow_any_value_in_when_clauses": {"type": "boolean"},
     "max_parallel_queries": {"type": "integer", "minimum": 1},
     "liveness_check_interval": {"type": "integer", "minimum": 1},
     "memory_limits": {
@@ -29,6 +29,15 @@
         "limit_to_check_for": {"type": "integer", "minimum": 1},
         "allowed_minimum_time_to_limit": {"type": "integer", "minimum": 1},
         "time_between_abortions": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "analysis_queries": {
+      "type": "object",
+      "properties": {
+        "concurrency": {"type": "integer", "minimum": 1, "maximum": 3},
+        "time_between_queries": {"type": "integer", "minimum": 0},
+        "minimum_memory_required": {"type": "number", "minimum": 0.0, "maximum": 1.0}
       },
       "additionalProperties": false
     }

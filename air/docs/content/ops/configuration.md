@@ -104,7 +104,7 @@ in the Insights Air web interface. If you attempt to access the Insights Air int
 you will be prompted to create one. To do so you have to type in the `master_password` the system is configured with.
 This password will no longer be needed once the first administrator has been created.
 
-The `endpoint_public_url` should be the root of the URL that the Air instance is accessible on the internet. It is used to generate correct URLs. 
+The `endpoint_public_url` should be the full root URL that the Insights Air instance is accessible on the internet. It should be the address you would go to when visiting Insights Air using the browser. In other words, it should also include `http://` or `https://`. This parameter is used to generate correct URLs.
 
 The `cloak_secret` setting is optional. If not set (default) all Insights Cloak instances will be allowed to connect to
 the Insights Air instance. If set, then only instances with the same `cloak_secret` set in their configuration files
@@ -332,7 +332,9 @@ In that case you'd use a configuration like this:
 
 ### Diffix Explorer Configuration
 
-The Diffix Explorer integration is optional. You can activate it by including the `explorer` parameter in your configuration. It specifies the Diffix Explorer instance Insights Air will connect to. The configuration looks like this:
+The Diffix Explorer integration is optional. You can activate it by including the `explorer` parameter in your
+configuration. It specifies the Diffix Explorer instance Insights Air will connect to. The configuration looks like
+this:
 
 ```
 "explorer": {
@@ -340,15 +342,19 @@ The Diffix Explorer integration is optional. You can activate it by including th
 }
 ```
 
-The single property `url` is the URL where Insights Air can find a running version of Diffix Explorer. Note that for the integration to 
-work properly, you will also need to fill out the optional [`site.endpoint_public_url`](#web-site-configuration) setting.
+The single property `url` is the URL where Insights Air can find a running version of Diffix Explorer.
+Note that if your Diffix Explorer instance is running behind a reverse proxy that sends an HTTP redirect (status code
+301 or equivalent) then the Diffix Explorer integration will fail. Please use the URL being redirect to instead. This
+includes if your reverse proxy redirects from HTTP to HTTPS. In the latter case, please explicitly include `https://`
+in the URL. For the Diffix Explorer integration to work properly, you will also need to configure the
+[`site.endpoint_public_url`](#web-site-configuration) setting.
 
 ## Insights Cloak configuration
 
 The Insights Cloak configuration is used to provide the following information:
 
 - URL where the Insights Air component can be reached
-- Anonymisation salt
+- Anonymization salt
 - Data sources which can be queried - see [Data source configuration](#data-source-configuration)
 
 The general shape of `config.json` is:
@@ -362,18 +368,23 @@ The general shape of `config.json` is:
   "concurrency": integer,
   "lcf_buckets_aggregation_limit": integer,
   "max_parallel_queries": positive_integer,
-  "enable_case_support": boolean,
+  "allow_any_value_in_when_clauses": boolean,
   "connection_timeouts": {
     "idle": integer,
     "connect": integer,
     "request": integer
+  },
+  "analysis_queries": {
+    "concurrency": positive_integer,
+    "time_between_queries": integer,
+    "minimum_memory_required": number
   }
 }
 ```
 
 The `air_site` parameter holds the URL where Insights Air component can be reached. It can be in the form of `"ws://air_host_name:port"` or `"wss://air_host_name:port"`, where `air_host_name` is the address of the machine where the Insights Air component is running. You should use the `ws` prefix if Insights Air is serving traffic over HTTP, while `wss` should be used for the HTTPS protocol.
 
-The `salt` parameter is used for anonymisation purposes. If your Aircloak Insights installation has multiple Insights Cloak instances
+The `salt` parameter is used for anonymization purposes. If your Aircloak Insights installation has multiple Insights Cloak instances
 you must make sure they use the same salt. Failing to do so has a negative impact on the quality of the anonymization.
 You can derive a strong `salt` parameter using a command such as:
 
@@ -401,8 +412,8 @@ can be found in the [Low-count filtering](../sql/query-results.md#low-count-filt
 The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run
 simultaneously. The default value is 10.
 
-The `enable_case_support` field is optional and controls whether restricted `CASE` statements are allowed or not in
-anonymizing queries. The default value is false.
+The `allow_any_value_in_when_clauses` field is optional and controls whether restricted `WHEN` clauses are allowed or
+not to use any value in anonymizing queries. The default value is false, which means only frequent values are permitted.
 
 The `connection_timeouts` field is optional and it controls various database connection timeouts.
 
@@ -417,6 +428,22 @@ default timeout value of 5 seconds is used.
 The `connection_timeouts.request` field is optional and it determines how many seconds the Insights Cloak waits for a
 database request to complete. It needs to be an integer value between 1 and 86400 (1 day). If not set, a default
 timeout value of 43200 seconds (12 hours) is used.
+
+The `analysis_queries` field is optional and controls the rate of [column analysis](../sql/restrictions.md#column-analysis) queries.
+If Insights Cloak exhausts too many system resources while analyzing columns, then you can specify these parameters to reduce overall load.
+
+The `analysis_queries.concurrency` field is optional and controls the number of maximum concurrent analysis queries issued by Insights Cloak.
+It needs to be an integer value between 1 and 3. The default value is 3.
+
+The `analysis_queries.time_between_queries` field is optional and it determines how many milliseconds to wait before issuing further analysis queries.
+This waiting period can be useful to allow Insights Cloak and databases to release resources before handling subsequent requests.
+It needs to be a non-negative integer value. If not set, a default value of 0 is used, meaning no delay between queries.
+
+The `analysis_queries.minimum_memory_required` field is optional and controls the minimum relative system memory required to run analysis queries.
+If available memory falls below this threshold, then further analysis queries will be suspended until more memory becomes available.
+Requires a decimal value between 0 and 1.
+For example, a value of 0.3 specifies that analysis queries will not run when available memory is under 30%.
+If not set, a default value of 0 is used, meaning analysis queries will run even when the system is low on memory.
 
 ### Data source configuration
 
@@ -499,7 +526,7 @@ The `content_type` is an optional field which determines whether the data in the
 of the following values: `personal` (default) and `non-personal`. Tables with data about individuals or entities whose
 anonymity should be preserved must be marked with the content type `personal`. If any such table is included in a query, the
 query will underlie the anonymization restrictions applied by Aircloak Insights and produce anonymized results. If the
-content type field is set to `non-personal`, the table will be classified as not containing data requiring anonymisation.
+content type field is set to `non-personal`, the table will be classified as not containing data requiring anonymization.
 Queries over such tables are not subject to the anonymization restrictions. *No attempts will be made to anonymize the data
 they contain!*
 
@@ -512,7 +539,7 @@ a table under a simpler name, or exposing the same database table multiple times
 
 If the `query` field is present instead, a virtual table is created, similar to an SQL view. The provided query can gather
 data from multiple tables, filter what columns are exposed and pre-process, pre-filter or pre-aggregate the data. The
-supported SQL features are the same as in other Aircloak queries, but the anonymisation-specific restrictions (like
+supported SQL features are the same as in other Aircloak queries, but the anonymization-specific restrictions (like
 requiring a numerical range to have an upper and lower bound, for example) do not apply.
 An example configuration for a virtual table would look like this:
 
@@ -575,19 +602,19 @@ products might look like this:
   "accounts": {
     "keys": [
       {"user_id": "customer_id"},
-      {"account_id": "id"}
+      {"account_id_key": "id"}
     ]
   },
   "transactions": {
     "keys": [
-      {"account_id": "account_id"},
-      {"product_id": "product_id"}
+      {"account_id_key": "account_id"},
+      {"product_id_key": "product_id"}
     ]
   },
   "products": {
     "content_type": "non-personal",
     "keys": [
-      {"product_id": "id"}
+      {"product_id_key": "id"}
     ]
   }
 }

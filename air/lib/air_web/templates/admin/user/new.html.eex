@@ -7,5 +7,5 @@
   <h1>Add a user</h1>
 </header>
 
-<%= render "_form.html", changeset: @changeset,
-  action: admin_user_path(@conn, :create), conn: @conn, chosen_groups: [] %>
+<%= render "_form.html", changeset: @changeset, action: admin_user_path(@conn, :create),
+  conn: @conn, available_groups: @available_groups, chosen_groups: [] %>

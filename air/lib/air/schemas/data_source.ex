@@ -12,13 +12,10 @@ defmodule Air.Schemas.DataSource do
     field(:tables, :string)
     field(:errors, :string)
     field(:database_host, :string)
-    field(:columns_count, :integer)
-    field(:isolated_computed_count, :integer)
-    field(:shadow_tables_computed_count, :integer)
-    field(:bounds_computed_count, :integer)
     field(:isolated_failed, {:array, :string})
     field(:shadow_tables_failed, {:array, :string})
     field(:bounds_failed, {:array, :string})
+    field(:pending_analysis, :boolean)
     field(:pending_delete, :boolean)
     field(:supports_analyst_tables, :boolean)
 
@@ -60,12 +57,5 @@ defmodule Air.Schemas.DataSource do
 
   @doc "Returns true if the datasource has been analyzed, false otherwise."
   @spec analyzed?(t) :: boolean
-  def analyzed?(data_source) do
-    analyzed_isolated_columns = Enum.count(data_source.isolated_failed) + data_source.isolated_computed_count
-    analyzed_shadow_columns = Enum.count(data_source.shadow_tables_failed) + data_source.shadow_tables_computed_count
-    analyzed_bounds = Enum.count(data_source.bounds_failed) + data_source.bounds_computed_count
-
-    analyzed_isolated_columns == data_source.columns_count and analyzed_shadow_columns == data_source.columns_count and
-      analyzed_bounds == data_source.columns_count
-  end
+  def analyzed?(data_source), do: not data_source.pending_analysis
 end

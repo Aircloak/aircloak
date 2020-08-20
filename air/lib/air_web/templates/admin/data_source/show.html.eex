@@ -90,6 +90,7 @@
               <th>Name</th>
               <th>Columns</th>
               <th>Analysis successful</th>
+              <th>Analysis pending</th>
               <th>Analysis failed</th>
             </tr>
 
@@ -97,6 +98,7 @@
               <th>Total</th>
               <th><%= total_columns(@tables) %></th>
               <th><%= total_analyzed(@tables) %></th>
+              <th><%= total_pending(@tables) %></th>
               <th><%= total_failed(@tables) %></th>
             </tr>
           </thead>
@@ -107,6 +109,7 @@
                 <td><%= table["id"] %></td>
                 <td><%= length(table["columns"]) %></td>
                 <td><%= analyzed(table["columns"]) %></td>
+                <td><%= analysis_pending(table["columns"]) %></td>
                 <td><%= analysis_failed(table["columns"]) %></td>
               </tr>
             <% end %>
@@ -130,16 +133,30 @@
             <th>Analyst name</th>
             <th>Creation status</th>
             <th>Broken?</th>
+            <%= if available?(@data_source) do %>
+              <th></th>
+            <% end %>
           </tr>
         </thead>
 
         <tbody>
           <%= for analyst_table <- @analyst_tables do %>
             <tr>
-              <td><%= analyst_table.name %></td>
+              <td>
+                <%= link analyst_table.name, to: admin_data_source_path(@conn, :show_analyst_table, @data_source.name, analyst_table.id) %>
+              </td>
               <td><%= analyst_table.user.name %></td>
               <td><%= analyst_table.creation_status %></td>
               <td><%= analyst_table.broken %></td>
+              <%= if available?(@data_source) do %>
+                <td>
+                  <%= link "Convert to view",
+                    to: admin_data_source_path(@conn, :convert_table_to_view, @data_source.name, analyst_table.id),
+                    method: :post, class: "btn btn-warning btn-sm",
+                    "data-confirm": ~s(Convert table "#{analyst_table.name}" to view? This cannot be undone.)
+                  %>
+                </td>
+              <% end %>
             </tr>
           <% end %>
         </tbody>

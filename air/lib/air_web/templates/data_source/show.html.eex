@@ -22,23 +22,18 @@
         lastQuery: @last_query,
         pendingQueries: @pending_queries,
         dataSourceName: @data_source.name,
-        dataSourceDescription: @data_source.description,
         dataSourceStatus: status(@data_source),
         CSRFToken: @csrf_token,
         socketToken: @socket_token,
         browserSocketTransport: Air.browser_socket_transport(),
         userId: @current_user.id,
         sessionId: @session_id,
-        selectables: selectables(@current_user, @data_source),
-        selectablesEditUrl: data_source_selectable_path(@conn, :edit, @data_source.name),
+        selectables: @selectables |> order_by_id,
         numberFormat: @number_format,
         debugModeEnabled: @debug_mode_enabled,
-        newTableURL: data_source_selectable_path(@conn, :new, @data_source.name, :analyst_table),
-        newViewURL: data_source_selectable_path(@conn, :new, @data_source.name, :view),
-        supportsCreateTable: @data_source.supports_analyst_tables,
       } %>;
 
-      App.selectableInfo(props, document.getElementById("selectable-info"));
+      App.selectableInfo(<%= selectable_setup(@conn) %>, document.getElementById("selectable-info"));
       App.queryPage(props, document.getElementById("query-view"));
     }
   };

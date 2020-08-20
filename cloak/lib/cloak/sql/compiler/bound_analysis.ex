@@ -31,9 +31,19 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   def analyze_query(query) do
     Helpers.apply_bottom_up(query, fn subquery ->
       subquery
-      |> set_leaf_bounds()
+      |> update_in([columns_lens()], &set_leaf_bounds(&1, subquery))
       |> update_in([Query.Lenses.query_expressions()], &set_bounds/1)
       |> update_in([Query.Lenses.query_expressions()], &analyze_safety/1)
+    end)
+  end
+
+  @doc "Takes a query and clamps all bounded columns."
+  @spec clamp_columns_to_bounds(Query.t()) :: Query.t()
+  def clamp_columns_to_bounds(query) do
+    Helpers.apply_bottom_up(query, fn subquery ->
+      columns_lens()
+      |> Lens.filter(&(&1.table.type in [:regular, :virtual]))
+      |> Lens.map(subquery, &clamp_values/1)
     end)
   end
 
@@ -59,29 +69,21 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     |> check_functions()
   end
 
-  # This is here to satisfy the dialyzer in `set_leaf_bounds/1`
-  @spec as_table(DataSource.Table.t()) :: DataSource.Table.t()
-  def as_table(a), do: a
-
   # -------------------------------------------------------------------
   # Bound computation
   # -------------------------------------------------------------------
 
-  defp set_leaf_bounds(query) do
-    update_in(query, [leaf_expressions()], fn expression ->
-      case Query.resolve_subquery_column(expression, query) do
-        :database_column ->
-          %{expression | bounds: Bounds.bounds(query.data_source, as_table(expression.table), expression.name)}
+  defp set_leaf_bounds(expression, query) do
+    case Query.resolve_subquery_column(expression, query) do
+      :database_column ->
+        %{expression | bounds: Bounds.bounds(query.data_source, expression.table, expression)}
 
-        {column, _subquery} ->
-          %{expression | bounds: column.bounds}
-      end
-    end)
+      {column, _subquery} ->
+        %{expression | bounds: column.bounds}
+    end
   end
 
-  deflensp leaf_expressions() do
-    Query.Lenses.query_expressions() |> Query.Lenses.leaf_expressions() |> Lens.reject(&Expression.constant?/1)
-  end
+  deflensp columns_lens(), do: Query.Lenses.query_expressions() |> Lens.filter(&Expression.column?/1)
 
   defp do_set_bounds(expression = %Expression{kind: :constant, value: value}) when value in [:*, nil],
     do: expression
@@ -194,6 +196,65 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
 
   defp update_bounds(fun, [bounds]) when fun in ~w(floor ceil round trunc min max avg), do: bounds
   defp update_bounds(_, _), do: :unknown
+
+  defp clamp_values(%Expression{type: type, bounds: {min, max}} = column) when type in [:integer, :real] do
+    min_constant = Expression.constant(type, min)
+    max_constant = Expression.constant(type, max)
+
+    Expression.function(
+      "case",
+      [
+        Expression.function("<", [column, min_constant], :boolean),
+        min_constant,
+        Expression.function(">", [column, max_constant], :boolean),
+        max_constant,
+        column
+      ],
+      type
+    )
+    |> Map.put(:bounds, {min, max})
+    |> Map.put(:synthetic?, true)
+  end
+
+  defp clamp_values(%Expression{type: type, bounds: {min, max}} = column) when type in [:date, :datetime] do
+    column_year = Expression.function("year", [column], :integer)
+
+    Expression.function(
+      "case",
+      [
+        Expression.function("<", [column_year, Expression.constant(:integer, min)], :boolean),
+        Expression.constant(type, min_year_to_value(type, min)),
+        Expression.function(">", [column_year, Expression.constant(:integer, max)], :boolean),
+        Expression.constant(type, max_year_to_value(type, max)),
+        column
+      ],
+      type
+    )
+    |> Map.put(:bounds, {min, max})
+    |> Map.put(:synthetic?, true)
+  end
+
+  defp clamp_values(column), do: column
+
+  defp min_year_to_value(:date, year) do
+    {:ok, value} = Date.new(year, 1, 1)
+    value
+  end
+
+  defp min_year_to_value(:datetime, year) do
+    {:ok, value} = NaiveDateTime.new(year, 1, 1, 0, 0, 0)
+    value
+  end
+
+  defp max_year_to_value(:date, year) do
+    {:ok, value} = Date.new(year, 12, 31)
+    value
+  end
+
+  defp max_year_to_value(:datetime, year) do
+    {:ok, value} = NaiveDateTime.new(year, 12, 31, 23, 59, 59)
+    value
+  end
 
   # -------------------------------------------------------------------
   # Safety analysis

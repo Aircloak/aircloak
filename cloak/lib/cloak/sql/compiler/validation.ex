@@ -5,6 +5,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   alias Cloak.Sql.{CompilationError, Expression, Function, Query, Condition, Function}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
+  alias Cloak.DataSource.Shadows
 
   # -------------------------------------------------------------------
   # API functions
@@ -178,7 +179,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           source_location: location,
           message:
-            "Column #{Expression.display_name(column)} needs " <>
+            "Column `#{Expression.display(column)}` needs " <>
               "to appear in the `GROUP BY` clause or be used in an aggregate function."
     end
   end
@@ -246,15 +247,13 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Enum.map(&verify_constant/1)
   end
 
-  # maximum number of digits a 64-bit integer can contain
-  @numeric_constant_max_scale 18
   defp verify_constant(%Expression{value: value, type: type} = expression) when type in [:integer, :real] do
-    if abs(value) > :math.pow(10, @numeric_constant_max_scale) do
+    if abs(value) > :math.pow(10, Cloak.Math.numeric_max_scale()) do
       raise CompilationError,
         source_location: expression.source_location,
         message:
           "Constant expression is out of valid range: numeric values have to be inside the interval " <>
-            "[-10^#{@numeric_constant_max_scale}, 10^#{@numeric_constant_max_scale}]."
+            "[-10^#{Cloak.Math.numeric_max_scale()}, 10^#{Cloak.Math.numeric_max_scale()}]."
     end
   end
 
@@ -374,7 +373,12 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_grouping_sets_uniqueness(query) do
-    case query.grouping_sets -- Enum.uniq(query.grouping_sets) do
+    expanded_grouping_sets =
+      Enum.map(query.grouping_sets, fn grouping_set ->
+        Enum.map(grouping_set, &(query.group_by |> Enum.at(&1) |> Expression.semantic()))
+      end)
+
+    case expanded_grouping_sets -- Enum.uniq(expanded_grouping_sets) do
       [] ->
         :ok
 
@@ -565,7 +569,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       [column | _rest] ->
         raise CompilationError,
           source_location: column.source_location,
-          message: "Expression #{Expression.display_name(column)} is not valid in the `WHERE` clause."
+          message: "Expression `#{Expression.display(column)}` is not valid in the `WHERE` clause."
     end
   end
 
@@ -594,7 +598,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       raise CompilationError,
         source_location: column.source_location,
         message:
-          "Column #{Expression.display_name(column)} of type `#{column.type}` " <>
+          "Column `#{Expression.display(column)}` of type `#{column.type}` " <>
             "cannot be used in a #{String.upcase(verb)} expression."
     end
   end
@@ -618,13 +622,13 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
         term <- Condition.targets(condition),
-        not valid_expression_in_aggregate?(query, term),
-        do:
-          raise(
-            CompilationError,
-            source_location: term.source_location,
-            message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
-          )
+        not valid_expression_in_aggregate?(query, term) do
+      raise CompilationError,
+        source_location: term.source_location,
+        message:
+          "Expression `#{Expression.display(term)}` has to appear in the `GROUP BY` clause " <>
+            "or be used in an aggregate function."
+    end
   end
 
   defp verify_limit(%Query{order_by: [], limit: amount}) when amount != nil,
@@ -723,7 +727,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp missing_uid_error_message(query, alias) do
     suggested_fix_message =
       Helpers.all_id_columns_from_tables(query)
-      |> Enum.map(&Expression.display_name/1)
+      |> Enum.map(&"`#{&1.name}`")
       |> case do
         [] -> "join in one of the following tables: #{user_id_tables_hint(query.data_source.tables)}"
         [column] -> "add the column #{column} to the `SELECT` clause"
@@ -845,7 +849,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_case_usage(%Query{type: :standard}), do: :ok
 
   defp verify_case_usage(%Query{type: :anonymized} = query) do
-    verify_case_usage_is_allowed(query)
     verify_case_usage_in_filtering_clauses(query)
     verify_post_processing_of_case_expressions(query)
     verify_count_distinct_case_expressions(query)
@@ -867,27 +870,6 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           message: "`case` expressions can not be used in restricted queries.",
           source_location: case_expression.source_location
-    end
-  end
-
-  defp verify_case_usage_is_allowed(query) do
-    unless Application.get_env(:cloak, :enable_case_support) == true do
-      Query.Lenses.query_expressions()
-      |> Lens.filter(&Expression.function?/1)
-      |> Lens.filter(&(&1.name == "case"))
-      |> Lens.to_list(query)
-      |> case do
-        [] ->
-          :ok
-
-        [case_expression | _rest] ->
-          raise CompilationError,
-            message: """
-            Support for anonymizing `case` expressions is experimental and has to be manually enabled by the
-            system administrator. For more information, see the "Configuring the system" section of the user guides.
-            """,
-            source_location: case_expression.source_location
-      end
     end
   end
 
@@ -986,10 +968,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_case_expressions_conditions(%Query{type: :anonymized} = query) do
-    Query.Lenses.query_expressions()
-    |> Query.Lenses.case_when_clauses()
-    |> Lens.reject(&valid_when_clause?/1)
-    |> Lens.to_list(query)
+    when_clauses = Query.Lenses.query_expressions() |> Query.Lenses.case_when_clauses() |> Lens.to_list(query)
+
+    when_clauses
+    |> Enum.reject(&valid_when_clause?/1)
     |> case do
       [] ->
         :ok
@@ -1000,6 +982,24 @@ defmodule Cloak.Sql.Compiler.Validation do
             "`when` clauses from `case` expressions in anonymizing queries can only use a simple " <>
               "equality condition of the form `column = constant`.",
           source_location: invalid_when_clause.source_location
+    end
+
+    unless Application.get_env(:cloak, :allow_any_value_in_when_clauses) == true do
+      when_clauses
+      |> Enum.reject(&match?({:ok, true}, Shadows.safe?(&1, query)))
+      |> case do
+        [] ->
+          :ok
+
+        [unsafe_when_clause | _rest] ->
+          raise CompilationError,
+            message: """
+            The target constants used in `when` clauses from `case` expressions in anonymizing queries have to
+            be in the list of frequent values for that column, unless the Insights Cloak is explicitly configured
+            to allow any value. For more information, see the "Configuring the system" section of the user guides.
+            """,
+            source_location: unsafe_when_clause.source_location
+      end
     end
   end
 

@@ -28,6 +28,7 @@ defmodule Air.Supervisor do
         Air.Web,
         in_env(test: nil, else: Air.Service.Explorer),
         AirWeb.MonitoringEndpoint,
+        AirWeb.Telemetry,
         Air.BOM
       ]
       |> Enum.reject(&is_nil/1),

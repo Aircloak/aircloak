@@ -1,10 +1,13 @@
 defmodule Air.Service.ExplorerTest do
   # because of shared mode
+
   use Air.SchemaCase, async: false
-  alias Air.Service.{Explorer, Group}
+
+  alias Air.Service.{DataSource, Explorer, Group}
   alias Air.Schemas.ExplorerAnalysis
   require Aircloak.DeployConfig
   import Aircloak.AssertionHelper
+
   @moduletag capture_log: true
 
   defmodule MockServer do
@@ -109,7 +112,7 @@ defmodule Air.Service.ExplorerTest do
         plug(:accepts, ["json"])
       end
 
-      scope "/explorer" do
+      scope "/explorer/api/v1" do
         pipe_through([:my_api])
         post("/explore", Controller, :explore)
         get("/result/:id", Controller, :result)
@@ -135,7 +138,10 @@ defmodule Air.Service.ExplorerTest do
             secret_key_base: "fw34f43",
             http: [port: 3289],
             debug_errors: false,
-            url: [port: 3289, scheme: "http", host: "localhost"]
+            url: [port: 3289, scheme: "http", host: "localhost"],
+            drainer: [
+              shutdown: 100
+            ]
           )
 
         {:ok, res}
@@ -143,10 +149,46 @@ defmodule Air.Service.ExplorerTest do
     end
   end
 
+  @foos_table %{
+    columns: [
+      %{
+        name: "user_id",
+        user_id: true,
+        isolated: true
+      },
+      %{
+        name: "foo",
+        user_id: false,
+        isolated: false
+      }
+    ],
+    id: "foos"
+  }
+
+  @bars_table %{
+    columns: [
+      %{
+        name: "user_id",
+        user_id: true,
+        isolated: true
+      },
+      %{
+        name: "bar",
+        user_id: false,
+        isolated: false
+      }
+    ],
+    id: "bars"
+  }
+
+  setup_all do
+    start_supervised!(MockServer.Endpoint)
+    :ok
+  end
+
   setup do
     config = Application.get_env(:air, Aircloak.DeployConfig)
     start_supervised!(MockServer)
-    start_supervised!(MockServer.Endpoint)
 
     MockServer.reset()
 
@@ -160,46 +202,20 @@ defmodule Air.Service.ExplorerTest do
 
     start_supervised!(Explorer)
 
-    tables = [
-      %{
-        columns: [
-          %{
-            name: "user_id",
-            user_id: true,
-            isolated: true
-          },
-          %{
-            name: "foo",
-            user_id: false,
-            isolated: false
-          }
-        ],
-        id: "foos"
-      },
-      %{
-        columns: [
-          %{
-            name: "user_id",
-            user_id: true,
-            isolated: true
-          },
-          %{
-            name: "bar",
-            user_id: false,
-            isolated: false
-          }
-        ],
-        id: "bars"
-      }
-    ]
+    tables = [@foos_table, @bars_table]
 
     ds1 = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
+    Group.update!(Explorer.group(), %{data_sources: [ds1.id]})
 
     ds_not_included = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
-    Explorer.setup_credentials_if_required()
-    {:ok, group} = Group.get_by_name("Diffix Explorer")
-    group = Group.load(group.id)
-    Group.update!(group, %{data_sources: [ds1.id]})
+
+    Explorer.change_permitted_data_sources(%{
+      "data_sources" => [ds1.id],
+      "tables" => [
+        %{"#{ds1.id}" => "bars"},
+        %{"#{ds1.id}" => "foos"}
+      ]
+    })
 
     %{ds1: ds1, ds_not_included: ds_not_included}
   end
@@ -218,8 +234,8 @@ defmodule Air.Service.ExplorerTest do
 
   describe "statistics" do
     test "returns statistics in various stages", %{ds1: ds1} do
-      Explorer.reanalyze_datasource(ds1)
       MockServer.pause()
+      Explorer.reanalyze_datasource(ds1)
 
       data_source_id = ds1.id
 
@@ -263,16 +279,12 @@ defmodule Air.Service.ExplorerTest do
 
   describe ".setup_credentials_if_required" do
     test "creates a user and group" do
-      {:ok, user} = Air.Service.User.get_by_login("diffix-explorer@aircloak.com")
-      Air.Service.User.delete!(user)
-      {:ok, group} = Air.Service.Group.get_by_name("Diffix Explorer")
-      Air.Service.Group.delete!(group)
       assert :ok = Explorer.setup_credentials_if_required()
       assert {:ok, _} = Air.Service.User.get_by_login("diffix-explorer@aircloak.com")
       assert {:ok, _} = Air.Service.Group.get_by_name("Diffix Explorer")
     end
 
-    test "is indempotent" do
+    test "is idempotent" do
       assert :ok = Explorer.setup_credentials_if_required()
       users = Air.Service.User.all()
       assert :ok = Explorer.setup_credentials_if_required()
@@ -280,17 +292,34 @@ defmodule Air.Service.ExplorerTest do
     end
   end
 
+  describe ".data_source_updated" do
+    test "removes results if table no longer exists in the data source", context do
+      assert [
+               %ExplorerAnalysis{table_name: "bars"},
+               %ExplorerAnalysis{table_name: "foos"}
+             ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name)
+
+      DataSource.update!(context.ds1, %{
+        tables: Jason.encode!([@bars_table])
+      })
+
+      assert [
+               %ExplorerAnalysis{table_name: "bars"}
+             ] = Explorer.results_for_datasource(context.ds1)
+    end
+  end
+
   describe ".reanalyze_datasource" do
-    test "creates analysis records and polls for results", context do
-      assert :ok == Explorer.reanalyze_datasource(context.ds1)
+    test "creates jobs and polls for results", context do
       MockServer.pause()
+      assert :ok == Explorer.reanalyze_datasource(context.ds1)
 
       assert_soon(
         [
           %ExplorerAnalysis{table_name: "bars", status: :new},
           %ExplorerAnalysis{table_name: "foos", status: :new}
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
 
       MockServer.resume()
@@ -316,23 +345,57 @@ defmodule Air.Service.ExplorerTest do
             }
           }
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
     end
   end
 
   describe "change_permitted_data_sources" do
     test "it removes all data sources that currently do not have permissions", context do
-      Explorer.reanalyze_datasource(context.ds_not_included)
-      assert soon(not Enum.empty?(Explorer.results_for_datasource(context.ds_not_included)))
+      id_ds1 = "#{context.ds1.id}"
+      id_ds_not_included = "#{context.ds_not_included.id}"
 
-      assert {:ok, _} = Explorer.change_permitted_data_sources(%{data_sources: [context.ds1.id]})
-      assert soon(Enum.empty?(Explorer.results_for_datasource(context.ds_not_included)))
+      assert {:ok, _} =
+               Explorer.change_permitted_data_sources(%{
+                 "data_sources" => [context.ds1.id, context.ds_not_included.id],
+                 "tables" => [
+                   %{id_ds1 => "bars"},
+                   %{id_ds1 => "foos"},
+                   %{id_ds_not_included => "bars"},
+                   %{id_ds_not_included => "foos"}
+                 ]
+               })
+
+      assert_soon not Enum.empty?(Explorer.results_for_datasource(context.ds_not_included))
+
+      assert {:ok, _} =
+               Explorer.change_permitted_data_sources(%{
+                 "data_sources" => [context.ds1.id],
+                 "tables" => [
+                   %{id_ds1 => "bars"},
+                   %{id_ds1 => "foos"},
+                   %{id_ds_not_included => "bars"},
+                   %{id_ds_not_included => "foos"}
+                 ]
+               })
+
+      assert_soon Enum.empty?(Explorer.results_for_datasource(context.ds_not_included))
     end
 
     test "it adds results for newly authorized data sources", context do
+      id_ds1 = "#{context.ds1.id}"
+      id_ds_not_included = "#{context.ds_not_included.id}"
+
       assert {:ok, _} =
-               Explorer.change_permitted_data_sources(%{data_sources: [context.ds1.id, context.ds_not_included.id]})
+               Explorer.change_permitted_data_sources(%{
+                 "data_sources" => [context.ds1.id, context.ds_not_included.id],
+                 "tables" => [
+                   %{id_ds1 => "bars"},
+                   %{id_ds1 => "foos"},
+                   %{id_ds_not_included => "bars"},
+                   %{id_ds_not_included => "foos"}
+                 ]
+               })
 
       assert_soon(
         [
@@ -352,13 +415,23 @@ defmodule Air.Service.ExplorerTest do
             }
           }
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
     end
 
     test "it does not attempt to get results for already existing data sources", context do
       # Setup: make sure we have ds1 one ready and results already fetched
-      Explorer.reanalyze_datasource(context.ds1)
+      id_ds1 = "#{context.ds1.id}"
+      id_ds_not_included = "#{context.ds_not_included.id}"
+
+      assert {:ok, _} =
+               Explorer.change_permitted_data_sources(%{
+                 "data_sources" => [context.ds1.id],
+                 "tables" => [
+                   %{id_ds1 => "bars"},
+                   %{id_ds1 => "foos"}
+                 ]
+               })
 
       assert_soon(
         [
@@ -368,7 +441,7 @@ defmodule Air.Service.ExplorerTest do
           },
           %ExplorerAnalysis{}
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
 
       # Now change what the server will have to say about bar
@@ -387,7 +460,15 @@ defmodule Air.Service.ExplorerTest do
       )
 
       assert {:ok, _} =
-               Explorer.change_permitted_data_sources(%{data_sources: [context.ds1.id, context.ds_not_included.id]})
+               Explorer.change_permitted_data_sources(%{
+                 "data_sources" => [context.ds1.id, context.ds_not_included.id],
+                 "tables" => [
+                   %{id_ds1 => "bars"},
+                   %{id_ds1 => "foos"},
+                   %{id_ds_not_included => "bars"},
+                   %{id_ds_not_included => "foos"}
+                 ]
+               })
 
       # Here we wait for ds_not_included to return from polling
       assert_soon(
@@ -398,7 +479,7 @@ defmodule Air.Service.ExplorerTest do
           },
           %ExplorerAnalysis{}
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
 
       # The point of this test: notice that status is still error, which shows that this data source was not refreshed
@@ -410,7 +491,7 @@ defmodule Air.Service.ExplorerTest do
           },
           %ExplorerAnalysis{}
         ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
-        timeout: 200
+        timeout: 500
       )
     end
   end

@@ -3,10 +3,15 @@ defmodule Cloak.Query.ParallelStreamingTest do
 
   @table "parallel_streaming"
 
-  import Cloak.Test.QueryHelpers, only: [insert_rows: 4]
+  import Cloak.Test.QueryHelpers, only: [insert_rows: 4, default_data_source: 0]
   alias Cloak.Query.Runner
 
   setup_all do
+    data_sources = Cloak.DataSource.all()
+    on_exit(fn -> Cloak.DataSource.replace_all_data_source_configs(data_sources) end)
+    streaming_data_source = default_data_source() |> Map.put(:statistics_anonymization, false)
+    Cloak.DataSource.replace_all_data_source_configs([streaming_data_source])
+
     :ok = Cloak.Test.DB.create_table(@table, "value INTEGER")
     :ok
   end
@@ -16,10 +21,7 @@ defmodule Cloak.Query.ParallelStreamingTest do
     :ok
   end
 
-  defp data_source(concurrency) do
-    data_source = Enum.find(Cloak.DataSource.all(), &(&1.driver === Cloak.DataSource.PostgreSQL))
-    %{data_source | concurrency: concurrency}
-  end
+  defp data_source(concurrency), do: %{default_data_source() | concurrency: concurrency}
 
   defmacrop assert_query(query, expected_response, opts) do
     quote do

@@ -8,7 +8,7 @@ defmodule Compliance.AnalystTableTest do
 
   @moduletag :compliance
   @moduletag :analyst_tables
-  @tested_data_sources ~w(oracle postgresql9.6 postgresql)
+  @tested_data_sources ~w(oracle postgresql)
 
   setup_all do
     air_name = "some_air_instance"
@@ -202,11 +202,10 @@ defmodule Compliance.AnalystTableTest do
                   {:ok, _} =
                     AnalystTable.create_or_update(1, "table27", nil, "select user_id from users", data_source, nil, %{})
 
-                  assert soon(
-                           table_created?(1, "table27", data_source, :create_error),
-                           :timer.seconds(5),
-                           repeat_wait_time: 10
-                         )
+                  assert_soon(
+                    table_created?(1, "table27", data_source, :create_error),
+                    timeout: :timer.seconds(5)
+                  )
                 end)
 
               assert log =~ ~r/Error creating analyst table.*some error/

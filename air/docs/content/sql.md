@@ -13,8 +13,8 @@ FROM table_name`.
 
 ## Querying the database
 
-The `SELECT` statement can be used to obtain anonymised data from tables. See [Understanding query
-results](sql/query-results.md) for an explanation of the effects of anonymisation on the results.
+The `SELECT` statement can be used to obtain anonymized data from tables. See [Understanding query
+results](sql/query-results.md) for an explanation of the effects of anonymization on the results.
 
 The syntax conforms to the standard SQL syntax (with some exceptions), but only a subset of features is supported. The
 general shape of the query looks like:
@@ -49,30 +49,155 @@ general shape of the query looks like:
 
 ## Query and subquery types
 
-Aircloak Insights supports both queries over `personal` data and queries over `non-personal` data. In this context `personal`
-data is data pertaining to individual entities, as opposed to an anonymised aggregate across multiple such entities.
+Aircloak Insights supports both queries over `personal` data and queries over `non-personal` data.
+In this context `personal` data is data about a single person (or entity, depending on what it is
+you want to protect through anonymization), and `non-personal` data facts from a fact or lookup table
+(not relating to any one individual) or the result of an anonymizing subquery over personal data.
 
-Queries that process `personal` data are subject to various [restrictions](sql/restrictions.md), and are called restricted
-queries. Restricted queries can be arbitrarily nested. The top-most restricted query anonymises the data by producing
-anonymised aggregates and filtering values that would allow an individual entity to be identified. Such a top-most query
-is called an anonymising query.
+Queries that process `personal` data are subject to various [restrictions](sql/restrictions.md),
+and are called *restricted queries*. Restricted queries can be arbitrarily nested. The top-most
+restricted query anonymizes the data. The anonymization produces a result that is about groups of
+users rather than individuals, and filters out values that could identify an individual.
+Such a top-most restricted query is called an *anonymizing query*.
 
-An anonymising query could itself be a subquery to another query that further processes the anonymised query results or
-combines it with that of a `non-personal` table. Such a query is called a standard query. Standard queries have the usual SQL
-validations applied to them, but do not underly the anonymisation related restrictions of the restricted queries.
-Standard queries can only refer to `non-personal` tables or to other standard or anonymising subqueries.
+An anonymizing query can itself be a subquery to another query. In such a case the data processed
+by the other query is already anonymous and hence `non-personal`. Such a query is called a *standard query*.
+A standard query can be used to further process an anonymized result set or, for example, to combine anonymized
+data with data from a `non-personal` table such as a fact or lookup table. Standard queries have the usual
+SQL validations applied to them (such as type checking), but the restrictions that are enforced for queries
+processing personal data do not apply. Standard queries can only refer to `non-personal` tables or to other
+standard or anonymizing subqueries.
 
-The following is an example:
+### Distinguishing between query types
+
+Being able to tell the query types apart helps you make sure you get the results you expect and want.
+It is not uncommon that an analyst new to Aircloak Insights ends up writing a subquery producing aggregates
+over multiple users, which becomes an anonymizing subquery, where they needed to write a subquery producing
+per-user aggregates, which becomes a non-anonymizing restricted subquery. This mistake can cause most of the
+data to get anonymized away, leading to results vastly different from what was expected. It can be hard to
+debug and understand the cause of a situation like this if you do not know of the different query types and
+how to distinguish between them.
+
+#### Non-anonymizing restricted subqueries
+
+You can tell that a subquery produces a per-user aggregate (is a *non-anonymizing restricted subquery*) if
+*both of* the following are true:
+- it processes data from one or more personal tables or other non-anonymizing restricted subqueries
+- it explicitly selects or groups by the column that was specified as the user id
+
+Note that the top-most query can never be a non-anonymizing restricted subquery. The reason for this is that
+all Aircloak queries have to produce an anonymized result. This is incompatible with the results of a non-anonymized
+restricted subquery which is always personal data.
+
+##### Some examples
+
+This query is a non-anonymizing restricted subquery as it is a subquery and explicitly selects the user id column
+from a table containing personal data:
+
+```sql
+... (
+  SELECT uid, age
+  FROM personal_table
+) subquery
+...
+```
+
+This query is a non-anonymizing restricted subquery as it is a subquery and explicitly creates a per-user aggregate
+(through selecting and grouping by the user id column) from a table containing personal data:
+
+```sql
+... (
+  SELECT uid, count(*) as numTransactions
+  FROM transactions
+  GROUP BY uid
+) subquery
+...
+```
+
+This query is a non-anonymizing restricted subquery as it is a subquery and explicitly creates per-user aggregates
+(through selecting and grouping by the user id column) from a combination of tables containing personal data:
+
+```sql
+... (
+  SELECT t.uid, count(*) as numTransactions, count(distinct a.id) as numAccounts
+  FROM transactions t INNER JOIN accounts a ON t.account_id = a.id
+  GROUP BY t.uid
+) subquery
+...
+```
+
+#### Anonymizing restricted queries
+
+A query is an anonymizing query if it operates on personal data and *either of* the following is true:
+- it is the top-most query (Aircloak will never return a non-anonymized result)
+- it aggregates over multiple users (i.e. does not explicitly group by the user id column)
+
+##### Some examples
+
+This query is anonymizing as it is the top-most query and produces an aggregate across the data of multiple users.
+That the aggregate is over multiple users is evident by the query not grouping by the user id column which would
+produce a per-user aggregate.
+
+```sql
+SELECT count(*)
+FROM personal_table
+```
+
+Somewhat unintuitively the following query is also anonymizing, despite grouping by the user id column.
+The reason for this is that it is the top-most query and Aircloak therefore is forced to anonymize it.
+If Aircloak did not then the result would reveal data about individuals. A query such as this is will not
+produce any meaningful results. Each row is identifying and is suppressed as a result.
+
+```sql
+SELECT uid, count(*)
+FROM personal_table
+GROUP BY uid
+```
+
+The following subquery is anonymizing, despite grouping by a column that, in this particular example, likely is mostly
+unique to a user. The intent might have been for the query to be a non-anonymizing restricted query producing a
+per-user aggregate. It isn't marked as such by Aircloak Insights as it does not select and group by the column specified
+as the user id column. Much like the previous example of the top-level anonymizing query, producing a per-user count,
+this query is likely to produce no (or very little) results after anonymization. This is because the phone numbers are
+likely unique to users and are filtered out as they are identifying.
+
+```sql
+... (
+  SELECT phone_number, count(*) as numTransactions
+  FROM transactions
+  GROUP BY phone_number
+) per_phone_transactions
+```
+
+The following subquery is anonymizing as it produces an aggregate over the data of many users.
+The resulting data can be further processed by a standard query.
+
+```sql
+... (
+  SELECT city, count(*)
+  FROM personal_table
+  GROUP BY city
+) city_distribution
+```
+
+#### Standard queries
+
+A standard query is a query that executes over anonymized and/or non-personal data. In fact any query which is not
+either an anonymizing query or a non-anonymizing restricted query is a standard query.
+
+The following query combines all query types into a single composite query showing how they might relate:
 
 ```SQL
--- Standard query (only processes anonymised data)
+-- Standard query (only processes anonymized (and hence non-personal) data)
 SELECT
   min(age), max(age),
   count(age), sum(individuals) as num_users
 FROM (
-  -- Anonymising (and restricted) query
+  -- An anonymizing (and restricted) query as it produces an aggregate
+  -- that spans the data of multiple persons
   SELECT age, count(*) as individuals FROM (
-    -- Restricted query
+    -- Restricted query as processes per-user data and explicitly
+    -- selects the user id column (here named uid)
     SELECT uid, t1.age
     FROM table1 t1 INNER JOIN table2 t2
       ON t1.uid = t2.uid

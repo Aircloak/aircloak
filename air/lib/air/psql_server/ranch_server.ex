@@ -304,11 +304,11 @@ defmodule Air.PsqlServer.RanchServer do
           {__MODULE__, port},
           Keyword.get(opts, :num_acceptors, 10),
           :ranch_tcp,
-          [
-            port: port,
+          %{
+            socket_opts: [port: port],
             max_connections: max_connections,
             backlog: Keyword.fetch!(opts, :backlog)
-          ],
+          },
           __MODULE__,
           {opts, behaviour_mod, behaviour_init_arg}
         )

@@ -1,0 +1,13 @@
+{
+  "driver": "postgresql",
+  "name": "postgresql",
+  "parameters": {
+    "hostname": "localhost",
+    "port": 20002,
+    "username": "postgres",
+    "database": "cloaktest1"
+  },
+  "tables": {
+  },
+  "analyst_tables_enabled": true
+}

@@ -143,8 +143,8 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
   test "normalizing date_trunc's first argument",
     do:
       assert_equivalent(
-        "SELECT date_trunc('YEAR', column) FROM table",
-        "SELECT date_trunc('year', column) FROM table"
+        "SELECT date_trunc('YEAR', column) FROM table GROUP BY date_trunc('Year', column)",
+        "SELECT date_trunc('year', column) FROM table GROUP BY date_trunc('year', column)"
       )
 
   %{
@@ -160,8 +160,11 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
           %{
             columns: [
               {:function, %{canonical_name: unquote(function), synonym_used: unquote(synonym)}, _, _}
+            ],
+            grouping_sets: [
+              [{:function, %{canonical_name: unquote(function), synonym_used: unquote(synonym)}, _, _}]
             ]
-          } = Parser.parse!("SELECT #{unquote(synonym)}(column) FROM table")
+          } = Parser.parse!("SELECT #{unquote(synonym)}(column) FROM table GROUP BY #{unquote(synonym)}(column)")
         )
   end)
 

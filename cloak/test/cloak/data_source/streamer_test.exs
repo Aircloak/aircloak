@@ -3,6 +3,9 @@ defmodule Cloak.DataSource.StreamerTest do
 
   alias Cloak.DataSource.Streamer
 
+  import Cloak.Test.QueryHelpers, only: [default_data_source: 0]
+  import Aircloak.AssertionHelper
+
   setup_all do
     :ok = Cloak.Test.DB.create_table("test_streamer", "intval INTEGER")
     :ok = Cloak.Test.QueryHelpers.insert_rows(_user_ids = 1..500, "test_streamer", ["intval"], [42])
@@ -71,10 +74,12 @@ defmodule Cloak.DataSource.StreamerTest do
 
   test "connection failure" do
     with_short_connection_timeout(fn ->
-      ExUnit.CaptureLog.capture_log(fn ->
-        assert {:error, error} = rows("select intval from test_streamer", data_source(%{hostname: "invalid_host"}))
-        assert error =~ ~r/Failed to establish a connection to the database/
-      end)
+      soon do
+        ExUnit.CaptureLog.capture_log(fn ->
+          assert {:error, error} = rows("select intval from test_streamer", data_source(%{hostname: "invalid_host"}))
+          assert error =~ ~r/Failed to establish a connection to the database/
+        end)
+      end
     end)
   end
 
@@ -118,8 +123,7 @@ defmodule Cloak.DataSource.StreamerTest do
   end
 
   defp data_source(extra_params \\ %{}) do
-    Cloak.DataSource.all()
-    |> hd()
+    default_data_source()
     |> update_in([:parameters], &Map.merge(&1, extra_params))
   end
 end

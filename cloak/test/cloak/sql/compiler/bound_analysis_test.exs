@@ -1,65 +1,150 @@
 defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   use ExUnitProperties
 
   alias Cloak.Sql.Compiler.BoundAnalysis
   alias Cloak.Sql.Expression
-  alias Cloak.DataSource.Table
-  alias Cloak.TestBoundsCache
 
-  defmacrop assert_unknown_or_within_bounds(expression, values, function) do
-    quote bind_quoted: [expression: expression, values: values, function: function] do
-      case BoundAnalysis.set_bounds(expression).bounds do
-        :unknown ->
-          true
+  import Cloak.Test.QueryHelpers
 
-        {min, max} ->
-          result = apply(function, values)
+  setup_all do
+    :ok = Cloak.Test.DB.create_table("bounds_analysis", "col INTEGER, d DATE")
 
-          assert result <= max && result >= min,
-                 "Bounds calculated: #{inspect({min, max})}. " <>
-                   "Result of applying #{inspect(function)} to #{inspect(values)} is #{result}."
-      end
-    end
+    :ok = insert_rows(_user_ids = 1..5, "bounds_analysis", ["col", "d"], [30, ~D[2000-05-03]])
+    :ok = insert_rows(_user_ids = 6..10, "bounds_analysis", ["col", "d"], [70, ~D[2010-02-12]])
+
+    :ok =
+      Cloak.Test.DB.create_table("bounds_analysis_virtual", nil,
+        skip_db_create: true,
+        query: "select user_id, col * 2 as col from cloak_test.bounds_analysis"
+      )
+
+    data_sources = Cloak.DataSource.all()
+
+    analysis_data_source =
+      default_data_source()
+      |> Map.put(:name, "analysis")
+      |> Map.put(:bound_computation_enabled, true)
+      |> Map.put(:statistics_anonymization, false)
+
+    Cloak.DataSource.replace_all_data_source_configs([analysis_data_source])
+
+    Cloak.Air.register_air("some air")
+
+    {:ok, _} =
+      Cloak.Test.AnalystTableHelpers.create_or_update(
+        1,
+        "bounds_analysis_analyst",
+        "select user_id as uid, col * 2 as col from bounds_analysis ba where ba.col between 0 and 100",
+        analysis_data_source
+      )
+
+    {:ok, _} =
+      Cloak.Test.AnalystTableHelpers.create_or_update(
+        1,
+        "bounds_analysis_analyst_recursive",
+        "select uid, baa.col * 2 as col from bounds_analysis_analyst baa group by 1, 2",
+        analysis_data_source
+      )
+
+    on_exit(fn ->
+      Cloak.Air.unregister_air()
+      Cloak.DataSource.replace_all_data_source_configs(data_sources)
+    end)
+
+    {:ok, analysis_data_source}
+  end
+
+  test "numeric columns with known bounds are restricted during offload", analysis_data_source do
+    offloaded_query =
+      "SELECT COUNT(*) FROM bounds_analysis t WHERE col = 10"
+      |> compile!(analysis_data_source)
+      |> Cloak.Sql.Query.resolve_db_columns()
+      |> Cloak.DataSource.SqlBuilder.build()
+
+    assert offloaded_query =~
+             ~s[CASE WHEN ("t"."col" < 2) THEN 2 WHEN ("t"."col" > 1000) THEN 1000 ELSE "t"."col" END = 10]
+  end
+
+  test "date columns with known bounds are restricted during offload", analysis_data_source do
+    offloaded_query =
+      "SELECT COUNT(*) FROM bounds_analysis t WHERE d = '2000-05-03'"
+      |> compile!(analysis_data_source)
+      |> Cloak.Sql.Query.resolve_db_columns()
+      |> Cloak.DataSource.SqlBuilder.build()
+
+    assert offloaded_query =~
+             ~s[CASE WHEN (EXTRACT(year FROM "t"."d") < 1975) THEN date '1975-01-01'] <>
+               ~s[ WHEN (EXTRACT(year FROM "t"."d") > 2125) THEN date '2125-12-31' ELSE "t"."d" END]
   end
 
   describe ".analyze_query" do
-    test "sets bounds for each expression in the query" do
-      TestBoundsCache.set(data_source(), "table", "column", {100, 200})
-
-      assert {101, 201} = hd(compile!("SELECT 1 + column FROM table").columns).bounds
+    test "sets bounds for each expression in the query", analysis_data_source do
+      column = "SELECT 1 + col FROM bounds_analysis" |> compile!(analysis_data_source) |> first_selected_column()
+      assert {3, 1001} = column.bounds
     end
 
-    test "propagates bounds from subqueries" do
-      TestBoundsCache.set(data_source(), "table", "column", {10, 20})
-
-      compiled = compile!("SELECT foo FROM (SELECT 1 + column AS foo FROM table) bar")
-      assert {11, 21} = hd(compiled.columns).bounds
+    test "sets bounds aliased table", analysis_data_source do
+      column = "SELECT 1 + col FROM bounds_analysis t1" |> compile!(analysis_data_source) |> first_selected_column()
+      assert {3, 1001} = column.bounds
     end
 
-    defp compile!(query) do
-      Cloak.Test.QueryHelpers.compile!(query, data_source())
+    test "propagates bounds from subqueries", analysis_data_source do
+      column =
+        "SELECT foo FROM (SELECT 1 + col AS foo FROM bounds_analysis) bar"
+        |> compile!(analysis_data_source)
+        |> first_selected_column()
+
+      assert {3, 1001} = column.bounds
     end
 
-    defp data_source() do
-      %{
-        name: "bound_analysis_data_source",
-        driver: Cloak.DataSource.PostgreSQL,
-        tables: %{
-          table:
-            Table.new("table", "uid",
-              db_name: "table",
-              columns: [
-                Table.column("uid", :integer),
-                Table.column("column", :integer)
-              ]
-            )
-        }
-      }
+    test "sets bounds for virtual tables", analysis_data_source do
+      column = "SELECT col FROM bounds_analysis_virtual" |> compile!(analysis_data_source) |> first_selected_column()
+      assert {5, 2000} = column.bounds
+    end
+
+    test "sets bounds for analyst tables", analysis_data_source do
+      column =
+        "SELECT col FROM bounds_analysis_analyst"
+        |> compile!(analysis_data_source, analyst: 1)
+        |> first_selected_column()
+
+      assert {4, 2000} = column.bounds
+    end
+
+    test "sets bounds for recursive analyst tables", analysis_data_source do
+      column =
+        "SELECT col FROM bounds_analysis_analyst_recursive"
+        |> compile!(analysis_data_source, analyst: 1)
+        |> first_selected_column()
+
+      assert {8, 4000} = column.bounds
+    end
+
+    defp first_selected_column(query) do
+      {:subquery, uid_grouping_query} = query.from
+      [_uid, first_group | _] = uid_grouping_query.ast.columns
+      first_group
     end
   end
 
   describe ".set_bounds" do
+    defmacrop assert_unknown_or_within_bounds(expression, values, function) do
+      quote bind_quoted: [expression: expression, values: values, function: function] do
+        case BoundAnalysis.set_bounds(expression).bounds do
+          :unknown ->
+            true
+
+          {min, max} ->
+            result = apply(function, values)
+
+            assert result <= max && result >= min,
+                   "Bounds calculated: #{inspect({min, max})}. " <>
+                     "Result of applying #{inspect(function)} to #{inspect(values)} is #{result}."
+        end
+      end
+    end
+
     test "integer constants" do
       assert {2, 2} = BoundAnalysis.set_bounds(Expression.constant(:integer, 2)).bounds
     end

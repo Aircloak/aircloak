@@ -34,7 +34,7 @@ export default ({ graphInfo, graphConfig, remove, addX, addY }: Props) => {
   return (
     <form className="form-horizontal">
       {graphInfo.xColumns().map((column, columnIndex) => (
-        <div key={column} className="form-group row">
+        <div key={columnIndex} className="form-group row">
           <span className="col-sm-3 control-label label-right">{column}</span>
           <div className="col-sm-9">
             <div className="btn-group" role="group">

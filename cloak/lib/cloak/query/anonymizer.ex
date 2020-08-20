@@ -245,7 +245,11 @@ defmodule Cloak.Query.Anonymizer do
 
   @doc "Returns the actual noise amount from a dynamic anonymizer and a static noise SD."
   @spec noise_amount(number, t, float) :: float
-  def noise_amount(sigma, anonymizer, round_amount \\ 0.05),
+  def noise_amount(sigma, anonymizer, round_amount \\ 0.05)
+
+  def noise_amount(nil, _anonymizer, _round_amount), do: nil
+
+  def noise_amount(sigma, anonymizer, round_amount),
     do: sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma(round_amount)
 
   @doc "Computes the noisy count of distinct values from the no-uid statistics for a bucket."
@@ -480,6 +484,8 @@ defmodule Cloak.Query.Anonymizer do
   # We report a different sigma from the one we actually use to generate the noise for stats-based aggregators.
   # We compute the reported noise sigma after removing the effect of `min` and `max` from `avg` and `stddev`.
   # For details, see: https://github.com/Aircloak/aircloak/issues/4231.
+  defp reported_statistics_sigma([1, _sum, _min, _max, nil] = _statistics), do: nil
+
   defp reported_statistics_sigma([count, sum, min, max, stddev] = _statistics) do
     avg = sum / count
     sum_of_squared_diff = sqr(stddev) * (count - 1) - sqr(max - avg) - sqr(min - avg)
