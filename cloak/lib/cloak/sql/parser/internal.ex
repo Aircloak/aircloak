@@ -686,7 +686,7 @@ defmodule Cloak.Sql.Parser.Internal do
     option(sequence([keyword(:escape), constant(:string)]))
     |> map(fn
       [_, constant] -> constant
-      nil -> {:constant, :string, nil, _location = nil}
+      nil -> {:constant, :string, "\\", _location = nil}
     end)
   end
 

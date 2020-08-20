@@ -462,7 +462,7 @@ defmodule Cloak.Sql.Parser.Test do
         where:
           function("like", [
             identifier("a"),
-            {:like_pattern, constant("_ob d%"), constant(nil)}
+            {:like_pattern, constant("_ob d%"), constant("\\")}
           ])
       )
     )
@@ -476,7 +476,7 @@ defmodule Cloak.Sql.Parser.Test do
           function("not", [
             function("like", [
               identifier("a"),
-              {:like_pattern, constant("%pattern%"), constant(nil)}
+              {:like_pattern, constant("%pattern%"), constant("\\")}
             ])
           ])
       )
@@ -492,7 +492,7 @@ defmodule Cloak.Sql.Parser.Test do
         where:
           function("ilike", [
             identifier("a"),
-            {:like_pattern, constant("_ob d%"), constant(nil)}
+            {:like_pattern, constant("_ob d%"), constant("\\")}
           ])
       )
     )
@@ -506,7 +506,7 @@ defmodule Cloak.Sql.Parser.Test do
           function("not", [
             function("ilike", [
               identifier("a"),
-              {:like_pattern, constant("%pattern%"), constant(nil)}
+              {:like_pattern, constant("%pattern%"), constant("\\")}
             ])
           ])
       )
@@ -516,12 +516,12 @@ defmodule Cloak.Sql.Parser.Test do
   for word <- ~w(like ilike) do
     test "#{word} with an escape character" do
       assert_parse(
-        "select foo from bar where baz #{unquote(word)} '\\%pattern%' escape '\\'",
+        "select foo from bar where baz #{unquote(word)} '-%pattern%' escape '-'",
         select(
           where:
             function(_, [
               identifier("baz"),
-              {:like_pattern, constant("\\%pattern%"), constant("\\")}
+              {:like_pattern, constant("-%pattern%"), constant("-")}
             ])
         )
       )
@@ -594,7 +594,7 @@ defmodule Cloak.Sql.Parser.Test do
                 function("=", [identifier("a"), constant(2)]),
                 function("in", [identifier("b"), constant(1), constant(2), constant(3)])
               ]),
-              function("like", [identifier("c"), {:like_pattern, constant("_o"), constant(nil)}])
+              function("like", [identifier("c"), {:like_pattern, constant("_o"), constant("\\")}])
             ]),
             function("not", [function("is_null", [identifier("d")])])
           ])
@@ -2009,7 +2009,7 @@ defmodule Cloak.Sql.Parser.Test do
             columns: [
               function("#{unquote(like_verb)}", [
                 identifier("foo"),
-                {:like_pattern, constant("aaa%"), constant(nil)}
+                {:like_pattern, constant("aaa%"), constant("\\")}
               ])
             ]
           )
@@ -2024,7 +2024,7 @@ defmodule Cloak.Sql.Parser.Test do
               function("not", [
                 function("#{unquote(like_verb)}", [
                   identifier("foo"),
-                  {:like_pattern, constant("aaa%"), constant(nil)}
+                  {:like_pattern, constant("aaa%"), constant("\\")}
                 ])
               ])
             ]
