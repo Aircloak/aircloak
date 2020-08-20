@@ -346,13 +346,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           {0.0, 10},
           {0.0, 10.0}
         ]
-        |> Enum.flat_map(fn {a, b} ->
-          [
-            "SELECT STDDEV(uid) FROM table WHERE numeric BETWEEN #{a} AND #{b}",
-            "SELECT STDDEV(uid) FROM table WHERE numeric >= #{a} AND numeric < #{b}"
-          ]
-        end)
-        |> Enum.map(&compile!/1)
+        |> Enum.map(fn {a, b} -> compile!("SELECT STDDEV(uid) FROM table WHERE numeric BETWEEN #{a} AND #{b}") end)
         |> Enum.map(& &1.noise_layers)
         |> Enum.uniq()
 
