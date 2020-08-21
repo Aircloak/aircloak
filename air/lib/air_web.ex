@@ -22,6 +22,20 @@ defmodule Air.Web do
         layout: {AirWeb.LayoutView, "live.html"}
 
       unquote(view_helpers())
+
+      @doc false
+      def audit_log(socket, event, metadata \\ []) do
+        audit_log_for_user(socket.assigns.current_user, event, metadata)
+      end
+
+      @doc false
+      def audit_log_for_user(user, event, metadata \\ []) do
+        Air.Service.AuditLog.log(
+          user,
+          event,
+          Enum.into(metadata, %{})
+        )
+      end
     end
   end
 

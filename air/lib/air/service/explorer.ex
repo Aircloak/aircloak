@@ -89,7 +89,11 @@ defmodule Air.Service.Explorer do
   @doc "Requests new analyses for datasource."
   @spec reanalyze_datasource(Air.Schemas.DataSource.t()) :: :ok
   def reanalyze_datasource(data_source),
-    do: Enum.each(results_for_datasource(data_source), &GenServer.cast(__MODULE__, {:request_analysis, &1}))
+    do:
+      Enum.each(
+        results_for_datasource(data_source),
+        &GenServer.cast(__MODULE__, {:request_analysis, set_status_to_processing(&1)})
+      )
 
   @doc "Returns a list of tables that are elligible for analysis for a particular datasource"
   @spec elligible_tables_for_datasource(Air.Schemas.DataSource.t()) :: [String.t()]
@@ -356,15 +360,24 @@ defmodule Air.Service.Explorer do
   defp handle_result_changeset(changeset, nil), do: changeset
   defp handle_result_changeset(changeset, results), do: ExplorerAnalysis.from_decoded_result_json(changeset, results)
 
+  defp set_status_to_processing(analysis) do
+    {:ok, analysis} = Repo.insert_or_update(ExplorerAnalysis.changeset(analysis, %{status: :processing}))
+    analysis
+  end
+
   defp update_analysis(changeset, opts) do
-    changeset
-    |> handle_result_changeset(Keyword.get(opts, :result))
-    |> ExplorerAnalysis.changeset(
-      opts
-      |> Keyword.delete(:result)
-      |> Enum.into(%{})
-    )
-    |> Repo.insert_or_update()
+    result =
+      changeset
+      |> handle_result_changeset(Keyword.get(opts, :result))
+      |> ExplorerAnalysis.changeset(
+        opts
+        |> Keyword.delete(:result)
+        |> Enum.into(%{})
+      )
+      |> Repo.insert_or_update()
+
+    AirWeb.Endpoint.broadcast!("explorer", "analysis_updated", %{})
+    result
   end
 
   defp poll_analysis(explorer_analysis) do
