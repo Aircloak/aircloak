@@ -2,54 +2,6 @@ defmodule AirWeb.Admin.ExplorerView do
   use Air.Web, :view
   alias Air.Service.Explorer
 
-  defp checkbox_mapper(form, field, input_opts, {data_source, selected_tables}, label_opts, _opts) do
-    tables =
-      Explorer.elligible_tables_for_datasource(data_source)
-      |> Enum.map(&{&1, &1})
-
-    checked = Keyword.get(input_opts, :checked, false)
-
-    content_tag(:div, class: "form-check") do
-      [
-        tag(:input, [
-          {:class, "form-check-input"},
-          {:"data-target", "#tables-#{data_source.id}"},
-          {:"data-toggle", "collapse"} | input_opts
-        ]),
-        label(form, field, [{:class, "form-check-label"} | label_opts]) do
-          data_source.name
-        end,
-        content_tag(:div, class: "collapse #{if checked, do: "show"} nested-checkboxes", id: "tables-#{data_source.id}") do
-          content_tag(:div) do
-            PhoenixMTM.Helpers.collection_checkboxes(form, :tables, tables,
-              selected: selected_tables,
-              mapper: &table_checkbox_mapper/6,
-              data_source_id: data_source.id
-            )
-          end
-        end
-      ]
-    end
-  end
-
-  defp table_checkbox_mapper(form, field, input_opts, table_name, label_opts, opts) do
-    data_source_id = Keyword.get(opts, :data_source_id)
-
-    input_opts =
-      input_opts
-      |> Keyword.update!(:name, fn name -> name <> "[#{data_source_id}]" end)
-      |> Keyword.put(:class, "form-check-input")
-
-    content_tag(:div, class: "form-check") do
-      [
-        tag(:input, input_opts),
-        label(form, field, [{:class, "form-check-label text-break mw-100"} | label_opts]) do
-          table_name
-        end
-      ]
-    end
-  end
-
   defp version_link(commit) do
     link(String.slice(commit, 0, 8), to: "https://github.com/diffix/explorer/tree/#{commit}")
   end

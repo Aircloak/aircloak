@@ -1,4 +1,5 @@
 defmodule AirWeb.Admin.ExplorerLive.Index do
+  @moduledoc false
   use Air.Web, :live_view
 
   alias Air.Service.{Explorer, Group}

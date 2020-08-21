@@ -44,9 +44,8 @@ const App = {
   auditLog: (props, elem) => App.render("audit_log", props, elem),
   passwordField: (props, elem) => App.render("password_field", props, elem),
   liveView: (props) => {
-    const _csrf_token = document
-      .querySelector("meta[name='csrf-token']")
-      .getAttribute("content");
+    const csrfElement = document.querySelector("meta[name='csrf-token']");
+    const _csrf_token = csrfElement && csrfElement.getAttribute("content");
     const liveSocket = new LiveSocket("/live", Socket, {
       params: { _csrf_token },
     });
