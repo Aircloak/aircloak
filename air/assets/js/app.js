@@ -3,6 +3,8 @@ import "../css/app.css";
 import "phoenix_html";
 import React from "react";
 import ReactDOM from "react-dom";
+import * as Sentry from "@sentry/react";
+import { Integrations } from "@sentry/apm";
 import codeMirror from "codemirror";
 import CodeViewer from "./code_viewer";
 import QueriesView from "./queries/root";
@@ -20,6 +22,13 @@ import activateDatetimePickers from "./datetimepicker";
 import "codemirror/mode/markdown/markdown";
 import activateTooltips from "./tooltips";
 import copyToClipboard from "./copy_to_clipboard";
+
+Sentry.init({
+  dsn:
+    "https://d98edec5746844de86279c1903c07586@o375362.ingest.sentry.io/5194656",
+  integrations: [new Integrations.Tracing()],
+  tracesSampleRate: 1.0,
+});
 
 activateTooltips();
 
