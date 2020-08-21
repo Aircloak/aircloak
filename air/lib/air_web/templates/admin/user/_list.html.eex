@@ -34,7 +34,7 @@
 
         <td>
         <%= if is_explorer?(user) do %>
-          <%#= link "Manage", to: admin_explorer_path(@conn, :index) %>
+          <%= link "Manage", to: admin_explorer_path(@conn, :index) %>
         <% else %>
           <div class="btn-group">
             <%= if can_edit?(user) do %>
