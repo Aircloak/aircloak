@@ -111,7 +111,7 @@ defmodule Cloak.Query.Runner.Engine do
     [table] = query.selected_tables
 
     table.columns
-    |> Enum.reject(&match?(%{access: :hidden}, &1))
+    |> Enum.reject(&(&1.access == :hidden))
     |> Enum.map(
       &%{
         occurrences: 1,
