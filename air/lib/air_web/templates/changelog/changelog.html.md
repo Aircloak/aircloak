@@ -1,3 +1,9 @@
+## Version 20.2.1
+
+### Bugfixes
+
+- Fixed crash when loading data source tables in the sidebar.
+
 ## Version 20.2.0
 
 ### **Breaking changes**

@@ -137,7 +137,7 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
                 column_name == column.name
               end)["metrics"]
 
-            if Enum.empty?(column_metrics) do
+            if is_nil(column_metrics) or Enum.empty?(column_metrics) do
               column
             else
               Map.put(column, :analysis, [
