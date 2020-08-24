@@ -110,8 +110,9 @@ defmodule Cloak.Query.Runner.Engine do
   defp run_statement(%Sql.Query{command: :show, show: :columns} = query, _user_selectables, _state_updater) do
     [table] = query.selected_tables
 
-    Enum.map(
-      table.columns,
+    table.columns
+    |> Enum.reject(&match?(%{access: :hidden}, &1))
+    |> Enum.map(
       &%{
         occurrences: 1,
         row: [
