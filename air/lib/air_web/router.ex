@@ -1,6 +1,9 @@
 defmodule AirWeb.Router do
   @moduledoc false
   use Air.Web, :router
+  use Plug.ErrorHandler
+  use Sentry.Plug
+
   import Phoenix.LiveDashboard.Router
 
   pipeline :browser do
