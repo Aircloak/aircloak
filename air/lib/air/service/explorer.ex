@@ -376,7 +376,7 @@ defmodule Air.Service.Explorer do
       )
       |> Repo.insert_or_update()
 
-    AirWeb.Endpoint.broadcast!("explorer", "analysis_updated", %{})
+    broadcast_changes()
     result
   end
 
@@ -387,7 +387,7 @@ defmodule Air.Service.Explorer do
         |> ExplorerAnalysis.from_decoded_result_json(decoded_analysis)
         |> Air.Repo.update()
 
-        AirWeb.Endpoint.broadcast!("explorer", "analysis_updated", %{})
+        broadcast_changes()
 
       {:error, :not_found} ->
         Logger.warn(
@@ -465,10 +465,12 @@ defmodule Air.Service.Explorer do
     |> ExplorerAnalysis.changeset(%{status: :error, errors: [error]})
     |> Air.Repo.update()
 
-    AirWeb.Endpoint.broadcast!("explorer", "analysis_updated", %{})
+    broadcast_changes()
   end
 
   defp base_url(), do: config!("url") <> "/api/v1"
 
   defp config!(key), do: Map.fetch!(Aircloak.DeployConfig.fetch!("explorer"), key)
+
+  defp broadcast_changes(), do: AirWeb.Endpoint.broadcast!("explorer", "analysis_updated", %{})
 end
