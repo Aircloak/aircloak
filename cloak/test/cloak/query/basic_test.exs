@@ -89,6 +89,14 @@ defmodule Cloak.Query.BasicTest do
            ]
   end
 
+  test "[Issue #4422] show columns from a view with aggregators" do
+    assert_query("show columns from v1", [views: %{"v1" => %{sql: "select count(*) as c from heights"}}], %{
+      query_id: "1",
+      columns: _,
+      rows: [%{occurrences: 1, row: ["c", "integer", nil, nil, nil]}]
+    })
+  end
+
   test "simple select query" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
