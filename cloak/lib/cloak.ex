@@ -35,6 +35,9 @@ defmodule Cloak do
     with {:ok, true} <- Aircloak.DeployConfig.fetch("allow_any_value_in_when_clauses"),
          do: Application.put_env(:cloak, :allow_any_value_in_when_clauses, true)
 
+    with {:ok, true} <- Aircloak.DeployConfig.fetch("allow_any_value_in_in_clauses"),
+         do: Application.put_env(:cloak, :allow_any_value_in_in_clauses, true)
+
     with {:ok, analysis_queries} <- Aircloak.DeployConfig.fetch("analysis_queries") do
       analysis_queries_config =
         Enum.map(

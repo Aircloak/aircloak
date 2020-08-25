@@ -416,10 +416,16 @@ SELECT COUNT(*) FROM table WHERE number NOT IN (1, 2, 3)
 SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
 ```
 
+
 ### Allowed expressions
 
 Conditions using `IN` or `<>` have to have a clear expression on the left-hand side.
-All items on the right-hand side of the `IN` operator must be constants.
+Only a single `COUNT`, `MIN` or `MAX` aggregator is allowed in such conditions.
+
+All items on the right-hand side of the `IN` operator must be constants from the list of frequent values
+in that column, unless the system administrator explicitly allows usage of any value. Check the
+`Insights Cloak configuration` section for information on how to enable it.
+
 The right-hand side of a `<>` condition has to be a clear expression or a constant.
 
 Conditions using `NOT LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators.
@@ -430,9 +436,11 @@ The top-level `HAVING` clause is exempt from all these restrictions - see [Top-l
 ```sql
 -- Correct
 SELECT COUNT(*) FROM table WHERE lower(name) <> 'alice'
+SELECT COUNT(*) FROM table WHERE name IN ('alice', 'bob')
 
 -- Incorrect - a disallowed operation was used
 SELECT COUNT(*) FROM table WHERE length(name) <> 2
+SELECT COUNT(*) FROM table WHERE length(name) IN (1, 2, 3)
 
 -- Correct - top-level HAVING is exempt from restrictions
 SELECT COUNT(*) FROM table GROUP BY name HAVING length(name) <> 2
@@ -485,9 +493,8 @@ table might contain a `user_id` column and an `email` column. The emails are in 
 can identify a user just as well as the `user_id` column. We call these columns "isolating" and apply some additional
 restrictions to expressions including them. Note that the `user_id` column is always isolating.
 
-Conditions using isolating columns cannot use the `IN` operator. Conditions using the `LIKE` operator are limited to
-simple patterns of the form `%foo`, `foo%`, or `%foo%`. Furthermore, clear expressions are allowed for these columns.
-All other functions and mathematical operations are forbidden.
+Conditions using the `LIKE` operator are limited to simple patterns of the form `%foo`, `foo%`, or `%foo%`. Furthermore,
+clear expressions are allowed for these columns. All other functions and mathematical operations are forbidden.
 
 ```sql
 -- These examples assume that the 'email' and 'social_security' columns are isolating
@@ -497,9 +504,6 @@ SELECT COUNT(*) FROM table WHERE trim(email) = 'alice@example.com'
 
 -- Correct
 SELECT COUNT(*) FROM table WHERE email <> 'alice@example.com'
-
--- Incorrect - IN used
-SELECT COUNT(*) FROM table WHERE email IN ('alice@example.com', 'bob@example.com')
 
 -- Incorrect - a function from outside the allowed list is used
 SELECT COUNT(*) FROM table WHERE length(email) = 20

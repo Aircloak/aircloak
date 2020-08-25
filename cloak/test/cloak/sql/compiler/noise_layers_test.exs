@@ -33,6 +33,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
   setup_all do
     Cloak.TestShadowCache.safe(data_source(), "table", "numeric", [0, 1])
+    Cloak.TestShadowCache.safe(data_source(), "string_uid_table", "uid", ["a", "b"])
+    Cloak.TestShadowCache.safe(data_source(), "string_uid_table", "string", ["a", "b"])
   end
 
   test "overwrites any existing noise layers" do
@@ -710,29 +712,27 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                ] = result.noise_layers
       end
 
-      for function <- ~w(upper lower) do
-        test "#{function}(x) IN (many, values) on column #{column}" do
-          result =
-            compile!("""
-              SELECT STDDEV(0) FROM string_uid_table
-              WHERE #{unquote(function)}(#{unquote(column)}) IN ('a', 'b')
-            """)
+      test "upper(x) IN (many, values) on column #{column}" do
+        result =
+          compile!("""
+            SELECT STDDEV(0) FROM string_uid_table
+            WHERE upper(#{unquote(column)}) IN ('A', 'B')
+          """)
 
-          assert [
-                   %{
-                     base: {"string_uid_table", unquote(column), nil},
-                     expressions: [%{name: unquote(column)}, _]
-                   },
-                   %{
-                     base: {"string_uid_table", unquote(column), nil},
-                     expressions: [%{value: "a"}, _, %{name: "uid"}]
-                   },
-                   %{
-                     base: {"string_uid_table", unquote(column), nil},
-                     expressions: [%{value: "b"}, _, %{name: "uid"}]
-                   }
-                 ] = result.noise_layers
-        end
+        assert [
+                 %{
+                   base: {"string_uid_table", unquote(column), nil},
+                   expressions: [%{name: unquote(column)}, _]
+                 },
+                 %{
+                   base: {"string_uid_table", unquote(column), nil},
+                   expressions: [%{value: "A"}, _, %{name: "uid"}]
+                 },
+                 %{
+                   base: {"string_uid_table", unquote(column), nil},
+                   expressions: [%{value: "B"}, _, %{name: "uid"}]
+                 }
+               ] = result.noise_layers
       end
     end
   end

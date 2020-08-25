@@ -41,6 +41,12 @@ defmodule Cloak.Sql.Compiler.Test do
 
   setup_all do
     Cloak.TestShadowCache.safe(data_source(), "table", "string", ["xxx"])
+    Cloak.TestShadowCache.safe(data_source(), "table", "float", [1, 1.1])
+
+    Cloak.TestShadowCache.safe(data_source(), "table", "column", [
+      ~N[2015-01-01 00:00:00.000000],
+      ~N[2015-01-02 00:00:00.000000]
+    ])
   end
 
   test "adds an empty group by" do
@@ -263,15 +269,15 @@ defmodule Cloak.Sql.Compiler.Test do
   test "[Issue #2562] doesn't cast expressions that are already datetime in IN" do
     result =
       compile!(
-        "select stddev(uid) from table where column IN (cast('2017-01-01' as datetime), '2017-02-02')",
+        "select stddev(uid) from table where column IN (cast('2015-01-01' as datetime), '2015-01-02')",
         data_source()
       )
 
     assert [_is_not_null_id, function("in", [column("table", "column"), value1, value2])] =
              conditions_list(result.where)
 
-    assert constant(:datetime, ~N[2017-01-01 00:00:00.000000]) = value1
-    assert constant(:datetime, ~N[2017-02-02 00:00:00.000000]) = value2
+    assert constant(:datetime, ~N[2015-01-01 00:00:00.000000]) = value1
+    assert constant(:datetime, ~N[2015-01-02 00:00:00.000000]) = value2
   end
 
   test "allows comparing datetime columns to other datetime columns" do

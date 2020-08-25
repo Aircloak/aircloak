@@ -4,6 +4,9 @@
 
 - The `%` operator is now considered an implicit range.
 - The `enable_case_support` configuration setting has been removed.
+-  Constants in restricted `IN` clauses have to be from the list of frequent values, unless the
+  `allow_any_value_in_in_clauses` setting is enabled in the Insights Cloak configuration file.
+- Only a single `COUNT`, `MIN` or `MAX` aggregator is now allowed in restricted `IN` and `<>` conditions.
 
 ### New features
 

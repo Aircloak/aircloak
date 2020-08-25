@@ -23,7 +23,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       unless subquery.type == :standard do
         verify_negative_conditions!(subquery)
         verify_allowed_usage_of_math!(subquery)
-        verify_lhs_of_in_is_clear!(subquery)
+        verify_in_is_clear_and_safe!(subquery)
         verify_not_equals_is_clear!(subquery)
         verify_lhs_of_not_like_is_clear!(subquery)
         verify_string_based_conditions_are_clear!(subquery)
@@ -65,18 +65,41 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     end
   end
 
-  defp verify_lhs_of_in_is_clear!(query),
-    do:
-      verify_conditions(query, &Condition.in?/1, fn %Expression{kind: :function, name: "in", args: [lhs | _]} ->
-        unless lhs |> Type.establish_type(query) |> Type.clear_expression?() do
-          raise CompilationError,
-            source_location: lhs.source_location,
-            message: """
-            Only clear expressions can be used on the left-hand side of an IN operator.
-            For more information see the "Restrictions" section of the user guides.
-            """
+  defp verify_in_is_clear_and_safe!(query) do
+    verify_conditions(query, &Condition.in?/1, fn condition ->
+      [lhs | _] = condition.args
+
+      unless lhs |> Type.establish_type(query) |> Type.clear_expression?() do
+        raise CompilationError,
+          source_location: lhs.source_location,
+          message: """
+          Only clear expressions can be used on the left-hand side of an IN operator.
+          For more information see the "Restrictions" section of the user guides.
+          """
+      end
+
+      unless Application.get_env(:cloak, :allow_any_value_in_in_clauses) == true do
+        case Shadows.check_condition_safety(condition, query) do
+          :ok ->
+            :ok
+
+          {:error, :unsafe_aggregator} ->
+            raise CompilationError,
+              source_location: condition.source_location,
+              message: "Only a single `COUNT`, `MIN` or `MAX` aggregator is allowed in `IN` conditions."
+
+          {:error, invalid_target_constant} ->
+            raise CompilationError,
+              source_location: invalid_target_constant.source_location,
+              message: """
+                The target constants used in `IN` conditions in anonymizing queries have to be in the list of frequent
+                values for that column, unless the Insights Cloak is explicitly configured to allow any value.
+                For more information, see the "Configuring the system" section of the user guides.
+              """
         end
-      end)
+      end
+    end)
+  end
 
   defp verify_not_equals_is_clear!(query),
     do:
@@ -290,17 +313,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
 
   defp verify_negative_conditions!(query) do
-    negative_conditions = query |> Access.negative_conditions() |> Enum.to_list()
-
-    # We only verify negative conditions if there are enough of them. As a result, a potential cache bug won't
-    # crash the queries with too few conditions to raise an error. Similarly, in such situations we don't need to wait
-    # for cache to be primed.
-    if length(negative_conditions) > Query.max_rare_negative_conditions(query),
-      do: verify_negative_conditions!(query, negative_conditions)
-  end
-
-  defp verify_negative_conditions!(query, negative_conditions) do
-    negative_conditions
+    query
+    |> Access.negative_conditions()
     |> Stream.reject(&safe_negative_condition?/1)
     |> Stream.drop(Query.max_rare_negative_conditions(query))
     |> Enum.take(1)
@@ -311,14 +325,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   end
 
   defp safe_negative_condition?({query, condition}) do
-    case Shadows.safe?(condition, query) do
-      {:ok, result} ->
-        result
+    case Shadows.check_condition_safety(condition, query) do
+      :ok ->
+        true
 
-      {:error, :multiple_columns} ->
+      {:error, %Expression{} = _unsafe_target_constant} ->
+        false
+
+      {:error, :unsafe_aggregator} ->
         raise CompilationError,
-          source_location: Condition.subject(condition).source_location,
-          message: "Negative conditions can only involve one database column."
+          source_location: condition.source_location,
+          message: "Only a single `COUNT`, `MIN` or `MAX` aggregator is allowed in negative conditions."
     end
   end
 

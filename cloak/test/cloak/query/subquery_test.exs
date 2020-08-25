@@ -5,6 +5,7 @@ defmodule Cloak.Query.SubqueryTest do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("heights_sq", "height INTEGER, name TEXT")
+    Cloak.TestShadowCache.safe(default_data_source(), "heights_sq", "height", [170, 180])
   end
 
   setup do

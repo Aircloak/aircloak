@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.Shadows do
   @moduledoc "Entry point for checking negative conditions against shadow tables."
 
-  alias Cloak.Sql
+  alias Cloak.Sql.{Expression, Condition, Query, Function}
 
   require Aircloak
 
@@ -12,20 +12,39 @@ defmodule Cloak.DataSource.Shadows do
   # -------------------------------------------------------------------
 
   @doc """
-  Checks if the given negative condition matches a value in the shadow table for the appropriate column. Returns
-  `{:ok, true | false}` if the check was performed successfully. Returns `{:error, :multiple_columns}` if the condition
-  references multiple columns and is not a `column1 <> column2` condition. This should not happen given other
-  restrictions on negative conditions. Returns `{:error, :invalid_condition}` if the given condition is not a negative
-  condition (<>, NOT LIKE, NOT ILIKE). Note that any leaf nodes in the provided condition should either be constants or
-  actual DB columns. No attempt will be made to resolve columns in subqueries.
+  Checks if the given condition matches a value in the shadow table for the appropriate column.
+  Returns `:ok` if the check passed successfully.
+  Returns `{:error, Expression.t()}` if a target value doesn't match.
+  Returns `{:error, :unsafe_aggregator}` if the condition uses unsafe aggregators.
+  Raises if the given condition is not a supported condition (=, <>, IN, NOT LIKE, NOT ILIKE).
   """
-  @spec safe?(Sql.Query.filter_clause(), Sql.Query.t()) ::
-          {:ok, boolean} | {:error, :multiple_columns} | {:error, :invalid_condition}
-  def safe?(condition, query) do
-    if condition |> Sql.Condition.targets() |> Enum.any?(&Sql.Expression.constant?/1) |> :erlang.not() do
-      {:ok, true}
-    else
-      do_safe?(condition, query)
+  @spec check_condition_safety(Query.filter_clause(), Query.t()) :: :ok | {:error, :unsafe_aggregator | Expression.t()}
+  def check_condition_safety(condition, query) do
+    [subject | targets] = condition |> expand_columns(query) |> Condition.targets()
+
+    aggregators = used_aggregators(subject)
+    columns = referenced_columns(subject)
+
+    cond do
+      Enum.all?(targets, &(not Expression.constant?(&1))) ->
+        :ok
+
+      columns == [] ->
+        :ok
+
+      aggregators == ["count"] ->
+        :ok
+
+      length(aggregators) > 1 or Enum.at(aggregators, 0) in ~w(sum avg stddev variance) ->
+        {:error, :unsafe_aggregator}
+
+      true ->
+        [{table_name, column}] = columns
+        subject = drop_min_max(subject)
+
+        @cache_module.shadow(query.data_source, table_name, column)
+        |> Enum.map(&evaluate(subject, &1))
+        |> check_values(condition)
     end
   end
 
@@ -38,62 +57,73 @@ defmodule Cloak.DataSource.Shadows do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_safe?(condition, query) do
-    expression = Sql.Condition.subject(condition)
-
-    case columns(expression, query) do
-      [] ->
-        {:ok, true}
-
-      [{table_name, column}] ->
-        shadow = @cache_module.shadow(query.data_source, table_name, column) |> Stream.map(&evaluate(expression, &1))
-        any?(condition, shadow)
-
-      _ ->
-        {:error, :multiple_columns}
-    end
+  defp expand_columns(expression, query) do
+    Query.Lenses.leaf_expressions()
+    |> Lens.filter(&Expression.column?/1)
+    |> Lens.map(expression, fn column ->
+      case Query.resolve_subquery_column(column, query) do
+        :database_column -> column
+        {inner_column, subquery} -> expand_columns(inner_column, subquery)
+      end
+    end)
   end
 
-  defp columns(expression, query) do
+  defp referenced_columns(expression) do
     expression
-    |> get_in([Sql.Query.Lenses.leaf_expressions() |> Lens.filter(&Sql.Expression.column?/1)])
-    |> Enum.map(&{resolve_table_alias(&1.table.name, query), &1.name})
+    |> get_in([Query.Lenses.leaf_expressions() |> Lens.filter(&Expression.column?/1)])
+    |> Enum.map(&{&1.table.initial_name, &1.name})
     |> Enum.uniq()
   end
 
-  defp resolve_table_alias(table_name, query) do
-    case Map.fetch(query.table_aliases, table_name) do
-      :error -> table_name
-      {:ok, actual} -> actual.name
-    end
+  defp used_aggregators(expression) do
+    Query.Lenses.all_expressions()
+    |> Lens.filter(&Function.aggregator?/1)
+    |> Lens.to_list(expression)
+    |> Enum.map(& &1.name)
   end
 
-  defp any?(condition, shadow) do
+  defp check_values(shadow_values, condition) do
     cond do
-      Sql.Condition.not_equals?(condition) or Sql.Condition.equals?(condition) ->
-        value = Sql.Condition.value(condition)
-        {:ok, Enum.any?(shadow, &(&1 == value))}
+      Condition.not_equals?(condition) or Condition.equals?(condition) ->
+        [_subject, target] = Condition.targets(condition)
+        if Expression.const_value(target) in shadow_values, do: :ok, else: {:error, target}
 
-      Sql.Condition.not_ilike?(condition) ->
-        {_pattern, _regex, regex_ci} = Sql.Condition.value(condition)
-        {:ok, Enum.any?(shadow, &(&1 =~ regex_ci))}
+      Condition.in?(condition) ->
+        [_subject | targets] = Condition.targets(condition)
 
-      Sql.Condition.not_like?(condition) ->
-        {_pattern, regex, _regex_ci} = Sql.Condition.value(condition)
-        {:ok, Enum.any?(shadow, &(&1 =~ regex))}
+        case Enum.find(targets, &(Expression.const_value(&1) not in shadow_values)) do
+          nil -> :ok
+          target -> {:error, target}
+        end
+
+      Condition.not_ilike?(condition) ->
+        [_subject, target] = Condition.targets(condition)
+        {_pattern, _regex, regex_ci} = Expression.const_value(target)
+        if Enum.any?(shadow_values, &(&1 =~ regex_ci)), do: :ok, else: {:error, target}
+
+      Condition.not_like?(condition) ->
+        [_subject, target] = Condition.targets(condition)
+        {_pattern, regex, _regex_ci} = Expression.const_value(target)
+        if Enum.any?(shadow_values, &(&1 =~ regex)), do: :ok, else: {:error, target}
 
       true ->
-        {:error, :invalid_condition}
+        raise "Checking target values for the condition `#{inspect(condition)}` is not supported!"
     end
   end
 
   defp evaluate(expression, candidate) do
     expression
     |> put_in(
-      [Sql.Query.Lenses.leaf_expressions() |> Lens.filter(&Sql.Expression.column?/1)],
-      Sql.Expression.constant(:unknown, candidate)
+      [Query.Lenses.leaf_expressions() |> Lens.filter(&Expression.column?/1)],
+      Expression.constant(:unknown, candidate)
     )
-    |> Sql.Expression.const_value()
+    |> Expression.const_value()
+  end
+
+  defp drop_min_max(expression) do
+    Query.Lenses.all_expressions()
+    |> Lens.filter(&(&1.kind == :function and &1.name in ["min", "max"]))
+    |> Lens.map(expression, fn %Expression{args: [arg]} -> arg end)
   end
 
   # -------------------------------------------------------------------
