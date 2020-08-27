@@ -205,6 +205,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows substring in <> lhs" do
       assert {:ok, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x <> 'a'")
     end
+
+    test "[BUG] forbids expression using multiple columns" do
+      assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE numeric + numeric2 <> 1")
+
+      assert narrative =~ ~r/Comparisons need to have clear expressions on both sides of the operator/
+    end
   end
 
   describe "string-based conditions" do

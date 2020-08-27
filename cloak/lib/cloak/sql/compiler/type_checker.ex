@@ -21,7 +21,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   def validate_allowed_usage_of_math_and_functions(query) do
     Helpers.each_subquery(query, fn subquery ->
       unless subquery.type == :standard do
-        verify_negative_conditions!(subquery)
         verify_allowed_usage_of_math!(subquery)
         verify_in_is_clear_and_safe!(subquery)
         verify_not_equals_is_clear!(subquery)
@@ -33,6 +32,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         verify_inequalities_are_clear!(subquery)
         verify_is_null_is_clear!(subquery)
         verify_aggregated_expressions_are_clear!(subquery)
+        verify_negative_conditions!(subquery)
       end
     end)
 
