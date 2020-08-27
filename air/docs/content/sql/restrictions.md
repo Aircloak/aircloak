@@ -61,7 +61,9 @@ described in the following sections don't apply to the top-level `HAVING` clause
   - They can not be post-processed in any way, other than aggregation;
   - The `WHEN` clauses can only consist of a single equality condition between a clear expression and a constant.
     The constant has to be from the list of frequent values in that column, unless the system administrator explicitly
-    allows usage of any value. Check the `Insights Cloak configuration` section for information on how to enable it.
+    allows usage of any value. Check the
+    [Insights Cloak configuration](/ops/configuration.html#insights-cloak-configuration) section for information
+    on how to enable it.
   - The `THEN`/`ELSE` clauses can only return constant values; furthermore, when aggregated, they can only return
     the values 0, 1 or NULL.
 
@@ -424,7 +426,8 @@ Only a single `COUNT`, `MIN` or `MAX` aggregator is allowed in such conditions.
 
 All items on the right-hand side of the `IN` operator must be constants from the list of frequent values
 in that column, unless the system administrator explicitly allows usage of any value. Check the
-`Insights Cloak configuration` section for information on how to enable it.
+[Insights Cloak configuration](/ops/configuration.html#insights-cloak-configuration) section for information
+on how to enable it.
 
 The right-hand side of a `<>` condition has to be a clear expression or a constant.
 
