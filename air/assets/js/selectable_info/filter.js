@@ -43,12 +43,18 @@ export const isEmptyFilter = ({ query, types }: Filter): boolean =>
 /**
  * A combination of Array.prototype.filter and Array.prototype.map. Will remove any `null` values returned.
  */
-function filterMap<T, U>(arr: Array<T>, fn: (T) => U | null): Array<U> {
+function filterMap<T, U>(
+  arr: Array<T>,
+  fn: (T) => U | null,
+  limit: number
+): Array<U> {
   const result = [];
+  let count = 0;
   for (let item of arr) {
     const res = fn(item);
     if (res !== null) {
       result.push(res);
+      if (++count >= limit) break;
     }
   }
   return result;
@@ -222,32 +228,37 @@ const prepareSolver = (
 export const filterColumns = (
   table: string,
   columns: Column[],
-  filter: Filter
+  filter: Filter,
+  limit: number = Infinity
 ): Column[] => {
   if (isEmptyFilter(filter)) return columns;
 
   const solver = prepareSolver(filter, table);
 
-  return filterMap(columns, (column) => {
-    if (!filter.types[normalizeType(column)]) {
-      return null;
-    }
+  return filterMap(
+    columns,
+    (column) => {
+      if (!filter.types[normalizeType(column)]) {
+        return null;
+      }
 
-    if (filter.query.trim() === "") return column;
+      if (filter.query.trim() === "") return column;
 
-    const result = solver(column);
-    return (
-      result &&
-      Object.assign({}, column, {
-        _matchIndexes: {
-          name: result[0],
-          table: result[1],
-          type: result[2],
-          key_type: result[3],
-        },
-      })
-    );
-  });
+      const result = solver(column);
+      return (
+        result &&
+        Object.assign({}, column, {
+          _matchIndexes: {
+            name: result[0],
+            table: result[1],
+            type: result[2],
+            key_type: result[3],
+          },
+        })
+      );
+    },
+    limit
+  );
 };
 
 type Props = {

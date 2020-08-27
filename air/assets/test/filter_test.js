@@ -2,8 +2,8 @@ import assert from "assert";
 
 import { filterColumns, emptyFilter } from "../js/selectable_info/filter";
 
-const column1 = { name: "name-one", type: "type_one", key_type: null };
-const column2 = { name: "name-two", type: "type_two", key_type: "user_id" };
+const column1 = { name: "name-one", type: "integer", key_type: null };
+const column2 = { name: "name-two", type: "real", key_type: "user_id" };
 const column3 = {
   name: "name-three",
   type: "boolean",
@@ -23,7 +23,7 @@ describe("filterColumns", () => {
   it("filters on name", () => {
     assert.deepEqual(
       extractCols(
-        filterColumns("table", columns, { ...empty, query: "name-two" })
+        filterColumns("table", columns, { ...empty, query: "nametwo" })
       ),
       extractCols([column2])
     );
@@ -31,9 +31,7 @@ describe("filterColumns", () => {
 
   it("filters on type", () => {
     assert.deepEqual(
-      extractCols(
-        filterColumns("table", columns, { ...empty, query: "type_two" })
-      ),
+      extractCols(filterColumns("table", columns, { ...empty, query: "rea" })),
       extractCols([column2])
     );
   });

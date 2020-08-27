@@ -4,7 +4,7 @@ import React from "react";
 import Channel from "phoenix";
 
 import { ColumnsView } from "./columns";
-import { isEmptyFilter, filterColumns, Higlighted } from "./filter";
+import { filterColumns, Higlighted } from "./filter";
 import type { Filter } from "./filter";
 import type { Column } from "./columns";
 import activateTooltips from "../tooltips";
@@ -60,10 +60,10 @@ export class SelectableView extends React.Component<Props> {
     }
   };
 
-  searchResults = () => {
+  searchResults = (limit: number) => {
     const { filter, selectable } = this.props;
 
-    return filterColumns(selectable.id, selectable.columns, filter);
+    return filterColumns(selectable.id, selectable.columns, filter, limit);
   };
 
   triggerDelete = (event: { preventDefault: () => void }) => {
@@ -134,7 +134,6 @@ export class SelectableView extends React.Component<Props> {
     const {
       selectable,
       expanded,
-      filter,
       numberFormat,
       selectablesEditUrl,
     } = this.props;
@@ -162,11 +161,6 @@ export class SelectableView extends React.Component<Props> {
                 column={searchResults[0]}
                 field="table"
               />
-              {!isEmptyFilter(filter) && (
-                <span className="badge badge-warning badge-pill ml-1">
-                  {searchResults.length} matching
-                </span>
-              )}
             </span>
           </button>
           <SelectableInfo
@@ -188,7 +182,7 @@ export class SelectableView extends React.Component<Props> {
   };
 
   render = () => {
-    const results = this.searchResults();
+    const results = this.searchResults(this.props.expanded ? Infinity : 1);
     if (results.length > 0) {
       activateTooltips();
       return this.renderSelectableView(results);
