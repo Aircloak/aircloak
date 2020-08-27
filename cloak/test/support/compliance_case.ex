@@ -16,7 +16,30 @@ defmodule ComplianceCase do
   end
 
   setup_all do
-    {:ok, data_sources: data_sources(), disabled: false}
+    data_sources = data_sources()
+
+    # Some conditions are only allowed over values in the shadow table,
+    # so we populate it here with some dummy values, in order to make such conditions valid.
+
+    Enum.each(numerical_columns(), fn {column, table} ->
+      # handle joined tables and fully specified columns
+      table = String.split(table) |> Enum.at(0)
+      column = String.split(column, ".") |> Enum.at(-1)
+
+      for data_source <- data_sources,
+          do: Cloak.TestShadowCache.safe(data_source, table, column, [1, 2, 3, 10])
+    end)
+
+    Enum.each(text_columns(), fn {column, table} ->
+      # handle joined tables and fully specified columns
+      table = String.split(table) |> Enum.at(0)
+      column = String.split(column, ".") |> Enum.at(-1)
+
+      for data_source <- data_sources,
+          do: Cloak.TestShadowCache.safe(data_source, table, column, ["Emma", "Herman", "Berlin"])
+    end)
+
+    {:ok, data_sources: data_sources, disabled: false}
   end
 
   import Cloak.Test.QueryHelpers

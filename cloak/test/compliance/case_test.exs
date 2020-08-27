@@ -1,15 +1,6 @@
 defmodule Compliance.CaseTest do
   use ComplianceCase, async: true
 
-  setup_all do
-    Enum.each(integer_columns(), fn {column, table} ->
-      # handle joined tables and fully specified columns
-      table = String.split(table) |> Enum.at(0)
-      column = String.split(column, ".") |> Enum.at(-1)
-      for data_source <- Cloak.DataSource.all(), do: Cloak.TestShadowCache.safe(data_source, table, column, [1, 2])
-    end)
-  end
-
   Enum.each(integer_columns(), fn {column, table} ->
     @tag compliance: "#{column} #{table} uid bucketed case"
     test "uid-based bucketed case on #{column} in query on #{table}", context do

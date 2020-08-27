@@ -81,8 +81,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   defp unclear_isolator_condition?(%Expression{kind: :function, name: "not", args: [condition]}, query),
     do: unclear_isolator_condition?(condition, query)
 
-  defp unclear_isolator_condition?(%Expression{kind: :function, name: "in"}, _), do: true
-
   defp unclear_isolator_condition?(%Expression{kind: :function, name: verb, args: [_, pattern]}, _)
        when verb in ~w(like ilike),
        do: not LikePattern.simple?(pattern.value)

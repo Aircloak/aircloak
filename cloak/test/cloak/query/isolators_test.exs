@@ -51,14 +51,6 @@ defmodule Cloak.Query.Isolators.Test do
     assert_forbidden("SELECT $col / 2 FROM query_isolators")
   end
 
-  test "IN is forbidden" do
-    assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE $col IN (1, 2)")
-  end
-
-  test "IN with a single item is allowed as synonymous to =" do
-    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col IN (1)")
-  end
-
   test "ranges are allowed on isolators" do
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col BETWEEN 0 AND 10")
   end
@@ -95,15 +87,17 @@ defmodule Cloak.Query.Isolators.Test do
   end
 
   test "aliased tables" do
-    assert_forbidden("SELECT COUNT(*) FROM query_isolators AS qi WHERE $col IN (1, 2)")
+    assert_forbidden("SELECT COUNT(*) FROM query_isolators AS qi WHERE $col = regular * 2")
   end
 
   test "aliases in subqueries" do
-    assert_forbidden("SELECT COUNT(*) FROM (SELECT a.* FROM query_isolators AS a) bar WHERE $col IN (1, 2)")
+    assert_forbidden("SELECT COUNT(*) FROM (SELECT a.* FROM query_isolators AS a) bar WHERE $col = regular * 2")
   end
 
   test "subqueries" do
-    assert_forbidden("SELECT COUNT(*) FROM (SELECT user_id, $col AS x FROM query_isolators) y WHERE x IN (1, 2)")
+    assert_forbidden("""
+      SELECT COUNT(*) FROM (SELECT user_id, $col AS x, regular as y FROM query_isolators) y WHERE x = y * 2
+    """)
   end
 
   test "key = key comparisons are allowed" do

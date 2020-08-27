@@ -4,7 +4,29 @@ defmodule Cloak.Regressions.Telefonica.Test do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    Cloak.TestShadowCache.safe(default_data_source(), "DW.CC_CONTRACTS_PRODUCT_FEATURES", "PRD_FEATURE_ID", [2588])
+    Cloak.TestShadowCache.safe(default_data_source(), "DW.CC_CONTRACTS_PRODUCT_FEATURES", "PRD_FEATURE_ID", [
+      2588,
+      2435,
+      2432,
+      2449,
+      2624,
+      6823,
+      2725,
+      2194,
+      2438,
+      2630,
+      2628,
+      2726,
+      2738,
+      2192,
+      2625,
+      2205,
+      2434
+    ])
+
+    Cloak.TestShadowCache.safe(default_data_source(), "DW.CC_CONTRACTS", "SERVICE_PROVIDER_ID", [104, 70])
+    Cloak.TestShadowCache.safe(default_data_source(), "DW.FCT_UUB_CTR_DD", "REV_TYPE_DESC_ID", [66, 334])
+    Cloak.TestShadowCache.safe(default_data_source(), "DW.FCT_UUB_CTR_DD", "TA_SOURCE_SYSTEM", ["IN", "IXD_PRE"])
   end
 
   test "party id" do
@@ -73,8 +95,7 @@ defmodule Cloak.Regressions.Telefonica.Test do
         join dw.cc_contracts c on a.contract_id =c.contract_id
         WHERE a.start_dt between DATE'1900-01-01'  and  DATE'2020-06-01'
         and a.end_dt between  DATE'2020-05-01' and  DATE'9999-12-31'
-        and a.PRD_FEATURE_ID in (2435,2432,2449,2624,6823,2725,2194,2438,2630,2628,2726,2738,2192,2625,2205,2434,
-                                 2187,2737,2626,2198,2190,2629,2437,2186,2436,2627,2623,2593,2433,2724,2450,2622)
+        and a.PRD_FEATURE_ID in (2435,2432,2449,2624,6823,2725,2194,2438,2630,2628,2726,2738,2192,2625,2205,2434)
         and a.IS_PREPAID ='Y'
         and c.SERVICE_PROVIDER_id in (104,70)
         )pack  on uub.CONTRACT_ID=pack.CONTRACT_ID
@@ -102,8 +123,7 @@ defmodule Cloak.Regressions.Telefonica.Test do
         join dw.cc_contracts c on a.contract_id =c.contract_id
         WHERE a.start_dt between DATE'1900-01-01'  and  DATE'2020-07-01'
         and a.end_dt between  DATE'2020-01-01' and  DATE'9999-12-31'
-        and a.PRD_FEATURE_ID in (2435,2432,2449,2624,6823,2725,2194,2438,2630,2628,2726,2738,2192,2625,2205,2434,
-                                 2187,2737,2626,2198,2190,2629,2437,2186,2436,2627,2623,2593,2433,2724,2450,2622)
+        and a.PRD_FEATURE_ID in (2435,2432,2449,2624,6823,2725,2194,2438,2630,2628,2726,2738,2192,2625,2205,2434)
         and a.IS_PREPAID ='Y'
         and c.SERVICE_PROVIDER_id in (104,70)
         )pack  on uub.CONTRACT_ID=pack.CONTRACT_ID
@@ -245,8 +265,7 @@ defmodule Cloak.Regressions.Telefonica.Test do
         join dw.cc_contracts c on a.contract_id =c.contract_id
         WHERE a.start_dt between DATE'1900-01-01'  and  DATE'2020-07-01'
         and a.end_dt between  DATE'2020-01-01' and  DATE'9999-12-31'
-        and a.PRD_FEATURE_ID in (2435,2432,2449,2624,6823,2725,2194,2438,2630,2628,2726,2738,2192,2625,2205,2434,
-                                 2187,2737,2626,2198,2190,2629,2437,2186,2436,2627,2623,2593,2433,2724,2450,2622)
+        and a.PRD_FEATURE_ID in (2435,2432,2449,2624,6823,2725,2194,2438,2630,2628,2726,2738,2192,2625,2205,2434)
         and a.IS_PREPAID ='Y'
         and c.SERVICE_PROVIDER_id in (104,70)
         )pack  on uub.CONTRACT_ID=pack.CONTRACT_ID

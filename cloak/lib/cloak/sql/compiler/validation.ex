@@ -986,19 +986,20 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     unless Application.get_env(:cloak, :allow_any_value_in_when_clauses) == true do
       when_clauses
-      |> Enum.reject(&match?({:ok, true}, Shadows.safe?(&1, query)))
+      |> Enum.map(&Shadows.check_condition_safety(&1, query))
+      |> Enum.reject(&(&1 == :ok))
       |> case do
         [] ->
           :ok
 
-        [unsafe_when_clause | _rest] ->
+        [{:error, unsafe_target_constant} | _rest] ->
           raise CompilationError,
             message: """
             The target constants used in `when` clauses from `case` expressions in anonymizing queries have to
             be in the list of frequent values for that column, unless the Insights Cloak is explicitly configured
             to allow any value. For more information, see the "Configuring the system" section of the user guides.
             """,
-            source_location: unsafe_when_clause.source_location
+            source_location: unsafe_target_constant.source_location
       end
     end
   end

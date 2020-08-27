@@ -369,6 +369,7 @@ The general shape of `config.json` is:
   "lcf_buckets_aggregation_limit": integer,
   "max_parallel_queries": positive_integer,
   "allow_any_value_in_when_clauses": boolean,
+  "allow_any_value_in_in_clauses": boolean,
   "connection_timeouts": {
     "idle": integer,
     "connect": integer,
@@ -413,6 +414,9 @@ The `max_parallel_queries` field is optional and controls the maximum number of 
 simultaneously. The default value is 10.
 
 The `allow_any_value_in_when_clauses` field is optional and controls whether restricted `WHEN` clauses are allowed or
+not to use any value in anonymizing queries. The default value is false, which means only frequent values are permitted.
+
+The `allow_any_value_in_in_clauses` field is optional and controls whether restricted `IN` clauses are allowed or
 not to use any value in anonymizing queries. The default value is false, which means only frequent values are permitted.
 
 The `connection_timeouts` field is optional and it controls various database connection timeouts.

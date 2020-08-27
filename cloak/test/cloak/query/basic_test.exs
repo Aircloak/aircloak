@@ -18,6 +18,8 @@ defmodule Cloak.Query.BasicTest do
     :ok = Cloak.Test.DB.create_table("dotted.table", "\"dotted.column\" INTEGER", db_name: "dotted-table")
     :ok = Cloak.Test.DB.create_table("dates", "date timestamp, date2 timestamp")
 
+    Cloak.TestShadowCache.safe(default_data_source(), "heights", "height", [170, 180, 190])
+
     :ok
   end
 
