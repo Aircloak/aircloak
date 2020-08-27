@@ -15,21 +15,20 @@ export const emptyFilter = (): Filter => ({
   types: {
     text: true,
     date: true,
+    datetime: true,
     real: true,
     integer: true,
     boolean: true,
     user_id: true,
     foreign: true,
-    other: true,
   },
 });
 
-const regularTypes = ["text", "date", "real", "integer", "boolean"];
+const regularTypes = ["text", "date", "datetime", "real", "integer", "boolean"];
 
 const normalizeType = (column: Column): string => {
   if (column.key_type === "user_id") return "user_id";
   if (column.key_type) return "foreign";
-  if (column.type === "datetime") return "date"; // these have the same icon now, so we treat them as the same
   if (regularTypes.includes(column.type)) return column.type;
   return "other";
 };
@@ -146,7 +145,7 @@ function linearBalancedAssignment<T, M>(
     [-Infinity, []]
   );
 
-  if (maxScore > threshold) {
+  if (maxScore >= threshold) {
     let newMetadata = new Array(as.length);
     for (let i = 0; i < bs.length; i++) {
       newMetadata[bestAssignment[i]] = costMatrix[bestAssignment[i]][i][1];
@@ -198,19 +197,24 @@ const prepareSolver = (
         });
       }
       return linearBalancedAssignment(
-        ([column._indexEntry, tableIndex, column.type, column.key_type]: any[]),
+        ([
+          column._indexEntry,
+          tableIndex,
+          column.type,
+          column.key_type || "",
+        ]: any[]),
         (queries: any[]),
         fuzzy,
-        -8000
+        -12000
       );
     };
   } else {
     return (column) =>
       linearBalancedAssignment(
-        ([column.name, table, column.type, column.key_type]: string[]),
+        ([column.name, table, column.type, column.key_type || ""]: string[]),
         (queries: string[]),
         exact,
-        4
+        queries.length
       );
   }
 };
@@ -232,7 +236,6 @@ export const filterColumns = (
     if (filter.query.trim() === "") return column;
 
     const result = solver(column);
-
     return (
       result &&
       Object.assign({}, column, {

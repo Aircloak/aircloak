@@ -10,13 +10,13 @@ type Props = {
   filter: Filter,
 };
 
-const regularTypes = ["text", "date", "real", "integer", "boolean"];
+const regularTypes = ["text", "date", "datetime", "real", "integer", "boolean"];
 
-const specialTypes = { user_id: "user", foreign: "link", other: "asterisk" };
+const specialTypes = { user_id: "user", foreign: "link" };
 
 const FilterDetails = React.forwardRef(
   ({ filter, onFilterChange, style = {}, ...props }, ref) => {
-    const typeCheckbox = (type, contents) => (
+    const typeCheckbox = (type, icon) => (
       <span className="type-filter" key={type}>
         <input
           type="checkbox"
@@ -33,13 +33,9 @@ const FilterDetails = React.forwardRef(
             })
           }
         />
-        <label
-          htmlFor={`type-${type}`}
-          className={`type-icon native-type`}
-          title={type}
-          data-toggle="tooltip"
-        >
-          {contents}
+        <label htmlFor={`type-${type}`}>
+          <span className={`type-icon native-type`}>{icon}</span>
+          {type}
         </label>
       </span>
     );
@@ -57,7 +53,7 @@ const FilterDetails = React.forwardRef(
           <div>
             <label>Types</label>
           </div>
-          <div className="mb-2">
+          <div className="mb-2 type-filters">
             {regularTypes.map((type) =>
               typeCheckbox(type, type[0].toUpperCase())
             )}
@@ -102,7 +98,13 @@ const FilterView = ({ filter, onFilterChange }: Props) => (
             <FilterDetails filter={filter} onFilterChange={onFilterChange} />
           }
         >
-          <button className="btn btn-secondary">
+          <button
+            className={`btn ${
+              Object.values(filter.types).every((a) => a)
+                ? "btn-secondary"
+                : "btn-primary"
+            }`}
+          >
             <i className="fas fa-search"></i>
           </button>
         </OverlayTrigger>

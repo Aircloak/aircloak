@@ -164,8 +164,7 @@ export class SelectableView extends React.Component<Props> {
               />
               {!isEmptyFilter(filter) && (
                 <span className="badge badge-warning badge-pill ml-1">
-                  {searchResults.length}{" "}
-                  {searchResults.length > 1 ? "results" : "result"}
+                  {searchResults.length} matching
                 </span>
               )}
             </span>
