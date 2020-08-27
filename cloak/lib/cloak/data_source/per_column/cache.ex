@@ -10,24 +10,24 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   # -------------------------------------------------------------------
 
   @doc "Returns the value of the property for the given column."
-  @spec value(GenServer.server(), Cloak.DataSource.t(), String.t() | Cloak.DataSource.Table.t(), String.t()) :: any
-  def value(server, data_source, table, column_name) do
-    column = {data_source, table, column_name}
+  @spec value(GenServer.server(), Cloak.DataSource.t(), String.t(), String.t()) :: any
+  def value(server, data_source, table_name, column_name) do
+    column = {data_source, table_name, column_name}
 
     with {:error, :failed, name, default} <- GenServer.call(server, {:compute_value, column}, :infinity) do
-      Logger.error("#{inspect(name)} failed for `#{inspect(table)}`.`#{column_name}`")
+      Logger.error("#{inspect(name)} failed for `#{table_name}`.`#{column_name}`")
       default
     else
       {:ok, property} -> property
-      {:error, :unknown_column} -> raise "Unknown column `#{inspect(table)}`.`#{column_name}`"
+      {:error, :unknown_column} -> raise "Unknown column `#{table_name}`.`#{column_name}`"
     end
   end
 
   @doc "Performs a cache lookup."
-  @spec lookup(GenServer.server(), Cloak.DataSource.t(), String.t() | Cloak.DataSource.Table.t(), String.t()) ::
+  @spec lookup(GenServer.server(), Cloak.DataSource.t(), String.t(), String.t()) ::
           {:ok, any} | {:error, :pending | :failed | :unknown_column}
-  def lookup(server, data_source, table, column_name) do
-    case GenServer.call(server, {:column_status, Descriptor.hash(data_source, table, column_name)}) do
+  def lookup(server, data_source, table_name, column_name) do
+    case GenServer.call(server, {:column_status, Descriptor.hash(data_source, table_name, column_name)}) do
       {:error, :failed, _, _} -> {:error, :failed}
       other -> other
     end

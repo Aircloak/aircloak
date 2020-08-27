@@ -282,29 +282,19 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp isolating_columns(condition_or_expression, query) do
     Query.Lenses.leaf_expressions()
     |> Lens.to_list(condition_or_expression)
-    |> Enum.flat_map(&columns_with_queries(&1, query))
-    |> Enum.filter(fn {column, subquery} ->
-      Isolators.isolates_users?(query.data_source, resolve_table_alias(column.table.name, subquery), column.name)
-    end)
-    |> Enum.map(&elem(&1, 0))
+    |> Enum.flat_map(&database_columns(&1, query))
+    |> Enum.filter(&Isolators.isolates_users?(query.data_source, &1.table.initial_name, &1.name))
   end
 
-  defp columns_with_queries(%{kind: :constant}, _query), do: []
+  defp database_columns(%{kind: :constant}, _query), do: []
 
-  defp columns_with_queries(column, query) do
+  defp database_columns(column, query) do
     case Query.resolve_subquery_column(column, query) do
       :database_column ->
-        [{column, query}]
+        [column]
 
       {column, subquery} ->
-        column |> get_in([Query.Lenses.leaf_expressions()]) |> Enum.flat_map(&columns_with_queries(&1, subquery))
-    end
-  end
-
-  defp resolve_table_alias(table, query) do
-    case Map.fetch(query.table_aliases, table) do
-      :error -> table
-      {:ok, actual} -> actual.name
+        column |> get_in([Query.Lenses.leaf_expressions()]) |> Enum.flat_map(&database_columns(&1, subquery))
     end
   end
 
