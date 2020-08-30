@@ -8,6 +8,7 @@ import aircloakFunctionCompletions from "./function_completion_keywords.json";
 
 const SQL_KEYWORDS = [
   "SELECT",
+  "EXPLAIN",
   "FROM",
   "SHOW TABLES",
   "INNER JOIN",

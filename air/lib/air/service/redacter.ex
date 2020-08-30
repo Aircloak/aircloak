@@ -13,6 +13,7 @@ defmodule Air.Service.Redacter do
                 "GROUP BY",
                 "WHERE",
                 "SELECT",
+                "EXPLAIN",
                 "ORDER BY",
                 "HAVING",
                 "SHOW",

@@ -33,8 +33,9 @@ defmodule Cloak.Sql.Parser.Internal do
     parser
     |> switch([
       {keyword(:select), select_statement()},
+      {keyword(:explain), explain_statement()},
       {keyword(:show), show_statement()},
-      {:else, error_message(fail(""), "Expected `select or show`")}
+      {:else, error_message(fail(""), "Expected `select, explain, or show`")}
     ])
     |> map(fn {[command], [statement_data]} -> statement_map(command, statement_data) end)
   end
@@ -60,6 +61,13 @@ defmodule Cloak.Sql.Parser.Internal do
       {:else, error_message(fail(""), "Expected `tables or columns`")}
     ])
     |> map(fn {[show], data} -> [{:show, show} | data] end)
+  end
+
+  defp explain_statement() do
+    pair_right(
+      keyword(:select),
+      select_statement()
+    )
   end
 
   defp select_statement() do
