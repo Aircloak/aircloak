@@ -43,6 +43,13 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
     end)
   end
 
+  test "connections are cleaned up on demand" do
+    conn = Pool.checkout(data_source())
+    Pool.checkin(Pool.pool_server(data_source()), conn)
+    Pool.cleanup(data_source())
+    refute Pool.checkout(data_source()) == conn
+  end
+
   test "conn is dropped after it's been returned to the pool, and been idle for awhile" do
     with_short_connection_keep_time(fn ->
       conn = Pool.checkout(data_source())
