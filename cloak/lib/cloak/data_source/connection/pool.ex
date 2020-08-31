@@ -125,7 +125,7 @@ defmodule Cloak.DataSource.Connection.Pool do
   end
 
   defp stop_connection(connection) do
-    Logger.debug("Removing an idle connection from the pool")
+    Logger.debug("Removing a connection from the pool ...")
     Connection.stop(connection)
   end
 
