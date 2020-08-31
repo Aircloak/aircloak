@@ -14,6 +14,8 @@
 
 ### Bugfixes
 
+- Cached connections are now forcefully terminated when a data source is detected as broken.
+
 ### Changes
 
 - `CASE` support is now enabled by default. `WHEN` clause constants have to be from the list of frequent values,

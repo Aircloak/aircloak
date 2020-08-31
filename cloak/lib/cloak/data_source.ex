@@ -400,6 +400,7 @@ defmodule Cloak.DataSource do
     error in ExecutionError ->
       message = "Error connecting to the data source: #{Exception.message(error)}."
       Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+      Cloak.DataSource.Connection.cleanup(data_source)
       add_error_message(%{data_source | tables: %{}, status: :offline}, message)
   end
 
