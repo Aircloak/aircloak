@@ -1,0 +1,80 @@
+<div class="container-with-sidebar-narrow">
+  <header class="page-header">
+    <ol class="breadcrumb bg-white">
+      <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    </ol>
+    <button type="button" class="btn btn-primary d-block d-lg-none float-right" data-toggle="collapse"
+        data-target="#sidebar" aria-expanded="false">
+      <i class="fas fa-list"></i> Filters
+    </button>
+    <h1>Audit Log</h1>
+  </header>
+
+
+  <div class="px-0">
+
+    <%= for audit_log <- @audit_logs do %>
+      <div class="card mb-1">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-baseline">
+            <h4 class="h5 card-heading"><%= audit_log.event %></h4>
+            <time datetime="<%= NaiveDateTime.to_iso8601(audit_log.max_date) %>"><%= Timex.format!(audit_log.max_date, "{ISOdate} {h24}:{m}:{s}") %></time>
+          </div>
+          <p><strong><%= audit_log.user_name %></strong> <small>(IP Address: <%= audit_log.metadata["remote_ip"] %> Peer: <%= audit_log.metadata["peer"] %>)</small></p>
+
+
+
+          <%= for {key, val} <- Map.drop(audit_log.metadata, ["remote_ip", "peer"]) do %>
+            <div class="d-flex">
+              <strong><%= key %></strong>
+              <span><%= val %></span>
+            </div>
+          <% end %>
+
+        </div>
+      </div>
+      <%= if @expanded[{audit_log.event, audit_log.user_id, audit_log.max_date}] do %>
+        <div class="mb-3 border-left pl-3 ml-2">
+        <%= for child_log <- @expanded[{audit_log.event, audit_log.user_id, audit_log.max_date}] do %>
+          <div class="card mb-1">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-baseline">
+                <h4 class="h5 card-heading"><%= child_log.event %></h4>
+                <time datetime="<%= NaiveDateTime.to_iso8601(child_log.inserted_at) %>"><%= Timex.format!(child_log.inserted_at, "{ISOdate} {h24}:{m}:{s}") %></time>
+              </div>
+              <p><strong><%= child_log.user.name %></strong> <small>(IP Address: <%= child_log.metadata["remote_ip"] %> Peer: <%= child_log.metadata["peer"] %>)</small></p>
+
+              <%= for {key, val} <- Map.drop(child_log.metadata, ["remote_ip", "peer"]) do %>
+                <div class="d-flex">
+                <strong><%= key %></strong>
+                <span><%= val %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+          <button class="btn btn-link  d-block mx-auto mt-2 mb-3 position-sticky bg-white" style="bottom: 10px" phx-click="collapse_section" phx-value-event="<%= audit_log.event %>" phx-value-user="<%= audit_log.user_id %>" phx-value-to="<%=audit_log.max_date%>">Collapse</button>
+        </div>
+      <% else %>
+        <%= if audit_log.occurences > 1 do %>
+          <button class="btn btn-link  d-block mx-auto mt-2 mb-3" phx-click="expand_section" phx-value-event="<%= audit_log.event %>" phx-value-user="<%= audit_log.user_id %>" phx-value-from="<%= audit_log.min_date %>" phx-value-to="<%=audit_log.max_date%>"><%= audit_log.occurences %> similar entries <%= format_interval(audit_log.min_date, audit_log.max_date) %></button>
+        <% end %>
+      <% end %>
+    <% end %>
+
+  </div>
+</div>
+
+
+
+<%= render(AirWeb.Admin.SharedView, "filter_sidebar.html",
+  conn: @socket,
+  from: @from,
+  to: @to,
+  path: &admin_audit_log_index_path(@socket, :index, &1),
+  users: @users,
+  event_types: @event_types,
+  data_sources: @data_sources,
+  live?: true,
+  params: @query_params)
+%>

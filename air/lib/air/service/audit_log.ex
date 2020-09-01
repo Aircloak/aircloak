@@ -2,7 +2,7 @@ defmodule Air.Service.AuditLog do
   @moduledoc "Services for using the audit log."
 
   alias Air.{Repo, Schemas.AuditLog, Schemas.DataSource, Schemas.User}
-  import Ecto.Query, only: [limit: 2, from: 2]
+  import Ecto.Query, only: [limit: 2, from: 2, subquery: 1]
   require Logger
 
   @type login :: String.t()
@@ -59,6 +59,20 @@ defmodule Air.Service.AuditLog do
     |> limit(^params.max_results)
     |> Repo.all()
     |> Repo.preload(user: :logins)
+  end
+
+  def grouped_for(params) do
+    AuditLog
+    |> for_time(params.from, params.to)
+    |> for_user(params.users)
+    |> for_event(params.events)
+    |> for_data_sources(params.data_sources)
+    |> order_by_event()
+    |> grouped()
+    |> IO.inspect(label: "Grouped query")
+    |> Repo.all()
+
+    # |> Repo.preload(user: :logins)
   end
 
   @doc """
@@ -144,6 +158,38 @@ defmodule Air.Service.AuditLog do
 
   defp order_by_event(query) do
     from(a in query, order_by: [desc: :inserted_at])
+  end
+
+  def grouped(query) do
+    from(
+      b in subquery(
+        from(a in query,
+          select: %{
+            user_id: a.user_id,
+            event: a.event,
+            inserted_at: a.inserted_at,
+            metadata: a.metadata,
+            grouping_ids:
+              over(row_number(), order_by: [desc: :inserted_at]) -
+                over(row_number(), partition_by: [a.user_id, a.event], order_by: [desc: :inserted_at])
+          },
+          order_by: [desc: :inserted_at]
+        )
+      ),
+      join: user in User,
+      on: b.user_id == user.id,
+      group_by: [b.grouping_ids, b.user_id, b.event, user.name],
+      order_by: [desc: max(b.inserted_at)],
+      select: %{
+        user_id: b.user_id,
+        user_name: user.name,
+        event: b.event,
+        metadata: fragment("(array_agg(? ORDER BY ? DESC))[1]", b.metadata, b.inserted_at),
+        occurences: count(b.grouping_ids),
+        min_date: min(b.inserted_at),
+        max_date: max(b.inserted_at)
+      }
+    )
   end
 
   defp for_user(query, []), do: query

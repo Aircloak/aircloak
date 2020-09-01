@@ -18,7 +18,6 @@ import ActivityMonitorView from "./activity_monitor/root";
 import AuthenticationProvider from "./authentication_provider";
 import FrontendSocket from "./frontend_socket";
 import { NumberFormatExampleView } from "./number_format";
-import AuditLogView from "./audit_log/root";
 import PasswordField from "./password_field";
 import activateDatetimePickers from "./datetimepicker";
 import "codemirror/mode/markdown/markdown";
@@ -35,7 +34,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 activateTooltips();
-
+activateDatetimePickers();
 window.copyToClipboard = copyToClipboard;
 
 const App = {
@@ -52,7 +51,7 @@ const App = {
       <NumberFormatExampleView numberFormat={props.numberFormat} />,
       elem
     ),
-  auditLog: (props, elem) => App.render("audit_log", props, elem),
+  // auditLog: (props, elem) => App.render("audit_log", props, elem),
   passwordField: (props, elem) => App.render("password_field", props, elem),
   liveView: (props) => {
     const csrfElement = document.querySelector("meta[name='csrf-token']");
@@ -191,8 +190,7 @@ const App = {
             cloakStats={cloakStats}
           />
         );
-      case "audit_log":
-        return <AuditLogView auditLogs={auditLogs} />;
+
       case "password_field":
         return <PasswordField initialError={initialError || null} />;
       default:

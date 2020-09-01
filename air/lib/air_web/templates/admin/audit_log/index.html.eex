@@ -27,10 +27,11 @@
   conn: @conn,
   from: @from,
   to: @to,
-  path: &admin_audit_log_path(@conn, :index, &1),
+  path: &admin_audit_log_index_path(@conn, &1),
   users: @users,
   event_types: @event_types,
-  data_sources: @data_sources)
+  data_sources: @data_sources,
+  params: @conn.params)
 %>
 
 

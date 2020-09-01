@@ -173,7 +173,7 @@ defmodule Air.Web do
     quote do
       # Use all HTML functionality (forms, tags, etc)
       use Phoenix.HTML
-
+      import Phoenix.View
       import AirWeb.Router.Helpers
       import AirWeb.ErrorHelpers
       import AirWeb.ViewHelpers

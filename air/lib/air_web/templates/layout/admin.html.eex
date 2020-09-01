@@ -26,7 +26,7 @@
 
               <%= sidebar_link(@conn, "Activity monitor", "chart-line", admin_activity_monitor_path(@conn, :index)) %>
               <%= if audit_log_enabled?() do %>
-                <%= sidebar_link(@conn, "Audit log", "stream", admin_audit_log_path(@conn, :index)) %>
+                <%= sidebar_link(@conn, "Audit log", "stream", admin_audit_log_index_path(@conn, :index)) %>
               <% end %>
               <%= sidebar_link(@conn, "Cloaks", "user-secret", admin_cloaks_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Data sources", "database", admin_data_source_path(@conn, :index)) %>
