@@ -142,9 +142,9 @@ defmodule AirWeb.Router do
     resources("/analysis", AnalysisController)
     resources("/settings", SettingsController, singleton: true)
 
-    get("/audit_log", AuditLogController, :index)
     get("/audit_log/confirm_deletion", AuditLogController, :confirm_deletion)
     post("/audit_log/clear", AuditLogController, :delete_all)
+    live("/audit_log", AuditLogLive.Index, :index, layout: {AirWeb.LayoutView, :admin})
 
     resources("/cloaks", CloaksController)
     post("/cloaks/:id/reinitialize", CloaksController, :reinitialize)
