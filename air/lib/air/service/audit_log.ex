@@ -69,10 +69,8 @@ defmodule Air.Service.AuditLog do
     |> for_data_sources(params.data_sources)
     |> order_by_event()
     |> grouped()
-    |> IO.inspect(label: "Grouped query")
     |> Repo.all()
-
-    # |> Repo.preload(user: :logins)
+    |> group_by_day()
   end
 
   @doc """
@@ -171,7 +169,10 @@ defmodule Air.Service.AuditLog do
             metadata: a.metadata,
             grouping_ids:
               over(row_number(), order_by: [desc: :inserted_at]) -
-                over(row_number(), partition_by: [a.user_id, a.event], order_by: [desc: :inserted_at])
+                over(row_number(),
+                  partition_by: [a.user_id, a.event, fragment("date_trunc(?, ?)", "day", a.inserted_at)],
+                  order_by: [desc: :inserted_at]
+                )
           },
           order_by: [desc: :inserted_at]
         )
@@ -190,6 +191,27 @@ defmodule Air.Service.AuditLog do
         max_date: max(b.inserted_at)
       }
     )
+  end
+
+  defp group_by_day(data) do
+    data
+    |> Enum.reduce(
+      [],
+      fn element, agg ->
+        case agg do
+          [{date, list} | rest] ->
+            if Timex.beginning_of_day(element.max_date) == Timex.beginning_of_day(date) do
+              [{date, [element | list]} | rest]
+            else
+              [{element.max_date, [element]} | [{date, Enum.reverse(list)} | rest]]
+            end
+
+          _ ->
+            [{element.max_date, [element]}]
+        end
+      end
+    )
+    |> Enum.reverse()
   end
 
   defp for_user(query, []), do: query

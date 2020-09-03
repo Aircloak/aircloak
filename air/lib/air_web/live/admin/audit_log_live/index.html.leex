@@ -13,53 +13,43 @@
 
   <div class="px-0">
 
-    <%= for audit_log <- @audit_logs do %>
-      <div class="card mb-1">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-baseline">
-            <h4 class="h5 card-heading"><%= audit_log.event %></h4>
-            <time datetime="<%= NaiveDateTime.to_iso8601(audit_log.max_date) %>"><%= Timex.format!(audit_log.max_date, "{ISOdate} {h24}:{m}:{s}") %></time>
+    <%= for {day, audit_logs} <- @audit_logs do %>
+      <div class="day-header-bg">
+      <time class="small font-weight-bold day-header mb-3" datetime="<%= NaiveDateTime.to_iso8601(day) %>">
+          <%= format_date_header(day) %>
+        </time>
+      <%= for audit_log <- audit_logs do %>
+        <%= render_audit_log(%{
+          event: audit_log.event,
+          user_name: audit_log.user_name,
+          timestamp: audit_log.max_date,
+          socket: @socket,
+          user_id: audit_log.user_id,
+          metadata: audit_log.metadata,
+          query_params: @query_params}) %>
+        <%= if @expanded[{audit_log.event, audit_log.user_id, audit_log.max_date}] do %>
+          <div class="mb-3 border-left pl-3 ml-2 position-relative nested">
+          <%= for child_log <- @expanded[{audit_log.event, audit_log.user_id, audit_log.max_date}] do %>
+            <%= render_audit_log(%{
+              event: child_log.event,
+              user_name: child_log.user.name,
+              timestamp: child_log.inserted_at,
+              socket: @socket,
+              user_id: child_log.user.id,
+              metadata: child_log.metadata,
+              query_params: @query_params}) %>
+          <% end %>
+            <button class="btn collapse-button" style="bottom: 10px" phx-click="collapse_section" phx-value-event="<%= audit_log.event %>" phx-value-user="<%= audit_log.user_id %>" phx-value-to="<%=audit_log.max_date%>"><span class="small text-muted">Collapse</span></button>
           </div>
-          <p><strong><%= audit_log.user_name %></strong> <small>(IP Address: <%= audit_log.metadata["remote_ip"] %> Peer: <%= audit_log.metadata["peer"] %>)</small></p>
-
-
-
-          <%= for {key, val} <- Map.drop(audit_log.metadata, ["remote_ip", "peer"]) do %>
-            <div class="d-flex">
-              <strong><%= key %></strong>
-              <span><%= val %></span>
+        <% else %>
+          <%= if audit_log.occurences > 1 do %>
+            <div class="collapsed timeline align-self-stretch">
+              <button class="btn btn-link  d-block text-left mb-3" phx-click="expand_section" phx-value-event="<%= audit_log.event %>" phx-value-user="<%= audit_log.user_id %>" phx-value-from="<%= audit_log.min_date %>" phx-value-to="<%=audit_log.max_date%>">Expand <%= audit_log.occurences %> similar entries</button>
             </div>
           <% end %>
-
-        </div>
-      </div>
-      <%= if @expanded[{audit_log.event, audit_log.user_id, audit_log.max_date}] do %>
-        <div class="mb-3 border-left pl-3 ml-2">
-        <%= for child_log <- @expanded[{audit_log.event, audit_log.user_id, audit_log.max_date}] do %>
-          <div class="card mb-1">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-baseline">
-                <h4 class="h5 card-heading"><%= child_log.event %></h4>
-                <time datetime="<%= NaiveDateTime.to_iso8601(child_log.inserted_at) %>"><%= Timex.format!(child_log.inserted_at, "{ISOdate} {h24}:{m}:{s}") %></time>
-              </div>
-              <p><strong><%= child_log.user.name %></strong> <small>(IP Address: <%= child_log.metadata["remote_ip"] %> Peer: <%= child_log.metadata["peer"] %>)</small></p>
-
-              <%= for {key, val} <- Map.drop(child_log.metadata, ["remote_ip", "peer"]) do %>
-                <div class="d-flex">
-                <strong><%= key %></strong>
-                <span><%= val %></span>
-                </div>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
-          <button class="btn btn-link  d-block mx-auto mt-2 mb-3 position-sticky bg-white" style="bottom: 10px" phx-click="collapse_section" phx-value-event="<%= audit_log.event %>" phx-value-user="<%= audit_log.user_id %>" phx-value-to="<%=audit_log.max_date%>">Collapse</button>
-        </div>
-      <% else %>
-        <%= if audit_log.occurences > 1 do %>
-          <button class="btn btn-link  d-block mx-auto mt-2 mb-3" phx-click="expand_section" phx-value-event="<%= audit_log.event %>" phx-value-user="<%= audit_log.user_id %>" phx-value-from="<%= audit_log.min_date %>" phx-value-to="<%=audit_log.max_date%>"><%= audit_log.occurences %> similar entries <%= format_interval(audit_log.min_date, audit_log.max_date) %></button>
         <% end %>
       <% end %>
+      </div>
     <% end %>
 
   </div>
