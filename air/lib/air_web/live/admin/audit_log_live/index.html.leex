@@ -15,11 +15,12 @@
 
     <%= for {day, audit_logs} <- @audit_logs do %>
       <div class="day-header-bg">
-      <time class="small font-weight-bold day-header mb-3" datetime="<%= NaiveDateTime.to_iso8601(day) %>">
+        <time class="small font-weight-bold day-header mb-3" datetime="<%= NaiveDateTime.to_iso8601(day) %>">
           <%= format_date_header(day) %>
         </time>
       <%= for audit_log <- audit_logs do %>
         <%= render_audit_log(%{
+          id: audit_log.id,
           event: audit_log.event,
           user_name: audit_log.user_name,
           timestamp: audit_log.max_date,
@@ -28,9 +29,10 @@
           metadata: audit_log.metadata,
           query_params: @query_params}) %>
         <%= if @expanded[{audit_log.event, audit_log.user_id, audit_log.max_date}] do %>
-          <div class="mb-3 border-left pl-3 ml-2 position-relative nested">
-          <%= for child_log <- @expanded[{audit_log.event, audit_log.user_id, audit_log.max_date}] do %>
+          <div id="audit-log-children-<%= audit_log.id%>" class="mb-3 border-left pl-3 ml-2 position-relative nested" phx-update="append">
+          <%= for child_log <- (@expanded_logs[{audit_log.event, audit_log.user_id, audit_log.max_date}] || []) do %>
             <%= render_audit_log(%{
+              id: child_log.id,
               event: child_log.event,
               user_name: child_log.user.name,
               timestamp: child_log.inserted_at,
@@ -41,15 +43,29 @@
           <% end %>
             <button class="btn collapse-button" style="bottom: 10px" phx-click="collapse_section" phx-value-event="<%= audit_log.event %>" phx-value-user="<%= audit_log.user_id %>" phx-value-to="<%=audit_log.max_date%>"><span class="small text-muted">Collapse</span></button>
           </div>
-        <% else %>
-          <%= if audit_log.occurences > 1 do %>
-            <div class="collapsed timeline align-self-stretch">
-              <button class="btn btn-link  d-block text-left mb-3" phx-click="expand_section" phx-value-event="<%= audit_log.event %>" phx-value-user="<%= audit_log.user_id %>" phx-value-from="<%= audit_log.min_date %>" phx-value-to="<%=audit_log.max_date%>">Expand <%= audit_log.occurences %> similar entries</button>
-            </div>
-          <% end %>
         <% end %>
+        <%= if show_pagination?(@expanded, audit_log) do %>
+          <div class="collapsed timeline align-self-stretch">
+            <button
+              class="btn btn-link  d-block text-left mb-3"
+              phx-click="expand_section"
+              phx-value-event="<%= audit_log.event %>"
+              phx-value-user="<%= audit_log.user_id %>"
+              phx-value-from="<%= audit_log.min_date %>"
+              phx-value-to="<%=audit_log.max_date%>"
+              phx-value-first-event="<%= audit_log.id %>"
+              phx-value-page="<%= fetch_page_data(@expanded, audit_log, :page, 0) + 1 %>">
+                <i class="fas fa-arrows-alt-v"></i> Expand <%= audit_log.occurences - fetch_page_data(@expanded, audit_log, :loaded, 1) %> similar entries
+            </button>
+          </div>
+        <% end %>
+
       <% end %>
       </div>
+    <% end %>
+
+    <%= if @more_pages do %>
+      <button class="btn btn-outline-primary w-100 d-block mx-3 my-5" phx-click="load_next_page">Load more logs</button>
     <% end %>
 
   </div>
