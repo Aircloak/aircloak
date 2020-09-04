@@ -46,7 +46,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         %{parameter | value: result}
 
       {:error, reason} ->
-        raise CompilationError, message: "Invalid parameter format for type `#{type}` - `#{value}`: #{reason}."
+        raise CompilationError, message: invalid_literal_error_message(type, value, reason)
     end
   end
 
@@ -667,7 +667,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       {:error, reason} ->
         raise CompilationError,
           source_location: location,
-          message: "Invalid `#{type}` literal: #{reason}."
+          message: invalid_literal_error_message(type, value, reason)
     end
   end
 
@@ -771,6 +771,17 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp parse_literal(:interval, value), do: Timex.Duration.parse(value)
   defp parse_literal(_type, value), do: {:ok, value}
 
+  defp invalid_literal_error_message(type, value, :invalid_format),
+    do: "Invalid format for `#{type}` literal: '#{value}'."
+
+  defp invalid_literal_error_message(type, value, :invalid_time),
+    do: "Invalid time in `#{type}` literal: '#{value}'."
+
+  defp invalid_literal_error_message(type, value, :invalid_date),
+    do: "Invalid date in `#{type}` literal: '#{value}'."
+
+  defp invalid_literal_error_message(type, value, reason), do: "Invalid `#{type}` literal: '#{value}' - #{reason}."
+
   # -------------------------------------------------------------------
   # Resolving of references
   # -------------------------------------------------------------------
@@ -859,7 +870,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       {:error, reason} ->
         raise CompilationError,
           source_location: expression.source_location,
-          message: "Invalid `#{type}` literal: #{reason}."
+          message: invalid_literal_error_message(type, expression.value, reason)
     end
   end
 
