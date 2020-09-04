@@ -13,6 +13,15 @@
 
   <div class="px-0">
 
+    <%= if Enum.empty?(@audit_logs) do %>
+      <div class="d-flex align-items-center">
+      <img src="/frontend/images/report_analysis.svg" alt="" class="d-none d-xl-block float-left mr-5" width="300" />
+      <div>
+        <h2 >No audit logs matched</h2>
+        <p>There are no audit log entries that match the current set of filters. Try expanding the filters to a broader range.</p>
+      </div>
+    <% end %>
+
     <%= for {day, audit_logs} <- @audit_logs do %>
       <div class="day-header-bg">
         <time class="small font-weight-bold day-header mb-3" datetime="<%= NaiveDateTime.to_iso8601(day) %>">
