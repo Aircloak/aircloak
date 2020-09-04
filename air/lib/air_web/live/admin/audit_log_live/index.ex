@@ -238,7 +238,7 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
     user
   end
 
-  defp fetch_page_data(expanded, audit_log, key, default \\ nil) do
+  defp fetch_page_data(expanded, audit_log, key, default) do
     get_in(expanded, [{audit_log.event, audit_log.user_id, audit_log.max_date}, key]) || default
   end
 
