@@ -42,8 +42,11 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp cast_parameter(parameter = %{type: type, value: value}) when type in [:date, :datetime, :time, :interval] do
     case parse_parameter(type, value) do
-      {:ok, result} -> %{parameter | value: result}
-      _ -> raise CompilationError, message: "Invalid parameter format for type `#{type}` - `#{value}`."
+      {:ok, result} ->
+        %{parameter | value: result}
+
+      {:error, reason} ->
+        raise CompilationError, message: "Invalid parameter format for type `#{type}` - `#{value}`: #{reason}."
     end
   end
 
@@ -656,8 +659,17 @@ defmodule Cloak.Sql.Compiler.Specification do
     Expression.constant(param_type, param_value)
   end
 
-  defp identifier_to_column({:constant, type, value, location}, _columns_by_name, _query),
-    do: Expression.constant(type, value) |> Expression.set_location(location)
+  defp identifier_to_column({:constant, type, value, location}, _columns_by_name, _query) do
+    case parse_literal(type, value) do
+      {:ok, value} ->
+        Expression.constant(type, value) |> Expression.set_location(location)
+
+      {:error, reason} ->
+        raise CompilationError,
+          source_location: location,
+          message: "Invalid `#{type}` literal: #{reason}."
+    end
+  end
 
   defp identifier_to_column(
          {:like_pattern, {:constant, _, pattern, location}, {:constant, _, escape, _}},
@@ -753,6 +765,12 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> Enum.map(&"(#{&1})")
       |> Enum.join(" or ")
 
+  defp parse_literal(:time, value), do: Cloak.Time.parse_time(value)
+  defp parse_literal(:date, value), do: Cloak.Time.parse_date(value)
+  defp parse_literal(:datetime, value), do: Cloak.Time.parse_datetime(value)
+  defp parse_literal(:interval, value), do: Timex.Duration.parse(value)
+  defp parse_literal(_type, value), do: {:ok, value}
+
   # -------------------------------------------------------------------
   # Resolving of references
   # -------------------------------------------------------------------
@@ -838,10 +856,10 @@ defmodule Cloak.Sql.Compiler.Specification do
       {:ok, result} ->
         Expression.constant(type, result)
 
-      _ ->
+      {:error, reason} ->
         raise CompilationError,
           source_location: expression.source_location,
-          message: "Invalid input value supplied for type `#{type}`: `#{expression.value}`."
+          message: "Invalid `#{type}` literal: #{reason}."
     end
   end
 
