@@ -4,22 +4,24 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
 
   alias Air.Service.AuditLog
 
+  @page_size 50
+
   @impl true
   def mount(_params, session, socket) do
     {
       :ok,
       socket
       |> assign(:expanded, %{})
-      |> assign_new(:current_user, fn -> current_user!(session) end)
+      |> assign(:expanded_logs, %{})
+      |> assign_new(:current_user, fn -> current_user!(session) end),
+      temporary_assigns: [expanded_logs: %{}]
     }
   end
 
   @impl true
   def handle_params(params, _uri, socket) do
-    from = parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -20))
+    from = parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -1))
     to = parse_datetime(params["to"], Timex.now())
-
-    max_results = 1000
 
     filters = %{
       from: from,
@@ -27,15 +29,18 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       users: params["users"] || [],
       events: params["events"] || [],
       data_sources: params["data_sources"] || [],
-      max_results: max_results
+      max_results: @page,
+      page: 1
     }
 
-    audit_logs = IO.inspect(AuditLog.grouped_for(filters), label: "Foo")
+    {more_pages, audit_logs} = AuditLog.grouped_for(filters)
 
     {
       :noreply,
       socket
       |> assign(:audit_logs, audit_logs)
+      |> assign(:more_pages, more_pages)
+      |> assign(:page, 1)
       |> assign(:users, AuditLog.users(filters) |> Enum.map(&%{label: &1.name, value: &1.id}))
       |> assign(:event_types, AuditLog.event_types(filters) |> Enum.map(&%{label: &1, value: &1}))
       |> assign(:data_sources, AuditLog.data_sources(filters) |> Enum.map(&%{label: &1.name, value: &1.name}))
@@ -61,10 +66,36 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
      )}
   end
 
+  def handle_event("load_next_page", _params, socket) do
+    page = socket.assigns.page + 1
+    params = socket.assigns.query_params
+
+    filters = %{
+      from: socket.assigns.from,
+      to: socket.assigns.to,
+      users: params["users"] || [],
+      events: params["events"] || [],
+      data_sources: params["data_sources"] || [],
+      max_results: @page,
+      page: page
+    }
+
+    {more_pages, audit_logs} = AuditLog.grouped_for(filters)
+
+    {
+      :noreply,
+      socket
+      |> assign(:audit_logs, AuditLog.merged_grouped_lists(socket.assigns.audit_logs, audit_logs))
+      |> assign(:more_pages, more_pages)
+      |> assign(:page, page)
+    }
+  end
+
   def handle_event("expand_section", params, socket) do
     from = Timex.parse!(params["from"], "{ISOdate} {ISOtime}")
     to = Timex.parse!(params["to"], "{ISOdate} {ISOtime}")
     {user, _} = Integer.parse(params["user"])
+    {page, _} = Integer.parse(params["page"])
 
     data_sources = socket.assigns.query_params["data_sources"]
 
@@ -74,16 +105,24 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       users: [user],
       events: [params["event"]],
       data_sources: data_sources || [],
-      max_results: 1000
+      max_results: @page_size,
+      except: [params["first-event"]],
+      page: page
     }
 
-    audit_logs = AuditLog.for(filters)
+    {more_pages, audit_logs} = AuditLog.for(filters)
 
-    new_expanded = Map.put(socket.assigns.expanded, {params["event"], user, to}, audit_logs)
+    expanded =
+      Map.put(socket.assigns.expanded, {params["event"], user, to}, %{
+        page: page,
+        loaded: 1 + page * @page_size,
+        has_more: more_pages
+      })
 
     {:noreply,
      socket
-     |> assign(:expanded, new_expanded)}
+     |> assign(:expanded, expanded)
+     |> assign(:expanded_logs, %{{params["event"], user, to} => audit_logs})}
   end
 
   def handle_event("collapse_section", params, socket) do
@@ -103,7 +142,7 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
 
   defp render_audit_log(assigns) do
     ~L"""
-    <div class="d-flex mb-3 align-self-stretch ml-3">
+    <div id="audit-log-<%= @id %>" class="d-flex mb-3 align-self-stretch ml-3">
       <time class="timestamp small flex-shrink-0 text-muted" datetime="<%= NaiveDateTime.to_iso8601(@timestamp) %>">
         <%= Timex.format!(@timestamp, "{h24}:{m}:{s}") %><br />
       </time>
@@ -139,16 +178,8 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       {:ok, result} ->
         result
 
-      error ->
+      _error ->
         default
-    end
-  end
-
-  defp format_interval(min, max) do
-    if Timex.compare(min, max, :day) == 0 do
-      "between #{Timex.format!(min, "{h24}:{m}:{s}")} and #{Timex.format!(max, "{h24}:{m}:{s} on the {ISOdate}")}"
-    else
-      "between #{Timex.format!(min, "{ISOdate} {h24}:{m}:{s}")} and #{Timex.format!(max, "{ISOdate} {h24}:{m}:{s}")}"
     end
   end
 
@@ -161,9 +192,12 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
     end
   end
 
-  defp icon_setup("Executed query"), do: {"red", "fa-terminal"}
+  defp icon_setup("Executed query"), do: {"blue", "fa-terminal"}
   defp icon_setup("Logged in"), do: {"green", "fa-sign-in-alt"}
   defp icon_setup("Altered Diffix Explorer permissions"), do: {"purple", "fa-compass"}
+  defp icon_setup("Updated settings"), do: {"orange", "fa-cog"}
+  defp icon_setup("Cancelled query"), do: {"red", "fa-ban"}
+  defp icon_setup("Altered group"), do: {"hotpink", "fa-users"}
 
   defp event_hue(event) do
     cond do
@@ -202,5 +236,15 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
     {:ok, user_id} = Air.Service.RevokableToken.verify(token, :session)
     {:ok, user} = Air.Service.User.load_enabled(user_id)
     user
+  end
+
+  defp fetch_page_data(expanded, audit_log, key, default \\ nil) do
+    get_in(expanded, [{audit_log.event, audit_log.user_id, audit_log.max_date}, key]) || default
+  end
+
+  defp show_pagination?(expanded, audit_log) do
+    audit_log.occurences > 1 &&
+      (not Map.has_key?(expanded, {audit_log.event, audit_log.user_id, audit_log.max_date}) ||
+         fetch_page_data(expanded, audit_log, :has_more, false))
   end
 end

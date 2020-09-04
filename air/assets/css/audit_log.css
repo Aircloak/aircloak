@@ -22,16 +22,6 @@
     0 0 0 100% repeat repeat;
 }
 
-.collapsed.timeline::before {
-  content: " ";
-  position: absolute;
-  display: block;
-  border-left: 1px solid #dee2e6;
-  height: 1em;
-  left: 30px;
-  top: calc(100% - 4px);
-}
-
 .day-header-bg {
   display: flex;
   flex-direction: column;

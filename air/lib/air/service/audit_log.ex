@@ -2,7 +2,7 @@ defmodule Air.Service.AuditLog do
   @moduledoc "Services for using the audit log."
 
   alias Air.{Repo, Schemas.AuditLog, Schemas.DataSource, Schemas.User}
-  import Ecto.Query, only: [limit: 2, from: 2, subquery: 1]
+  import Ecto.Query, only: [limit: 2, from: 2, subquery: 1, offset: 2, preload: 2]
   require Logger
 
   @type login :: String.t()
@@ -15,7 +15,9 @@ defmodule Air.Service.AuditLog do
           users: [user_id],
           events: [event_name],
           data_sources: [data_source_id],
-          max_results: non_neg_integer
+          except: [non_neg_integer],
+          max_results: non_neg_integer,
+          page: non_neg_integer
         }
 
   # -------------------------------------------------------------------
@@ -55,10 +57,10 @@ defmodule Air.Service.AuditLog do
     |> for_user(params.users)
     |> for_event(params.events)
     |> for_data_sources(params.data_sources)
+    |> for_exceptions(params.except)
     |> order_by_event()
-    |> limit(^params.max_results)
-    |> Repo.all()
-    |> Repo.preload(user: :logins)
+    |> preload(user: :logins)
+    |> fetch_paginated(params)
   end
 
   def grouped_for(params) do
@@ -69,8 +71,18 @@ defmodule Air.Service.AuditLog do
     |> for_data_sources(params.data_sources)
     |> order_by_event()
     |> grouped()
-    |> Repo.all()
-    |> group_by_day()
+    |> fetch_paginated(params)
+    |> update_in([Access.elem(1)], &group_by_day/1)
+  end
+
+  def merged_grouped_lists(as, [{date, list} | bs]) do
+    last = Access.at(length(as) - 1)
+
+    if Timex.beginning_of_day(get_in(as, [last, Access.elem(0)])) == Timex.beginning_of_day(date) do
+      update_in(as, [last, Access.elem(1)], fn list1 -> list1 ++ list end) ++ bs
+    else
+      as ++ [{date, list} | bs]
+    end
   end
 
   @doc """
@@ -158,16 +170,33 @@ defmodule Air.Service.AuditLog do
     from(a in query, order_by: [desc: :inserted_at])
   end
 
-  def grouped(query) do
+  defp fetch_paginated(query, %{max_results: max_results, page: page}) do
+    results =
+      query
+      |> limit(^(max_results + 1))
+      |> offset(^((page - 1) * max_results))
+      |> Repo.all()
+
+    {length(results) > max_results, Enum.take(results, max_results)}
+  end
+
+  defmacrop first(col) do
+    quote do
+      fragment("(array_agg(?))[1]", unquote(col))
+    end
+  end
+
+  defp grouped(query) do
     from(
       b in subquery(
         from(a in query,
           select: %{
+            id: a.id,
             user_id: a.user_id,
             event: a.event,
             inserted_at: a.inserted_at,
             metadata: a.metadata,
-            grouping_ids:
+            grouping_id:
               over(row_number(), order_by: [desc: :inserted_at]) -
                 over(row_number(),
                   partition_by: [a.user_id, a.event, fragment("date_trunc(?, ?)", "day", a.inserted_at)],
@@ -179,17 +208,18 @@ defmodule Air.Service.AuditLog do
       ),
       join: user in User,
       on: b.user_id == user.id,
-      group_by: [b.grouping_ids, b.user_id, b.event, user.name],
-      order_by: [desc: max(b.inserted_at)],
+      group_by: [b.grouping_id, b.user_id, b.event, user.name],
       select: %{
+        id: first(b.id),
         user_id: b.user_id,
         user_name: user.name,
         event: b.event,
-        metadata: fragment("(array_agg(? ORDER BY ? DESC))[1]", b.metadata, b.inserted_at),
-        occurences: count(b.grouping_ids),
+        metadata: first(b.metadata),
+        occurences: count(b.grouping_id),
         min_date: min(b.inserted_at),
         max_date: max(b.inserted_at)
-      }
+      },
+      order_by: [desc: max(b.inserted_at)]
     )
   end
 
@@ -211,6 +241,7 @@ defmodule Air.Service.AuditLog do
         end
       end
     )
+    |> update_in([Access.at(0), Access.elem(1)], &Enum.reverse/1)
     |> Enum.reverse()
   end
 
@@ -224,6 +255,12 @@ defmodule Air.Service.AuditLog do
 
   defp for_event(query, events) do
     from(a in query, where: a.event in ^events)
+  end
+
+  defp for_exceptions(query, []), do: query
+
+  defp for_exceptions(query, exceptions) do
+    from(a in query, where: a.id not in ^exceptions)
   end
 
   defp for_data_sources(query, []), do: query
