@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
       < > <= >= = <> and or not in is_null like ilike !<>
       year quarter month day hour minute second weekday date_trunc
       sqrt floor ceil abs round trunc mod ^ * / + - %
-      unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_sub unsafe_mod
+      unsafe_pow unsafe_mul unsafe_div unsafe_add unsafe_sub unsafe_mod
       checked_mod checked_div checked_pow
       length lower upper btrim ltrim rtrim left right substring concat
       hex cast coalesce grouping_id case

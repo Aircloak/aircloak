@@ -341,8 +341,13 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "reports malformed datetimes" do
-    assert {:error, "Invalid input value supplied for type `datetime`: `something stupid`."} =
+    assert {:error, "Invalid format for `datetime` literal: 'something stupid'."} =
              compile("select count(*) from table where column > 'something stupid'", data_source())
+  end
+
+  test "reports malformed intervals" do
+    assert {:error, "Invalid `interval` literal: '0' - expected P, got 0."} =
+             compile("select column + interval '0' from table", data_source())
   end
 
   for function <- ~w(min max sum avg stddev variance) do
@@ -1661,9 +1666,16 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "invalid parameter format" do
-    assert {:error, "Invalid parameter format for type `date` - `something stupid`."} =
+    assert {:error, "Invalid format for `date` literal: 'something stupid'."} =
              compile("SELECT COUNT(*) FROM table WHERE column = $1::datetime", data_source(),
                parameters: [%{type: :date, value: "something stupid"}]
+             )
+  end
+
+  test "invalid parameter value" do
+    assert {:error, "Invalid time in `time` literal: '12:01:61'."} =
+             compile("SELECT COUNT(*) FROM table WHERE CAST(column AS time) = $1::time", data_source(),
+               parameters: [%{type: :time, value: "12:01:61"}]
              )
   end
 

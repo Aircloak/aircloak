@@ -1396,38 +1396,30 @@ defmodule Cloak.Sql.Parser.Test do
   end
 
   test "select interval" do
-    duration = Timex.Duration.parse!("P1Y2M3DT4H5M6S")
-
     assert_parse(
       "select interval 'P1Y2M3DT4H5M6S' from bar",
-      select(columns: [constant(:interval, ^duration)])
+      select(columns: [constant(:interval, "P1Y2M3DT4H5M6S")])
     )
   end
 
   test "select date" do
-    {:ok, date} = Cloak.Time.parse_date("2017-01-12")
-
     assert_parse(
       "select date '2017-01-12' from bar",
-      select(columns: [constant(:date, ^date)])
+      select(columns: [constant(:date, "2017-01-12")])
     )
   end
 
   test "select time" do
-    {:ok, time} = Cloak.Time.parse_time("12:00:01")
-
     assert_parse(
       "select time '12:00:01' from bar",
-      select(columns: [constant(:time, ^time)])
+      select(columns: [constant(:time, "12:00:01")])
     )
   end
 
   test "select datetime" do
-    {:ok, datetime} = Cloak.Time.parse_datetime("2017-01-12 12:00:01")
-
     assert_parse(
       "select datetime '2017-01-12 12:00:01' from bar",
-      select(columns: [constant(:datetime, ^datetime)])
+      select(columns: [constant(:datetime, "2017-01-12 12:00:01")])
     )
   end
 
@@ -1820,7 +1812,6 @@ defmodule Cloak.Sql.Parser.Test do
       {"initial error after spaces and newlines", "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}},
       {"assert at least one table", "select foo from", "Expected `table name`", {1, 16}},
       {"extended trim with two columns", "select trim(both a from b) from foo", "Expected `)`", {1, 20}},
-      {"invalid interval", "select interval 'does not parse' from foo", "Expected `from`", {1, 17}},
       {"table can't be parameterized", "select x from $1", "Expected `table name`", {1, 15}},
       {"missing `sets` keyword", "select count(*) from table group by grouping", "Expected `sets`", {1, 45}},
       {"missing parens in group by (1)", "select count(*) from table group by (", "Expected `)`", {1, 38}},

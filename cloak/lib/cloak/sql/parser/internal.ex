@@ -712,16 +712,11 @@ defmodule Cloak.Sql.Parser.Internal do
         constant(:string)
       ],
       fn
-        [:interval, {:constant, :string, value, location}] -> {:interval, Timex.Duration.parse(value), location}
-        [:date, {:constant, :string, value, location}] -> {:date, Cloak.Time.parse_date(value), location}
-        [:time, {:constant, :string, value, location}] -> {:time, Cloak.Time.parse_time(value), location}
-        [:datetime, {:constant, :string, value, location}] -> {:datetime, Cloak.Time.parse_datetime(value), location}
-        [:timestamp, {:constant, :string, value, location}] -> {:datetime, Cloak.Time.parse_datetime(value), location}
+        [:timestamp, {:constant, :string, value, location}] -> {:constant, :datetime, value, location}
+        [type, {:constant, :string, value, location}] -> {:constant, type, value, location}
       end
     )
-    |> satisfy(&match?({_, {:ok, _}, _}, &1))
     |> label("typed literal")
-    |> map(fn {type, {:ok, result}, location} -> {:constant, type, result, location} end)
   end
 
   defp any_constant() do
