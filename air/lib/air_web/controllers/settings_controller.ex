@@ -27,7 +27,7 @@ defmodule AirWeb.SettingsController do
   def update(conn, params) do
     case update_profile(conn.assigns.current_user, params["user"]) do
       {:ok, _, sessions_revoked?} ->
-        audit_log(conn, "Altered own profile")
+        audit_log(conn, "Altered their profile")
 
         conn
         |> maybe_login(sessions_revoked?)
@@ -53,7 +53,7 @@ defmodule AirWeb.SettingsController do
   def change_password(conn, params) do
     case update_password(conn.assigns.current_user, params["user"]) do
       {:ok, _, sessions_revoked?} ->
-        audit_log(conn, "Password changed")
+        audit_log(conn, "Changed their password")
 
         conn
         |> maybe_login(sessions_revoked?)
@@ -70,7 +70,7 @@ defmodule AirWeb.SettingsController do
   def delete_sessions(conn, _params) do
     Air.Service.RevokableToken.revoke_all(conn.assigns.current_user, :session)
 
-    audit_log(conn, "Cleared sessions")
+    audit_log(conn, "Cleared their sessions")
 
     conn
     |> AirWeb.Plug.Session.sign_in(conn.assigns.current_user)

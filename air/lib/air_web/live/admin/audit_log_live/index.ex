@@ -152,21 +152,32 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
           <%= live_patch @user_name, to: admin_audit_log_index_path(@socket, :index, Map.put(@query_params, :users, [@user_id])) %>
           <strong><%= live_patch @event, to: admin_audit_log_index_path(@socket, :index, Map.put(@query_params, :events, [@event])), class: "text-dark" %></strong>
           <%= if @metadata["data_source"], do: "on #{@metadata["data_source"]}" %>
+          <%= if @metadata["group_name"], do: link(@metadata["group_name"], to: admin_group_path(@socket, :edit, @metadata["group_id"])) %>
+          <%= if @metadata["user"], do: @metadata["user"] %>
           <br />
           <%= if @metadata["remote_ip"] && @metadata["remote_ip"] do %>
             <small>IP Address: <%= @metadata["remote_ip"] %> Peer: <%= @metadata["peer"] %></small>
           <% end %>
         </p>
 
-        <%= for {key, val} <- Map.drop(@metadata, ["remote_ip", "peer", "data_source"]) do %>
-          <%= if key == "query" do %>
-            <pre phx-hook="CodeViewer"><%= val %></pre>
-          <% else %>
+        <%= if @metadata["diff"] do %>
+          <%= for {key, %{"before" => before, "after" => aftr}} <- @metadata["diff"] do %>
+            <div>
+              <strong><%= key %>:</strong>
+              <span class="before" aria-label="Previous value"><%= before %></span>
+              <i class="fas fa-arrow-right"></i>
+              <span class="after" aria-label="Current value"><%= aftr %></span>
+            </div>
+          <% end %>
+        <% end %>
+
+        <%= if @metadata["query"] do %><pre phx-hook="SQLCodeViewer"><%= @metadata["query"] %></pre><% end %>
+
+        <%= for {key, val} <- Map.drop(@metadata, ["remote_ip", "peer", "data_source", "diff", "group_id", "group_name", "query", "user"]) do %>
           <div class="d-flex">
-            <strong><%= key %></strong>
+            <strong style="width: 150px"><%= key %></strong>
             <span><%= val %></span>
           </div>
-          <% end %>
         <% end %>
       </div>
     </div>
@@ -192,12 +203,49 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
     end
   end
 
-  defp icon_setup("Executed query"), do: {"blue", "fa-terminal"}
-  defp icon_setup("Logged in"), do: {"green", "fa-sign-in-alt"}
-  defp icon_setup("Altered Diffix Explorer permissions"), do: {"purple", "fa-compass"}
-  defp icon_setup("Updated settings"), do: {"orange", "fa-cog"}
-  defp icon_setup("Cancelled query"), do: {"red", "fa-ban"}
-  defp icon_setup("Altered group"), do: {"hotpink", "fa-users"}
+  defp icon_class("Executed query"), do: "fa-terminal"
+  defp icon_class("Logged in"), do: "fa-sign-in-alt"
+  defp icon_class("Failed login"), do: "fa-sign-in-alt"
+  defp icon_class("Logged out"), do: "fa-sign-out-alt"
+  defp icon_class("Altered Diffix Explorer permissions"), do: "fa-compass"
+  defp icon_class("Updated settings"), do: "fa-cog"
+  defp icon_class("Cancelled query"), do: "fa-ban"
+  defp icon_class("Deleted query"), do: "fa-trash"
+  defp icon_class("Altered group"), do: "fa-users"
+  defp icon_class("Created API token"), do: "fa-check-circle"
+  defp icon_class("Invalidated API token"), do: "fa-times-circle"
+  defp icon_class("Created app login"), do: "fa-mobile"
+  defp icon_class("Revoked app login"), do: "fa-mobile-alt"
+  defp icon_class("Password reset"), do: "fa-unlock"
+  defp icon_class("Altered their profile"), do: "fa-id-card-alt"
+  defp icon_class("Changed their password"), do: "fa-key"
+  defp icon_class("Cleared their sessions"), do: "fa-lock"
+  defp icon_class("Created group"), do: "fa-user-friends"
+  defp icon_class("Removed group"), do: "fa-users-slash"
+  defp icon_class("Created user"), do: "fa-user-plus"
+  defp icon_class("User created"), do: "fa-user-plus"
+  defp icon_class("Altered a user"), do: "fa-user-edit"
+  defp icon_class("User altered"), do: "fa-user-edit"
+  defp icon_class("Disabled a user account prior to deletion"), do: "fa-user-shield"
+  defp icon_class("Scheduled user for removal"), do: "fa-user-slash"
+  defp icon_class("Succeeded in removing user"), do: "fa-user-times"
+  defp icon_class("Failed in removing user"), do: "fa-user-minus"
+  defp icon_class("Disabled a user account"), do: "fa-user-shield"
+  defp icon_class("Cleared user sessions"), do: "fa-lock"
+  defp icon_class("Enabled a user account"), do: "fa-user-check"
+  defp icon_class("Altered data source"), do: "fa-database"
+  defp icon_class(_other), do: "fa-circle"
+
+  defp icon_color(event) do
+    <<value::224>> = :crypto.hash(:sha224, event)
+    {min_hue, max_hue} = event_hue(String.downcase(event))
+    h = rem(value, 727) * (max_hue - min_hue) / 727 + min_hue
+    value = floor(floor(value / 360) / 3)
+    s = Enum.at([0.5, 0.8, 0.9], rem(value, 3))
+    value = floor(value / 3)
+    l = Enum.at([0.55, 0.6, 0.75], rem(value, 3))
+    "hsl(#{h},#{s * 100}%,#{l * 100}%)"
+  end
 
   defp event_hue(event) do
     cond do

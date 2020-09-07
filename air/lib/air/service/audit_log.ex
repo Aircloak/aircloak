@@ -30,7 +30,7 @@ defmodule Air.Service.AuditLog do
     if Air.Service.Settings.read().audit_log_enabled do
       user
       |> Ecto.build_assoc(:audit_logs)
-      |> AuditLog.changeset(%{event: event, metadata: metadata})
+      |> AuditLog.changeset(%{event: event, metadata: compute_diff(metadata)})
       |> Repo.insert()
       |> case do
         {:ok, _} ->
@@ -169,6 +169,32 @@ defmodule Air.Service.AuditLog do
   defp order_by_event(query) do
     from(a in query, order_by: [desc: :inserted_at])
   end
+
+  defp compute_diff(metadata = %{before: prev, after: next}) do
+    rest = metadata |> Map.delete(:before) |> Map.delete(:after)
+
+    new = Map.delete(next, :__struct__)
+
+    difference =
+      Enum.reduce(Map.delete(prev, :__struct__), %{}, fn {key, val}, diff ->
+        if val == new[key] || key in [:updated_at] do
+          diff
+        else
+          Map.put(diff, key |> Atom.to_string() |> String.replace("_", " ") |> String.capitalize(), %{
+            before: to_description(val),
+            after: to_description(new[key])
+          })
+        end
+      end)
+
+    if Enum.empty?(difference), do: rest, else: Map.put(rest, :diff, difference)
+  end
+
+  defp compute_diff(metadata), do: metadata
+
+  defp to_description(v) when is_list(v), do: Enum.join(Enum.map(v, &to_description/1), ", ")
+  defp to_description(%{:name => name}), do: name
+  defp to_description(v), do: v
 
   defp fetch_paginated(query, %{max_results: max_results, page: page}) do
     results =
