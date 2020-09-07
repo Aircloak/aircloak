@@ -57,8 +57,7 @@ defmodule AirWeb.Admin.UserController do
   def create(conn, params) do
     case User.create(params["user"]) do
       {:ok, user} ->
-        audit_log(conn, "Created user")
-        audit_log_for_user(conn, user, "User created")
+        audit_log(conn, "Created user", %{user: user.name})
 
         token = User.reset_password_token(user)
 
@@ -75,8 +74,7 @@ defmodule AirWeb.Admin.UserController do
   def update(conn, params) do
     verify_last_admin_deleted(User.update(conn.assigns.user, params["user"]), conn, fn
       {:ok, user} ->
-        audit_log(conn, "Altered user")
-        audit_log_for_user(conn, user, "User altered")
+        audit_log(conn, "Altered user", %{user: user.name})
 
         conn
         |> put_flash(:info, "User updated")
@@ -91,15 +89,12 @@ defmodule AirWeb.Admin.UserController do
     user = conn.assigns.user
 
     start_callback = fn ->
-      audit_log(conn, "Disabled a user account prior to deletion")
-      audit_log_for_user(conn, user, "User account disabled prior to deletion")
-
-      audit_log(conn, "User removal scheduled")
-      audit_log_for_user(conn, user, "User scheduled for removal")
+      audit_log(conn, "Disabled a user account prior to deletion", %{user: user.name})
+      audit_log(conn, "Scheduled user for removal", %{user: user.name})
     end
 
-    success_callback = fn -> audit_log(conn, "User removal succeeded") end
-    failure_callback = fn reason -> audit_log(conn, "User removal failed", %{reason: reason}) end
+    success_callback = fn -> audit_log(conn, "Succeeded in removing user", %{user: user.name}) end
+    failure_callback = fn reason -> audit_log(conn, "Failed in removing user", %{reason: reason, user: user.name}) end
 
     case User.delete_async(user, start_callback, success_callback, failure_callback) do
       :ok ->
@@ -122,8 +117,7 @@ defmodule AirWeb.Admin.UserController do
         |> redirect(to: admin_user_path(conn, :index))
 
       {:ok, user} ->
-        audit_log(conn, "Disabled a user account")
-        audit_log_for_user(conn, user, "User account disabled")
+        audit_log(conn, "Disabled a user account", %{user: user.name})
 
         conn
         |> redirect(to: admin_user_path(conn, :index))
@@ -132,8 +126,7 @@ defmodule AirWeb.Admin.UserController do
 
   def enable(conn, _params) do
     User.enable!(conn.assigns.user)
-    audit_log(conn, "Enabled a user account")
-    audit_log_for_user(conn, conn.assigns.user, "User account enabled")
+    audit_log(conn, "Enabled a user account", %{user: conn.assigns.user.name})
 
     conn
     |> redirect(to: admin_user_path(conn, :index))
@@ -147,8 +140,7 @@ defmodule AirWeb.Admin.UserController do
   def delete_sessions(conn, _params) do
     Air.Service.RevokableToken.revoke_all(conn.assigns.user, :session)
 
-    audit_log(conn, "Cleared user sessions")
-    audit_log_for_user(conn, conn.assigns.user, "Cleared sessions")
+    audit_log(conn, "Cleared user sessions", %{user: conn.assigns.user.name})
 
     redirect_path =
       if conn.assigns.user.source == :ldap do

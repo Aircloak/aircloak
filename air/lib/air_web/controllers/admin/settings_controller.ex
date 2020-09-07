@@ -21,7 +21,7 @@ defmodule AirWeb.Admin.SettingsController do
       conn,
       "show.html",
       changeset: Air.Service.Settings.latest_changeset(),
-      audit_log_entries_count: Air.Service.AuditLog.count()
+      audit_log_entries_count: AuditLog.count()
     )
   end
 
@@ -33,9 +33,11 @@ defmodule AirWeb.Admin.SettingsController do
   # -------------------------------------------------------------------
 
   defp save(conn, params) do
+    before = Air.Service.Settings.read()
+
     case Air.Service.Settings.save(params["settings"]) do
       {:ok, settings} ->
-        AuditLog.log(conn.assigns.current_user, "Updated settings", Map.drop(settings, [:__struct__, :__meta__]))
+        audit_log(conn, "Updated settings", before: before, after: settings)
 
         conn
         |> put_flash(:info, "The settings were saved.")

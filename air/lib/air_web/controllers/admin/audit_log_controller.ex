@@ -18,36 +18,6 @@ defmodule AirWeb.Admin.AuditLogController do
   # Actions
   # -------------------------------------------------------------------
 
-  def index(conn, params) do
-    from = parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -1))
-    to = parse_datetime(params["to"], Timex.now())
-    max_results = 1000
-
-    filters = %{
-      from: from,
-      to: to,
-      users: params["users"] || [],
-      events: params["events"] || [],
-      data_sources: params["data_sources"] || [],
-      max_results: max_results
-    }
-
-    audit_logs = AuditLog.for(filters)
-
-    render(
-      conn,
-      "index.html",
-      audit_logs: audit_logs,
-      full_width: true,
-      users: AuditLog.users(filters) |> Enum.map(&%{label: &1.name, value: &1.id}),
-      event_types: AuditLog.event_types(filters) |> Enum.map(&%{label: &1, value: &1}),
-      data_sources: AuditLog.data_sources(filters) |> Enum.map(&%{label: &1.name, value: &1.name}),
-      from: from,
-      to: to,
-      max_results: max_results
-    )
-  end
-
   def confirm_deletion(conn, _params), do: render(conn, "confirm_deletion.html", entries_count: AuditLog.count())
 
   def delete_all(conn, _params) do
@@ -56,16 +26,5 @@ defmodule AirWeb.Admin.AuditLogController do
     conn
     |> put_flash(:info, "All audit log entries have been deleted")
     |> redirect(to: admin_settings_path(conn, :show))
-  end
-
-  # -------------------------------------------------------------------
-  # Helpers
-  # -------------------------------------------------------------------
-
-  defp parse_datetime(value, default) do
-    case Timex.parse(value, "{ISOdate} {ISOtime}") do
-      {:ok, result} -> result
-      _error -> default
-    end
   end
 end

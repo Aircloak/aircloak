@@ -47,25 +47,26 @@ defmodule AirWeb.Admin.GroupController do
   end
 
   def update(conn, params) do
-    group = conn.assigns.group
+    old_group = conn.assigns.group
 
-    verify_last_admin_deleted(update_group(group, params["group"]), conn, fn
+    verify_last_admin_deleted(update_group(old_group, params["group"]), conn, fn
       {:ok, group} ->
-        audit_log(conn, "Altered group", group: group.name, admin: group.admin)
+        IO.inspect(group)
+        audit_log(conn, "Altered group", group_name: group.name, group_id: group.id, before: old_group, after: group)
 
         conn
         |> put_flash(:info, "Group updated")
         |> redirect(to: admin_group_path(conn, :index))
 
       {:error, changeset} ->
-        render(conn, "edit.html", data: edit_form_data(params, group), changeset: changeset)
+        render(conn, "edit.html", data: edit_form_data(params, old_group), changeset: changeset)
     end)
   end
 
   def create(conn, params) do
     case Group.create(params["group"]) do
       {:ok, group} ->
-        audit_log(conn, "Created group", name: group.name)
+        audit_log(conn, "Created group", group_name: group.name, group_id: group.id)
 
         conn
         |> put_flash(:info, "Group created")
@@ -80,7 +81,7 @@ defmodule AirWeb.Admin.GroupController do
     group = conn.assigns.group
 
     verify_last_admin_deleted(Group.delete(group), conn, fn {:ok, _} ->
-      audit_log(conn, "Removed group", name: group.name)
+      audit_log(conn, "Removed group", group_name: group.name)
 
       conn
       |> put_flash(:info, "Group deleted")

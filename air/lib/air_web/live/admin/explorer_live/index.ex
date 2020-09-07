@@ -37,10 +37,12 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
   end
 
   def handle_event("save_settings", params, socket) do
+    before = Explorer.group()
+
     {:noreply,
      case Explorer.change_permitted_data_sources(params["group"]) do
        {:ok, group} ->
-         audit_log(socket, "Altered Diffix Explorer permissions", group: group.name, admin: group.admin)
+         audit_log(socket, "Altered Diffix Explorer permissions", before: before, after: group)
 
          socket
          |> assign(:data_sources, Explorer.statistics())

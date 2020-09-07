@@ -58,8 +58,9 @@ defmodule AirWeb.Admin.DataSourceController do
         audit_log(
           conn,
           "Altered data source",
-          name: data_source.name,
-          data_source: data_source.name
+          data_source: data_source.name,
+          before: conn.assigns.data_source,
+          after: data_source
         )
 
         conn

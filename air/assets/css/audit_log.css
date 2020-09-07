@@ -184,3 +184,17 @@
 .expander.collapsed:hover::after {
   opacity: 1;
 }
+
+.before,
+.after {
+  padding: 0 2px;
+  word-break: break-all;
+}
+
+.before {
+  background: rgba(228, 26, 26, 0.2);
+}
+
+.after {
+  background: rgba(42, 236, 42, 0.2);
+}
