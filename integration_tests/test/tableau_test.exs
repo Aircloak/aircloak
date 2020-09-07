@@ -196,7 +196,7 @@ defmodule IntegrationTest.TableauTest do
   test "invalid query through a cursor", context do
     query = 'BEGIN;declare "SQL_CUR04AD8270" cursor for foo bar;fetch 2048 in "SQL_CUR04AD8270"'
     assert {:error, error} = :odbc.sql_query(context.conn, query)
-    assert to_string(error) =~ ~r/^ERROR: Expected `select or show`/
+    assert to_string(error) =~ ~r/^ERROR: Expected `select, explain, or show`/
   end
 
   test "selecting a regclass value", context do

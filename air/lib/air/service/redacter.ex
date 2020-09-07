@@ -8,7 +8,7 @@ defmodule Air.Service.Redacter do
   # These are terms that will not be filtered by the redacter.
   # They constitute common Aircloak phrases that are known to be safe.
   @safe_terms [
-                "select or show",
+                "select, explain, or show",
                 # Common syntax
                 "GROUP BY",
                 "WHERE",

@@ -209,14 +209,14 @@ defmodule IntegrationTest.OdbcTest do
     test "select error", context do
       ExUnit.CaptureLog.capture_log(fn ->
         assert {:error, error} = :odbc.sql_query(context.conn, 'invalid query')
-        assert to_string(error) =~ ~r/Expected `select or show`/
+        assert to_string(error) =~ ~r/Expected `select, explain, or show`/
       end)
     end
 
     test "extended query error", context do
       ExUnit.CaptureLog.capture_log(fn ->
         assert {:error, error} = :odbc.param_query(context.conn, 'invalid query', [])
-        assert to_string(error) =~ ~r/Expected `select or show`/
+        assert to_string(error) =~ ~r/Expected `select, explain, or show`/
       end)
     end
 
