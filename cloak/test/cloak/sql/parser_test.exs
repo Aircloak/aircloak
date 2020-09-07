@@ -50,6 +50,13 @@ defmodule Cloak.Sql.Parser.Test do
     end
   end
 
+  # Produces a pattern which matches an AST of an explain query.
+  defmacrop explain(select_data) do
+    quote do
+      %{unquote_splicing([command: :explain] ++ select_data)}
+    end
+  end
+
   # Produces a pattern which matches an AST of a constant.
   defmacrop constant(value) do
     quote do
@@ -326,6 +333,13 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "show columns" do
     assert_parse("show columns from foo", show(:columns, from: unquoted("foo")))
+  end
+
+  test "explain select" do
+    assert_parse(
+      "EXPLAIN SELECT foo FROM baz",
+      explain(columns: [identifier("foo")], from: unquoted("baz"))
+    )
   end
 
   test "where clause with implied = TRUE" do
