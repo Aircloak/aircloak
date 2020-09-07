@@ -140,6 +140,10 @@ defmodule Cloak.AnalystTable.CompilerTest do
     assert query.type == :restricted
   end
 
+  test "ignore trailing semicolon" do
+    assert {:ok, _} = compile("table_name", "select user_id from mv1 ;  \n \t  ")
+  end
+
   defp compile(table_name, statement, data_source \\ default_data_source()),
     do: Compiler.compile(table_name, statement, 1, data_source, nil, %{})
 
