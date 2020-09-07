@@ -21,6 +21,34 @@ general shape of the query looks like:
 
 {% include "sql/syntax.md" %}
 
+
+## Describing the query plan
+
+To inspect a query without running it, you can prefix the uppermost `SELECT` statement with `EXPLAIN`.
+The `EXPLAIN` query will return an overview with information about the query and its subqueries.
+
+The following example shows the result of describing an [anonymizing restricted query](#anonymizing-restricted-queries)
+with an inner [non-anonymizing restricted subquery](#non-anonymizing-restricted-subqueries):
+
+```sql
+EXPLAIN SELECT age, count(*) as individuals
+FROM (
+  SELECT uid, t1.age
+  FROM table1 t1
+  INNER JOIN table2 t2 ON t1.uid = t2.uid
+) t
+GROUP BY age
+```
+
+```
+query (anonymized, statistics, 2 noise layers)
+  --> Aircloak:regular_stats (restricted, 2 noise layers)
+    --> Aircloak:uid_grouping (restricted, 2 noise layers)
+      --> t (restricted, 2 noise layers)
+        --> t1 (table)
+        --> t2 (table)
+```
+
 ## Considerations
 
 - The `*` argument can only be provided to the `COUNT` and `COUNT_NOISE` aggregators and it specifies counting rows
@@ -77,6 +105,8 @@ per-user aggregates, which becomes a non-anonymizing restricted subquery. This m
 data to get anonymized away, leading to results vastly different from what was expected. It can be hard to
 debug and understand the cause of a situation like this if you do not know of the different query types and
 how to distinguish between them.
+
+You can use the [EXPLAIN statement](#describing-the-query-plan) to identify the type of a query and its subqueries.
 
 #### Non-anonymizing restricted subqueries
 

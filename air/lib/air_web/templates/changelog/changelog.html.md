@@ -10,6 +10,8 @@
 
 ### New features
 
+- Added support for `EXPLAIN` query. The result will describe the types of queries and subqueries.
+
 ### Enhancements
 
 ### Bugfixes
