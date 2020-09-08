@@ -60,7 +60,11 @@ defmodule Cloak.AnalystTable.Compiler do
 
   defp compile_analyst_table(statement, columns, analyst, data_source, parameters, views) do
     # This is the real compilation of the analyst table query. Here, we're compiling the anonymized query
-    # `select non-uid-columns from #{analyst_query}` to enforce aircloak restrictions, such as range alignments.
+    # `select non-uid-columns from #{analyst_query}` to enforce Aircloak restrictions, such as range alignments.
+
+    # Since we are compiling the statement as an embedded subquery, we need to manually select non-user_id
+    # columns and to drop any trailing semicolon.
+    statement = statement |> String.trim_trailing() |> String.trim_trailing(";")
     columns = columns |> Enum.reject(& &1.user_id?) |> Enum.map(&"\"#{&1.alias}\"") |> Enum.join(", ")
 
     with {:ok, parsed_query} <- Cloak.Sql.Parser.parse("select #{columns} from (#{statement}) sq") do
