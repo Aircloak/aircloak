@@ -58,9 +58,9 @@ defmodule IntegrationTest.QueryTest do
 
     assert result.buckets == [
              %{"occurrences" => 1, "row" => ["query (anonymized, statistics, 4 noise layers)"]},
-             %{"occurrences" => 1, "row" => ["  --> Aircloak:regular_stats (restricted, 4 noise layers)"]},
-             %{"occurrences" => 1, "row" => ["    --> Aircloak:uid_grouping (restricted, 4 noise layers)"]},
-             %{"occurrences" => 1, "row" => ["      --> users (table)"]}
+             %{"occurrences" => 1, "row" => ["  --> Aircloak:regular_stats (restricted)"]},
+             %{"occurrences" => 1, "row" => ["    --> Aircloak:uid_grouping (restricted)"]},
+             %{"occurrences" => 1, "row" => ["      --> users (personal table)"]}
            ]
   end
 

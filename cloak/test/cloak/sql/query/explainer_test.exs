@@ -7,26 +7,26 @@ defmodule Cloak.Sql.Query.Explainer.Test do
   describe "single table" do
     test "with statistics anonymization" do
       assert explain("select count(col_1) from table_1") == [
-               "query (anonymized, statistics)",
+               "query (anonymized, statistics, default noise layer)",
                "  --> Aircloak:regular_stats (restricted)",
                "    --> Aircloak:uid_grouping (restricted)",
-               "      --> table_1 (table)"
+               "      --> table_1 (personal table)"
              ]
     end
 
     test "with user_id anonymization" do
       assert explain("select stddev(col_1) from table_1") == [
-               "query (anonymized, user_id)",
-               "  --> table_1 (table)"
+               "query (anonymized, user_id, default noise layer)",
+               "  --> table_1 (personal table)"
              ]
     end
 
     test "with single noise layer" do
       assert explain("select count(col_1) from table_1 where col_1 between 0 and 10") == [
                "query (anonymized, statistics, 1 noise layer)",
-               "  --> Aircloak:regular_stats (restricted, 1 noise layer)",
-               "    --> Aircloak:uid_grouping (restricted, 1 noise layer)",
-               "      --> table_1 (table)"
+               "  --> Aircloak:regular_stats (restricted)",
+               "    --> Aircloak:uid_grouping (restricted)",
+               "      --> table_1 (personal table)"
              ]
     end
 
@@ -37,27 +37,27 @@ defmodule Cloak.Sql.Query.Explainer.Test do
              where col_1 between 0 and 10 and col_2 = 0
              """) == [
                "query (anonymized, statistics, 3 noise layers)",
-               "  --> Aircloak:regular_stats (restricted, 3 noise layers)",
-               "    --> Aircloak:uid_grouping (restricted, 3 noise layers)",
-               "      --> table_1 (table)"
+               "  --> Aircloak:regular_stats (restricted)",
+               "    --> Aircloak:uid_grouping (restricted)",
+               "      --> table_1 (personal table)"
              ]
     end
 
     test "directly selecting columns" do
       assert explain("select col_1 from table_1") == [
                "query (anonymized, statistics, 2 noise layers)",
-               "  --> Aircloak:regular_stats (restricted, 2 noise layers)",
-               "    --> Aircloak:uid_grouping (restricted, 2 noise layers)",
-               "      --> table_1 (table)"
+               "  --> Aircloak:regular_stats (restricted)",
+               "    --> Aircloak:uid_grouping (restricted)",
+               "      --> table_1 (personal table)"
              ]
     end
 
     test "shows the table alias" do
       assert explain("select count(*) from table_1 t1") == [
-               "query (anonymized, statistics)",
+               "query (anonymized, statistics, default noise layer)",
                "  --> Aircloak:regular_stats (restricted)",
                "    --> Aircloak:uid_grouping (restricted)",
-               "      --> t1 (table)"
+               "      --> t1 (personal table)"
              ]
     end
   end
@@ -65,29 +65,29 @@ defmodule Cloak.Sql.Query.Explainer.Test do
   describe "restricted subquery" do
     test "with statistics anonymization" do
       assert explain("select count(x.aliased) from (select col_1 as aliased from table_1) x") == [
-               "query (anonymized, statistics)",
+               "query (anonymized, statistics, default noise layer)",
                "  --> Aircloak:regular_stats (restricted)",
                "    --> Aircloak:uid_grouping (restricted)",
                "      --> x (restricted)",
-               "        --> table_1 (table)"
+               "        --> table_1 (personal table)"
              ]
     end
 
     test "with user_id anonymization" do
       assert explain("select stddev(x.aliased) from (select col_1 as aliased from table_1) x") == [
-               "query (anonymized, user_id)",
+               "query (anonymized, user_id, default noise layer)",
                "  --> x (restricted)",
-               "    --> table_1 (table)"
+               "    --> table_1 (personal table)"
              ]
     end
 
     test "directly selecting columns" do
       assert explain("select x.aliased from (select col_1 as aliased from table_1) x") == [
                "query (anonymized, statistics, 2 noise layers)",
-               "  --> Aircloak:regular_stats (restricted, 2 noise layers)",
-               "    --> Aircloak:uid_grouping (restricted, 2 noise layers)",
-               "      --> x (restricted, 2 noise layers)",
-               "        --> table_1 (table)"
+               "  --> Aircloak:regular_stats (restricted)",
+               "    --> Aircloak:uid_grouping (restricted)",
+               "      --> x (restricted)",
+               "        --> table_1 (personal table)"
              ]
     end
 
@@ -100,10 +100,10 @@ defmodule Cloak.Sql.Query.Explainer.Test do
               ) x
              """) == [
                "query (anonymized, statistics, 3 noise layers)",
-               "  --> Aircloak:regular_stats (restricted, 3 noise layers)",
-               "    --> Aircloak:uid_grouping (restricted, 3 noise layers)",
-               "      --> x (restricted, 3 noise layers)",
-               "        --> table_1 (table)"
+               "  --> Aircloak:regular_stats (restricted)",
+               "    --> Aircloak:uid_grouping (restricted)",
+               "      --> x (restricted)",
+               "        --> table_1 (personal table)"
              ]
     end
   end
@@ -116,11 +116,11 @@ defmodule Cloak.Sql.Query.Explainer.Test do
              inner join table_2
              on table_1.col_2 = table_2.col_2
              """) == [
-               "query (anonymized, statistics)",
+               "query (anonymized, statistics, default noise layer)",
                "  --> Aircloak:regular_stats (restricted)",
                "    --> Aircloak:uid_grouping (restricted)",
-               "      --> table_1 (table)",
-               "      --> table_2 (table)"
+               "      --> table_1 (personal table)",
+               "      --> table_2 (personal table)"
              ]
     end
 
@@ -134,12 +134,12 @@ defmodule Cloak.Sql.Query.Explainer.Test do
              ) x
              on table_1.col_2 = x.col_2
              """) == [
-               "query (anonymized, statistics)",
+               "query (anonymized, statistics, default noise layer)",
                "  --> Aircloak:regular_stats (restricted)",
                "    --> Aircloak:uid_grouping (restricted)",
-               "      --> table_1 (table)",
+               "      --> table_1 (personal table)",
                "      --> x (restricted)",
-               "        --> table_2 (table)"
+               "        --> table_2 (personal table)"
              ]
     end
 
@@ -157,14 +157,14 @@ defmodule Cloak.Sql.Query.Explainer.Test do
              ) t3
              on table_1.col_2 = t3.col_2
              """) == [
-               "query (anonymized, statistics)",
+               "query (anonymized, statistics, default noise layer)",
                "  --> Aircloak:regular_stats (restricted)",
                "    --> Aircloak:uid_grouping (restricted)",
-               "      --> table_1 (table)",
+               "      --> table_1 (personal table)",
                "      --> t2 (restricted)",
-               "        --> table_2 (table)",
+               "        --> table_2 (personal table)",
                "      --> t3 (standard)",
-               "        --> table_3 (table)"
+               "        --> table_3 (non-personal table)"
              ]
     end
   end
@@ -179,16 +179,16 @@ defmodule Cloak.Sql.Query.Explainer.Test do
            """) == [
              "query (emulated, standard)",
              "  --> x (anonymized, statistics, 2 noise layers)",
-             "    --> Aircloak:regular_stats (restricted, 2 noise layers)",
-             "      --> Aircloak:uid_grouping (restricted, 2 noise layers)",
-             "        --> table_1 (table)"
+             "    --> Aircloak:regular_stats (restricted)",
+             "      --> Aircloak:uid_grouping (restricted)",
+             "        --> table_1 (personal table)"
            ]
   end
 
   test "selecting from non-personal table" do
     assert explain("select * from table_3") == [
              "query (standard)",
-             "  --> table_3 (table)"
+             "  --> table_3 (non-personal table)"
            ]
   end
 
@@ -199,10 +199,10 @@ defmodule Cloak.Sql.Query.Explainer.Test do
              }
            ) == [
              "query (anonymized, statistics, 1 noise layer)",
-             "  --> Aircloak:regular_stats (restricted, 1 noise layer)",
-             "    --> Aircloak:uid_grouping (restricted, 1 noise layer)",
-             "      --> some_view (view, restricted, 1 noise layer)",
-             "        --> table_1 (table)"
+             "  --> Aircloak:regular_stats (restricted)",
+             "    --> Aircloak:uid_grouping (restricted)",
+             "      --> some_view (view, restricted)",
+             "        --> table_1 (personal table)"
            ]
   end
 
@@ -219,12 +219,12 @@ defmodule Cloak.Sql.Query.Explainer.Test do
            on x.col_2 = y.col_2
            """) == [
              "query (emulated, anonymized, statistics, 1 noise layer)",
-             "  --> Aircloak:regular_stats (emulated, restricted, 1 noise layer)",
-             "    --> Aircloak:uid_grouping (emulated, restricted, 1 noise layer)",
-             "      --> x (restricted, 1 noise layer)",
-             "        --> table_1 (table)",
+             "  --> Aircloak:regular_stats (emulated, restricted)",
+             "    --> Aircloak:uid_grouping (emulated, restricted)",
+             "      --> x (restricted)",
+             "        --> table_1 (personal table)",
              "      --> y (emulated, standard)",
-             "        --> table_3 (table)"
+             "        --> table_3 (non-personal table)"
            ]
   end
 
