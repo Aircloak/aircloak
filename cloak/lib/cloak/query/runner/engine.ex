@@ -12,24 +12,26 @@ defmodule Cloak.Query.Runner.Engine do
   def run(runner_args) do
     start_time = :erlang.monotonic_time(:milli_seconds)
 
-    %{query: query, command: command, columns: columns, metadata: metadata} =
+    query =
       runner_args.statement
       |> parse!(runner_args.state_updater)
       |> compile!(runner_args)
 
+    metadata = Sql.Query.metadata(query)
+
     runner_args.metadata_updater.(metadata)
 
     result =
-      command
-      |> run_statement(query, runner_args)
-      |> Query.Result.new(columns, metadata)
+      query
+      |> run_statement(runner_args)
+      |> Query.Result.new(query.column_titles, metadata)
 
     runtime = :erlang.monotonic_time(:milli_seconds) - start_time
 
     query =
       Sql.Query.add_debug_info(query, [
         "Query executed in #{runtime / 1000} seconds."
-        | if(command == :select and query.emulated?, do: ["Query was partially emulated."], else: [])
+        | if(query.emulated?, do: ["Query was partially emulated."], else: [])
       ])
 
     {:ok, result, Sql.Query.info_messages(query)}
@@ -51,44 +53,36 @@ defmodule Cloak.Query.Runner.Engine do
   end
 
   defp compile!(%{command: :explain} = parsed_query, runner_args) do
-    %{query: query, metadata: metadata} =
+    query =
       parsed_query
       |> Map.put(:command, :select)
       |> compile!(runner_args)
 
-    %{
+    %Sql.Query{
       command: :explain,
-      query: query,
-      columns: ["query plan"],
-      metadata: %{metadata | selected_types: ["text"]}
+      from: {:subquery, %{ast: query}},
+      column_titles: ["query plan"],
+      columns: [Sql.Expression.constant(:text, "query plan")]
     }
   end
 
   defp compile!(parsed_query, runner_args) do
     runner_args.state_updater.(:compiling)
 
-    query =
-      Sql.Compiler.compile!(
-        parsed_query,
-        runner_args.analyst_id,
-        runner_args.data_source,
-        runner_args.parameters,
-        runner_args.user_selectables[:views] || %{}
-      )
-      |> Query.DbEmulator.compile()
-
-    %{
-      command: query.command,
-      query: query,
-      columns: query.column_titles,
-      metadata: Sql.Query.metadata(query)
-    }
+    Sql.Compiler.compile!(
+      parsed_query,
+      runner_args.analyst_id,
+      runner_args.data_source,
+      runner_args.parameters,
+      runner_args.user_selectables[:views] || %{}
+    )
+    |> Query.DbEmulator.compile()
   end
 
   defp display_content_type(:private), do: "personal"
   defp display_content_type(:public), do: "non-personal"
 
-  defp run_statement(:show, %Sql.Query{show: :tables} = query, %{user_selectables: user_selectables}) do
+  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, %{user_selectables: user_selectables}) do
     tables =
       Cloak.DataSource.tables(query.data_source)
       |> Enum.map(
@@ -127,7 +121,7 @@ defmodule Cloak.Query.Runner.Engine do
     Enum.map(tables ++ analyst_tables ++ views, &%{occurrences: 1, row: &1})
   end
 
-  defp run_statement(:show, %Sql.Query{show: :columns} = query, _) do
+  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, _) do
     [table] = query.selected_tables
 
     table.columns
@@ -146,14 +140,14 @@ defmodule Cloak.Query.Runner.Engine do
     )
   end
 
-  defp run_statement(:explain, query, _),
+  defp run_statement(%Sql.Query{command: :explain, from: {:subquery, %{ast: query}}}, _),
     do:
       query
       |> Sql.Query.Explainer.explain()
       |> Sql.Query.Explainer.format_explanation()
       |> Enum.map(&%{occurrences: 1, row: [&1]})
 
-  defp run_statement(:select, query, %{state_updater: state_updater}),
+  defp run_statement(%Sql.Query{command: :select} = query, %{state_updater: state_updater}),
     do: Query.DbEmulator.select(query, state_updater)
 
   defp selectable_comment(%{comment: comment}), do: comment
