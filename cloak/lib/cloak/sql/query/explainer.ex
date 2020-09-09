@@ -5,6 +5,7 @@ defmodule Cloak.Sql.Query.Explainer do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Returns a map containing information about the given query and its subqueries."
   @spec explain(Cloak.Sql.Query.t()) :: map
   def explain(query),
     do: %{
@@ -16,6 +17,7 @@ defmodule Cloak.Sql.Query.Explainer do
       subqueries: explain_from(query.from)
     }
 
+  @doc "Pretty-prints the query explanation to a list of rows."
   @spec format_explanation(map) :: [String.t()]
   def format_explanation(explanation), do: format_explanation(explanation, "query", 0)
 
@@ -34,7 +36,7 @@ defmodule Cloak.Sql.Query.Explainer do
         ")"
       ])
 
-    [query] ++ Enum.flat_map(explanation.subqueries, &format_from(&1, depth + 1))
+    [query | Enum.flat_map(explanation.subqueries, &format_from(&1, depth + 1))]
   end
 
   defp format_alias("__ac_" <> name), do: "Aircloak:#{name}"
@@ -50,8 +52,8 @@ defmodule Cloak.Sql.Query.Explainer do
     [
       if(explanation.view?, do: "view"),
       if(explanation.emulated?, do: "emulated"),
-      Atom.to_string(explanation.query_type),
-      if(explanation.query_type == :anonymized, do: Atom.to_string(explanation.anonymization_type)),
+      explanation.query_type,
+      if(explanation.query_type == :anonymized, do: explanation.anonymization_type),
       case explanation.noise_layers do
         [] -> nil
         [_noise_layer] -> "1 noise layer"
