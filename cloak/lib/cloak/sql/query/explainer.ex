@@ -34,14 +34,14 @@ defmodule Cloak.Sql.Query.Explainer do
         if(depth > 0, do: "--> ", else: ""),
         format_alias(alias),
         " (",
-        format_properties(explanation),
+        format_properties(explanation, alias),
         ")"
       ])
 
     [query | Enum.flat_map(explanation.subqueries, &format_from(&1, depth + 1))]
   end
 
-  defp format_alias("__ac_" <> name), do: "Aircloak:#{name}"
+  defp format_alias("__ac_" <> name), do: name
   defp format_alias(name), do: name
 
   defp format_from({:subquery, %{query: query, alias: alias}}, depth),
@@ -53,8 +53,9 @@ defmodule Cloak.Sql.Query.Explainer do
   defp format_content_type(:private), do: "personal"
   defp format_content_type(:public), do: "non-personal"
 
-  defp format_properties(explanation) do
+  defp format_properties(explanation, alias) do
     [
+      if(String.starts_with?(alias, "__ac_"), do: "Aircloak generated"),
       if(explanation.view?, do: "view"),
       if(explanation.emulated?, do: "emulated"),
       explanation.query_type
