@@ -42,6 +42,9 @@ defmodule Air.PsqlServer.QueryExecution do
       query =~ ~r/^set /i ->
         RanchServer.query_result(conn, command: :set)
 
+      query =~ ~r/^discard/i ->
+        RanchServer.query_result(conn, command: :discard)
+
       cursor = close_cursor_query?(query) ->
         conn
         |> RanchServer.unassign({:cursor_result, cursor})
