@@ -5,16 +5,6 @@ defmodule AirWeb.Admin.WarningsController do
   alias Air.Service.Warnings
 
   # -------------------------------------------------------------------
-  # AirWeb.VerifyPermissions callback
-  # -------------------------------------------------------------------
-
-  def permissions do
-    %{
-      admin: [:index, :warnings_if_any]
-    }
-  end
-
-  # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 

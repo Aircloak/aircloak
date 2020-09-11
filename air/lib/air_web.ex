@@ -41,66 +41,16 @@ defmodule Air.Web do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: AirWeb
-
-      alias Air.Repo
-      import Ecto
-      import Ecto.Query, only: [from: 1, from: 2]
-
-      import AirWeb.Router.Helpers
-      import AirWeb.Gettext
-      import Phoenix.LiveView.Controller
-
+      unquote(controller_helpers())
       # Each controller must verify permissions
       @behaviour AirWeb.VerifyPermissions
       plug(AirWeb.VerifyPermissions, controller: __MODULE__)
-
-      @doc false
-      def audit_log(conn, event, metadata \\ []) do
-        audit_log_for_user(conn, conn.assigns.current_user, event, metadata)
-      end
-
-      @doc false
-      def audit_log_for_user(conn, user, event, metadata \\ []) do
-        Air.Service.AuditLog.log(
-          user,
-          event,
-          conn
-          |> audit_log_meta()
-          |> Map.merge(Enum.into(metadata, %{}))
-        )
-      end
-
-      @doc false
-      def audit_log_meta(conn) do
-        %{
-          peer:
-            case Plug.Conn.get_peer_data(conn) do
-              %{address: {a, b, c, d}, port: port} -> "#{a}.#{b}.#{c}.#{d}:#{port}"
-              _ -> "Unknown"
-            end,
-          remote_ip:
-            case conn.remote_ip do
-              {a, b, c, d} -> "#{a}.#{b}.#{c}.#{d}"
-              _ -> "Unknown"
-            end
-        }
-      end
-
-      defp not_found(conn) do
-        conn
-        |> put_layout(false)
-        |> put_status(:not_found)
-        |> put_view(AirWeb.ErrorView)
-        |> render("404.html")
-        |> halt()
-      end
     end
   end
 
   def admin_controller do
     quote do
-      use Air.Web, :controller
+      unquote(controller_helpers())
 
       plug(:put_layout, "admin.html")
     end
@@ -179,6 +129,61 @@ defmodule Air.Web do
       import AirWeb.ViewHelpers
       import AirWeb.Gettext
       import Phoenix.LiveView.Helpers
+    end
+  end
+
+  defp controller_helpers do
+    quote do
+      use Phoenix.Controller, namespace: AirWeb
+
+      alias Air.Repo
+      import Ecto
+      import Ecto.Query, only: [from: 1, from: 2]
+
+      import AirWeb.Router.Helpers
+      import AirWeb.Gettext
+      import Phoenix.LiveView.Controller
+
+      @doc false
+      def audit_log(conn, event, metadata \\ []) do
+        audit_log_for_user(conn, conn.assigns.current_user, event, metadata)
+      end
+
+      @doc false
+      def audit_log_for_user(conn, user, event, metadata \\ []) do
+        Air.Service.AuditLog.log(
+          user,
+          event,
+          conn
+          |> audit_log_meta()
+          |> Map.merge(Enum.into(metadata, %{}))
+        )
+      end
+
+      @doc false
+      def audit_log_meta(conn) do
+        %{
+          peer:
+            case Plug.Conn.get_peer_data(conn) do
+              %{address: {a, b, c, d}, port: port} -> "#{a}.#{b}.#{c}.#{d}:#{port}"
+              _ -> "Unknown"
+            end,
+          remote_ip:
+            case conn.remote_ip do
+              {a, b, c, d} -> "#{a}.#{b}.#{c}.#{d}"
+              _ -> "Unknown"
+            end
+        }
+      end
+
+      defp not_found(conn) do
+        conn
+        |> put_layout(false)
+        |> put_status(:not_found)
+        |> put_view(AirWeb.ErrorView)
+        |> render("404.html")
+        |> halt()
+      end
     end
   end
 end

@@ -13,16 +13,6 @@ defmodule AirWeb.Admin.DataSourceController do
   plug(:load_analyst_table when action in [:show_analyst_table, :convert_table_to_view])
 
   # -------------------------------------------------------------------
-  # AirWeb.VerifyPermissions callback
-  # -------------------------------------------------------------------
-
-  def permissions do
-    %{
-      admin: :all
-    }
-  end
-
-  # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 

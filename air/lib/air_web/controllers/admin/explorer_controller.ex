@@ -7,11 +7,9 @@ defmodule AirWeb.Admin.ExplorerController do
   plug(:check_if_enabled)
   plug(:prepare_debug when action in [:show, :update])
 
-  def permissions do
-    %{
-      admin: :all
-    }
-  end
+  # -------------------------------------------------------------------
+  # Actions
+  # -------------------------------------------------------------------
 
   def index(conn, _params) do
     live_render(conn, AirWeb.Admin.ExplorerLive.Index)

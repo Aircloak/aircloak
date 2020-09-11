@@ -8,16 +8,6 @@ defmodule AirWeb.Admin.CloaksController do
   plug(:load_cloak_info when action in [:reinitialize])
 
   # -------------------------------------------------------------------
-  # AirWeb.VerifyPermissions callback
-  # -------------------------------------------------------------------
-
-  def permissions do
-    %{
-      admin: :all
-    }
-  end
-
-  # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 

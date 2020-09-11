@@ -9,16 +9,6 @@ defmodule AirWeb.Admin.ActivityMonitorController do
   alias Air.Service.{Cloak.Stats, Query}
 
   # -------------------------------------------------------------------
-  # AirWeb.VerifyPermissions callback
-  # -------------------------------------------------------------------
-
-  def permissions do
-    %{
-      admin: :all
-    }
-  end
-
-  # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 

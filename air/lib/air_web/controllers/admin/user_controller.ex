@@ -10,16 +10,6 @@ defmodule AirWeb.Admin.UserController do
   plug(:load_available_groups_for_existing_user when action in [:edit, :update])
 
   # -------------------------------------------------------------------
-  # AirWeb.VerifyPermissions callback
-  # -------------------------------------------------------------------
-
-  def permissions do
-    %{
-      admin: :all
-    }
-  end
-
-  # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 

@@ -5,17 +5,6 @@ defmodule AirWeb.Admin.PrivacyPolicyController do
   alias Air.Service.PrivacyPolicy
 
   # -------------------------------------------------------------------
-  # AirWeb.VerifyPermissions callback
-  # -------------------------------------------------------------------
-
-  def permissions do
-    %{
-      admin: :all,
-      user: [:invalid]
-    }
-  end
-
-  # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 

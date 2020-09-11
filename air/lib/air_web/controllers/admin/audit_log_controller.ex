@@ -5,19 +5,10 @@ defmodule AirWeb.Admin.AuditLogController do
   alias Air.Service.AuditLog
 
   # -------------------------------------------------------------------
-  # AirWeb.VerifyPermissions callback
-  # -------------------------------------------------------------------
-
-  def permissions do
-    %{
-      admin: [:index, :confirm_deletion, :delete_all]
-    }
-  end
-
-  # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 
+  @spec confirm_deletion(Plug.Conn.t(), any) :: Plug.Conn.t()
   def confirm_deletion(conn, _params), do: render(conn, "confirm_deletion.html", entries_count: AuditLog.count())
 
   def delete_all(conn, _params) do
