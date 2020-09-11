@@ -42,11 +42,11 @@ GROUP BY age
 
 ```
 query (anonymized, statistics, 2 noise layers)
-  --> Aircloak:regular_stats (restricted, 2 noise layers)
-    --> Aircloak:uid_grouping (restricted, 2 noise layers)
-      --> t (restricted, 2 noise layers)
-        --> t1 (table)
-        --> t2 (table)
+  --> regular_stats (Aircloak generated, restricted)
+    --> uid_grouping (Aircloak generated, restricted)
+      --> t (restricted)
+        --> t1 (personal table)
+        --> t2 (personal table)
 ```
 
 ## Considerations
