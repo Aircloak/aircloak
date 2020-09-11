@@ -5,17 +5,6 @@ defmodule AirWeb.Admin.LicenseController do
   alias Air.Service.License
 
   # -------------------------------------------------------------------
-  # AirWeb.VerifyPermissions callback
-  # -------------------------------------------------------------------
-
-  def permissions do
-    %{
-      admin: :all,
-      user: [:invalid]
-    }
-  end
-
-  # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 

@@ -32,6 +32,10 @@ defmodule AirWeb.Router do
     plug(AirWeb.Plug.Session.EveryoneAllowed)
   end
 
+  pipeline :admin_only do
+    plug(AirWeb.Plug.AdminOnly)
+  end
+
   pipeline :license_validations_browser do
     plug(AirWeb.Plug.ValidateLicense.Browser)
   end
@@ -118,7 +122,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/admin", AirWeb.Admin, as: :admin do
-    pipe_through([:browser, :browser_auth])
+    pipe_through([:browser, :browser_auth, :admin_only])
 
     get("/queries/failed", QueryController, :failed)
     get("/queries/:id", QueryController, :show)

@@ -7,12 +7,6 @@ defmodule AirWeb.Admin.AnalysisController do
   alias Air.Service.DataSource.Column
 
   # -------------------------------------------------------------------
-  # AirWeb.VerifyPermissions callback
-  # -------------------------------------------------------------------
-
-  def permissions(), do: %{admin: :all}
-
-  # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 

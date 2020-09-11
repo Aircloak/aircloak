@@ -6,16 +6,6 @@ defmodule AirWeb.Admin.CloaksController do
   alias Air.{Service.Cloak, Repo, Schemas.DataSource}
 
   # -------------------------------------------------------------------
-  # AirWeb.VerifyPermissions callback
-  # -------------------------------------------------------------------
-
-  def permissions do
-    %{
-      admin: :all
-    }
-  end
-
-  # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 

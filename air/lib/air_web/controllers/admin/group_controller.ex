@@ -7,16 +7,6 @@ defmodule AirWeb.Admin.GroupController do
   plug(:load_group when action in [:edit, :update, :delete])
 
   # -------------------------------------------------------------------
-  # AirWeb.VerifyPermissions callback
-  # -------------------------------------------------------------------
-
-  def permissions do
-    %{
-      admin: :all
-    }
-  end
-
-  # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 
@@ -51,7 +41,6 @@ defmodule AirWeb.Admin.GroupController do
 
     verify_last_admin_deleted(update_group(old_group, params["group"]), conn, fn
       {:ok, group} ->
-        IO.inspect(group)
         audit_log(conn, "Altered group", group_name: group.name, group_id: group.id, before: old_group, after: group)
 
         conn
