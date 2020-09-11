@@ -195,17 +195,22 @@ defmodule Air.Service.AuditLogTest do
   end
 
   defp params(provided \\ %{}) do
-    provided
-    |> Map.put(:page, Map.get(provided, :page, 1))
-    |> Map.put(:users, Map.get(provided, :users, []))
-    |> Map.put(:events, Map.get(provided, :events, []))
-    |> Map.put(:data_sources, Map.get(provided, :data_sources, []))
-    |> Map.put(:from, Map.get(provided, :from, Timex.now() |> Timex.shift(days: -1)))
-    |> Map.put(:to, Map.get(provided, :to, Timex.now() |> Timex.shift(days: 1)))
-    |> Map.put(:max_results, Map.get(provided, :max_results, 100))
+    Map.merge(
+      %{
+        page: 1,
+        users: [],
+        events: [],
+        data_sources: [],
+        from: Timex.now() |> Timex.shift(days: -1),
+        to: Timex.now() |> Timex.shift(days: 1),
+        max_results: 100,
+        except: []
+      },
+      provided
+    )
   end
 
   defp entries_count(params, count) do
-    params |> AuditLog.for() |> length() == count
+    params |> AuditLog.for() |> get_in([Access.elem(1)]) |> length() == count
   end
 end
