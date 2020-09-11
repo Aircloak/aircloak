@@ -33,6 +33,7 @@
 - [Core language features](sql.md)
   - [Exploring the database](sql.md#exploring-the-database)
   - [Querying the database](sql.md#querying-the-database)
+  - [Describing the query plan](sql.md#describing-the-query-plan)
   - [Considerations](sql.md#considerations)
   - [Query and subquery types](sql.md#query-and-subquery-types)
 - [Restrictions](sql/restrictions.md)

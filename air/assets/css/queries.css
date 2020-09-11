@@ -24,6 +24,10 @@
   overflow-x: auto;
 }
 
+.result-table td {
+  white-space: pre-wrap;
+}
+
 .panel-danger .react-codemirror2 {
   border-bottom: 1px solid rgb(235, 204, 209);
 }

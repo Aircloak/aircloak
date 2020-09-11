@@ -46,7 +46,7 @@ defmodule Cloak.Sql.Query do
   @type t :: %__MODULE__{
           analyst_id: analyst_id,
           data_source: DataSource.t(),
-          command: :select | :show,
+          command: :select | :show | :explain,
           columns: [Expression.t()],
           column_titles: [String.t()],
           aggregators: [Expression.t()],

@@ -50,6 +50,13 @@ defmodule Cloak.Sql.Parser.Test do
     end
   end
 
+  # Produces a pattern which matches an AST of an explain query.
+  defmacrop explain(select_data) do
+    quote do
+      %{unquote_splicing([command: :explain] ++ select_data)}
+    end
+  end
+
   # Produces a pattern which matches an AST of a constant.
   defmacrop constant(value) do
     quote do
@@ -326,6 +333,13 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "show columns" do
     assert_parse("show columns from foo", show(:columns, from: unquoted("foo")))
+  end
+
+  test "explain select" do
+    assert_parse(
+      "EXPLAIN SELECT foo FROM baz",
+      explain(columns: [identifier("foo")], from: unquoted("baz"))
+    )
   end
 
   test "where clause with implied = TRUE" do
@@ -1781,7 +1795,8 @@ defmodule Cloak.Sql.Parser.Test do
       {"keyword is not identifier", "select select from baz", "Expected `column definition`", {1, 8}},
       {"from table is required", "select foo", "`from`", {1, 11}},
       {"columns must be separated with a comma", "select foo bar from baz", "Expected `from`", {1, 12}},
-      {"query must start with a select or show", "foo select foo bar from baz", "Expected `select or show`", {1, 1}},
+      {"query must start with a select or show", "foo select foo bar from baz", "Expected `select, explain, or show`",
+       {1, 1}},
       {"show requires tables or columns", "show foobar", "Expected `tables or columns`", {1, 6}},
       {"show columns requires `from`", "show columns", "Expected `from`", {1, 13}},
       {"show columns requires a table", "show columns from", "Expected `table name`", {1, 18}},
@@ -1808,8 +1823,9 @@ defmodule Cloak.Sql.Parser.Test do
       {"missing where expression", "select foo from bar where", "Expected `column definition`", {1, 26}},
       {"invalid where expression", "select foo from bar where foo bar", "Unexpected input", {1, 31}},
       {"no input allowed after the statement", "select foo from bar baz qux", "Unexpected input", {1, 25}},
-      {"error after spaces", "   invalid_statement", "Expected `select or show`", {1, 4}},
-      {"initial error after spaces and newlines", "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}},
+      {"error after spaces", "   invalid_statement", "Expected `select, explain, or show`", {1, 4}},
+      {"initial error after spaces and newlines", "  \n  \n invalid_statement", "Expected `select, explain, or show`",
+       {3, 2}},
       {"assert at least one table", "select foo from", "Expected `table name`", {1, 16}},
       {"extended trim with two columns", "select trim(both a from b) from foo", "Expected `)`", {1, 20}},
       {"table can't be parameterized", "select x from $1", "Expected `table name`", {1, 15}},

@@ -7,6 +7,7 @@ defmodule Cloak.Sql.Lexer do
 
   @keywords [
               "SELECT",
+              "EXPLAIN",
               "SHOW",
               "TABLES",
               "COLUMNS",

@@ -80,7 +80,7 @@ defmodule Cloak.Query.ErrorTest do
   end
 
   test "query reports an error on invalid statement" do
-    assert_query("invalid statement", %{error: "Expected `select or show`" <> _})
+    assert_query("invalid statement", %{error: "Expected `select, explain, or show`" <> _})
   end
 
   test "query reports an error on invalid column" do

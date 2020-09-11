@@ -53,6 +53,17 @@ defmodule IntegrationTest.QueryTest do
            ]
   end
 
+  test "explain", context do
+    {:ok, result} = run_query(context.user, "explain select name, height from users")
+
+    assert result.buckets == [
+             %{"occurrences" => 1, "row" => ["query (anonymized, statistics, 4 noise layers)"]},
+             %{"occurrences" => 1, "row" => ["  --> regular_stats (Aircloak generated, restricted)"]},
+             %{"occurrences" => 1, "row" => ["    --> uid_grouping (Aircloak generated, restricted)"]},
+             %{"occurrences" => 1, "row" => ["      --> users (personal table)"]}
+           ]
+  end
+
   test "Query logs returned are truncated to second", context do
     {:ok, result} = run_query(context.user, "select name, height from users")
 

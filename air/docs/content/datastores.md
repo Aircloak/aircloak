@@ -114,6 +114,8 @@ query
         --> t2 (executed in the datasource)
 ```
 
+You can use the [EXPLAIN statement](sql.md#describing-the-query-plan) to see which components of a query will be emulated.
+
 ### Emulated functions
 
 This section lists the functions which will cause a query to be emulated.

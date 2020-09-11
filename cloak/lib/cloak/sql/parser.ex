@@ -46,7 +46,7 @@ defmodule Cloak.Sql.Parser do
   @type subquery :: {:subquery, %{ast: parsed_query, alias: String.t()}}
 
   @type parsed_query :: %{
-          command: :select | :show,
+          command: :select | :show | :explain,
           columns: [column | {column, :as, String.t()} | {:*, String.t()} | :*],
           grouping_sets: [[column]],
           from: from_clause,
