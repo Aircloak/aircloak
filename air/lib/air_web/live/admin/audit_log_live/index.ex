@@ -11,7 +11,6 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
     {
       :ok,
       socket
-      |> assign(:expanded, %{})
       |> assign(:expanded_logs, %{})
       |> assign_new(:current_user, fn -> current_user!(session) end),
       temporary_assigns: [expanded_logs: %{}]
@@ -42,6 +41,7 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       |> assign(:audit_logs, audit_logs)
       |> assign(:more_pages, more_pages)
       |> assign(:page, 1)
+      |> assign(:expanded, %{})
       |> assign(:users, AuditLog.users(filters) |> Enum.map(&%{label: &1.name, value: &1.id}))
       |> assign(:event_types, AuditLog.event_types(filters) |> Enum.map(&%{label: &1, value: &1}))
       |> assign(:data_sources, AuditLog.data_sources(filters) |> Enum.map(&%{label: &1.name, value: &1.name}))

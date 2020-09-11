@@ -56,7 +56,7 @@
         <%= if show_pagination?(@expanded, audit_log) do %>
           <div class="collapsed timeline align-self-stretch">
             <button
-              class="btn btn-link  d-block text-left mb-3"
+              class="btn btn-link loader d-block text-left mb-3"
               phx-click="expand_section"
               phx-value-event="<%= audit_log.event %>"
               phx-value-user="<%= audit_log.user_id %>"
@@ -74,7 +74,7 @@
     <% end %>
 
     <%= if @more_pages do %>
-      <button class="btn btn-outline-primary w-100 d-block mx-3 my-5" phx-click="load_next_page">Load more logs</button>
+      <button class="btn btn-outline-primary w-100 d-block mx-3 my-5 loader" phx-click="load_next_page">Load more logs</button>
     <% end %>
 
   </div>
