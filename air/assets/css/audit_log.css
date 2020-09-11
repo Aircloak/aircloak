@@ -198,3 +198,13 @@
 .after {
   background: rgba(42, 236, 42, 0.2);
 }
+
+.loader.phx-click-loading::after {
+  display: inline-block;
+  background: url(../static/images/loader.gif);
+  width: 26px;
+  height: 26px;
+  content: " ";
+  margin-left: 1em;
+  margin-bottom: -8px;
+}

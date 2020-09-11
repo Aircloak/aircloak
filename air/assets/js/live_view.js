@@ -1,10 +1,17 @@
 import { Socket } from "phoenix";
 import LiveSocket from "phoenix_live_view";
 import CodeMirror from "codemirror";
+import NProgress from "nprogress";
+import "nprogress/nprogress.css";
 
 export default () => {
   const csrfElement = document.querySelector("meta[name='csrf-token']");
   const _csrf_token = csrfElement && csrfElement.getAttribute("content");
+
+  window.addEventListener("phx:page-loading-start", (info) =>
+    NProgress.start()
+  );
+  window.addEventListener("phx:page-loading-stop", (info) => NProgress.done());
   const liveSocket = new LiveSocket("/live", Socket, {
     params: { _csrf_token },
     hooks: {
