@@ -20,6 +20,21 @@ defmodule Air.Service.AuditLog do
           page: non_neg_integer
         }
 
+  @type group :: %{
+          id: non_neg_integer,
+          user_id: non_neg_integer,
+          user_name: String.t(),
+          event: event_name,
+          metadata: any,
+          occurences: non_neg_integer,
+          min_date: DateTime.t(),
+          max_date: DateTime.t()
+        }
+
+  @type paginated_list(item) :: {boolean, [item]}
+
+  @type by_date :: {DateTime.t(), [group]}
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -49,8 +64,10 @@ defmodule Air.Service.AuditLog do
   Returns audit log entries created in a given time interval (inclusive).
 
   Returned entries are descending sorted by the creation date.
+
+  Results are paginated. This means the method returns a tuple: `{has_more_pages :: boolean, the_actual_data}`.
   """
-  @spec for(filter_params) :: [AuditLog.t()]
+  @spec for(filter_params) :: paginated_list(AuditLog.t())
   def for(params) do
     AuditLog
     |> for_time(params.from, params.to)
@@ -63,18 +80,47 @@ defmodule Air.Service.AuditLog do
     |> fetch_paginated(params)
   end
 
+  @doc """
+  Returns audit log entries in a format designed for display:
+
+  - The list is grouped by days in order to show headers
+  - Each item is basically the first event in a group (sorted by time in descending order)
+  - Some extra attributes are added
+  - A group is events with the same user and event_type occuring on the same day, consecutively.
+
+  For example:
+
+       [{"Created", "Johny", 2020-10-01 10:20:00},
+        {"Created", "Johny", 2020-10-01 10:30},
+        {"Snoozed", "Benny", 2020-10-01 10:40},
+        {"Created", "Johny", 2020-10-01 10:50},
+        {"Created", "Johny", 2020-10-12 11:00}]
+
+  Would get returned as:
+
+       [{"Created", "Johny", 2, 2020-10-01 10:20:00, 2020-10-01 10:30},
+        {"Snoozed", "Benny", 1, 2020-10-01 10:40, 2020-10-01 10:40}, # This is a different event and user
+        {"Created", "Johny", 1, 2020-10-01 10:50, 2020-10-01 10:50},
+        {"Created", "Johny", 1, 2020-10-12 11:00, 2020-10-12 11:00}] # This is a different day
+
+  Results are paginated. This means the method returns a tuple: `{has_more_pages :: boolean, the_actual_data}`.
+  """
+  @spec grouped_for(filter_params) :: paginated_list(by_date)
   def grouped_for(params) do
     AuditLog
     |> for_time(params.from, params.to)
     |> for_user(params.users)
     |> for_event(params.events)
     |> for_data_sources(params.data_sources)
+    |> for_exceptions(params.except)
     |> order_by_event()
     |> grouped()
     |> fetch_paginated(params)
     |> update_in([Access.elem(1)], &group_by_day/1)
   end
 
+  @doc "Used for dealing with pagination. Similar to `++`, but makes sure that the property of being grouped by day is preserved."
+  @spec merged_grouped_lists([by_date], [by_date]) :: [by_date]
   def merged_grouped_lists(as, [{date, list} | bs]) do
     last = Access.at(length(as) - 1)
 
@@ -249,6 +295,7 @@ defmodule Air.Service.AuditLog do
     )
   end
 
+  @spec group_by_day([group]) :: [by_date]
   defp group_by_day(data) do
     data
     |> Enum.reduce(

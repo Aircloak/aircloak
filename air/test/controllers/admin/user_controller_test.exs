@@ -154,7 +154,7 @@ defmodule AirWeb.Admin.UserController.Test do
 
     login(admin) |> delete("/admin/users/#{user.id}")
 
-    assert_soon Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal succeeded")
+    assert_soon Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "Succeeded in removing user")
   end
 
   test "render 404 on attempting to render edit form for non-existent user" do

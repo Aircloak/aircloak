@@ -29,7 +29,8 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       users: params["users"] || [],
       events: params["events"] || [],
       data_sources: params["data_sources"] || [],
-      max_results: @page,
+      except: [],
+      max_results: @page_size,
       page: 1
     }
 
@@ -76,7 +77,8 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       users: params["users"] || [],
       events: params["events"] || [],
       data_sources: params["data_sources"] || [],
-      max_results: @page,
+      except: [],
+      max_results: @page_size,
       page: page
     }
 
