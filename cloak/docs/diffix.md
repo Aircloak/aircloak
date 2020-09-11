@@ -76,7 +76,7 @@ Diffix Dogwood can report how much answer suppression has taken place and how mu
 
 ## Deployment
 
-Diffix Dogwood is deployed as a function or device that sits between an analyst (or application) and an un-anonymized database. In the Aircloak system, this device is referred to as Insights Cloak. In this document, for readability, we refer to is simply as the cloak.
+Diffix Dogwood is deployed as a function or device that sits between an analyst (or application) and an un-anonymized database. In the Aircloak system, this device is referred to as Insights Cloak. In this document, for readability, we refer to it simply as the cloak.
 
 An SQL interface is exposed to the analyst. The database may be an SQL database, or may be some other kind of data store. The cloak translates the analyst SQL into the appropriate query language.
 
@@ -89,7 +89,7 @@ An SQL interface is exposed to the analyst. The database may be an SQL database,
                                      (buckets)
 ```
 
-If the SQL query requests an aggregate (for instance `SELECT age, count(*) FROM table GROUP BY age`), then each row returned in the answer is refered to as a *bucket* in this document. In this example, each tuple `(age, count)` would be a separate bucket.
+If the SQL query requests an aggregate (for instance `SELECT age, count(*) FROM table GROUP BY age`), then each row returned in the answer is referred to as a *bucket* in this document. In this example, each tuple `(age, count)` would be a separate bucket.
 
 ## Main Pipeline
 
@@ -216,7 +216,7 @@ Inequalities that are not ranges (not bounded on both sides) are possible in the
 
 ### Clear conditions (IN, range, negative conditions)
 
-The cloak may require that certain conditions are *clear*. The primary purpose of clear conditions is so that the cloak can [seed noise layers](#determine-seeds) through [SQL inspection](#sql-inspection) rather than by [floating the column value](#floating-columns-values). The following operators must be clear:
+The cloak may require that certain conditions are *clear*. The primary purpose of clear conditions is so that the cloak can [seed noise layers](#determine-seeds) through SQL inspection rather than by [floating the column value](#gather-seed-materials). The following operators must be clear:
 
 * negative conditions (`col <> val`) including `NOT IN` and `IS NOT NULL`.
 * `IN` (`col IN (val1, val2)`), though note that the column is floated for the purpose of seeding the [static noise layer](#noise-layers) (not the per-element UID-noise layers).
@@ -273,7 +273,7 @@ In order to prevent [Linear program reconstruction](./attacks.md#linear-program-
 
 The operators `IN` (with more than one element) and `<>` are disallowed for isolating columns. This prevents easily isolating individual users, or controling which individual users comprise an answer.
 
-For the remaining operators, the cloak requires that *all conditions* that operate on isolating columns to be [clear](#clear-conditions-in-range-negative-conditions)
+For the remaining operators, the cloak requires that *all conditions* that operate on isolating columns to be [clear](#clear-conditions-in-range-negative-conditions).
 
 ### String functions
 
@@ -285,7 +285,7 @@ In order to generally reduce the attack surface available with string functions 
 
 ### Datetime intervals
 
-The cloak allows `date`, `time`, and `datetime` math using intervals (for instance, `datetime_col + interval 'PT1H2M3S'`). In order to limit the number of cases that need to be checked for datetime overflow, the cloak limits overflow math to `datetime_col + interval` and `datetime_col = interval`. Math operations involving multiple intervals (`interval + interval`) or intervals and constants `integer * real` are prohibited.
+The cloak allows `date`, `time`, and `datetime` math using intervals (for instance, `datetime_col + interval 'PT1H2M3S'`). In order to limit the number of cases that need to be checked for datetime overflow, the cloak limits overflow math to `datetime_col + interval` and `datetime_col - interval`. Math operations involving multiple intervals (`interval + interval`) or intervals and constants `integer * real` are prohibited.
 [aircloak/aircloak#3794](https://github.com/Aircloak/aircloak/issues/3794)
 
 ### LIKE and NOT LIKE
@@ -314,7 +314,7 @@ The condition of the form `date_constant BETWEEN date_col1 AND date_col2` is all
 
 ### Illegal JOINs
 
-The cloak rejects any queries that has `JOIN (...) ON` conditions that are not explicitly allowed (see [Database configuration](#database-configuration)). All `JOIN (...) ON` conditions must be simple `column1 = column2` expressions. This prevents attacks that would otherwise try to exploit known relationships between columns to generate extra noise samples.
+The cloak rejects any query that has `JOIN (...) ON` conditions that are not explicitly allowed (see [Database configuration](#database-configuration)). All `JOIN (...) ON` conditions must be simple `column1 = column2` expressions. This prevents attacks that would otherwise try to exploit known relationships between columns to generate extra noise samples.
 [aircloak/aircloak#898](https://github.com/Aircloak/aircloak/issues/898)
 [aircloak/aircloak#2704](https://github.com/Aircloak/aircloak/issues/2704)
 
