@@ -4,6 +4,8 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
 
 ## Table Of Contents
 
+- [Specification for Diffix Dogwood](#specification-for-diffix-dogwood)
+  - [Table Of Contents](#table-of-contents)
 - [Overview](#overview)
   - [Key concepts](#key-concepts)
   - [Deployment](#deployment)
@@ -37,7 +39,7 @@ The anonymization algorithm underlying Aircloak Insights is Diffix. The current 
   - [Generate DB query](#generate-db-query)
     - [Gather bucket statistics](#gather-bucket-statistics)
     - [Gather seed materials](#gather-seed-materials)
-    - [Determine if safe math functions needed](#determine-if-safe-math-functions-needed)
+    - [Determine if safe math functions are needed](#determine-if-safe-math-functions-are-needed)
     - [Add protection against JOIN timing attack](#add-protection-against-join-timing-attack)
     - [Add protection against divide-by-zero attacks](#add-protection-against-divide-by-zero-attacks)
     - [Add protection against square root of negative numbers](#add-protection-against-square-root-of-negative-numbers)
@@ -74,7 +76,7 @@ Diffix Dogwood can report how much answer suppression has taken place and how mu
 
 ## Deployment
 
-Diffix Dogwood is deployed as a function or device that sits between an analyst (or application) and an un-anonymized database. In the Aircloak system, this device is referred to as Insights Cloak. In this document, for readability, we refer to is simply as the cloak.
+Diffix Dogwood is deployed as a function or device that sits between an analyst (or application) and an un-anonymized database. In the Aircloak system, this device is referred to as Insights Cloak. In this document, for readability, we refer to it simply as the cloak.
 
 An SQL interface is exposed to the analyst. The database may be an SQL database, or may be some other kind of data store. The cloak translates the analyst SQL into the appropriate query language.
 
@@ -87,7 +89,7 @@ An SQL interface is exposed to the analyst. The database may be an SQL database,
                                      (buckets)
 ```
 
-If the SQL query requests an aggregate (for instance `SELECT age, count(*) FROM table GROUP BY age`), then each row returned in the answer is refered to as a *bucket* in this document. In this example, each tuple `(age, count)` would be a separate bucket.
+If the SQL query requests an aggregate (for instance `SELECT age, count(*) FROM table GROUP BY age`), then each row returned in the answer is referred to as a *bucket* in this document. In this example, each tuple `(age, count)` would be a separate bucket.
 
 ## Main Pipeline
 
@@ -126,7 +128,7 @@ This section outlines the major differences between versions.
 ### From Birch to Cedar
 
 * The method for computing noise and flattening was changed from a UID-based approach to a stats-based approach (see [Value flattening and noise addition](#value-flattening-and-noise-addition)).
-* Several mechanisms to defend against side-channel attacks were added ([JOIN timing](#add-protection-against-join-timing-attack), [divide-by-zero](#add-protection-against-divide-by-zero-attacks), [square root of negative numbers](#add-protection-against-square-root-of-negative-numbers), [overflow/underflow](#determine-if-safe-math-functions-needed)).
+* Several mechanisms to defend against side-channel attacks were added ([JOIN timing](#add-protection-against-join-timing-attack), [divide-by-zero](#add-protection-against-divide-by-zero-attacks), [square root of negative numbers](#add-protection-against-square-root-of-negative-numbers), [overflow/underflow](#determine-if-safe-math-functions-are-needed)).
 * Added [internal state](#initialization-of-internal-state) ([shadow table](#shadow-table), [isolating columns](#isolating-column-label), [column min and max](#per-column-min-and-max-values)) and related restrictions.
 * Numerous restrictions were added.
 
@@ -158,7 +160,7 @@ This table is refreshed every 60 days.
 
 There are a variety of functions that can throw an error in some databases, for instance divide-by-zero, numeric overflow, datetime overflow, and taking the square root of a negative number. In such databases, the error manifests itself as a error message transmitted to the analyst, which can be exploited by an attacker (see [Error generation attacks](./attacks.md#error-generation-attacks)).
 
-If the database allows user-defined exception handlers, then these are installed in the database, either by the cloak when it connects, through configuration of the database prior to cloak connection. If not, then the cloak modifies SQL to prevent exceptions. In both cases, errors are prevented from being transmitted to the analyst. See [Determine if safe math functions needed](#determine-if-safe-math-functions-needed).
+If the database allows user-defined exception handlers, then these are installed in the database, either by the cloak when it connects, through configuration of the database prior to cloak connection. If not, then the cloak modifies SQL to prevent exceptions. In both cases, errors are prevented from being transmitted to the analyst. See [Determine if safe math functions are needed](#determine-if-safe-math-functions-are-needed).
 
 ### Per column min and max values
 
@@ -184,7 +186,7 @@ With high (but not 100%) probability, the approximated min and max exceed the tr
 
 The procedure for `date`, `time`, and `datetime` columns is similar but differs in the following two ways:
 1. In step 5, the closest snapped value is computed from '1900-01-01' (rather than zero, as is the case with numeric columns).
-2. In step 6, the max is expanded by adding 50 years (rather than multiplying by 10).
+2. In step 6, the range is expanded by adding 50 years (rather than multiplying by 10).
 [aircloak/aircloak#3794](https://github.com/Aircloak/aircloak/issues/3794)
 
 # Handle incoming SQL
@@ -214,7 +216,7 @@ Inequalities that are not ranges (not bounded on both sides) are possible in the
 
 ### Clear conditions (IN, range, negative conditions)
 
-The cloak may require that certain conditions are *clear*. The primary purpose of clear conditions is so that the cloak can [seed noise layers](#determine-seeds) through [SQL inspection](#sql-inspection) rather than by [floating the column value](#floating-columns-values). The following operators must be clear:
+The cloak may require that certain conditions are *clear*. The primary purpose of clear conditions is so that the cloak can [seed noise layers](#determine-seeds) through SQL inspection rather than by [floating the column value](#gather-seed-materials). The following operators must be clear:
 
 * negative conditions (`col <> val`) including `NOT IN` and `IS NOT NULL`.
 * `IN` (`col IN (val1, val2)`), though note that the column is floated for the purpose of seeding the [static noise layer](#noise-layers) (not the per-element UID-noise layers).
@@ -271,7 +273,7 @@ In order to prevent [Linear program reconstruction](./attacks.md#linear-program-
 
 The operators `IN` (with more than one element) and `<>` are disallowed for isolating columns. This prevents easily isolating individual users, or controling which individual users comprise an answer.
 
-For the remaining operators, the cloak requires that *all conditions* that operate on isolating columns to be [clear](#clear-conditions-in-range-negative-conditions)
+For the remaining operators, the cloak requires that *all conditions* that operate on isolating columns to be [clear](#clear-conditions-in-range-negative-conditions).
 
 ### String functions
 
@@ -283,7 +285,7 @@ In order to generally reduce the attack surface available with string functions 
 
 ### Datetime intervals
 
-The cloak allows `date`, `time`, and `datetime` math using intervals (for instance, `datetime_col + interval 'PT1H2M3S'`). In order to limit the number of cases that need to be checked for datetime overflow, the cloak limits overflow math to `datetime_col + interval` and `datetime_col = interval`. Math operations involving multiple intervals (`interval + interval`) or intervals and constants `integer * real` are prohibited.
+The cloak allows `date`, `time`, and `datetime` math using intervals (for instance, `datetime_col + interval 'PT1H2M3S'`). In order to limit the number of cases that need to be checked for datetime overflow, the cloak limits overflow math to `datetime_col + interval` and `datetime_col - interval`. Math operations involving multiple intervals (`interval + interval`) or intervals and constants `integer * real` are prohibited.
 [aircloak/aircloak#3794](https://github.com/Aircloak/aircloak/issues/3794)
 
 ### LIKE and NOT LIKE
@@ -312,7 +314,7 @@ The condition of the form `date_constant BETWEEN date_col1 AND date_col2` is all
 
 ### Illegal JOINs
 
-The cloak rejects any queries that has `JOIN (...) ON` conditions that are not explicitly allowed (see [Database configuration](#database-configuration)). All `JOIN (...) ON` conditions must be simple `column1 = column2` expressions. This prevents attacks that would otherwise try to exploit known relationships between columns to generate extra noise samples.
+The cloak rejects any query that has `JOIN (...) ON` conditions that are not explicitly allowed (see [Database configuration](#database-configuration)). All `JOIN (...) ON` conditions must be simple `column1 = column2` expressions. This prevents attacks that would otherwise try to exploit known relationships between columns to generate extra noise samples.
 [aircloak/aircloak#898](https://github.com/Aircloak/aircloak/issues/898)
 [aircloak/aircloak#2704](https://github.com/Aircloak/aircloak/issues/2704)
 
@@ -423,7 +425,7 @@ The UID-noise is seeded by (among other things):
 3. the distinct number of UIDs (line 3), and
 4. the number of rows (lines 12 and 17).
 
-### Determine if safe math functions needed
+### Determine if safe math functions are needed
 
 A conservative analysis is run to determine if a given math expression in the query might result in an exception. Examples would be determining if a column in a divisor could be zero, or determining whether a `pow()` function on a column could lead to overflow. The analysis makes the assumption that the column value from the database does not exceed the approximated min and max (see [Per column min and max values](#per-column-min-and-max-values)). 
 [aircloak/aircloak#3689](https://github.com/Aircloak/aircloak/issues/3689)
