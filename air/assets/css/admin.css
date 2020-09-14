@@ -92,6 +92,10 @@ label small.newline {
   letter-spacing: 0.04em;
 }
 
+.admin-footer .footer .content {
+  padding: 0 12px;
+}
+
 @media (min-width: 768px) {
   .navbar-vertical.navbar-expand-md.fixed-left {
     display: block;
