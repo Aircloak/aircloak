@@ -443,6 +443,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _} =
                compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) NOT IN ('foo', 'bar')")
     end
+
+    for part <- ~w(year quarter month) do
+      test "allow math over #{part} functions" do
+        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE #{unquote(part)}(datetime) + 1 = 2")
+      end
+    end
+
+    test "allow month-aligned expressions" do
+      assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE year(datetime) * 12 + quarter(datetime) * 3 = 2000")
+    end
+
+    test "allow equality between month-aligned expressions" do
+      assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE year(datetime) * 12 = 2020 + month(datetime)")
+    end
   end
 
   describe "arbitray math" do

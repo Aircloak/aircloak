@@ -83,8 +83,12 @@ defmodule Aircloak.Functions do
                  attributes: [:implicit_range, :restricted],
                  type_specs: %{[{:or, [:datetime, :time]}] => :integer}
                },
-               ~w(year quarter month day weekday) => %{
+               ~w(day weekday) => %{
                  attributes: [:implicit_range, :restricted],
+                 type_specs: %{[{:or, [:datetime, :date]}] => :integer}
+               },
+               ~w(year quarter month) => %{
+                 attributes: [:restricted],
                  type_specs: %{[{:or, [:datetime, :date]}] => :integer}
                },
                ~w(date_trunc) => %{
