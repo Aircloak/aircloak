@@ -345,13 +345,13 @@ SELECT COUNT(*) FROM table WHERE number >= 9.5 AND number < 10.5
 Because of this, usage of such functions must be restricted in a similar way to inequalities and the `BETWEEN` operator.
 The restrictions disallow the usage of most functions or mathematical operations before or after applying an implicit
 range function, if the expression is not clear. The operations that can be applied are a single `CAST`, any aggregator
-(`MIN`, `MAX`, `COUNT`, `SUM`,  `AVG`, `STDDEV`, `VARIANCE`), and date extraction functions (`year`, `quarter`, `month`,
-`day`, `weekday`, `hour`, `minute`, `second`, `extract`). The restrictions apply when an implicit range function is used
-in a `WHERE` or `JOIN` clause, selected in the top-level `SELECT` clause or used in a non-top-level `HAVING` clause - see
-[Top-level HAVING clause](#top-level-having-clause).
+(`MIN`, `MAX`, `COUNT`, `SUM`,  `AVG`, `STDDEV`, `VARIANCE`), and a sub-month date extraction function (`day`,
+`weekday`, `hour`, `minute`, `second`, `extract(day/weekday/hour/minute/second)`). The restrictions apply when an
+implicit range function is used in a `WHERE` or `JOIN` clause, selected in the top-level `SELECT` clause or used in a
+non-top-level `HAVING` clause - see [Top-level HAVING clause](#top-level-having-clause).
 
-The following functions are treated as implicit range functions: `round`, `trunc`, `date_trunc`, and all date extraction
-functions (`year`, `quarter`, `month`, `day`, `weekday`, `hour`, `minute`, `second`, `extract`).
+The following functions are treated as implicit range functions: `round`, `trunc`, `date_trunc`, and sub-month date
+extraction functions (`day`, `weekday`, `hour`, `minute`, `second`, `extract(day/weekday/hour/minute/second)`).
 
 ```sql
 -- Correct - no other function used
@@ -371,6 +371,12 @@ SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY category HAVING round(max(n
 
 -- Incorrect - another operation is used in top-level SELECT
 SELECT round(abs(number)) FROM table
+
+-- Correct - math on month-aligned expressions is allowed
+SELECT COUNT(*) FROM table WHERE year(birthday) * 12 + month(birthday) = 2000 * 12 + 3
+
+-- Incorrect - math on sub-month-aligned expressions is rejected
+SELECT COUNT(*) FROM table WHERE month(birthday) * 30 + day(birthday) = 100
 ```
 
 

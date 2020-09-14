@@ -14,6 +14,8 @@
 
 ### Enhancements
 
+- `month`, `quarter`, `year` and `extract(month/quarter/year)` are no longer considered implicit ranges.
+
 ### Bugfixes
 
 - Cached connections are now forcefully terminated when a data source is detected as broken.

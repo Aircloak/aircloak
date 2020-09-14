@@ -40,7 +40,7 @@ defmodule Cloak.Sql.Function.Test do
     test "#{aggregator} is registered as an aggregator", do: assert(Function.aggregator?(unquote(aggregator)))
   end)
 
-  @implicit_ranges ~w(hour minute second year quarter month day weekday date_trunc round trunc) ++
+  @implicit_ranges ~w(hour minute second day weekday date_trunc round trunc) ++
                      [{:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper}]
   Enum.each(@implicit_ranges, fn function ->
     test "#{inspect(function)} has implicit range behaviuor", do: assert(Function.implicit_range?(unquote(function)))
