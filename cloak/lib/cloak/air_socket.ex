@@ -351,6 +351,11 @@ defmodule Cloak.AirSocket do
   # Handling air async casts
   # -------------------------------------------------------------------
 
+  defp handle_air_cast("reinitialize_all_data_sources", _data, _transport, state) do
+    Cloak.DataSource.SerializingUpdater.reinitialize_all_data_sources()
+    {:ok, state}
+  end
+
   defp handle_air_cast("refresh_analyst_tables", _payload, _transport, state) do
     Cloak.AnalystTable.refresh()
     {:ok, state}

@@ -25,6 +25,10 @@ defmodule Cloak.DataSource.SerializingUpdater do
     end
   end
 
+  @doc "Casts a request to reinitialize all data sources."
+  @spec reinitialize_all_data_sources() :: :ok
+  def reinitialize_all_data_sources(), do: GenServer.cast(__MODULE__, :reinitialize)
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -45,7 +49,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
   end
 
   def handle_cast(:reinitialize, state) do
-    Logger.debug(fn -> "Data source removal detected. Reloading all data source configurations." end)
+    Logger.debug(fn -> "Reloading all data source configurations." end)
     DataSource.reinitialize_all_data_sources()
     {:noreply, state, :hibernate}
   end
