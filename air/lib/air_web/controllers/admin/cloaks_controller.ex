@@ -5,6 +5,8 @@ defmodule AirWeb.Admin.CloaksController do
 
   alias Air.{Service.Cloak, Repo, Schemas.DataSource}
 
+  plug(:load_cloak_info when action in [:reinitialize])
+
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
@@ -33,9 +35,25 @@ defmodule AirWeb.Admin.CloaksController do
     render(conn, "index.html", cloak_groups: cloak_groups, count: length(Cloak.all_cloak_infos()))
   end
 
+  def reinitialize(conn, _params) do
+    cloak_info = conn.assigns.cloak_info
+    AirWeb.Socket.Cloak.MainChannel.reinitialize_all_data_sources(cloak_info.main_channel_pid)
+
+    conn
+    |> put_flash(:info, "Reinitializing data sources for #{cloak_info.name}. This may take up to a few minutes.")
+    |> redirect(to: admin_cloaks_path(conn, :index))
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp load_cloak_info(conn, _) do
+    case Cloak.cloak_info(conn.params["id"]) do
+      nil -> not_found(conn)
+      cloak_info -> assign(conn, :cloak_info, cloak_info)
+    end
+  end
 
   def load_data_sources(cloak_info) do
     data_sources = Enum.map(Map.keys(cloak_info.data_sources), &Repo.get_by(DataSource, name: &1))
