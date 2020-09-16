@@ -1,72 +1,60 @@
 defmodule IntegrationTest.CloakConfigChangeTest do
   use ExUnit.Case, async: false
 
-  @data_source_name "test_data_source_name"
   import Aircloak.AssertionHelper
 
+  @data_source_name "test_data_source_name"
+
   setup_all do
-    on_exit(fn -> Cloak.DataSource.reinitialize_all_data_sources() end)
-    {:ok, original_data_sources: Cloak.DataSource.all()}
+    original_data_sources = Cloak.DataSource.all()
+    on_exit(fn -> Cloak.DataSource.replace_all_data_source_configs(original_data_sources) end)
   end
 
-  setup [:reset]
+  setup do
+    Cloak.DataSource.reinitialize_all_data_sources()
+  end
 
-  @tag skip: "broken"
   test "new data source definition files are detected" do
-    assert_soon :error = Cloak.DataSource.fetch(@data_source_name)
+    assert :error = Cloak.DataSource.fetch(@data_source_name)
     create_data_source_with_cleanup()
-    assert_soon {:ok, _} = Cloak.DataSource.fetch(@data_source_name)
+    assert_soon {:ok, _} = Cloak.DataSource.fetch(@data_source_name), soon_opts()
   end
 
-  @tag skip: "broken"
   test "updates to existing data source definitions are detected" do
     create_data_source_with_cleanup()
-    assert_soon {:ok, _} = Cloak.DataSource.fetch(@data_source_name)
+    assert_soon {:ok, _} = Cloak.DataSource.fetch(@data_source_name), soon_opts()
 
     data_source_content()
-    |> Map.put("marker", data_source_content().marker <> "_altered")
+    |> put_in([:parameters, :dummy_field], "dummy_value")
     |> write_data_source()
 
-    soon do
+    soon soon_opts() do
       assert {:ok, updated_data_source} = Cloak.DataSource.fetch(@data_source_name)
-      assert data_source_content().marker != updated_data_source.marker
+      assert data_source_content().parameters[:dummy_field] != updated_data_source.parameters[:dummy_field]
     end
   end
 
-  @tag skip: "broken"
   test "data source definition removal is detected" do
-    create_data_source()
-    assert_soon {:ok, _} = Cloak.DataSource.fetch(@data_source_name)
+    create_data_source_with_cleanup()
+    assert_soon {:ok, _} = Cloak.DataSource.fetch(@data_source_name), soon_opts()
     File.rm!(data_source_path())
-    assert_soon :error = Cloak.DataSource.fetch(@data_source_name)
+    assert_soon :error = Cloak.DataSource.fetch(@data_source_name), soon_opts()
   end
 
   # -------------------------------------------------------------------
   # Test helper functions
   # -------------------------------------------------------------------
 
-  defp reset(context) do
-    Cloak.DataSource.reinitialize_all_data_sources()
-
-    assert_soon(
-      Enum.sort(context.original_data_sources) == Enum.sort(Cloak.DataSource.all()),
-      timeout: :timer.seconds(1)
-    )
-
-    :ok
-  end
-
-  defp create_data_source(), do: write_data_source()
+  defp soon_opts(), do: [attempts: 5, timeout: :timer.seconds(1)]
 
   defp create_data_source_with_cleanup() do
-    create_data_source()
-    on_exit(fn -> File.rm!(data_source_path()) end)
+    write_data_source()
+    on_exit(fn -> File.rm(data_source_path()) end)
   end
 
   defp data_source_content() do
     %{
       driver: "postgresql",
-      marker: "native",
       name: @data_source_name,
       parameters: %{
         hostname: "localhost",
@@ -81,5 +69,6 @@ defmodule IntegrationTest.CloakConfigChangeTest do
 
   defp data_source_path(), do: path_for_config(@data_source_name <> ".json")
 
-  defp path_for_config(name), do: Path.join([Aircloak.File.config_dir_path(:cloak), "integration_tests", name])
+  defp path_for_config(name),
+    do: Path.join([Aircloak.File.config_dir_path(:cloak), Aircloak.DeployConfig.fetch!(:cloak, "data_sources"), name])
 end
