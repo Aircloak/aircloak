@@ -21,6 +21,7 @@
 
 - Cached connections are now forcefully terminated when a data source is detected as broken.
 - Ignore trailing semicolon in analyst tables definitions.
+- Fixed offloading of date/interval operations on MySQL.
 
 ### Changes
 
