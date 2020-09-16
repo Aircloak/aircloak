@@ -15,7 +15,9 @@ Enum.each(
     "date_trunc('day', <col>)",
     "date_trunc('hour', <col>)",
     "date_trunc('minute', <col>)",
-    "date_trunc('second', <col>)"
+    "date_trunc('second', <col>)",
+    "<col> + interval 'P1D'",
+    "<col> + interval 'PT1H'"
   ],
   fn function ->
     defmodule Module.concat([Compliance.DateTimeFunctions, String.to_atom(function), Test]) do

@@ -143,6 +143,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   @impl Dialect
   def literal(value) when is_binary(value), do: ["N'", value, ?']
+  def literal(%Timex.Duration{} = duration), do: ["interval ", super(duration), " second"]
   def literal(value), do: super(value)
 
   @impl Dialect
