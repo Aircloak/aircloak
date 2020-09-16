@@ -49,6 +49,10 @@ defmodule Cloak.DataSource.Connection.Pool do
   @spec remove_connection(pid, reference) :: :ok
   def remove_connection(pool_pid, checkout_id), do: GenServer.cast(pool_pid, {:remove_connection, self(), checkout_id})
 
+  @doc "Removes all connections associated with the specified data source from the pool."
+  @spec cleanup(DataSource.t()) :: :ok
+  def cleanup(data_source), do: data_source |> pool_server() |> GenServer.cast(:cleanup)
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -77,21 +81,13 @@ defmodule Cloak.DataSource.Connection.Pool do
 
   def handle_cast({:remove_connection, connection, checkout_id}, state) do
     child_id = child_id!(connection)
-    {:ok, meta} = Parent.GenServer.child_meta(child_id)
-
-    if meta.checkout_id == checkout_id do
-      # mark the connection as not available so it's not checked out
-      Parent.GenServer.update_child_meta(child_id, &%{&1 | available?: false})
-
-      # stoping the connection from a task to avoid longer disconnect blocking the pool process
-      Parent.GenServer.start_child(%{
-        id: {:shutdown, make_ref()},
-        start: {Task, :start_link, [fn -> stop_connection(connection) end]}
-      })
-    end
-
+    {:ok, %{checkout_id: ^checkout_id}} = Parent.GenServer.child_meta(child_id)
+    remove_connection(connection)
     {:noreply, state}
   end
+
+  @impl GenServer
+  def handle_cast(:cleanup, state), do: {:noreply, remove_all(state)}
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -129,8 +125,30 @@ defmodule Cloak.DataSource.Connection.Pool do
   end
 
   defp stop_connection(connection) do
-    Logger.debug("Removing an idle connection from the pool")
+    Logger.debug("Removing a connection from the pool ...")
     Connection.stop(connection)
+  end
+
+  defp remove_connection(connection) do
+    # mark the connection as not available so it's not checked out
+    connection |> child_id!() |> Parent.GenServer.update_child_meta(&%{&1 | available?: false})
+
+    # stoping the connection from a task to avoid longer disconnect blocking the pool process
+    Parent.GenServer.start_child(%{
+      id: {:shutdown, make_ref()},
+      start: {Task, :start_link, [fn -> stop_connection(connection) end]}
+    })
+  end
+
+  defp remove_all(state) do
+    case make_ref() |> available_connection() do
+      nil ->
+        state
+
+      connection ->
+        remove_connection(connection)
+        remove_all(state)
+    end
   end
 
   @doc false

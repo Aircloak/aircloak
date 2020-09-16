@@ -1,6 +1,7 @@
 defmodule Air.Service.Token do
   @moduledoc "Functions for token management."
 
+  require Logger
   alias Air.Repo
   alias Air.Schemas.{ApiToken, User, Query}
   alias Air.Service.Salts
@@ -60,10 +61,12 @@ defmodule Air.Service.Token do
             token.user
 
           _ ->
+            Logger.debug(fn -> "No matching record for #{token} (#{token_id}) in database" end)
             :error
         end
 
-      _ ->
+      error ->
+        Logger.debug(fn -> "Verifying token #{token} failed with #{inspect(error)}" end)
         :error
     end
   end

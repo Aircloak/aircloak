@@ -20,6 +20,7 @@ defmodule Cloak.Query.DBEmulatorTest do
   setup_all do
     :ok = Cloak.Test.DB.create_table(@emulated_insert, "value TEXT, date TEXT, number INTEGER")
     :ok = Cloak.Test.DB.create_table(@joined, "age INTEGER")
+    Cloak.TestShadowCache.safe(default_data_source(), @vt, "value", ["10", "20"])
     :ok
   end
 

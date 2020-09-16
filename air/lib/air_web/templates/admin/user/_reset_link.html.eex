@@ -1,25 +1,13 @@
-<div class="alert alert-info" >
+<div class="alert alert-info">
   <p>The user can set a new password using the following link. The link will remain valid for 1 week.</p>
-
-  <br/>
-
-  <pre id="reset-link"></pre>
-
-  <button id="copy-reset-link" class="btn btn-sm btn-secondary">Copy link</button>
+  <%= render AirWeb.SharedView, "copyable_text.html", text: reset_path(@conn, @token), name: "reset-link" %>
 </div>
 
 <script>
   window.pageConfig = {
     onLoad: function(App) {
-      document.getElementById("reset-link").textContent = window.location.protocol + "//" + window.location.host + "<%= reset_path(@conn, @token) %>";
-      document.getElementById("copy-reset-link").addEventListener("click", function () {
-        var range = document.createRange();
-        range.selectNode(document.getElementById("reset-link"));
-        window.getSelection().removeAllRanges();
-        window.getSelection().addRange(range);
-        document.execCommand("copy");
-        window.getSelection().removeAllRanges();
-      });
+      var input = document.getElementById("reset-link");
+      input.value = window.location.protocol + "//" + window.location.host + input.value;
     }
   };
 </script>

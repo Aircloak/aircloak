@@ -6,8 +6,19 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   alias Cloak.DataSource.Table
   alias Cloak.Sql.{Compiler, Parser}
 
+  setup_all do
+    Cloak.TestShadowCache.safe(data_source(), "table", "numeric", [1, 2, 3])
+    Cloak.TestShadowCache.safe(data_source(), "table", "string", ["foo", "bar"])
+
+    Cloak.TestShadowCache.safe(data_source(), "table", "datetime", [
+      ~N[2020-01-01 01:01:01],
+      ~N[2020-02-02 02:02:02],
+      ~N[2020-03-03 03:03:03]
+    ])
+  end
+
   describe "IN" do
-    test "allows clear IN lhs",
+    test "allows clear and safe IN lhs",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE round(numeric) IN (1, 2, 3)"))
 
     test "forbids unclear IN lhs" do
@@ -16,12 +27,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert message =~ ~r[Only clear expressions can be used on the left-hand side of an IN operator.]
     end
 
-    test "allows clear IN lhs from subqueries",
-      do:
-        assert(
-          {:ok, _} =
-            compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE round(number) IN (1, 2, 3)")
-        )
+    test "forbids unsafe IN lhs" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (3, 4, 5)")
+
+      assert message =~ ~r[The target constants .* have to be in the list of frequent\n  values for that column.]
+    end
+
+    test "allows clear and safe IN lhs from subqueries" do
+      assert {:ok, _} =
+               compile("""
+                 SELECT COUNT(*) FROM (
+                   SELECT left(t.string, 1) AS s FROM table t
+                 ) x WHERE upper(x.s) IN ('F', 'B')
+               """)
+    end
 
     test "forbids unclear IN lhs from subqueries" do
       assert {:error, message} =
@@ -30,20 +49,71 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert message =~ ~r[Only clear expressions can be used on the left-hand side of an IN operator.]
     end
 
-    for function <- ~w(lower upper trim ltrim btrim) do
+    for function <- ~w(lower trim ltrim btrim) do
       test "allows #{function} in IN lhs" do
-        assert {:ok, _} = compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x IN ('a', 'b', 'c')")
+        assert {:ok, _} = compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x IN ('foo', 'bar')")
       end
     end
 
-    for part <- ~w(hour minute second year quarter month day weekday dow) do
+    for part <- ~w(hour minute second month day) do
       test "allows extract(#{part}) in IN lhs" do
         assert {:ok, _} = compile("SELECT extract(#{unquote(part)} from datetime) AS x FROM table WHERE x IN (1, 2, 3)")
       end
     end
 
     test "allows substring in IN lhs" do
-      assert {:ok, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x IN ('a', 'b', 'c')")
+      assert {:ok, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x IN ('o', 'r')")
+    end
+
+    for function <- ~w(MIN MAX) do
+      test "allows safe #{function} in IN lhs" do
+        assert {:ok, _} =
+                 compile("""
+                 SELECT COUNT(*) FROM (
+                  SELECT uid FROM table GROUP BY 1 HAVING #{unquote(function)}(numeric) IN (1, 2, 3)
+                 ) t
+                 """)
+      end
+
+      test "forbids unsafe #{function} in IN lhs" do
+        assert {:error, message} =
+                 compile("""
+                 SELECT COUNT(*) FROM (
+                  SELECT uid FROM table GROUP BY 1 HAVING #{unquote(function)}(numeric) IN (6, 7)
+                 ) t
+                 """)
+
+        assert message =~ ~r[The target constants .* have to be in the list of frequent\n  values for that column.]
+      end
+    end
+
+    test "allows unsafe COUNT(*) in IN lhs" do
+      assert {:ok, _} =
+               compile("""
+               SELECT COUNT(*) FROM (
+                SELECT uid FROM table GROUP BY 1 HAVING COUNT(*) IN (8, 9)
+               ) t
+               """)
+    end
+
+    test "allows unsafe COUNT(column) in IN lhs" do
+      assert {:ok, _} =
+               compile("""
+               SELECT COUNT(*) FROM (
+                SELECT uid FROM table GROUP BY 1 HAVING COUNT(numeric) IN (8, 9)
+               ) t
+               """)
+    end
+
+    for function <- ~w(SUM AVG STDDEV VARIANCE) do
+      test "forbids #{function} in IN lhs" do
+        assert {:error, "Only a single `COUNT`, `MIN` or `MAX` aggregator is allowed in `IN` conditions."} =
+                 compile("""
+                 SELECT COUNT(*) FROM (
+                  SELECT uid FROM table GROUP BY 1 HAVING #{unquote(function)}(numeric) IN (6, 7)
+                 ) t
+                 """)
+      end
     end
   end
 
@@ -73,20 +143,33 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert narrative =~ ~r/Comparisons need to have clear expressions on both sides of the operator/
     end
 
-    test "allows clear <> lhs in subquery HAVING",
-      do:
-        assert(
-          {:ok, _} =
-            compile("""
-              SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(numeric) <> 10) x
-            """)
-        )
+    test "allows clear <> lhs in subquery HAVING" do
+      assert {:ok, _} =
+               compile("""
+                 SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(DISTINCT numeric) <> 10) x
+               """)
+    end
 
     test "forbids unclear <> lhs in subquery HAVING" do
       assert {:error, message} =
-               compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric * 0) <> 10) x")
+               compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING MAX(numeric * 0) <> 10) x")
 
       assert message =~ ~r[Comparisons need to have clear expressions on both sides of the operator]
+    end
+
+    test "allows safe MIN in subquery HAVING" do
+      assert {:ok, _} = compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING MIN(numeric) <> 1) x")
+    end
+
+    for function <- ~w(SUM AVG STDDEV VARIANCE) do
+      test "forbids #{function}" do
+        assert {:error, "Only a single `COUNT`, `MIN` or `MAX` aggregator is allowed in negative conditions."} =
+                 compile("""
+                 SELECT COUNT(*) FROM (
+                  SELECT uid FROM table GROUP BY 1 HAVING #{unquote(function)}(numeric) <> 1
+                 ) t
+                 """)
+      end
     end
 
     test "allows column NOT LIKE lhs",
@@ -121,6 +204,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "allows substring in <> lhs" do
       assert {:ok, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x <> 'a'")
+    end
+
+    test "[BUG] forbids expression using multiple columns" do
+      assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE numeric + numeric2 <> 1")
+
+      assert narrative =~ ~r/Comparisons need to have clear expressions on both sides of the operator/
     end
   end
 
@@ -315,6 +404,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       end
     end
 
+    test "consider % as an implicit range" do
+      assert({:error, narrative} = compile("SELECT (numeric + 1) % 2 FROM table"))
+      assert narrative =~ ~r/Only clear expressions can be used in range conditions/
+    end
+
     test "allows casts in ranges",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10"))
 
@@ -329,7 +423,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   describe "exceptions" do
     for function <- ~w(upper lower ltrim btrim rtrim) do
       test "#{function} is allowed with IN" do
-        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) IN ('foo', 'bar')")
+        assert {:ok, _} =
+                 compile("""
+                 SELECT COUNT(*) FROM table
+                 WHERE #{unquote(function)}(string) IN (#{unquote(function)}('foo'), #{unquote(function)}('bar'))
+                 """)
       end
 
       test "#{function} is allowed with NOT IN" do

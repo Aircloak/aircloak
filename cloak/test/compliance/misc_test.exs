@@ -19,4 +19,8 @@ defmodule Compliance.MiscTest do
   test "case in standard query", context do
     assert_consistent_and_not_failing(context, "SELECT SUM(CASE WHEN age >= 0 THEN 1 ELSE -1 END) FROM users_public")
   end
+
+  test "empty select clause", context do
+    assert_consistent_and_not_failing(context, "SELECT FROM users_public")
+  end
 end

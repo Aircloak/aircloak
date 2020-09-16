@@ -1,6 +1,9 @@
 defmodule AirWeb.Router do
   @moduledoc false
   use Air.Web, :router
+  use Plug.ErrorHandler
+  use Sentry.Plug
+
   import Phoenix.LiveDashboard.Router
 
   pipeline :browser do
@@ -151,9 +154,7 @@ defmodule AirWeb.Router do
 
     resources("/license", LicenseController, only: [:edit, :update], singleton: true)
     resources("/privacy_policy", PrivacyPolicyController)
-    post("/diffix-explorer/reanalyze_all", ExplorerController, :reanalyze_all)
-    resources("/diffix-explorer", ExplorerController, except: [:delete])
-
+    resources("/diffix-explorer", ExplorerController, only: [:index, :show])
     live_dashboard("/live-dashboard", metrics: AirWeb.Telemetry)
   end
 

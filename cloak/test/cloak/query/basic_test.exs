@@ -18,6 +18,8 @@ defmodule Cloak.Query.BasicTest do
     :ok = Cloak.Test.DB.create_table("dotted.table", "\"dotted.column\" INTEGER", db_name: "dotted-table")
     :ok = Cloak.Test.DB.create_table("dates", "date timestamp, date2 timestamp")
 
+    Cloak.TestShadowCache.safe(default_data_source(), "heights", "height", [170, 180, 190])
+
     :ok
   end
 
@@ -87,6 +89,14 @@ defmodule Cloak.Query.BasicTest do
              %{occurrences: 1, row: ["height", "integer", nil, nil, nil]},
              %{occurrences: 1, row: ["user_id", "text", nil, :user_id, nil]}
            ]
+  end
+
+  test "[Issue #4422] show columns from a view with aggregators" do
+    assert_query("show columns from v1", [views: %{"v1" => %{sql: "select count(*) as c from heights"}}], %{
+      query_id: "1",
+      columns: _,
+      rows: [%{occurrences: 1, row: ["c", "integer", nil, nil, nil]}]
+    })
   end
 
   test "simple select query" do

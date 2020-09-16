@@ -39,6 +39,16 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
+  setup_all do
+    Cloak.TestShadowCache.safe(data_source(), "table", "string", ["xxx"])
+    Cloak.TestShadowCache.safe(data_source(), "table", "float", [1, 1.1])
+
+    Cloak.TestShadowCache.safe(data_source(), "table", "column", [
+      ~N[2015-01-01 00:00:00.000000],
+      ~N[2015-01-02 00:00:00.000000]
+    ])
+  end
+
   test "adds an empty group by" do
     assert %{group_by: []} = compile!("select count(*) from table", data_source())
   end
@@ -259,15 +269,15 @@ defmodule Cloak.Sql.Compiler.Test do
   test "[Issue #2562] doesn't cast expressions that are already datetime in IN" do
     result =
       compile!(
-        "select stddev(uid) from table where column IN (cast('2017-01-01' as datetime), '2017-02-02')",
+        "select stddev(uid) from table where column IN (cast('2015-01-01' as datetime), '2015-01-02')",
         data_source()
       )
 
     assert [_is_not_null_id, function("in", [column("table", "column"), value1, value2])] =
              conditions_list(result.where)
 
-    assert constant(:datetime, ~N[2017-01-01 00:00:00.000000]) = value1
-    assert constant(:datetime, ~N[2017-02-02 00:00:00.000000]) = value2
+    assert constant(:datetime, ~N[2015-01-01 00:00:00.000000]) = value1
+    assert constant(:datetime, ~N[2015-01-02 00:00:00.000000]) = value2
   end
 
   test "allows comparing datetime columns to other datetime columns" do
@@ -1562,6 +1572,13 @@ defmodule Cloak.Sql.Compiler.Test do
     test "test conditions have to be booleans" do
       assert {:error, "`case` expression requires a `boolean` argument for the test condition."} =
                compile_standard("select case when bool then 1 when string then 0 else 2 end from table", data_source())
+    end
+
+    test "test conditions have to be safe " do
+      assert {:error,
+              "The target constants used in `when` clauses from `case` expressions in anonymizing queries have to\n" <>
+                "be in the list of frequent values for that column" <> _} =
+               compile("select case when string = 'aaa' then 1 else 0 end from table", data_source())
     end
 
     test "return values have to be identical" do

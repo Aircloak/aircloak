@@ -144,6 +144,7 @@ defmodule Cloak.DataSource.RODBC do
   end
 
   defp map_fields([], []), do: []
+  defp map_fields([_], []), do: []
 
   defp map_fields([field | rest_fields], [mapper | rest_mappers]),
     do: [mapper.(field) | map_fields(rest_fields, rest_mappers)]

@@ -60,6 +60,10 @@ described in the following sections don't apply to the top-level `HAVING` clause
   - They are only allowed in the `SELECT` or `GROUP BY` clauses of anonymizing queries;
   - They can not be post-processed in any way, other than aggregation;
   - The `WHEN` clauses can only consist of a single equality condition between a clear expression and a constant.
+    The constant has to be from the list of frequent values in that column, unless the system administrator explicitly
+    allows usage of any value. Check the
+    [Insights Cloak configuration](/ops/configuration.html#insights-cloak-configuration) section for information
+    on how to enable it.
   - The `THEN`/`ELSE` clauses can only return constant values; furthermore, when aggregated, they can only return
     the values 0, 1 or NULL.
 
@@ -96,9 +100,6 @@ SELECT AVG(CASE WHEN column = 'aaa' THEN 0 ELSE 1000 END) FROM table
 SELECT COUNT(*) FROM table WHERE CASE WHEN column = 3 THEN TRUE ELSE FALSE END
 
 ```
-
-__Note__: For safety reasons, support for `CASE` statements in anonymizing queries is not enabled by default.
-Check the `Insights Cloak configuration` section for information on how to enable it.
 
 
 ## Math and function application restrictions
@@ -417,10 +418,17 @@ SELECT COUNT(*) FROM table WHERE number NOT IN (1, 2, 3)
 SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
 ```
 
+
 ### Allowed expressions
 
 Conditions using `IN` or `<>` have to have a clear expression on the left-hand side.
-All items on the right-hand side of the `IN` operator must be constants.
+Only a single `COUNT`, `MIN` or `MAX` aggregator is allowed in such conditions.
+
+All items on the right-hand side of the `IN` operator must be constants from the list of frequent values
+in that column, unless the system administrator explicitly allows usage of any value. Check the
+[Insights Cloak configuration](/ops/configuration.html#insights-cloak-configuration) section for information
+on how to enable it.
+
 The right-hand side of a `<>` condition has to be a clear expression or a constant.
 
 Conditions using `NOT LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators.
@@ -431,9 +439,11 @@ The top-level `HAVING` clause is exempt from all these restrictions - see [Top-l
 ```sql
 -- Correct
 SELECT COUNT(*) FROM table WHERE lower(name) <> 'alice'
+SELECT COUNT(*) FROM table WHERE name IN ('alice', 'bob')
 
 -- Incorrect - a disallowed operation was used
 SELECT COUNT(*) FROM table WHERE length(name) <> 2
+SELECT COUNT(*) FROM table WHERE length(name) IN (1, 2, 3)
 
 -- Correct - top-level HAVING is exempt from restrictions
 SELECT COUNT(*) FROM table GROUP BY name HAVING length(name) <> 2
@@ -486,9 +496,8 @@ table might contain a `user_id` column and an `email` column. The emails are in 
 can identify a user just as well as the `user_id` column. We call these columns "isolating" and apply some additional
 restrictions to expressions including them. Note that the `user_id` column is always isolating.
 
-Conditions using isolating columns cannot use the `IN` operator. Conditions using the `LIKE` operator are limited to
-simple patterns of the form `%foo`, `foo%`, or `%foo%`. Furthermore, clear expressions are allowed for these columns.
-All other functions and mathematical operations are forbidden.
+Conditions using the `LIKE` operator are limited to simple patterns of the form `%foo`, `foo%`, or `%foo%`. Furthermore,
+clear expressions are allowed for these columns. All other functions and mathematical operations are forbidden.
 
 ```sql
 -- These examples assume that the 'email' and 'social_security' columns are isolating
@@ -498,9 +507,6 @@ SELECT COUNT(*) FROM table WHERE trim(email) = 'alice@example.com'
 
 -- Correct
 SELECT COUNT(*) FROM table WHERE email <> 'alice@example.com'
-
--- Incorrect - IN used
-SELECT COUNT(*) FROM table WHERE email IN ('alice@example.com', 'bob@example.com')
 
 -- Incorrect - a function from outside the allowed list is used
 SELECT COUNT(*) FROM table WHERE length(email) = 20

@@ -56,7 +56,7 @@ const TYPE_WSTR: u8 = 7;
 // Port IO functions
 // -------------------------------------------------------------------
 
-pub fn read_command(in_stream: &mut Read) -> io::Result<(u32, u32)> {
+pub fn read_command(in_stream: &mut dyn Read) -> io::Result<(u32, u32)> {
     let mut input = [0; 8];
     match in_stream.read_exact(&mut input) {
         Ok(()) => {
@@ -72,20 +72,20 @@ pub fn read_command(in_stream: &mut Read) -> io::Result<(u32, u32)> {
     }
 }
 
-pub fn read_binary(in_stream: &mut Read, size: u32) -> io::Result<Vec<u8>> {
+pub fn read_binary(in_stream: &mut dyn Read, size: u32) -> io::Result<Vec<u8>> {
     let mut input = Vec::new();
     input.resize(size as usize, 0);
     in_stream.read_exact(&mut input)?;
     Ok(input)
 }
 
-pub fn write_error(output: &mut Vec<u8>, error: Box<Error>) {
+pub fn write_error(output: &mut Vec<u8>, error: Box<dyn Error>) {
     output.clear();
     output.push(STATUS_ERROR);
     output.extend_from_slice(error.to_string().as_bytes());
 }
 
-pub fn send_message(out_stream: &mut Write, message: &Vec<u8>) -> io::Result<()> {
+pub fn send_message(out_stream: &mut dyn Write, message: &Vec<u8>) -> io::Result<()> {
     let message_size: [u8; 4] = unsafe { transmute(message.len() as u32) };
     out_stream.write_all(&message_size)?;
     out_stream.write_all(&message)?;
@@ -93,7 +93,7 @@ pub fn send_message(out_stream: &mut Write, message: &Vec<u8>) -> io::Result<()>
     Ok(())
 }
 
-pub fn send_ok(out_stream: &mut Write) -> io::Result<()> {
+pub fn send_ok(out_stream: &mut dyn Write) -> io::Result<()> {
     out_stream.write_all(&[1, 0, 0, 0, STATUS_OK])?;
     out_stream.flush()?;
     Ok(())
@@ -103,7 +103,7 @@ pub fn send_ok(out_stream: &mut Write) -> io::Result<()> {
 // DB interaction functions
 // -------------------------------------------------------------------
 
-pub type GenError = result::Result<(), Box<Error>>;
+pub type GenError = result::Result<(), Box<dyn Error>>;
 
 fn error(message: &str) -> GenError {
     Err(Box::new(SimpleError::new(message)))
@@ -112,7 +112,7 @@ fn error(message: &str) -> GenError {
 pub fn connect<'env>(
     env: &'env Environment<Version3>,
     connection_string: &Vec<u8>,
-) -> result::Result<Connection<'env>, Box<Error>> {
+) -> result::Result<Connection<'env>, Box<dyn Error>> {
     let connection_string = from_utf8(connection_string.as_ref())?;
     Ok(env.connect_with_connection_string(connection_string)?)
 }

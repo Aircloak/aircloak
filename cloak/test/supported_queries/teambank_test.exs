@@ -9,6 +9,23 @@ defmodule Cloak.Regressions.TeamBank.Test do
     on_exit(fn ->
       tables() |> Enum.each(&delete_table!/1)
     end)
+
+    Cloak.TestShadowCache.safe(default_data_source(), "umsatz", "umsatzeigenschaften.spezifizierung", [
+      "lohn",
+      "gehalt",
+      "LOHN/GEHALT",
+      "BEZÜGE (BEAMTE)",
+      "BEZÜGE",
+      "lohn_GEHALT",
+      "bezuege_beamte",
+      "BEZUEGE",
+      "EASYCREDIT",
+      "kredit",
+      "STUDIENKREDIT",
+      "BILDUNGSKREDIT"
+    ])
+
+    Cloak.TestShadowCache.safe(default_data_source(), "bankzugang", "blz", ["90090042", "76032000", "47110815", "66666"])
   end
 
   test "simple query 1" do

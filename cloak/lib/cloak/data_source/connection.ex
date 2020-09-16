@@ -82,6 +82,10 @@ defmodule Cloak.DataSource.Connection do
     end
   end
 
+  @doc "Removes all connections associated with the specified data source from the pool."
+  @spec cleanup(DataSource.t()) :: :ok
+  defdelegate cleanup(data_source), to: Pool
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------

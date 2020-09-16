@@ -138,7 +138,10 @@ defmodule Air.Service.ExplorerTest do
             secret_key_base: "fw34f43",
             http: [port: 3289],
             debug_errors: false,
-            url: [port: 3289, scheme: "http", host: "localhost"]
+            url: [port: 3289, scheme: "http", host: "localhost"],
+            drainer: [
+              shutdown: 100
+            ]
           )
 
         {:ok, res}
@@ -178,10 +181,14 @@ defmodule Air.Service.ExplorerTest do
     id: "bars"
   }
 
+  setup_all do
+    start_supervised!(MockServer.Endpoint)
+    :ok
+  end
+
   setup do
     config = Application.get_env(:air, Aircloak.DeployConfig)
     start_supervised!(MockServer)
-    start_supervised!(MockServer.Endpoint)
 
     MockServer.reset()
 
@@ -272,16 +279,12 @@ defmodule Air.Service.ExplorerTest do
 
   describe ".setup_credentials_if_required" do
     test "creates a user and group" do
-      {:ok, user} = Air.Service.User.get_by_login("diffix-explorer@aircloak.com")
-      Air.Service.User.delete!(user)
-      {:ok, group} = Air.Service.Group.get_by_name("Diffix Explorer")
-      Air.Service.Group.delete!(group)
       assert :ok = Explorer.setup_credentials_if_required()
       assert {:ok, _} = Air.Service.User.get_by_login("diffix-explorer@aircloak.com")
       assert {:ok, _} = Air.Service.Group.get_by_name("Diffix Explorer")
     end
 
-    test "is indempotent" do
+    test "is idempotent" do
       assert :ok = Explorer.setup_credentials_if_required()
       users = Air.Service.User.all()
       assert :ok = Explorer.setup_credentials_if_required()

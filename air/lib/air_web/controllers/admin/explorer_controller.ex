@@ -2,7 +2,7 @@ defmodule AirWeb.Admin.ExplorerController do
   use Air.Web, :admin_controller
 
   alias Air.Service.Explorer
-  alias Air.Service.Group
+  import Phoenix.LiveView.Controller
 
   plug(:check_if_enabled)
   plug(:prepare_debug when action in [:show, :update])
@@ -14,64 +14,16 @@ defmodule AirWeb.Admin.ExplorerController do
   end
 
   def index(conn, _params) do
-    group = Explorer.group()
-
-    render(conn, "index.html",
-      data_sources: Explorer.statistics(),
-      changeset: Group.to_changeset(group),
-      all_data_sources: Enum.map(Air.Service.DataSource.all(), &{{&1, selected_tables(&1)}, &1.id})
-    )
-  end
-
-  def create(conn, params) do
-    case Explorer.change_permitted_data_sources(params["group"]) do
-      {:ok, group} ->
-        audit_log(conn, "Altered Diffix Explorer permissions", group: group.name, admin: group.admin)
-
-        conn
-        |> put_flash(:info, "Diffix Explorer settings updated. It can take some time before you see new results.")
-        |> redirect(to: admin_explorer_path(conn, :index))
-
-      {:error, changeset} ->
-        render(conn, "show.html",
-          group: Explorer.group(),
-          changeset: changeset,
-          all_data_sources: Enum.map(Air.Service.DataSource.all(), &{{&1.name, &1.description}, &1.id})
-        )
-    end
+    live_render(conn, AirWeb.Admin.ExplorerLive.Index)
   end
 
   def show(conn, _params) do
     render(conn, "show.html", analyses: Explorer.results_for_datasource(conn.assigns.data_source))
   end
 
-  def update(conn, _params) do
-    data_source = conn.assigns.data_source
-    Explorer.reanalyze_datasource(data_source)
-    redirect(conn, to: admin_explorer_path(conn, :index))
-  end
-
-  def reanalyze_all(conn, _params) do
-    Air.Service.DataSource.all()
-    |> Enum.filter(&Explorer.data_source_enabled?/1)
-    |> Enum.each(&Explorer.reanalyze_datasource/1)
-
-    conn
-    |> put_flash(:info, "Reanalyzing all data sources.")
-    |> redirect(to: admin_explorer_path(conn, :index))
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp selected_tables(data_source) do
-    if Explorer.data_source_enabled?(data_source) do
-      Enum.map(Explorer.results_for_datasource(data_source), & &1.table_name)
-    else
-      Explorer.elligible_tables_for_datasource(data_source)
-    end
-  end
 
   defp check_if_enabled(conn, _opts) do
     if Explorer.enabled?() do

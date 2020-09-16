@@ -362,7 +362,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         %{column: column, interval: range} ->
           non_synthetic_expressions()
           |> raw_columns(column)
-          |> Enum.flat_map(&[static_noise_layer(&1, &1, range)])
+          |> Enum.flat_map(&[static_noise_layer(&1, &1, normalize_range(range))])
       end)
 
   defp aggregator_noise_layers(query) do
@@ -525,6 +525,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       {String.downcase(table), String.downcase(column), extras}
     end)
   end
+
+  defp normalize_range({lower, upper}) when is_number(lower) and is_number(upper),
+    do: {:erlang.float(lower), :erlang.float(upper)}
+
+  defp normalize_range(other), do: other
 
   deflensp non_synthetic_expressions(), do: Lens.filter(&(not &1.synthetic?))
 

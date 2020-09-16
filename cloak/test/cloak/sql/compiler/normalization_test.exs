@@ -18,6 +18,10 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
+  setup_all do
+    Cloak.TestShadowCache.safe(data_source(), "table", "numeric", [3])
+  end
+
   describe "constant normalization" do
     test "normalizing constant expressions" do
       assert_equivalent(

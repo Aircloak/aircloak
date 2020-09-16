@@ -5,6 +5,7 @@ import Channel from "phoenix";
 
 import { ColumnsView } from "./columns";
 import { filterColumns, Higlighted } from "./filter";
+import type { Filter } from "./filter";
 import type { Column } from "./columns";
 import activateTooltips from "../tooltips";
 import loader from "../../static/images/loader.gif";
@@ -28,7 +29,7 @@ type Props = {
   selectablesEditUrl: string,
   onClick: () => void,
   expanded: boolean,
-  filter: string,
+  filter: Filter,
   channel: Channel,
   numberFormat: NumberFormat,
 };
@@ -59,15 +60,10 @@ export class SelectableView extends React.Component<Props> {
     }
   };
 
-  searchResult = () => {
+  searchResults = (limit: number) => {
     const { filter, selectable } = this.props;
-    if (filter !== "") {
-      return filterColumns(selectable.id, selectable.columns, filter, {
-        limit: 1,
-      })[0];
-    } else {
-      return {};
-    }
+
+    return filterColumns(selectable.id, selectable.columns, filter, limit);
   };
 
   triggerDelete = (event: { preventDefault: () => void }) => {
@@ -134,11 +130,10 @@ export class SelectableView extends React.Component<Props> {
     }
   };
 
-  renderSelectableView = (searchResult: any) => {
+  renderSelectableView = (searchResults: any) => {
     const {
       selectable,
       expanded,
-      filter,
       numberFormat,
       selectablesEditUrl,
     } = this.props;
@@ -148,6 +143,7 @@ export class SelectableView extends React.Component<Props> {
       dataContainer,
       className,
     } = this.brokenMetaData();
+
     return (
       <div className="list-group-item px-4 py-1 bg-transparent border-left-0">
         <div className="d-flex justify-content-between align-items-baseline">
@@ -162,7 +158,7 @@ export class SelectableView extends React.Component<Props> {
             <span className="pl-2">
               <Higlighted
                 table={selectable.id}
-                column={searchResult}
+                column={searchResults[0]}
                 field="table"
               />
             </span>
@@ -177,8 +173,7 @@ export class SelectableView extends React.Component<Props> {
         {expanded && (
           <ColumnsView
             table={selectable.id}
-            columns={selectable.columns}
-            filter={filter}
+            columns={searchResults}
             numberFormat={numberFormat}
           />
         )}
@@ -187,8 +182,8 @@ export class SelectableView extends React.Component<Props> {
   };
 
   render = () => {
-    const results = this.searchResult();
-    if (results) {
+    const results = this.searchResults(this.props.expanded ? Infinity : 1);
+    if (results.length > 0) {
       activateTooltips();
       return this.renderSelectableView(results);
     } else {

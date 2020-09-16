@@ -31,6 +31,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  setup_all do
+    Cloak.TestShadowCache.safe(data_source(), "table", "numeric", [0, 1])
+    Cloak.TestShadowCache.safe(data_source(), "string_uid_table", "uid", ["a", "b"])
+    Cloak.TestShadowCache.safe(data_source(), "string_uid_table", "string", ["a", "b"])
+  end
+
   test "overwrites any existing noise layers" do
     compiled = Cloak.Test.QueryHelpers.compile!("SELECT COUNT(*) FROM table", data_source())
 
@@ -317,7 +323,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
                %{
-                 base: {"table", "numeric", {0, 10}},
+                 base: {"table", "numeric", {0.0, 10.0}},
                  expressions: [%Expression{name: "numeric"}, _]
                }
              ] = result.noise_layers
@@ -328,10 +334,25 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
                %{
-                 base: {"table", "numeric", {0, 10}},
+                 base: {"table", "numeric", {0.0, 10.0}},
                  expressions: [%Expression{name: "numeric"}, _]
                }
              ] = result.noise_layers
+    end
+
+    test "[Issue #4109] numbers in ranges are normalized" do
+      noise_layers =
+        [
+          {0, 10},
+          {0, 10.0},
+          {0.0, 10},
+          {0.0, 10.0}
+        ]
+        |> Enum.map(fn {a, b} -> compile!("SELECT STDDEV(uid) FROM table WHERE numeric BETWEEN #{a} AND #{b}") end)
+        |> Enum.map(& &1.noise_layers)
+        |> Enum.uniq()
+
+      assert [[%{base: {"table", "numeric", {0.0, 10.0}}}]] = noise_layers
     end
 
     test "noise layer from an implicit range" do
@@ -706,29 +727,27 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                ] = result.noise_layers
       end
 
-      for function <- ~w(upper lower) do
-        test "#{function}(x) IN (many, values) on column #{column}" do
-          result =
-            compile!("""
-              SELECT STDDEV(0) FROM string_uid_table
-              WHERE #{unquote(function)}(#{unquote(column)}) IN ('a', 'b')
-            """)
+      test "upper(x) IN (many, values) on column #{column}" do
+        result =
+          compile!("""
+            SELECT STDDEV(0) FROM string_uid_table
+            WHERE upper(#{unquote(column)}) IN ('A', 'B')
+          """)
 
-          assert [
-                   %{
-                     base: {"string_uid_table", unquote(column), nil},
-                     expressions: [%{name: unquote(column)}, _]
-                   },
-                   %{
-                     base: {"string_uid_table", unquote(column), nil},
-                     expressions: [%{value: "a"}, _, %{name: "uid"}]
-                   },
-                   %{
-                     base: {"string_uid_table", unquote(column), nil},
-                     expressions: [%{value: "b"}, _, %{name: "uid"}]
-                   }
-                 ] = result.noise_layers
-        end
+        assert [
+                 %{
+                   base: {"string_uid_table", unquote(column), nil},
+                   expressions: [%{name: unquote(column)}, _]
+                 },
+                 %{
+                   base: {"string_uid_table", unquote(column), nil},
+                   expressions: [%{value: "A"}, _, %{name: "uid"}]
+                 },
+                 %{
+                   base: {"string_uid_table", unquote(column), nil},
+                   expressions: [%{value: "B"}, _, %{name: "uid"}]
+                 }
+               ] = result.noise_layers
       end
     end
   end

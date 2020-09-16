@@ -59,3 +59,13 @@ config :air, :central,
   central_site: "wss://central.aircloak.com",
   min_reconnect_interval: :timer.seconds(10),
   max_reconnect_interval: :timer.minutes(5)
+
+config :sentry,
+  dsn: "https://d98edec5746844de86279c1903c07586@o375362.ingest.sentry.io/5194656",
+  environment_name: :prod,
+  enable_source_code_context: true,
+  root_source_code_path: File.cwd!(),
+  tags: %{
+    env: "production"
+  },
+  included_environments: [:prod]

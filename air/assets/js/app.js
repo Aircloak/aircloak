@@ -1,8 +1,12 @@
 // @flow
 import "../css/app.css";
 import "phoenix_html";
+import { Socket } from "phoenix";
+import LiveSocket from "phoenix_live_view";
 import React from "react";
 import ReactDOM from "react-dom";
+import * as Sentry from "@sentry/react";
+import { Integrations } from "@sentry/apm";
 import codeMirror from "codemirror";
 import CodeViewer from "./code_viewer";
 import QueriesView from "./queries/root";
@@ -19,8 +23,18 @@ import PasswordField from "./password_field";
 import activateDatetimePickers from "./datetimepicker";
 import "codemirror/mode/markdown/markdown";
 import activateTooltips from "./tooltips";
+import copyToClipboard from "./copy_to_clipboard";
+
+Sentry.init({
+  dsn:
+    "https://d98edec5746844de86279c1903c07586@o375362.ingest.sentry.io/5194656",
+  integrations: [new Integrations.Tracing()],
+  tracesSampleRate: 1.0,
+});
 
 activateTooltips();
+
+window.copyToClipboard = copyToClipboard;
 
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
@@ -38,6 +52,15 @@ const App = {
     ),
   auditLog: (props, elem) => App.render("audit_log", props, elem),
   passwordField: (props, elem) => App.render("password_field", props, elem),
+  liveView: (props) => {
+    const csrfElement = document.querySelector("meta[name='csrf-token']");
+    const _csrf_token = csrfElement && csrfElement.getAttribute("content");
+    const liveSocket = new LiveSocket("/live", Socket, {
+      params: { _csrf_token },
+    });
+    liveSocket.connect();
+    window.live = liveSocket;
+  },
 
   attachCodeMirrorToTextArea: (textArea, targetElement) => {
     const elementEditor = codeMirror(

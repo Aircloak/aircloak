@@ -6,6 +6,8 @@ import Button from "react-bootstrap/Button";
 
 import type { Result } from "./result";
 
+import copyToClipboard from "../copy_to_clipboard";
+
 type Props = {
   result: Result,
 };
@@ -44,6 +46,10 @@ export default class ShareButton extends React.Component<Props, State> {
     return result.private_permalink || result.public_permalink;
   }
 
+  selectAll(event: any) {
+    event.target.select();
+  }
+
   render() {
     const { showModal } = this.state;
     if (this.isEnabled()) {
@@ -60,8 +66,10 @@ export default class ShareButton extends React.Component<Props, State> {
           <Modal
             show={showModal}
             onHide={() => this.setState({ showModal: false })}
+            size="lg"
+            centered
           >
-            <Modal.Header>
+            <Modal.Header closeButton>
               <Modal.Title>Share</Modal.Title>
             </Modal.Header>
 
@@ -72,12 +80,22 @@ export default class ShareButton extends React.Component<Props, State> {
                   Anyone with this link will be able to view the query and its
                   results.
                 </p>
-                <input
-                  id="public-permalink"
-                  className="form-control"
-                  readOnly
-                  value={this.publicPermalink()}
-                />
+                <div className="input-group">
+                  <input
+                    id="public-permalink"
+                    className="form-control"
+                    readOnly
+                    value={this.publicPermalink()}
+                    onFocus={this.selectAll}
+                  />
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={() => copyToClipboard("public-permalink")}
+                  >
+                    Copy link
+                  </Button>
+                </div>
               </div>
 
               <div className="form-group">
@@ -86,20 +104,24 @@ export default class ShareButton extends React.Component<Props, State> {
                   This link requires logging in with an Insights Air account
                   that is allowed to access this data source.
                 </p>
-                <input
-                  id="private-permalink"
-                  className="form-control"
-                  readOnly
-                  value={this.privatePermalink()}
-                />
+                <div className="input-group">
+                  <input
+                    id="private-permalink"
+                    className="form-control"
+                    readOnly
+                    value={this.privatePermalink()}
+                    onFocus={this.selectAll}
+                  />
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={() => copyToClipboard("private-permalink")}
+                  >
+                    Copy link
+                  </Button>
+                </div>
               </div>
             </Modal.Body>
-
-            <Modal.Footer>
-              <Button onClick={() => this.setState({ showModal: false })}>
-                Close
-              </Button>
-            </Modal.Footer>
           </Modal>
         </>
       );

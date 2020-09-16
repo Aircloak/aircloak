@@ -9,6 +9,8 @@ import FrontendSocket from "../frontend_socket";
 import type { Selectable } from "./selectable";
 import type { NumberFormat } from "../number_format";
 import { selectableType } from "./selectable-type";
+import { emptyFilter } from "./filter";
+import type { Filter } from "./filter";
 
 type Props = {
   selectables: Selectable[],
@@ -27,7 +29,7 @@ type Props = {
 
 type State = {
   expanded: Set<string>,
-  filter: string,
+  filter: Filter,
   selectables: Selectable[],
   dataSourceStatus: string,
 };
@@ -44,7 +46,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
 
     this.state = {
       expanded: new Set(),
-      filter: "",
+      filter: emptyFilter(),
       selectables: props.selectables,
       dataSourceStatus,
     };
@@ -69,7 +71,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
 
   channel: Channel;
 
-  onFilterChange = (filter: string) => {
+  onFilterChange = (filter: Filter) => {
     this.setState({ filter });
   };
 
@@ -189,7 +191,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
           <div className="selectable-info-content flex-grow-1 overflow-auto list-group list-group-flush mx-n4">
             {this.selectables().map(([category, selectables]) => (
               <div key={category}>
-                <div className="d-flex justify-content-between px-3 py-2 bg-white sticky-top align-items-baseline border-bottom">
+                <div className="d-flex justify-content-between px-4 py-2 bg-white sticky-top align-items-baseline border-bottom">
                   <h4 className="h6 text-uppercase small font-weight-bold text-muted m-0">
                     {category}
                   </h4>

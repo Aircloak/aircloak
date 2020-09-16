@@ -16,6 +16,29 @@ defmodule Air.Web do
   below.
   """
 
+  def live_view do
+    quote do
+      use Phoenix.LiveView,
+        layout: {AirWeb.LayoutView, "live.html"}
+
+      unquote(view_helpers())
+
+      @doc false
+      def audit_log(socket, event, metadata \\ []) do
+        audit_log_for_user(socket.assigns.current_user, event, metadata)
+      end
+
+      @doc false
+      def audit_log_for_user(user, event, metadata \\ []) do
+        Air.Service.AuditLog.log(
+          user,
+          event,
+          Enum.into(metadata, %{})
+        )
+      end
+    end
+  end
+
   def controller do
     quote do
       use Phoenix.Controller, namespace: AirWeb
@@ -90,14 +113,7 @@ defmodule Air.Web do
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1]
 
-      # Use all HTML functionality (forms, tags, etc)
-      use Phoenix.HTML
-
-      import AirWeb.Router.Helpers
-      import AirWeb.ErrorHelpers
-      import AirWeb.ViewHelpers
-      import AirWeb.Gettext
-      import Phoenix.LiveView.Helpers
+      unquote(view_helpers())
     end
   end
 
@@ -132,17 +148,37 @@ defmodule Air.Web do
 
   @doc false
   def child_spec(_arg) do
+    import Aircloak, only: [in_env: 1]
+
     Aircloak.ChildSpec.supervisor(
       [
         {Phoenix.PubSub, name: AirWeb.PubSub},
         AirWeb.Endpoint,
-        Periodic.child_spec(
-          run: {AirWeb.Socket.Frontend.DataSourceChannel, :push_updates, []},
-          every: :timer.seconds(10)
+        in_env(
+          test: nil,
+          else:
+            Periodic.child_spec(
+              run: {AirWeb.Socket.Frontend.DataSourceChannel, :push_updates, []},
+              every: :timer.seconds(10)
+            )
         )
-      ],
+      ]
+      |> Enum.reject(&is_nil/1),
       name: __MODULE__,
       strategy: :rest_for_one
     )
+  end
+
+  defp view_helpers do
+    quote do
+      # Use all HTML functionality (forms, tags, etc)
+      use Phoenix.HTML
+
+      import AirWeb.Router.Helpers
+      import AirWeb.ErrorHelpers
+      import AirWeb.ViewHelpers
+      import AirWeb.Gettext
+      import Phoenix.LiveView.Helpers
+    end
   end
 end

@@ -3,6 +3,8 @@ defmodule IntegrationTest.OdbcTest do
 
   alias IntegrationTest.Manager
 
+  @moduletag :odbc
+
   setup do
     {:ok, user: Manager.create_admin_user()}
   end
