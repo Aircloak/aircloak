@@ -19,6 +19,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
   @spec handle_events([{String.t(), :update | :removal}]) :: :ok
   def handle_events(events) do
     if Enum.any?(events, &match?({_path, :removal}, &1)) do
+      Logger.debug("Data source removal detected.")
       GenServer.cast(__MODULE__, :reinitialize)
     else
       Enum.each(events, fn {path, :update} -> GenServer.cast(__MODULE__, {:process_update, path}) end)
@@ -27,7 +28,10 @@ defmodule Cloak.DataSource.SerializingUpdater do
 
   @doc "Casts a request to reinitialize all data sources."
   @spec reinitialize_all_data_sources() :: :ok
-  def reinitialize_all_data_sources(), do: GenServer.cast(__MODULE__, :reinitialize)
+  def reinitialize_all_data_sources() do
+    Logger.debug("Requesting reinitialization of all data sources.")
+    GenServer.cast(__MODULE__, :reinitialize)
+  end
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -49,7 +53,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
   end
 
   def handle_cast(:reinitialize, state) do
-    Logger.debug(fn -> "Reloading all data source configurations." end)
+    Logger.debug("Reloading all data source configurations.")
     DataSource.reinitialize_all_data_sources()
     {:noreply, state, :hibernate}
   end
