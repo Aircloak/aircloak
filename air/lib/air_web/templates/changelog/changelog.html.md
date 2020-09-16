@@ -26,6 +26,12 @@
 - `CASE` support is now enabled by default. `WHEN` clause constants have to be from the list of frequent values,
   unless the `allow_any_value_in_when_clauses` setting is enabled in the Insights Cloak configuration file.
 
+## Version 20.2.1
+
+### Bugfixes
+
+- Fixed crash when loading data source tables in the sidebar.
+
 ## Version 20.2.0
 
 ### **Breaking changes**
