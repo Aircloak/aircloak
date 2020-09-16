@@ -147,6 +147,7 @@ defmodule AirWeb.Router do
     post("/audit_log/clear", AuditLogController, :delete_all)
 
     resources("/cloaks", CloaksController)
+    post("/cloaks/:id/reinitialize", CloaksController, :reinitialize)
     get("/activity_monitor", ActivityMonitorController, :index)
     get("/", WarningsController, :warnings_if_any, as: :warnings_if_any)
 

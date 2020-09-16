@@ -170,6 +170,10 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   @spec refresh_analyst_tables(pid) :: :ok
   def refresh_analyst_tables(channel_pid), do: cast(channel_pid, "refresh_analyst_tables")
 
+  @doc "Asks the cloak to reinitialize all its data sources."
+  @spec reinitialize_all_data_sources(pid) :: :ok
+  def reinitialize_all_data_sources(channel_pid), do: cast(channel_pid, "reinitialize_all_data_sources")
+
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
   # -------------------------------------------------------------------
