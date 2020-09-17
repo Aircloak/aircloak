@@ -9,13 +9,15 @@ For example tables created in the UX are useful for later tests.
 
 - [ ] Reset your `air` system (see [Deploying a clean system](#deploying-a-clean-system) for details)
 - [ ] Deploy the previous release of `air` and `cloak`
-- [ ] Perform the [Insights Air Interface](#insights-air-interface) tests to validate the system is in a working state
+- [ ] Create analyst views and an analyst table described in [Useful analyst tables and views](#useful-analyst-tables-and-views)
+- [ ] Run the queries listed in [Sample queries](#sample-queries)
+- [ ] Create an API token and keep it for later tests
 - [ ] Deploy the latest release of both `air` and `cloak`
 - [ ] Log in
 - [ ] Verify that the query history is preserved
 - [ ] Verify that the audit log is preserved
 - [ ] Verify that the views and the analyst table can be queried
-- [ ] Verify that the API token and app login can still be used by repeating the `curl` and `psql` commands from the
+- [ ] Verify that the API token and app login can be used by running the `curl` and `psql` commands from the
   [Insights Air Interface](#insights-air-interface) tests.
 
 ### Clean deploy
@@ -26,6 +28,25 @@ For example tables created in the UX are useful for later tests.
 - [ ] Perform the [Insights Air Interface](#insights-air-interface) tests.
 - [ ] Validate that the version number is right
 - [ ] Validate that the changelog has been updated
+- Validate restrictions:
+  - [ ] The following query should fail due to `opponent` being
+    excluded (error should say the column doesn't exist):
+    ```sql
+    SELECT count(distinct opponent) FROM games
+    ```
+  - [ ] The following query should fail due to `lastname` being
+    marked as unselectable:
+    ```sql
+    SELECT lastname, count(*)
+    FROM players
+    GROUP BY 1
+    ```
+  - [ ] The range in the following query should be adjusted to 30 to 50
+    ```sql
+    SELECT avg(level)
+    FROM players
+    WHERE age BETWEEN 33 and 43
+    ```
 
 ### Insights Air Interface
 
@@ -33,34 +54,8 @@ For example tables created in the UX are useful for later tests.
 - [ ] Sign in with your administrator username and credential
 - Go to `Data Sources -> GamesAndPlayers`
 - [ ] Create analyst views and an analyst table described in [Useful analyst tables and views](#useful-analyst-tables-and-views)
-- [ ] Issue the following queries. They should all return non-empty results:
-  - ```sql
-    SELECT count(*) FROM num_games_view
-    ```
-  - ```sql
-    SELECT count(*) FROM num_games_table
-    ```
-  - ```sql
-    SELECT * FROM anonymizing_view
-    ```
-  - ```sql
-    SELECT numGames, count(*)
-    FROM num_games_table
-    GROUP BY 1
-    ORDER BY numGames ASC
-    ```
-  - [ ] Click on `Show chart`, select `numGames` as `X` and `count` as `Y`, make sure the chart displays
-  - ```sql
-    SELECT age, avg(length(firstname)), stddev(length(firstname))
-    FROM players
-    GROUP BY age
-    ORDER BY age ASC
-    ```
-  - ```sql
-    SELECT gender, level, age
-    FROM players
-    ```
-  - [ ] Ensure syntax is highlighted in the editor and in result boxes
+- [ ] Run the queries listed in [Sample queries](#sample-queries)
+- [ ] Ensure syntax is highlighted in the editor and in result boxes
 - Go to `Cog icon -> API tokens`
 - [ ] Create an API token, note it down
 - [ ] Issue this curl, setting `$token` to your own API token, and `$url` to the URL of your Aircloak instance
@@ -115,6 +110,45 @@ For example tables created in the UX are useful for later tests.
   - [ ] Creating API token and issuing a query
   - [ ] Creating App login and querying using `psql`
 
+### Sample queries
+
+- [ ] Issue the following queries. They should all return non-empty results:
+  - ```sql
+    SELECT count(*) FROM num_games_view
+    ```
+  - ```sql
+    SELECT count(*) FROM num_games_table
+    ```
+  - ```sql
+    SELECT * FROM anonymizing_view
+    ```
+  - ```sql
+    SELECT numGames, count(*)
+    FROM num_games_table
+    GROUP BY 1
+    ORDER BY numGames ASC
+    ```
+  - [ ] Click on `Show chart`, select `numGames` as `X` and `count` as `Y`, make sure the chart displays
+  - ```sql
+    SELECT
+      age,
+      avg(
+        CASE
+        WHEN firstname = 'Reese' THEN 1
+        WHEN firstname = 'Kendall' THEN 1
+        WHEN firstname = 'Ellie' THEN 1
+        ELSE 0
+        END
+      )
+    FROM players
+    GROUP BY age
+    ORDER BY 1 ASC
+    ```
+  - ```sql
+    SELECT gender, level, age
+    FROM players
+    ```
+
 ### Tableau tests
 
 - Add a new Postgres datasource in Tableau connecting to the database `GamesAndPlayers` on your Aircloak instance using the app login created in the Insights Air interface tests
@@ -123,30 +157,21 @@ For example tables created in the UX are useful for later tests.
 - Configure tables
   - [ ] Drag the following tables (in the described order) into the tables canvas: `players`, `games`
   - [ ] Configure the join conditions: `players.uid = games.player`
-  - [ ] Click "New Custom SQL" and add the following query:
-    ```
-    SELECT p.*, numGames
-    FROM players p INNER JOIN (
-      SELECT player, count(*) as numGames
-      FROM games
-      GROUP BY player
-    ) t ON p.uid = t.player
-    ```
-  - [ ] Double click the name of the newly created custom table and name it `num_games`
-  - [ ] JOIN the new table with the `players` table on `players.uid = num_games.uid`
 - [ ] Ensure the connection type is set to `Live` top right
 - [ ] Rename the data source to "Test datasource"
 - [ ] Click on "Sheet 1" bottom left to create a new analysis sheet
-- [ ] Right click on `num_games.numGames` and select "convert to dimension"
-- [ ] Drag `num_games.numGames` to the columns area
-- [ ] Drag "Number of records" to the rows area
-- You should now see a bar graph
+- [ ] Right-click on "Age" and choose that it should be interpreted
+  as a dimension.
+- [ ] Drag "Age" to the rows area
+- [ ] Drag "Players (count)" to the column next to the age values in the middle of the screen
+- You should now see a table of ages and their counts
+- [ ] Click "show me" and turn it into a bar graph
+- [ ] Click the icon to toggle rows and columns to make it horizontal
 - [ ] Drag "players.Gender" onto the rows area
-- You should now see a bar graph of num games per gender
-- [ ] Right click on the "numGames" item in the columns area and select "Continuous"
-- You should now see a line graph of num games per gender
-- [ ] Drag "games.Date" to the filters section, then select quarter, and subsequently Q1
+- You should now see a bar graph of num games per gender and age
+- [ ] Drag "games.Date" to the filters section, then select months, and subsequently April and May.
 - The graph should still display sensible values
+- [ ] Remove the "age" column
 - [ ] Drag "games.Date" to the columns area
 - You should see the num games per player per year now
 - [ ] Click the + icon in the "YEAR(Date)" pill in the columns area twice to expand it to quarter and month
@@ -197,10 +222,20 @@ The data source definition is:
   },
   "tables": {
     "players": {
-      "keys": [{"user_id": "uid"}]
+      "keys": [
+        {
+          "user_id": "uid"
+        }
+      ],
+      "unselectable_columns": ["lastname"]
     },
     "games": {
-      "keys": [{"user_id": "player"}]
+      "keys": [
+        {
+          "user_id": "player"
+        }
+      ],
+      "exclude_columns": ["opponent"]
     }
   }
 }
