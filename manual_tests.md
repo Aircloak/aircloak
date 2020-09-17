@@ -7,7 +7,7 @@ For example tables created in the UX are useful for later tests.
 
 ### Upgrade
 
-- [ ] Reset your air system (see [Deploying a clean system](#deploying-a-clean-system) for details)
+- [ ] Reset your `air` system (see [Deploying a clean system](#deploying-a-clean-system) for details)
 - [ ] Deploy the previous release of `air` and `cloak`
 - [ ] Perform the [Insights Air Interface](#insights-air-interface) tests to validate the system is in a working state
 - [ ] Deploy the latest release of both `air` and `cloak`
@@ -20,7 +20,7 @@ For example tables created in the UX are useful for later tests.
 
 ### Clean deploy
 
-- [ ] Reset your air system (see [Deploying a clean system](#deploying-a-clean-system) for details)
+- [ ] Reset your `air` system (see [Deploying a clean system](#deploying-a-clean-system) for details)
 - [ ] Deploy the latest release of `air` and `cloak`
 - [ ] Perform the onboarding procedure, as explained in [Deploying a clean system](#deploying-a-clean-system)
 - [ ] Perform the [Insights Air Interface](#insights-air-interface) tests.
@@ -161,20 +161,20 @@ The system can be deployed to the developer's private `air`/`cloak` combination 
 To deploy a clean version of the system, you can perform the following steps.
 
 1. Ensure the `air` config allows for, but does not require SSL connections (`psql_server/require_ssl = false`)
-1. Stop the cloak (e.g. `docker stop sebastian_cloak`)
-1. Start remote iex session to the running air instance (e.g. `docker exec -it sebastian_air /aircloak/air/bin/air remote_console`)
+1. Stop the `cloak` (e.g. `docker stop sebastian_cloak`)
+1. Start remote iex session to the running `air` instance (e.g. `docker exec -it sebastian_air /aircloak/air/bin/air remote_console`)
 1. Reset the database to the initial state by invoking `Ecto.Migrator.run(Air.Repo, Application.app_dir(:air, "priv/repo/migrations"), :down, all: true)`
-1. Exit the shell and stop the air instance (e.g. `docker stop sebastian_air`)
+1. Exit the shell and stop the `air` instance (e.g. `docker stop sebastian_air`)
 1. Checkout the desired branch (typically the release branch), and deploy `air` first, and then `cloak`
 
-At this point, you have a clean installation of air.
+At this point, you have a clean installation of `air`.
 
-Now, you need to perform the onboarding procedure and create the first user. Visit your air site (e.g. https://sebastian-air.aircloak.com), and follow the instructions.
+Now, you need to perform the onboarding procedure and create the first user. Visit your `air` site (e.g. https://sebastian-air.aircloak.com), and follow the instructions.
 
 Next, you need to import the license. To obtain the license, you can visit [Aircloak Central](https://central.aircloak.com/customers/3/licenses),
 and create and/or download a license for the Aircloak customer. In your `air`, go to Settings/Admin/Aircloak license and import the license.
 
-Finally, you need to provide permissions for each desired data source. In your air, go to Settings/Admin/Data sources, click on the Edit button next to the desired data source, check the admin group, and click on save.
+Finally, you need to provide permissions for each desired data source. In your `air`, go to Settings/Admin/Groups, click on the Edit button next to the admin group data source, check the admin group, and click on save.
 
 At this point, you can query data sources from the main user interface.
 
