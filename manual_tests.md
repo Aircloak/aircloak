@@ -28,6 +28,8 @@ For example tables created in the UX are useful for later tests.
 - [ ] Perform the [Insights Air Interface](#insights-air-interface) tests.
 - [ ] Validate that the version number is right
 - [ ] Validate that the changelog has been updated
+- [ ] Run the first few queries listed in [Sample queries](#sample-queries) with `EXPLAIN` and validate that the
+  query plan yields expected results.
 - Validate restrictions:
   - [ ] The following query should fail due to `opponent` being
     excluded (error should say the column doesn't exist):
