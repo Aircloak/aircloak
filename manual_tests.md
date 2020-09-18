@@ -224,19 +224,11 @@ The data source definition is:
   },
   "tables": {
     "players": {
-      "keys": [
-        {
-          "user_id": "uid"
-        }
-      ],
+      "keys": [{"user_id": "uid"}],
       "unselectable_columns": ["lastname"]
     },
     "games": {
-      "keys": [
-        {
-          "user_id": "player"
-        }
-      ],
+      "keys": [{"user_id": "player"}],
       "exclude_columns": ["opponent"]
     }
   }
