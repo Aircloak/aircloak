@@ -164,32 +164,24 @@ A query is an anonymizing query if it operates on personal data and *either of* 
 
 ##### Some examples
 
-This query is anonymizing as it is the top-most query and produces an aggregate across the data of multiple users.
-That the aggregate is over multiple users is evident by the query not grouping by the user id column which would
-produce a per-user aggregate.
+This query is anonymizing as it aggregates the personal data of multiple users into a single aggregate.
+That the aggregate is over multiple users can be deduced from the query not grouping by the user id column.
+Grouping by the user id column would produce per-user aggregates.
+
+Even if the query hadn't been an aggregate over the personal data of multiple users, it would still
+have been an anonymizing query. This is the case because it is the top-most query and processes personal data.
+Had it not been anonymizing, it would have leaked personal information.
 
 ```sql
 SELECT count(*)
 FROM personal_table
 ```
 
-Somewhat unintuitively the following query is also anonymizing, despite grouping by the user id column.
-The reason for this is that it is the top-most query and Aircloak therefore is forced to anonymize it.
-If Aircloak did not then the result would reveal data about individuals. A query such as this is will not
-produce any meaningful results. Each row is identifying and is suppressed as a result.
-
-```sql
-SELECT uid, count(*)
-FROM personal_table
-GROUP BY uid
-```
-
 The following subquery is anonymizing, despite grouping by a column that, in this particular example, likely is mostly
 unique to a user. The intent might have been for the query to be a non-anonymizing restricted query producing a
 per-user aggregate. It isn't marked as such by Aircloak Insights as it does not select and group by the column specified
-as the user id column. Much like the previous example of the top-level anonymizing query, producing a per-user count,
-this query is likely to produce no (or very little) results after anonymization. This is because the phone numbers are
-likely unique to users and are filtered out as they are identifying.
+as the user id column. This query is likely to produce no (or very little) results after anonymization as there will only
+be few cases where multiple distinct individuals share the same phone number.
 
 ```sql
 ... (
@@ -199,7 +191,7 @@ likely unique to users and are filtered out as they are identifying.
 ) per_phone_transactions
 ```
 
-The following subquery is anonymizing as it produces an aggregate over the data of many users.
+The following subquery is anonymizing as it produces an aggregate over the data of multiple users.
 The resulting data can be further processed by a standard query.
 
 ```sql
@@ -208,6 +200,19 @@ The resulting data can be further processed by a standard query.
   FROM personal_table
   GROUP BY city
 ) city_distribution
+```
+
+Somewhat counterintuitively the following query is rejected despite being perfectly valid SQL.
+The reason is that it is a personal query due to creating a per-user aggregate. We can tell that this
+is the case by observing that the query selects (and groups by) the user id column.
+At the same time the query is the top-most query and as such Aircloak is forced to anonymize it's output.
+Anonymizing the results of a query where each output row uniquely belongs to a single user (the uid column is
+unique to a user) cannot be done without having to filter away all the data. Aircloak therefore rejects the query.
+
+```sql
+SELECT uid, count(*)
+FROM personal_table
+GROUP BY uid
 ```
 
 #### Standard queries
