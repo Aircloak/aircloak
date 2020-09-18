@@ -166,12 +166,20 @@ defmodule Air.Service.View do
   def store_view_validation_results(user, data_source_id, results) do
     for {name, result} <- results,
         {:ok, valid} <- [view_status(result)] do
-      View
-      |> by_data_source_id(data_source_id)
-      |> by_user_id(user.id)
-      |> Repo.get_by!(name: name)
-      |> apply_view_changeset(%{broken: not valid})
-      |> Repo.update()
+      changeset =
+        View
+        |> by_data_source_id(data_source_id)
+        |> by_user_id(user.id)
+        |> Repo.get_by!(name: name)
+        |> apply_view_changeset(%{broken: not valid})
+
+      changeset =
+        case result do
+          {:ok, columns} -> Ecto.Changeset.put_change(changeset, :columns, columns)
+          _ -> changeset
+        end
+
+      Repo.update(changeset)
     end
 
     notify_subscribers(:revalidated_views, %{user_id: user.id, data_source_id: data_source_id})
