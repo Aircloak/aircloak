@@ -205,7 +205,7 @@ The resulting data can be further processed by a standard query.
 Somewhat counterintuitively the following query is rejected despite being perfectly valid SQL.
 The reason is that it is a personal query due to creating a per-user aggregate. We can tell that this
 is the case by observing that the query selects (and groups by) the user id column.
-At the same time the query is the top-most query and as such Aircloak is forced to anonymize it's output.
+At the same time the query is the top-most query and as such Aircloak is forced to anonymize its output.
 Anonymizing the results of a query where each output row uniquely belongs to a single user (the uid column is
 unique to a user) cannot be done without having to filter away all the data. Aircloak therefore rejects the query.
 
