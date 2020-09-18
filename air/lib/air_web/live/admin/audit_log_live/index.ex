@@ -19,7 +19,7 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
 
   @impl true
   def handle_params(params, _uri, socket) do
-    from = parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -1))
+    from = parse_datetime(params["from"], Timex.now() |> Timex.shift(months: -1))
     to = parse_datetime(params["to"], Timex.now())
 
     filters = %{
