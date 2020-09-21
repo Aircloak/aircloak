@@ -169,6 +169,7 @@ defmodule Cloak.Sql.Query do
         %{
           name: column.name,
           type: to_string(column.type),
+          access: to_string(column.access),
           key_type: with(key_type when not is_nil(key_type) <- table.keys[column.name], do: to_string(key_type)),
           comment: Cloak.DataSource.Table.column_comment(table, column.name)
         }
