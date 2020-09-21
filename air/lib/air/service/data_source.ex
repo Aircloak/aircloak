@@ -31,9 +31,9 @@ defmodule Air.Service.DataSource do
           :type => String.t(),
           :user_id => boolean,
           :comment => nil | String.t(),
-          :access => :visible | :unselectable,
+          :access => String.t(),
           # Isolation status does not exist for views and analyst tables
-          optional(:isolated) => boolean | atom | nil
+          optional(:isolated) => boolean | String.t() | nil
         }
 
   @type table :: %{
