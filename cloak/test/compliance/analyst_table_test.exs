@@ -120,8 +120,20 @@ defmodule Compliance.AnalystTableTest do
           {:ok, columns} = create_or_update(1, "table17", "select user_id, height from users", data_source)
 
           assert Enum.sort_by(columns, & &1.name) == [
-                   %{name: "height", type: "real", key_type: nil, comment: "This is column height."},
-                   %{name: "user_id", type: "integer", key_type: "user_id", comment: "This is column user_id."}
+                   %{
+                     name: "height",
+                     type: "real",
+                     key_type: nil,
+                     access: "visible",
+                     comment: "This is column height."
+                   },
+                   %{
+                     name: "user_id",
+                     type: "integer",
+                     key_type: "user_id",
+                     access: "visible",
+                     comment: "This is column user_id."
+                   }
                  ]
         end
       end
