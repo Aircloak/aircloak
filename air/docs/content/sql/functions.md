@@ -308,6 +308,48 @@ TRUNC(3.22, 1)
 
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
+## String operators
+
+### ||
+
+Joins two or more strings into one. It is internally translated to the `concat` function.
+
+```sql
+'a' || 'b' || 'c'
+-- 'abc'
+```
+
+[Restrictions in usage apply](restrictions.html#text-operations)
+
+### LIKE / ILIKE
+
+These operators match a text expression against a pattern. `ILIKE` is the case-insensitive version of `LIKE`.
+Syntax: `text_expression [NOT] LIKE | ILIKE string_pattern [ESCAPE escape_string]`.
+
+If the pattern does not contain any percent signs or underscores, then the pattern only represents the string itself.
+In that case, `LIKE` acts like the equals operator and `ILIKE` acts like a case-insensitive equals operator.
+An underscore (`_`) in a pattern matches any single character.
+A percent sign (`%`) matches any string of zero or more characters.
+
+A pattern match needs to cover the entire string. To match a sequence anywhere within a string, the pattern must
+therefore start and end with a percent sign.
+
+To match a literal underscore or percent sign without matching other characters, the respective character in the
+pattern must be preceded by the escape character. No escape character is set by default. To match the escape
+character itself, write two escape characters.
+
+```sql
+'abCD' LIKE 'ab%'
+-- TRUE
+
+'abCD' NOT LIKE 'ab__'
+-- FALSE
+
+email ILIKE 'a\_b@%.com' ESCAPE '\'
+-- BOOLEAN
+```
+
+[Restrictions in usage apply](restrictions.html#text-operations)
 
 ## String functions
 
@@ -323,7 +365,7 @@ BTRIM('xyzsome textzyx', 'xyz')
 -- 'some text'
 ```
 
-[Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
+[Restrictions in usage apply](restrictions.html#text-operations)
 
 ### concat
 
@@ -340,6 +382,8 @@ CONCAT('a', 'b', 'c')
 -- 'abc'
 ```
 
+[Restrictions in usage apply](restrictions.html#text-operations)
+
 ### left
 
 `LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
@@ -352,7 +396,7 @@ LEFT('some text', -2)
 -- 'some te'
 ```
 
-[Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
+[Restrictions in usage apply](restrictions.html#text-operations)
 
 ### length
 
@@ -363,7 +407,7 @@ LENGTH('some text')
 -- 9
 ```
 
-[Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
+[Restrictions in usage apply](restrictions.html#text-operations)
 
 ### lower
 
@@ -389,7 +433,7 @@ LTRIM('xyzsome textzyx', 'xyz')
 -- 'some textzyx'
 ```
 
-[Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
+[Restrictions in usage apply](restrictions.html#text-operations)
 
 ### right
 
@@ -403,7 +447,7 @@ RIGHT('some text', -2)
 -- 'me text'
 ```
 
-[Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
+[Restrictions in usage apply](restrictions.html#text-operations)
 
 ### rtrim
 
@@ -417,7 +461,7 @@ RTRIM('xyzsome textzyx', 'xyz')
 -- 'xyzsome text'
 ```
 
-[Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
+[Restrictions in usage apply](restrictions.html#text-operations)
 
 ### substring
 
@@ -434,7 +478,7 @@ SUBSTRING('some text' FOR 4)
 -- 'some'
 ```
 
-[Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
+[Restrictions in usage apply](restrictions.html#text-operations)
 
 ### trim
 
@@ -458,7 +502,7 @@ TRIM(BOTH FROM ' some text ')
 -- 'some text'
 ```
 
-[Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
+[Restrictions in usage apply](restrictions.html#text-operations)
 
 ### upper
 

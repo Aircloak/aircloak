@@ -69,6 +69,7 @@
   - [Working with intervals](sql/functions.md#working-with-intervals)
   - [Mathematical operators](sql/functions.md#mathematical-operators)
   - [Mathematical functions](sql/functions.md#mathematical-functions)
+  - [String operators](sql/functions.md#string-operators)
   - [String functions](sql/functions.md#string-functions)
   - [Casting](sql/functions.md#casting)
   - [Aggregation functions](sql/functions.md#aggregation-functions)
