@@ -2,12 +2,22 @@ import React from "react";
 import { Popover, OverlayTrigger } from "react-bootstrap";
 import { selectableType } from "./selectable-type";
 
+const NUM_SAMPLES = 10;
+
 const isAnalystCreatedSelectable = (selectable) => {
   return selectable.kind === "view" || selectable.kind === "analyst_table";
 };
 
 const editLinkUrl = (selectable, selectablesEditUrl) =>
   `${selectablesEditUrl}?kind=${selectable.kind}&id=${selectable.internal_id}`;
+
+const hasSampleData = (selectable) => {
+  return "sample_data" in selectable && selectable.sample_data.length > 0;
+};
+
+const analyzedColumns = (selectable) => {
+  return selectable.columns.filter((column) => "analysis" in column);
+};
 
 const SelectableDetails = React.forwardRef(
   ({ selectable, triggerDelete, selectablesEditUrl, ...props }, ref) => {
@@ -41,9 +51,11 @@ const SelectableDetails = React.forwardRef(
 
           <small className="text-muted">{selectableType(selectable)}</small>
         </Popover.Title>
-        {(selectable.comment || isAnalystCreatedSelectable(selectable)) && (
+        {(selectable.comment ||
+          isAnalystCreatedSelectable(selectable) ||
+          hasSampleData(selectable)) && (
           <Popover.Content>
-            <div style={{ maxHeight: "50vh", overflowY: "auto" }}>
+            <div style={{ maxHeight: "80vh", overflowY: "auto" }}>
               {selectable.comment && (
                 <div className="border rounded px-2 py-1">
                   <strong className="float-right text-muted ml-3 mt-1 font-weight-bold text-uppercase small">
@@ -72,6 +84,44 @@ const SelectableDetails = React.forwardRef(
                   >
                     Delete
                   </button>
+                </div>
+              )}
+
+              {hasSampleData(selectable) && (
+                <div className="pt-3">
+                  <h4 className="text-muted font-weight-bold text-uppercase small">
+                    Sample values
+                  </h4>
+                  <table className="table">
+                    <caption className="small">
+                      The sample values were synthesized from the{" "}
+                      <strong>{selectable.id}</strong> table.
+                    </caption>
+                    <thead>
+                      <tr>
+                        {analyzedColumns(selectable).map((column) => {
+                          return <th key={column.name}>{column.name}</th>;
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectable.sample_data
+                        .slice(0, NUM_SAMPLES)
+                        .map((row, i) => {
+                          return (
+                            <tr key={`sample-row-${i}`}>
+                              {row.map((column, j) => {
+                                return (
+                                  <td key={`sample-row-${i}-column-${j}`}>
+                                    {column}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
