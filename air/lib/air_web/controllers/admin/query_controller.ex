@@ -32,7 +32,7 @@ defmodule AirWeb.Admin.QueryController do
       from: parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -1)),
       to: parse_datetime(params["to"], Timex.now()),
       users: params["users"] || [],
-      data_sources: [],
+      data_sources: params["data_sources"] || [],
       query_states: [:error],
       max_results: 100
     }
@@ -46,8 +46,12 @@ defmodule AirWeb.Admin.QueryController do
         number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
         debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled,
         failed_queries: Query.queries(filters) |> Enum.map(&AirWeb.Query.for_display/1),
-        users: Query.users_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id}),
-        data_sources: Query.data_sources_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id})
+        users:
+          Query.users_for_filters(%{filters | users: [], data_sources: []})
+          |> Enum.map(&%{label: &1.name, value: &1.id}),
+        data_sources:
+          Query.data_sources_for_filters(%{filters | users: [], data_sources: []})
+          |> Enum.map(&%{label: &1.name, value: &1.id})
       })
     )
   end
