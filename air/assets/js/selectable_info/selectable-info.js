@@ -28,7 +28,7 @@ const SelectableDetails = React.forwardRef(
         style={{
           ...props.style,
           minWidth: "250px",
-          maxWidth: "min(360px, calc(100vw - 100px))",
+          maxWidth: "calc(100vw - 100px)",
         }}
       >
         <Popover.Title>
