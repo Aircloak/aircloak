@@ -393,7 +393,10 @@ export class ResultView extends React.Component<Props, State> {
     const { loadingChunks, rowsToShowCount } = this.state;
     if (loadingChunks) {
       return null;
-    } else if (result.row_count <= this.minRowsToShow) {
+    } else if (
+      result.row_count <= this.minRowsToShow ||
+      rowsToShowCount === result.row_count
+    ) {
       return (
         <div className="row-count">
           {result.row_count}
