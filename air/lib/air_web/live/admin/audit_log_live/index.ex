@@ -275,7 +275,7 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
   end
 
   defp format_date_header(time) do
-    case Timex.diff(DateTime.utc_now(), time, :days) do
+    case Date.diff(Date.utc_today(), NaiveDateTime.to_date(time)) do
       0 -> "Today"
       1 -> "Yesterday"
       _ -> Timex.format!(time, "{D} {Mshort} {YYYY}")
