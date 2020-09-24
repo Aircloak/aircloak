@@ -192,7 +192,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
             {this.selectables().map(([category, selectables]) => (
               <div key={category}>
                 <div className="d-flex justify-content-between px-4 py-2 bg-white sticky-top align-items-baseline border-bottom">
-                  <h4 className="h6 text-uppercase small font-weight-bold text-muted m-0">
+                  <h4 className="h6 text-uppercase small font-weight-bold text-muted m-1">
                     {category}
                   </h4>
                   {category === "View" && (
