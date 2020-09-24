@@ -22,9 +22,3 @@ function exec_with_retry {
 # The retry logic is used because fetching deps might occasionally fail, especially with yarn packages.
 exec_with_retry "mix deps.get $@"
 exec_with_retry "cd $ROOT_DIR/air/assets && yarn install"
-exec_with_retry "cd $ROOT_DIR/air/docs && yarn install"
-exec_with_retry '
-  cd $ROOT_DIR/air/docs
-  gitbook_version=$(cat node_modules/gitbook/package.json | jq -r ".version")
-  if [ ! -d ~/.gitbook/versions/$gitbook_version ]; then yarn run gitbook fetch $gitbook_version; fi
-'

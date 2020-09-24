@@ -35,10 +35,9 @@ function prepare_for_test {
 
 mount_to_aircloak VERSION common/elixir bom
 mount_to_component \
-  .flowconfig .gitignore assets config datagen docs include lib perftest priv rel test mix.exs mix.lock Makefile \
+  .flowconfig .gitignore assets config datagen include lib perftest priv rel test mix.exs mix.lock Makefile \
   README.md check_warnings.sh .formatter.exs ../cloak/docs
-mount_cached_component deps _build .bash_history docs/_book docs/node_modules priv/static
-mount $(ci_tmp_folder)/air/.gitbook /root/.gitbook
+mount_cached_component deps _build .bash_history priv/static
 
 case "$1" in
   prepare_for_test)

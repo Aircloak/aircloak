@@ -1,6 +1,6 @@
 # Specification for Diffix Dogwood
 
-The anonymization algorithm underlying Aircloak Insights is Diffix. The current version of Diffix is Dogwood. This section describes the operation of Diffix Dogwood.  It explains how and why Diffix Dogwood protects against [known attacks](./attacks.md#attacks-on-diffix-dogwood), thus providing strong anonymity. 
+The anonymization algorithm underlying Aircloak Insights is Diffix. The current version of Diffix is Dogwood. This section describes the operation of Diffix Dogwood.  It explains how and why Diffix Dogwood protects against [known attacks](./attacks.md#attacks-on-diffix-dogwood), thus providing strong anonymity.
 
 ## Table Of Contents
 
@@ -195,7 +195,7 @@ The procedure for `date`, `time`, and `datetime` columns is similar but differs 
 
 The following shows what SQL is supported. Any received SQL that has syntax outside of this specification is rejected.
 
-{% include "sql/syntax.md" %}
+[filename](sql/_syntax.md ':include')
 
 ## Rejecting queries
 
@@ -261,7 +261,7 @@ WHERE number IN (1, 2, 3)
 
 #### In general
 
-In order to prevent [SQL backdoor attacks](./attacks.md#sql-backdoor-attacks), the cloak limits the complexity of certain math in queries. We are particulary concerned with discontinuous functions combined with constants because they can be coerced into acting as discrete logic. However, there are many ways of obtaining discontinuous functions, for instance string manipulations (for instance `left`, `ltrim`) followed by casting to numbers, or datetime functions (for instance `year` or `hour`). In addition, functions can be coerced into constants, as for instance `pow(col1, col2-col2)` is 1. 
+In order to prevent [SQL backdoor attacks](./attacks.md#sql-backdoor-attacks), the cloak limits the complexity of certain math in queries. We are particulary concerned with discontinuous functions combined with constants because they can be coerced into acting as discrete logic. However, there are many ways of obtaining discontinuous functions, for instance string manipulations (for instance `left`, `ltrim`) followed by casting to numbers, or datetime functions (for instance `year` or `hour`). In addition, functions can be coerced into constants, as for instance `pow(col1, col2-col2)` is 1.
 
 We take a conservative approach and limit the number of expressions containing a restricted function and a constant, or more than one restricted function to a total of 5.
 
@@ -427,7 +427,7 @@ The UID-noise is seeded by (among other things):
 
 ### Determine if safe math functions are needed
 
-A conservative analysis is run to determine if a given math expression in the query might result in an exception. Examples would be determining if a column in a divisor could be zero, or determining whether a `pow()` function on a column could lead to overflow. The analysis makes the assumption that the column value from the database does not exceed the approximated min and max (see [Per column min and max values](#per-column-min-and-max-values)). 
+A conservative analysis is run to determine if a given math expression in the query might result in an exception. Examples would be determining if a column in a divisor could be zero, or determining whether a `pow()` function on a column could lead to overflow. The analysis makes the assumption that the column value from the database does not exceed the approximated min and max (see [Per column min and max values](#per-column-min-and-max-values)).
 [aircloak/aircloak#3689](https://github.com/Aircloak/aircloak/issues/3689)
 
 If a math function might lead to an exception, then the function in the query is replaced with a safe version (see [Safe math functions](#safe-math-functions)).
@@ -746,7 +746,7 @@ The average aggregator is computed as the `sum(col)`/`count(col)`.
 
 #### Operation of min and max
 
-The aggregators `min(col)` and `max(col)` are set to the `edge_below` and `edge_above` values from [Operation of Sum](#operation-of-sum), with the exception that `min(col)` may never be greater than `avg(col)`, `max(col)` may never be less than `avg(col)`, and `min(col)` may never be greater than `max(col)`. 
+The aggregators `min(col)` and `max(col)` are set to the `edge_below` and `edge_above` values from [Operation of Sum](#operation-of-sum), with the exception that `min(col)` may never be greater than `avg(col)`, `max(col)` may never be less than `avg(col)`, and `min(col)` may never be greater than `max(col)`.
 [aircloak/aircloak#3642](https://github.com/Aircloak/aircloak/issues/3642)
 [aircloak/aircloak#3643](https://github.com/Aircloak/aircloak/issues/3643)
 [aircloak/aircloak#3392](https://github.com/Aircloak/aircloak/issues/3392)
@@ -853,7 +853,7 @@ The information that needs to be generated is: `col_sum, count_duid, min_uid, ma
 - `merged_col_sum = col_sum1 + col_sum2`
 - `merged_col_min = min(col_min1, col_min2)`
 - `merged_col_max = max(col_max1, col_max2)`
-- If the two uid ranges do not overlap: 
+- If the two uid ranges do not overlap:
   - `merged_col_count = col_count1 + col_count2`
   - `merged_count_duid = count_duid1 + count_duid2`
 - If the two uid ranges touch (minimum of one set equals the maximum of the other set):
