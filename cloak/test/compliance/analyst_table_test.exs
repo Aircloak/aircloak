@@ -373,7 +373,12 @@ defmodule Compliance.AnalystTableTest do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _} = create_or_update(1, "table38", "select * from users", data_source)
 
-          assert_query("show tables", [analyst_id: 1, data_sources: [data_source]], %{rows: rows})
+          assert_query(
+            "show tables",
+            [analyst_id: 1, data_sources: [data_source], analyst_tables: %{"table38" => %{}}],
+            %{rows: rows}
+          )
+
           assert Enum.any?(rows, &(&1.row == ["table38", "personal", nil]))
         end
       end

@@ -93,17 +93,30 @@ defmodule Cloak.Query.Runner.Engine do
         ]
       )
 
-    analyst_tables =
+    known_analyst_tables = Map.get(user_selectables, :analyst_tables, %{})
+
+    {existing_tables, missing_tables} =
       Cloak.AnalystTable.cloak_tables(query.analyst_id, query.data_source, query.views)
-      |> Enum.map(
+      |> Enum.split_with(&Map.has_key?(known_analyst_tables, to_string(&1.name)))
+
+    analyst_tables =
+      Enum.map(
+        existing_tables,
         &[
           to_string(&1.name),
           display_content_type(&1.content_type),
-          user_selectables
-          |> get_in([:analyst_tables, to_string(&1.name)])
+          known_analyst_tables
+          |> Map.get(to_string(&1.name))
           |> selectable_comment()
         ]
       )
+
+    if missing_tables != [] do
+      Logger.warn(fn ->
+        names = missing_tables |> Enum.map(&to_string(&1.name)) |> Aircloak.OxfordComma.join()
+        "The following analyst tables are not synchronized with air user #{query.analyst_id}: #{names}"
+      end)
+    end
 
     views =
       query.views

@@ -8,6 +8,7 @@ defmodule Cloak.Test.QueryHelpers do
             query: query,
             parameters: Keyword.get(options, :parameters, []),
             views: Keyword.get(options, :views, quote(do: %{})),
+            analyst_tables: Keyword.get(options, :analyst_tables, quote(do: %{})),
             analyst_id: Keyword.get(options, :analyst_id),
             data_sources: Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all())),
             timeout: Keyword.get(options, :timeout, :timer.hours(1)),
@@ -15,7 +16,8 @@ defmodule Cloak.Test.QueryHelpers do
           ] do
       run_query =
         &Cloak.Query.Runner.run_sync("1", analyst_id, &1, query, parameters, %{
-          views: views
+          views: views,
+          analyst_tables: analyst_tables
         })
 
       data_sources
@@ -39,6 +41,7 @@ defmodule Cloak.Test.QueryHelpers do
             query: query,
             parameters: Keyword.get(options, :parameters, []),
             views: Keyword.get(options, :views, quote(do: %{})),
+            analyst_tables: Keyword.get(options, :analyst_tables, quote(do: %{})),
             analyst_id: Keyword.get(options, :analyst_id),
             data_sources: Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all())),
             timeout: Keyword.get(options, :timeout, :timer.hours(1)),
@@ -46,7 +49,8 @@ defmodule Cloak.Test.QueryHelpers do
           ] do
       run_query =
         &Cloak.Query.Runner.run_sync("1", analyst_id, &1, query, parameters, %{
-          views: views
+          views: views,
+          analyst_tables: analyst_tables
         })
 
       results =
