@@ -113,7 +113,7 @@ defmodule Cloak.Query.Runner.Engine do
 
     if missing_tables != [] do
       Logger.warn(fn ->
-        names = missing_tables |> Enum.map(&to_string(&1.name)) |> Enum.join(", ")
+        names = missing_tables |> Enum.map(&to_string(&1.name)) |> Aircloak.OxfordComma.join()
         "The following analyst tables are not synchronized with air user #{query.analyst_id}: #{names}"
       end)
     end
