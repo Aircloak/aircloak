@@ -157,7 +157,7 @@ SELECT ssn
 FROM table
 ```
 
-or for multiple columns, 
+or for multiple columns,
 
 ```sql
 SELECT birthdate, zip, gender
@@ -211,7 +211,7 @@ Q1: WHERE age = 10
 Q2: WHERE age + 1 = 11
 ```
 
-In principle, the cloak could interpret the math and determine that the above two expressions are identical. This can get extremely difficult, however, as the math gets more complex. Therefore for any expression that uses math, the cloak *floats* the column value by re-writing the SQL so that the column in question (here `age`) is brought up to the outer `SELECT` so that the actual selected values can be examined. 
+In principle, the cloak could interpret the math and determine that the above two expressions are identical. This can get extremely difficult, however, as the math gets more complex. Therefore for any expression that uses math, the cloak *floats* the column value by re-writing the SQL so that the column in question (here `age`) is brought up to the outer `SELECT` so that the actual selected values can be examined.
 
 However, other examples exist:
 
@@ -236,7 +236,7 @@ The cloak, however, does not detect that these semantics are identical and gener
 
 In many other cases, however, the cloak does seed properly.
 
-Text datatypes for instance are all converted to lower case for the purpose of seeding, so that the `lower()` and `upper()` functions can't be used to derive additional noise samples. 
+Text datatypes for instance are all converted to lower case for the purpose of seeding, so that the `lower()` and `upper()` functions can't be used to derive additional noise samples.
 
 ### Different syntax and semantics, but same result
 

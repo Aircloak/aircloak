@@ -16,9 +16,6 @@ erl_crash.dump
 /priv/static/frontend/
 /priv/bom.json
 /priv/dependencies.zip
-# These are automatically cleaned and copied in from cloak/docs/
-/priv/static/docs/attacks.md
-/priv/static/docs/diffix.md
 
 /doc/
 /cover/

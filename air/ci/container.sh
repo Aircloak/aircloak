@@ -36,7 +36,7 @@ function prepare_for_test {
 mount_to_aircloak VERSION common/elixir bom
 mount_to_component \
   .flowconfig .gitignore assets config datagen include lib perftest priv rel test mix.exs mix.lock Makefile \
-  README.md check_warnings.sh .formatter.exs ../cloak/docs
+  README.md check_warnings.sh .formatter.exs
 mount_cached_component deps _build .bash_history priv/static
 
 case "$1" in

@@ -46,6 +46,7 @@ defmodule AirWeb.Endpoint do
     only: ~w(frontend docs)
   )
 
+  plug(AirWeb.Plug.DiffixDocs)
   plug(AirWeb.Plug.DocsRedirect)
 
   # Code reloading can be explicitly enabled under the
