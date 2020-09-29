@@ -43,21 +43,42 @@ defmodule Cloak.Sql.Parser do
              condition: filter_clause
            }}
 
-  @type subquery :: {:subquery, %{ast: parsed_query, alias: String.t()}}
+  @type subquery :: {:subquery, %{ast: select | union, alias: String.t()}}
 
-  @type parsed_query :: %{
-          command: :select | :show | :explain,
-          columns: [column | {column, :as, String.t()} | {:*, String.t()} | :*],
-          grouping_sets: [[column]],
-          from: from_clause,
-          where: filter_clause,
-          order_by: [{column, :asc | :desc, :nulls_first | :nulls_last | :nulls_natural}],
-          having: filter_clause,
-          show: :tables | :columns,
-          limit: integer,
-          offset: integer,
-          distinct?: boolean
+  @type select ::
+          %{
+            command: :select,
+            columns: [column | {column, :as, String.t()} | {:*, String.t()} | :*],
+            grouping_sets: [[column]],
+            from: from_clause,
+            where: filter_clause,
+            order_by: [{column, :asc | :desc, :nulls_first | :nulls_last | :nulls_natural}],
+            having: filter_clause,
+            limit: integer,
+            offset: integer,
+            distinct?: boolean
+          }
+
+  @type show ::
+          %{
+            command: :show,
+            from: table,
+            show: :tables | :columns
+          }
+
+  @type union :: %{
+          command: :union,
+          distinct?: boolean,
+          from: {:union, subquery, subquery}
         }
+
+  @type explain ::
+          %{
+            command: :explain,
+            from: select
+          }
+
+  @type parsed_query :: select | show | explain | union
 
   @combine_error_regex ~r/(?<error>.*) at line (?<line>\d+), column (?<column>\d+)/
 
