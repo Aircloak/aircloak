@@ -46,6 +46,8 @@ defmodule AirWeb.Endpoint do
     only: ~w(frontend docs)
   )
 
+  plug(AirWeb.Plug.DocsRedirect)
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do
