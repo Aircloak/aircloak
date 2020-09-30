@@ -76,7 +76,7 @@ These commands will pull the desired images from `quay.io` and restart the conta
 2. Setup proper GitHub ssh access in `~/.ssh/config`. The configured user should be able to clone the aircloak repo.
 3. `mkdir -p /aircloak/quay_deploy && cd /aircloak/quay_deploy/`
 4. `git clone git@github.com:aircloak/aircloak`
-5. Ensure that `/aircloak/quay_deploy/aircloak/secrets/quay_auth_token` exists with the proper `quay.io` auth token
+5. Ensure that `/aircloak/quay_auth_token` exists with the proper `quay.io` auth token
 6. `apt-get install procmail jq uuid-runtime`
 
 ## Producing production containers
