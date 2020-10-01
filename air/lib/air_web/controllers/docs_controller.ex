@@ -29,7 +29,7 @@ defmodule AirWeb.DocsController do
   def diffix_page(conn, _params), do: serve_transformed_file(conn, "diffix.md", &strip_github_links/1)
 
   def redirect(conn, _params) do
-    if conn.path_info |> List.last() |> String.match?(~r/.html$/i) do
+    if conn.path_info |> List.last() |> String.match?(~r/\.html$/i) do
       render(conn, "redirect.html")
     else
       not_found(conn)
