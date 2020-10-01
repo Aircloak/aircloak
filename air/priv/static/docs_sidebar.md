@@ -1,4 +1,4 @@
-- Aircloak Insights – version 20.3.0-dev
+- Aircloak Insights – version %VERSION%
 
   - [Introduction](/)
 

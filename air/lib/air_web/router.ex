@@ -121,6 +121,16 @@ defmodule AirWeb.Router do
     get("/changelog", ChangelogController, :index)
   end
 
+  scope "/docs", AirWeb do
+    pipe_through([:browser, :browser_for_all])
+
+    get("/", DocsController, :index)
+    get("/_sidebar.md", DocsController, :sidebar)
+    get("/diffix.md", DocsController, :diffix_page)
+    get("/attacks.md", DocsController, :attacks_page)
+    get("/*other", DocsController, :redirect)
+  end
+
   scope "/admin", AirWeb.Admin, as: :admin do
     pipe_through([:browser, :browser_auth, :admin_only])
 

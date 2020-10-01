@@ -21,13 +21,6 @@ defmodule AirWeb.Endpoint do
   socket("/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]])
 
   plug(
-    AirWeb.Plug.Rewrite,
-    rules: %{
-      ["docs"] => ["docs", "index.html"]
-    }
-  )
-
-  plug(
     AirWeb.Plug.Redirect,
     rules: %{
       "/docs" => "/docs/"
@@ -45,9 +38,6 @@ defmodule AirWeb.Endpoint do
     gzip: false,
     only: ~w(frontend docs)
   )
-
-  plug(AirWeb.Plug.DiffixDocs)
-  plug(AirWeb.Plug.DocsRedirect)
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
