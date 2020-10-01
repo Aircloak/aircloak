@@ -20,7 +20,9 @@
   </head>
   <body>
     <%= render AirWeb.LayoutView, "_navbar.html", conn: @conn, admin: false %>
-    <div id="app"></div>
+    <div class="docsify">
+      <div id="app"></div>
+    </div>
     <script>
       window.$docsify = {
         // Branding
@@ -41,7 +43,8 @@
         alias: {
           "/.*/_sidebar.md": "/_sidebar.md"
         },
-        subMaxLevel: 2
+        subMaxLevel: 2,
+        topMargin: 60
       };
     </script>
     <script src="<%= static_path(@conn, "/frontend/app.js") %>"></script>
