@@ -278,20 +278,11 @@ body.close .docsify .sidebar {
 body.close .docsify .sidebar-toggle {
   width: auto;
 }
-body.close {
-  font-size: unset;
-  font-weight: unset;
-  text-shadow: unset;
-  color: unset;
-  line-height: unset;
-  opacity: unset;
-}
+
 body.close .docsify .content {
   left: 0;
 }
-body.close {
-  opacity: 1 !important;
-}
+
 .docsify .footer {
   margin-top: 80px !important;
 }
