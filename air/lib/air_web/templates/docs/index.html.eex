@@ -44,7 +44,13 @@
           "/.*/_sidebar.md": "/_sidebar.md"
         },
         subMaxLevel: 2,
-        topMargin: 60
+        topMargin: 60,
+        plugins: [
+          function(hook) {
+            const footer = `<%= render AirWeb.SharedView, "footer.html", conn: @conn %>`;
+            hook.afterEach(html => html + footer)
+          }
+        ]
       };
     </script>
     <script src="<%= static_path(@conn, "/frontend/app.js") %>"></script>
