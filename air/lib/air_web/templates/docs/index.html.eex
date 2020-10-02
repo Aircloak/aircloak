@@ -12,11 +12,6 @@
     <link rel="shortcut icon" href="<%= static_path(@conn, "/frontend/images/favicon.ico") %>" type="image/x-icon">
     <link rel="stylesheet" href="<%= static_path(@conn, "/frontend/app.css") %>" />
     <link rel="stylesheet" href="<%= static_path(@conn, "/docs/assets/css/vue.css") %>" />
-    <style>
-      body > main {
-        max-width: 100%;
-      }
-    </style>
   </head>
   <body>
     <%= render AirWeb.LayoutView, "_navbar.html", conn: @conn, admin: false %>
