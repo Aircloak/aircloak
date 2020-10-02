@@ -76,7 +76,7 @@ defmodule Air.Mixfile do
       {:phoenix_ecto, "~> 4.1"},
       {:phoenix_html, "~> 2.14"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:phoenix_gen_socket_client, "~> 2.1"},
+      {:phoenix_gen_socket_client, "~> 3.1"},
       {:websocket_client, "~> 1.2.4"},
       {:gettext, "~> 0.9"},
       {:plug_cowboy, "~> 2.1"},

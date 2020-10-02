@@ -36,7 +36,7 @@ defmodule Cloak.Mixfile do
       {:aircloak_common, path: "../common/elixir"},
       {:postgrex, "~> 0.15"},
       {:myxql, "~> 0.4"},
-      {:phoenix_gen_socket_client, "~> 2.0"},
+      {:phoenix_gen_socket_client, "~> 3.1"},
       {:websocket_client, "~> 1.2.4"},
       {:combine, "~> 0.10"},
       {:backoff, "~> 1.1.3"},
