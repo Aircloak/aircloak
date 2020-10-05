@@ -1,6 +1,6 @@
 # Specification for Diffix Dogwood
 
-The anonymization algorithm underlying Aircloak Insights is Diffix. The current version of Diffix is Dogwood. This section describes the operation of Diffix Dogwood.  It explains how and why Diffix Dogwood protects against [known attacks](./attacks.md#attacks-on-diffix-dogwood), thus providing strong anonymity.
+The anonymization algorithm underlying Aircloak Insights is Diffix. The current version of Diffix is Dogwood. This section describes the operation of Diffix Dogwood.  It explains how and why Diffix Dogwood protects against [known attacks](attacks.md#attacks-on-diffix-dogwood), thus providing strong anonymity.
 
 ## Table Of Contents
 
@@ -158,7 +158,7 @@ This table is refreshed every 60 days.
 
 ### Safe math functions
 
-There are a variety of functions that can throw an error in some databases, for instance divide-by-zero, numeric overflow, datetime overflow, and taking the square root of a negative number. In such databases, the error manifests itself as a error message transmitted to the analyst, which can be exploited by an attacker (see [Error generation attacks](./attacks.md#error-generation-attacks)).
+There are a variety of functions that can throw an error in some databases, for instance divide-by-zero, numeric overflow, datetime overflow, and taking the square root of a negative number. In such databases, the error manifests itself as a error message transmitted to the analyst, which can be exploited by an attacker (see [Error generation attacks](attacks.md#error-generation-attacks)).
 
 If the database allows user-defined exception handlers, then these are installed in the database, either by the cloak when it connects, through configuration of the database prior to cloak connection. If not, then the cloak modifies SQL to prevent exceptions. In both cases, errors are prevented from being transmitted to the analyst. See [Determine if safe math functions are needed](#determine-if-safe-math-functions-are-needed).
 
@@ -166,7 +166,7 @@ If the database allows user-defined exception handlers, then these are installed
 
 The [safe math functions](#safe-math-functions) unfortunately slow down query execution. To mitigate this, the cloak conservatively estimates when a math function *might* result in an exception, and only executes the safe functions in these cases.
 
-In order to make this estimate for numeric and date/time/datetime [overflow](./attacks.md#overflow) exceptions, the cloak records an anonymized minimum and maximum value for each numeric and date/time/datetime column. These recorded values are not the true minimum and maximum values, because an attacker could then detect these values through a series of queries that detect when a safe function was executed through a timing attack.
+In order to make this estimate for numeric and date/time/datetime [overflow](attacks.md#overflow) exceptions, the cloak records an anonymized minimum and maximum value for each numeric and date/time/datetime column. These recorded values are not the true minimum and maximum values, because an attacker could then detect these values through a series of queries that detect when a safe function was executed through a timing attack.
 [aircloak/aircloak#3780](https://github.com/Aircloak/aircloak/issues/3780)
 
 With high (but not 100%) probability, the approximated min and max exceed the true min and max. For numeric columns they are computed as follows:
@@ -203,7 +203,7 @@ Even if the SQL satisfies the above syntax, there are a number of specific uses 
 
 ### Inequalities
 
-While the cloak allows inequality operators (`> | >= | < | <=`), there are restrictions on how they may be used. In general, the cloak requires that both sides of an inequality be specified. This is necessary to prevent difference attacks using [range creep with averaging](./attacks.md#range-creep-with-averaging).
+While the cloak allows inequality operators (`> | >= | < | <=`), there are restrictions on how they may be used. In general, the cloak requires that both sides of an inequality be specified. This is necessary to prevent difference attacks using [range creep with averaging](attacks.md#range-creep-with-averaging).
 
 This document refers to all inequalities that are bounded on both sides as *ranges*.
 
@@ -261,7 +261,7 @@ WHERE number IN (1, 2, 3)
 
 #### In general
 
-In order to prevent [SQL backdoor attacks](./attacks.md#sql-backdoor-attacks), the cloak limits the complexity of certain math in queries. We are particulary concerned with discontinuous functions combined with constants because they can be coerced into acting as discrete logic. However, there are many ways of obtaining discontinuous functions, for instance string manipulations (for instance `left`, `ltrim`) followed by casting to numbers, or datetime functions (for instance `year` or `hour`). In addition, functions can be coerced into constants, as for instance `pow(col1, col2-col2)` is 1.
+In order to prevent [SQL backdoor attacks](attacks.md#sql-backdoor-attacks), the cloak limits the complexity of certain math in queries. We are particulary concerned with discontinuous functions combined with constants because they can be coerced into acting as discrete logic. However, there are many ways of obtaining discontinuous functions, for instance string manipulations (for instance `left`, `ltrim`) followed by casting to numbers, or datetime functions (for instance `year` or `hour`). In addition, functions can be coerced into constants, as for instance `pow(col1, col2-col2)` is 1.
 
 We take a conservative approach and limit the number of expressions containing a restricted function and a constant, or more than one restricted function to a total of 5.
 
@@ -269,7 +269,7 @@ The restricted functions and operators include `+`, `-`, `/`, `*`, `^`, `%`, `ab
 
 #### With isolating columns
 
-In order to prevent [Linear program reconstruction](./attacks.md#linear-program-reconstruction) attacks, the cloak places even more restrictions on expressions associated with [isolating columns](#isolating-column-label). An isolating column is one where 80% or more of the values in the column are associated with only a single user. These columns would otherwise be susceptible to linear program reconstruction attacks because they may be used to select groups of individual users.
+In order to prevent [Linear program reconstruction](attacks.md#linear-program-reconstruction) attacks, the cloak places even more restrictions on expressions associated with [isolating columns](#isolating-column-label). An isolating column is one where 80% or more of the values in the column are associated with only a single user. These columns would otherwise be susceptible to linear program reconstruction attacks because they may be used to select groups of individual users.
 
 The operators `IN` (with more than one element) and `<>` are disallowed for isolating columns. This prevents easily isolating individual users, or controling which individual users comprise an answer.
 
@@ -297,11 +297,11 @@ For isolating columns, the `%_` wildcards associated with `[NOT] [I]LIKE` is lim
 
 ### Limitations due to shadow table
 
-To mitigate [noise exploitation attacks through chaff conditions](./attacks.md#through-chaff-conditions), negative conditions and `IN` right-hand-side elements are disallowed if the corresponding constant does not appear in the shadow table.
+To mitigate [noise exploitation attacks through chaff conditions](attacks.md#through-chaff-conditions), negative conditions and `IN` right-hand-side elements are disallowed if the corresponding constant does not appear in the shadow table.
 [aircloak/aircloak#2273](https://github.com/Aircloak/aircloak/issues/2273)
 [aircloak/aircloak#3557](https://github.com/Aircloak/aircloak/issues/3557)
 
-Note that this mechanism does not prevent isolation in all cases. The shadow table is based on the complete column. Any given query, however, may have conditions that cover only part of the column.  A constant may therefore appear in the shadow table and still not have any matching rows in the context of a given query. For instance, the condition `gender <> 'F'` may not be chaff in the `pro_football_players` table, but may be chaff when combined with `tournament = 'fifa world cup'`. However, executing an effective attack by exploiting this mechanism is essentially not possible (see [Shadow table exploitation attack](./attacks.md#shadow-table-exploitation-attack)).
+Note that this mechanism does not prevent isolation in all cases. The shadow table is based on the complete column. Any given query, however, may have conditions that cover only part of the column.  A constant may therefore appear in the shadow table and still not have any matching rows in the context of a given query. For instance, the condition `gender <> 'F'` may not be chaff in the `pro_football_players` table, but may be chaff when combined with `tournament = 'fifa world cup'`. However, executing an effective attack by exploiting this mechanism is essentially not possible (see [Shadow table exploitation attack](attacks.md#shadow-table-exploitation-attack)).
 
 ### Conditions with two columns
 
@@ -324,7 +324,7 @@ Normally queries with SQL that does not conform to the requirements of the cloak
 
 ### Snapped Ranges
 
-In order to prevent difference attacks using [range creep with averaging](./attacks.md#range-creep-with-averaging), all ranges must conform to pre-designated widths and offsets.
+In order to prevent difference attacks using [range creep with averaging](attacks.md#range-creep-with-averaging), all ranges must conform to pre-designated widths and offsets.
 [aircloak/aircloak#4486](https://github.com/Aircloak/aircloak/issues/4486)
 
 In the case of numeric data types, the widths must fall within the following infinite sequence of widths: `[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, ...`]. The offset must fall on an even multiple of the width, or an even multiple plus 1/2 of the width. The following are allowed:
@@ -447,7 +447,7 @@ For simplicity, these substitutions are not shown in the [example database query
 
 ### Add protection against JOIN timing attack
 
-As described in the [JOIN timing attack](./attacks.md#join-timing-attack), an analyst can strongly influence query execution time in the database by including `JOIN` expressions that may return an empty table.
+As described in the [JOIN timing attack](attacks.md#join-timing-attack), an analyst can strongly influence query execution time in the database by including `JOIN` expressions that may return an empty table.
 [aircloak/aircloak#3691](https://github.com/Aircloak/aircloak/issues/3691)
 [aircloak/aircloak#4083](https://github.com/Aircloak/aircloak/issues/4083)
 [aircloak/aircloak#4164](https://github.com/Aircloak/aircloak/issues/4164)
@@ -486,7 +486,7 @@ The original `JOIN` expression is the part above the `UNION`. It is repeated wit
 
 ### Add protection against divide-by-zero attacks
 
-To defend against [Divide by zero](./attacks.md#divide-by-zero) attacks, the cloak modifies any expression having a column in the denominator of a divide operation so that NULL is generated instead of an exception.
+To defend against [Divide by zero](attacks.md#divide-by-zero) attacks, the cloak modifies any expression having a column in the denominator of a divide operation so that NULL is generated instead of an exception.
 
 This is done using a `CASE` statement that detects when the denominator is zero (or nearly so), and substitutes a NULL. For example, in the condition:
 
@@ -504,7 +504,7 @@ END
 
 ### Add protection against square root of negative numbers
 
-To defend against [Square root of a negative number](./attacks.md#square-root-of-a-negative-number) attacks, the cloak modifies any expression having a column in a square root opeation that NULL is generated instead of an exception.
+To defend against [Square root of a negative number](attacks.md#square-root-of-a-negative-number) attacks, the cloak modifies any expression having a column in a square root opeation that NULL is generated instead of an exception.
 
 This is done using a `CASE` statement that detects when the expression in the square root operation is negative, and substitutes a NULL.  For example, in the condition:
 
@@ -539,7 +539,7 @@ Each filter condition has a static noise layer, and most filter conditions addit
 
 In addition, there is a generic noise layer for queries that otherwise have no noise layer (because no filter conditions). The query `SELECT count(*) FROM table` is such a query.
 
-The aggregation function `count(col)` is given an additional UID-noise layer. The purpose of this noise layer is to defend against the [Difference attack with counting NULL](./attacks.md#difference-attack-with-counting-null).
+The aggregation function `count(col)` is given an additional UID-noise layer. The purpose of this noise layer is to defend against the [Difference attack with counting NULL](attacks.md#difference-attack-with-counting-null).
 
 Ranges, as well as the implicit ranges `bucket()`, `round()`, and `trunc()`, do not have a UID-noise layer, only a static noise layer. This is to defend against noise exploitation attacks [through chaff conditions](attacks.md#through-chaff-conditions).
 [aircloak/aircloak#3931](https://github.com/Aircloak/aircloak/issues/3931)
@@ -626,7 +626,7 @@ For example, suppose a column contains user salary. Suppose that the average sal
 
 We want to adjust the value of the extreme contribution (2M) so that it is more like those of the heavy contributors. If the aggregate is `sum()`, this effectively means reducing the reported sum by around 1.5M. We call this adjustment "flattening". We want to then add noise proportional to that of the heavy contributors, for instance proportional to around 500K.
 
-The rational for these perturbations is as follows. Assume that an analyst is able to forumlate two queries, one whose answer does not include the victim (the left query), and one that may include the victim (the right query). The analyst wants to compare answers to determine if the victim is present in the right query or not. If the right answer is greater than the left answer, for instance, the analyst may assume that the victim is present in the right answer. This is the basic [Difference attack](./attacks.md#difference-attacks).
+The rational for these perturbations is as follows. Assume that an analyst is able to forumlate two queries, one whose answer does not include the victim (the left query), and one that may include the victim (the right query). The analyst wants to compare answers to determine if the victim is present in the right query or not. If the right answer is greater than the left answer, for instance, the analyst may assume that the victim is present in the right answer. This is the basic [Difference attack](attacks.md#difference-attacks).
 
 There needs to be enough noise that the analyst's confidence in a guess as to the presence or absence of the victim in the right query is low.
 
@@ -867,7 +867,7 @@ The information that needs to be generated is: `col_sum, count_duid, min_uid, ma
 
 ### Reporting noise
 
-For each of the aggregation functions `count()`, `sum()`, `avg()`, and `stddev()`, the cloak provides corresponding `aggr_noise()` functions (`count_noise()` etc.). The ideal here would be to report the exact standard deviation of the actual noise added by the cloak. Doing so, however, opens the cloak to a [Noise signal attack](./attacks.md#noise-signal-attack). This is because the `min` and `max` values from the set of aggregated values have a substantial influence on the noise standard deviation. In the aggregate value itself, this influence is somewhat hidden by the presence of the other values and by flattening.
+For each of the aggregation functions `count()`, `sum()`, `avg()`, and `stddev()`, the cloak provides corresponding `aggr_noise()` functions (`count_noise()` etc.). The ideal here would be to report the exact standard deviation of the actual noise added by the cloak. Doing so, however, opens the cloak to a [Noise signal attack](attacks.md#noise-signal-attack). This is because the `min` and `max` values from the set of aggregated values have a substantial influence on the noise standard deviation. In the aggregate value itself, this influence is somewhat hidden by the presence of the other values and by flattening.
 
 To hide the influence in the reported noise, the cloak reports a value close to but different from the true noise standard deviation. The larger the contribution of the extreme user, the larger the distortion. (Note that in any event, the larger the contribution of the extreme user, the greater the amount of flattening, and so the reported noise is not a good representation of the total distortion.)
 
