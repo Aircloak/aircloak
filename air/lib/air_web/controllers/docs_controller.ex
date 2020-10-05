@@ -22,11 +22,14 @@ defmodule AirWeb.DocsController do
 
   def index(conn, _params), do: render(conn, "index.html")
 
-  def sidebar(conn, _params), do: serve_transformed_file(conn, "docs_sidebar.md", &replace_version/1)
+  def sidebar(conn, _params),
+    do: serve_transformed_markdown_file(conn, "docs_sidebar.md", &replace_version/1)
 
-  def attacks_page(conn, _params), do: serve_transformed_file(conn, "attacks.md", &strip_github_links/1)
+  def attacks_page(conn, _params),
+    do: serve_transformed_markdown_file(conn, "attacks.md", &strip_github_links/1)
 
-  def diffix_page(conn, _params), do: serve_transformed_file(conn, "diffix.md", &strip_github_links/1)
+  def diffix_page(conn, _params),
+    do: serve_transformed_markdown_file(conn, "diffix.md", &strip_github_links/1)
 
   def redirect(conn, _params) do
     if conn.path_info |> List.last() |> String.match?(~r/\.html$/i) do
@@ -40,7 +43,7 @@ defmodule AirWeb.DocsController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp serve_transformed_file(conn, file_name, fun) do
+  defp serve_transformed_markdown_file(conn, file_name, fun) do
     with {:ok, content} <- File.read(file_path(file_name)) do
       conn
       |> put_resp_content_type("text/markdown")
