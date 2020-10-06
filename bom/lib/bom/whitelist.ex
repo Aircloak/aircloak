@@ -49,7 +49,9 @@ defmodule BOM.Whitelist do
     # node/sha.js
     "71f5a3fe755d4bb9cb62b97bdad36e45" => :mit,
     # node/tslib
-    "f938d99cba29007eeae26d80a9a4cfa6" => :bsd_0_clause
+    "f938d99cba29007eeae26d80a9a4cfa6" => :bsd_0_clause,
+    # node/dompurify
+    "0c419ae0ef32e42c7f620d5d2cac30aa" => :apache2
   }
 
   @not_shipped %{
