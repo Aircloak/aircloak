@@ -11,7 +11,7 @@
     />
     <link rel="shortcut icon" href="<%= static_path(@conn, "/frontend/images/favicon.ico") %>" type="image/x-icon">
     <link rel="stylesheet" href="<%= static_path(@conn, "/frontend/app.css") %>" />
-    <link rel="stylesheet" href="<%= static_path(@conn, "/docs/assets/css/vue.css") %>" />
+    <link rel="stylesheet" href="<%= static_path(@conn, "/frontend/docs.css") %>" />
   </head>
   <body>
     <%= render AirWeb.LayoutView, "_navbar.html", conn: @conn, admin: false %>
@@ -48,13 +48,7 @@
         ]
       };
     </script>
-    <script src="<%= static_path(@conn, "/frontend/app.js") %>"></script>
-    <script src="<%= static_path(@conn, "/docs/assets/js/docsify.min.js") %>"></script>
-    <script src="<%= static_path(@conn, "/docs/assets/js/search.min.js") %>"></script>
-    <script src="<%= static_path(@conn, "/docs/assets/js/docsify-tabs.min.js") %>"></script>
-    <script src="<%= static_path(@conn, "/docs/assets/js/prism-sql.min.js") %>"></script>
-    <script src="<%= static_path(@conn, "/docs/assets/js/prism-json.min.js") %>"></script>
-    <script src="<%= static_path(@conn, "/docs/assets/js/prism-bash.min.js") %>"></script>
-    <script src="<%= static_path(@conn, "/docs/assets/js/prism-ruby.min.js") %>"></script>
+    <script async src="<%= static_path(@conn, "/frontend/app.js") %>"></script>
+    <script async src="<%= static_path(@conn, "/frontend/docs.js") %>"></script>
   </body>
 </html>
