@@ -20,6 +20,9 @@ defmodule Cloak.DataSource.TiDB do
   defdelegate load_tables(connection, table), to: MySQL
 
   @impl Driver
+  defdelegate load_comments(connection, table), to: MySQL
+
+  @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: MySQL
 
   @impl Driver

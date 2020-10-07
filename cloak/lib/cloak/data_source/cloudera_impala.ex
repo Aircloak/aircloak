@@ -38,7 +38,40 @@ defmodule Cloak.DataSource.ClouderaImpala do
       connection
       |> RODBC.load_tables(table)
       |> Enum.map(&update_column_names/1)
-      |> Enum.map(&load_comments(connection, &1))
+
+  @impl Driver
+  def load_comments(connection, table) do
+    table_comment =
+      connection
+      |> select("DESCRIBE EXTENDED #{table.db_name}")
+      |> case do
+        {:ok, results} ->
+          results
+          |> Enum.find_value(nil, fn
+            ["", "comment" <> _, comment] -> comment
+            _ -> nil
+          end)
+
+        _ ->
+          nil
+      end
+
+    column_comments =
+      connection
+      |> select("DESCRIBE #{table.db_name}")
+      |> case do
+        {:ok, results} ->
+          results
+          |> Enum.reject(fn [_name, _type, comment] -> is_nil(comment) end)
+          |> Enum.map(fn [name, _type, comment] -> {name, comment} end)
+          |> Enum.into(%{})
+
+        _ ->
+          %{}
+      end
+
+    {table_comment, column_comments}
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -59,43 +92,6 @@ defmodule Cloak.DataSource.ClouderaImpala do
       UID: normalized_parameters[:username],
       PWD: normalized_parameters[:password]
     }
-  end
-
-  defp load_comments(connection, table) do
-    table_comments =
-      connection
-      |> select("DESCRIBE EXTENDED #{table.db_name}")
-      |> case do
-        {:ok, results} ->
-          results
-          |> Enum.find_value(nil, fn
-            ["", "comment" <> _, comment] -> comment
-            _ -> nil
-          end)
-
-        {:error, _} ->
-          %{}
-      end
-
-    column_comments =
-      connection
-      |> select("DESCRIBE #{table.db_name}")
-      |> case do
-        {:ok, results} ->
-          results
-          |> Enum.reject(fn [_name, _type, comment] -> is_nil(comment) end)
-          |> Enum.map(fn [name, _type, comment] -> {name, comment} end)
-          |> Enum.into(%{})
-
-        {:error, _} ->
-          %{}
-      end
-
-    comments =
-      %{table: table_comments, columns: column_comments}
-      |> Aircloak.deep_merge(Map.get(table, :comments, %{}))
-
-    Map.put(table, :comments, comments)
   end
 
   defp custom_mappers() do

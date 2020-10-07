@@ -4,6 +4,10 @@
 
 - Fixed crash when loading data source tables in the sidebar.
 
+### Changes
+
+- Automatic comment loading can be disabled for data sources by setting the `load_comments` flag to `false`.
+
 ## Version 20.2.0
 
 ### **Breaking changes**

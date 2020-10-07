@@ -11,7 +11,8 @@
     "lcf_buckets_aggregation_limit": {"type": "integer", "minimum": 0},
     "max_rare_negative_conditions": {"type": "integer", "minimum": 0},
     "analyst_tables_enabled": {"type": "boolean"},
-    "bound_computation_enabled": {"type": "boolean"}
+    "bound_computation_enabled": {"type": "boolean"},
+    "load_comments": {"type": "boolean"}
   },
   "additionalProperties": false,
   "required": ["name", "driver", "parameters", "tables"],
