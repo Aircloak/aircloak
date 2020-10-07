@@ -315,7 +315,7 @@ defmodule Cloak.DataSource.Table do
 
   defp load_comments(table, connection, data_source) do
     {table_comment, column_comments} =
-      if Map.get(data_source, :load_comments, true) do
+      unless data_source[:load_comments] == false do
         data_source.driver.load_comments(connection, table)
       else
         {nil, %{}}
