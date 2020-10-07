@@ -21,13 +21,6 @@ defmodule AirWeb.Endpoint do
   socket("/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]])
 
   plug(
-    AirWeb.Plug.Rewrite,
-    rules: %{
-      ["docs"] => ["docs", "index.html"]
-    }
-  )
-
-  plug(
     AirWeb.Plug.Redirect,
     rules: %{
       "/docs" => "/docs/"

@@ -1,1 +1,1 @@
-../../air/docs/content/aircloak_udfs.sql
+../../air/priv/static/docs/aircloak_udfs.sql

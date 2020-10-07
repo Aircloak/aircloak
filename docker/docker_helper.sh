@@ -417,8 +417,8 @@ function registry_v2_req {
   url="https://quay.io/v2/auth?$auth_params"
   url=${url%$'\r'} # remove trailing \n
 
-  # 4. read user auth token from the secrets folder and use it to fetch operation auth token
-  quay_auth_token=$(cat $(dirname ${BASH_SOURCE[0]})/../secrets/quay_auth_token)
+  # 4. read user auth token and use it to fetch operation auth token
+  quay_auth_token=$(cat /aircloak/quay_auth_token)
   operation_token=$(curl -s -H "Authorization: Basic $quay_auth_token" "$url" | jq --raw-output ".token")
 
   # 5. Now we can make authorized request

@@ -15,7 +15,6 @@ defmodule Air.Mixfile do
         :erlang,
         :elixir,
         :auto_completion,
-        :user_docs,
         :app
       ],
       build_embedded: Mix.env() == :prod,

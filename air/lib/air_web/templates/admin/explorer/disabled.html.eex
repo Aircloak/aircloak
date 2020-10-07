@@ -19,8 +19,8 @@
       <h3 class="h4  font-weight-light">How to get started?</h3>
       <p>Setting up Diffix Explorer is easy:</p>
       <ol>
-        <li><a href="/docs/ops/installation.html#diffix-explorer" target="_blank">Deploy Diffix Explorer in you infrastructure.</a></li>
-        <li><a href="/docs/ops/configuration.html#diffix-explorer-configuration" target="_blank">Add a config key to your Air deployment config.</a></li>
+        <li><a href="/docs/#/ops/installation?id=diffix-explorer" target="_blank">Deploy Diffix Explorer in you infrastructure.</a></li>
+        <li><a href="/docs/#/ops/configuration?id=diffix-explorer-configuration" target="_blank">Add a config key to your Air deployment config.</a></li>
         <li>Come back to configure which tables to analyze.</li>
       </ol>
     </div>

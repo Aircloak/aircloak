@@ -23,18 +23,8 @@ function build_release {
 
   # need to touch these files to ensure that they are mounted as files
   mkdir -p $(pwd)/$(air_cache_folder)/priv
-  mkdir -p $(pwd)/$(air_cache_folder)/docs/content/
 
   touch -a $(pwd)/$(air_cache_folder)/priv/dependencies.zip
-  touch -a $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.epub
-  touch -a $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.pdf
-  touch -a $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.mobi
-
-  echo "Cleaning caches at $(pwd)/air"
-  # remove stale dependencies in order to not inflate the image
-  rm -f $(pwd)/air/priv/static/*.gz
-  rm -f $(pwd)/air/priv/static/*-*.*
-  rm -rf $(pwd)/air/priv/static/{css,fonts,frontend,js,images}
 
   docker run --rm -i \
     -v $(pwd)/VERSION:/aircloak/VERSION \
@@ -45,12 +35,7 @@ function build_release {
     -v $(pwd)/$(air_cache_folder)/_build:/aircloak/air/_build \
     -v $(pwd)/$(air_cache_folder)/deps:/aircloak/air/deps \
     -v $(pwd)/$(air_cache_folder)/assets/node_modules:/aircloak/air/assets/node_modules \
-    -v $(pwd)/$(air_cache_folder)/docs/node_modules:/aircloak/air/docs/node_modules \
     -v $(pwd)/$(air_cache_folder)/priv/dependencies.zip:/aircloak/air/priv/dependencies.zip \
-    -v $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.epub:/aircloak/air/docs/content/aircloak-docs.epub \
-    -v $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.pdf:/aircloak/air/docs/content/aircloak-docs.pdf \
-    -v $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.mobi:/aircloak/air/docs/content/aircloak-docs.mobi \
-    -v $(pwd)/$(air_cache_folder)/.gitbook:/root/.gitbook \
     -v $(pwd)/$(air_cache_folder)/cloak/deps:/aircloak/cloak/deps \
     -v $(pwd)/$(air_cache_folder)/bom/deps:/aircloak/bom/deps \
     -v $(pwd)/$(air_cache_folder)/bom/_build:/aircloak/bom/_build \

@@ -43,7 +43,11 @@ $gray-600: #6e6e6e;
 @import "~bootstrap/scss/_progress";
 // @import "~bootstrap/scss/_media";
 @import "~bootstrap/scss/_list-group";
-@import "~bootstrap/scss/_close";
+// Note: we are scoping this to a div to avoid a styling conflict with docsify.js
+// which attaches the `.close` class to the body element.
+div {
+  @import "~bootstrap/scss/_close";
+}
 // @import "~bootstrap/scss/_toasts";
 @import "~bootstrap/scss/_modal";
 @import "~bootstrap/scss/_tooltip";

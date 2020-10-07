@@ -51,7 +51,6 @@ Once the language environment is setup, run the following two commands to downlo
 
 - `mix deps.get` installs our elixir and erlang dependencies
 - `cd assets && yarn install` installs our node dependencies
-- `cd docs && yarn install` installs documentation dependencies
 
 Before you run the application for the first time, you also need to make sure you initialize the database
 with `make recreate-db`

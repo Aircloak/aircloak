@@ -41,6 +41,8 @@ function build_image {
     git fetch
     git checkout $(build_branch)
     git reset --hard origin/$(build_branch)
+    rm -rf tmp
+    git clean -f -d -x
     echo 'Building the image'
     CONTAINER_ENV=prod MPI=true IMAGE_CATEGORY=$DEPLOYMENT_NAME PERFORM_VERSION_CHECK=$PERFORM_VERSION_CHECK $(build_folder $1)/package.sh
 

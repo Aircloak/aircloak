@@ -53,11 +53,11 @@ remove the links before copy.
 
 ## Things to note
 
-**diffix.md** contains the following gitbook link:
+**diffix.md** contains the following link:
 
-`{% include "sql/syntax.md" %}`
+`[filename](sql/_syntax.md ':include')`
 
-This link works from the directory `aircloak/air/docs/content/` where
+This link works from the directory `aircloak/air/priv/static/docs/` where
 the online documentation resides. In any public copy of **diffix.md**,
 the link must be replaced with the actual syntax.
 
