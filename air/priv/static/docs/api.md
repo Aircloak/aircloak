@@ -7,10 +7,9 @@ programatically executing queries is through the [PostgreSQL Message Protocol se
 
 All API access is authenticated, as explained in [the authentication section](#authentication).
 
-## Authentication <!-- {docsify-ignore} -->
+## Authentication
 
 All APIs are authenticated using API tokens. You need to pass the token in each API request through the `auth-token` header.
-
 
 <!-- tabs:start -->
 

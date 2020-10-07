@@ -7,12 +7,11 @@ from the "Access" dropdown.
 
 After that the endpoint can be accessed at `http://AirWeb.Endpoint:8081/?auth_token=<your monitoring token>`.
 
-## Data format <!-- {docsify-ignore} -->
+## Data format
 
 The endpoint presents data as the following JSON structure:
 
-<pre class="inlined">
-  <code>
+```json
 {
   "version": "the air version",
   "uptime": "time in seconds since the air component started",
@@ -69,8 +68,7 @@ The endpoint presents data as the following JSON structure:
     }
   ]
 }
-  </code>
-</pre>
+```
 
 Please note that the memory statistics given for the cloaks are the minimum values seen within the
 given time period. Furthermore, all the measurements are in bytes.

@@ -1,6 +1,6 @@
 # Errors
 
-## Status codes <!-- {docsify-ignore} -->
+## Status codes
 
 The Aircloak REST API uses the following error codes:
 

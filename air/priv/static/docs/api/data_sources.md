@@ -1,6 +1,6 @@
 # Data sources
 
-## Get the list of all data sources <!-- {docsify-ignore} -->
+## Get the list of all data sources
 
 <!-- tabs:start -->
 
