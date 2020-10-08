@@ -279,6 +279,43 @@ You can play similar tricks with times, dates, and datetimes by using the functi
 For example `date_trunc('hour', '12:22:44.004200')` would turn the time into one at hour resolution: `12:00:00.000000`.
 This value is more likely to pass the low count filter than the high resolution time value would be.
 
+## Using grouping sets
+
+A way to extract a good amount of data from Aircloak is to try different groupings of columns. A quick way is to use 
+the `CUBE` clause. 
+
+```sql
+SELECT first_name, last_name, gender, count(*), sum(age)
+FROM table
+GROUP BY CUBE(first_name, last_name, gender)
+```
+
+Would produce after low count filtering the following table:
+
+| first_name | last_name | gender | count | sum(age) |
+| -----------|-----------|--------|-------|----------|
+| Bob        | null      | M      | 4     |       40 |
+| Bob        | null      | null   | 4     |       40 |
+| null       | Anderson  | F      | 4     |       65 |
+| null       | Anderson  | null   | 5     |       75 |
+| null       | null      | F      | 4     |       65 |
+| null       | null      | M      | 4     |       40 |
+| null       | null      | null   | 8     |      105 |
+
+
+Of course Aircloak would adjust the values of the aggregates, but it still is an effective technique to get a wide
+view of the underlying data.
+
+Another useful technique is by increasing resolution of timestamps:
+
+```sql
+SELECT YEAR(date), MONTH(date), DAY(date), sum(price)
+FROM sales
+GROUP BY ROLLUP(1,2,3)
+```
+
+would neatly show breakdowns down to days on days where there is sufficient data, but at least shows coarser aggregates for where data is insufficient.
+
 ## Null values and counts of 2
 
 In most dialects of SQL all but the `count` aggregate may produce a `null` value. The `count` aggregate would, lacking
