@@ -279,9 +279,9 @@ You can play similar tricks with times, dates, and datetimes by using the functi
 For example `date_trunc('hour', '12:22:44.004200')` would turn the time into one at hour resolution: `12:00:00.000000`.
 This value is more likely to pass the low count filter than the high resolution time value would be.
 
-## Using [grouping sets](https://www.postgresql.org/docs/current/queries-table-expressions.html#QUERIES-GROUPING-SETS)
+## Using grouping sets
 
-A way to extract a good amount of data from Aircloak is to try different groupings of columns. A quick way is to use
+A way to extract a good amount of data from Aircloak is to try different groupings of columns with [grouping sets](https://www.postgresql.org/docs/current/queries-table-expressions.html#QUERIES-GROUPING-SETS). A quick way is to use
 the `CUBE` clause.
 
 ```sql
