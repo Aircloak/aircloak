@@ -8,7 +8,7 @@ In the following examples we will pretend we are querying a database containing 
 raw data:
 
 | first_name | last_name | age | zip_code | gender |
-|------------|-----------|-----|----------|--------|
+| ---------- | --------- | --- | -------- | ------ |
 | Alice      | Anderson  | 10  | 10000    | F      |
 | Amanda     | Anderson  | 20  | 11000    | F      |
 | Amy        | Anderson  | 15  | 11000    | F      |
@@ -35,7 +35,7 @@ you would be given the exact zip code and gender values as they appear in the da
 The anonymized result might look something like this:
 
 | zip_code | gender | count |
-|----------|--------|-------|
+| -------- | ------ | ----- |
 | 11000    | F      | 3     |
 | 10000    | M      | 4     |
 
@@ -85,68 +85,68 @@ In the example tables below we will add a metadata column as the first column, s
 unique users share a set of column values. The initial value of 1 for each row
 indicates that each combination of column values only exists once:
 
-| # individuals |  first_name | last_name | age | zip_code | gender |
-|---------------| ------------|-----------|-----|----------|--------|
-| 1             |  Alice      | Anderson  | 10  | 10000    | F      |
-| 1             |  Amanda     | Anderson  | 20  | 11000    | F      |
-| 1             |  Amy        | Anderson  | 15  | 11000    | F      |
-| 1             |  Anna       | Anderson  | 20  | 11000    | F      |
-| 1             |  Bob        | Anderson  | 10  | 10000    | M      |
-| 1             |  Bob        | Barlow    | 10  | 10000    | M      |
-| 1             |  Bob        | Boyle     | 10  | 10000    | M      |
-| 1             |  Bob        | Buckner   | 10  | 10000    | M      |
+| # individuals | first_name | last_name | age | zip_code | gender |
+| ------------- | ---------- | --------- | --- | -------- | ------ |
+| 1             | Alice      | Anderson  | 10  | 10000    | F      |
+| 1             | Amanda     | Anderson  | 20  | 11000    | F      |
+| 1             | Amy        | Anderson  | 15  | 11000    | F      |
+| 1             | Anna       | Anderson  | 20  | 11000    | F      |
+| 1             | Bob        | Anderson  | 10  | 10000    | M      |
+| 1             | Bob        | Barlow    | 10  | 10000    | M      |
+| 1             | Bob        | Boyle     | 10  | 10000    | M      |
+| 1             | Bob        | Buckner   | 10  | 10000    | M      |
 
 The rightmost column is dropped first. In this case this is the gender column since it was the
 rightmost selected column in the query:
 
-| # individuals |  first_name | last_name | age | zip_code | gender |
-|---------------| ------------|-----------|-----|----------|--------|
-| 1             |  Alice      | Anderson  | 10  | 10000    | *      |
-| 1             |  Amanda     | Anderson  | 20  | 11000    | *      |
-| 1             |  Amy        | Anderson  | 15  | 11000    | *      |
-| 1             |  Anna       | Anderson  | 20  | 11000    | *      |
-| 1             |  Bob        | Anderson  | 10  | 10000    | *      |
-| 1             |  Bob        | Barlow    | 10  | 10000    | *      |
-| 1             |  Bob        | Boyle     | 10  | 10000    | *      |
-| 1             |  Bob        | Buckner   | 10  | 10000    | *      |
+| # individuals | first_name | last_name | age | zip_code | gender |
+| ------------- | ---------- | --------- | --- | -------- | ------ |
+| 1             | Alice      | Anderson  | 10  | 10000    | \*     |
+| 1             | Amanda     | Anderson  | 20  | 11000    | \*     |
+| 1             | Amy        | Anderson  | 15  | 11000    | \*     |
+| 1             | Anna       | Anderson  | 20  | 11000    | \*     |
+| 1             | Bob        | Anderson  | 10  | 10000    | \*     |
+| 1             | Bob        | Barlow    | 10  | 10000    | \*     |
+| 1             | Bob        | Boyle     | 10  | 10000    | \*     |
+| 1             | Bob        | Buckner   | 10  | 10000    | \*     |
 
 Each set of column value combinations is still uniquely identifying a user, so
 the next rightmost column gets replaced. In this case that is the zip code:
 
-| # individuals |  first_name | last_name | age | zip_code | gender |
-|---------------| ------------|-----------|-----|----------|--------|
-| 1             |  Alice      | Anderson  | 10  | *        | *      |
-| 1             |  Amanda     | Anderson  | 20  | *        | *      |
-| 1             |  Amy        | Anderson  | 15  | *        | *      |
-| 1             |  Anna       | Anderson  | 20  | *        | *      |
-| 1             |  Bob        | Anderson  | 10  | *        | *      |
-| 1             |  Bob        | Barlow    | 10  | *        | *      |
-| 1             |  Bob        | Boyle     | 10  | *        | *      |
-| 1             |  Bob        | Buckner   | 10  | *        | *      |
+| # individuals | first_name | last_name | age | zip_code | gender |
+| ------------- | ---------- | --------- | --- | -------- | ------ |
+| 1             | Alice      | Anderson  | 10  | \*       | \*     |
+| 1             | Amanda     | Anderson  | 20  | \*       | \*     |
+| 1             | Amy        | Anderson  | 15  | \*       | \*     |
+| 1             | Anna       | Anderson  | 20  | \*       | \*     |
+| 1             | Bob        | Anderson  | 10  | \*       | \*     |
+| 1             | Bob        | Barlow    | 10  | \*       | \*     |
+| 1             | Bob        | Boyle     | 10  | \*       | \*     |
+| 1             | Bob        | Buckner   | 10  | \*       | \*     |
 
 The zip code column is then followed by the age column:
 
-| # individuals |  first_name | last_name | age | zip_code | gender |
-|---------------| ------------|-----------|-----|----------|--------|
-| 1             |  Alice      | Anderson  | *   | *        | *      |
-| 1             |  Amanda     | Anderson  | *   | *        | *      |
-| 1             |  Amy        | Anderson  | *   | *        | *      |
-| 1             |  Anna       | Anderson  | *   | *        | *      |
-| 1             |  Bob        | Anderson  | *   | *        | *      |
-| 1             |  Bob        | Barlow    | *   | *        | *      |
-| 1             |  Bob        | Boyle     | *   | *        | *      |
-| 1             |  Bob        | Buckner   | *   | *        | *      |
+| # individuals | first_name | last_name | age | zip_code | gender |
+| ------------- | ---------- | --------- | --- | -------- | ------ |
+| 1             | Alice      | Anderson  | \*  | \*       | \*     |
+| 1             | Amanda     | Anderson  | \*  | \*       | \*     |
+| 1             | Amy        | Anderson  | \*  | \*       | \*     |
+| 1             | Anna       | Anderson  | \*  | \*       | \*     |
+| 1             | Bob        | Anderson  | \*  | \*       | \*     |
+| 1             | Bob        | Barlow    | \*  | \*       | \*     |
+| 1             | Bob        | Boyle     | \*  | \*       | \*     |
+| 1             | Bob        | Buckner   | \*  | \*       | \*     |
 
 Even replacing the age column does not produce rows with column values that wouldn't be
 uniquely identifying. The next row to be taken away is the last name column:
 
 | # individuals | first_name | last_name | age | zip_code | gender |
-|---------------|------------|-----------|-----|----------|--------|
-| 1             | Alice      | *         | *   | *        | *      |
-| 1             | Amanda     | *         | *   | *        | *      |
-| 1             | Amy        | *         | *   | *        | *      |
-| 1             | Anna       | *         | *   | *        | *      |
-| 4             | Bob        | *         | *   | *        | *      |
+| ------------- | ---------- | --------- | --- | -------- | ------ |
+| 1             | Alice      | \*        | \*  | \*       | \*     |
+| 1             | Amanda     | \*        | \*  | \*       | \*     |
+| 1             | Amy        | \*        | \*  | \*       | \*     |
+| 1             | Anna       | \*        | \*  | \*       | \*     |
+| 4             | Bob        | \*        | \*  | \*       | \*     |
 
 When taking away the last name column, we see that there are sufficiently many individuals named Bob
 that it can be reported. For the remaining rows Aircloak Insights will then also try to take away
@@ -154,9 +154,9 @@ the first name column, to at least give an indication of how many rows had to be
 That leaves us with the final table:
 
 | # individuals | first_name | last_name | age | zip_code | gender |
-|---------------|------------|-----------|-----|----------|--------|
-| 4             | *          | *         | *   | *        | *      |
-| 4             | Bob        | *         | *   | *        | *      |
+| ------------- | ---------- | --------- | --- | -------- | ------ |
+| 4             | \*         | \*        | \*  | \*       | \*     |
+| 4             | Bob        | \*        | \*  | \*       | \*     |
 
 We can take away a number of things from this example:
 
@@ -183,12 +183,12 @@ Just like last time none of the rows occur frequently enough to pass the anonymi
 and Aircloak Insights will drop the rightmost column, in this case last name:
 
 | # individuals | gender | zip_code | first_name | age | last_name |
-|---------------|--------|----------|------------|-----|-----------|
-| 1             | F      | 10000    | Alice      | 10  | *         |
-| 1             | F      | 11000    | Amanda     | 20  | *         |
-| 1             | F      | 11000    | Amy        | 15  | *         |
-| 1             | F      | 11000    | Anna       | 20  | *         |
-| 4             | M      | 10000    | Bob        | 10  | *         |
+| ------------- | ------ | -------- | ---------- | --- | --------- |
+| 1             | F      | 10000    | Alice      | 10  | \*        |
+| 1             | F      | 11000    | Amanda     | 20  | \*        |
+| 1             | F      | 11000    | Amy        | 15  | \*        |
+| 1             | F      | 11000    | Anna       | 20  | \*        |
+| 4             | M      | 10000    | Bob        | 10  | \*        |
 
 We already have a value that can be reported, namely that there are 4 male Bob's living in zip code 10000 aged 10.
 
@@ -196,21 +196,21 @@ There are still a set of other rows that need further refining.
 Aircloak Insights attempts to drop the next rightmost column, namely age:
 
 | # individuals | gender | zip_code | first_name | age | last_name |
-|---------------|--------|----------|------------|-----|-----------|
-| 1             | F      | 10000    | Alice      | *   | *         |
-| 1             | F      | 11000    | Amanda     | *   | *         |
-| 1             | F      | 11000    | Amy        | *   | *         |
-| 1             | F      | 11000    | Anna       | *   | *         |
-| 4             | M      | 10000    | Bob        | 10  | *         |
+| ------------- | ------ | -------- | ---------- | --- | --------- |
+| 1             | F      | 10000    | Alice      | \*  | \*        |
+| 1             | F      | 11000    | Amanda     | \*  | \*        |
+| 1             | F      | 11000    | Amy        | \*  | \*        |
+| 1             | F      | 11000    | Anna       | \*  | \*        |
+| 4             | M      | 10000    | Bob        | 10  | \*        |
 
 Dropping the age column did not make any of the other rows reach the low count
 threshold, so the next rightmost column is dropped: first name.
 
 | # individuals | gender | zip_code | first_name | age | last_name |
-|---------------|--------|----------|------------|-----|-----------|
-| 1             | F      | 10000    | *          | *   | *         |
-| 3             | F      | 11000    | *          | *   | *         |
-| 4             | M      | 10000    | Bob        | 10  | *         |
+| ------------- | ------ | -------- | ---------- | --- | --------- |
+| 1             | F      | 10000    | \*         | \*  | \*        |
+| 3             | F      | 11000    | \*         | \*  | \*        |
+| 4             | M      | 10000    | Bob        | 10  | \*        |
 
 As a result of dropping the first name we now see that we can additionally report
 that there are 3 females living in zip code 11000.
@@ -220,16 +220,16 @@ to produce further reportable rows, so the process is finished with the
 following result:
 
 | # individuals | gender | zip_code | first_name | age | last_name |
-|---------------|--------|----------|------------|-----|-----------|
-| 3             | F      | 11000    | *          | *   | *         |
-| 4             | M      | 10000    | Bob        | 10  | *         |
+| ------------- | ------ | -------- | ---------- | --- | --------- |
+| 3             | F      | 11000    | \*         | \*  | \*        |
+| 4             | M      | 10000    | Bob        | 10  | \*        |
 
 Which is quite a bit more informative than what we got previously:
 
 | # individuals | first_name | last_name | age | zip_code | gender |
-|---------------|------------|-----------|-----|----------|--------|
-| 4             | *          | *         | *   | *        | *      |
-| 4             | Bob        | *         | *   | *        | *      |
+| ------------- | ---------- | --------- | --- | -------- | ------ |
+| 4             | \*         | \*        | \*  | \*       | \*     |
+| 4             | Bob        | \*        | \*  | \*       | \*     |
 
 ## Grouping values
 
@@ -260,14 +260,14 @@ FROM table
 Which would result in the following table of values:
 
 | # individuals | age | zip_code |
-|---------------|-----|----------|
+| ------------- | --- | -------- |
 | 6             | 10  | 10000    |
 | 2             | 20  | 10000    |
 
 which after low count filtering, would become:
 
 | # individuals | age | zip_code |
-|---------------|-----|----------|
+| ------------- | --- | -------- |
 | 6             | 10  | 10000    |
 
 where the age group 20 to 30 got removed because there were not enough individuals within the given
@@ -279,10 +279,10 @@ You can play similar tricks with times, dates, and datetimes by using the functi
 For example `date_trunc('hour', '12:22:44.004200')` would turn the time into one at hour resolution: `12:00:00.000000`.
 This value is more likely to pass the low count filter than the high resolution time value would be.
 
-## Using grouping sets
+## Using [grouping sets](https://www.postgresql.org/docs/current/queries-table-expressions.html#QUERIES-GROUPING-SETS)
 
-A way to extract a good amount of data from Aircloak is to try different groupings of columns. A quick way is to use 
-the `CUBE` clause. 
+A way to extract a good amount of data from Aircloak is to try different groupings of columns. A quick way is to use
+the `CUBE` clause.
 
 ```sql
 SELECT first_name, last_name, gender, count(*), sum(age)
@@ -290,18 +290,17 @@ FROM table
 GROUP BY CUBE(first_name, last_name, gender)
 ```
 
-Would produce after low count filtering the following table:
+The query above would, after low count filtering, produce the following table:
 
 | first_name | last_name | gender | count | sum(age) |
-| -----------|-----------|--------|-------|----------|
-| Bob        | null      | M      | 4     |       40 |
-| Bob        | null      | null   | 4     |       40 |
-| null       | Anderson  | F      | 4     |       65 |
-| null       | Anderson  | null   | 5     |       75 |
-| null       | null      | F      | 4     |       65 |
-| null       | null      | M      | 4     |       40 |
-| null       | null      | null   | 8     |      105 |
-
+| ---------- | --------- | ------ | ----- | -------- |
+| Bob        | null      | M      | 4     | 40       |
+| Bob        | null      | null   | 4     | 40       |
+| null       | Anderson  | F      | 4     | 65       |
+| null       | Anderson  | null   | 5     | 75       |
+| null       | null      | F      | 4     | 65       |
+| null       | null      | M      | 4     | 40       |
+| null       | null      | null   | 8     | 105      |
 
 Of course Aircloak would adjust the values of the aggregates, but it still is an effective technique to get a wide
 view of the underlying data.
@@ -315,6 +314,9 @@ GROUP BY ROLLUP(1,2,3)
 ```
 
 would neatly show breakdowns down to days on days where there is sufficient data, but at least shows coarser aggregates for where data is insufficient.
+
+Also Aircloak provides the [`grouping_id` function](http://localhost:8080/docs/#/sql/functions?id=grouping_id)
+that can help you identify which grouping took place.
 
 ## Null values and counts of 2
 
@@ -333,9 +335,9 @@ GROUP BY last_name
 ```
 
 | last_name | avg  |
-|-----------|------|
+| --------- | ---- |
 | Anderson  | null |
-| *         | null |
+| \*        | null |
 
 The low count filter would filter out all last names other than Anderson. In the case of the 5 Andersons we have enough users
 to inform you as an analyst that users with the last name of Anderson exist in the dataset, but not enough to make a properly
@@ -360,10 +362,9 @@ We can validate that the count of 2 for the `*` row is due to there being insuff
 being `null` confirms this.
 
 | last_name | count | count_noise |
-|-----------|-------|-------------|
+| --------- | ----- | ----------- |
 | Anderson  | 5     | 1.4         |
-| *         | 2     | null        |
-
+| \*        | 2     | null        |
 
 If you want to hide these `2` values from your result set you can add a `HAVING` clause to your query like this:
 
@@ -375,7 +376,7 @@ HAVING count(*) > 2
 ```
 
 | last_name | count |
-|-----------|-------|
+| --------- | ----- |
 | Anderson  | 5     |
 
 ## Implicit aggregate count
@@ -398,24 +399,23 @@ GROUP BY last_name
 Each occurrence of `last_name` would then be repeated `count(*)` number of times.
 For example the results of this query given the example dataset we have been working with in this guide would be:
 
-
 | last_name | count |
-|-----------|-------|
+| --------- | ----- |
 | Anderson  | 5     |
-| *         | 3     |
+| \*        | 3     |
 
 which then would result in the following table being returned to you as an analyst:
 
 | last_name |
-|-----------|
+| --------- |
 | Anderson  |
 | Anderson  |
 | Anderson  |
 | Anderson  |
 | Anderson  |
-| *         |
-| *         |
-| *         |
+| \*        |
+| \*        |
+| \*        |
 
 When running these types of queries you might end up seeing a lot of rows appearing exactly two times.
 This is an artifact of what was described above, namely that the implicit `count(*)`
