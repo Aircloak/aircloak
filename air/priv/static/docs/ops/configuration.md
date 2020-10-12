@@ -471,7 +471,8 @@ The configuration takes the following form:
   "lcf_buckets_aggregation_limit": integer,
   "max_rare_negative_conditions": integer,
   "analyst_tables_enabled": boolean,
-  "tables": tables
+  "tables": tables,
+  "load_comments": boolean
 }
 ```
 
@@ -499,6 +500,9 @@ under most circumstances, not be altered.
 Increasing the value above the default should only be done if it has been deemed safe.
 
 The `analyst_tables_enabled` can be set to true to enable creation of analyst tables. By default, this parameter is set to false. See the [Analyst tables](#analyst-tables) section for more details.
+
+The `load_comments` flag indicates whether database level comments should be loaded from configured tables during data source initialization.
+Defaults to `true`, meaning comments will be loaded.
 
 ### Tables
 
