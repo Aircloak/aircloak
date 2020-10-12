@@ -42,8 +42,50 @@ defmodule Cloak.DataSource.Oracle do
     end)
     |> case do
       [] -> raise ExecutionError, message: "Table #{table.db_name} does not have any columns"
-      columns -> [load_comments(connection, %{table | columns: columns})]
+      columns -> [%{table | columns: columns}]
     end
+  end
+
+  @impl Driver
+  def load_comments(connection, table) do
+    table_comment =
+      connection
+      |> select("""
+        SELECT COMMENTS
+        FROM ALL_TAB_COMMENTS
+        WHERE #{table_filter(table)}
+      """)
+      |> case do
+        {:ok, results} ->
+          results
+          |> Enum.to_list()
+          |> case do
+            [[comment]] -> comment
+            _ -> nil
+          end
+
+        _ ->
+          nil
+      end
+
+    column_comments =
+      connection
+      |> select("""
+        SELECT COLUMN_NAME, COMMENTS
+        FROM ALL_COL_COMMENTS
+        WHERE #{table_filter(table)} AND COMMENTS IS NOT NULL
+      """)
+      |> case do
+        {:ok, results} ->
+          results
+          |> Enum.map(&List.to_tuple/1)
+          |> Enum.into(%{})
+
+        _ ->
+          %{}
+      end
+
+    {table_comment, column_comments}
   end
 
   @impl Driver
@@ -92,33 +134,6 @@ defmodule Cloak.DataSource.Oracle do
       Pwd: normalized_parameters[:password],
       DSN: "Oracle"
     }
-  end
-
-  defp load_comments(connection, table) do
-    [table_comments] =
-      connection
-      |> select!("""
-        SELECT COMMENTS
-        FROM ALL_TAB_COMMENTS
-        WHERE #{table_filter(table)}
-      """)
-      |> Enum.at(0, [nil])
-
-    column_comments =
-      connection
-      |> select!("""
-        SELECT COLUMN_NAME, COMMENTS
-        FROM ALL_COL_COMMENTS
-        WHERE #{table_filter(table)} AND COMMENTS IS NOT NULL
-      """)
-      |> Enum.map(&List.to_tuple/1)
-      |> Enum.into(%{})
-
-    comments =
-      %{table: table_comments, columns: column_comments}
-      |> Aircloak.deep_merge(Map.get(table, :comments, %{}))
-
-    Map.put(table, :comments, comments)
   end
 
   defp table_filter(table) do
