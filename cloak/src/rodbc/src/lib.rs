@@ -8,6 +8,7 @@ use std::slice::from_raw_parts;
 extern crate odbc;
 use odbc::ffi::SqlDataType::*;
 use odbc::*;
+use self::odbc_safe::AutocommitOn;
 
 extern crate simple_error;
 use simple_error::SimpleError;
@@ -112,7 +113,7 @@ fn error(message: &str) -> GenError {
 pub fn connect<'env>(
     env: &'env Environment<Version3>,
     connection_string: &Vec<u8>,
-) -> result::Result<Connection<'env>, Box<dyn Error>> {
+) -> result::Result<Connection<'env, AutocommitOn>, Box<dyn Error>> {
     let connection_string = from_utf8(connection_string.as_ref())?;
     Ok(env.connect_with_connection_string(connection_string)?)
 }
@@ -131,12 +132,12 @@ fn field_type(t: ffi::SqlDataType, wstr_as_utf16: bool) -> u8 {
 }
 
 pub struct ConnectionState<'conn> {
-    stmt: Statement<'conn, 'conn, Allocated, HasResult>,
+    stmt: Statement<'conn, 'conn, Allocated, HasResult, AutocommitOn>,
     field_types: Vec<u8>,
 }
 
 pub fn execute<'conn, 'env>(
-    conn: &'conn Connection<'env>,
+    conn: &'conn Connection<'env, AutocommitOn>,
     state: &mut Option<ConnectionState<'conn>>,
     wstr_as_utf16: bool,
     statement_text: &Vec<u8>,
@@ -164,7 +165,7 @@ fn push_binary(buf: &mut Vec<u8>, bytes: &[u8]) {
 fn write_field<'a, 'b, 'c, S>(
     field_type: u8,
     index: u16,
-    cursor: &mut Cursor<'a, 'b, 'c, S>,
+    cursor: &mut Cursor<'a, 'b, 'c, S, AutocommitOn>,
     buf: &mut Vec<u8>,
 ) -> GenError {
     match field_type {
