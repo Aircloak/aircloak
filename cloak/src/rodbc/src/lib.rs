@@ -4,6 +4,7 @@ use std::mem::transmute;
 use std::result;
 use std::str::from_utf8;
 use std::slice::from_raw_parts;
+use std::borrow::Cow;
 
 extern crate odbc;
 use odbc::ffi::SqlDataType::*;
@@ -201,7 +202,7 @@ fn write_field<'a, 'b, 'c, S>(
             buf.push(TYPE_NULL);
         },
 
-        TYPE_STR => if let Some(val) = cursor.get_data::<&str>(index)? {
+        TYPE_STR => if let Some(val) = cursor.get_data::<Cow<str>>(index)? {
             buf.push(TYPE_STR);
             push_binary(buf, val.as_bytes());
         } else {
