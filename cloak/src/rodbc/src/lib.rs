@@ -266,11 +266,9 @@ fn sql_type_to_string(t: ffi::SqlDataType) -> &'static str {
         SQL_EXT_BINARY | SQL_EXT_VARBINARY | SQL_EXT_LONGVARBINARY => "binary",
         SQL_EXT_WCHAR | SQL_EXT_WVARCHAR | SQL_EXT_WLONGVARCHAR => "wvarchar",
         SQL_DATETIME => "datetime",
-        SQL_TIMESTAMP => "timestamp",
+        SQL_TIMESTAMP | SQL_TIMESTAMP_WITH_TIMEZONE | SQL_SS_TIMESTAMPOFFSET => "timestamp",
         SQL_DATE => "date",
-        SQL_TIME => "time",
-        SQL_TIME_WITH_TIMEZONE | SQL_SS_TIME2 => "time",
-        SQL_TIMESTAMP_WITH_TIMEZONE | SQL_SS_TIMESTAMPOFFSET => "timestamp",
+        SQL_TIME | SQL_TIME_WITH_TIMEZONE | SQL_SS_TIME2 => "time",
         SQL_EXT_GUID => "guid",
         _ => "unknown",
     }
