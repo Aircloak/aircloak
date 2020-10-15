@@ -5,7 +5,6 @@ SHELL=/bin/bash -o pipefail
 .PHONY: odbc_drivers odbc_drivers_folder oracle_drivers oracle_drivers_folder cloudera-impala_drivers
 .PHONY: sql-server-container sql-server-database
 .PHONY: mysql-server-container mysql-server-database
-.PHONY: mongo-server-container
 .PHONY: ci.compliance dev-container
 .PHONY: format check-format
 
@@ -91,9 +90,6 @@ mysql-server-container:
 
 mysql-server-database:
 	docker exec -it aircloak_mysql_server mysql -u root -e "CREATE DATABASE $(DB_NAME)"
-
-mongo-server-container:
-	$(call start_container, aircloak_mongodb_server, -p 27017:27017 -d mongo)
 
 odbc_drivers: odbc_drivers_folder oracle_drivers cloudera-impala_drivers
 
