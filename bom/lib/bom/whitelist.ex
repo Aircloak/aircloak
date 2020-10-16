@@ -22,9 +22,11 @@ defmodule BOM.Whitelist do
     :rust => %{
       {"cfg-if", "0.1.5"} => %{type: :mit, text: :provided},
       {"log", "0.4.5"} => %{type: :mit, text: :provided},
-      {"odbc-safe", "0.4.1"} => %{type: :mit, text: :provided},
-      {"odbc-sys", "0.6.3"} => %{type: :mit, text: :provided},
-      {"odbc", "0.9.12"} => %{type: :mit, text: :provided},
+      {"odbc-safe", "0.5.0"} => %{type: :mit, text: :provided},
+      {"odbc-sys", "0.8.2"} => %{type: :mit, text: :provided},
+      {"odbc", "0.17.0"} => %{type: :mit, text: :provided},
+      {"doc-comment", "0.3.3"} => %{type: :mit, text: :standard},
+      {"encoding_rs", "0.8.24"} => %{type: :mit, text: :standard},
       {"simple-error", "0.1.11"} => %{type: :mit, text: :provided}
     }
   }
