@@ -120,6 +120,9 @@ body:not(.ready) [data-cloak] {
 .docsify .sidebar li.collapse .app-sub-sidebar {
   display: none;
 }
+.docsify .sidebar li.collapse {
+  display: block;
+}
 .docsify .sidebar ul {
   margin: 0 0 0 15px;
   padding: 0;

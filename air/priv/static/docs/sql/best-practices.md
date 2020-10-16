@@ -315,7 +315,7 @@ GROUP BY ROLLUP(1,2,3)
 
 would neatly show breakdowns down to days on days where there is sufficient data, but at least shows coarser aggregates for where data is insufficient.
 
-Also Aircloak provides the [`grouping_id` function](/sql/functions#grouping_id)
+Also Aircloak provides the [`grouping_id` function](/sql/functions.md#grouping_id)
 that can help you identify which grouping took place.
 
 ## Null values and counts of 2
