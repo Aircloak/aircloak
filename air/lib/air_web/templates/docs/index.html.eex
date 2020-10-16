@@ -37,7 +37,7 @@
         loadSidebar: true,
         alias: {
           "/.*/_sidebar.md": "/_sidebar.md",
-          '/sql/best-practises': '/sql/best-practices'
+          "/sql/best-practises": "/sql/best-practices"
         },
         subMaxLevel: 2,
         topMargin: 57,
