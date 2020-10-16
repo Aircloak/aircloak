@@ -78,11 +78,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
         {:error, status} -> {status, 0}
       end
 
-    isolated =
-      case Cloak.DataSource.Isolators.cache_lookup(data_source, table.name, column.name) do
-        {:ok, value} -> value
-        {:error, status} -> status
-      end
+    isolated = isolator_status(data_source, table, column)
 
     bounds =
       case Cloak.DataSource.Bounds.cache_lookup(data_source, table.name, column.name) do
@@ -102,6 +98,15 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
       access: column.access,
       comment: Table.column_comment(table, column.name)
     }
+  end
+
+  defp isolator_status(_data_source, %{content_type: :public}, _column), do: false
+
+  defp isolator_status(data_source, table, column) do
+    case Cloak.DataSource.Isolators.cache_lookup(data_source, table.name, column.name) do
+      {:ok, value} -> value
+      {:error, status} -> status
+    end
   end
 
   defp update_data_sources(%{data_sources: data_sources} = state, data_sources), do: state
