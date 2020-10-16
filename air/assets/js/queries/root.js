@@ -10,6 +10,7 @@ import uuidv4 from "uuid/v4";
 
 import { AuthContext } from "../authentication_provider";
 import CodeEditor from "../code_editor";
+import type { Annotations } from "../code_editor";
 import CodeViewer from "../code_viewer";
 import Results from "./results";
 import type { Result, PendingResult } from "./result";
@@ -42,6 +43,7 @@ type State = {
   history: History,
   connected: boolean,
   dataSourceStatus: string,
+  annotations: Annotations,
 };
 
 const upgradeRequired = 426;
@@ -76,6 +78,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       connected: true,
       dataSourceStatus,
       history: emptyHistory,
+      annotations: [],
     };
 
     this.setStatement = this.setStatement.bind(this);
@@ -100,6 +103,8 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     this.channel = frontendSocket.joinUserQueriesChannel(userId, {
       handleEvent: (event) => this.resultReceived(event),
     });
+    this.typeCheckingChannel = frontendSocket.joinTypeCheckChannel(userId, {});
+
     this.connectedInterval = setInterval(
       this.updateConnected,
       1000 /* 1 second */
@@ -112,6 +117,8 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   connectedInterval: IntervalID;
 
   channel: Channel;
+
+  typeCheckingChannel: Channel;
 
   initialStatement = () => {
     const { lastQuery } = this.props;
@@ -137,8 +144,53 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   };
 
   setStatement = (statement: string) => {
+    this.typeCheckingChannel
+      .push("type_check", {
+        query: statement,
+        data_source: this.props.dataSourceName,
+      })
+      .receive("ok", ({ result }) => {
+        if (result.status === "ok") {
+          this.setState({ annotations: this.prepareAnnotations(result.data) });
+        }
+      });
     this.setState({ statement });
   };
+
+  prepareAnnotations = (
+    data: Array<{
+      range: {
+        start: { line: number, chr: number },
+        end: { line: number, chr: number },
+      },
+      query_type: string,
+      emulated: boolean,
+      anonymization_type: string,
+      noise_layers: number,
+    }>
+  ): Annotations =>
+    data.map(
+      ({ range, query_type, emulated, anonymization_type, noise_layers }) => ({
+        start: range.start,
+        end: range.end,
+        properties: {
+          clearWhenEmpty: true,
+          attributes: {
+            title: `${
+              emulated ? "Emulated" : "Native"
+            } ${query_type} query using ${anonymization_type} based anonymization with ${noise_layers} noise layers.`,
+            "data-toggle": "tooltip",
+          },
+          css: `background-color: ${
+            query_type === "standard"
+              ? "transparent"
+              : query_type === "restricted"
+              ? "rgba(200, 20, 20, 0.05)"
+              : "rgba(205, 205, 250, 0.25)"
+          }`,
+        },
+      })
+    );
 
   setResults = (results: Result[]) => {
     let completed = 0;
@@ -369,6 +421,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
           statement={this.state.statement}
           tableNames={this.tableNames()}
           columnNames={this.columnNames()}
+          annotations={this.state.annotations}
         />
       );
     } else {

@@ -76,7 +76,8 @@ defmodule Cloak.Sql.Query do
           available_tables: [DataSource.Table.t()],
           analyst_tables: %{String.t() => Cloak.AnalystTable.t()},
           analyst_table: nil | Cloak.AnalystTable.t(),
-          required_analyst_tables: MapSet.t()
+          required_analyst_tables: MapSet.t(),
+          source_range: nil | {Cloak.Sql.Parser.location(), Cloak.Sql.Parser.location()}
         }
 
   @type analyst_id :: pos_integer | nil
@@ -122,7 +123,8 @@ defmodule Cloak.Sql.Query do
             available_tables: [],
             analyst_tables: %{},
             analyst_table: nil,
-            required_analyst_tables: MapSet.new()
+            required_analyst_tables: MapSet.new(),
+            source_range: nil
 
   # -------------------------------------------------------------------
   # API functions

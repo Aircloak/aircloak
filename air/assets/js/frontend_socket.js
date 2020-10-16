@@ -60,6 +60,12 @@ export default class FrontendSocket {
     return this.joinChannel(callbacks, "cloak_stats", ["updated_cloak_infos"]);
   }
 
+  joinTypeCheckChannel(userId: number, callbacks: Callbacks) {
+    return this.joinChannel(callbacks, `type_check:${userId}`, [
+      "state_change",
+    ]);
+  }
+
   joinSelectablesChannel(
     dataSourceName: string,
     userId: number,

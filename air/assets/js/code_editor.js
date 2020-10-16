@@ -11,12 +11,19 @@ require("codemirror/addon/hint/show-hint");
 require("codemirror/addon/hint/anyword-hint");
 require("./code_editor/mode");
 
+export type Annotations = Array<{
+  start: { line: number, chr: number },
+  end: { line: number, chr: number },
+  properties: Object,
+}>;
+
 type Props = {
   onRun: () => void,
   onChange: (string) => void,
   tableNames: string[],
   columnNames: string[],
   statement: string,
+  annotations: Annotations,
 };
 
 export default class CodeEditor extends React.Component<Props> {
@@ -31,6 +38,16 @@ export default class CodeEditor extends React.Component<Props> {
   editor: Editor;
 
   errorMarker: ?any;
+
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.annotations !== this.props.annotations && this.editor) {
+      const doc = this.editor.getDoc();
+      doc.getAllMarks().forEach((mark) => mark.clear());
+      this.props.annotations.forEach((annotation) => {
+        doc.markText(annotation.start, annotation.end, annotation.properties);
+      });
+    }
+  }
 
   run = () => {
     const { onRun } = this.props;

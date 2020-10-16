@@ -32,12 +32,18 @@ defmodule Cloak.Sql.Parser.Internal do
   defp statement(parser) do
     parser
     |> switch([
-      {keyword(:select), select_statement()},
+      {keyword_with_position(:select), pair_both(select_statement(), position())},
       {keyword(:explain), explain_statement()},
       {keyword(:show), show_statement()},
       {:else, error_message(fail(""), "Expected `select, explain, or show`")}
     ])
-    |> map(fn {[command], [statement_data]} -> statement_map(command, statement_data) end)
+    |> map(fn
+      {[{start_location, command}], [{statement_data, end_location}]} ->
+        Map.put(statement_map(command, statement_data), :source_range, {start_location, end_location})
+
+      {[command], [statement_data]} ->
+        statement_map(command, statement_data)
+    end)
   end
 
   defp statement_map(command, statement_data) do
@@ -630,12 +636,22 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp table_or_subquery() do
     switch([
-      {keyword(:"(") |> map(fn _ -> :subquery end), subquery()},
+      {keyword_with_position(:"(") |> map(fn {location, _} -> {location, :subquery} end), subquery()},
       {:else, table_name()}
     ])
     |> map(fn
-      {[:subquery], [subquery_data]} -> {:subquery, subquery_data}
+      {[{location, :subquery}], [subquery_data]} -> {:subquery, postprocess_range(subquery_data, location)}
       other -> other
+    end)
+  end
+
+  defp postprocess_range(data, start_location) do
+    end_location = data.ast.end_location
+
+    update_in(data.ast, fn ast ->
+      ast
+      |> Map.delete(:end_location)
+      |> Map.put(:source_range, {start_location, end_location})
     end)
   end
 
@@ -659,10 +675,11 @@ defmodule Cloak.Sql.Parser.Internal do
       lazy(fn -> select_statement() end),
       subquery_close_paren(),
       option(keyword(:as)),
-      label(identifier() |> map(fn {_type, value} -> value end), "subquery alias")
+      label(identifier() |> map(fn {_type, value} -> value end), "subquery alias"),
+      position()
     ])
-    |> map(fn [select_statement, _as_keyword, alias] ->
-      %{ast: statement_map(:select, select_statement), alias: alias}
+    |> map(fn [select_statement, _as_keyword, alias, pos] ->
+      %{ast: statement_map(:select, [{:end_location, pos} | select_statement]), alias: alias}
     end)
   end
 

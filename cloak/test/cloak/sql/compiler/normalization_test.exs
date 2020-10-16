@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
 
   defmacrop assert_equivalent(query, alternative) do
     quote bind_quoted: [query: query, alternative: alternative] do
-      assert compile!(query, data_source()) == compile!(alternative, data_source())
+      assert scrub_locations(compile!(query, data_source())) == scrub_locations(compile!(alternative, data_source()))
     end
   end
 
@@ -273,7 +273,9 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     result1 = compile!("SELECT    count(*)    FROM table WHERE   abs(numeric) = 1", data_source())
     result2 = compile!("SELECT count(*) FROM table WHERE abs(numeric) = 1", data_source())
 
-    assert result1 == result2
+    # Note, this used to assert, but now we need to know concrete source locations higher
+    # up the compilation stack for editor support. Leaving this test here to document the decision.
+    refute result1 == result2
   end
 
   describe "making boolean comparisons explicit" do

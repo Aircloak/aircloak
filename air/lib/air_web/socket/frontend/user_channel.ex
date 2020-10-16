@@ -89,6 +89,14 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
   def join("state_changes:all", _, socket), do: accept_join_for_admins(socket)
   def join("query:" <> _query_id, _, socket), do: accept_join_for_admins(socket)
 
+  def join("type_check:" <> user_id, _, socket) do
+    if user_id_matches_user(user_id, socket) do
+      {:ok, socket}
+    else
+      {:error, %{success: false, description: "Forbidden"}}
+    end
+  end
+
   def handle_in("delete_selectable", %{"internal_id" => id, "kind" => kind}, socket) do
     user = socket.assigns.user
 
@@ -100,6 +108,25 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
     broadcast(socket, "selectables_change", selectable_payload(user, socket.assigns.data_source))
 
     {:noreply, socket}
+  end
+
+  def handle_in("type_check", %{"query" => statement, "data_source" => data_source}, socket) do
+    user = socket.assigns.user
+
+    {:ok, result} =
+      Air.Service.DataSource.with_available_cloak(
+        {:name, data_source},
+        user,
+        &AirWeb.Socket.Cloak.MainChannel.type_check_query(
+          &1.channel_pid,
+          user.id,
+          statement,
+          &1.data_source.name,
+          Air.Service.View.user_views(user, &1.data_source.id)
+        )
+      )
+
+    {:reply, {:ok, %{"result" => result}}, socket}
   end
 
   # -------------------------------------------------------------------

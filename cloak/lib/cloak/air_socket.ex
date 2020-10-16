@@ -347,6 +347,26 @@ defmodule Cloak.AirSocket do
     {:ok, state}
   end
 
+  defp handle_air_call("type_check_query", data, from, state) do
+    {:ok, data_source} = fetch_data_source(data.data_source)
+
+    explanation =
+      data.statement
+      |> Cloak.Sql.Parser.parse!()
+      |> Cloak.Sql.Compiler.compile!(
+        data.analyst_id,
+        data_source,
+        nil,
+        data.views || %{}
+      )
+      |> Cloak.Query.DbEmulator.compile()
+      |> Cloak.Sql.Query.Explainer.explain()
+
+    respond_to_air(from, :ok, %{"status" => "ok", "data" => Cloak.Sql.Query.Explainer.for_editor(explanation)})
+
+    {:ok, state}
+  end
+
   # -------------------------------------------------------------------
   # Handling air async casts
   # -------------------------------------------------------------------
