@@ -2,6 +2,64 @@
 
 The anonymization algorithm underlying Aircloak Insights is Diffix. The current version of Diffix is Dogwood. This section describes the operation of Diffix Dogwood. It explains how and why Diffix Dogwood protects against [known attacks](attacks.md#attacks-on-diffix-dogwood), thus providing strong anonymity.
 
+<!--toc-->
+
+## Table Of Contents
+
+- [Overview](#overview)
+  - [Key concepts](#key-concepts)
+  - [Deployment](#deployment)
+  - [Main Pipeline](#main-pipeline)
+  - [Database configuration](#database-configuration)
+  - [Version Differences](#version-differences)
+    - [From Cedar to Dogwood](#from-cedar-to-dogwood)
+    - [From Birch to Cedar](#from-birch-to-cedar)
+- [Initialization of internal state](#initialization-of-internal-state)
+  - [Shadow table](#shadow-table)
+  - [Isolating column label](#isolating-column-label)
+  - [Safe math functions](#safe-math-functions)
+  - [Per column min and max values](#per-column-min-and-max-values)
+- [Handle incoming SQL](#handle-incoming-sql)
+  - [Supported SQL](#supported-sql)
+  - [Rejecting queries](#rejecting-queries)
+    - [Inequalities](#inequalities)
+    - [Clear conditions (IN, range, negative conditions)](#clear-conditions-in-range-negative-conditions)
+    - [Too much math](#too-much-math)
+      - [In general](#in-general)
+      - [With isolating columns](#with-isolating-columns)
+    - [String functions](#string-functions)
+    - [Datetime intervals](#datetime-intervals)
+    - [LIKE and NOT LIKE](#like-and-not-like)
+    - [Limitations due to shadow table](#limitations-due-to-shadow-table)
+    - [Conditions with two columns](#conditions-with-two-columns)
+    - [Illegal JOINs](#illegal-joins)
+  - [Modifying queries](#modifying-queries)
+    - [Snapped Ranges](#snapped-ranges)
+- [Aggregation functions sum, min, max, count](#aggregation-functions-sum-min-max-count)
+  - [Generate DB query](#generate-db-query)
+    - [Gather bucket statistics](#gather-bucket-statistics)
+    - [Gather seed materials](#gather-seed-materials)
+    - [Determine if safe math functions are needed](#determine-if-safe-math-functions-are-needed)
+    - [Add protection against JOIN timing attack](#add-protection-against-join-timing-attack)
+    - [Add protection against divide-by-zero attacks](#add-protection-against-divide-by-zero-attacks)
+    - [Add protection against square root of negative numbers](#add-protection-against-square-root-of-negative-numbers)
+  - [Handle DB answer](#handle-db-answer)
+    - [Noise Layers](#noise-layers)
+    - [Determine seeds](#determine-seeds)
+    - [Low count suppression](#low-count-suppression)
+    - [Value flattening and noise addition](#value-flattening-and-noise-addition)
+      - [Operation of sum](#operation-of-sum)
+      - [Operation of avg](#operation-of-avg)
+      - [Operation of min and max](#operation-of-min-and-max)
+    - [Reporting suppression](#reporting-suppression)
+      - [Bucket merging](#bucket-merging)
+    - [Reporting noise](#reporting-noise)
+    - [Suppress aggregate values](#suppress-aggregate-values)
+- [Aggregation function count distinct](#aggregation-function-count-distinct)
+- [Aggregation function stddev](#aggregation-function-stddev)
+
+<!--/toc-->
+
 # Overview
 
 ## Key concepts

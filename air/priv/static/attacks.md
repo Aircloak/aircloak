@@ -2,6 +2,45 @@
 
 This section describes a variety of attacks against anonymization mechanisms. Some of the attacks are general in nature (can be used against multiple mechanisms). Many are specific to Diffix. This list is current to [Diffix Dogwood](diffix.md). In what follows, the _cloak_ is the device that implements Diffix.
 
+<!--toc-->
+
+## Table Of Contents
+
+- [Attack criteria](#attack-criteria)
+- [Trackers](#trackers)
+- [Attribute value inspection attacks](#attribute-value-inspection-attacks)
+- [Suppression signal attacks](#suppression-signal-attacks)
+- [Noise signal attacks](#noise-signal-attacks)
+- [Noise averaging attacks](#noise-averaging-attacks)
+  - [Naive averaging](#naive-averaging)
+  - [Different syntax but same semantics, with floating](#different-syntax-but-same-semantics-with-floating)
+  - [Different syntax but same semantics, without floating](#different-syntax-but-same-semantics-without-floating)
+  - [Different syntax and semantics, but same result](#different-syntax-and-semantics-but-same-result)
+  - [Split averaging attack](#split-averaging-attack)
+  - [Linear program reconstruction](#linear-program-reconstruction)
+  - [JOINs with non-personal tables](#joins-with-non-personal-tables)
+- [Difference attacks](#difference-attacks)
+  - [First derivative difference attack](#first-derivative-difference-attack)
+  - [Difference attack with counting NULL](#difference-attack-with-counting-null)
+  - [Noise exploitation attacks](#noise-exploitation-attacks)
+    - [Through extreme user contribution](#through-extreme-user-contribution)
+    - [Through chaff conditions](#through-chaff-conditions)
+  - [Range creep with averaging](#range-creep-with-averaging)
+  - [Multiple isolating negands](#multiple-isolating-negands)
+  - [Shadow table exploitation attack](#shadow-table-exploitation-attack)
+- [SQL backdoor attacks](#sql-backdoor-attacks)
+- [Side Channel attacks](#side-channel-attacks)
+  - [Error generation attacks](#error-generation-attacks)
+    - [Divide by zero](#divide-by-zero)
+    - [Overflow](#overflow)
+    - [Square root of a negative number](#square-root-of-a-negative-number)
+  - [NULL producing safe function attacks](#null-producing-safe-function-attacks)
+    - [IS NOT NULL](#is-not-null)
+    - [NULL within aggregation](#null-within-aggregation)
+  - [Timing attacks](#timing-attacks) - [JOIN timing attack](#join-timing-attack)
+
+<!--/toc-->
+
 # Attack criteria
 
 In the following attacks, our criteria for what determines a successful attack are the same as those used by the [EU Article 29 Data Protection Working Party Opinion 05/2014 on Anonymisation Techniques](https://cnpd.public.lu/fr/publications/groupe-art29/wp216_en.pdf), namely _singling-out_, _linkability_, and _inference_. We regard an attack as more effective when the attacker is able to make statements of the following sort with high confidence:
