@@ -200,7 +200,7 @@ defmodule Air.Service.AuditLog do
     selected_users = selected_users(params)
 
     (users ++ selected_users)
-    |> Enum.uniq()
+    |> Enum.uniq_by(& &1.id)
     |> Enum.sort_by(& &1.name)
   end
 
