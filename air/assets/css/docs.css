@@ -120,6 +120,9 @@ body:not(.ready) [data-cloak] {
 .docsify .sidebar li.collapse .app-sub-sidebar {
   display: none;
 }
+.docsify .sidebar li.collapse {
+  display: block;
+}
 .docsify .sidebar ul {
   margin: 0 0 0 15px;
   padding: 0;
@@ -291,6 +294,11 @@ body.close .docsify .content {
   position: unset;
   padding-top: 10px;
 }
+.docsify .markdown-section .footer a {
+  color: gray;
+  font-weight: unset;
+}
+
 @media print {
   .app-nav,
   .github-corner,
@@ -573,7 +581,7 @@ body {
   margin: 1em 0;
 }
 .docsify .markdown-section em {
-  color: #7f8c8d;
+  color: #212529;
 }
 .docsify .markdown-section code {
   border-radius: 2px;
@@ -687,7 +695,7 @@ body {
   margin: 0 2px;
   max-width: inherit;
   overflow: inherit;
-  padding: 2.2em 5px;
+  padding: 1.5em 5px;
   white-space: inherit;
 }
 .docsify .markdown-section code:after,

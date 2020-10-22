@@ -13,7 +13,7 @@
 
   - [Core language features](/sql.md)
   - [Restrictions](/sql/restrictions.md)
-  - [Best practises](/sql/best-practises.md)
+  - [Best practices](/sql/best-practices.md)
   - [Understanding query results](/sql/query-results.md)
   - [Supported functions](/sql/functions.md)
   - [API](/api.md)

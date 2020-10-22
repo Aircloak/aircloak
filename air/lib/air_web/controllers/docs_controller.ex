@@ -26,10 +26,10 @@ defmodule AirWeb.DocsController do
     do: serve_transformed_markdown_file(conn, "docs_sidebar.md", &replace_version/1)
 
   def attacks_page(conn, _params),
-    do: serve_transformed_markdown_file(conn, "attacks.md", &strip_github_links/1)
+    do: serve_transformed_markdown_file(conn, "attacks.md", &strip_toc(strip_github_links(&1)))
 
   def diffix_page(conn, _params),
-    do: serve_transformed_markdown_file(conn, "diffix.md", &strip_github_links/1)
+    do: serve_transformed_markdown_file(conn, "diffix.md", &strip_toc(strip_github_links(&1)))
 
   def redirect(conn, _params) do
     if conn.path_info |> List.last() |> String.match?(~r/\.html$/i) do
@@ -60,6 +60,8 @@ defmodule AirWeb.DocsController do
   # Strips out markdown links of the type [aircloak/aircloak#XXXX](...)
   defp strip_github_links(content),
     do: String.replace(content, ~r/\[aircloak\/aircloak#\d+\]\(.+?\) ?/, "", global: true)
+
+  defp strip_toc(content), do: String.replace(content, ~r/<!--toc-->.+<!--\/toc-->/s, "")
 
   defp replace_version(content),
     do: String.replace(content, "%VERSION%", Aircloak.Version.for_app(:air))

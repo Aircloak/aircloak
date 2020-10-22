@@ -36,10 +36,11 @@
         // Sidebar
         loadSidebar: true,
         alias: {
-          "/.*/_sidebar.md": "/_sidebar.md"
+          "/.*/_sidebar.md": "/_sidebar.md",
+          "/sql/best-practises": "/sql/best-practices"
         },
         subMaxLevel: 2,
-        topMargin: 60,
+        topMargin: 57,
         plugins: [
           function(hook) {
             var footer = <%= to_json(render_to_string AirWeb.SharedView, "footer.html", conn: @conn) %>;

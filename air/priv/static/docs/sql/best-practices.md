@@ -1,8 +1,8 @@
-# Best practises
+# Best practices
 
 Because Aircloak Insights anonymizes query results, it must be queried in a slightly different way
 than one would query a normal database. This guide will explain some of the peculiarities and show
-best practises which allow you to gain the most value from the system.
+best practices which allow you to gain the most value from the system.
 
 In the following examples we will pretend we are querying a database containing the following
 raw data:
@@ -315,7 +315,7 @@ GROUP BY ROLLUP(1,2,3)
 
 would neatly show breakdowns down to days on days where there is sufficient data, but at least shows coarser aggregates for where data is insufficient.
 
-Also Aircloak provides the [`grouping_id` function](/sql/functions#grouping_id)
+Also Aircloak provides the [`grouping_id` function](/sql/functions.md#grouping_id)
 that can help you identify which grouping took place.
 
 ## Null values and counts of 2

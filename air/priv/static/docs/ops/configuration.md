@@ -155,8 +155,8 @@ The `max_connections` property can be used to configure the maximum allowed numb
 
 Insights Air can be configured to allow users to login with credentials managed in an LDAP directory service. Note that
 this feature is licensed separately. If you would like to add LDAP sync to your license, contact
-[support@aircloak.com](mailto:support@aircloak.com).  The `config.json` snippet below shows all possible configuration
-options along with their default values where applicable.  Note that the `host`, `user_base`, and `group_base` options
+[support@aircloak.com](mailto:support@aircloak.com). The `config.json` snippet below shows all possible configuration
+options along with their default values where applicable. Note that the `host`, `user_base`, and `group_base` options
 are required. Options without a default value
 are indicated with a `null`.
 
@@ -483,8 +483,8 @@ The `driver` parameter can be one of the following: `postgresql`, `mysql`, `sqls
 Some of these drivers use the ODBC protocol to talk to the database. These drivers are `sqlserver`, and `oracle`.
 Since they rely on ODBC, they accept some additional connection parameters:
 
-  - `encoding` which has possible values of "latin1", "unicode", "utf8", "utf16", "utf32", "utf16-big", "utf16-little", "utf32-big", "utf32-little".
-  - `odbc_parameters` - ODBC-specific parameters for the ODBC driver which is used to talk to the database.
+- `encoding` which has possible values of "latin1", "unicode", "utf8", "utf16", "utf32", "utf16-big", "utf16-little", "utf32-big", "utf32-little".
+- `odbc_parameters` - ODBC-specific parameters for the ODBC driver which is used to talk to the database.
 
 These parameters are optional, and are only required for particular installations, where the default values do not suffice.
 
@@ -593,9 +593,9 @@ pre-configured key-relationships.
 
 The following restrictions are currently in place when configuring keys:
 
-  - A column can have one key tag at the most.
-  - A `personal` table can have at most one `user_id` key.
-  - A `non-personal` table can't have any `user_id` keys.
+- A column can have one key tag at the most.
+- A `personal` table can have at most one `user_id` key.
+- A `non-personal` table can't have any `user_id` keys.
 
 An example configuration file for a database containing information about customers, accounts, transactions and bought
 products might look like this:
@@ -699,7 +699,7 @@ In this case, you need to provide `"UserData"` as the `db_name` property.
 
 ##### Manually classifying isolating columns
 
-Insights Cloak can automatically detect whether a column isolates users or not.  For large database tables this check
+Insights Cloak can automatically detect whether a column isolates users or not. For large database tables this check
 can be slow and resource-intensive. An administrator may choose to manually configure whether a given column isolates
 users or not, removing the need for automated classification.
 
@@ -747,7 +747,7 @@ data.
 ##### Column value shadow database
 
 Insights Cloak automatically maintains a cache of column values that occur frequently.
-This allows certain anonymization practises to be relaxed when doing so does not cause harm.
+This allows certain anonymization practices to be relaxed when doing so does not cause harm.
 The creation of this cache requires a set of database queries to be run against the database
 that can become prohibitively expensive for large databases. You can turn of the creation
 and maintenance of this shadow database when you either do not need the
@@ -811,14 +811,13 @@ If the air name or the datasource name is changed, duplicate copies of analyst t
 
 The administrator can use the table `__ac_analyst_tables_X` (where `X` is an integer) to list analyst tables. This table contains the list of all currently known analyst tables. The administrator can use the following columns to determine which tables are no longer needed:
 
-  - `air` - name of the air instance
-  - `data_source` - name of the data source where the table is created
-  - `analyst` - the numerical id of the table owner
-  - `name` - the table name, as seen in the air by its owner
-  - `db_name` - the name of the table in the database
+- `air` - name of the air instance
+- `data_source` - name of the data source where the table is created
+- `analyst` - the numerical id of the table owner
+- `name` - the table name, as seen in the air by its owner
+- `db_name` - the name of the table in the database
 
 If the administrator is certain that some analyst tables are no longer needed, for example if an air instance or some datasource have been renamed or decommissioned, they can drop these tables, and delete the corresponding entries from the `__ac_analyst_tables_X` table.
-
 
 #### Tips and tricks
 
