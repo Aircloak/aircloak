@@ -5,21 +5,19 @@ reach out to if you have questions or concerns.
 
 # Contact information
 
-This Aircloak Insights instance is run and operated by __[FILL IN: Company Name]__. As such __[FILL IN: Company name]__
+This Aircloak Insights instance is run and operated by **[FILL IN: Company Name]**. As such **[FILL IN: Company name]**
 is the Data Controller when it comes to the personal information collected by this Aircloak Insights instance.
 
 If you have questions or concerns you can contact the Data Controller or the Data Controller's representative at:
 
-__Data Controller__
-[FILL IN: Address]
-[FILL IN: Contact information]
+**Data Controller**
+[FILL IN: Address][fill in: contact information]
 [FILL IN: Phone number and or email address]
 
 or the Data Controller's Data Protection Officer:
 
-__Data Protection Officer__
-[FILL IN: Name of data protection officer]
-[FILL IN: Building and office number]
+**Data Protection Officer**
+[FILL IN: Name of data protection officer][fill in: building and office number]
 [FILL IN: Phone number and or email address]
 
 # Collection of information
@@ -29,9 +27,11 @@ __Data Protection Officer__
 The following information is recorded by Aircloak Insights:
 
 ### Personal information
+
 Your name and email address as part of your user profile as well as other Aircloak Insights-specific system settings.
 
 ### Query history
+
 The queries you execute in Aircloak Insights along with related metadata and the query results are recorded.
 Related metadata includes such things as:
 
@@ -40,6 +40,7 @@ Related metadata includes such things as:
 - how many columns were requested and how many columns had to be loaded out of the database
 
 ### Audit log
+
 Aircloak Insights provides audit logging capabilities. In addition to the queries being executed the audit log records
 actions such as changing your profile information or logging in to the system.
 
@@ -52,14 +53,12 @@ user accounts or groups, altering data sources, or changing the general system s
 
 The data collected by an Aircloak Insights installation is stored indefinitely or until a user account is deleted.
 
-
 ## Who has access to your personal information
 
 ### Aircloak Insights
 
 In addition to the Data Controller, all Aircloak Insights users with administrative privileges have full insight
 into the personal information stored about a user.
-
 
 # Rights
 

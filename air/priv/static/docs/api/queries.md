@@ -45,7 +45,6 @@ curl -v \
 
 This endpoint starts a query asynchronously. You need to provide a valid data source name, which you can obtain with the [data source endpoint](/data_sources.md#get-the-list-of-all-data-sources).
 
-
 #### HTTP Request
 
 `POST /api/queries`
@@ -60,7 +59,6 @@ This endpoint starts a query asynchronously. You need to provide a valid data so
 ```
 
 The API return value is the success information and the id of the query. You can use this id to [get the query result](#getting-the-result-of-a-query).
-
 
 ## Getting the result of a query
 
@@ -96,7 +94,6 @@ curl -v \
 
 This endpoint returns the status of the query started by the [run query endpoint](#running-a-query). The `query_id` must correspond to the id returned by the run query endpoint.
 
-
 #### HTTP Request
 
 `GET /api/queries/query_id`
@@ -124,9 +121,9 @@ This endpoint returns the status of the query started by the [run query endpoint
 The API return value contains information about the query.
 
 - If the query is still running, the `completed` field will be set to false. In this case, the client needs to
-repeat the request a bit later.
+  repeat the request a bit later.
 - The `query_state` parameter indicates how far along the query execution has come.
-It can be one of:
+  It can be one of:
   - `started` - The query has been scheduled, but has not yet started executing
   - `parsing` - The query syntax is being validated
   - `compiling` - The query semantics is validated and transformed into an internal form for execution
@@ -140,7 +137,6 @@ It can be one of:
   - If the query failed, the `error` field will contain a descriptive error message.
 
 For the use of error codes in the Web REST API, please consult the [Errors](#errors) section.
-
 
 ## Canceling a query
 
@@ -175,7 +171,6 @@ curl -v \
 <!-- tabs:end -->
 
 This endpoint cancels a query started by the [run query endpoint](#running-a-query). The `query_id` must correspond to the id returned by the run query endpoint.
-
 
 #### HTTP Request
 

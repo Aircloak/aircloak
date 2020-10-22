@@ -8,7 +8,7 @@ If you find some topics are missing or confusing, please reach out to us on [sup
 
 ### Analysts and data scientists
 
-If you are an __analyst__ or __data scientist__, we recommend the following sections:
+If you are an **analyst** or **data scientist**, we recommend the following sections:
 
 - The [core language features](/sql.md) chapter gives an overview of the subset of SQL supported by Aircloak Insights.
 - The [best practices](/sql/best-practices.md) chapter walks through some important considerations when it comes to working
@@ -18,7 +18,7 @@ If you are an __analyst__ or __data scientist__, we recommend the following sect
 
 ### System administrators
 
-If you are a __system administrator__ who wants to install and configure the Aircloak Insights platform, we recommend
+If you are a **system administrator** who wants to install and configure the Aircloak Insights platform, we recommend
 the following sections:
 
 - The [components of Aircloak Insights](/components.md) gives you an initial understanding of what components the
