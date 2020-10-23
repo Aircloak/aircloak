@@ -6,7 +6,7 @@ import takeWhile from "lodash/takeWhile";
 import uniqBy from "lodash/uniqBy";
 import Mousetrap from "mousetrap";
 import Channel from "phoenix";
-import uuidv4 from "uuid/v4";
+import { v4 as uuidv4 } from "uuid";
 
 import { AuthContext } from "../authentication_provider";
 import CodeEditor from "../code_editor";
