@@ -1997,4 +1997,58 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query("SELECT max(height), min(height), avg(height) FROM heights", %{rows: [%{row: [nil, nil, nil]}]})
   end
+
+  describe "unions" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [160])
+      :ok = insert_rows(_user_ids = 10..19, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 20..29, "heights", ["height"], [180])
+    end
+
+    test "distinct" do
+      assert_query(
+        """
+          select distinct height from heights where height <> 170 order by 1
+          union distinct
+          select distinct height from heights_alias where height <> 180 order by 1
+        """,
+        %{
+          columns: ["height"],
+          rows: [%{row: [160]}, %{row: [180]}, %{row: [170]}]
+        }
+      )
+    end
+
+    test "all" do
+      assert_query(
+        """
+          select distinct height from heights where height <> 170 order by 1
+          union all
+          select distinct height from heights_alias where height <> 180 order by 1
+        """,
+        %{
+          columns: ["height"],
+          rows: [%{row: [160]}, %{row: [180]}, %{row: [160]}, %{row: [170]}]
+        }
+      )
+    end
+
+    test "mixed" do
+      assert_query(
+        """
+          (
+            (select distinct height from heights where height <> 170 order by 1)
+            union all
+            (select distinct height from heights_alias where height <> 180 order by 1)
+          )
+          union distinct
+          (select height from heights where height = 160 group by 1 order by 1)
+        """,
+        %{
+          columns: ["height"],
+          rows: [%{row: [160]}, %{row: [180]}, %{row: [170]}]
+        }
+      )
+    end
+  end
 end

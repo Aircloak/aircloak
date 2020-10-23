@@ -86,6 +86,21 @@ defmodule Cloak.Query.DbEmulator do
     Selector.join(lhs_rows, rhs_rows, join)
   end
 
+  defp select_rows({:union, lhs, rhs}, state_updater) do
+    Logger.debug("Emulating union ...")
+    query_id = Keyword.get(Logger.metadata(), :query_id, nil)
+
+    rhs_task =
+      Task.async(fn ->
+        Logger.metadata(query_id: query_id)
+        select_rows(rhs, state_updater)
+      end)
+
+    lhs_rows = select_rows(lhs, state_updater)
+    rhs_rows = Task.await(rhs_task, :infinity)
+    Stream.concat(lhs_rows, rhs_rows)
+  end
+
   defp db_rows!(query, state_updater) do
     %Query{query | subquery?: not query.emulated? and query.type != :anonymized, where: Query.offloaded_where(query)}
     |> DataSource.Streamer.rows(ingestion_reporter(state_updater))
