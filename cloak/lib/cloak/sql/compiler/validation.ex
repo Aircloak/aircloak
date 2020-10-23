@@ -15,7 +15,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   @spec verify_standard_restrictions(Query.t()) :: Query.t()
   def verify_standard_restrictions(%Query{command: :show} = query), do: query
 
-  def verify_standard_restrictions(%Query{command: :select} = query) do
+  def verify_standard_restrictions(query) do
     Helpers.each_subquery(query, &verify_standard_functions_usage/1)
     Helpers.each_subquery(query, &verify_duplicate_tables/1)
     Helpers.each_subquery(query, &verify_aggregated_columns/1)
@@ -33,6 +33,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_in/1)
     Helpers.each_subquery(query, &verify_division_by_zero/1)
     Helpers.each_subquery(query, &verify_constants/1)
+    Helpers.each_subquery(query, &verify_union_columns/1)
     query
   end
 
@@ -42,8 +43,9 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   def verify_anonymization_restrictions(%Query{command: :show} = query, _opts), do: query
 
-  def verify_anonymization_restrictions(%Query{command: :select} = query, opts) do
+  def verify_anonymization_restrictions(query, opts) do
     verify_user_id_usage(query, nil)
+    Helpers.each_subquery(query, &verify_unions_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
     Helpers.each_subquery(query, &verify_conditions_usage/1)
     Helpers.each_subquery(query, &verify_or_usage/1)
@@ -436,6 +438,8 @@ defmodule Cloak.Sql.Compiler.Validation do
   # -------------------------------------------------------------------
   # Joins
   # -------------------------------------------------------------------
+
+  defp verify_standard_joins(%Query{command: :union}), do: :ok
 
   defp verify_standard_joins(query) do
     verify_join_types(query)
@@ -1012,6 +1016,38 @@ defmodule Cloak.Sql.Compiler.Validation do
        do: true
 
   defp valid_when_clause?(_), do: false
+
+  # -------------------------------------------------------------------
+  # Unions
+  # -------------------------------------------------------------------
+
+  defp verify_unions_usage(%Query{command: :union, from: {:union, {:subquery, lhs}, {:subquery, rhs}}}) do
+    if lhs.ast.type == :restricted or rhs.ast.type == :restricted do
+      raise CompilationError, message: "Unions over restricted queries are forbidden."
+    end
+  end
+
+  defp verify_unions_usage(%Query{}), do: :ok
+
+  defp verify_union_columns(%Query{command: :union, from: {:union, {:subquery, lhs}, {:subquery, rhs}}}) do
+    if Enum.count(lhs.ast.columns) != Enum.count(rhs.ast.columns) do
+      raise CompilationError, message: "Queries in a `union` must have the same number of columns."
+    end
+
+    Enum.zip(lhs.ast.columns, rhs.ast.columns)
+    |> Enum.filter(fn {lhs_column, rhs_column} -> lhs_column.type != rhs_column.type end)
+    |> case do
+      [] ->
+        :ok
+
+      [{lhs_column, _rhs_column} | _] ->
+        raise CompilationError,
+          message: "Queries in a `union` must have identical column types.",
+          source_location: lhs_column.source_location
+    end
+  end
+
+  defp verify_union_columns(%Query{}), do: :ok
 
   # -------------------------------------------------------------------
   # Helpers

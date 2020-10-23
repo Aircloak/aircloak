@@ -34,7 +34,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   @spec prepare(Query.t()) :: Query.t()
   def prepare(%Query{command: :show} = query), do: query
 
-  def prepare(%Query{command: :select} = query),
+  def prepare(query),
     do:
       query
       |> Helpers.apply_bottom_up(&reject_null_user_ids/1, analyst_tables?: false)

@@ -385,6 +385,9 @@ defmodule Cloak.Sql.Query.Lenses do
       {:subquery, _} ->
         Lens.root()
 
+      {:union, _, _} ->
+        Lens.indices([1, 2])
+
       nil ->
         Lens.empty()
 

@@ -88,6 +88,16 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> ensure_uid_selected()
       |> Helpers.apply_bottom_up(&collect_required_analyst_tables/1)
 
+  defp compile_query(%Query{command: :union} = query) do
+    query
+    # We set the default type for unioned subqueries as `standard` to prevent automatic selection of the user id.
+    # This will be overwritten later in the pipeline by the `Anonymization` module.
+    |> put_in([Lenses.direct_subqueries() |> Lens.key(:ast) |> Lens.key(:type)], :standard)
+    |> compile_subqueries()
+    |> compile_titles()
+    |> compile_columns()
+  end
+
   # -------------------------------------------------------------------
   # From
   # -------------------------------------------------------------------
@@ -411,7 +421,11 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp compile_titles(%Query{subquery?: true} = query) do
+  defp compile_titles(%Query{command: :union, from: {:union, {:subquery, lhs}, _}} = query) do
+    %Query{query | column_titles: lhs.ast.column_titles}
+  end
+
+  defp compile_titles(%Query{command: :select, subquery?: true} = query) do
     column_titles =
       query.columns
       |> Enum.map(&column_title(&1, query.selected_tables))
@@ -421,7 +435,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     %Query{query | column_titles: column_titles}
   end
 
-  defp compile_titles(%Query{subquery?: false} = query) do
+  defp compile_titles(%Query{command: :select, subquery?: false} = query) do
     column_titles =
       query.columns
       |> Enum.map(&column_title(&1, query.selected_tables))
@@ -529,7 +543,11 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp compile_columns(query) do
+  defp compile_columns(%Query{command: :union, from: {:union, {:subquery, lhs}, _}} = query) do
+    %Query{query | columns: Enum.map(lhs.ast.columns, &Expression.constant(&1.type, nil))}
+  end
+
+  defp compile_columns(%Query{command: :select} = query) do
     columns_by_name =
       for table <- query.selected_tables,
           column <- table.columns do

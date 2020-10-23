@@ -73,6 +73,8 @@ defmodule Cloak.Sql.Compiler.Helpers do
 
   @doc "Returns true if any of the query's bucket columns is aggregated."
   @spec aggregates?(partial_query) :: boolean
+  def aggregates?(%Query{command: :union}), do: false
+
   def aggregates?(%Query{command: :select, having: having}) when having != nil, do: true
 
   def aggregates?(%Query{command: :select} = query),
