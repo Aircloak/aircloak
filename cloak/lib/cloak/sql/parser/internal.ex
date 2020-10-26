@@ -77,31 +77,28 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp parenthesised_select_statement(prefix_label \\ "select") do
-    pair_both(
-      either_deepest_error(
-        between(keyword(:"("), lazy(fn -> parenthesised_select_statement() end), subquery_close_paren()),
-        pair_right(keyword(:select) |> label(prefix_label), select_statement())
-      ),
-      option(union_select_statement())
+    either_deepest_error(
+      between(keyword(:"("), lazy(fn -> parenthesised_select_statement() end), subquery_close_paren()),
+      pair_right(keyword(:select) |> label(prefix_label), select_statement())
     )
-    |> map(fn
-      {statement1, {:union, distinct?, statement2}} ->
+    |> sep_by1_eager(union())
+    |> map(fn [first | rest] ->
+      rest
+      |> Enum.chunk_every(2)
+      |> Enum.reduce(first, fn [{:union, type}, right_statement], left_statement ->
         [
           command: :union,
-          distinct?: distinct?,
+          distinct?: type != :all,
           from:
-            {:union, {:subquery, %{ast: statement_map(statement1), alias: nil}},
-             {:subquery, %{ast: statement_map(statement2), alias: nil}}}
+            {:union, {:subquery, %{ast: statement_map(left_statement), alias: nil}},
+             {:subquery, %{ast: statement_map(right_statement), alias: nil}}}
         ]
-
-      {statement, nil} ->
-        statement
+      end)
     end)
   end
 
-  defp union_select_statement() do
-    sequence([keyword(:union), option(keyword_of([:all, :distinct])), lazy(fn -> parenthesised_select_statement() end)])
-    |> map(fn [:union, type, statement] -> {:union, type != :all, statement} end)
+  defp union() do
+    pair_both(keyword(:union), option(keyword_of([:all, :distinct])))
   end
 
   defp select_columns() do

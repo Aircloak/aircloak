@@ -2153,8 +2153,8 @@ defmodule Cloak.Sql.Parser.Test do
         "select count(*) from foo union select count(*) from bar union select count(*) from xyz",
         union(
           true,
-          select(from: unquoted("foo")),
-          union(true, select(from: unquoted("bar")), select(from: unquoted("xyz")))
+          union(true, select(from: unquoted("foo")), select(from: unquoted("bar"))),
+          select(from: unquoted("xyz"))
         )
       )
     end

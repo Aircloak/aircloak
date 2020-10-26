@@ -192,5 +192,22 @@ defmodule Cloak.Query.UserlessTableTest do
         }
       )
     end
+
+    test "mixed" do
+      assert_query(
+        """
+          select * from (
+            select count(*) from userless where i <> 2
+            union all
+            select i from userless
+            union distinct
+            select count(*) from userless where i = 2
+          ) t order by 1
+        """,
+        %{
+          rows: [%{row: [1]}, %{row: [2]}, %{row: [3]}]
+        }
+      )
+    end
   end
 end
