@@ -20,3 +20,6 @@ psql -h $DB_HOST -p $DB_PORT -U postgres cloak < dev_data.sql
 cd ../
 mix gen.dev_data
 mix gen.test_data "compliance" 200
+
+cd ../data_quality
+make recreate-db
