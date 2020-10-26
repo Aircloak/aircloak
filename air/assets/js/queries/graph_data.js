@@ -60,27 +60,27 @@ export class GraphConfig {
   // API
   // ----------------------------------------------------------------
 
-  xColumns() {
+  xColumns(): number[] {
     return [...this._xColumns].sort();
   }
 
-  yColumns() {
+  yColumns(): number[] {
     return [...this._yColumns].sort();
   }
 
-  addX(col: number) {
+  addX(col: number): GraphConfig {
     this._yColumns.delete(col);
     this._xColumns.add(col);
     return this;
   }
 
-  addY(col: number) {
+  addY(col: number): GraphConfig {
     this._xColumns.delete(col);
     this._yColumns.add(col);
     return this;
   }
 
-  remove(col: number) {
+  remove(col: number): GraphConfig {
     this._xColumns.delete(col);
     this._yColumns.delete(col);
     return this;

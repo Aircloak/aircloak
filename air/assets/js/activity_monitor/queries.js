@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import { QueryView } from "./query";
@@ -48,7 +49,7 @@ const renderNumActiveQueriesShown = (queries: Query[]) => {
 };
 
 export default class QueriesView extends React.PureComponent<Props> {
-  render() {
+  render(): Element<"div"> {
     const { queries } = this.props;
     return (
       <div>

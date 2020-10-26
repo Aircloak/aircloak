@@ -1,5 +1,7 @@
 // @flow
 
+import type { Node as $IMPORTED_TYPE$_Node, Element } from "React";
+import type { AuthContextType } from "../authentication_provider";
 import React from "react";
 import type { Node } from "react";
 import { AuthContext } from "../authentication_provider";
@@ -121,7 +123,7 @@ export class ResultView extends React.Component<Props, State> {
   }
 
   // eslint-disable-next-line react/static-property-placement
-  static contextType = AuthContext;
+  static contextType: React$Context<AuthContextType> = AuthContext;
 
   minRowsToShow: number;
 
@@ -129,11 +131,11 @@ export class ResultView extends React.Component<Props, State> {
 
   graphData: GraphDataT;
 
-  componentDidUpdate = () => {
+  componentDidUpdate: () => void = () => {
     this.rebuildGraphData();
   };
 
-  rebuildGraphData = () => {
+  rebuildGraphData: () => void = () => {
     const { result } = this.props;
     const { availableRows, graphConfig } = this.state;
     this.graphData = GraphData(
@@ -144,7 +146,7 @@ export class ResultView extends React.Component<Props, State> {
     );
   };
 
-  handleClickMoreRows = () => {
+  handleClickMoreRows: () => void = () => {
     const { result } = this.props;
     const { rowsToShowCount, availableRows, availableChunks } = this.state;
     const updatedRowsToShowCount = Math.min(
@@ -158,7 +160,7 @@ export class ResultView extends React.Component<Props, State> {
     );
   };
 
-  handleClickLessRows = () => {
+  handleClickLessRows: () => void = () => {
     this.setState((state) => {
       const updatedRowsToShowCount = Math.max(
         Math.round(state.rowsToShowCount / 2),
@@ -168,7 +170,7 @@ export class ResultView extends React.Component<Props, State> {
     });
   };
 
-  showChart = () => {
+  showChart: () => void = () => {
     const { availableChunks } = this.state;
     if (availableChunks !== ALL_CHUNKS) {
       this.loadChunks(ALL_CHUNKS, (allRows) => {
@@ -183,7 +185,11 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  loadAndShowMoreRows = (
+  loadAndShowMoreRows: (
+    rowsToShowCount: number,
+    availableRows: Array<Row>,
+    availableChunks: number
+  ) => void = (
     rowsToShowCount: number,
     availableRows: Row[],
     availableChunks: number
@@ -217,7 +223,10 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  loadChunks = (desiredChunk: number, fun: (rows: Row[]) => void) => {
+  loadChunks: (
+    desiredChunk: number,
+    fun: (rows: Array<Row>) => void
+  ) => void = (desiredChunk: number, fun: (rows: Row[]) => void) => {
     this.setState({ loadingChunks: true, loadError: false });
     const { result } = this.props;
     const { authentication } = this.context;
@@ -232,16 +241,19 @@ export class ResultView extends React.Component<Props, State> {
     });
   };
 
-  addX = (col: number) => () =>
+  addX: (col: number) => () => void = (col: number) => () =>
     this.setState((state) => ({ graphConfig: state.graphConfig.addX(col) }));
 
-  addY = (col: number) => () =>
+  addY: (col: number) => () => void = (col: number) => () =>
     this.setState((state) => ({ graphConfig: state.graphConfig.addY(col) }));
 
-  removeColumn = (col: number) => () =>
+  removeColumn: (col: number) => () => void = (col: number) => () =>
     this.setState((state) => ({ graphConfig: state.graphConfig.remove(col) }));
 
-  formatValue = (value: any, columnIndex: number): string => {
+  formatValue: (value: any, columnIndex: number) => string = (
+    value: any,
+    columnIndex: number
+  ): string => {
     const { result, numberFormat } = this.props;
     const type = result.types[columnIndex];
     if (value === null) {
@@ -259,9 +271,10 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  isNumeric = (n: any): boolean => typeof n === "number" && Number.isFinite(n);
+  isNumeric: (n: any) => boolean = (n: any): boolean =>
+    typeof n === "number" && Number.isFinite(n);
 
-  formatDateTime = (value: string): string => {
+  formatDateTime: (value: string) => string = (value: string): string => {
     const [date, time] = value.split("T");
     if (time === undefined) {
       return date;
@@ -270,7 +283,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  formatTime = (value: string): string => {
+  formatTime: (value: string) => string = (value: string): string => {
     const [hms, us] = value.split(".");
     const ZERO_US = "000000";
     if (us === ZERO_US || us === undefined) {
@@ -281,7 +294,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  conditionallyRenderChart = () => {
+  conditionallyRenderChart: () => null | $IMPORTED_TYPE$_Node = () => {
     const { showChart } = this.state;
     if (showChart) {
       return <GraphView graphData={this.graphData} width={714} height={600} />;
@@ -290,7 +303,11 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  conditionallyRenderChartConfig = () => {
+  conditionallyRenderChartConfig: () =>
+    | null
+    | Element<"div">
+    | Element<"p">
+    | $IMPORTED_TYPE$_Node = () => {
     const {
       loadingChunks,
       loadError,
@@ -325,7 +342,11 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  getRowAttrs = (row: Row) => {
+  getRowAttrs: (
+    row: Row
+  ) => { className: string, dataToggle: string, title: string } = (
+    row: Row
+  ) => {
     if (row.unreliable) {
       return {
         title:
@@ -338,7 +359,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  getInfoMessages = (): string[] => {
+  getInfoMessages: () => Array<string> = (): string[] => {
     const { result, debugModeEnabled } = this.props;
     const messages = result.info;
     if (!debugModeEnabled) {
@@ -348,7 +369,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  renderRows = () => {
+  renderRows: () => Array<Array<Node>> = () => {
     const { rowsToShowCount, availableRows, tableAligner } = this.state;
     let remainingRowsToProduce = rowsToShowCount;
     const rows = availableRows.flatMap<Array<Node>>((accumulateRow, i) => {
@@ -388,7 +409,7 @@ export class ResultView extends React.Component<Props, State> {
     return rows;
   };
 
-  renderShowAll = () => {
+  renderShowAll: () => null | Element<"div"> = () => {
     const { result } = this.props;
     const { loadingChunks, rowsToShowCount } = this.state;
     if (loadingChunks) {
@@ -422,7 +443,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  renderChartButton = () => {
+  renderChartButton: () => null | Element<"button"> = () => {
     const { showChart, loadingChunks } = this.state;
     if (this.graphInfo.chartable()) {
       const chartButtonText = showChart ? "Hide chart" : "Show chart";
@@ -449,7 +470,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  chartButtonClass = () => {
+  chartButtonClass: () => string = () => {
     const { loadingChunks } = this.state;
     const baseClasses = "btn btn-outline-secondary btn-sm";
     if (loadingChunks) {
@@ -459,7 +480,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  renderAxesButton = () => {
+  renderAxesButton: () => null | Element<"button"> = () => {
     const { showChart, showChartConfig } = this.state;
     if (showChart) {
       const text = showChartConfig ? "Hide axes" : "Show axes";
@@ -477,7 +498,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  renderOptionMenu = () => {
+  renderOptionMenu: () => Element<"div"> = () => {
     const { result, debugModeEnabled } = this.props;
     return (
       <div className="d-flex justify-content-between flex-column align-items-start flex-lg-row">
@@ -501,7 +522,7 @@ export class ResultView extends React.Component<Props, State> {
     );
   };
 
-  render = () => {
+  render: () => Element<"div"> = () => {
     const { result, onDeleteClick } = this.props;
     const { tableAligner } = this.state;
     return (

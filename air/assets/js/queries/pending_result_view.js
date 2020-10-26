@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import type { PendingResult } from "./result";
@@ -26,7 +27,7 @@ const stateItem = (state, currentState) => {
   }
 };
 
-export default ({ result, authentication }: Props) => {
+export default ({ result, authentication }: Props): Element<"div"> => {
   return (
     <div className="card border-info mb-3">
       <div className="card-header border-info bg-white">

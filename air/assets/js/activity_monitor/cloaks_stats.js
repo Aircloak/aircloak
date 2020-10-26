@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import { CloakStatsView } from "./cloak_stats";
@@ -19,7 +20,11 @@ const renderCloaks = (cloakStats: CloakStat[]) => {
   }
 };
 
-export default ({ cloakStats }: { cloakStats: CloakStat[] }) => {
+export default ({
+  cloakStats,
+}: {
+  cloakStats: CloakStat[],
+}): Element<"div"> => {
   return (
     <div>
       <h3>Cloaks</h3>

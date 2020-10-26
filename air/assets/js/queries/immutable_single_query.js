@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import Results from "./results";
@@ -24,7 +25,7 @@ export default ({
   numberFormat,
   debugModeEnabled,
   authentication,
-}: Props) => {
+}: Props): Element<"div"> => {
   return (
     <div>
       <h3>Properties</h3>

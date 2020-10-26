@@ -1,4 +1,5 @@
 // @flow
+import type { Node } from "React";
 import React from "react";
 import type { Column } from "./columns";
 import fuzzysort from "fuzzysort";
@@ -267,7 +268,11 @@ type Props = {
   field: string,
 };
 
-export const Higlighted = ({ table, column, field }: Props) => {
+export const Higlighted = ({
+  table,
+  column,
+  field,
+}: Props): any | Node | string => {
   const text = field === "table" ? table : column[field];
   if (!column._matchIndexes) return text;
 
@@ -304,5 +309,5 @@ export const Higlighted = ({ table, column, field }: Props) => {
   return <>{result}</>;
 };
 
-export const needsHighlighting = (column: Column) =>
+export const needsHighlighting = (column: Column): void | Array<number> =>
   column._matchIndexes && column._matchIndexes.type;
