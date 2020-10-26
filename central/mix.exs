@@ -82,7 +82,7 @@ defmodule Central.Mixfile do
       {:quantum, "~> 2.2.7"},
       {:poolboy, ">= 0.0.0"},
       {:jason, "~> 1.0"},
-      {:phoenix_gen_socket_client, "~> 2.0", only: :test},
+      {:phoenix_gen_socket_client, "~> 3.1", only: :test},
       {:websocket_client, "~> 1.2.4", only: :test}
     ]
   end

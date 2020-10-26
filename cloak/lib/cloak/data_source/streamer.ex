@@ -113,6 +113,9 @@ defmodule Cloak.DataSource.Streamer do
     rescue
       exception in [Cloak.Query.ExecutionError] -> stream_error(query_runner, Exception.message(exception))
       exception -> stream_error(query_runner, exception |> Exception.message() |> sanitize_database_error())
+    catch
+      :exit, {:timeout, _} ->
+        stream_error(query_runner, "Database request timed out.")
     end
   end
 

@@ -133,7 +133,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
     <span className="badge badge-success ml-2">
       Online
       <a
-        href="/docs/sql/restrictions.html#column-analysis"
+        href="/docs/#/sql/restrictions?id=column-analysis"
         target="blank"
         data-toggle="tooltip"
         data-placement="bottom"

@@ -43,6 +43,9 @@ defmodule Cloak.DataSource.Driver do
   @doc "Loads one or more table definitions from the data store."
   @callback load_tables(connection, Table.t()) :: [Table.t()]
 
+  @doc "Loads table and column comments from the data store."
+  @callback load_comments(connection, Table.t()) :: {String.t() | nil, %{String.t() => String.t() | nil}}
+
   @doc "Driver specific implementation for the retrieving chunks of rows."
   @callback select(connection, Query.t(), Cloak.DataSource.result_processor()) ::
               {:ok, Cloak.DataSource.processed_result()} | {:error, any}

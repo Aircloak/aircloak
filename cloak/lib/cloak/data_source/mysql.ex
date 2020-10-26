@@ -30,9 +30,45 @@ defmodule Cloak.DataSource.MySQL do
     column_info_mapper = fn [name, type | _others] -> Table.column(name, parse_type(type)) end
 
     case run_query(connection, query, column_info_mapper, &Enum.concat/1) do
-      {:ok, columns} -> [load_comments(connection, %{table | columns: columns})]
+      {:ok, columns} -> [%{table | columns: columns}]
       {:error, reason} -> raise ExecutionError, message: "`#{reason}`"
     end
+  end
+
+  @impl Driver
+  def load_comments(connection, table) do
+    filter = table_filter(table)
+
+    table_comment =
+      connection
+      |> select("""
+        SELECT TABLE_COMMENT
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE #{filter}
+      """)
+      |> case do
+        {:ok, [[comment]]} -> comment
+        _ -> nil
+      end
+
+    column_comments =
+      connection
+      |> select("""
+        SELECT COLUMN_NAME, COLUMN_COMMENT
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE #{filter} AND COLUMN_COMMENT IS NOT NULL
+      """)
+      |> case do
+        {:ok, results} ->
+          results
+          |> Enum.map(&List.to_tuple/1)
+          |> Enum.into(%{})
+
+        _ ->
+          %{}
+      end
+
+    {table_comment, column_comments}
   end
 
   @impl Driver
@@ -113,45 +149,6 @@ defmodule Cloak.DataSource.MySQL do
     )
   rescue
     error in MyXQL.Error -> {:error, Exception.message(error)}
-  end
-
-  defp load_comments(connection, table) do
-    filter = table_filter(table)
-
-    table_comments =
-      connection
-      |> select("""
-        SELECT TABLE_COMMENT
-        FROM INFORMATION_SCHEMA.TABLES
-        WHERE #{filter}
-      """)
-      |> case do
-        {:ok, [[comment]]} -> comment
-        _ -> nil
-      end
-
-    column_comments =
-      connection
-      |> select("""
-        SELECT COLUMN_NAME, COLUMN_COMMENT
-        FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE #{filter} AND COLUMN_COMMENT IS NOT NULL
-      """)
-      |> case do
-        {:ok, results} ->
-          results
-          |> Enum.map(&List.to_tuple/1)
-          |> Enum.into(%{})
-
-        {:error, _} ->
-          %{}
-      end
-
-    comments =
-      %{table: table_comments, columns: column_comments}
-      |> Aircloak.deep_merge(Map.get(table, :comments, %{}))
-
-    Map.put(table, :comments, comments)
   end
 
   defp table_filter(table) do

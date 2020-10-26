@@ -303,7 +303,12 @@ defmodule Cloak.DataSource do
     data_sources = config_to_datasources(data_source_configs)
 
     data_sources
-    |> Task.async_stream(&add_tables/1, timeout: :timer.minutes(30), ordered: true, on_timeout: :kill_task)
+    |> Task.async_stream(&add_tables/1,
+      timeout: :timer.minutes(30),
+      ordered: true,
+      on_timeout: :kill_task,
+      max_concurrency: Aircloak.DeployConfig.get("max_parallel_queries", System.schedulers_online())
+    )
     |> Enum.zip(data_sources)
     |> Enum.map(&handle_add_tables_result/1)
     |> log_unclassified_columns()

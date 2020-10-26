@@ -63,7 +63,7 @@
 
   <div class="form-group">
     <div class="col-sm-offset-3 col-sm-9">
-      <%= submit "Create and login", class: "btn btn-primary" %>
+      <%= submit "Create and log in", class: "btn btn-primary" %>
     </div>
   </div>
 <% end %>

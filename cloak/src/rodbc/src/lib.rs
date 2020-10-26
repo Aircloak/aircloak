@@ -4,10 +4,12 @@ use std::mem::transmute;
 use std::result;
 use std::str::from_utf8;
 use std::slice::from_raw_parts;
+use std::borrow::Cow;
 
 extern crate odbc;
 use odbc::ffi::SqlDataType::*;
 use odbc::*;
+use self::odbc_safe::AutocommitOn;
 
 extern crate simple_error;
 use simple_error::SimpleError;
@@ -112,7 +114,7 @@ fn error(message: &str) -> GenError {
 pub fn connect<'env>(
     env: &'env Environment<Version3>,
     connection_string: &Vec<u8>,
-) -> result::Result<Connection<'env>, Box<dyn Error>> {
+) -> result::Result<Connection<'env, AutocommitOn>, Box<dyn Error>> {
     let connection_string = from_utf8(connection_string.as_ref())?;
     Ok(env.connect_with_connection_string(connection_string)?)
 }
@@ -131,12 +133,12 @@ fn field_type(t: ffi::SqlDataType, wstr_as_utf16: bool) -> u8 {
 }
 
 pub struct ConnectionState<'conn> {
-    stmt: Statement<'conn, 'conn, Allocated, HasResult>,
+    stmt: Statement<'conn, 'conn, Allocated, HasResult, AutocommitOn>,
     field_types: Vec<u8>,
 }
 
 pub fn execute<'conn, 'env>(
-    conn: &'conn Connection<'env>,
+    conn: &'conn Connection<'env, AutocommitOn>,
     state: &mut Option<ConnectionState<'conn>>,
     wstr_as_utf16: bool,
     statement_text: &Vec<u8>,
@@ -164,7 +166,7 @@ fn push_binary(buf: &mut Vec<u8>, bytes: &[u8]) {
 fn write_field<'a, 'b, 'c, S>(
     field_type: u8,
     index: u16,
-    cursor: &mut Cursor<'a, 'b, 'c, S>,
+    cursor: &mut Cursor<'a, 'b, 'c, S, AutocommitOn>,
     buf: &mut Vec<u8>,
 ) -> GenError {
     match field_type {
@@ -200,7 +202,7 @@ fn write_field<'a, 'b, 'c, S>(
             buf.push(TYPE_NULL);
         },
 
-        TYPE_STR => if let Some(val) = cursor.get_data::<&str>(index)? {
+        TYPE_STR => if let Some(val) = cursor.get_data::<Cow<str>>(index)? {
             buf.push(TYPE_STR);
             push_binary(buf, val.as_bytes());
         } else {
@@ -266,11 +268,9 @@ fn sql_type_to_string(t: ffi::SqlDataType) -> &'static str {
         SQL_EXT_BINARY | SQL_EXT_VARBINARY | SQL_EXT_LONGVARBINARY => "binary",
         SQL_EXT_WCHAR | SQL_EXT_WVARCHAR | SQL_EXT_WLONGVARCHAR => "wvarchar",
         SQL_DATETIME => "datetime",
-        SQL_TIMESTAMP => "timestamp",
+        SQL_TIMESTAMP | SQL_TIMESTAMP_WITH_TIMEZONE | SQL_SS_TIMESTAMPOFFSET => "timestamp",
         SQL_DATE => "date",
-        SQL_TIME => "time",
-        SQL_TIME_WITH_TIMEZONE | SQL_SS_TIME2 => "time",
-        SQL_TIMESTAMP_WITH_TIMEZONE | SQL_SS_TIMESTAMPOFFSET => "timestamp",
+        SQL_TIME | SQL_TIME_WITH_TIMEZONE | SQL_SS_TIME2 => "time",
         SQL_EXT_GUID => "guid",
         _ => "unknown",
     }

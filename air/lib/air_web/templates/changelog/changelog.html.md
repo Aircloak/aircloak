@@ -28,6 +28,7 @@
 - Cached connections are now forcefully terminated when a data source is detected as broken.
 - Ignore trailing semicolon in analyst tables definitions.
 - Fixed offloading of date/interval operations on MySQL.
+- Fixed crash on invalid UTF8 strings when using ODBC-based drivers.
 
 ### Changes
 
@@ -39,6 +40,10 @@
 ### Bugfixes
 
 - Fixed crash when loading data source tables in the sidebar.
+
+### Changes
+
+- Automatic comment loading can be disabled for data sources by setting the `load_comments` flag to `false`.
 
 ## Version 20.2.0
 
@@ -53,7 +58,7 @@
 
 ### New features
 
-- Added an integration for [Diffix Explorer](https://github.com/diffix/explorer). [If enabled](/docs/ops/installation.html#diffix-explorer), analysts will be given an anonymized overview of the contents of columns in your data sources.
+- Added an integration for [Diffix Explorer](https://github.com/diffix/explorer). [If enabled](/docs/#/ops/installation?id=diffix-explorer), analysts will be given an anonymized overview of the contents of columns in your data sources.
 - Comments can be added to tables and columns. Database comments are automatically loaded from configured tables.
 
 ### Enhancements
@@ -134,7 +139,7 @@
 - Minimum Oracle version supported is now 12c.
 - The minimum supported version of Postgres is now 9.6 (dropping support for version 9.1 through 9.5).
 - Support for the `auto_aircloak_export` configuration parameter in the Insights Air config was removed.
-  Consult the [Upgrade guide](docs/ops/upgrading.html) for additional information.
+  Consult the [Upgrade guide](/docs/#/ops/upgrading) for additional information.
 - Support for some obsolete data source configuration features was removed: decoders, projections, explicit
   user_id-field.
 - Anonymizing queries using raw user_id columns are rejected instead of automatically censoring the user_id column.
@@ -154,8 +159,8 @@
 - Various data source connection timeouts can now be adjusted in the Cloak config file, under the `timeouts` field.
 - Improved support for boolean expressions.
 - Allowed inequalities between datetime columns and the current date.
-- Added support for `CASE` statements in [standard queries](sql#query-and-subquery-types).
-  Experimental support for [restricted queries](sql#query-and-subquery-types) can be enabled
+- Added support for `CASE` statements in [standard queries](/docs/#/sql?id=query-and-subquery-types).
+  Experimental support for [restricted queries](/docs/#/sql?id=query-and-subquery-types) can be enabled
   in the Cloak config using the `enable_case_support` flag.
 - The HTTP REST API query result endpoint no longer returns internal logging data.
 - The number of analysis queries needed when multiple copies of a data source exist was reduced.
@@ -179,7 +184,7 @@
   This behavior may change if database defaults are modified.
 - Aircloak Insights no longer tracks pseudonymized usage information. The default
   privacy policy has been simplified to reflect this change. Please consult
-  the [Upgrade guide](docs/ops/upgrading.html) for further information.
+  the [Upgrade guide](/docs/#/ops/upgrading) for further information.
 
 ## Version 19.3.0
 
@@ -192,7 +197,7 @@
 
 - The LDAP section has a `Sync now` button in `Admin -> Users` and `Admin -> Groups`
 - Improved offloading of joins on MongoDB.
-- It is possible to force long polling instead of websocket as a transport mechanism for pushing notifications to browsers. See [Insights Air configuration](docs/ops/configuration.html#insights-air-configuration) for details.
+- It is possible to force long polling instead of websocket as a transport mechanism for pushing notifications to browsers. See [Insights Air configuration](/docs/#/ops/configuration?id=insights-air-configuration) for details.
 - Enabled statistics-based min/max aggregators (with a higher users count threshold).
 - Enabled statistics-based count(distinct) aggregators.
 - Added protection against join timing attacks.
@@ -217,12 +222,12 @@
 
 ## Version 19.2.0
 
-[Upgrade guide](docs/ops/upgrading.html)
+[Upgrade guide](/docs/#/ops/upgrading)
 
 ### **Breaking changes**
 
 - The air configuration must contain the mandatory `name` property in the Insights Air configuration.
-  See [Insights Air configuration](docs/ops/configuration.html#insights-air-configuration) for details.
+  See [Insights Air configuration](/docs/#/ops/configuration?id=insights-air-configuration) for details.
 - When quoting `db_name` in drill data sources, the double quote (") character must be used instead of backtick (\`).
 
 ### Bugfixes
@@ -235,11 +240,11 @@
 - Support noise aggregators in non-anonymising queries.
 - Support for current date/time functions.
 - Support for signing out all sessions of a user from the settings page or from the admin panel
-- Support for analyst tables. See the [Analyst tables](docs/ops/configuration.html#analyst-tables) section for details.
+- Support for analyst tables. See the [Analyst tables](/docs/#/ops/configuration?id=analyst-tables) section for details.
 
 ### Enhancements
 
-- Added support for configuring the maximum allowed number of concurrent PostgreSQL connections accepted by the Insights Air. See the section on configuring [Insights Air PostgreSQL interface](docs/ops/configuration.html#insights-air-postgresql-interface-configuration) for details.
+- Added support for configuring the maximum allowed number of concurrent PostgreSQL connections accepted by the Insights Air. See the section on configuring [Insights Air PostgreSQL interface](/docs/#/ops/configuration?id=insights-air-postgresql-interface-configuration) for details.
 - Added the support for the `VARIANCE` function.
 - Added validation of virtual queries.
 - Implemented offloading of complex per-user grouping.
@@ -259,7 +264,7 @@
 
 - The share button under a query result allows creating permalinks to queries
 - You can statically configure Aircloak Insights for fully automated deployments
-- Support for limiting maximum number of simultaneous queries per each cloak. See the section on configuring [Insights Cloak](/docs/ops/configuration.html#insights-cloak-configuration) for details.
+- Support for limiting maximum number of simultaneous queries per each cloak. See the section on configuring [Insights Cloak](/docs/#/ops/configuration?id=insights-cloak-configuration) for details.
 - Faster statistics-based (no-uid) anonymization implemented for certain cases.
 - Support for Oracle 11g
 
@@ -270,7 +275,7 @@
 ### Changes
 
 - The format in which cloak memory is reported has changed
-- By default, the cloak accepts at most 10 simultaneous queries. This setting can be changed with the `max_parallel_queries` cloak configuration parameter. See the section on configuring [Insights Cloak](/docs/ops/configuration.html#insights-cloak-configuration) for details.
+- By default, the cloak accepts at most 10 simultaneous queries. This setting can be changed with the `max_parallel_queries` cloak configuration parameter. See the section on configuring [Insights Cloak](/docs/#/ops/configuration?id=insights-cloak-configuration) for details.
 
 ## Version 18.4.0
 
@@ -309,7 +314,7 @@
 ### **Breaking change**
 
 - ODBC drivers for SAP HANA must be provided by the client and mounted.
-  See the [Installation guide](docs/ops/installation.html) for more info.
+  See the [Installation guide](/docs/#/ops/installation) for more info.
 
 ### Features
 
@@ -367,7 +372,7 @@
 
 - In many cases more data is now returned as a result of selectively merging low count buckets by censoring
   columns individually from right to left.
-- Query execution times can be reduced by parallelising the data ingestion phase. See the section on configuring [Insights Cloak](/docs/ops/configuration.html#insights-cloak-configuration) for details.
+- Query execution times can be reduced by parallelising the data ingestion phase. See the section on configuring [Insights Cloak](/docs/#/ops/configuration?id=insights-cloak-configuration) for details.
 - The efficiency of data aggregation has been improved and emulated queries now push conditions into the bottommost sub-queries for improved performance.
 - Error messages now highlight the problematic part of a query.
 - `DOW` (synonym for weekday) is supported both as a function and in `EXTRACT`.
@@ -482,7 +487,7 @@
 - Broken views are highlighted as such in the tables and views sidebar.
 - Data sources can be given a description to make them easier to keep apart.
 - The system guards against changes to users and groups that would leave it without an administrator.
-- The [REST API](/docs#canceling-a-query) has been extended to support cancelling queries.
+- The [REST API](/docs/#/api/queries?id=canceling-a-query) has been extended to support cancelling queries.
 
 ### Changes
 
@@ -498,7 +503,7 @@
 
 - Adds an [Activity Monitor](/admin/activity_monitor) that allows an administrator to see all queries running in the system across all analysts, as well as the memory usage across all connected cloaks.
 - Show indication of progress when a query is executing.
-- Adds an [endpoint for monitoring](/docs#monitoring) by external tools.
+- Adds an [endpoint for monitoring](/docs/#/ops/monitoring) by external tools.
 - Adds a [settings pane](/admin/settings) with the ability to specify the retention time for past queries.
 
 ### Enhancements

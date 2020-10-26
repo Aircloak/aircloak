@@ -25,7 +25,7 @@
         You can create app-specific logins that can only be used to access the PSQL API.
         See the <%=
           link "App logins section in the PSQL protocol documentation",
-            to: "/docs/api/psql.html#app-logins",
+            to: "/docs/#/api/psql?id=app-logins",
             target: :_blank
         %> for more.
       </p>

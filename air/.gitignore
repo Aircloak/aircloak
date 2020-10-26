@@ -13,7 +13,7 @@ erl_crash.dump
 # Since we are building assets from web/static,
 # we ignore priv/static. You may want to comment
 # this depending on your deployment strategy.
-/priv/static/
+/priv/static/frontend/
 /priv/bom.json
 /priv/dependencies.zip
 
@@ -23,10 +23,6 @@ erl_crash.dump
 /tmp/
 
 npm-debug.log.*
-
-/docs/_book
-/docs/node_modules
-/docs/content/aircloak-docs.*
 
 /assets/js/code_editor/function_completion_keywords.json
 

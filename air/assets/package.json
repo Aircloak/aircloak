@@ -8,6 +8,8 @@
     "chart.js": "^2.9.3",
     "codemirror": "^5.52.2",
     "core-js": "^3.6.4",
+    "docsify": "^4.11.6",
+    "docsify-tabs": "^1.4.3",
     "fuzzysort": "^1.1.4",
     "jquery": "^3.0",
     "lodash": "^4.11.1",
@@ -19,6 +21,7 @@
     "phoenix": "file:../deps/phoenix",
     "phoenix_html": "file:../deps/phoenix_html",
     "phoenix_live_view": "file:../deps/phoenix_live_view",
+    "prismjs": "^1.21.0",
     "react": "^16.13.1",
     "react-bootstrap": "^1.0.0-beta.17",
     "react-chartjs-2": "~2.9.0",
@@ -60,11 +63,11 @@
   },
   "scripts": {
     "test": "mocha --reporter dot --require @babel/register test/**/*.js",
-    "deploy": "parcel build js/app.js --out-dir ../priv/static/frontend --public-url /frontend/ --no-autoinstall",
-    "watch": "PARCEL_AUTOINSTALL=false parcel watch js/app.js --out-dir ../priv/static/frontend --public-url /frontend/",
-    "build-dev": "NODE_ENV=development parcel build js/app.js --no-minify --out-dir ../priv/static/frontend --public-url /frontend/  --no-autoinstall",
-    "lint": "eslint --max-warnings 0 js test && prettier -c css/**.css",
-    "fix": "eslint --fix js test && prettier --write css/**.css"
+    "deploy": "parcel build js/{app,docs}.js --out-dir ../priv/static/frontend --public-url /frontend/ --no-autoinstall",
+    "watch": "PARCEL_AUTOINSTALL=false parcel watch js/{app,docs}.js --out-dir ../priv/static/frontend --public-url /frontend/",
+    "build-dev": "NODE_ENV=development parcel build js/{app,docs}.js --no-minify --out-dir ../priv/static/frontend --public-url /frontend/  --no-autoinstall",
+    "lint": "eslint --max-warnings 0 js test && prettier --version && prettier --no-config -c css/**.css \"../*.md\" \"../priv/**/*.md\"",
+    "fix": "eslint --fix js test && prettier --write css/**.css \"../*.md\" \"../priv/**/*.md\""
   },
   "eslintConfig": {
     "extends": [

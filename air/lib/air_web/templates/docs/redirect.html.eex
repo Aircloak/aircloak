@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Aircloak – User Guide</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="<%= static_path(@conn, "/frontend/images/favicon.ico") %>" type="image/x-icon">
+  </head>
+  <body>
+    You are being redirected to <a href="/docs/">Aircloak User Guide</a>...
+    <script>
+      var path = window.location.pathname
+        .replace(/^\/docs\//i, "/")
+        .replace(/\.html$/i, "");
+      var hash = window.location.hash;
+      if (hash.length > 0) {
+        hash = "?id=" + encodeURIComponent(hash.substr(1));
+      }
+      window.location.replace("/docs/#" + path + hash);
+    </script>
+  </body>
+</html>

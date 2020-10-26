@@ -306,10 +306,26 @@ defmodule Cloak.DataSource.Table do
     table = new(table_id, Map.get(table, :user_id), [type: :regular, db_name: table_id] ++ Map.to_list(table))
 
     data_source.driver.load_tables(connection, table)
+    |> Enum.map(&load_comments(&1, connection, data_source))
     |> Enum.map(&map_column_access(&1, data_source))
     |> Enum.map(&parse_columns(data_source, &1))
     |> Enum.map(&{String.to_atom(&1.name), &1})
     |> Enum.map(&resolve_table_keys/1)
+  end
+
+  defp load_comments(table, connection, data_source) do
+    {table_comment, column_comments} =
+      if data_source[:load_comments] == false do
+        {nil, %{}}
+      else
+        data_source.driver.load_comments(connection, table)
+      end
+
+    comments =
+      %{table: table_comment, columns: column_comments}
+      |> Aircloak.deep_merge(Map.get(table, :comments, %{}))
+
+    Map.put(table, :comments, comments)
   end
 
   defp map_column_access(table, data_source) do

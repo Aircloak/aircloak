@@ -8,10 +8,13 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("bounds_analysis", "col INTEGER, d DATE")
+    :ok = Cloak.Test.DB.create_table("bounds_analysis", "col INTEGER, d DATE, oob_date DATE")
 
-    :ok = insert_rows(_user_ids = 1..5, "bounds_analysis", ["col", "d"], [30, ~D[2000-05-03]])
-    :ok = insert_rows(_user_ids = 6..10, "bounds_analysis", ["col", "d"], [70, ~D[2010-02-12]])
+    :ok =
+      insert_rows(_user_ids = 1..5, "bounds_analysis", ["col", "d", "oob_date"], [30, ~D[2000-05-03], ~D[9999-11-01]])
+
+    :ok =
+      insert_rows(_user_ids = 6..10, "bounds_analysis", ["col", "d", "oob_date"], [70, ~D[2010-02-12], ~D[1000-02-10]])
 
     :ok =
       Cloak.Test.DB.create_table("bounds_analysis_virtual", nil,
@@ -119,6 +122,11 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
         |> first_selected_column()
 
       assert {8, 4000} = column.bounds
+    end
+
+    test "extreme date bounds are clamped", analysis_data_source do
+      column = "SELECT oob_date FROM bounds_analysis" |> compile!(analysis_data_source) |> first_selected_column()
+      assert {1900, 9999} = column.bounds
     end
 
     defp first_selected_column(query) do
