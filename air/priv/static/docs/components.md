@@ -51,7 +51,7 @@ For more information about the supported datastores and what query features are 
 
 ### Diffix Explorer
 
-[Diffix Explorer](https://github.com/diffix/explorer) is an *optional* open source component backed by the [Max Planck Institute for Software Systems](https://mpi-sws.org),
+[Diffix Explorer](https://github.com/diffix/explorer) is an _optional_ open source component backed by the [Max Planck Institute for Software Systems](https://mpi-sws.org),
 which integrates with Insights Air to provide actionable information to analysts without the need to manually write queries.
 Insights Air provides a built-in UI integration to manage and display these results, but Diffix Explorer can also be used
 through it's API to derive useful information for other interfaces.
@@ -71,7 +71,6 @@ exists and can directly be used by the Aircloak Insights platform.
 
 A list of supported datasources can be found [here](/datastores.md).
 
-
 ### Logging infrastructure
 
 Insights Air, and Insights Cloak (and through Insights Cloak also Insights Datasource Connector) produce logs that can
@@ -83,7 +82,6 @@ facility operated by the customer.
 
 Insights Air provides a [monitoring API endpoint](/ops/monitoring.md). This API endpoint can be tied into existing monitoring infrastructure, to improve
 the visibility into the workings of the Aircloak Insights platform.
-
 
 ## How the components interact
 

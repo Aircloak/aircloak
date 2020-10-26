@@ -155,7 +155,6 @@ ABS(-3)
 
 [Restrictions in usage apply](/sql/restrictions.md#math-and-function-application-restrictions)
 
-
 ### bucket
 
 Rounds the input to multiples of N, where N is provided in the `BY` argument. It also accepts an `ALIGN` argument to
@@ -199,7 +198,7 @@ GROUP BY 1
 ```
 
 The function can also help if the column you want to group by has many unique values and many of the buckets get
-anonymized away.  For example if you have a column containing the length of a call in seconds:
+anonymized away. For example if you have a column containing the length of a call in seconds:
 
 ```sql
 SELECT call_duration, COUNT(*)
@@ -220,7 +219,6 @@ GROUP BY 1
 
 [Restrictions in usage apply](/sql/restrictions.md#math-and-function-application-restrictions)
 
-
 ### ceil / ceiling
 
 Computes the smallest integer that is greater than or equal to its argument.
@@ -232,7 +230,6 @@ CEIL(3.22)
 
 [Restrictions in usage apply](/sql/restrictions.md#math-and-function-application-restrictions)
 
-
 ### floor
 
 Computes the largest integer that is less than or equal to its argument.
@@ -243,7 +240,6 @@ FLOOR(3.22)
 ```
 
 [Restrictions in usage apply](/sql/restrictions.md#math-and-function-application-restrictions)
-
 
 ### pow
 
@@ -258,7 +254,6 @@ POW(2, 3.5)
 ```
 
 [Restrictions in usage apply](/sql/restrictions.md#math-and-function-application-restrictions)
-
 
 ### round
 
@@ -278,7 +273,6 @@ ROUND(3.22, 1)
 
 [Restrictions in usage apply](/sql/restrictions.md#math-and-function-application-restrictions)
 
-
 ### sqrt
 
 Computes the square root.
@@ -289,7 +283,6 @@ SQRT(2)
 ```
 
 [Restrictions in usage apply](/sql/restrictions.md#math-and-function-application-restrictions)
-
 
 ### trunc
 
@@ -538,27 +531,27 @@ CAST('NOT A NUMBER', integer)
 
 Types can be converted according to the following tables:
 
-| from\to  | text  | integer | real  | boolean |
-| :------- | :---: | :-----: | :---: | :-----: |
-| text     |   ✓   |    ✓    |   ✓   |    ✓    |
-| integer  |   ✓   |    ✓    |   ✓   |    ✓    |
-| real     |   ✓   |    ✓    |   ✓   |    ✓    |
-| boolean  |   ✓   |    ✓    |   ✓   |    ✓    |
-| date     |   ✓   |         |       |         |
-| time     |   ✓   |         |       |         |
-| datetime |   ✓   |         |       |         |
-| interval |   ✓   |         |       |         |
+| from\to  | text | integer | real | boolean |
+| :------- | :--: | :-----: | :--: | :-----: |
+| text     |  ✓   |    ✓    |  ✓   |    ✓    |
+| integer  |  ✓   |    ✓    |  ✓   |    ✓    |
+| real     |  ✓   |    ✓    |  ✓   |    ✓    |
+| boolean  |  ✓   |    ✓    |  ✓   |    ✓    |
+| date     |  ✓   |         |      |         |
+| time     |  ✓   |         |      |         |
+| datetime |  ✓   |         |      |         |
+| interval |  ✓   |         |      |         |
 
-| from\to  | date  | time  | datetime | interval |
-| :------- | :---: | :---: | :------: | :------: |
-| text     |   ✓   |   ✓   |    ✓     |    ✓     |
-| integer  |       |       |          |          |
-| real     |       |       |          |          |
-| boolean  |       |       |          |          |
-| date     |   ✓   |       |          |          |
-| time     |       |   ✓   |          |          |
-| datetime |   ✓   |   ✓   |    ✓     |          |
-| interval |       |       |          |    ✓     |
+| from\to  | date | time | datetime | interval |
+| :------- | :--: | :--: | :------: | :------: |
+| text     |  ✓   |  ✓   |    ✓     |    ✓     |
+| integer  |      |      |          |          |
+| real     |      |      |          |          |
+| boolean  |      |      |          |          |
+| date     |  ✓   |      |          |          |
+| time     |      |  ✓   |          |          |
+| datetime |  ✓   |  ✓   |    ✓     |          |
+| interval |      |      |          |    ✓     |
 
 A cast may fail even when it's valid according to the table. For example a text field may contain data that
 does not have the correct format. In that case a `NULL` is returned.
@@ -567,10 +560,10 @@ does not have the correct format. In that case a `NULL` is returned.
 
 Casting from text will accept the same format as the cast to text produces for the given type. That means:
 
-* `'TRUE'`/`'FALSE'` for booleans
-* A base-10 notation for integers
-* `1.23` or `1e23` for reals
-* ISO-8601 notation for dates, times, datetimes and intervals
+- `'TRUE'`/`'FALSE'` for booleans
+- A base-10 notation for integers
+- `1.23` or `1e23` for reals
+- ISO-8601 notation for dates, times, datetimes and intervals
 
 ### Casting to integer
 
@@ -591,7 +584,7 @@ Casting from datetime to date or time will select the date/time part of the date
 
 Unlike in regular database systems, the results of aggregation functions will usually not be reported precisely.
 Instead, a small amount of noise will be added or subtracted from the real value to preserve anonymity. See [the section
-about *_noise functions](#noise) for more on how to get a measure of how much noise is added.
+about \*\_noise functions](#noise) for more on how to get a measure of how much noise is added.
 
 ### avg
 
@@ -790,7 +783,7 @@ SELECT lastname, variance(age) FROM people GROUP BY 1
 Note that the computed variance is anonymized by introducing a certain amount of noise. See [Note about
 noise](#note-about-noise) for more.
 
-### *_noise
+### \*\_noise
 
 You can get a sense of how much noise is being added to an `avg`, `count`, `stddev`, `sum`, or `variance` expression by
 using an analogous `*_noise` expression. The value returned is the standard deviation of the noise added according to

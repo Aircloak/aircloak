@@ -189,43 +189,43 @@ are indicated with a `null`.
 
 The options have the following meaning:
 
-* `host` - the hostname of the LDAP server.
-* `port` - the port on which to connect to the LDAP server. Defaults to 389.
-* `bind_dn` - the DN of the user used to read from the LDAP server. We recommend you set up a read-only user for this
+- `host` - the hostname of the LDAP server.
+- `port` - the port on which to connect to the LDAP server. Defaults to 389.
+- `bind_dn` - the DN of the user used to read from the LDAP server. We recommend you set up a read-only user for this
   purpose. Defaults to `""`.
-* `password` - the password of the user used to read from the LDAP server. You can set both `bind_dn` and `password` to
+- `password` - the password of the user used to read from the LDAP server. You can set both `bind_dn` and `password` to
   `""` to configure anonymous access. Defaults to `""`.
-* `encryption` - the type of encryption to use. Possible values are `"plain"` for no encryption, `"ssl"` for regular
+- `encryption` - the type of encryption to use. Possible values are `"plain"` for no encryption, `"ssl"` for regular
   SSL, and `"start_tls"` for StartTLS. Set this to the type of encryption used by your server. We recommend you use
   either `"ssl"` or `"start_tls"`. Defaults to `"plain"`.
-* `verify_server_certificate` - set this to `true` to check the certificate of the server for validity. Requires
+- `verify_server_certificate` - set this to `true` to check the certificate of the server for validity. Requires
   `ca_certfile` to be configured. Defaults to `false`.
-* `ca_certfile` - the name of the CA certificate file with which to verify the server certificate. Put the certificate
+- `ca_certfile` - the name of the CA certificate file with which to verify the server certificate. Put the certificate
   file in the same folder as `config.json`.
-* `client_certfile` - the name of the client certificate file to use when connecting to the server. Put the certificate
+- `client_certfile` - the name of the client certificate file to use when connecting to the server. Put the certificate
   file in the same folder as `config.json`. By default no client certificate is sent.
-* `client_keyfile` - the name of the file containing the key to `client_certfile`. Put the key file in the same folder
+- `client_keyfile` - the name of the file containing the key to `client_certfile`. Put the key file in the same folder
   as `config.json`.
-* `user_base` - the LDAP subtree in which to look for users.
-* `user_filter` - an LDAP filter to restrict which users to sync from `user_base`. See
+- `user_base` - the LDAP subtree in which to look for users.
+- `user_filter` - an LDAP filter to restrict which users to sync from `user_base`. See
   [the LDAP page on filters](https://ldap.com/ldap-filters/) for more on how to formulate such filters. Defaults to
   `"(objectClass=*)"`, which matches all objects.
-* `user_login` - the name of the attribute from which to take the user's login. Note that users are required to have a
+- `user_login` - the name of the attribute from which to take the user's login. Note that users are required to have a
   valid login, so if this attribute is empty for an object, it won't be synced as an Insights Air user. Defaults to
   `"cn"`.
-* `user_name` - the name of the attribute from which to take the user's name. Defaults to `"cn"`.
-* `group_base` - the LDAP subtree in which to look for groups.
-* `group_filter` - an LDAP filter to restrict which groups to sync from `group_base`. See
+- `user_name` - the name of the attribute from which to take the user's name. Defaults to `"cn"`.
+- `group_base` - the LDAP subtree in which to look for groups.
+- `group_filter` - an LDAP filter to restrict which groups to sync from `group_base`. See
   [the LDAP page on filters](https://ldap.com/ldap-filters/) for more on how to formulate such filters. Defaults to
   `"(objectClass=*)"`, which matches all objects.
-* `group_name` - the name of the attribute from which to take the group's name. Note that groups are required to have a
+- `group_name` - the name of the attribute from which to take the group's name. Note that groups are required to have a
   valid name, so if this attribute is empty for an object, it won't be synced as an Insights Air group. Defaults to
   `"dn"`.
-* `group_member` - the name of the attribute on a group object which lists the group's members. Defaults to
+- `group_member` - the name of the attribute on a group object which lists the group's members. Defaults to
   `"memberUid"`.
-* `group_member_key` - the user attribute which will be listed in group objects under `group_member`. Possible values
+- `group_member_key` - the user attribute which will be listed in group objects under `group_member`. Possible values
   are `"login"` and `"dn"`. Defaults to `"login"`.
-* `user_group` - the name of the attribute on a user object which lists the groups the user belongs to. The attribute is
+- `user_group` - the name of the attribute on a user object which lists the groups the user belongs to. The attribute is
   expected to contain the DNs of the groups.
 
 If a valid LDAP configuration is present, Insights Air will periodically sync with the LDAP server to update the list of
@@ -535,8 +535,8 @@ of the following values: `personal` (default) and `non-personal`. Tables with da
 anonymity should be preserved must be marked with the content type `personal`. If any such table is included in a query, the
 query will underlie the anonymization restrictions applied by Aircloak Insights and produce anonymized results. If the
 content type field is set to `non-personal`, the table will be classified as not containing data requiring anonymization.
-Queries over such tables are not subject to the anonymization restrictions. *No attempts will be made to anonymize the data
-they contain!*
+Queries over such tables are not subject to the anonymization restrictions. _No attempts will be made to anonymize the data
+they contain!_
 
 The database table can be declared by either using `db_name` or as an SQL view using `query`.
 These options are mutually exclusive.
@@ -739,7 +739,7 @@ it will treat `telephone_number` as isolating, `first_name` as not isolating, an
 columns. `manual_table` has the automatic isolating column detection turned off. All columns that have not been manually
 classified will therefore be treated as if they isolate users.
 
-__Warning__ The safest option is to treat a column as isolating. Manually classifying a column as not isolating may lead
+**Warning** The safest option is to treat a column as isolating. Manually classifying a column as not isolating may lead
 to privacy loss. It is safe to classify columns as not isolating only when sure that most values in that column appear
 for multiple users. Please contact [support@aircloak.com](mailto:support@aircloak.com) if you need help classifying your
 data.

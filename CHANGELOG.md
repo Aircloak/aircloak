@@ -10,12 +10,12 @@ This document serves to describe breaking changes and provide upgrade hints when
 
 To apply the change locally:
 
-  1. `DB_ENV="dev" central/db/container.sh stop`
-  2. `DB_ENV="test" central/db/container.sh stop`
-  3. `mv /docker_volumes/central_db_dev /tmp/ && mv /docker_volumes/central_db_test /tmp/`
-  5. `central/db/build-image.sh`
-  6. `./start-dependencies.sh`
-  7. `cd central && make recreate-db`
+1. `DB_ENV="dev" central/db/container.sh stop`
+2. `DB_ENV="test" central/db/container.sh stop`
+3. `mv /docker_volumes/central_db_dev /tmp/ && mv /docker_volumes/central_db_test /tmp/`
+4. `central/db/build-image.sh`
+5. `./start-dependencies.sh`
+6. `cd central && make recreate-db`
 
 Notice that this will regenerate your central database from scratch, and you'll lose all the data you previously had.
 
@@ -32,7 +32,7 @@ Notice that this will regenerate your central database from scratch, and you'll 
 
 Development and test databases are now running in the separate containers. After fetching the latest master, you need to stop the old container (`docker stop air_db`), and then you can run `air/start_dependencies.sh` which will start both database containers.
 
-__OS X developers__: you also need to forward port 20003 from `docker-machine` VM.
+**OS X developers**: you also need to forward port 20003 from `docker-machine` VM.
 
 ## Standalone air
 

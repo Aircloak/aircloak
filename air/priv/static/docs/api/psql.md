@@ -4,7 +4,7 @@ Aircloak Insights allows users to run SQL queries using the [PostgreSQL Message
 Protocol](https://www.postgresql.org/docs/current/static/protocol.html). This means that any driver that can be
 used to communicate with a PostgreSQL server can also be used to communicate with Aircloak Insights.
 
-__Important note__: While Aircloak Insights understands the PostgreSQL Message Protocol it does not understand
+**Important note**: While Aircloak Insights understands the PostgreSQL Message Protocol it does not understand
 queries that are specific to PostgreSQL. Examples of these are ones which query for metadata related to a PostgreSQL server's
 installation, or other PostgreSQL-specific ways of extracting metadata. When using this interface all the same restrictions apply
 as when you are executing queries over the web interface or using the [HTTP REST API](/api.md).
@@ -56,7 +56,7 @@ table3
 my-sensitive-data=>
 ```
 
-__Notice about suppressed values__: Standard SQL doesn't have an exact way to indicate that a specific value was suppressed. `NULL` is used to indicate that a requested value was not available or was not computable. When using the Web UI or the REST API, Aircloak Insights uses `*` to indicate suppressed values. But when using the PSQL interface,
+**Notice about suppressed values**: Standard SQL doesn't have an exact way to indicate that a specific value was suppressed. `NULL` is used to indicate that a requested value was not available or was not computable. When using the Web UI or the REST API, Aircloak Insights uses `*` to indicate suppressed values. But when using the PSQL interface,
 returning `*` (which is a specific character value) would not be valid for non-text fields and `NULL` is returned in those cases.
 
 In order to work around this restriction, you can either cast the specific non-text column to text, ensuring `*` is correctly returned when data was suppressed, or explicitly filter out regular `NULL` values for that column, with an `IS NOT NULL` or any other filter, ensuring any remaining `NULL` values in the result represent data that was suppressed.
