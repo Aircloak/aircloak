@@ -455,6 +455,7 @@ SELECT COUNT(*) FROM table GROUP BY name HAVING length(name) <> 2
 
 -- Correct - comparing two clear expressions
 SELECT COUNT(*) FROM table WHERE name <> surname
+SELECT COUNT(*) FROM table WHERE round(column1) <> round(column2)
 
 -- Incorrect - multiple columns are referenced on one side of the inequality:
 SELECT COUNT(*) FROM table WHERE column1 - column1 <> column2
