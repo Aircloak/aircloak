@@ -645,14 +645,10 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp table_or_subquery() do
-    switch([
-      {keyword(:"(") |> map(fn _ -> :subquery end), subquery()},
-      {:else, table_name()}
-    ])
-    |> map(fn
-      {[:subquery], [subquery_data]} -> {:subquery, subquery_data}
-      other -> other
-    end)
+    either_deepest_error(
+      pair_right(keyword(:"("), subquery()),
+      table_name()
+    )
   end
 
   defp table_name() do
@@ -677,7 +673,7 @@ defmodule Cloak.Sql.Parser.Internal do
       label(identifier() |> map(fn {_type, value} -> value end), "subquery alias")
     ])
     |> map(fn [select_statement, _as_keyword, alias] ->
-      %{ast: statement_map(select_statement), alias: alias}
+      {:subquery, %{ast: statement_map(select_statement), alias: alias}}
     end)
   end
 
