@@ -16,6 +16,9 @@
 ### Enhancements
 
 - `month`, `quarter`, `year` and `extract(month/quarter/year)` are no longer considered implicit ranges.
+- The audit log has been redesigned. It now shows significantly more data by default.
+- Installations using the [Diffix Explorer integration](https://hub.docker.com/r/diffix/explorer) now have
+  support for showing sample tables in the tables list on the query page.
 
 ### Bugfixes
 
@@ -23,11 +26,17 @@
 - Ignore trailing semicolon in analyst tables definitions.
 - Fixed offloading of date/interval operations on MySQL.
 - Fixed crash on invalid UTF8 strings when using ODBC-based drivers.
+- Fixed outdated examples of restricted queries in the docs
+- Searching the documentation could result in the browser window crashing.
 
 ### Changes
 
 - `CASE` support is now enabled by default. `WHEN` clause constants have to be from the list of frequent values,
   unless the `allow_any_value_in_when_clauses` setting is enabled in the Insights Cloak configuration file.
+
+### Deprecation
+
+- With the introduction of an improved online docs experience we deprecated offline docs (PDF, epub, and mobi).
 
 ## Version 20.2.1
 
