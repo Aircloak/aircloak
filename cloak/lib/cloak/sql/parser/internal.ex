@@ -37,8 +37,7 @@ defmodule Cloak.Sql.Parser.Internal do
       {:else, parenthesised_select_statement("select, explain, or show")}
     ])
     |> map(fn
-      {[:explain], [statement_data]} -> statement_map(command: :explain, from: statement_map(statement_data))
-      {[:show], [statement_data]} -> statement_map([{:command, :show} | statement_data])
+      {[command], [statement_data]} -> statement_data |> Keyword.put(:command, command) |> statement_map()
       statement_data -> statement_map(statement_data)
     end)
   end

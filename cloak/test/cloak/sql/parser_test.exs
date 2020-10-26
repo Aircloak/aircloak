@@ -53,7 +53,7 @@ defmodule Cloak.Sql.Parser.Test do
   # Produces a pattern which matches an AST of an explain query.
   defmacrop explain(select_data) do
     quote do
-      %{command: :explain, from: select(unquote(select_data))}
+      %{unquote_splicing([command: :explain] ++ select_data)}
     end
   end
 
