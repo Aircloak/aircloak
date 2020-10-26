@@ -1,4 +1,4 @@
-## Version 20.3.0-dev
+## Version 20.3.0
 
 ### **Breaking changes**
 
