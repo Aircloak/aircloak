@@ -1,3 +1,9 @@
+## Version 20.4.0-dev
+
+### New features
+
+- Added support for `UNION` between non-restricted queries.
+
 ## Version 20.3.0-dev
 
 ### **Breaking changes**
