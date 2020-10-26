@@ -26,7 +26,7 @@
 - Ignore trailing semicolon in analyst tables definitions.
 - Fixed offloading of date/interval operations on MySQL.
 - Fixed crash on invalid UTF8 strings when using ODBC-based drivers.
-- Fixed outdated examples of restricted queries in the docs
+- Fixed outdated examples of restricted queries in the docs.
 - Searching the documentation could result in the browser window crashing.
 
 ### Changes
