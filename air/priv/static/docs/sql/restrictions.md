@@ -137,7 +137,7 @@ FROM (
     -- - division with a constant
     -- - abs on an expression containing a constant
     -- - + where one of the arguments is an expression containing a constant
-    abs(div(age, 2)) + height as value1
+    abs(age / 2) + height as value1
   FROM table1
 ) a INNER JOIN (
   SELECT
@@ -238,7 +238,6 @@ SELECT COUNT(*) FROM table WHERE column > 10 AND column < 20
 -- Correct - comparison between clear expressions:
 SELECT COUNT(*) FROM table WHERE column1 > column2
 SELECT COUNT(*) FROM table WHERE column1 < round(column2)
-SELECT COUNT(*) FROM table WHERE column1 + 1 >= column2 - 1
 
 -- Incorrect - only one side of the constant range provided:
 SELECT COUNT(*) FROM table WHERE column > 10
@@ -456,8 +455,7 @@ SELECT COUNT(*) FROM table GROUP BY name HAVING length(name) <> 2
 
 -- Correct - comparing two clear expressions
 SELECT COUNT(*) FROM table WHERE name <> surname
-SELECT COUNT(*) FROM table WHERE sqrt(column1) <> sqrt(column2)
-SELECT COUNT(*) FROM table WHERE column1 + 1 <> column2 - 1
+SELECT COUNT(*) FROM table WHERE round(column1) <> round(column2)
 
 -- Incorrect - multiple columns are referenced on one side of the inequality:
 SELECT COUNT(*) FROM table WHERE column1 - column1 <> column2
