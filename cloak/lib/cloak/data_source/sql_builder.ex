@@ -122,7 +122,19 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_name(column, quote_char),
     do: "#{quote_name(column.table.name, quote_char)}.#{quote_name(column.name, quote_char)}"
 
-  defp build_fragments(query) do
+  defp build_fragments(%Query{command: :union, from: {:union, {:subquery, lhs}, {:subquery, rhs}}} = query) do
+    [
+      "(",
+      build_fragments(lhs.ast),
+      ") UNION ",
+      if(query.distinct?, do: "", else: "ALL "),
+      "(",
+      build_fragments(rhs.ast),
+      ")"
+    ]
+  end
+
+  defp build_fragments(%Query{command: :select} = query) do
     common_clauses = [
       columns_sql(query),
       " FROM ",
