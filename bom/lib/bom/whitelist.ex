@@ -59,7 +59,8 @@ defmodule BOM.Whitelist do
   @not_shipped %{
     elixir: ~w(proper rustler),
     node: ~w(
-      eslint eslint-plugin-import eslint-plugin-jsx-a11y axe-core language-subtag-registry eslint-plugin-react eslint-import-resolver-node
+      eslint eslint-plugin-import eslint-plugin-jsx-a11y axe-core
+      language-subtag-registry eslint-plugin-react eslint-import-resolver-node
     )
   }
 
