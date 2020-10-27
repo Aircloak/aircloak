@@ -17,7 +17,7 @@ defmodule BOM.Whitelist do
       {"scrivener", "2.7.0"} => %{type: :mit, text: :provided}
     },
     :node => %{
-      {"spdx-exceptions", "2.2.0"} => %{type: :cca3u, text: :standard}
+      {"spdx-exceptions", "2.3.0"} => %{type: :cca3u, text: :standard}
     },
     :rust => %{
       {"cfg-if", "0.1.5"} => %{type: :mit, text: :provided},
@@ -59,7 +59,7 @@ defmodule BOM.Whitelist do
   @not_shipped %{
     elixir: ~w(proper rustler),
     node: ~w(
-      eslint eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-react eslint-import-resolver-node
+      eslint eslint-plugin-import eslint-plugin-jsx-a11y axe-core language-subtag-registry eslint-plugin-react eslint-import-resolver-node
     )
   }
 
