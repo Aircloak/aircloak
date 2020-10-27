@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 import loader from "../../static/images/loader.gif";
 
@@ -15,7 +16,10 @@ type Props = {
   handleLoadHistory: () => void,
 };
 
-export const HistoryLoader = ({ history, handleLoadHistory }: Props) => {
+export const HistoryLoader = ({
+  history,
+  handleLoadHistory,
+}: Props): null | Element<"button"> | Element<"div"> | Element<"p"> => {
   if (history.error) {
     return (
       <div>

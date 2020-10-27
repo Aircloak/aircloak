@@ -1,8 +1,9 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 import sortBy from "lodash/sortBy";
-import { Channel } from "phoenix";
+import type { Channel } from "phoenix";
 
 import QueriesView from "./queries";
 import type { Query } from "./query";
@@ -59,13 +60,15 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
 
   queryRemovalTime: number;
 
-  handleRemoveQuery = (queryId: string) => {
+  handleRemoveQuery: any | ((queryId: string) => void) = (queryId: string) => {
     this.setState((state) => ({
       queries: state.queries.filter((query) => query.id !== queryId),
     }));
   };
 
-  conditionallyScheduleQueryRemoval = (queryEvent: QueryEvent) => {
+  conditionallyScheduleQueryRemoval: (queryEvent: QueryEvent) => void = (
+    queryEvent: QueryEvent
+  ) => {
     if (isFinished(queryEvent.event)) {
       setTimeout(
         () => this.handleRemoveQuery(queryEvent.query_id),
@@ -74,7 +77,9 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
     }
   };
 
-  handleQueryEvent = (queryEvent: QueryEvent) => {
+  handleQueryEvent: any | ((queryEvent: QueryEvent) => void) = (
+    queryEvent: QueryEvent
+  ) => {
     this.conditionallyScheduleQueryRemoval(queryEvent);
 
     if (queryEvent.event === "started") {
@@ -95,12 +100,17 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
     }
   };
 
-  handleCloakStatsUpdate = (cloakStatsUpdate: { cloakStats: CloakStat[] }) => {
+  handleCloakStatsUpdate:
+    | any
+    | ((cloakStatsUpdate: {
+        cloakStats: Array<CloakStat>,
+        ...
+      }) => void) = (cloakStatsUpdate: { cloakStats: CloakStat[] }) => {
     const cloakStats = sortBy(cloakStatsUpdate.cloakStats, "name");
     this.setState({ cloakStats });
   };
 
-  render = () => {
+  render: () => Element<"div"> = () => {
     const { cloakStats, queries } = this.state;
     return (
       <div>

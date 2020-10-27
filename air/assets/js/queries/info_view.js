@@ -1,5 +1,5 @@
 // @flow
-/* eslint-disable react/no-danger */
+import type { Element } from "React"; /* eslint-disable react/no-danger */
 
 import React from "react";
 import pagedown from "pagedown";
@@ -8,7 +8,7 @@ const mdToHtml = (text: string) => ({
   __html: pagedown.getSanitizingConverter().makeHtml(text),
 });
 
-export default ({ info }: { info: string[] }) => {
+export default ({ info }: { info: string[] }): null | Element<"div"> => {
   if (info && info.length > 0) {
     return (
       <div>

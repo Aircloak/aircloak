@@ -1,5 +1,7 @@
 // @flow
 
+import type { Node } from "React";
+import type { AuthContextType } from "../authentication_provider";
 import React from "react";
 
 import ImmutableSingleQuery from "./immutable_single_query";
@@ -38,13 +40,13 @@ export default class QueryView extends React.Component<Props, State> {
   }
 
   // eslint-disable-next-line react/static-property-placement
-  static contextType = AuthContext;
+  static contextType: React$Context<AuthContextType> = AuthContext;
 
-  resultReceived = (result: Result) => {
+  resultReceived: any | ((result: Result) => void) = (result: Result) => {
     this.setState({ result });
   };
 
-  render = () => {
+  render: () => Node = () => {
     const { numberFormat, user, insertedAt, debugModeEnabled } = this.props;
     const { result } = this.state;
     const { authentication } = this.context;

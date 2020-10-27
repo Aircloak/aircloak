@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 export type NumberFormat = {
@@ -25,7 +26,7 @@ export const NumberFormatExampleView = ({
   numberFormat,
 }: {
   numberFormat: NumberFormat,
-}) => {
+}): Element<"div"> => {
   return (
     <div>
       Format example with your currently saved settings:{" "}

@@ -1,5 +1,6 @@
 // @flow
 
+import type { Node } from "React";
 import React from "react";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
@@ -41,7 +42,7 @@ export default class ShareButton extends React.Component<Props, State> {
     }
   }
 
-  isEnabled() {
+  isEnabled(): ?string {
     const { result } = this.props;
     return result.private_permalink || result.public_permalink;
   }
@@ -50,7 +51,7 @@ export default class ShareButton extends React.Component<Props, State> {
     event.target.select();
   }
 
-  render() {
+  render(): null | Node {
     const { showModal } = this.state;
     if (this.isEnabled()) {
       return (

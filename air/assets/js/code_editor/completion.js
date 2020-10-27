@@ -58,7 +58,7 @@ export default function completionList(
   tableNames: string[],
   columnNames: string[],
   statement: string
-) {
+): {| from: any, list: any, to: any |} {
   const end = wordEnd(curLine, curPos);
 
   // We want to construct the longest possible match using the previous

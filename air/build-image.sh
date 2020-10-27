@@ -35,6 +35,7 @@ function build_release {
     -v $(pwd)/$(air_cache_folder)/_build:/aircloak/air/_build \
     -v $(pwd)/$(air_cache_folder)/deps:/aircloak/air/deps \
     -v $(pwd)/$(air_cache_folder)/assets/node_modules:/aircloak/air/assets/node_modules \
+    -v $(pwd)/$(air_cache_folder)/flow-typed:/aircloak/air/flow-typed \
     -v $(pwd)/$(air_cache_folder)/priv/dependencies.zip:/aircloak/air/priv/dependencies.zip \
     -v $(pwd)/$(air_cache_folder)/cloak/deps:/aircloak/cloak/deps \
     -v $(pwd)/$(air_cache_folder)/bom/deps:/aircloak/bom/deps \

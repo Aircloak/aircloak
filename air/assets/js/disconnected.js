@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import { Channel } from "phoenix";
@@ -29,17 +30,17 @@ export default class Disconnected extends React.Component<Props, State> {
 
   connectedInterval: IntervalID;
 
-  componentWillUnmount = () => {
+  componentWillUnmount: any | (() => void) = () => {
     clearInterval(this.connectedInterval);
   };
 
-  updateConnected = () => {
+  updateConnected: any | (() => void) = () => {
     this.setState((_state, props) => ({
       isConnected: props.channel.isJoined(),
     }));
   };
 
-  render = () => {
+  render: () => null | Element<"p"> = () => {
     const { isConnected } = this.state;
     if (!isConnected) {
       return (
