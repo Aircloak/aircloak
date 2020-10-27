@@ -1,9 +1,8 @@
 // @flow
 
-import type { Node as $IMPORTED_TYPE$_Node, Element } from "React";
+import type { Node, Element } from "React";
 import type { AuthContextType } from "../authentication_provider";
 import React from "react";
-import type { Node } from "react";
 import { AuthContext } from "../authentication_provider";
 import CodeViewer from "../code_viewer";
 import InfoView from "./info_view";
@@ -294,7 +293,7 @@ export class ResultView extends React.Component<Props, State> {
     }
   };
 
-  conditionallyRenderChart: () => null | $IMPORTED_TYPE$_Node = () => {
+  conditionallyRenderChart: () => null | Node = () => {
     const { showChart } = this.state;
     if (showChart) {
       return <GraphView graphData={this.graphData} width={714} height={600} />;
@@ -307,7 +306,7 @@ export class ResultView extends React.Component<Props, State> {
     | null
     | Element<"div">
     | Element<"p">
-    | $IMPORTED_TYPE$_Node = () => {
+    | Node = () => {
     const {
       loadingChunks,
       loadError,

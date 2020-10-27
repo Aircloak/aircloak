@@ -1,6 +1,6 @@
 // @flow
 
-import type { Element as $IMPORTED_TYPE$_Element } from "React";
+import type { Element as ReactElement } from "React";
 import React from "react";
 import type { Channel } from "phoenix";
 
@@ -50,7 +50,7 @@ export class SelectableView extends React.Component<Props> {
     preventDefault: () => void,
     target: Element,
     ...
-  }) => void = (event: { target: Element, preventDefault: () => void }) => {
+  }) => void = (event) => {
     // Hacky solution to prevent bubbling from `<a>` elements. Normally, we'd use stopPropagation.
     // However, the problem here is that we're injecting some html provided by the server, which
     // internally generates A elements. Therefore, we don't have such option, so we're doing it
@@ -128,9 +128,7 @@ export class SelectableView extends React.Component<Props> {
     return selectable.creation_status === "pending";
   };
 
-  renderIcon: () =>
-    | $IMPORTED_TYPE$_Element<"img">
-    | $IMPORTED_TYPE$_Element<"span"> = () => {
+  renderIcon: () => ReactElement<"img"> | ReactElement<"span"> = () => {
     const { expanded } = this.props;
     if (this.pending()) {
       return (
@@ -149,9 +147,9 @@ export class SelectableView extends React.Component<Props> {
     }
   };
 
-  renderSelectableView: (
+  renderSelectableView: (searchResults: any) => ReactElement<"div"> = (
     searchResults: any
-  ) => $IMPORTED_TYPE$_Element<"div"> = (searchResults: any) => {
+  ) => {
     const {
       selectable,
       expanded,
@@ -202,7 +200,7 @@ export class SelectableView extends React.Component<Props> {
     );
   };
 
-  render: () => null | $IMPORTED_TYPE$_Element<"div"> = () => {
+  render: () => null | ReactElement<"div"> = () => {
     const results = this.searchResults(this.props.expanded ? Infinity : 1);
     if (results.length > 0) {
       activateTooltips();
