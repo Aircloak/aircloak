@@ -5,7 +5,7 @@ defmodule AircloakCI.Build.Supervisor do
 
   @doc "Starts the new build server."
   @spec start_build(module, [any]) :: Supervisor.on_start_child()
-  def start_build(module, args), do: Supervisor.start_child(__MODULE__, [module, :start_link, args])
+  def start_build(module, args), do: DynamicSupervisor.start_child(__MODULE__, build_worker_spec(module, args))
 
   # -------------------------------------------------------------------
   # Supervision tree
@@ -13,17 +13,12 @@ defmodule AircloakCI.Build.Supervisor do
 
   @doc false
   def start_link(),
-    do:
-      Supervisor.start_link(
-        [build_worker_spec()],
-        strategy: :simple_one_for_one,
-        name: __MODULE__
-      )
+    do: DynamicSupervisor.start_link(strategy: :one_for_one, name: __MODULE__)
 
-  defp build_worker_spec(),
+  defp build_worker_spec(module, args),
     do: %{
       id: __MODULE__.BuildChild,
-      start: {Kernel, :apply, []},
+      start: {module, :start_link, args},
       restart: :temporary,
       shutdown: 5000,
       type: :worker

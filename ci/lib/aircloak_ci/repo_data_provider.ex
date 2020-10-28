@@ -40,7 +40,6 @@ defmodule AircloakCI.RepoDataProvider do
   defmodule Poller do
     @moduledoc false
 
-    use Aircloak.ChildSpec.Task
     alias AircloakCI.Github
     require Logger
 
@@ -56,7 +55,7 @@ defmodule AircloakCI.RepoDataProvider do
         end
       catch
         type, error ->
-          Logger.error(Exception.format(type, error, System.stacktrace()))
+          Logger.error(Exception.format(type, error, __STACKTRACE__))
       end
 
       :timer.sleep(:timer.seconds(5))
@@ -80,6 +79,14 @@ defmodule AircloakCI.RepoDataProvider do
     defp pr_targets(repo_data) do
       target_branch_names = Enum.map(repo_data.pull_requests, & &1.target_branch)
       Stream.filter(repo_data.branches, &Enum.member?(target_branch_names, &1.name))
+    end
+
+    def child_spec(_arg) do
+      %{
+        id: __MODULE__,
+        start: {__MODULE__, :start_link, []},
+        restart: :permanent
+      }
     end
   end
 end
