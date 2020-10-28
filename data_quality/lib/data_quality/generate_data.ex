@@ -79,7 +79,7 @@ defmodule DataQuality.GenerateData do
 
   defp execute!(conn, query_text, params \\ []) do
     query = Postgrex.prepare!(conn, "", query_text)
-    {:ok, _} = Postgrex.execute(conn, query, params)
+    Postgrex.execute!(conn, query, params)
     conn
   end
 
