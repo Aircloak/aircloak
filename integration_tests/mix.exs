@@ -31,7 +31,7 @@ defmodule IntegrationTests.Mixfile do
       {:central, path: "../central", runtime: false},
       # resolving clashed dependencies
       {:myxql, "~> 0.4", override: true},
-      {:postgrex, "~> 0.14.3", override: true},
+      {:postgrex, "~> 0.15.0", override: true},
       {:httpoison, "~> 0.12.0", override: true},
       {:hackney, ">= 1.8.6", override: true},
       {:parse_trans, "3.2.0", override: true},

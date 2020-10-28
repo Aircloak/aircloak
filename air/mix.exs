@@ -65,14 +65,14 @@ defmodule Air.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 3.1.7"},
-      {:ecto_sql, "~> 3.1.6"},
+      {:ecto, "~> 3.5.0"},
+      {:ecto_sql, "~> 3.5.0"},
       {:earmark, "~> 1.2", override: true},
-      {:postgrex, "~> 0.14.3", override: true},
+      {:postgrex, "~> 0.15.7", override: true},
       {:poolboy, "~> 1.5.2"},
       {:phoenix, "~> 1.5.0", override: true},
       {:phoenix_pubsub, "~> 2.0"},
-      {:phoenix_ecto, "~> 4.1"},
+      {:phoenix_ecto, "~> 4.2"},
       {:phoenix_html, "~> 2.14"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_gen_socket_client, "~> 3.1"},

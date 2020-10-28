@@ -56,10 +56,10 @@ defmodule Cloak.Mixfile do
 
       # Test deps
 
-      {:phoenix, "~> 1.4.1", only: :test},
+      {:phoenix, "~> 1.5.0", only: :test},
       {:cowboy, "~> 1.0", only: :test},
-      {:bypass, "~> 0.5.1", only: :test},
-      {:stream_data, "~> 0.4.0", only: :test},
+      {:bypass, "~> 2.0.0", only: :test},
+      {:stream_data, "~> 0.5.0", only: :test},
 
       # Only used for perf tests
       {:httpoison, "~> 0.13.0", runtime: false, override: true},
