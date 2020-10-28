@@ -7,7 +7,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Aircloak Insights – Please login</title>
+    <title>Aircloak Insights – Please log in</title>
     <link rel="shortcut icon" href="<%= static_path(@conn, "/frontend/images/favicon.ico") %>" type="image/x-icon">
     <link rel="stylesheet" href="<%= static_path(@conn, "/frontend/app.css") %>">
   </head>
