@@ -1,5 +1,7 @@
 // @flow
 
+import type { Element } from "React";
+import type { AuthContextType } from "../authentication_provider";
 import React from "react";
 
 import StateView from "./state_view";
@@ -38,14 +40,14 @@ const queryViewUrl = (query: Query) => `/admin/queries/${query.id}`;
 
 export class QueryView extends React.Component<Props> {
   // eslint-disable-next-line react/static-property-placement
-  static contextType = AuthContext;
+  static contextType: React$Context<AuthContextType> = AuthContext;
 
-  shouldComponentUpdate(nextProps: Props) {
+  shouldComponentUpdate(nextProps: Props): boolean {
     const { query } = this.props;
     return nextProps.query.state !== query.state;
   }
 
-  render() {
+  render(): Element<"tr"> {
     const { query } = this.props;
     const { authentication } = this.context;
     return (

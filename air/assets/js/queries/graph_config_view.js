@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import type { GraphInfoT } from "./graph_data";
@@ -30,7 +31,13 @@ const xClass = (graphConfig, column) =>
 const yClass = (graphConfig, column) =>
   activeClass(graphConfig.yColumns().includes(column));
 
-export default ({ graphInfo, graphConfig, remove, addX, addY }: Props) => {
+export default ({
+  graphInfo,
+  graphConfig,
+  remove,
+  addX,
+  addY,
+}: Props): Element<"form"> => {
   return (
     <form className="form-horizontal">
       {graphInfo.xColumns().map((column, columnIndex) => (

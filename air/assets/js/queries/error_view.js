@@ -1,5 +1,5 @@
 // @flow
-/* eslint-disable react/no-danger */
+import type { Element } from "React"; /* eslint-disable react/no-danger */
 
 import React from "react";
 import pagedown from "pagedown";
@@ -24,7 +24,7 @@ export default ({
   result: ErrorResult,
   debugModeEnabled: boolean,
   onDeleteClick?: (queryId: string) => void,
-}) => {
+}): Element<"div"> => {
   return (
     <div className="card border-danger mb-3">
       <div className="card-header border-danger bg-white">

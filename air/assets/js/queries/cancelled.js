@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import CodeViewer from "../code_viewer";
@@ -17,7 +18,7 @@ export default ({
   result: CancelledResult,
   debugModeEnabled: boolean,
   onDeleteClick?: (queryId: string) => void,
-}) => {
+}): Element<"div"> => {
   return (
     <div className="card border-warning mb-3">
       <div className="card-header border-warning bg-white">

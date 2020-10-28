@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import type { Query } from "./query";
@@ -22,7 +23,7 @@ const queryStats = (queries: Query[]): { [string]: number } => {
   return queryStats;
 };
 
-export default ({ queries }: Props) => {
+export default ({ queries }: Props): Element<"div"> => {
   const stateStats = queryStats(queries);
   return (
     <div>

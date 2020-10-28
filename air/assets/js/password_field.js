@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 type Props = {
@@ -24,7 +25,9 @@ export default class PasswordField extends React.Component<Props, State> {
     });
   }
 
-  updateValue = (e: SyntheticInputEvent<EventTarget>) => {
+  updateValue: (e: SyntheticInputEvent<>) => void = (
+    e: SyntheticInputEvent<EventTarget>
+  ) => {
     const value = e.target.value;
     this.setState({
       value,
@@ -33,7 +36,7 @@ export default class PasswordField extends React.Component<Props, State> {
     });
   };
 
-  renderScore = () => {
+  renderScore: () => null | Element<"div"> = () => {
     const { value, score, error } = this.state;
 
     if (error) {
@@ -55,7 +58,7 @@ export default class PasswordField extends React.Component<Props, State> {
     }
   };
 
-  highlightClass = () => {
+  highlightClass: () => string = () => {
     const { value, score, error } = this.state;
 
     if (error) {
@@ -71,7 +74,7 @@ export default class PasswordField extends React.Component<Props, State> {
     }
   };
 
-  render = () => {
+  render: () => Element<"div"> = () => {
     const { value } = this.state;
     return (
       <div>
