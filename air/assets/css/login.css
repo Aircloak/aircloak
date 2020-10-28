@@ -86,7 +86,7 @@ div#aircloak {
     padding: 3px 5px;
   }
 
-  @media only screen and (min-width: 600px) {
+  @media only screen and (min-width: 700px) {
     body#login {
       -webkit-background-size: cover;
       -moz-background-size: cover;
@@ -113,7 +113,7 @@ div#aircloak {
       background-color: rgba(0, 0, 0, 0.6);
 
       display: grid;
-      grid-template-columns: 1fr 350px;
+      grid-template-columns: 1fr 360px;
       grid-template-rows: 1fr;
       grid-template-areas: "aircloak photo-credit";
     }
