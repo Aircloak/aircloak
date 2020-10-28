@@ -59,7 +59,7 @@ defmodule Cloak.Sql.Parser do
           distinct?: boolean
         }
 
-  @combine_error_regex ~r/(?<error>.*) at line (?<line>\d+), column (?<column>\d+)/
+  @combine_error_regex ~r/(?<error>.*) at line (?<line>\d+), column (?<column>\d+)/s
 
   # -------------------------------------------------------------------
   # API functions
@@ -76,7 +76,7 @@ defmodule Cloak.Sql.Parser do
         case Regex.named_captures(@combine_error_regex, error) do
           %{"error" => simple_error, "line" => line, "column" => column} ->
             raise Cloak.Sql.Parser.ParseError,
-              message: "#{simple_error}.",
+              message: "#{simple_error}" <> if(String.ends_with?(simple_error, "?"), do: "", else: "."),
               source_location: {String.to_integer(line), String.to_integer(column)}
 
           _ ->

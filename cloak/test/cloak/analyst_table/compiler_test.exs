@@ -55,7 +55,9 @@ defmodule Cloak.AnalystTable.CompilerTest do
 
     test "parsing error is reported" do
       assert {:error, error} = compile("table_name", "select")
-      assert error == "Expected `column definition` at line 1, column 7."
+
+      assert error ==
+               "Expected a column definition.\n\n**Hint:** Maybe you need to add quotes around the definition? at line 1, column 7."
     end
 
     test "compilation error is reported" do

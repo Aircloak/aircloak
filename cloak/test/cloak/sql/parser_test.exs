@@ -1791,8 +1791,8 @@ defmodule Cloak.Sql.Parser.Test do
   Enum.each(
     [
       {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`", {1, 10}},
-      {"identifier can't start with a number", "select 1foo from baz", "Expected `column definition`", {1, 8}},
-      {"keyword is not identifier", "select select from baz", "Expected `column definition`", {1, 8}},
+      {"identifier can't start with a number", "select 1foo from baz", "Expected a column definition", {1, 8}},
+      {"keyword is not identifier", "select select from baz", "Expected a column definition", {1, 8}},
       {"from table is required", "select foo", "`from`", {1, 11}},
       {"columns must be separated with a comma", "select foo bar from baz", "Expected `from`", {1, 12}},
       {"query must start with a select or show", "foo select foo bar from baz", "Expected `select, explain, or show`",
@@ -1809,7 +1809,7 @@ defmodule Cloak.Sql.Parser.Test do
       {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2", "Unexpected input",
        {1, 29}},
       {"on clause not allowed in a cross join", "select a from b cross join c on foo=bar", "Unexpected input", {1, 30}},
-      {"count requires parens", "select count * from foo", "Expected `column definition`", {1, 16}},
+      {"count requires parens", "select count * from foo", "Expected a column definition", {1, 16}},
       {"aggregation function requires parens", "select sum price from foo", "Expected `from`", {1, 12}},
       {"'by' has to follow 'order'", "select a from foo order a asc", "Expected `by`", {1, 25}},
       {"'by' has to follow 'group'", "select a from foo group a", "Expected `by`", {1, 25}},
@@ -1820,7 +1820,7 @@ defmodule Cloak.Sql.Parser.Test do
       {"invalid in", "select foo from bar where baz in", "Expected `(`", {1, 33}},
       {"invalid is", "select foo from bar where baz is", "Expected `null`", {1, 33}},
       {"invalid comparison", "select foo from bar where baz =", "Expected `comparison value`", {1, 32}},
-      {"missing where expression", "select foo from bar where", "Expected `column definition`", {1, 26}},
+      {"missing where expression", "select foo from bar where", "Expected a column definition", {1, 26}},
       {"invalid where expression", "select foo from bar where foo bar", "Unexpected input", {1, 31}},
       {"no input allowed after the statement", "select foo from bar baz qux", "Unexpected input", {1, 25}},
       {"error after spaces", "   invalid_statement", "Expected `select, explain, or show`", {1, 4}},
@@ -1831,11 +1831,11 @@ defmodule Cloak.Sql.Parser.Test do
       {"table can't be parameterized", "select x from $1", "Expected `table name`", {1, 15}},
       {"missing `sets` keyword", "select count(*) from table group by grouping", "Expected `sets`", {1, 45}},
       {"missing parens in group by (1)", "select count(*) from table group by (", "Expected `)`", {1, 38}},
-      {"missing parens in group by (2)", "select count(*) from table group by )", "Expected `column definition`",
+      {"missing parens in group by (2)", "select count(*) from table group by )", "Expected a column definition",
        {1, 37}},
-      {"empty cube clause", "select count(*) from table group by cube ()", "Expected `column definition`", {1, 43}},
+      {"empty cube clause", "select count(*) from table group by cube ()", "Expected a column definition", {1, 43}},
       {"empty group in rollup clause", "select count(*) from table group by rollup (x, ())",
-       "Expected `column definition`", {1, 49}},
+       "Expected a column definition", {1, 49}},
       # parsed subqueries
       {"unclosed parens in a parsed subquery expression", "select foo from (select bar from baz", "expected `)`",
        {1, 37}},
@@ -1844,9 +1844,9 @@ defmodule Cloak.Sql.Parser.Test do
        "Expected `subquery alias`", {1, 38}},
       {"missing alias after AS in an parsed subquery expression", "select foo from (select bar from baz) AS",
        "Expected `subquery alias`", {1, 41}},
-      {"invalid subquery in a join", "select foo from bar cross join (select) alias", "Expected `column definition`",
+      {"invalid subquery in a join", "select foo from bar cross join (select) alias", "Expected a column definition",
        {1, 39}},
-      {"invalid column other than the first one", "select foo, & from foo", "Expected `column definition`", {1, 13}},
+      {"invalid column other than the first one", "select foo, & from foo", "Expected a column definition", {1, 13}},
       {"error inside an item in the select list", "select foo, cast(3 as) from foo", "Expected `type name`", {1, 22}},
       {"wrong cast", "select cast(foo as bar) from baz", "Expected `type name`", {1, 20}},
       {"bucket size is not constant", "select bucket(foo by bar) from baz", "Expected `numeric constant`", {1, 22}},
@@ -1868,7 +1868,7 @@ defmodule Cloak.Sql.Parser.Test do
        "Unexpected input after end of valid subquery, expected `)`", {1, 52}},
       {"case statement with missing branches", "select case end from bar", "Expected `when`", {1, 13}},
       {"case statement with invalid when branch", "select case when true then end from bar",
-       "Expected `column definition`", {1, 28}}
+       "Expected a column definition", {1, 28}}
     ],
     fn {description, statement, expected_error, {line, column}} ->
       create_test.(description, statement, expected_error, line, column)
@@ -1888,7 +1888,8 @@ defmodule Cloak.Sql.Parser.Test do
         end
 
       assert %Cloak.Sql.Parser.ParseError{
-               message: "Expected `column definition`.",
+               message:
+                 "Expected a column definition.\n\n**Hint:** Maybe you need to add quotes around the definition?",
                source_location: {1, 8}
              } = error
     end

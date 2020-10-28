@@ -215,7 +215,8 @@ defmodule Cloak.Sql.Parser.Internal do
       substring_expression(),
       null_expression(),
       constant_column(),
-      field_or_parameter() |> label("column definition")
+      field_or_parameter()
+      |> error_message("Expected a column definition.\n\n**Hint:** Maybe you need to add quotes around the definition?")
     ])
   end
 

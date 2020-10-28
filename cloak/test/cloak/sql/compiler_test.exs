@@ -1351,7 +1351,8 @@ defmodule Cloak.Sql.Compiler.Test do
                views: %{"table_view" => %{sql: "select"}}
              )
 
-    assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
+    assert error ==
+             "Error in the view `table_view`: Expected a column definition.\n\n**Hint:** Maybe you need to add quotes around the definition? at line 1, column 7."
   end
 
   test "view error in show columns" do
@@ -1362,7 +1363,8 @@ defmodule Cloak.Sql.Compiler.Test do
                views: %{"table_view" => %{sql: "select"}}
              )
 
-    assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
+    assert error ==
+             "Error in the view `table_view`: Expected a column definition.\n\n**Hint:** Maybe you need to add quotes around the definition? at line 1, column 7."
   end
 
   test "ambiguous view/table error" do
@@ -1387,7 +1389,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "view validation error" do
     assert {:error, error} = validate_view("select", data_source())
-    assert error =~ ~r/Expected `column definition`/
+    assert error =~ ~r/Expected a column definition/
   end
 
   test "rejecting non-aggregated non-selected ORDER BY column in an aggregated function" do

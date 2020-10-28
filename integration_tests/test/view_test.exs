@@ -17,7 +17,7 @@ defmodule IntegrationTest.ViewTest do
   test "sql syntax error", context do
     assert {:error, %Ecto.Changeset{errors: [sql: {error, _}]}} = create_view(context.user, "foo", "select")
 
-    assert error =~ ~r/Expected `column definition`/
+    assert error =~ ~r/Expected a column definition/
   end
 
   test "successful saving of the new view", context do
