@@ -47,7 +47,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:jason, "~> 1.1"},
       {:poison, "~> 3.1.0"},
       {:lens, "~> 0.9.0"},
-      {:ex_doc, "~> 0.19", runtime: false},
+      {:ex_doc, "~> 0.23", runtime: false},
       {:meck, github: "eproxus/meck", tag: "0.8.12", override: true, runtime: false},
       {:credo, "~> 0.8.10", runtime: false},
       {:eunit_formatters, "~> 0.3.0", runtime: false},
