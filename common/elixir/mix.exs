@@ -28,7 +28,8 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       eunit_options: [
         :no_tty,
         {:report, {:eunit_progress, [:colored]}}
-      ]
+      ],
+      xref: [exclude: :edoc]
     ]
   end
 

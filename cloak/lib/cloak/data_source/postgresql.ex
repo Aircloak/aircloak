@@ -184,7 +184,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     Postgrex.close(connection, query)
   rescue
     exception ->
-      {exception, System.stacktrace()}
+      {exception, __STACKTRACE__}
       |> Cloak.LoggerTranslator.format_exit()
       |> Logger.error()
 

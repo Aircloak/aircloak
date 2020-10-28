@@ -168,7 +168,7 @@ defmodule CentralWeb.Plug.Session do
 
     def auth_error(conn, {:invalid_token, _}, _params) do
       conn
-      |> Air.Guardian.Plug.sign_out()
+      |> Central.Guardian.Plug.sign_out()
       |> Phoenix.Controller.redirect(to: "/auth")
     end
   end

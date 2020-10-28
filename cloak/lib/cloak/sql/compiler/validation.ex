@@ -597,7 +597,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_condition(%Expression{kind: :function, name: verb, args: [column, _pattern]})
-       when verb in ~w(like, ilike) do
+       when verb in ~w(like ilike) do
     if column.type != :text do
       raise CompilationError,
         source_location: column.source_location,

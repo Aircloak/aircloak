@@ -77,7 +77,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def decode_login_params(raw_login_params) do
     raw_login_params
     |> String.split(<<0>>)
-    |> Stream.chunk(2)
+    |> Stream.chunk_every(2)
     |> Stream.map(&List.to_tuple/1)
     |> Enum.into(%{})
   end

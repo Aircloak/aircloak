@@ -139,7 +139,11 @@ defmodule Air.Service.DataSource do
     query.data_source.name
     |> Cloak.channel_pids()
     |> Enum.each(fn {channel, _cloak} ->
-      Task.Supervisor.start_child(@task_supervisor, fn -> MainChannel.stop_query(channel, query.id) end)
+      Task.Supervisor.start_child(
+        @task_supervisor,
+        fn -> MainChannel.stop_query(channel, query.id) end,
+        restart: :temporary
+      )
     end)
   end
 
@@ -233,15 +237,19 @@ defmodule Air.Service.DataSource do
   """
   @spec delete!(DataSource.t(), (() -> any), (() -> any)) :: :ok
   def delete!(data_source, success_callback, failure_callback) do
-    Task.Supervisor.start_child(@delete_supervisor, fn ->
-      case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
-        {:ok, _} ->
-          success_callback.()
+    Task.Supervisor.start_child(
+      @delete_supervisor,
+      fn ->
+        case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
+          {:ok, _} ->
+            success_callback.()
 
-        {:error, _} ->
-          failure_callback.()
-      end
-    end)
+          {:error, _} ->
+            failure_callback.()
+        end
+      end,
+      restart: :temporary
+    )
 
     :ok
   end
@@ -406,7 +414,7 @@ defmodule Air.Service.DataSource do
     type, error ->
       Logger.error([
         "Error encountered #{inspect(type)} : #{inspect(error)}\n",
-        Exception.format_stacktrace(System.stacktrace())
+        Exception.format_stacktrace(__STACKTRACE__)
       ])
 
       {:error, :internal_error}
@@ -498,8 +506,8 @@ defmodule Air.Service.DataSource do
     ChildSpec.supervisor(
       [
         QueryScheduler,
-        ChildSpec.task_supervisor(name: @task_supervisor, restart: :temporary),
-        ChildSpec.task_supervisor(name: @delete_supervisor, restart: :temporary)
+        ChildSpec.task_supervisor(name: @task_supervisor),
+        ChildSpec.task_supervisor(name: @delete_supervisor)
       ],
       strategy: :one_for_one,
       name: __MODULE__

@@ -81,7 +81,9 @@ defmodule Cloak.LoggerTranslator do
       :ok,
       {
         report_type,
-        %{report | reason: filter_reason(report.reason), state: "filtered state", last_message: "filtered message"}
+        %{report | reason: filter_reason(report.reason)}
+        |> Map.put(:state, "filtered state")
+        |> Map.put(:last_message, "filtered message")
       }
     }
   end

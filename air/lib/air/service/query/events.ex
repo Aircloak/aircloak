@@ -9,7 +9,7 @@ defmodule Air.Service.Query.Events do
 
   @doc "Starts the registry for subscribers."
   @spec start_link() :: {:ok, pid}
-  def start_link, do: Registry.start_link(:duplicate, __MODULE__.Registry)
+  def start_link, do: Registry.start_link(keys: :duplicate, name: __MODULE__.Registry)
 
   @doc """
   Registers the caller process as the subscriber for the query result and state updates.

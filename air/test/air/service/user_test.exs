@@ -636,7 +636,7 @@ defmodule Air.Service.UserTest do
         password_hash: Air.Service.Password.hash("psswrd12")
       }
 
-      assert {:ok, user} = User.add_preconfigured_user(data)
+      assert {:ok, _user} = User.add_preconfigured_user(data)
       assert {:ok, _user} = User.login("login", "psswrd12")
     end
 

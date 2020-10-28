@@ -96,7 +96,7 @@ defmodule Cloak.Sql.Condition do
   def reject(nil, _matcher), do: nil
 
   def reject(%Expression{kind: :function, name: name, args: [lhs, rhs]} = expression, matcher)
-      when name in ~w(or, and) do
+      when name in ~w(or and) do
     case {reject(lhs, matcher), reject(rhs, matcher)} do
       {nil, nil} -> nil
       {nil, rhs} -> rhs

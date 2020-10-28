@@ -113,7 +113,7 @@ defmodule Central.Mixfile do
   defp extra_applications(:dev), do: common_extra_applications() ++ dialyzer_required_deps()
   defp extra_applications(:prod), do: common_extra_applications()
 
-  defp common_extra_applications(), do: [:logger, :inets, :crontab, :timex]
+  defp common_extra_applications(), do: [:logger, :inets, :crontab, :timex, :sasl]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.
