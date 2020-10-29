@@ -461,15 +461,18 @@ SELECT COUNT(*) FROM table WHERE round(column1) <> round(column2)
 SELECT COUNT(*) FROM table WHERE column1 - column1 <> column2
 ```
 
+### Negative conditions over rare values
 
-### Number of conditions
+By default, negative conditions (`NOT IN`, `NOT LIKE`, `NOT ILIKE`, and `<>`) over rare personal values are forbidden.
+Conditions that match values appearing frequently in a given column are excluded from this limitation.
 
-By default there is a limit of one negative condition (`NOT IN`, `NOT LIKE`, `NOT ILIKE`, and `<>`) for each anonymized query.
-Conditions that match values appearing frequently in a given column are excluded from this limitation. Note that a
-`NOT IN` condition will be counted multiple times - once for each element on the right-hand side.
+This limitation can be relaxed, on a per data source basis, by increasing the value of the `max_rare_negative_conditions`
+configuration setting. Check the [Insights Cloak configuration](/ops/configuration.md#insights-cloak-configuration)
+section for information on how to modify it. Note that a `NOT IN` condition will be counted multiple times - once for each
+rare element on the right-hand side.
 
-The examples below assume that the names `Alice` and `Bob` appear frequently in the column `name`, while all other
-values appear only rarely.
+The examples below assume that the Insights Cloak is configured to allow one negative condition at the most, and that
+the names `Alice` and `Bob` appear frequently in the column `name`, while all other values appear only rarely.
 
 ```sql
 -- Allowed - only one negative condition matches a rare value
@@ -493,6 +496,7 @@ SELECT COUNT(*) FROM table
 WHERE name NOT LIKE 'A%' AND name NOT LIKE 'B%' AND upper(name) <> 'BOB'
 ```
 
+
 ## Isolating columns
 
 Some columns in the underlying data source might identify users despite not being marked as a user id. For example a
@@ -500,8 +504,9 @@ table might contain a `user_id` column and an `email` column. The emails are in 
 can identify a user just as well as the `user_id` column. We call these columns "isolating" and apply some additional
 restrictions to expressions including them. Note that the `user_id` column is always isolating.
 
-Conditions using the `LIKE` operator are limited to simple patterns of the form `%foo`, `foo%`, or `%foo%`. Furthermore,
-clear expressions are allowed for these columns. All other functions and mathematical operations are forbidden.
+Only clear expressions are allowed on these columns. All other functions and mathematical operations are forbidden.
+
+Furthermore, conditions using the `LIKE` operator are limited to simple patterns of the form `%foo`, `foo%`, or `%foo%`.
 
 ```sql
 -- These examples assume that the 'email' and 'social_security' columns are isolating
@@ -533,6 +538,7 @@ resource-intensive for large data sources. See [Manually classifying isolating
 columns](/ops/configuration.md#manually-classifying-isolating-columns) for information on alternative means of
 classifying isolating columns.
 
+
 ## Column bounds
 
 Some mathematical operations can cause an overflow and result in an error when performed in the database. To avoid such
@@ -553,6 +559,7 @@ performed using the safe method, wich might be slower on some data sources. For 
 SQL Server) these operations are safe by default, the analysis does not need to be performed and it won't result in
 any slowdown. In Oracle DB these operations are emulated by default. However, the database administrator can enable
 Aircloak UDFs to avoid this emulation - [see here for details](/datastores.md#oracle-safe-functions).
+
 
 ## Column analysis
 
