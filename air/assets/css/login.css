@@ -52,7 +52,7 @@ div#aircloak {
   body#login {
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: 1fr 28px;
+    grid-template-rows: 1fr min-content;
     grid-template-areas:
       "login-box"
       "footer";
@@ -95,7 +95,7 @@ div#aircloak {
 
       display: grid;
       grid-template-columns: 1fr 400px 1fr;
-      grid-template-rows: 1fr auto 1fr 28px;
+      grid-template-rows: 1fr auto 1fr min-content;
       grid-template-areas:
         ". . ."
         ". login-box ."
@@ -112,10 +112,8 @@ div#aircloak {
       padding: 2px 2px 0 0;
       background-color: rgba(0, 0, 0, 0.6);
 
-      display: grid;
-      grid-template-columns: 1fr 350px;
-      grid-template-rows: 1fr;
-      grid-template-areas: "aircloak photo-credit";
+      display: flex;
+      justify-content: space-between;
     }
 
     body#login footer a {
@@ -124,6 +122,7 @@ div#aircloak {
 
     div#photo-credit {
       display: inline;
+      text-align: right;
     }
 
     body.img1 {
