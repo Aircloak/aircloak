@@ -2,7 +2,6 @@ defmodule Central.TestAuthHelper do
   @moduledoc "Helpers for working with users."
 
   require Aircloak.DeployConfig
-  alias Central.User
 
   defmodule TokenEndpoint do
     @moduledoc false

@@ -180,23 +180,25 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   @impl Phoenix.Channel
   def join("main", cloak_info, socket) do
-    with :ok <- validate_shared_secret(cloak_info[:secret_proof]) do
-      Process.flag(:trap_exit, true)
+    case validate_shared_secret(cloak_info[:secret_proof]) do
+      :ok ->
+        Process.flag(:trap_exit, true)
 
-      socket =
-        socket
-        |> assign(:pending_calls, %{})
-        |> assign(:online_since, Timex.now())
+        socket =
+          socket
+          |> assign(:pending_calls, %{})
+          |> assign(:online_since, Timex.now())
 
-      cloak = create_cloak(cloak_info, socket)
+        cloak = create_cloak(cloak_info, socket)
 
-      cloak
-      |> Air.Service.Cloak.register(cloak_info.data_sources)
-      |> revalidate_views()
+        cloak
+        |> Air.Service.Cloak.register(cloak_info.data_sources)
+        |> revalidate_views()
 
-      {:ok, %{air_name: Air.name()}, socket}
-    else
-      _ -> {:error, :cloak_secret_invalid}
+        {:ok, %{air_name: Air.name()}, socket}
+
+      _ ->
+        {:error, :cloak_secret_invalid}
     end
   end
 

@@ -68,7 +68,7 @@ defmodule AircloakCI.Build.Reporter do
       [
         if(not is_nil(report_info.prologue), do: "#{report_info.prologue}\n\n"),
         "#{report_info.job_name} job #{crash_verb(report_info)} #{Emoji.sad()}",
-        if(not is_nil(report_info.extra_info), do: "\n#{report_info.extra_info}\n", else: ""),
+        if(is_nil(report_info.extra_info), do: "", else: "\n#{report_info.extra_info}\n"),
         report_command("see the full build log", report_info.build_log_command),
         report_command("restart the build", report_info.restart_command),
         report_command("start the remote console", report_info.remote_console_command),
@@ -85,9 +85,9 @@ defmodule AircloakCI.Build.Reporter do
   defp crash_verb(%__MODULE__{result: :failure}), do: "crashed"
 
   defp report_command(what, command) do
-    if not is_nil(command),
-      do: "You can #{what} by running: `#{command}`\n",
-      else: ""
+    if is_nil(command),
+      do: "",
+      else: "You can #{what} by running: `#{command}`\n"
   end
 
   defp log_tail(report_info) do

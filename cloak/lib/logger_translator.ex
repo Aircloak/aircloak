@@ -60,9 +60,8 @@ defmodule Cloak.LoggerTranslator do
   # -------------------------------------------------------------------
 
   defp sanitize(min_level, level, kind, message) do
-    with {:ok, filtered_message} <- filter_message(level, kind, message) do
-      Logger.Translator.translate(min_level, level, kind, filtered_message)
-    else
+    case filter_message(level, kind, message) do
+      {:ok, filtered_message} -> Logger.Translator.translate(min_level, level, kind, filtered_message)
       _ -> {:ok, "sanitized `#{level}`:`#{kind}` log entry"}
     end
   catch

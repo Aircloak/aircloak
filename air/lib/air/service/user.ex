@@ -70,16 +70,18 @@ defmodule Air.Service.User do
   @spec reset_password(String.t(), Map.t()) :: {:error, :invalid_token} | {:error, Ecto.Changeset.t()} | {:ok, User.t()}
   def reset_password(token, params) do
     in_transaction(fn ->
-      with {:ok, user_id} <- RevokableToken.verify_and_revoke(token, :password_reset) do
-        user = load!(user_id)
+      case RevokableToken.verify_and_revoke(token, :password_reset) do
+        {:ok, user_id} ->
+          user = load!(user_id)
 
-        RevokableToken.revoke_all(user, :session)
+          RevokableToken.revoke_all(user, :session)
 
-        user
-        |> change_main_login(&password_reset_changeset(&1, params))
-        |> update()
-      else
-        _ -> {:error, :invalid_token}
+          user
+          |> change_main_login(&password_reset_changeset(&1, params))
+          |> update()
+
+        _ ->
+          {:error, :invalid_token}
       end
     end)
   end

@@ -316,9 +316,9 @@ defmodule Air.Service.DataSource do
         ) :: result | data_source_operation_error
         when result: :ok | {:ok, any} | {:error, any}
   def with_available_cloak(data_source_or_id, user, fun) do
-    if not License.valid?(),
-      do: {:error, :license_invalid},
-      else: do_with_available_cloak(data_source_or_id, user, fun)
+    if License.valid?(),
+      do: do_with_available_cloak(data_source_or_id, user, fun),
+      else: {:error, :license_invalid}
   end
 
   # -------------------------------------------------------------------

@@ -101,8 +101,9 @@ defmodule Air.PsqlServer do
 
   @impl RanchServer
   def login(conn, password) do
-    with data_source_name = conn.login_params["database"],
-         data_source_id <- {:name, data_source_name},
+    data_source_name = conn.login_params["database"]
+
+    with data_source_id <- {:name, data_source_name},
          {:ok, user} <- User.login_psql(conn.login_params["user"], password),
          {:ok, _} <- DataSource.fetch_as_user(data_source_id, user) do
       # We're not storing data source, since access permissions have to be checked on every query.

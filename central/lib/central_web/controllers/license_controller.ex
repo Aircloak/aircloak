@@ -1,7 +1,7 @@
 defmodule CentralWeb.LicenseController do
   @moduledoc false
   use Central.Web, :controller
-  alias Central.{Service}
+  alias Central.Service
 
   plug(:load_customer)
 
@@ -65,9 +65,8 @@ defmodule CentralWeb.LicenseController do
   # -------------------------------------------------------------------
 
   def with_license(conn, id, processor) do
-    with {:ok, license} <- Service.License.get(conn.assigns.customer, id) do
-      processor.(license)
-    else
+    case Service.License.get(conn.assigns.customer, id) do
+      {:ok, license} -> processor.(license)
       :not_found -> not_found(conn)
     end
   end

@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Bom do
     else
       invalid
       |> Enum.map(&"#{&1.name} #{&1.version} (#{&1.path}): #{&1.error}")
-      |> Enum.map(&IO.puts/1)
+      |> Enum.each(&IO.puts/1)
 
       Mix.raise("#{Enum.count(invalid)} invalid packages - see README.md for how to resolve this.")
     end
@@ -89,28 +89,28 @@ defmodule Mix.Tasks.Bom do
 
           whitelist
           |> Enum.map(&"#{&1.name} #{&1.version} (#{&1.realm})")
-          |> Enum.map(&IO.puts/1)
+          |> Enum.each(&IO.puts/1)
         end
 
         unless Enum.empty?(licenses) do
           IO.puts("Unnecessary license files found in priv/licenses:")
 
           licenses
-          |> Enum.map(&IO.puts/1)
+          |> Enum.each(&IO.puts/1)
         end
 
         unless Enum.empty?(digests) do
           IO.puts("Unnecessary digests found in BOM.Whitelist:")
 
           digests
-          |> Enum.map(&IO.puts/1)
+          |> Enum.each(&IO.puts/1)
         end
 
         unless Enum.empty?(not_shipped) do
           IO.puts("Unnecessary not_shipped keys found in BOM.Whitelist:")
 
           not_shipped
-          |> Enum.map(&IO.puts/1)
+          |> Enum.each(&IO.puts/1)
         end
 
         Mix.raise("Please correct these issues and run again.")
