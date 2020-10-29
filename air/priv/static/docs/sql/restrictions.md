@@ -434,7 +434,8 @@ in that column, unless the system administrator explicitly allows usage of any v
 [Insights Cloak configuration](/ops/configuration.md#insights-cloak-configuration) section for information
 on how to enable it.
 
-The right-hand side of a `<>` condition has to be a clear expression or a constant.
+The right-hand side of a `<>` condition has to be a clear expression
+or a constant from the list of frequent values in that column.
 
 Conditions using `NOT LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators.
 A single `CAST` is allowed.
@@ -442,7 +443,7 @@ A single `CAST` is allowed.
 The top-level `HAVING` clause is exempt from all these restrictions - see [Top-level HAVING clause](#top-level-having-clause).
 
 ```sql
--- Correct
+-- Correct - assuming 'alice' is a frequent value
 SELECT COUNT(*) FROM table WHERE lower(name) <> 'alice'
 SELECT COUNT(*) FROM table WHERE name IN ('alice', 'bob')
 
