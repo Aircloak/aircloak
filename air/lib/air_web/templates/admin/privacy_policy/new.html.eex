@@ -122,7 +122,9 @@
       var changesEditor = document.getElementById("changesEditor");
       var changesTarget = document.getElementById("changes");
       App.attachCodeMirrorToTextArea(contentEditor, contentTarget);
-      App.attachCodeMirrorToTextArea(changesEditor, changesTarget);
+      <%= unless first_privacy_policy?(@privacy_policy) do %>
+        App.attachCodeMirrorToTextArea(changesEditor, changesTarget);
+      <% end %>
     }
   };
 </script>
