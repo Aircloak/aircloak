@@ -88,7 +88,7 @@ defmodule Air.Mixfile do
       {:decimal, "~> 1.4"},
       {:remote_ip, "~> 0.1.4"},
       {:ecto_enum, "~> 1.4"},
-      {:jiffy, "~> 0.14.1"},
+      {:jiffy, "~> 1.0"},
       {:parent, "~> 0.4.0"},
       {:combine, "~> 0.10.0"},
       {:epgsql, "~> 4.1"},

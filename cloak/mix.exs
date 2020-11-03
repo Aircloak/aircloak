@@ -40,7 +40,7 @@ defmodule Cloak.Mixfile do
       {:websocket_client, "~> 1.2.4"},
       {:combine, "~> 0.10"},
       {:backoff, "~> 1.1.3"},
-      {:jiffy, "~> 0.14.1"},
+      {:jiffy, "~> 1.0"},
       {:file_system, "~> 0.2.8"},
       {:parent, "~> 0.4.0"},
       {:jobs, "~> 0.7.0"},
