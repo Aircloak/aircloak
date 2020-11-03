@@ -100,8 +100,7 @@ defmodule Air.Mixfile do
       {:phoenix_live_dashboard, "~> 0.2"},
       {:telemetry_poller, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
-      {:floki, ">= 0.0.0", only: :test},
-      {:sentry, "~> 7.0"}
+      {:floki, ">= 0.0.0", only: :test}
     ]
   end
 
