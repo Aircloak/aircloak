@@ -427,7 +427,8 @@ in that column, unless the system administrator explicitly allows usage of any v
 [Insights Cloak configuration](/ops/configuration.md#insights-cloak-configuration) section for information
 on how to enable it.
 
-The right-hand side of a `<>` condition has to be a clear expression or a constant.
+The right-hand side of a `<>` condition has to be a clear expression
+or a constant from the list of frequent values in that column.
 
 Conditions using `NOT LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators.
 A single `CAST` is allowed.
@@ -435,7 +436,7 @@ A single `CAST` is allowed.
 The top-level `HAVING` clause is exempt from all these restrictions - see [Top-level HAVING clause](#top-level-having-clause).
 
 ```sql
--- Correct
+-- Correct - assuming 'alice' is a frequent value
 SELECT COUNT(*) FROM table WHERE lower(name) <> 'alice'
 SELECT COUNT(*) FROM table WHERE name IN ('alice', 'bob')
 
@@ -454,14 +455,18 @@ SELECT COUNT(*) FROM table WHERE round(column1) <> round(column2)
 SELECT COUNT(*) FROM table WHERE column1 - column1 <> column2
 ```
 
-### Number of conditions
+### Negative conditions over rare values
 
-By default there is a limit of one negative condition (`NOT IN`, `NOT LIKE`, `NOT ILIKE`, and `<>`) for each anonymized query.
-Conditions that match values appearing frequently in a given column are excluded from this limitation. Note that a
-`NOT IN` condition will be counted multiple times - once for each element on the right-hand side.
+By default, negative conditions (`NOT IN`, `NOT LIKE`, `NOT ILIKE`, and `<>`) over rare personal values are forbidden.
+Conditions that match values appearing frequently in a given column are excluded from this limitation.
 
-The examples below assume that the names `Alice` and `Bob` appear frequently in the column `name`, while all other
-values appear only rarely.
+This limitation can be relaxed, on a per data source basis, by increasing the value of the `max_rare_negative_conditions`
+configuration setting. Check the [Insights Cloak configuration](/ops/configuration.md#insights-cloak-configuration)
+section for information on how to modify it. Note that a `NOT IN` condition will be counted multiple times - once for each
+rare element on the right-hand side.
+
+The examples below assume that the Insights Cloak is configured to allow one negative condition at the most, and that
+the names `Alice` and `Bob` appear frequently in the column `name`, while all other values appear only rarely.
 
 ```sql
 -- Allowed - only one negative condition matches a rare value
@@ -492,8 +497,9 @@ table might contain a `user_id` column and an `email` column. The emails are in 
 can identify a user just as well as the `user_id` column. We call these columns "isolating" and apply some additional
 restrictions to expressions including them. Note that the `user_id` column is always isolating.
 
-Conditions using the `LIKE` operator are limited to simple patterns of the form `%foo`, `foo%`, or `%foo%`. Furthermore,
-clear expressions are allowed for these columns. All other functions and mathematical operations are forbidden.
+Only clear expressions are allowed on these columns. All other functions and mathematical operations are forbidden.
+
+Furthermore, conditions using the `LIKE` operator are limited to simple patterns of the form `%foo`, `foo%`, or `%foo%`.
 
 ```sql
 -- These examples assume that the 'email' and 'social_security' columns are isolating
