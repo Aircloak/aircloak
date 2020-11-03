@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import { Higlighted, needsHighlighting } from "./filter";
@@ -30,7 +31,7 @@ export const ColumnsView = ({
   table: string,
   columns: Column[],
   numberFormat: NumberFormat,
-}) => {
+}): Element<"ul"> => {
   return (
     <ul className="list-group list-group-flush">
       {columns.map((item) => {

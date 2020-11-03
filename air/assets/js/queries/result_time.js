@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React, { useState, useEffect } from "react";
 import moment from "moment";
 
@@ -19,7 +20,7 @@ function useRelativeTime(time: string | number) {
   return relativeTime;
 }
 
-export default ({ time }: { time: string | number }) => {
+export default ({ time }: { time: string | number }): Element<"time"> => {
   const relative = useRelativeTime(time);
   const inserted = moment.utc(time);
   return (

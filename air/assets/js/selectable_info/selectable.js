@@ -1,7 +1,8 @@
 // @flow
 
+import type { Element as ReactElement } from "React";
 import React from "react";
-import Channel from "phoenix";
+import type { Channel } from "phoenix";
 
 import { ColumnsView } from "./columns";
 import { filterColumns, Higlighted } from "./filter";
@@ -45,10 +46,11 @@ const TABLE_INVALID_MESSAGE =
   "More information may be available in Insights Cloak logs - contact your administrator for access.";
 
 export class SelectableView extends React.Component<Props> {
-  handleToggleClick = (event: {
-    target: Element,
+  handleToggleClick: (event: {
     preventDefault: () => void,
-  }) => {
+    target: Element,
+    ...
+  }) => void = (event) => {
     // Hacky solution to prevent bubbling from `<a>` elements. Normally, we'd use stopPropagation.
     // However, the problem here is that we're injecting some html provided by the server, which
     // internally generates A elements. Therefore, we don't have such option, so we're doing it
@@ -60,13 +62,16 @@ export class SelectableView extends React.Component<Props> {
     }
   };
 
-  searchResults = (limit: number) => {
+  searchResults: (limit: number) => Array<Column> = (limit: number) => {
     const { filter, selectable } = this.props;
 
     return filterColumns(selectable.id, selectable.columns, filter, limit);
   };
 
-  triggerDelete = (event: { preventDefault: () => void }) => {
+  triggerDelete: (event: {
+    preventDefault: () => void,
+    ...
+  }) => void = (event: { preventDefault: () => void }) => {
     const { selectable, channel } = this.props;
     if (window.confirm(`Do you want to permanently delete ${selectable.id}?`)) {
       // eslint-disable-line no-alert
@@ -78,7 +83,7 @@ export class SelectableView extends React.Component<Props> {
     event.preventDefault();
   };
 
-  brokenErrorMessage = () => {
+  brokenErrorMessage: () => string = () => {
     const { selectable } = this.props;
     if (selectable.kind === "view") {
       return VIEW_INVALID_MESSAGE;
@@ -87,7 +92,19 @@ export class SelectableView extends React.Component<Props> {
     }
   };
 
-  brokenMetaData = () => {
+  brokenMetaData: () =>
+    | {|
+        className: string,
+        dataContainer: null,
+        dataToggle: null,
+        title: null,
+      |}
+    | {|
+        className: string,
+        dataContainer: string,
+        dataToggle: string,
+        title: string,
+      |} = () => {
     const { selectable } = this.props;
     if (selectable.broken || selectable.creation_status === "failed") {
       return {
@@ -106,12 +123,12 @@ export class SelectableView extends React.Component<Props> {
     }
   };
 
-  pending = () => {
+  pending: () => boolean = () => {
     const { selectable } = this.props;
     return selectable.creation_status === "pending";
   };
 
-  renderIcon = () => {
+  renderIcon: () => ReactElement<"img"> | ReactElement<"span"> = () => {
     const { expanded } = this.props;
     if (this.pending()) {
       return (
@@ -130,7 +147,9 @@ export class SelectableView extends React.Component<Props> {
     }
   };
 
-  renderSelectableView = (searchResults: any) => {
+  renderSelectableView: (searchResults: any) => ReactElement<"div"> = (
+    searchResults: any
+  ) => {
     const {
       selectable,
       expanded,
@@ -181,7 +200,7 @@ export class SelectableView extends React.Component<Props> {
     );
   };
 
-  render = () => {
+  render: () => null | ReactElement<"div"> = () => {
     const results = this.searchResults(this.props.expanded ? Infinity : 1);
     if (results.length > 0) {
       activateTooltips();

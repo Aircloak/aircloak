@@ -11,7 +11,6 @@ Cloak instance is sufficient.
 ![Shows the base level Aircloak Insights setup. IA: Insights Air, IC: Insights
 Cloak, IDC: Insights Datasource connector, DS: Datasource](/scaling/single-low.png)
 
-
 ### Multiple datasources
 
 When an organisation has many datasources that should be made available for querying but a low number of concurrent
@@ -20,7 +19,6 @@ or on multiple different database servers.
 
 ![Shows a setup of Aircloak Insights where multiple data sources are connected to a single Insights Cloak. IA: Insights Air, IC: Insights
 Cloak, IDC: Insights Datasource connector, DS: Datasource](/scaling/multi-low.png)
-
 
 ## High query volume
 
@@ -34,7 +32,6 @@ instances without affecting its performance.
 
 ![Shows a setup of Aircloak Insights allowing higher number of concurrent queries. IA: Insights Air, IC: Insights
 Cloak, IDC: Insights Datasource connector, DS: Datasource](/scaling/single-high.png)
-
 
 ### Multiple datasources
 

@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 import { isEmptyFilter, emptyFilter } from "./filter";
 import type { Filter } from "./filter";
@@ -86,7 +87,7 @@ const FilterDetails = React.forwardRef(
   }
 );
 
-const FilterView = ({ filter, onFilterChange }: Props) => (
+const FilterView = ({ filter, onFilterChange }: Props): Element<"div"> => (
   <div className="column-filter my-3">
     <div className="input-group input-group-sm">
       <div className="input-group-prepend">

@@ -210,7 +210,6 @@ $ cat users_and_datasources.json
 The Insights Air configuration file (`config.json`) needs to be amended to include a reference to the
 `users_and_datasources.json` file. Once amended it will look as follows:
 
-
 ```json
 {
   "site": {

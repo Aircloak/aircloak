@@ -3,13 +3,10 @@
 To write queries you use SQL. Aircloak supports a subset of standard SQL, implemented in a way that prevents leakage of
 sensitive data.
 
-
 ## Exploring the database
 
 You can discover database tables and their structure using the `SHOW` statement. To list the tables in the database, you
-can use the `SHOW TABLES` statement. If you want to see the columns of a particular table, you can invoke `SHOW COLUMNS
-FROM table_name`.
-
+can use the `SHOW TABLES` statement. If you want to see the columns of a particular table, you can invoke `SHOW COLUMNS FROM table_name`.
 
 ## Querying the database
 
@@ -19,8 +16,7 @@ results](/sql/query-results.md) for an explanation of the effects of anonymizati
 The syntax conforms to the standard SQL syntax (with some exceptions), but only a subset of features is supported. The
 general shape of the query looks like:
 
-[filename](sql/_syntax.md ':include')
-
+[filename](sql/_syntax.md ":include")
 
 ## Describing the query plan
 
@@ -74,7 +70,6 @@ query (anonymized, statistics, 2 noise layers)
 - Using a `column_expression` in place of a `filter_expression` will implicitly compare the value of that
   `column_expression` to `TRUE`. In other words: `WHERE active` is equivalent to `WHERE active = TRUE`.
 
-
 ## Query and subquery types
 
 Aircloak Insights supports both queries over `personal` data and queries over `non-personal` data.
@@ -83,13 +78,13 @@ you want to protect through anonymization), and `non-personal` data facts from a
 (not relating to any one individual) or the result of an anonymizing subquery over personal data.
 
 Queries that process `personal` data are subject to various [restrictions](/sql/restrictions.md),
-and are called *restricted queries*. Restricted queries can be arbitrarily nested. The top-most
+and are called _restricted queries_. Restricted queries can be arbitrarily nested. The top-most
 restricted query anonymizes the data. The anonymization produces a result that is about groups of
 users rather than individuals, and filters out values that could identify an individual.
-Such a top-most restricted query is called an *anonymizing query*.
+Such a top-most restricted query is called an _anonymizing query_.
 
 An anonymizing query can itself be a subquery to another query. In such a case the data processed
-by the other query is already anonymous and hence `non-personal`. Such a query is called a *standard query*.
+by the other query is already anonymous and hence `non-personal`. Such a query is called a _standard query_.
 A standard query can be used to further process an anonymized result set or, for example, to combine anonymized
 data with data from a `non-personal` table such as a fact or lookup table. Standard queries have the usual
 SQL validations applied to them (such as type checking), but the restrictions that are enforced for queries
@@ -110,8 +105,9 @@ You can use the [EXPLAIN statement](#describing-the-query-plan) to identify the 
 
 #### Non-anonymizing restricted subqueries
 
-You can tell that a subquery produces a per-user aggregate (is a *non-anonymizing restricted subquery*) if
-*both of* the following are true:
+You can tell that a subquery produces a per-user aggregate (is a _non-anonymizing restricted subquery_) if
+_both of_ the following are true:
+
 - it processes data from one or more personal tables or other non-anonymizing restricted subqueries
 - it explicitly selects or groups by the column that was specified as the user id
 
@@ -158,7 +154,8 @@ This query is a non-anonymizing restricted subquery as it is a subquery and expl
 
 #### Anonymizing restricted queries
 
-A query is an anonymizing query if it operates on personal data and *either of* the following is true:
+A query is an anonymizing query if it operates on personal data and _either of_ the following is true:
+
 - it is the top-most query (Aircloak will never return a non-anonymized result)
 - it aggregates over multiple users (i.e. does not explicitly group by the user id column)
 

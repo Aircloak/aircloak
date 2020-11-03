@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 export default ({
@@ -8,7 +9,7 @@ export default ({
 }: {
   id: string,
   debugModeEnabled: boolean,
-}) => {
+}): null | Element<"a"> => {
   if (debugModeEnabled) {
     return (
       <a

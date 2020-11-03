@@ -1,5 +1,4 @@
-Aircloak
-========
+# Aircloak
 
 This repository contains the entirety of the Aircloak system.
 A system that allows databases to be queried while enforcing
@@ -7,8 +6,8 @@ the anonymity of the individuals in the dataset.
 
 There are two main components:
 
-- __air__: a central control point only operating on non-sensitive data
-- __cloak__: a component deployed close to the data, performing the querying and anonymization
+- **air**: a central control point only operating on non-sensitive data
+- **cloak**: a component deployed close to the data, performing the querying and anonymization
 
 ## Prerequisites
 
@@ -19,10 +18,10 @@ This way you can ensure the version you are using locally is the same as the one
 You need to install [asdf](https://github.com/asdf-vm/asdf), together with the [Erlang](https://github.com/asdf-vm/asdf-erlang),
 [Elixir](https://github.com/asdf-vm/asdf-elixir), [Rust](https://github.com/code-lever/asdf-rust), and [NodeJS](https://github.com/asdf-vm/asdf-nodejs) plugins.
 
-Before installing erlang, make sure you have `unixodbc` installed (__macOS developers__ see [here](./cloak/osx_erlang_with_odbc.md) for detailed instructions).
+Before installing erlang, make sure you have `unixodbc` installed (**macOS developers** see [here](./cloak/osx_erlang_with_odbc.md) for detailed instructions).
 Once `asdf` and the required plugins are installed, run `asdf install` from the root folder of the project.
 
-You will also need Docker 1.11 (__macOS developers__ also need [Docker for Mac](https://docs.docker.com/docker-for-mac/), see [here](./macos_docker.md) for instructions). In addition, on macOS, you need to `brew install coreutils` (gives you both the `md5sum` and `realpath` utilities).
+You will also need Docker 1.11 (**macOS developers** also need [Docker for Mac](https://docs.docker.com/docker-for-mac/), see [here](./macos_docker.md) for instructions). In addition, on macOS, you need to `brew install coreutils` (gives you both the `md5sum` and `realpath` utilities).
 
 You will need to install [yarn](https://yarnpkg.com/en/docs/install) on your development machine as well.
 It replaces the node package manager. Using `yarn` we ensure we are using the same JavaScript packages
@@ -35,14 +34,13 @@ If the variable `DOCKER_DATA` is not set, then `$HOME/.aircloak/docker_volumes` 
 This is useful for development and testing, where you can easily wipe the data or upgrade databases to newer versions.
 See [this postgres issue](https://github.com/docker-library/postgres/issues/37) that discusses the problem of upgrading.
 
-
 ## Next Steps
 
 Since this is a monorepo with multiple components, you can find further documentation in each components README. Usually you will want to start with the [`air`](./air/README.md) and [`cloak`](./cloak/README.md) components.
 
 ## Deploying
 
-Each component can be deployed to a __deploy target__. The targets are provided in the [deploy_targets](./deploy_targets) folder.
+Each component can be deployed to a **deploy target**. The targets are provided in the [deploy_targets](./deploy_targets) folder.
 
 Each deployable component is a Docker image. The base for all the images, both in production and on the CI server, is Debian. The exact Debian version is specified in the [.debian-version](./.debian-version) file, which is the only source of truth for the OS version. Of course, 3rd party images, such as PostgreSQL, MongoDb, and others have their own base image, which is not affected by the `./debian-version` file.
 
@@ -50,7 +48,7 @@ Each deployable component is a Docker image. The base for all the images, both i
 
 To deploy both `air` and `cloak` from a branch (for example `master`), you can run `./publish.sh deploy_target`, where `deploy_target` is the name of the file from the `deploy_targets` folder (without the path). For example, `./publish.sh sebastian` will deploy new versions of `air` and `cloak` to the `sebastian` deploy target (which is described in `./deploy_targets/sebastian`).
 
-Deploying will always publish all __pushed__ changes from your current local branch.
+Deploying will always publish all **pushed** changes from your current local branch.
 
 You can also deploy each component separately using `./cloak/production.sh` and `./air/production.sh` scripts. Run these scripts without any argument for instructions.
 

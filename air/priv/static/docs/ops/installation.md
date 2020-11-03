@@ -4,7 +4,7 @@ The Aircloak system consists of several components:
 
 - Insights Air
 - Insights Cloak
-- Diffix Explorer *(optional)*
+- Diffix Explorer _(optional)_
 
 For an explanation of these components, see [Components provided by Aircloak](/components.md#components-provided-by-aircloak).
 
@@ -20,7 +20,7 @@ Before installing components, make sure that the following prerequisites are met
 - The Insights Air component requires at least 2GB of RAM.
 - The Insights Cloak component requires at least 8GB of RAM. However, for more complex queries on a larger dataset, more memory might be needed.
 
-[filename](../_important-notice.md ':include')
+[filename](../_important-notice.md ":include")
 
 ## Insights Air
 
@@ -32,7 +32,6 @@ Before installing Insights Air, you need to setup the following on your PostgreS
 You can use arbitrary names for the user and the database.
 
 With the database in place, you can configure the component as explained in the [Configuration guide](/ops/configuration.md#insights-air-configuration).
-
 
 Before starting the container, make sure to update the image to the latest version:
 

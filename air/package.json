@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "flow-typed": "^3.2.1",
+    "global": "^4.4.0"
+  }
+}

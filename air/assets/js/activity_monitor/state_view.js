@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import { format } from "../queries/state";
@@ -13,6 +14,6 @@ const stateClasses = {
 const stateClass = (queryState) =>
   stateClasses[queryState] || "label label-info";
 
-export default ({ queryState }: { queryState: string }) => {
+export default ({ queryState }: { queryState: string }): Element<"span"> => {
   return <span className={stateClass(queryState)}>{format(queryState)}</span>;
 };

@@ -3,7 +3,7 @@
 We recommend taking the following steps before upgrading to a new version of Aircloak Insights:
 
 1. Check whether there are incompatibilities or config changes needed by reading the upgrade documentation specific
-  to the version of Aircloak Insights you are upgrading to. It can be found further down in this document.
+   to the version of Aircloak Insights you are upgrading to. It can be found further down in this document.
 2. Take a backup of the Postgres database. This allows you to undo a system upgrade without losing data.
 
 ## Postgres backup
@@ -78,7 +78,7 @@ here: [20.1.0 privacy policy](/ops/upgrade/2001_privacy_policy.md).
 
 #### Tables configuration
 
-__The old style of configuring tables will stop working in version 19.3.__
+**The old style of configuring tables will stop working in version 19.3.**
 
 The table fields `user_id`, `projection` and `decoders` have been marked as deprecated. A warning will be issued for
 each usage of these fields in a datasource configuration file. Configured tables should use the new `keys` field and/or
@@ -90,6 +90,7 @@ for more details.
 Setting the user id for a table is now done by setting a table key with the type `"user_id"`.
 
 Old style table configuration:
+
 ```json
 "tables": {
   "accounts": {
@@ -98,7 +99,9 @@ Old style table configuration:
   }
 }
 ```
+
 New style table configuration:
+
 ```json
 "tables": {
   "accounts": {
@@ -112,6 +115,7 @@ In order to directly expose a table that doesn't contain personal data, the `con
 `non-personal`.
 
 Old style table configuration:
+
 ```json
 "tables": {
   "products": {
@@ -120,7 +124,9 @@ Old style table configuration:
   }
 }
 ```
+
 New style table configuration:
+
 ```json
 "tables": {
   "products": {
@@ -137,6 +143,7 @@ tables that contain the required user id field. This mechanism allows for more e
 the analyst.
 
 Old style table configuration:
+
 ```json
 "tables": {
   "accounts": {
@@ -151,7 +158,9 @@ Old style table configuration:
   }
 }
 ```
+
 New style table configuration:
+
 ```json
 "tables": {
   "accounts": {
@@ -173,6 +182,7 @@ New style table configuration:
 Data can be pre-processed by creating a virtual table, which configures a table from a query, similar to an SQL view.
 
 Old style table configuration:
+
 ```json
 "tables": {
   "transactions": {
@@ -184,7 +194,9 @@ Old style table configuration:
   }
 }
 ```
+
 New style table configuration:
+
 ```json
 "tables": {
   "transactions": {
@@ -259,7 +271,7 @@ docker run ... \
 Where `cloak_persist_folder` is the path you want the cache to be stored at on your host system.
 Depending on your setup it might be something like `/aircloak/cloak/cache`.
 
-__The Cloak container needs both read and write permissions to this folder.__
+**The Cloak container needs both read and write permissions to this folder.**
 
 If the static analysis puts undue stress on your data source, or does not complete within a reasonable time, please
 consider manually classifyng your columns. More information on how this is done can be found

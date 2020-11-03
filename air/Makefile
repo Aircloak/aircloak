@@ -80,3 +80,8 @@ format:
 
 check-format:
 	mix format --check-formatted
+
+fix:
+	mix format --check-equivalent
+	cd assets && yarn fix
+	

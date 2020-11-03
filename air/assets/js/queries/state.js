@@ -2,7 +2,7 @@
 
 const finalStates = ["completed", "cancelled", "error"];
 
-export const format = (state: string) => {
+export const format = (state: string): string => {
   switch (state) {
     case "awaiting_data":
       return "waiting for database";
@@ -15,7 +15,8 @@ export const format = (state: string) => {
   }
 };
 
-export const isFinished = (state: string) => finalStates.includes(state);
+export const isFinished = (state: string): boolean =>
+  finalStates.includes(state);
 
 export const pendingStates: Array<string> = [
   "created",
@@ -32,6 +33,6 @@ const completedStates: Array<string> = ["cancelled", "completed"];
 
 export const allStates: Array<string> = pendingStates.concat(completedStates);
 
-export const later = (state1: string, state2: string) =>
+export const later = (state1: string, state2: string): boolean =>
   allStates.findIndex((s) => s === state1) >
   allStates.findIndex((s) => s === state2);

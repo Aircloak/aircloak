@@ -1,5 +1,6 @@
 // @flow
 
+import type { Node, Element } from "React";
 import React from "react";
 import { Bar } from "react-chartjs-2";
 import isEqual from "lodash/isEqual";
@@ -120,7 +121,11 @@ class BarWrapper extends React.Component<Props, State> {
   }
 }
 
-export default ({ graphData }: { graphData: GraphDataT }) => {
+export default ({
+  graphData,
+}: {
+  graphData: GraphDataT,
+}): Element<"div"> | Node => {
   if (graphData.ready()) {
     return (
       <BarWrapper data={genData(graphData)} options={genOptions(graphData)} />

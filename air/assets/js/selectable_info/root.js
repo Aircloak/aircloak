@@ -1,7 +1,8 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
-import Channel from "phoenix";
+import type { Channel } from "phoenix";
 
 import { SelectableView } from "./selectable";
 import FilterView from "./filter_view";
@@ -71,11 +72,13 @@ export default class SelectableInfo extends React.Component<Props, State> {
 
   channel: Channel;
 
-  onFilterChange = (filter: Filter) => {
+  onFilterChange: any | ((filter: Filter) => void) = (filter: Filter) => {
     this.setState({ filter });
   };
 
-  toggleExpand = (selectable: Selectable) => () => {
+  toggleExpand: any | ((selectable: Selectable) => () => void) = (
+    selectable: Selectable
+  ) => () => {
     this.setState((state) => {
       const expanded = state.expanded;
       if (this.expanded(selectable)) {
@@ -87,13 +90,18 @@ export default class SelectableInfo extends React.Component<Props, State> {
     });
   };
 
-  updateSelectables = (event: { selectables: Selectable[] }) => {
+  updateSelectables:
+    | any
+    | ((event: { selectables: Array<Selectable>, ... }) => void) = (event: {
+    selectables: Selectable[],
+  }) => {
     this.setState({ selectables: event.selectables });
   };
 
-  expanded = (selectable: Selectable) => this.state.expanded.has(selectable.id);
+  expanded: (selectable: Selectable) => boolean = (selectable: Selectable) =>
+    this.state.expanded.has(selectable.id);
 
-  selectables = (): Array<[string, any]> =>
+  selectables: () => Array<[string, any]> = (): Array<[string, any]> =>
     Object.entries(
       this.state.selectables
         .filter(
@@ -113,10 +121,11 @@ export default class SelectableInfo extends React.Component<Props, State> {
         )
     );
 
-  dataSourceStatusReceived = (event: { status: string }) =>
-    this.setState({ dataSourceStatus: event.status });
+  dataSourceStatusReceived: (event: { status: string, ... }) => void = (event: {
+    status: string,
+  }) => this.setState({ dataSourceStatus: event.status });
 
-  renderAvailabilityLabel = () => {
+  renderAvailabilityLabel: () => Element<"span"> = () => {
     switch (this.state.dataSourceStatus) {
       case "online":
         return <span className="badge badge-success ml-2">Online</span>;
@@ -129,7 +138,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
     }
   };
 
-  analyzing = () => (
+  analyzing: () => Element<"span"> = () => (
     <span className="badge badge-success ml-2">
       Online
       <a
@@ -145,7 +154,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
     </span>
   );
 
-  renderDataSourceDescription = () => {
+  renderDataSourceDescription: () => null | Element<"p"> = () => {
     const { dataSourceDescription } = this.props;
     if (dataSourceDescription) {
       return <p>{dataSourceDescription}</p>;
@@ -154,7 +163,7 @@ export default class SelectableInfo extends React.Component<Props, State> {
     }
   };
 
-  render = () => {
+  render: () => Element<"div"> = () => {
     const {
       dataSourceName,
       selectablesEditUrl,

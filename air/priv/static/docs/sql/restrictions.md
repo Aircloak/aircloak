@@ -5,7 +5,6 @@ those imposed by the ANSI SQL standard. The restrictions, outlined below, do not
 For an overview over the difference between anonymizing and standard queries, consult the
 [Query and subquery types](/sql.md#query-and-subquery-types) section.
 
-
 ## JOIN restrictions
 
 To ensure that data can be reliably anonymized, some limitations exist in the `JOIN` part of the query.
@@ -27,14 +26,13 @@ Note:
 - `OUTER` is automatically implied when you use `LEFT`, `RIGHT` joins. Writing `LEFT OUTER JOIN` is therefore equivalent to writing `LEFT JOIN`
 - `INNER` is automatically implied when you use `JOIN` without any other qualifiers. Writing `t1 JOIN t2` is therefore the same as writing `t1 INNER JOIN t2`
 
-
 ## Subquery restrictions
 
 A subquery expression with an aggregate must always select a `user_id` column as well. For example, assuming there exists a table `t1` with a `user_id` column called `uid`:
 
-- __Valid__: `SELECT name FROM (SELECT name FROM t1) sq`
-- __Valid__: `SELECT name FROM (SELECT uid, count(*) FROM t1 GROUP BY uid) sq`
-- __Invalid__: `SELECT name FROM (SELECT count(*) FROM t1) sq`
+- **Valid**: `SELECT name FROM (SELECT name FROM t1) sq`
+- **Valid**: `SELECT name FROM (SELECT uid, count(*) FROM t1 GROUP BY uid) sq`
+- **Invalid**: `SELECT name FROM (SELECT count(*) FROM t1) sq`
 
 When using `LIMIT` and `OFFSET` in a subquery:
 
@@ -44,28 +42,26 @@ When using `LIMIT` and `OFFSET` in a subquery:
 - `OFFSET` will automatically be adjusted to the nearest multiple of `LIMIT`. For example an `OFFSET` of 240 will be
   adjusted to 200 given a `LIMIT` of 100
 
-
 ## Top-level HAVING clause
 
 Any conditions specified in the `HAVING` clause of the top-level query (_not_ a subquery) are "safe" in the sense that
 they will only ever be applied to data that has already been aggregated and anonymized. The clause will merely affect
-which of the anonymized data to display, not how that data is obtained.  Because of this, many of the restrictions
+which of the anonymized data to display, not how that data is obtained. Because of this, many of the restrictions
 described in the following sections don't apply to the top-level `HAVING` clause.
-
 
 ## CASE statements
 
 `CASE` statements over personal data have multiple restrictions:
 
-  - They are only allowed in the `SELECT` or `GROUP BY` clauses of anonymizing queries;
-  - They can not be post-processed in any way, other than aggregation;
-  - The `WHEN` clauses can only consist of a single equality condition between a clear expression and a constant.
-    The constant has to be from the list of frequent values in that column, unless the system administrator explicitly
-    allows usage of any value. Check the
-    [Insights Cloak configuration](/ops/configuration.md#insights-cloak-configuration) section for information
-    on how to enable it.
-  - The `THEN`/`ELSE` clauses can only return constant values; furthermore, when aggregated, they can only return
-    the values 0, 1 or NULL.
+- They are only allowed in the `SELECT` or `GROUP BY` clauses of anonymizing queries;
+- They can not be post-processed in any way, other than aggregation;
+- The `WHEN` clauses can only consist of a single equality condition between a clear expression and a constant.
+  The constant has to be from the list of frequent values in that column, unless the system administrator explicitly
+  allows usage of any value. Check the
+  [Insights Cloak configuration](/ops/configuration.md#insights-cloak-configuration) section for information
+  on how to enable it.
+- The `THEN`/`ELSE` clauses can only return constant values; furthermore, when aggregated, they can only return
+  the values 0, 1 or NULL.
 
 A few examples:
 
@@ -100,7 +96,6 @@ SELECT AVG(CASE WHEN column = 'aaa' THEN 0 ELSE 1000 END) FROM table
 SELECT COUNT(*) FROM table WHERE CASE WHEN column = 3 THEN TRUE ELSE FALSE END
 
 ```
-
 
 ## Math and function application restrictions
 
@@ -179,20 +174,21 @@ SELECT age / (age + 1) FROM table
 
 In order to prevent overflow errors, the following restrictions on constant values are in place:
 
-  - Numeric values are limited to the range `[-10^18, 10^18]`.
-  - Date and datetime years are limited to the range `[1900, 9999]`.
-  - Intervals are limited to `100` years.
+- Numeric values are limited to the range `[-10^18, 10^18]`.
+- Date and datetime years are limited to the range `[1900, 9999]`.
+- Intervals are limited to `100` years.
 
 ## Clear expressions
 
 A clear expression is a simple expression that:
-  - references exactly one database column,
-  - uses at most one `CAST`,
-  - only uses the following allowed functions:
-    - string functions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `hex`, `left`, `right`;
-    - date/time functions: `year`, `quarter`, `month`, `weekday`, `day`, `hour`, `minute`, `second`, `date_trunc`;
-    - numerical functions: `trunc`, `floor`, `ceil`, `round`, `bucket`;
-    - any aggregator (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`).
+
+- references exactly one database column,
+- uses at most one `CAST`,
+- only uses the following allowed functions:
+  - string functions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `hex`, `left`, `right`;
+  - date/time functions: `year`, `quarter`, `month`, `weekday`, `day`, `hour`, `minute`, `second`, `date_trunc`;
+  - numerical functions: `trunc`, `floor`, `ceil`, `round`, `bucket`;
+  - any aggregator (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`).
 
 Such expressions are considered to be safe in general and are exempt from many of the following restrictions.
 
@@ -227,9 +223,10 @@ that clause needs to contain two comparisons. These should form a constant range
 That is, one `>=` comparison and one `<` comparison, limiting the expression from bottom and top.
 
 The following special cases are excluded from this restriction:
-  - comparisons with clear expressions on both sides;
-  - date comparisons between a clear expression and the current date.
-  - date comparisons between a constant, month-aligned date and a range of clear expressions.
+
+- comparisons with clear expressions on both sides;
+- date comparisons between a clear expression and the current date.
+- date comparisons between a constant, month-aligned date and a range of clear expressions.
 
 ```sql
 -- Correct - a constant range is used:
@@ -266,7 +263,6 @@ SELECT COUNT(*) FROM table WHERE column BETWEEN 10 AND 20
 SELECT COUNT(*) FROM table WHERE column >= 10 AND column < 20
 ```
 
-
 ## Constant range alignment
 
 The system will adjust constant ranges provided in queries. The adjustment will "snap" the range to a fixed, predefined
@@ -279,8 +275,8 @@ across the wire as a `notice` message.
 
 The grid sizes available depend on the type of the column that is being limited by the range:
 
-* For numerical columns the grid sizes are `[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, ...]`
-* For date/time columns they are:
+- For numerical columns the grid sizes are `[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, ...]`
+- For date/time columns they are:
   - `[1, 2, 3, 6, 9, 12, ...]` months
   - `[1, 2, 5, 10, 15, 20]` days
   - `[1, 2, 6, 12]` hours
@@ -330,7 +326,6 @@ SELECT COUNT(*) FROM table WHERE date >= '2017-01-07' AND date < '2017-01-17'
 -- Not adjusted -- see previous example
 ```
 
-
 ## Implicit ranges
 
 Some functions can be used to almost the same effect as a pair of inequalities. For example the following two queries
@@ -344,7 +339,7 @@ SELECT COUNT(*) FROM table WHERE number >= 9.5 AND number < 10.5
 Because of this, usage of such functions must be restricted in a similar way to inequalities and the `BETWEEN` operator.
 The restrictions disallow the usage of most functions or mathematical operations before or after applying an implicit
 range function, if the expression is not clear. The operations that can be applied are a single `CAST`, any aggregator
-(`MIN`, `MAX`, `COUNT`, `SUM`,  `AVG`, `STDDEV`, `VARIANCE`), and a sub-month date extraction function (`day`,
+(`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`), and a sub-month date extraction function (`day`,
 `weekday`, `hour`, `minute`, `second`, `extract(day/weekday/hour/minute/second)`). The restrictions apply when an
 implicit range function is used in a `WHERE` or `JOIN` clause, selected in the top-level `SELECT` clause or used in a
 non-top-level `HAVING` clause - see [Top-level HAVING clause](#top-level-having-clause).
@@ -377,7 +372,6 @@ SELECT COUNT(*) FROM table WHERE year(birthday) * 12 + month(birthday) = 2000 * 
 -- Incorrect - math on sub-month-aligned expressions is rejected
 SELECT COUNT(*) FROM table WHERE month(birthday) * 30 + day(birthday) = 100
 ```
-
 
 ## Text operations
 
@@ -422,7 +416,6 @@ is treated just as `<>`, because there is always an equivalent query using `<>` 
 SELECT COUNT(*) FROM table WHERE number NOT IN (1, 2, 3)
 SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
 ```
-
 
 ### Allowed expressions
 
@@ -497,7 +490,6 @@ SELECT COUNT(*) FROM table
 WHERE name NOT LIKE 'A%' AND name NOT LIKE 'B%' AND upper(name) <> 'BOB'
 ```
 
-
 ## Isolating columns
 
 Some columns in the underlying data source might identify users despite not being marked as a user id. For example a
@@ -539,7 +531,6 @@ resource-intensive for large data sources. See [Manually classifying isolating
 columns](/ops/configuration.md#manually-classifying-isolating-columns) for information on alternative means of
 classifying isolating columns.
 
-
 ## Column bounds
 
 Some mathematical operations can cause an overflow and result in an error when performed in the database. To avoid such
@@ -560,7 +551,6 @@ performed using the safe method, wich might be slower on some data sources. For 
 SQL Server) these operations are safe by default, the analysis does not need to be performed and it won't result in
 any slowdown. In Oracle DB these operations are emulated by default. However, the database administrator can enable
 Aircloak UDFs to avoid this emulation - [see here for details](/datastores.md#oracle-safe-functions).
-
 
 ## Column analysis
 
