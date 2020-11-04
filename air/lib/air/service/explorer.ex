@@ -95,9 +95,9 @@ defmodule Air.Service.Explorer do
         &GenServer.cast(__MODULE__, {:request_analysis, set_status_to_processing(&1)})
       )
 
-  @doc "Returns a list of tables that are elligible for analysis for a particular datasource"
-  @spec elligible_tables_for_datasource(Air.Schemas.DataSource.t()) :: [String.t()]
-  def elligible_tables_for_datasource(data_source) do
+  @doc "Returns a list of tables that are eligible for analysis for a particular datasource"
+  @spec eligible_tables_for_datasource(Air.Schemas.DataSource.t()) :: [String.t()]
+  def eligible_tables_for_datasource(data_source) do
     DataSource.tables(data_source)
     |> Enum.filter(fn table -> Enum.any?(table["columns"], & &1["user_id"]) end)
     |> Enum.map(fn %{"id" => table_name} -> table_name end)

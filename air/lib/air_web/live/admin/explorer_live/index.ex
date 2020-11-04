@@ -75,7 +75,7 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
     if Explorer.data_source_enabled?(data_source) do
       Enum.map(Explorer.results_for_datasource(data_source), & &1.table_name)
     else
-      Explorer.elligible_tables_for_datasource(data_source)
+      Explorer.eligible_tables_for_datasource(data_source)
     end
   end
 
@@ -87,7 +87,7 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
 
   defp checkbox_mapper(form, field, input_opts, {data_source, selected_tables}, label_opts, _opts) do
     tables =
-      Explorer.elligible_tables_for_datasource(data_source)
+      Explorer.eligible_tables_for_datasource(data_source)
       |> Enum.map(&{&1, &1})
 
     checked = Keyword.get(input_opts, :checked, false)
