@@ -13,7 +13,7 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
     {:ok,
      socket
      |> assign_new(:current_user, fn -> current_user!(session) end)
-     |> assign(:data_sources, Explorer.statistics())
+     |> assign(:enabled_data_sources_stats, Explorer.statistics())
      |> assign(:changeset, Group.to_changeset(group))
      |> assign(all_data_sources: Enum.map(Air.Service.DataSource.all(), &{{&1, selected_tables(&1)}, &1.id}))}
   end
@@ -21,7 +21,7 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
   @impl true
   def handle_info(%{event: "analysis_updated"}, socket) do
     stats = Explorer.statistics()
-    {:noreply, socket |> assign(:data_sources, stats)}
+    {:noreply, socket |> assign(:enabled_data_sources_stats, stats)}
   end
 
   @impl true
@@ -33,7 +33,7 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
       )
 
     Explorer.reanalyze_datasource(data_source)
-    {:noreply, socket |> assign(:data_sources, Explorer.statistics())}
+    {:noreply, socket |> assign(:enabled_data_sources_stats, Explorer.statistics())}
   end
 
   def handle_event("save_settings", params, socket) do
@@ -45,7 +45,7 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
          audit_log(socket, "Altered Diffix Explorer permissions", before: before, after: group)
 
          socket
-         |> assign(:data_sources, Explorer.statistics())
+         |> assign(:enabled_data_sources_stats, Explorer.statistics())
          |> assign(:changeset, Group.to_changeset(group))
          |> assign(all_data_sources: Enum.map(Air.Service.DataSource.all(), &{{&1, selected_tables(&1)}, &1.id}))
          |> put_flash(:info, "Diffix Explorer settings updated. It can take some time before you see new results.")
@@ -63,7 +63,7 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
 
     {:noreply,
      socket
-     |> assign(:data_sources, Explorer.statistics())
+     |> assign(:enabled_data_sources_stats, Explorer.statistics())
      |> put_flash(:info, "Reanalyzing all data sources.")}
   end
 

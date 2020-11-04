@@ -15,7 +15,7 @@
 
       <div class="mx-1 mb-3">
         <%= PhoenixMTM.Helpers.collection_checkboxes f, :data_sources, @all_data_sources,
-            selected: Enum.map(@data_sources, & &1.id) , mapper: &checkbox_mapper/6
+            selected: Enum.map(@enabled_data_sources_stats, & &1.id) , mapper: &checkbox_mapper/6
           %>
       </div>
 
@@ -31,9 +31,9 @@
 </div>
 </div>
 
-<%= if length(@data_sources) > 0 do %>
+<%= if length(@enabled_data_sources_stats) > 0 do %>
   <section>
-    <%= if @current_user.debug_mode_enabled and length(@data_sources) > 1 do %>
+    <%= if @current_user.debug_mode_enabled and length(@enabled_data_sources_stats) > 1 do %>
       <button class="btn btn-sm float-right btn-primary" data-confirm="Reanalyzing all data sources can dramatically increase the load on your system. Are you sure?" phx-click="reanalyze_all">
         <i class="fas fa-redo fa-sm"></i>
         Reanalyze all data sources
@@ -41,7 +41,7 @@
     <% end %>
     <h3 class="mt-5 pb-2">Analysis Progress</h3>
     <div class="card-columns card-columns-responsive">
-      <%= for data_source <- @data_sources do %>
+      <%= for data_source <- @enabled_data_sources_stats do %>
         <div class="card">
           <div class="card-header">
             <h3 class="h5 text-truncate"><%= data_source.name %></h3>
