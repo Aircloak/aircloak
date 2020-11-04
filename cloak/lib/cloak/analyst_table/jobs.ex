@@ -26,11 +26,12 @@ defmodule Cloak.AnalystTable.Jobs do
   @doc "Retrieves the list of next jobs to execute, and marks them as running."
   @spec next_jobs(t) :: {[job], t}
   def next_jobs(jobs) do
-    with {job, jobs} <- pop_next_job(jobs),
-         {:ok, jobs} <- mark_job_as_running(jobs, job),
-         {remaining_jobs, jobs} = next_jobs(jobs),
-         do: {[job | remaining_jobs], jobs},
-         else: (_ -> {[], jobs})
+    with {job, jobs} <- pop_next_job(jobs), {:ok, jobs} <- mark_job_as_running(jobs, job) do
+      {remaining_jobs, jobs} = next_jobs(jobs)
+      {[job | remaining_jobs], jobs}
+    else
+      _ -> {[], jobs}
+    end
   end
 
   @doc "Removes the provided running job from the data structure."

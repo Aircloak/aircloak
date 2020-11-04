@@ -98,21 +98,23 @@ defmodule AirWeb.QueryController do
   end
 
   def permalink_show(conn, params) do
-    with {:ok, query} <- Air.Service.Token.query_from_token(conn.assigns.current_user, params["token"]) do
-      query_for_display =
-        AirWeb.Query.for_external_display(query,
-          authenticated?: false,
-          permalink_token: params["token"],
-          buckets: Air.Service.Query.buckets(query, 0)
+    case Air.Service.Token.query_from_token(conn.assigns.current_user, params["token"]) do
+      {:ok, query} ->
+        query_for_display =
+          AirWeb.Query.for_external_display(query,
+            authenticated?: false,
+            permalink_token: params["token"],
+            buckets: Air.Service.Query.buckets(query, 0)
+          )
+
+        render(conn, "permalink_show.html",
+          query: query_for_display,
+          csrf_token: Plug.CSRFProtection.get_csrf_token(),
+          number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
         )
 
-      render(conn, "permalink_show.html",
-        query: query_for_display,
-        csrf_token: Plug.CSRFProtection.get_csrf_token(),
-        number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
-      )
-    else
-      :error -> not_found(conn)
+      :error ->
+        not_found(conn)
     end
   end
 

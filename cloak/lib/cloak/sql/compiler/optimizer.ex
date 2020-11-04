@@ -18,7 +18,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   @spec optimize(Query.t()) :: Query.t()
   def optimize(%Query{command: :show} = query), do: query
 
-  def optimize(%Query{command: :select} = query),
+  def optimize(query),
     do: Helpers.apply_top_down(query, &optimize_query/1, analyst_tables?: false)
 
   # -------------------------------------------------------------------
@@ -32,7 +32,9 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       |> optimize_joins()
       |> optimize_columns_from_subqueries()
 
-  def optimize_columns_from_subqueries(query),
+  def optimize_columns_from_subqueries(%Query{command: :union} = query), do: query
+
+  def optimize_columns_from_subqueries(%Query{command: :select} = query),
     do:
       Lens.map(
         Query.Lenses.direct_subqueries(analyst_tables?: false),

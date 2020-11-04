@@ -10,8 +10,8 @@ defmodule CentralWeb.Socket.Frontend.UserChannelTest do
     user = create_user!()
 
     {:ok, _, _} =
-      socket(CentralWeb.Socket.Frontend, "user", %{user: user})
-      |> subscribe_and_join(UserChannel, "user:" <> to_string(user.id))
+      Phoenix.ChannelTest.connect(CentralWeb.Socket.Frontend, "user", %{user: user})
+      |> Phoenix.ChannelTest.subscribe_and_join(UserChannel, "user:" <> to_string(user.id))
 
     {:ok, user: user}
   end

@@ -76,7 +76,7 @@ defmodule AircloakCI.Github do
   catch
     type, error ->
       formatted_invocation = "#{inspect(fun)}(#{args |> Enum.map(&inspect/1) |> Enum.join(", ")})"
-      formatted_error = Exception.format(type, error, System.stacktrace())
+      formatted_error = Exception.format(type, error, __STACKTRACE__)
       Logger.error("Github API error in #{formatted_invocation}: #{formatted_error}")
       :timer.sleep(:timer.seconds(30))
       invoke_github_api_with_retries(fun, args, opts, retries - 1)

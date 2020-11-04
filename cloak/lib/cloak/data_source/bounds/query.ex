@@ -42,9 +42,8 @@ defmodule Cloak.DataSource.Bounds.Query do
   # -------------------------------------------------------------------
 
   defp public_bounds(type, data_source, table_name, expression) do
-    with {:ok, min, max} <- min_max(data_source, table_name, expression) do
-      extend(type, {floor(min), ceil(max)})
-    else
+    case min_max(data_source, table_name, expression) do
+      {:ok, min, max} -> extend(type, {floor(min), ceil(max)})
       _ -> :unknown
     end
   end

@@ -519,6 +519,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # DISTINCT rewriting
   # -------------------------------------------------------------------
 
+  defp rewrite_distinct(%Query{command: :union} = query), do: query
+
   defp rewrite_distinct(%Query{distinct?: true, group_by: [_ | _], order_by: [{column, _dir, _nulls} | _]}),
     # Correctly rewriting a query that combines DISTINCT with GROUP BY and an ORDER BY is non-trivial.
     # See the following discussion for further details:

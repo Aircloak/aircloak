@@ -7,6 +7,7 @@ SELECT [DISTINCT | ALL]
   [ HAVING filter_expression [AND ...] ]
   [ ORDER BY column_name  | position [ASC | DESC] [NULLS FIRST | LAST] [, ...]
     [ LIMIT amount ] [ OFFSET amount ] ]
+[ UNION [ALL | DISTINCT] ...]
 
 field_expression :=
   * | table_name.* | column_expression [AS alias]

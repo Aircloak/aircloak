@@ -13,6 +13,10 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   @doc "Executes a `SELECT` query over the input stream of rows."
   @spec select(Enumerable.t(), Query.t()) :: Enumerable.t()
+
+  def select(stream, %Query{command: :union, distinct?: true}), do: Enum.uniq(stream)
+  def select(stream, %Query{command: :union, distinct?: false}), do: stream
+
   def select(stream, query) do
     columns = Query.bucket_columns(query)
 

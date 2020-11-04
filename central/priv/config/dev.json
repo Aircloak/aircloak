@@ -7,7 +7,7 @@
     "host": "localhost",
     "port": 20002,
     "ssl": false,
-    "user": "central",
+    "user": "central_test",
     "password": "",
     "name": "central_dev"
   }

@@ -146,7 +146,7 @@ defmodule CentralWeb.Socket.AirTest do
          message_id \\ Ecto.UUID.generate(),
          request_id \\ Ecto.UUID.generate()
        ) do
-    push(socket, "air_call", %{
+    Phoenix.ChannelTest.push(socket, "air_call", %{
       request_id: request_id,
       event: "call_with_retry",
       payload: %{id: message_id, event: event, payload: payload}

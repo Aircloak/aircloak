@@ -224,15 +224,15 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens group_expressions() do
     Lens.match(fn
       %Query{command: :select, type: :anonymized, group_by: []} = query ->
-        if not Compiler.Helpers.aggregates?(query) do
+        if Compiler.Helpers.aggregates?(query) do
+          Lens.empty()
+        else
           # Group by is not provided, and no selected expression is an aggregation function ->
           #   we're grouping on all selected columns + non selected order by expressions.
           Lens.both(
             Lens.key(:columns) |> Lens.all(),
             Lens.key(:order_by) |> Lens.all() |> Lens.at(0)
           )
-        else
-          Lens.empty()
         end
 
       _ ->
@@ -384,6 +384,9 @@ defmodule Cloak.Sql.Query.Lenses do
 
       {:subquery, _} ->
         Lens.root()
+
+      {:union, _, _} ->
+        Lens.indices([1, 2])
 
       nil ->
         Lens.empty()

@@ -44,12 +44,13 @@ defmodule AirWeb.DocsController do
   # -------------------------------------------------------------------
 
   defp serve_transformed_markdown_file(conn, file_name, fun) do
-    with {:ok, content} <- File.read(file_path(file_name)) do
-      conn
-      |> put_resp_content_type("text/markdown")
-      |> send_resp(200, fun.(content))
-      |> halt()
-    else
+    case File.read(file_path(file_name)) do
+      {:ok, content} ->
+        conn
+        |> put_resp_content_type("text/markdown")
+        |> send_resp(200, fun.(content))
+        |> halt()
+
       _ ->
         conn
         |> send_resp(500, "Could not serve this file.")

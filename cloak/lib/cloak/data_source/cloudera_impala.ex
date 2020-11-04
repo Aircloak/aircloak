@@ -7,7 +7,7 @@ defmodule Cloak.DataSource.ClouderaImpala do
 
   alias Cloak.DataSource.RODBC
   use Cloak.DataSource.Driver.RodbcSql
-  @default_port 21050
+  @default_port 21_050
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks

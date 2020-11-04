@@ -14,12 +14,16 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   def value(server, data_source, table_name, column_name) do
     column = {data_source, table_name, column_name}
 
-    with {:error, :failed, name, default} <- GenServer.call(server, {:compute_value, column}, :infinity) do
-      Logger.error("#{inspect(name)} failed for `#{table_name}`.`#{column_name}`")
-      default
-    else
-      {:ok, property} -> property
-      {:error, :unknown_column} -> raise "Unknown column `#{table_name}`.`#{column_name}`"
+    case GenServer.call(server, {:compute_value, column}, :infinity) do
+      {:error, :failed, name, default} ->
+        Logger.error("#{inspect(name)} failed for `#{table_name}`.`#{column_name}`")
+        default
+
+      {:ok, property} ->
+        property
+
+      {:error, :unknown_column} ->
+        raise "Unknown column `#{table_name}`.`#{column_name}`"
     end
   end
 

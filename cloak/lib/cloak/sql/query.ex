@@ -43,10 +43,12 @@ defmodule Cloak.Sql.Query do
 
   @type subquery :: {:subquery, %{ast: t, alias: String.t()}}
 
+  @type union :: {:union, subquery, subquery}
+
   @type t :: %__MODULE__{
           analyst_id: analyst_id,
           data_source: DataSource.t(),
-          command: :select | :show | :explain,
+          command: :select | :show | :explain | :union,
           columns: [Expression.t()],
           column_titles: [String.t()],
           aggregators: [Expression.t()],
@@ -58,7 +60,7 @@ defmodule Cloak.Sql.Query do
           show: :tables | :columns | nil,
           selected_tables: [DataSource.Table.t()],
           db_columns: [Expression.t()],
-          from: from_clause | nil,
+          from: from_clause | union | nil,
           subquery?: boolean,
           limit: pos_integer | nil,
           offset: non_neg_integer,
@@ -179,7 +181,7 @@ defmodule Cloak.Sql.Query do
 
   @doc "Creates a table definition which corresponds to the given select query."
   @spec to_table(t, String.t(), [DataSource.Table.option()]) :: DataSource.Table.t()
-  def to_table(%__MODULE__{command: :select} = query, name, opts \\ []) do
+  def to_table(query, name, opts \\ []) do
     query
     |> selected_columns()
     |> Compiler.Helpers.create_table_from_columns(name, opts)
@@ -187,7 +189,7 @@ defmodule Cloak.Sql.Query do
 
   @doc "Returns the list of properly-aliased columns from the `SELECT` clause."
   @spec selected_columns(t) :: [Expression.t()]
-  def selected_columns(%__MODULE__{command: :select} = query) do
+  def selected_columns(%__MODULE__{command: command} = query) when command in [:select, :union] do
     Enum.zip(query.column_titles, query.columns)
     |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
   end
@@ -346,7 +348,7 @@ defmodule Cloak.Sql.Query do
 
   @doc "Resolves the columns which must be fetched from the database."
   @spec resolve_db_columns(t) :: t
-  def resolve_db_columns(%__MODULE__{command: :select} = query),
+  def resolve_db_columns(%__MODULE__{command: command} = query) when command in [:select, :union],
     do:
       query
       |> reset_db_columns()
@@ -405,12 +407,12 @@ defmodule Cloak.Sql.Query do
 
   defp include_required_expressions(query), do: Enum.reduce(required_expressions(query), query, &add_db_column(&2, &1))
 
-  defp required_expressions(%__MODULE__{command: :select, emulated?: false, type: type} = query)
+  defp required_expressions(%__MODULE__{emulated?: false, type: type} = query)
        when type != :anonymized,
        # non-emulated, non-anonymized subquery -> the selected columns are all selected expressions
        do: selected_columns(query)
 
-  defp required_expressions(%__MODULE__{command: :select} = query) do
+  defp required_expressions(%__MODULE__{} = query) do
     # anonymized query or emulated subquery -> we're only fetching columns,
     # while other expressions (e.g. function calls) will be resolved in the post-processing phase
     used_columns =

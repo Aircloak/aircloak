@@ -517,7 +517,7 @@ defmodule Cloak.DataSource.Table do
 
   defp map_keys({name, %{keys: keys} = table}) do
     keys = Enum.map(keys, &map_key(&1, name))
-    key_columns = Keyword.keys(keys)
+    key_columns = Enum.map(keys, fn {column, _type} -> column end)
 
     case key_columns -- Enum.uniq(key_columns) do
       [] ->

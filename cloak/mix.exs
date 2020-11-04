@@ -40,7 +40,7 @@ defmodule Cloak.Mixfile do
       {:websocket_client, "~> 1.2.4"},
       {:combine, "~> 0.10"},
       {:backoff, "~> 1.1.3"},
-      {:jiffy, "~> 0.14.1"},
+      {:jiffy, "~> 1.0"},
       {:file_system, "~> 0.2.8"},
       {:parent, "~> 0.4.0"},
       {:jobs, "~> 0.7.0"},
@@ -56,10 +56,10 @@ defmodule Cloak.Mixfile do
 
       # Test deps
 
-      {:phoenix, "~> 1.4.1", only: :test},
+      {:phoenix, "~> 1.5.0", only: :test},
       {:cowboy, "~> 1.0", only: :test},
-      {:bypass, "~> 0.5.1", only: :test},
-      {:stream_data, "~> 0.4.0", only: :test},
+      {:bypass, "~> 2.0.0", only: :test},
+      {:stream_data, "~> 0.5.0", only: :test},
 
       # Only used for perf tests
       {:httpoison, "~> 0.13.0", runtime: false, override: true},
@@ -67,13 +67,8 @@ defmodule Cloak.Mixfile do
     ]
   end
 
-  defp extra_applications(:test), do: common_extra_applications()
-  defp extra_applications(:dev), do: [:os_mon | common_extra_applications()]
-  defp extra_applications(:prod), do: [:os_mon | common_extra_applications()]
-
-  defp common_extra_applications(), do: [:logger, :runtime_tools, :crypto, :odbc, :ssl, :public_key] ++ dialyzer_deps()
-
-  defp dialyzer_deps(), do: [:jason, :timex]
+  defp extra_applications(_),
+    do: [:os_mon, :logger, :runtime_tools, :crypto, :odbc, :ssl, :public_key, :sasl, :jason, :timex]
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
@@ -86,11 +81,14 @@ defmodule Cloak.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      lint: ["credo --strict"]
+      lint: ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env()), ",")}"]
     ]
   end
 
   defp aliases(_), do: []
+
+  defp ignored_credo_checks(:dev), do: ["AliasOrder"]
+  defp ignored_credo_checks(:test), do: ["LargeNumbers" | ignored_credo_checks(:dev)]
 
   defp rustler_crates(),
     do: [

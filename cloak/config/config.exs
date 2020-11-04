@@ -16,12 +16,6 @@ config :logger,
     metadata: [:query_id]
   ]
 
-config :kernel,
-  # The portnumber the cloak erlang vm listens
-  # to for communication from other nodes.
-  inet_dist_listen_min: 34000,
-  inet_dist_listen_max: 35000
-
 config :cloak, :api, port: 8098
 
 config :cloak, :air, serializer: Air.CloakSocketSerializer
