@@ -38,6 +38,7 @@ defmodule Cloak.DataSource.Oracle do
     """)
     |> Enum.map(fn
       [column_name, "NUMBER", scale] when scale == nil or scale <= 0 -> Table.column(column_name, :integer)
+      [column_name, "DATE", _] -> Table.column(column_name, :datetime)
       [column_name, data_type, _] -> Table.column(column_name, RODBC.parse_column_type(data_type))
     end)
     |> case do
