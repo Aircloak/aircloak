@@ -80,6 +80,12 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
   defp enabled_data_sources(data_sources), do:
     Enum.filter(data_sources, & length(&1.selected_tables) > 0)
 
+  defp analyzable_data_sources(data_sources), do:
+    Enum.reject(data_sources, & &1.eligible_tables == [])
+
+  defp unanalyzable_data_sources(data_sources), do:
+    Enum.filter(data_sources, & &1.eligible_tables == [])
+
   defp checkbox_mapper(form, field, input_opts, data_source, label_opts, _opts) do
     checked = Keyword.get(input_opts, :checked, false)
 

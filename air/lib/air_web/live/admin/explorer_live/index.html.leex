@@ -14,7 +14,7 @@
       <p class="lead">These are the data sources that Diffix Explorer will start analyzing.</p>
 
       <div class="mx-1 mb-3">
-        <%= PhoenixMTM.Helpers.collection_checkboxes f, :data_sources, Enum.map(@all_data_sources, & {&1, &1.id}),
+        <%= PhoenixMTM.Helpers.collection_checkboxes f, :data_sources, @all_data_sources |> analyzable_data_sources |> Enum.map(& {&1, &1.id}),
             selected: @all_data_sources |> enabled_data_sources |> Enum.map(& &1.id) , mapper: &checkbox_mapper/6
           %>
       </div>
@@ -23,6 +23,21 @@
       <%= submit "Save", class: "btn btn-success" %>
       </div>
     </form>
+
+    <%= unless unanalyzable_data_sources(@all_data_sources) == [] do %>
+      <h4>Data sources that cannot be analyzed</h4>
+      <p>
+        The following data <%= Inflex.inflect("source", length(unanalyzable_data_sources(@all_data_sources))) %>
+        cannot be analyzed by Diffix Explorer:
+      <p>
+      <ul>
+      <%= for data_source <- unanalyzable_data_sources(@all_data_sources) do %>
+        <li><%= data_source.name %></li>
+      <% end %>
+      </ul>
+      <p>In order to be analyzable a data source needs to have at least one table exposing a user-id column.<p>
+    <% end %>
+
   </div>
   <div class="col-xl-5 p-xl-4 border-xl-left">
     <p>The Diffix Explorer integration manages a normal <%= link "user", to: admin_user_path(@socket, :index) %> and <%= link "group", to: admin_group_path(@socket, :index) %> that get permissions to make API requests against these data sources.</p>
