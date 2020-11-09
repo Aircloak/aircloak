@@ -60,11 +60,15 @@ Enum.each(
       end)
 
       defp disable_unsupported_on_dates(context, function, column) do
+        is_date_trunc? = String.starts_with?(function, "date_trunc")
+
         context
         |> disable_for(:all, column in date_columns() and unsupported_on_dates?(function))
         # Impala maps dates to datetime (TIMESTAMP). The returned results will be equivalent,
         # but tests will fail because other databases return results as date only.
-        |> disable_for(Cloak.DataSource.ClouderaImpala, column in date_columns())
+        |> disable_for(Cloak.DataSource.ClouderaImpala, is_date_trunc? and column in date_columns())
+        # Oracle DATE contains time component.
+        |> disable_for(Cloak.DataSource.Oracle, is_date_trunc? and column in date_columns())
       end
 
       defp unsupported_on_dates?(function) do
