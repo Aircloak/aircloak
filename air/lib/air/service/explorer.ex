@@ -29,39 +29,82 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  @doc "Returns counts of tables in various stages grouped by data source."
-  @spec statistics :: [
+  @doc "Returns all data sources along with the some metadata about the tables selected."
+  @spec all_data_source_metadata :: [
           %{
-            complete: integer,
-            processing: integer,
-            error: integer,
-            total: integer,
             id: integer,
             name: String.t(),
-            description: String.t()
+            eligible_tables: [String.t()],
+            selected_tables: [String.t()],
+            stats: %{
+              total: integer,
+              complete: integer,
+              processing: integer,
+              error: integer
+            }
           }
         ]
-  def statistics() do
-    from(explorer_analysis in ExplorerAnalysis,
-      right_join: data_source in DataSource,
+  def all_data_source_metadata() do
+    from(data_source in DataSource,
+      left_join: explorer_analysis in ExplorerAnalysis,
       on: explorer_analysis.data_source_id == data_source.id,
-      join: data_source_groups in "data_sources_groups",
-      on: data_source_groups.data_source_id == data_source.id,
-      join: group in Air.Schemas.Group,
-      on: group.id == data_source_groups.group_id,
-      where: group.name == "Diffix Explorer" and group.system,
       select: %{
-        complete: count(explorer_analysis.status in ["complete"] or nil),
-        processing: count(explorer_analysis.status in ["new", "processing"] or nil),
-        error: count(explorer_analysis.status in ["error"] or nil),
-        total: count(explorer_analysis.id),
         id: data_source.id,
         name: data_source.name,
-        description: data_source.description
-      },
-      group_by: data_source.id
+        tables: data_source.tables,
+        analysis_id: explorer_analysis.id,
+        table_name: explorer_analysis.table_name,
+        analysis_status: explorer_analysis.status
+      }
     )
     |> Repo.all()
+    |> Enum.group_by(& {&1.id, &1.name, &1.tables})
+    |> Map.to_list()
+    |> Enum.map(fn {{id, name, tables}, selected_tables} ->
+      selected_table_names =
+        if is_nil selected_tables do
+          []
+        else
+          selected_tables
+          |> Enum.reject(& is_nil &1.analysis_id)
+          |> Enum.map(& &1.table_name)
+          |> Enum.sort()
+        end
+
+      available_table_names =
+        case Jason.decode(tables) do
+          {:ok, tables} ->
+            tables
+            |> Enum.filter(fn table -> Enum.any?(table["columns"], & &1["user_id"]) end)
+            |> Enum.map(fn %{"id" => table_name} -> table_name end)
+            |> Enum.sort()
+          _ -> []
+        end
+
+
+      {complete, processing, error} =
+        List.foldl(selected_tables, {0, 0, 0}, fn table, {complete_acc, processing_acc, error_acc} ->
+          case table.analysis_status do
+            status when status in [:complete] -> {complete_acc + 1, processing_acc, error_acc}
+            status when status in [:new, :processing] -> {complete_acc, processing_acc + 1, error_acc}
+            status when status in [:error, :cancelled] -> {complete_acc, processing_acc, error_acc + 1}
+            _else -> {complete_acc, processing_acc, error_acc}
+          end
+        end)
+
+      %{
+        id: id,
+        name: name,
+        eligible_tables: available_table_names,
+        selected_tables: selected_table_names,
+        stats: %{
+          total: length(selected_table_names),
+          complete: complete,
+          processing: processing,
+          error: error
+        }
+      }
+    end)
   end
 
   @doc "Is diffix explorer integration enabled for this datasource?"
@@ -94,14 +137,6 @@ defmodule Air.Service.Explorer do
         results_for_datasource(data_source),
         &GenServer.cast(__MODULE__, {:request_analysis, set_status_to_processing(&1)})
       )
-
-  @doc "Returns a list of tables that are eligible for analysis for a particular datasource"
-  @spec eligible_tables_for_datasource(Air.Schemas.DataSource.t()) :: [String.t()]
-  def eligible_tables_for_datasource(data_source) do
-    DataSource.tables(data_source)
-    |> Enum.filter(fn table -> Enum.any?(table["columns"], & &1["user_id"]) end)
-    |> Enum.map(fn %{"id" => table_name} -> table_name end)
-  end
 
   @doc "Removes results for tables which no longer exist in the data source."
   @spec data_source_updated(Air.Schemas.DataSource.t()) :: :ok

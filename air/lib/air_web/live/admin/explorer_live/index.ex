@@ -13,27 +13,29 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
     {:ok,
      socket
      |> assign_new(:current_user, fn -> current_user!(session) end)
-     |> assign(:enabled_data_sources_stats, Explorer.statistics())
      |> assign(:changeset, Group.to_changeset(group))
-     |> assign(all_data_sources: Enum.map(Air.Service.DataSource.all(), &{{&1, selected_tables(&1)}, &1.id}))}
+     |> assign(all_data_sources: Explorer.all_data_source_metadata())}
   end
 
   @impl true
   def handle_info(%{event: "analysis_updated"}, socket) do
-    stats = Explorer.statistics()
-    {:noreply, socket |> assign(:enabled_data_sources_stats, stats)}
+    {:noreply,
+      socket
+      |> assign(:all_data_sources, Explorer.all_data_source_metadata())
+    }
   end
 
   @impl true
   def handle_event("reanalyze_datasource", %{"data_source_id" => id}, socket) do
-    {:ok, data_source} =
+    with {:ok, data_source} <-
       Air.Service.DataSource.fetch_as_user(
         {:name, id},
         Explorer.user()
-      )
+      ) do
+      Explorer.reanalyze_datasource(data_source)
+    end
 
-    Explorer.reanalyze_datasource(data_source)
-    {:noreply, socket |> assign(:enabled_data_sources_stats, Explorer.statistics())}
+    {:norelpy, assign(socket, :all_data_sources, Explorer.all_data_source_metadata())}
   end
 
   def handle_event("save_settings", params, socket) do
@@ -45,14 +47,12 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
          audit_log(socket, "Altered Diffix Explorer permissions", before: before, after: group)
 
          socket
-         |> assign(:enabled_data_sources_stats, Explorer.statistics())
          |> assign(:changeset, Group.to_changeset(group))
-         |> assign(all_data_sources: Enum.map(Air.Service.DataSource.all(), &{{&1, selected_tables(&1)}, &1.id}))
+         |> assign(all_data_sources: Explorer.all_data_source_metadata())
          |> put_flash(:info, "Diffix Explorer settings updated. It can take some time before you see new results.")
 
        {:error, changeset} ->
-         socket
-         |> assign(:changeset, changeset)
+         assign(socket, :changeset, changeset)
      end}
   end
 
@@ -63,7 +63,7 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
 
     {:noreply,
      socket
-     |> assign(:enabled_data_sources_stats, Explorer.statistics())
+     |> assign(all_data_sources: Explorer.all_data_source_metadata())
      |> put_flash(:info, "Reanalyzing all data sources.")}
   end
 
@@ -71,26 +71,24 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp selected_tables(data_source) do
-    if Explorer.data_source_enabled?(data_source) do
-      Enum.map(Explorer.results_for_datasource(data_source), & &1.table_name)
-    else
-      Explorer.eligible_tables_for_datasource(data_source)
-    end
-  end
-
   defp current_user!(%{"_air_session_token" => token}) do
     {:ok, user_id} = Air.Service.RevokableToken.verify(token, :session)
     {:ok, user} = Air.Service.User.load_enabled(user_id)
     user
   end
 
-  defp checkbox_mapper(form, field, input_opts, {data_source, selected_tables}, label_opts, _opts) do
-    tables =
-      Explorer.eligible_tables_for_datasource(data_source)
-      |> Enum.map(&{&1, &1})
+  defp enabled_data_sources(data_sources), do:
+    Enum.filter(data_sources, & length(&1.selected_tables) > 0)
 
+  defp checkbox_mapper(form, field, input_opts, data_source, label_opts, _opts) do
     checked = Keyword.get(input_opts, :checked, false)
+
+    marked_as_selected =
+      if data_source[:selected_tables] == [] do
+        data_source[:eligible_tables]
+      else
+        data_source[:selected_tables]
+      end
 
     content_tag(:div, class: "form-check") do
       [
@@ -104,8 +102,8 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
         end,
         content_tag(:div, class: "collapse #{if checked, do: "show"} nested-checkboxes", id: "tables-#{data_source.id}") do
           content_tag(:div) do
-            PhoenixMTM.Helpers.collection_checkboxes(form, :tables, tables,
-              selected: selected_tables,
+            PhoenixMTM.Helpers.collection_checkboxes(form, :tables, Enum.map(data_source.eligible_tables, & {&1, &1}),
+              selected: marked_as_selected,
               mapper: &table_checkbox_mapper/6,
               data_source_id: data_source.id
             )

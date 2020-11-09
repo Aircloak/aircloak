@@ -14,8 +14,8 @@
       <p class="lead">These are the data sources that Diffix Explorer will start analyzing.</p>
 
       <div class="mx-1 mb-3">
-        <%= PhoenixMTM.Helpers.collection_checkboxes f, :data_sources, @all_data_sources,
-            selected: Enum.map(@enabled_data_sources_stats, & &1.id) , mapper: &checkbox_mapper/6
+        <%= PhoenixMTM.Helpers.collection_checkboxes f, :data_sources, Enum.map(@all_data_sources, & {&1, &1.id}),
+            selected: @all_data_sources |> enabled_data_sources |> Enum.map(& &1.id) , mapper: &checkbox_mapper/6
           %>
       </div>
 
@@ -31,9 +31,9 @@
 </div>
 </div>
 
-<%= if length(@enabled_data_sources_stats) > 0 do %>
+<%= if length(enabled_data_sources(@all_data_sources)) > 0 do %>
   <section>
-    <%= if @current_user.debug_mode_enabled and length(@enabled_data_sources_stats) > 1 do %>
+    <%= if @current_user.debug_mode_enabled and length(enabled_data_sources(@all_data_sources)) > 1 do %>
       <button class="btn btn-sm float-right btn-primary" data-confirm="Reanalyzing all data sources can dramatically increase the load on your system. Are you sure?" phx-click="reanalyze_all">
         <i class="fas fa-redo fa-sm"></i>
         Reanalyze all data sources
@@ -41,28 +41,24 @@
     <% end %>
     <h3 class="mt-5 pb-2">Analysis Progress</h3>
     <div class="card-columns card-columns-responsive">
-      <%= for data_source <- @enabled_data_sources_stats do %>
+      <%= for data_source <- enabled_data_sources(@all_data_sources) do %>
         <div class="card">
           <div class="card-header">
             <h3 class="h5 text-truncate"><%= data_source.name %></h3>
           </div>
           <div class="card-body">
-            <%= if data_source.total == 0 do %>
-              <p class="card-text">No analyses available</p>
-            <% else %>
-              <div class="progress mb-4">
-                <div class="progress-bar bg-success <%= unless data_source.processing == 0, do: "progress-bar-striped progress-bar-animated" %>" role="progressbar" style="width: <%= 100 * data_source.complete / data_source.total %>%" aria-valuenow="<%= data_source.complete %>" aria-valuemin="0" aria-valuemax="<%= data_source.total %>">
-                  <%= unless data_source.complete / data_source.total < 0.2 do %>
-                    <%= data_source.complete %> complete
-                  <% end %>
-                </div>
-                <div class="progress-bar bg-danger <%= unless data_source.processing == 0, do: "progress-bar-striped progress-bar-animated" %>" role="progressbar" style="width: <%= 100 * data_source.error / data_source.total %>%" aria-valuenow="<%= data_source.error %>" aria-valuemin="0" aria-valuemax="<%= data_source.total %>">
-                  <%= unless data_source.error / data_source.total < 0.2 do %>
-                    <%= data_source.error %> errors
-                  <% end %>
-                </div>
+            <div class="progress mb-4">
+              <div class="progress-bar bg-success <%= unless data_source.stats.processing == 0, do: "progress-bar-striped progress-bar-animated" %>" role="progressbar" style="width: <%= 100 * data_source.stats.complete / data_source.stats.total %>%" aria-valuenow="<%= data_source.stats.complete %>" aria-valuemin="0" aria-valuemax="<%= data_source.stats.total %>">
+                <%= unless data_source.stats.complete / data_source.stats.total < 0.2 do %>
+                  <%= data_source.stats.complete %> complete
+                <% end %>
               </div>
-            <% end %>
+              <div class="progress-bar bg-danger <%= unless data_source.stats.processing == 0, do: "progress-bar-striped progress-bar-animated" %>" role="progressbar" style="width: <%= 100 * data_source.stats.error / data_source.stats.total %>%" aria-valuenow="<%= data_source.stats.error %>" aria-valuemin="0" aria-valuemax="<%= data_source.stats.total %>">
+                <%= unless data_source.stats.error / data_source.stats.total < 0.2 do %>
+                  <%= data_source.stats.error %> errors
+                <% end %>
+              </div>
+            </div>
 
             <div class="btn-group w-100">
               <button class="btn btn-outline-secondary" style="flex-basis: 50%" phx-value-data_source_id="<%= data_source.name %>" phx-click="reanalyze_datasource">
