@@ -147,6 +147,17 @@ defmodule Air.Service.Explorer do
         )
       )
 
+  @doc "Spawns the analysis of a table, whether or not it has previously been analyzed"
+  @spec analyze_table(data_source_id :: integer, table_name :: String.t()) :: :ok
+  def analyze_table(data_source_id, table_name),
+    do: GenServer.cast(__MODULE__, {:analyze_table, data_source_id, table_name})
+
+  @doc "Removes a table from being analyzed."
+  @spec disable_table(data_source_id :: integer, table_name :: String.t()) :: :ok
+  def disable_table(data_source_id, table_name),
+    do: GenServer.cast(__MODULE__, {:disable_table, data_source_id, table_name})
+
+  # FIXME: delete from here and tests
   @doc "Requests new analyses for datasource."
   @spec reanalyze_datasource(Air.Schemas.DataSource.t()) :: :ok
   def reanalyze_datasource(data_source),
@@ -255,6 +266,55 @@ defmodule Air.Service.Explorer do
     {:noreply, poll_unless_already_pending_poll(poll_in_progress?)}
   end
 
+  def handle_cast({:analyze_table, data_source_id, table_name}, poll_in_progress?) do
+    existing_analysis =
+      Repo.one(
+        from(explorer_analysis in ExplorerAnalysis,
+          where: explorer_analysis.data_source_id == ^data_source_id and explorer_analysis.table_name == ^table_name,
+          preload: [:data_source]
+        )
+      )
+
+    if is_nil existing_analysis do
+      {user, _} = find_or_create_explorer_creds()
+      {:ok, data_source} = get_data_source(user, data_source_id)
+      # We create an analysis placeholder. This will be the only place in the service creating analysis.
+      # That way we can assume that if one doesn't exist, then it shouldn't exist either.
+      %ExplorerAnalysis{data_source: data_source}
+      |> ExplorerAnalysis.changeset(%{
+        table_name: table_name,
+        status: :new
+      })
+      |> Repo.insert!()
+      |> Repo.preload(:data_source)
+      |> request_analysis()
+    else
+      existing_analysis
+      |> ExplorerAnalysis.changeset(%{status: :new})
+      |> Repo.update!()
+      |> request_analysis()
+    end
+
+    broadcast_changes()
+    {:noreply, poll_unless_already_pending_poll(poll_in_progress?)}
+  end
+
+  def handle_cast({:disable_table, data_source_id, table_name}, poll_in_progress?) do
+    analysis =
+      Repo.one(
+        from explorer_analysis in ExplorerAnalysis,
+        where: explorer_analysis.data_source_id == ^data_source_id and explorer_analysis.table_name == ^table_name,
+        preload: :data_source
+      )
+    unless is_nil analysis do
+      if analysis.status in [:new, :processing], do: cancel_analysis(analysis)
+      Repo.delete!(analysis)
+      broadcast_changes()
+    end
+
+    {:noreply, poll_in_progress?}
+  end
+
   @impl GenServer
   def handle_info(:poll, _state) do
     pending_analyses_query()
@@ -276,6 +336,19 @@ defmodule Air.Service.Explorer do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp get_data_source(user, data_source_id) do
+    with {:error, :unauthorized} <- Air.Service.DataSource.fetch_as_user({:id, data_source_id}, user),
+         data_source = %DataSource{} when not (is_nil data_source) <-
+            Repo.get_by(Air.Schemas.DataSource, id: data_source_id) do
+      group = group()
+      new_data_sources = [data_source_id | group.data_sources |> Enum.map(& &1.id)]
+      Air.Service.Group.update!(group, %{data_sources: new_data_sources})
+      get_data_source(user, data_source_id)
+    else
+      {:ok, data_source} -> {:ok, data_source}
+    end
+  end
 
   defp schedule_poll(), do: poll_unless_already_pending_poll(false)
 
@@ -405,6 +478,16 @@ defmodule Air.Service.Explorer do
     end
   end
 
+  defp cancel_analysis(analysis) do
+    with {:ok, %HTTPoison.Response{status_code: 200, body: _response}} <-
+           HTTPoison.get(base_url() <> "/cancel/#{analysis.job_id}") do
+      Logger.info("Cancelled analysis of #{analysis_name(analysis)}")
+    else
+      _ ->
+        Logger.warn("Ignoring failed attempt a cancelling analysis of #{analysis_name(analysis)}.")
+    end
+  end
+
   defp unanalyzable_column?(column),
     do:
       Map.get(column, "isolated", true) || Map.get(column, "user_id", true) ||
@@ -520,6 +603,8 @@ defmodule Air.Service.Explorer do
 
     broadcast_changes()
   end
+
+  defp analysis_name(analysis), do: analysis.data_source.name <> "/" <> analysis.table_name
 
   defp base_url(), do: config!("url") <> "/api/v1"
 
