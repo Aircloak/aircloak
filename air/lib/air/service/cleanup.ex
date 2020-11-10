@@ -32,6 +32,18 @@ defmodule Air.Service.Cleanup do
     :ok
   end
 
+  @doc "Removes explorer analysis for tables that no longer exist"
+  @spec cleanup_old_explorer_analyses() :: :ok
+  def cleanup_old_explorer_analyses() do
+    Air.Repo.delete_all(
+      from(explorer_analysis in Air.Schemas.ExplorerAnalysis,
+        where: explorer_analysis.soft_delete
+      )
+    )
+
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
@@ -41,7 +53,12 @@ defmodule Air.Service.Cleanup do
     Aircloak.ChildSpec.supervisor(
       [
         {Periodic, run: &cleanup_old_queries/0, every: :timer.hours(1), overlap?: false, id: :cleanup_old_queries},
-        {Periodic, run: &cleanup_dead_queries/0, every: :timer.minutes(5), overlap?: false, id: :cleanup_dead_queries}
+        {Periodic, run: &cleanup_dead_queries/0, every: :timer.minutes(5), overlap?: false, id: :cleanup_dead_queries},
+        {Periodic,
+         run: &cleanup_old_explorer_analyses/0,
+         every: :timer.hours(24 * 10),
+         overlap?: false,
+         id: :cleanup_old_explorer_analyses}
       ],
       name: __MODULE__,
       strategy: :one_for_one

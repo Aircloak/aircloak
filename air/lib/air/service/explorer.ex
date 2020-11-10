@@ -160,12 +160,23 @@ defmodule Air.Service.Explorer do
       DataSource.tables(data_source)
       |> Enum.map(fn %{"id" => name} -> name end)
 
-    from(explorer_analysis in ExplorerAnalysis,
-      where:
-        explorer_analysis.data_source_id == ^data_source.id and
-          explorer_analysis.table_name not in ^tables
+    Repo.update_all(
+      from(explorer_analysis in ExplorerAnalysis,
+        where:
+          explorer_analysis.data_source_id == ^data_source.id and
+            explorer_analysis.table_name in ^tables
+      ),
+      set: [soft_delete: false]
     )
-    |> Repo.delete_all()
+
+    Repo.update_all(
+      from(explorer_analysis in ExplorerAnalysis,
+        where:
+          explorer_analysis.data_source_id == ^data_source.id and
+            explorer_analysis.table_name not in ^tables
+      ),
+      set: [soft_delete: true]
+    )
 
     :ok
   end
