@@ -61,12 +61,12 @@ defmodule Air.Service.Explorer do
       }
     )
     |> Repo.all()
-    |> Enum.group_by(& {&1.id, &1.name, &1.tables})
+    |> Enum.group_by(&{&1.id, &1.name, &1.tables})
     |> Map.to_list()
     |> Enum.map(fn {{id, name, tables}, selected_tables} ->
       selected_tables =
         (selected_tables || [])
-        |> Enum.reject(& is_nil &1.analysis_id)
+        |> Enum.reject(&is_nil(&1.analysis_id))
 
       selected_table_names =
         selected_tables
@@ -80,13 +80,16 @@ defmodule Air.Service.Explorer do
             |> Enum.filter(fn table -> Enum.any?(table["columns"], & &1["user_id"]) end)
             |> Enum.map(fn %{"id" => table_name} -> table_name end)
             |> Enum.sort()
-          _ -> []
+
+          _ ->
+            []
         end
 
       tables_with_state =
         available_table_names
         |> Enum.map(fn table_name ->
-          table = Enum.find(selected_tables, %{analysis_status: :not_enabled}, & &1.table_name == table_name)
+          table = Enum.find(selected_tables, %{analysis_status: :not_enabled}, &(&1.table_name == table_name))
+
           %{
             name: table_name,
             status: table.analysis_status
@@ -219,7 +222,7 @@ defmodule Air.Service.Explorer do
         )
       )
 
-    if is_nil existing_analysis do
+    if is_nil(existing_analysis) do
       {user, _} = find_or_create_explorer_creds()
       {:ok, data_source} = get_data_source(user, data_source_id)
       # We create an analysis placeholder. This will be the only place in the service creating analysis.
@@ -246,11 +249,13 @@ defmodule Air.Service.Explorer do
   def handle_cast({:disable_table, data_source_id, table_name}, poll_in_progress?) do
     analysis =
       Repo.one(
-        from explorer_analysis in ExplorerAnalysis,
-        where: explorer_analysis.data_source_id == ^data_source_id and explorer_analysis.table_name == ^table_name,
-        preload: :data_source
+        from(explorer_analysis in ExplorerAnalysis,
+          where: explorer_analysis.data_source_id == ^data_source_id and explorer_analysis.table_name == ^table_name,
+          preload: :data_source
+        )
       )
-    unless is_nil analysis do
+
+    unless is_nil(analysis) do
       if analysis.status in [:new, :processing], do: cancel_analysis(analysis)
       Repo.delete!(analysis)
       broadcast_changes()
@@ -283,8 +288,8 @@ defmodule Air.Service.Explorer do
 
   defp get_data_source(user, data_source_id) do
     with {:error, :unauthorized} <- Air.Service.DataSource.fetch_as_user({:id, data_source_id}, user),
-         data_source = %DataSource{} when not (is_nil data_source) <-
-            Repo.get_by(Air.Schemas.DataSource, id: data_source_id) do
+         data_source = %DataSource{} when not is_nil(data_source) <-
+           Repo.get_by(Air.Schemas.DataSource, id: data_source_id) do
       group = group()
       new_data_sources = [data_source_id | group.data_sources |> Enum.map(& &1.id)]
       Air.Service.Group.update!(group, %{data_sources: new_data_sources})

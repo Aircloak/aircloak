@@ -293,18 +293,19 @@ defmodule Air.Service.ExplorerTest do
   describe ".data_source_updated" do
     test "removes results if table no longer exists in the data source", context do
       reanalyze_data_source(context.ds1)
+
       assert_soon [
-               %ExplorerAnalysis{table_name: "bars"},
-               %ExplorerAnalysis{table_name: "foos"}
-             ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name)
+                    %ExplorerAnalysis{table_name: "bars"},
+                    %ExplorerAnalysis{table_name: "foos"}
+                  ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name)
 
       DataSource.update!(context.ds1, %{
         tables: Jason.encode!([@bars_table])
       })
 
       assert_soon [
-               %ExplorerAnalysis{table_name: "bars"}
-             ] = Explorer.results_for_datasource(context.ds1)
+                    %ExplorerAnalysis{table_name: "bars"}
+                  ] = Explorer.results_for_datasource(context.ds1)
     end
   end
 
@@ -352,10 +353,10 @@ defmodule Air.Service.ExplorerTest do
   describe "adds permission as necessary" do
     test "analyzing a data source adds it to the explorer group", context do
       data_source = context.ds_not_included
-      refute Enum.any?(Explorer.group().data_sources, & &1.id == data_source.id)
+      refute Enum.any?(Explorer.group().data_sources, &(&1.id == data_source.id))
 
       reanalyze_data_source(data_source)
-      assert_soon (Enum.any?(Explorer.group().data_sources, & &1.id == data_source.id))
+      assert_soon Enum.any?(Explorer.group().data_sources, &(&1.id == data_source.id))
     end
 
     test "it adds results for newly authorized data sources", context do
@@ -446,8 +447,9 @@ defmodule Air.Service.ExplorerTest do
     end
   end
 
-  defp reanalyze_data_source(data_source), do:
-    data_source
-    |> Air.Schemas.DataSource.tables()
-    |> Enum.each(& Explorer.analyze_table(data_source.id, &1["id"]))
+  defp reanalyze_data_source(data_source),
+    do:
+      data_source
+      |> Air.Schemas.DataSource.tables()
+      |> Enum.each(&Explorer.analyze_table(data_source.id, &1["id"]))
 end

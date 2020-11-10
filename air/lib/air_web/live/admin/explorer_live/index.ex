@@ -20,18 +20,18 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
   @impl true
   def handle_info(%{event: "analysis_updated"}, socket) do
     {:noreply,
-      socket
-      |> assign(:all_data_sources, Explorer.all_data_source_metadata())
-    }
+     socket
+     |> assign(:all_data_sources, Explorer.all_data_source_metadata())}
   end
 
   @impl true
   def handle_event("reanalyze_datasource", %{"data_source_id" => id}, socket) do
     data_source_id = String.to_integer(id)
+
     socket.assigns.all_data_sources
-    |> Enum.filter(& &1.id == data_source_id)
+    |> Enum.filter(&(&1.id == data_source_id))
     |> Enum.flat_map(& &1.selected_tables)
-    |> Enum.each(& Explorer.analyze_table(data_source_id, &1))
+    |> Enum.each(&Explorer.analyze_table(data_source_id, &1))
 
     {:noreply, socket}
   end
@@ -39,10 +39,12 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
   def handle_event("toggle_table", %{"_target" => [data_source_id_str, table_name]} = payload, socket) do
     data_source_id = String.to_integer(data_source_id_str)
     state = payload[data_source_id_str][table_name]
+
     cond do
       state == "on" -> Explorer.analyze_table(data_source_id, table_name)
-      is_nil state -> Explorer.disable_table(data_source_id, table_name)
+      is_nil(state) -> Explorer.disable_table(data_source_id, table_name)
     end
+
     {:noreply, socket}
   end
 
@@ -56,6 +58,5 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
     user
   end
 
-  defp analyzable_data_sources(data_sources), do:
-    Enum.reject(data_sources, & &1.tables == [])
+  defp analyzable_data_sources(data_sources), do: Enum.reject(data_sources, &(&1.tables == []))
 end
