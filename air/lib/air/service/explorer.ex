@@ -150,16 +150,6 @@ defmodule Air.Service.Explorer do
   def disable_table(data_source_id, table_name),
     do: GenServer.cast(__MODULE__, {:disable_table, data_source_id, table_name})
 
-  # FIXME: delete from here and tests
-  @doc "Requests new analyses for datasource."
-  @spec reanalyze_datasource(Air.Schemas.DataSource.t()) :: :ok
-  def reanalyze_datasource(data_source),
-    do:
-      Enum.each(
-        results_for_datasource(data_source),
-        &GenServer.cast(__MODULE__, {:request_analysis, set_status_to_processing(&1)})
-      )
-
   @doc "Removes results for tables which no longer exist in the data source."
   @spec data_source_updated(Air.Schemas.DataSource.t()) :: :ok
   def data_source_updated(data_source) do
@@ -414,7 +404,7 @@ defmodule Air.Service.Explorer do
   defp handle_result_changeset(changeset, results), do: ExplorerAnalysis.from_decoded_result_json(changeset, results)
 
   defp set_status_to_processing(analysis) do
-    {:ok, analysis} = Repo.insert_or_update(ExplorerAnalysis.changeset(analysis, %{status: :processing}))
+    {:ok, analysis} = Repo.update(ExplorerAnalysis.changeset(analysis, %{status: :processing}))
     analysis
   end
 
@@ -427,7 +417,7 @@ defmodule Air.Service.Explorer do
         |> Keyword.delete(:result)
         |> Enum.into(%{})
       )
-      |> Repo.insert_or_update()
+      |> Repo.update()
 
     broadcast_changes()
     result

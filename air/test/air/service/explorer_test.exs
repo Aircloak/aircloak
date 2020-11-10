@@ -209,14 +209,6 @@ defmodule Air.Service.ExplorerTest do
 
     ds_not_included = Air.TestRepoHelper.create_data_source!(%{tables: Jason.encode!(tables)})
 
-    Explorer.change_permitted_data_sources(%{
-      "data_sources" => [ds1.id],
-      "tables" => [
-        %{"#{ds1.id}" => "bars"},
-        %{"#{ds1.id}" => "foos"}
-      ]
-    })
-
     %{ds1: ds1, ds_not_included: ds_not_included}
   end
 
@@ -232,23 +224,26 @@ defmodule Air.Service.ExplorerTest do
     end
   end
 
-  describe "statistics" do
+  describe ".all_data_source_metadata" do
     test "returns statistics in various stages", %{ds1: ds1} do
       MockServer.pause()
-      Explorer.reanalyze_datasource(ds1)
+      reanalyze_data_source(ds1)
 
       data_source_id = ds1.id
 
       assert_soon(
         [
           %{
-            complete: 0,
-            processing: 2,
-            error: 0,
-            total: 2,
+            stats: %{
+              complete: 0,
+              processing: 2,
+              error: 0,
+              total: 2
+            },
             id: ^data_source_id
-          }
-        ] = Explorer.statistics()
+          },
+          _
+        ] = Explorer.all_data_source_metadata()
       )
 
       MockServer.resume()
@@ -256,13 +251,16 @@ defmodule Air.Service.ExplorerTest do
       assert_soon(
         [
           %{
-            complete: 1,
-            processing: 0,
-            error: 1,
-            total: 2,
+            stats: %{
+              complete: 1,
+              processing: 0,
+              error: 1,
+              total: 2
+            },
             id: ^data_source_id
-          }
-        ] = Explorer.statistics()
+          },
+          _
+        ] = Explorer.all_data_source_metadata()
       )
     end
   end
@@ -294,7 +292,8 @@ defmodule Air.Service.ExplorerTest do
 
   describe ".data_source_updated" do
     test "removes results if table no longer exists in the data source", context do
-      assert [
+      reanalyze_data_source(context.ds1)
+      assert_soon [
                %ExplorerAnalysis{table_name: "bars"},
                %ExplorerAnalysis{table_name: "foos"}
              ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name)
@@ -303,7 +302,7 @@ defmodule Air.Service.ExplorerTest do
         tables: Jason.encode!([@bars_table])
       })
 
-      assert [
+      assert_soon [
                %ExplorerAnalysis{table_name: "bars"}
              ] = Explorer.results_for_datasource(context.ds1)
     end
@@ -312,7 +311,7 @@ defmodule Air.Service.ExplorerTest do
   describe ".reanalyze_datasource" do
     test "creates jobs and polls for results", context do
       MockServer.pause()
-      assert :ok == Explorer.reanalyze_datasource(context.ds1)
+      assert :ok == reanalyze_data_source(context.ds1)
 
       assert_soon(
         [
@@ -350,88 +349,48 @@ defmodule Air.Service.ExplorerTest do
     end
   end
 
-  describe "change_permitted_data_sources" do
-    test "it removes all data sources that currently do not have permissions", context do
-      id_ds1 = "#{context.ds1.id}"
-      id_ds_not_included = "#{context.ds_not_included.id}"
+  describe "adds permission as necessary" do
+    test "analyzing a data source adds it to the explorer group", context do
+      data_source = context.ds_not_included
+      refute Enum.any?(Explorer.group().data_sources, & &1.id == data_source.id)
 
-      assert {:ok, _} =
-               Explorer.change_permitted_data_sources(%{
-                 "data_sources" => [context.ds1.id, context.ds_not_included.id],
-                 "tables" => [
-                   %{id_ds1 => "bars"},
-                   %{id_ds1 => "foos"},
-                   %{id_ds_not_included => "bars"},
-                   %{id_ds_not_included => "foos"}
-                 ]
-               })
-
-      assert_soon not Enum.empty?(Explorer.results_for_datasource(context.ds_not_included))
-
-      assert {:ok, _} =
-               Explorer.change_permitted_data_sources(%{
-                 "data_sources" => [context.ds1.id],
-                 "tables" => [
-                   %{id_ds1 => "bars"},
-                   %{id_ds1 => "foos"},
-                   %{id_ds_not_included => "bars"},
-                   %{id_ds_not_included => "foos"}
-                 ]
-               })
-
-      assert_soon Enum.empty?(Explorer.results_for_datasource(context.ds_not_included))
+      reanalyze_data_source(data_source)
+      assert_soon (Enum.any?(Explorer.group().data_sources, & &1.id == data_source.id))
     end
 
     test "it adds results for newly authorized data sources", context do
-      id_ds1 = "#{context.ds1.id}"
-      id_ds_not_included = "#{context.ds_not_included.id}"
+      data_source = context.ds_not_included
+      data_source_name = data_source.name
 
-      assert {:ok, _} =
-               Explorer.change_permitted_data_sources(%{
-                 "data_sources" => [context.ds1.id, context.ds_not_included.id],
-                 "tables" => [
-                   %{id_ds1 => "bars"},
-                   %{id_ds1 => "foos"},
-                   %{id_ds_not_included => "bars"},
-                   %{id_ds_not_included => "foos"}
-                 ]
-               })
+      assert(
+        [
+          _,
+          %{
+            tables: [%{name: "bars", status: :not_enabled}, %{name: "foos", status: not_enabled}],
+            name: ^data_source_name
+          }
+        ] = Explorer.all_data_source_metadata()
+      )
+
+      MockServer.pause()
+      reanalyze_data_source(data_source)
 
       assert_soon(
         [
-          %ExplorerAnalysis{
-            table_name: "bars",
-            status: :error
-          },
-          %ExplorerAnalysis{
-            table_name: "foos",
-            status: :complete,
-            results: %{
-              "columns" => [
-                %{"column" => "user_id", "metrics" => []},
-                %{"column" => "foo", "metrics" => [%{"key" => "some-metric", "value" => [32]}]}
-              ],
-              "sampleData" => []
-            }
+          _,
+          %{
+            tables: [%{name: "bars", status: :new}, %{name: "foos", status: :new}],
+            name: ^data_source_name
           }
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.table_name),
-        timeout: 500
+        ] = Explorer.all_data_source_metadata()
       )
+
+      MockServer.resume()
     end
 
     test "it does not attempt to get results for already existing data sources", context do
       # Setup: make sure we have ds1 one ready and results already fetched
-      id_ds1 = "#{context.ds1.id}"
-      id_ds_not_included = "#{context.ds_not_included.id}"
-
-      assert {:ok, _} =
-               Explorer.change_permitted_data_sources(%{
-                 "data_sources" => [context.ds1.id],
-                 "tables" => [
-                   %{id_ds1 => "bars"},
-                   %{id_ds1 => "foos"}
-                 ]
-               })
+      reanalyze_data_source(context.ds1)
 
       assert_soon(
         [
@@ -459,16 +418,7 @@ defmodule Air.Service.ExplorerTest do
          }}
       )
 
-      assert {:ok, _} =
-               Explorer.change_permitted_data_sources(%{
-                 "data_sources" => [context.ds1.id, context.ds_not_included.id],
-                 "tables" => [
-                   %{id_ds1 => "bars"},
-                   %{id_ds1 => "foos"},
-                   %{id_ds_not_included => "bars"},
-                   %{id_ds_not_included => "foos"}
-                 ]
-               })
+      reanalyze_data_source(context.ds_not_included)
 
       # Here we wait for ds_not_included to return from polling
       assert_soon(
@@ -495,4 +445,9 @@ defmodule Air.Service.ExplorerTest do
       )
     end
   end
+
+  defp reanalyze_data_source(data_source), do:
+    data_source
+    |> Air.Schemas.DataSource.tables()
+    |> Enum.each(& Explorer.analyze_table(data_source.id, &1["id"]))
 end
