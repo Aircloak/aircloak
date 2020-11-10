@@ -41,6 +41,10 @@ defmodule Air.Service.Explorer do
               complete: integer,
               processing: integer,
               error: integer
+            },
+            tables: %{
+              name: String.t(),
+              status: :not_enabled | :new | :processing | :cancelled | :error | :complete
             }
           }
         ]
@@ -61,6 +65,10 @@ defmodule Air.Service.Explorer do
     |> Enum.group_by(& {&1.id, &1.name, &1.tables})
     |> Map.to_list()
     |> Enum.map(fn {{id, name, tables}, selected_tables} ->
+      selected_tables =
+        (selected_tables || [])
+        |> Enum.reject(& is_nil &1.analysis_id)
+
       selected_table_names =
         if is_nil selected_tables do
           []
@@ -81,6 +89,15 @@ defmodule Air.Service.Explorer do
           _ -> []
         end
 
+      tables_with_state =
+        available_table_names
+        |> Enum.map(fn table_name ->
+          table = Enum.find(selected_tables, %{analysis_status: :not_enabled}, & &1.table_name == table_name)
+          %{
+            name: table_name,
+            status: table.analysis_status
+          }
+        end)
 
       {complete, processing, error} =
         List.foldl(selected_tables, {0, 0, 0}, fn table, {complete_acc, processing_acc, error_acc} ->
@@ -97,6 +114,7 @@ defmodule Air.Service.Explorer do
         name: name,
         eligible_tables: available_table_names,
         selected_tables: selected_table_names,
+        tables: tables_with_state,
         stats: %{
           total: length(selected_table_names),
           complete: complete,
