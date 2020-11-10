@@ -453,8 +453,8 @@ defmodule Air.Service.Explorer do
       {:ok, %HTTPoison.Response{status_code: status_code, body: err}} when status_code >= 400 ->
         Logger.error(
           "Explorer encountered an unexpected error (HTTP: #{status_code}) when requesting an analysis for #{
-            analysis.data_source.name
-          }/#{analysis.table_name}: #{err}"
+            analysis_name(analysis)
+          }: #{err}"
         )
 
         {:ok, _} =
@@ -467,9 +467,9 @@ defmodule Air.Service.Explorer do
 
       err ->
         Logger.error(
-          "Explorer encountered an unexpected error when requesting an analysis for #{analysis.data_source.name}/#{
-            analysis.table_name
-          }: #{inspect(err)}"
+          "Explorer encountered an unexpected error when requesting an analysis for #{analysis_name(analysis)}: #{
+            inspect(err)
+          }"
         )
 
         {:ok, _} = update_analysis(analysis, status: :error, errors: [inspect(err)])
