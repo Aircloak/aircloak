@@ -5110,6 +5110,11 @@ parcel-plugin-static-files-copy@^2.3.1:
     minimatch "3.0.4"
     path "0.12.7"
 
+parcel-plugin-stdin@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/parcel-plugin-stdin/-/parcel-plugin-stdin-0.1.1.tgz#76e7da6472498e05041f35a613e6e0efbbfb54e1"
+  integrity sha512-Gwc6lTBdEUR/NWEk0HMIJaRa1SeXbln7Mbqc4fXZqUY54iMz0kcXPlRvkH5HY2UBBZIasjgogtjEMM5uG0DU5w==
+
 parent-module@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/parent-module/-/parent-module-1.0.1.tgz#691d2709e78c79fae3a156622452d00762caaaa2"
@@ -5235,7 +5240,7 @@ performance-now@^2.1.0:
   integrity sha1-Ywn04OX6kT7BxpMHrjZLSzd8nns=
 
 "phoenix@file:../deps/phoenix":
-  version "1.5.3"
+  version "1.5.6"
 
 "phoenix_html@file:../deps/phoenix_html":
   version "2.14.2"
