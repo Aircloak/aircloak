@@ -335,6 +335,8 @@ defmodule Air.Service.Explorer do
   end
 
   defp request_analysis(analysis) do
+    set_status_to_processing(analysis)
+
     {_, token} = find_or_create_explorer_creds()
 
     %{"columns" => columns} =
