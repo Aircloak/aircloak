@@ -404,10 +404,10 @@ defmodule Air.Service.Explorer do
   end
 
   defp cancel_analysis(analysis) do
-    with {:ok, %HTTPoison.Response{status_code: 200, body: _response}} <-
-           HTTPoison.get(base_url() <> "/cancel/#{analysis.job_id}") do
-      Logger.info("Cancelled analysis of #{analysis_name(analysis)}")
-    else
+    case HTTPoison.get(base_url() <> "/cancel/#{analysis.job_id}") do
+      {:ok, %HTTPoison.Response{status_code: 200, body: _response}} ->
+        Logger.info("Cancelled analysis of #{analysis_name(analysis)}")
+
       _ ->
         Logger.warn("Ignoring failed attempt a cancelling analysis of #{analysis_name(analysis)}.")
     end
