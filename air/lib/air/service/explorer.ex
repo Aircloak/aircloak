@@ -178,6 +178,8 @@ defmodule Air.Service.Explorer do
       set: [soft_delete: true]
     )
 
+    broadcast_changes()
+
     :ok
   end
 
