@@ -34,7 +34,6 @@ defmodule Air.Service.Explorer do
           %{
             id: integer,
             name: String.t(),
-            eligible_tables: [String.t()],
             selected_tables: [String.t()],
             stats: %{
               total: integer,
@@ -70,14 +69,9 @@ defmodule Air.Service.Explorer do
         |> Enum.reject(& is_nil &1.analysis_id)
 
       selected_table_names =
-        if is_nil selected_tables do
-          []
-        else
-          selected_tables
-          |> Enum.reject(& is_nil &1.analysis_id)
-          |> Enum.map(& &1.table_name)
-          |> Enum.sort()
-        end
+        selected_tables
+        |> Enum.map(& &1.table_name)
+        |> Enum.sort()
 
       available_table_names =
         case Jason.decode(tables) do
@@ -112,7 +106,6 @@ defmodule Air.Service.Explorer do
       %{
         id: id,
         name: name,
-        eligible_tables: available_table_names,
         selected_tables: selected_table_names,
         tables: tables_with_state,
         stats: %{
@@ -182,45 +175,6 @@ defmodule Air.Service.Explorer do
     |> Repo.delete_all()
 
     :ok
-  end
-
-  @doc """
-  Modifies the data source membership of the Diffix Explorer group.
-  It then deletes all analysis results belonging to data sources that Diffix Explorer no longer has access to.
-  Finally it will request analysis results of all tables of all groups that have been added to it.
-  """
-  @spec change_permitted_data_sources(map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
-  def change_permitted_data_sources(params) do
-    old_group = group()
-
-    tables_by_datasource =
-      Enum.reduce(params["tables"], %{}, fn input, acc ->
-        with true <- is_map(input),
-             [{data_source_id_str, table_name}] <- Map.to_list(input),
-             {data_source_id, _remainder} <- Integer.parse(data_source_id_str) do
-          Map.update(acc, data_source_id, [table_name], &[table_name | &1])
-        else
-          _ -> acc
-        end
-      end)
-
-    case Air.Service.Group.update(old_group, params) do
-      {:ok, new_group} ->
-        new_group.data_sources
-        |> Enum.map(fn data_source -> {data_source, tables_by_datasource[data_source.id] || []} end)
-        |> delete_all_unauthorized()
-        |> reject_all_unchanged()
-        |> Enum.each(fn {data_source, tables} ->
-          Enum.each(tables, fn table ->
-            GenServer.cast(__MODULE__, {:request_analysis, create_placeholder_result(data_source, table)})
-          end)
-        end)
-
-        {:ok, new_group}
-
-      {:error, changeset} ->
-        {:error, changeset}
-    end
   end
 
   @doc "Creates the Diffix Explorer user and group unless they exist already."
@@ -358,43 +312,6 @@ defmodule Air.Service.Explorer do
     end
 
     true
-  end
-
-  defp create_placeholder_result(data_source, table) do
-    Repo.insert!(%ExplorerAnalysis{data_source: data_source, table_name: table, status: :new})
-  end
-
-  defp delete_all_unauthorized(current_datasources) do
-    current_datasources
-    |> Enum.reduce(ExplorerAnalysis, fn {data_source, tables}, query ->
-      if Enum.empty?(tables) do
-        query
-      else
-        where(
-          query,
-          [explorer_analysis],
-          not (explorer_analysis.data_source_id == ^data_source.id and explorer_analysis.table_name in ^tables)
-        )
-      end
-    end)
-    |> Repo.delete_all()
-
-    current_datasources
-  end
-
-  defp reject_all_unchanged(current_datasources) do
-    results = Repo.all(ExplorerAnalysis)
-
-    current_datasources
-    |> Enum.map(fn {data_source, tables} ->
-      {data_source,
-       Enum.reject(tables, fn table ->
-         Enum.find(results, false, fn result ->
-           result.data_source_id == data_source.id && result.table_name == table
-         end)
-       end)}
-    end)
-    |> Enum.reject(fn {_data_source, tables} -> Enum.empty?(tables) end)
   end
 
   defp pending_analyses_query() do
