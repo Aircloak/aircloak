@@ -12,19 +12,21 @@ defmodule BOM.Whitelist do
       {"ecto_enum", "1.4.0"} => %{type: :mit, text: :provided},
       {"excoveralls", "0.5.7"} => %{type: :mit, text: :standard},
       {"file_system", "0.2.8"} => %{type: :wtfpl, text: :standard},
-      {"makeup_elixir", "0.14.1"} => %{type: :bsd_4_clause, text: :standard},
+      {"makeup_elixir", "0.15.0"} => %{type: :bsd_4_clause, text: :standard},
       {"scrivener_ecto", "2.2.0"} => %{type: :mit, text: :provided},
       {"scrivener", "2.7.0"} => %{type: :mit, text: :provided}
     },
     :node => %{
-      {"spdx-exceptions", "2.2.0"} => %{type: :cca3u, text: :standard}
+      {"spdx-exceptions", "2.3.0"} => %{type: :cca3u, text: :standard}
     },
     :rust => %{
       {"cfg-if", "0.1.5"} => %{type: :mit, text: :provided},
       {"log", "0.4.5"} => %{type: :mit, text: :provided},
-      {"odbc-safe", "0.4.1"} => %{type: :mit, text: :provided},
-      {"odbc-sys", "0.6.3"} => %{type: :mit, text: :provided},
-      {"odbc", "0.9.12"} => %{type: :mit, text: :provided},
+      {"odbc-safe", "0.5.0"} => %{type: :mit, text: :provided},
+      {"odbc-sys", "0.8.2"} => %{type: :mit, text: :provided},
+      {"odbc", "0.17.0"} => %{type: :mit, text: :provided},
+      {"doc-comment", "0.3.3"} => %{type: :mit, text: :standard},
+      {"encoding_rs", "0.8.24"} => %{type: :mit, text: :standard},
       {"simple-error", "0.1.11"} => %{type: :mit, text: :provided}
     }
   }
@@ -49,13 +51,16 @@ defmodule BOM.Whitelist do
     # node/sha.js
     "71f5a3fe755d4bb9cb62b97bdad36e45" => :mit,
     # node/tslib
-    "f938d99cba29007eeae26d80a9a4cfa6" => :bsd_0_clause
+    "f938d99cba29007eeae26d80a9a4cfa6" => :bsd_0_clause,
+    # node/dompurify
+    "0c419ae0ef32e42c7f620d5d2cac30aa" => :apache2
   }
 
   @not_shipped %{
     elixir: ~w(proper rustler),
     node: ~w(
-      eslint eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-react eslint-import-resolver-node
+      eslint eslint-plugin-import eslint-plugin-jsx-a11y axe-core
+      language-subtag-registry eslint-plugin-react eslint-import-resolver-node
     )
   }
 

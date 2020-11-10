@@ -42,9 +42,8 @@ defmodule Cloak.DataSource.Bounds.Query do
   # -------------------------------------------------------------------
 
   defp public_bounds(type, data_source, table_name, expression) do
-    with {:ok, min, max} <- min_max(data_source, table_name, expression) do
-      extend(type, {floor(min), ceil(max)})
-    else
+    case min_max(data_source, table_name, expression) do
+      {:ok, min, max} -> extend(type, {floor(min), ceil(max)})
       _ -> :unknown
     end
   end
@@ -125,8 +124,11 @@ defmodule Cloak.DataSource.Bounds.Query do
   defp extend(type, {min, max}) when min > max, do: extend(type, {max, min})
 
   # For date columns, we extend the interval by 50 years and we make the year bounds absolute.
-  defp extend(:year, {min, max}) when max >= min,
-    do: {Cloak.Time.year_lower_bound() + min - 25, Cloak.Time.year_lower_bound() + max + 25}
+  defp extend(:year, {min, max}) when max >= min do
+    min = Kernel.max(Cloak.Time.year_lower_bound() + min - 25, Cloak.Time.year_lower_bound())
+    max = Kernel.min(Cloak.Time.year_lower_bound() + max + 25, Cloak.Time.year_upper_bound())
+    {min, max}
+  end
 
   # For numeric columns, we extend the interval by 10x towards infinity or 0.1x towards 0.
   defp extend(:numeric, {min, max}) when max >= min do

@@ -13,13 +13,15 @@ defmodule AirWeb.Admin.LicenseController do
   end
 
   def update(conn, %{"license" => %{"text" => %Plug.Upload{path: path}}}) do
-    with {:ok, text} <- File.read(path) do
-      case License.load(text) do
-        :ok -> redirect_to_edit(conn, :info, "License uploaded")
-        {:error, reason} -> redirect_to_edit(conn, :error, reason)
-      end
-    else
-      _ -> redirect_to_edit(conn, :error, "Unknown error. Please try again.")
+    case File.read(path) do
+      {:ok, text} ->
+        case License.load(text) do
+          :ok -> redirect_to_edit(conn, :info, "License uploaded")
+          {:error, reason} -> redirect_to_edit(conn, :error, reason)
+        end
+
+      _ ->
+        redirect_to_edit(conn, :error, "Unknown error. Please try again.")
     end
   end
 

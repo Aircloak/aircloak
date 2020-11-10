@@ -2068,6 +2068,46 @@ defmodule Cloak.Sql.Compiler.Test do
            ).info == []
   end
 
+  describe "union" do
+    test "simple" do
+      assert %{command: :union, distinct?: true, type: :standard, columns: [_], column_titles: ["c1"], from: from} =
+               compile!("select count(*) as c1 from t1 union select count(*) as c2 from t2", data_source())
+
+      assert {:union, {:subquery, %{ast: %{type: :anonymized}, alias: nil}},
+              {:subquery, %{ast: %{type: :anonymized}, alias: nil}}} = from
+    end
+
+    test "subquery" do
+      assert %{
+               command: :select,
+               type: :standard,
+               columns: [_, _],
+               column_titles: ["c1", "c2"],
+               from: {:subquery, %{ast: subquery}}
+             } = compile!("select * from (select c1, c2 from t1 union all select c1, c3 from t2) t", data_source())
+
+      assert %{command: :union, distinct?: false, type: :standard} = subquery
+
+      assert {:union, {:subquery, %{ast: %{type: :anonymized}, alias: nil}},
+              {:subquery, %{ast: %{type: :anonymized}, alias: nil}}} = subquery.from
+    end
+
+    test "rejects union between restricted queries" do
+      assert {:error, "Unions over restricted queries are forbidden."} =
+               compile("select uid, c1 from t1 union select uid, c1 from t2", data_source())
+    end
+
+    test "rejects union between queries with different number of columns" do
+      assert {:error, "Queries in a `union` must have the same number of columns."} =
+               compile("select c1 from t1 union select c1, c3 from t2", data_source())
+    end
+
+    test "rejects union between queries with different column types" do
+      assert {:error, "Queries in a `union` must have identical column types."} =
+               compile("select c1, 'aaa' from t1 union select c1, c3 from t2", data_source())
+    end
+  end
+
   defp compile_standard(query_string, data_source) do
     {:ok, parsed_query} = Parser.parse(query_string)
 

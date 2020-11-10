@@ -15,6 +15,8 @@ config :cloak, :air,
   max_reconnect_interval: 50,
   serializer: Phoenix.Channels.GenSocketClient.Serializer.Json
 
+config :phoenix, :json_library, Jason
+
 config :cloak, :anonymizer,
   # The mean and standard deviation for the lower bound of the number
   # of users that must be in a bucket to get reported.

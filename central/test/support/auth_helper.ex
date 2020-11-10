@@ -2,17 +2,10 @@ defmodule Central.TestAuthHelper do
   @moduledoc "Helpers for working with users."
 
   require Aircloak.DeployConfig
-  alias Central.{Token, User}
 
   defmodule TokenEndpoint do
     @moduledoc false
     def config(:secret_key_base), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), "endpoint_key_base")
-  end
-
-  @doc "Creates a token that can be used in API calls"
-  @spec create_token(User.t()) :: String.t()
-  def create_token(user) do
-    Token.create_api_token(user, "Test token")
   end
 
   @doc """

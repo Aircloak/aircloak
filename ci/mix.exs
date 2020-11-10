@@ -42,7 +42,16 @@ defmodule AircloakCI.Mixfile do
   defp ignored_credo_checks(:test), do: ["ModuleDoc", "DuplicatedCode" | ignored_credo_checks(:dev)]
 
   defp ignored_credo_checks(_),
-    do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]
+    do: [
+      "NameRedeclarationBy",
+      "AliasUsage",
+      "PipeChain",
+      "ABCSize",
+      "Nesting",
+      "FunctionArity",
+      "AliasOrder",
+      "UnsafeExec"
+    ]
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]

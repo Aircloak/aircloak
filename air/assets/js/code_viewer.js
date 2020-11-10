@@ -1,11 +1,12 @@
 // @flow
 
+import type { Node } from "React";
 import React from "react";
 import { Controlled as Codemirror } from "react-codemirror2";
 
 require("./code_editor/mode");
 
-export default ({ statement }: { statement: string }) => {
+export default ({ statement }: { statement: string }): Node => {
   const options = {
     indentUnit: 2,
     indentWithTabs: false,

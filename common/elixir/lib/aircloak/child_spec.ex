@@ -20,7 +20,7 @@ defmodule Aircloak.ChildSpec do
       )
 
   @doc "Specifies a child powered by the `Supervisor` module."
-  @spec supervisor([child_spec], [Supervisor.option()]) :: Supervisor.child_spec()
+  @spec supervisor([child_spec], [Supervisor.option() | Supervisor.init_option()]) :: Supervisor.child_spec()
   def supervisor(children, supervisor_options),
     do:
       supervisor(
@@ -142,36 +142,6 @@ defmodule Aircloak.ChildSpec do
         @doc false
         def child_spec(_arg),
           do: Aircloak.ChildSpec.supervisor(__MODULE__, :start_link, [], unquote(overrides))
-      end
-    end
-  end
-
-  defmodule Task do
-    @moduledoc """
-    Simplifies the `child_spec/2` definition for a task module.
-
-    Inside the module which starts a task, you can `use` this module to define a `child_spec/2`.
-    For example:
-
-    ```
-    defmodule MyTask do
-      use Aircloak.ChildSpec.Task
-      # ...
-    end
-    ```
-    """
-
-    @doc false
-    defmacro __using__(options) do
-      quote bind_quoted: [options: options || []] do
-        @doc false
-        def child_spec(_arg),
-          do:
-            Elixir.Supervisor.Spec.worker(
-              __MODULE__,
-              Keyword.get(unquote(options), :args, []),
-              restart: Keyword.get(unquote(options), :restart, :permanent)
-            )
       end
     end
   end

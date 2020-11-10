@@ -15,7 +15,6 @@ defmodule Air.Mixfile do
         :erlang,
         :elixir,
         :auto_completion,
-        :user_docs,
         :app
       ],
       build_embedded: Mix.env() == :prod,
@@ -66,14 +65,14 @@ defmodule Air.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 3.1.7"},
-      {:ecto_sql, "~> 3.1.6"},
+      {:ecto, "~> 3.5.0"},
+      {:ecto_sql, "~> 3.5.0"},
       {:earmark, "~> 1.2", override: true},
-      {:postgrex, "~> 0.14.3", override: true},
+      {:postgrex, "~> 0.15.7", override: true},
       {:poolboy, "~> 1.5.2"},
       {:phoenix, "~> 1.5.0", override: true},
       {:phoenix_pubsub, "~> 2.0"},
-      {:phoenix_ecto, "~> 4.1"},
+      {:phoenix_ecto, "~> 4.2"},
       {:phoenix_html, "~> 2.14"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_gen_socket_client, "~> 3.1"},
@@ -89,7 +88,7 @@ defmodule Air.Mixfile do
       {:decimal, "~> 1.4"},
       {:remote_ip, "~> 0.1.4"},
       {:ecto_enum, "~> 1.4"},
-      {:jiffy, "~> 0.14.1"},
+      {:jiffy, "~> 1.0"},
       {:parent, "~> 0.4.0"},
       {:combine, "~> 0.10.0"},
       {:epgsql, "~> 4.1"},
@@ -101,8 +100,7 @@ defmodule Air.Mixfile do
       {:phoenix_live_dashboard, "~> 0.2"},
       {:telemetry_poller, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
-      {:floki, ">= 0.0.0", only: :test},
-      {:sentry, "~> 7.0"}
+      {:floki, ">= 0.0.0", only: :test}
     ]
   end
 
@@ -117,7 +115,7 @@ defmodule Air.Mixfile do
       rollback: ["app.start", "ecto.rollback"],
       migrate: ["app.start", "ecto.migrate"],
       seed: ["app.start", "run priv/repo/seeds.exs"],
-      lint: ["credo --strict"]
+      lint: ["credo --strict --ignore #{Enum.join(ignored_credo_checks(), ",")}"]
     ]
   end
 
@@ -135,6 +133,8 @@ defmodule Air.Mixfile do
   # types and behaviours from indirect dependencies. In such case, simply add the needed application to
   # this list.
   defp dialyzer_required_deps, do: [:plug, :poolboy, :ranch]
+
+  defp ignored_credo_checks(), do: ["AliasOrder"]
 
   defp elixirc_options(:test), do: [debug_info: true, docs: true] ++ common_elixirc_options()
   defp elixirc_options(:dev), do: [debug_info: true, docs: true] ++ common_elixirc_options()

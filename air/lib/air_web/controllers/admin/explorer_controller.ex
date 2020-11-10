@@ -6,6 +6,7 @@ defmodule AirWeb.Admin.ExplorerController do
 
   plug(:check_if_enabled)
   plug(:prepare_debug when action in [:show, :update])
+  plug(:disable_layout_flash when action in [:index])
 
   # -------------------------------------------------------------------
   # Actions
@@ -54,4 +55,6 @@ defmodule AirWeb.Admin.ExplorerController do
         |> redirect(to: admin_explorer_path(conn, :index))
     end
   end
+
+  defp disable_layout_flash(conn, _opts), do: assign(conn, :hide_flash_messages, true)
 end

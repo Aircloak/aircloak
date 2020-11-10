@@ -1,6 +1,6 @@
 <div class="badge badge-success">
   Online
-  <a href="/docs/sql/restrictions.html#column-analysis" target="blank"
+  <a href="/docs/#/sql/restrictions?id=column-analysis" target="blank"
     data-toggle="tooltip" class="text-dark" data-placement="bottom" title="Some features unavailable pending analysis">
     *
   </a>

@@ -4,11 +4,13 @@ defmodule Cloak.TestShadowCache do
   `Cloak.DataSource.Shadows.Query` for columns for which `live` was called.
   """
 
-  def strict(strict), do: Application.put_env(:cloak, {__MODULE__, :strict?}, strict)
+  @strict_env_name Module.concat(__MODULE__, :strict?)
+
+  def strict(strict), do: Application.put_env(:cloak, @strict_env_name, strict)
 
   def shadow(data_source, table, column) do
     case Agent.get(__MODULE__, &Map.fetch(&1, {data_source.name, table, column})) do
-      :error -> if Application.get_env(:cloak, {__MODULE__, :strict?}, false), do: raise("not found"), else: []
+      :error -> if Application.get_env(:cloak, @strict_env_name, false), do: raise("not found"), else: []
       {:ok, {:safe, values}} -> values
       {:ok, :live} -> Cloak.DataSource.Shadows.Query.build_shadow(data_source, table, column)
     end
@@ -16,7 +18,7 @@ defmodule Cloak.TestShadowCache do
 
   def lookup(data_source, table, column) do
     case Agent.get(__MODULE__, &Map.fetch(&1, {data_source.name, table, column})) do
-      :error -> if Application.get_env(:cloak, {__MODULE__, :strict?}, false), do: raise("not found"), else: []
+      :error -> if Application.get_env(:cloak, @strict_env_name, false), do: raise("not found"), else: []
       {:ok, {:safe, values}} -> {:ok, values}
       {:ok, :live} -> {:ok, Cloak.DataSource.Shadows.Query.build_shadow(data_source, table, column)}
     end

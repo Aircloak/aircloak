@@ -20,9 +20,8 @@ defmodule Central.Service.User do
       |> where([user], fragment("lower(?)", user.email) == ^normalized_email)
       |> Repo.one()
 
-    with :ok <- validate_password(user, password) do
-      {:ok, user}
-    else
+    case validate_password(user, password) do
+      :ok -> {:ok, user}
       error -> error
     end
   end

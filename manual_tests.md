@@ -18,7 +18,7 @@ For example tables created in the UX are useful for later tests.
 - [ ] Verify that the audit log is preserved
 - [ ] Verify that the views and the analyst table can be queried
 - [ ] Verify that the API token and app login can be used by running the `curl` and `psql` commands from the
-  [Insights Air Interface](#insights-air-interface) tests.
+      [Insights Air Interface](#insights-air-interface) tests.
 
 ### Clean deploy
 
@@ -29,15 +29,15 @@ For example tables created in the UX are useful for later tests.
 - [ ] Validate that the version number is right
 - [ ] Validate that the changelog has been updated
 - [ ] Run the first few queries listed in [Sample queries](#sample-queries) with `EXPLAIN` and validate that the
-  query plan yields expected results.
+      query plan yields expected results.
 - Validate restrictions:
   - [ ] The following query should fail due to `opponent` being
-    excluded (error should say the column doesn't exist):
+        excluded (error should say the column doesn't exist):
     ```sql
     SELECT count(distinct opponent) FROM games
     ```
   - [ ] The following query should fail due to `lastname` being
-    marked as unselectable:
+        marked as unselectable:
     ```sql
     SELECT lastname, count(*)
     FROM players
@@ -61,6 +61,7 @@ For example tables created in the UX are useful for later tests.
 - Go to `Cog icon -> API tokens`
 - [ ] Create an API token, note it down
 - [ ] Issue this curl, setting `$token` to your own API token, and `$url` to the URL of your Aircloak instance
+
   ```bash
   token=your_own_token
   url=your_aircloak_instance_url
@@ -69,7 +70,9 @@ For example tables created in the UX are useful for later tests.
     -d '{"query": {"statement": "SELECT COUNT(*) FROM games", "data_source_name": "GamesAndPlayers"}}' \
     $url/api/queries
   ```
+
   - [ ] You will get a query id in response. Issue this command, setting `$query_id` to the id you got:
+
     ```bash
     query_id=your_own_id
 
@@ -77,7 +80,9 @@ For example tables created in the UX are useful for later tests.
       $url/api/queries/$query_id | \
       python -m json.tool
     ```
+
 - [ ] Issue the query command with a broken token to validate it fails:
+
   ```
   token=broken
   # url is already set
@@ -87,10 +92,11 @@ For example tables created in the UX are useful for later tests.
     $url/api/queries
 
   ```
+
 - Go to `Cog icon -> App logins`
 - [ ] Create a new login
 - [ ] Connect to psql, substituting the created login for `$login`, and `$hostname` with the URL of your Aircloak
-  instance and `$port` with the port number your instance is exposed under:
+      instance and `$port` with the port number your instance is exposed under:
   ```bash
   port=port_number
   hostname=hostname_of_your_aircloak_instance
@@ -163,7 +169,7 @@ For example tables created in the UX are useful for later tests.
 - [ ] Rename the data source to "Test datasource"
 - [ ] Click on "Sheet 1" bottom left to create a new analysis sheet
 - [ ] Right-click on "Age" and choose that it should be interpreted
-  as a dimension.
+      as a dimension.
 - [ ] Drag "Age" to the rows area
 - [ ] Drag "Players (count)" to the column next to the age values in the middle of the screen
 - You should now see a table of ages and their counts
@@ -224,11 +230,11 @@ The data source definition is:
   },
   "tables": {
     "players": {
-      "keys": [{"user_id": "uid"}],
+      "keys": [{ "user_id": "uid" }],
       "unselectable_columns": ["lastname"]
     },
     "games": {
-      "keys": [{"user_id": "player"}],
+      "keys": [{ "user_id": "player" }],
       "exclude_columns": ["opponent"]
     }
   }
@@ -237,10 +243,10 @@ The data source definition is:
 
 Make sure your Aircloak instance has this data source.
 
-
 ### Useful analyst tables and views
 
 Use the following SQL to create:
+
 - an analyst table named: `num_games_table`
 - an analyst view named: `num_games_view`
 

@@ -2,7 +2,6 @@ defmodule AirWeb.Router do
   @moduledoc false
   use Air.Web, :router
   use Plug.ErrorHandler
-  use Sentry.Plug
 
   import Phoenix.LiveDashboard.Router
 
@@ -119,6 +118,16 @@ defmodule AirWeb.Router do
     get("/export", ExportsController, :show)
 
     get("/changelog", ChangelogController, :index)
+  end
+
+  scope "/docs", AirWeb do
+    pipe_through([:browser, :browser_for_all])
+
+    get("/", DocsController, :index)
+    get("/_sidebar.md", DocsController, :sidebar)
+    get("/diffix.md", DocsController, :diffix_page)
+    get("/attacks.md", DocsController, :attacks_page)
+    get("/*other", DocsController, :redirect)
   end
 
   scope "/admin", AirWeb.Admin, as: :admin do

@@ -27,7 +27,7 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user, "event3", %{})
     t3 = Timex.now()
 
-    assert [e1, e2, e3] = Repo.all(Air.Schemas.AuditLog |> order_by(:inserted_at))
+    assert [_e1, _e2, _e3] = Repo.all(Air.Schemas.AuditLog |> order_by(:inserted_at))
     assert entries_count(params(%{from: t0, to: t0}), 0)
     assert entries_count(params(%{from: t0, to: t1}), 1)
     assert entries_count(params(%{from: t0, to: t2}), 2)

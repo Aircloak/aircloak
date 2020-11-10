@@ -57,6 +57,17 @@ defmodule Cloak.Sql.Parser.Test do
     end
   end
 
+  # Produces a pattern which matches an AST of an union query.
+  defmacrop union(distinct?, lhs, rhs) do
+    quote do
+      %{
+        command: :union,
+        distinct?: unquote(distinct?),
+        from: {:union, subquery(unquote(lhs), nil), subquery(unquote(rhs), nil)}
+      }
+    end
+  end
+
   # Produces a pattern which matches an AST of a constant.
   defmacrop constant(value) do
     quote do
@@ -165,6 +176,13 @@ defmodule Cloak.Sql.Parser.Test do
   test "simple select query" do
     assert_parse(
       "select foo from baz",
+      select(columns: [identifier("foo")], from: unquoted("baz"))
+    )
+  end
+
+  test "simple select query with parens" do
+    assert_parse(
+      "(select foo from baz)",
       select(columns: [identifier("foo")], from: unquoted("baz"))
     )
   end
@@ -338,6 +356,13 @@ defmodule Cloak.Sql.Parser.Test do
   test "explain select" do
     assert_parse(
       "EXPLAIN SELECT foo FROM baz",
+      explain(columns: [identifier("foo")], from: unquoted("baz"))
+    )
+  end
+
+  test "explain select with parens" do
+    assert_parse(
+      "EXPLAIN (SELECT foo FROM baz)",
       explain(columns: [identifier("foo")], from: unquoted("baz"))
     )
   end
@@ -1865,7 +1890,9 @@ defmodule Cloak.Sql.Parser.Test do
        "Unexpected input after end of valid subquery, expected `)`", {1, 52}},
       {"case statement with missing branches", "select case end from bar", "Expected `when`", {1, 13}},
       {"case statement with invalid when branch", "select case when true then end from bar",
-       "Expected `column definition`", {1, 28}}
+       "Expected `column definition`", {1, 28}},
+      {"error on missing parens", "(select foo from bar", "Unexpected input after end of valid subquery, expected `)`",
+       {1, 21}}
     ],
     fn {description, statement, expected_error, {line, column}} ->
       create_test.(description, statement, expected_error, line, column)
@@ -2064,6 +2091,112 @@ defmodule Cloak.Sql.Parser.Test do
             ])
           ]
         )
+      )
+    end
+  end
+
+  describe "union" do
+    test "simple" do
+      assert_parse(
+        "select count(*) from foo union select count(*) from bar",
+        union(true, select(from: unquoted("foo")), select(from: unquoted("bar")))
+      )
+    end
+
+    test "simple distinct" do
+      assert_parse(
+        "select count(*) from foo union distinct select count(*) from bar",
+        union(true, select(from: unquoted("foo")), select(from: unquoted("bar")))
+      )
+    end
+
+    test "simple all" do
+      assert_parse(
+        "select count(*) from foo union all select count(*) from bar",
+        union(false, select(from: unquoted("foo")), select(from: unquoted("bar")))
+      )
+    end
+
+    test "simple parens 1" do
+      assert_parse(
+        "(select count(*) from foo) union select count(*) from bar",
+        union(true, select(from: unquoted("foo")), select(from: unquoted("bar")))
+      )
+    end
+
+    test "simple parens 2" do
+      assert_parse(
+        "select count(*) from foo union (select count(*) from bar)",
+        union(true, select(from: unquoted("foo")), select(from: unquoted("bar")))
+      )
+    end
+
+    test "simple parens 3" do
+      assert_parse(
+        "(select count(*) from foo) union distinct (select count(*) from bar)",
+        union(true, select(from: unquoted("foo")), select(from: unquoted("bar")))
+      )
+    end
+
+    test "simple parens 4" do
+      assert_parse(
+        "((select count(*) from foo) union distinct (select count(*) from bar))",
+        union(true, select(from: unquoted("foo")), select(from: unquoted("bar")))
+      )
+    end
+
+    test "triple" do
+      assert_parse(
+        "select count(*) from foo union select count(*) from bar union select count(*) from xyz",
+        union(
+          true,
+          union(true, select(from: unquoted("foo")), select(from: unquoted("bar"))),
+          select(from: unquoted("xyz"))
+        )
+      )
+    end
+
+    test "triple parens" do
+      assert_parse(
+        "((select count(*) from foo) union (select count(*) from bar)) union (select count(*) from xyz)",
+        union(
+          true,
+          union(true, select(from: unquoted("foo")), select(from: unquoted("bar"))),
+          select(from: unquoted("xyz"))
+        )
+      )
+    end
+
+    test "simple subquery" do
+      assert_parse(
+        "select * from (select count(*) from foo union select count(*) from bar) t",
+        select(
+          from:
+            subquery(
+              union(true, select(from: unquoted("foo")), select(from: unquoted("bar"))),
+              "t"
+            )
+        )
+      )
+    end
+
+    test "simple subquery parens" do
+      assert_parse(
+        "select * from (((select count(*) from foo) union (select count(*) from bar))) t",
+        select(
+          from:
+            subquery(
+              union(true, select(from: unquoted("foo")), select(from: unquoted("bar"))),
+              "t"
+            )
+        )
+      )
+    end
+
+    test "complex" do
+      assert_parse(
+        "select x, count(*) from foo where a > 2 group by 1 order by 1 limit 2 union select count(*) from bar",
+        union(true, select(from: unquoted("foo"), limit: 2), select(from: unquoted("bar")))
       )
     end
   end

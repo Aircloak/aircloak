@@ -56,7 +56,7 @@ defmodule Central.Service.CustomerTest do
     end
   end
 
-  defp create_customer(name \\ "default customer") do
+  defp create_customer(name) do
     assert {:ok, customer} = Repo.insert(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
 
     customer

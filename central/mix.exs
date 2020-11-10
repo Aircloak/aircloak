@@ -64,12 +64,12 @@ defmodule Central.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 3.1.7"},
-      {:ecto_sql, "~> 3.1.6"},
+      {:ecto, "~> 3.5.0"},
+      {:ecto_sql, "~> 3.5.0"},
       {:phoenix, "~> 1.5.0"},
       {:phoenix_pubsub, "~> 2.0"},
       {:postgrex, "~> 0.15.0"},
-      {:phoenix_ecto, "~> 4.1"},
+      {:phoenix_ecto, "~> 4.2"},
       {:phoenix_html, "~> 2.14.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:gettext, "~> 0.9"},
@@ -107,13 +107,14 @@ defmodule Central.Mixfile do
 
   defp ignored_credo_checks(:test), do: ["ModuleDoc" | ignored_credo_checks(:dev)]
 
-  defp ignored_credo_checks(_), do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
+  defp ignored_credo_checks(_),
+    do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "AliasOrder"]
 
   defp extra_applications(:test), do: common_extra_applications()
   defp extra_applications(:dev), do: common_extra_applications() ++ dialyzer_required_deps()
   defp extra_applications(:prod), do: common_extra_applications()
 
-  defp common_extra_applications(), do: [:logger, :inets, :crontab, :timex]
+  defp common_extra_applications(), do: [:logger, :inets, :crontab, :timex, :sasl]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.

@@ -4,6 +4,3 @@
 # whitelist only needed folders
 !air/artifacts/rel
 !air/docker
-
-# we need the diffix and attack docs from the cloak folder for the user docs
-!cloak/docs

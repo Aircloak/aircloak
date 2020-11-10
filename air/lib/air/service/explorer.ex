@@ -428,10 +428,10 @@ defmodule Air.Service.Explorer do
   end
 
   defp poll_explorer_for_update(explorer_analysis) do
-    with {:ok, %HTTPoison.Response{status_code: 200, body: response}} <-
-           HTTPoison.get("#{base_url()}/result/#{explorer_analysis.job_id}") do
-      Jason.decode(response)
-    else
+    case HTTPoison.get("#{base_url()}/result/#{explorer_analysis.job_id}") do
+      {:ok, %HTTPoison.Response{status_code: 200, body: response}} ->
+        Jason.decode(response)
+
       {:error, %HTTPoison.Error{reason: :timeout}} ->
         {:error, :timeout}
 

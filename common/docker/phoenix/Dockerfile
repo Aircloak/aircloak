@@ -27,4 +27,4 @@ RUN \
 
 CONFIG_YARN_PROXY
 
-RUN bash -c ". ~/.bashrc && yarn global add brunch webpack"
+RUN bash -c ". ~/.bashrc && yarn global add brunch"

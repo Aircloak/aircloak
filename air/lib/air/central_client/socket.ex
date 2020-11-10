@@ -257,5 +257,5 @@ defmodule Air.CentralClient.Socket do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg), do: Supervisor.Spec.worker(__MODULE__, [])
+  def child_spec(_arg), do: Supervisor.child_spec(__MODULE__, [])
 end

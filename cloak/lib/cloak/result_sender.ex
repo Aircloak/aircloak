@@ -35,7 +35,7 @@ defmodule Cloak.ResultSender do
   @spec send_result(target(), term()) :: :ok | {:error, :encoding_error} | {:error, any}
   def send_result(:air_socket, result) do
     with {:ok, encoded} <- encode_result(result),
-         send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, encoded) do
+         :ok <- send_query_result_with_retry(%{retries: 5, retry_delay_sec: 10}, encoded) do
       :ok
     else
       {:error, error} ->
@@ -76,9 +76,6 @@ defmodule Cloak.ResultSender do
           },
           query_result
         )
-
-      other ->
-        other
     end
   end
 

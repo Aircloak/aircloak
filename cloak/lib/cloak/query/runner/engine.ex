@@ -160,7 +160,7 @@ defmodule Cloak.Query.Runner.Engine do
       |> Sql.Query.Explainer.format_explanation()
       |> Enum.map(&%{occurrences: 1, row: [&1]})
 
-  defp run_statement(%Sql.Query{command: :select} = query, %{state_updater: state_updater}),
+  defp run_statement(%Sql.Query{} = query, %{state_updater: state_updater}),
     do: Query.DbEmulator.select(query, state_updater)
 
   defp selectable_comment(%{comment: comment}), do: comment
@@ -168,6 +168,7 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp isolator_status(_data_source, %{type: :subquery}, _column), do: nil
   defp isolator_status(_data_source, %{type: :analyst}, _column), do: nil
+  defp isolator_status(_data_source, %{content_type: :public}, _column), do: nil
 
   defp isolator_status(data_source, %{type: type} = table, column) when type in [:regular, :virtual] do
     case Cloak.DataSource.Isolators.cache_lookup(data_source, table.name, column) do

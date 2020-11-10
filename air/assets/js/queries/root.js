@@ -1,12 +1,14 @@
 // @flow
 
+import type { Node, Element } from "React";
+import type { AuthContextType } from "../authentication_provider";
 import React from "react";
 import debounce from "lodash/debounce";
 import takeWhile from "lodash/takeWhile";
 import uniqBy from "lodash/uniqBy";
 import Mousetrap from "mousetrap";
-import Channel from "phoenix";
-import uuidv4 from "uuid/v4";
+import type { Channel } from "phoenix";
+import { v4 as uuidv4 } from "uuid";
 
 import { AuthContext } from "../authentication_provider";
 import CodeEditor from "../code_editor";
@@ -23,6 +25,7 @@ import Disconnected from "../disconnected";
 import { isFinished } from "./state";
 import { startQuery, loadHistory, deleteQueryResult } from "../request";
 import activateTooltips from "../tooltips";
+import type { Position } from "codemirror";
 
 type Props = {
   userId: number,
@@ -112,7 +115,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   }
 
   // eslint-disable-next-line react/static-property-placement
-  static contextType = AuthContext;
+  static contextType: React$Context<AuthContextType> = AuthContext;
 
   connectedInterval: IntervalID;
 
@@ -120,30 +123,30 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
   typeCheckingChannel: Channel;
 
-  initialStatement = () => {
+  initialStatement: any | (() => string) = () => {
     const { lastQuery } = this.props;
     return lastQuery ? lastQuery.statement : "";
   };
 
-  componentWillUnmount = () => {
+  componentWillUnmount: () => void = () => {
     clearInterval(this.connectedInterval);
   };
 
-  updateConnected = () => {
+  updateConnected: any | (() => void) = () => {
     this.setState({ connected: this.channel.isJoined() });
   };
 
-  runEnabled = () => {
+  runEnabled: any | (() => boolean) = () => {
     const { connected } = this.state;
     return this.dataSourceAvailable() && connected;
   };
 
-  dataSourceAvailable = () => {
+  dataSourceAvailable: () => boolean = () => {
     const { dataSourceStatus } = this.state;
     return dataSourceStatus !== "offline";
   };
 
-  setStatement = (statement: string) => {
+  setStatement: (statement: string) => void = (statement) => {
     this.typeCheckingChannel
       .push("type_check", {
         query: statement,
@@ -151,24 +154,26 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       })
       .receive("ok", ({ result }) => {
         if (result.status === "ok") {
-          this.setState({ annotations: this.prepareAnnotations(result.data) });
+          this.setState({
+            annotations: this.prepareAnnotations(result.data),
+          });
         }
       });
     this.setState({ statement });
   };
 
-  prepareAnnotations = (
+  prepareAnnotations: (
     data: Array<{
       range: {
-        start: { line: number, chr: number },
-        end: { line: number, chr: number },
+        start: Position,
+        end: Position,
       },
       query_type: string,
       emulated: boolean,
       anonymization_type: string,
       noise_layers: number,
     }>
-  ): Annotations =>
+  ) => Annotations = (data) =>
     data.map(
       ({ range, query_type, emulated, anonymization_type, noise_layers }) => ({
         start: range.start,
@@ -192,7 +197,9 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       })
     );
 
-  setResults = (results: Result[]) => {
+  setResults: any | ((results: Array<Result>) => void) = (
+    results: Result[]
+  ) => {
     let completed = 0;
     const recentResults = takeWhile(results, (result) => {
       if (isFinished(result.query_state)) {
@@ -211,7 +218,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     }
   };
 
-  replaceResult = (result: Result) => {
+  replaceResult: any | ((result: Result) => void) = (result: Result) => {
     const { sessionResults } = this.state;
     const processedSessionResults = sessionResults.map((item) => {
       if (item.id === result.id) {
@@ -223,7 +230,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     this.setResults(processedSessionResults);
   };
 
-  resultReceived = (result: Result) => {
+  resultReceived: (result: Result) => void = (result: Result) => {
     if (this.shouldDisplayResult(result)) {
       this.replaceResult(result);
       if (result.query_state === "error") {
@@ -234,26 +241,28 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     }
   };
 
-  dataSourceStatusReceived = (event: { status: string }) => {
+  dataSourceStatusReceived: (event: { status: string, ... }) => void = (event: {
+    status: string,
+  }) => {
     this.setState({ dataSourceStatus: event.status });
   };
 
-  shouldDisplayResult = (result: Result) =>
+  shouldDisplayResult: (result: Result) => boolean = (result: Result) =>
     this.createdInThisSession(result) || this.alreadyDisplayed(result);
 
-  createdInThisSession = (result: Result) => {
+  createdInThisSession: (result: Result) => boolean = (result: Result) => {
     const { sessionId } = this.props;
     return result.session_id === sessionId;
   };
 
-  alreadyDisplayed = (result: Result) => {
+  alreadyDisplayed: (result: Result) => boolean = (result: Result) => {
     const { sessionResults } = this.state;
     return sessionResults.some(
       (sessionResult) => sessionResult.id === result.id
     );
   };
 
-  deleteResult = (queryId: string) => {
+  deleteResult: (queryId: string) => void = (queryId: string) => {
     if (window.confirm("Do you want to permanently delete this result?")) {
       deleteQueryResult(queryId, this.context.authentication);
       this.setState((state) => ({
@@ -262,7 +271,10 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     }
   };
 
-  addPendingResult = (queryId: string, statement: string) => {
+  addPendingResult: (queryId: string, statement: string) => void = (
+    queryId: string,
+    statement: string
+  ) => {
     const { sessionId, dataSourceName } = this.props;
     const { sessionResults } = this.state;
     const pendingResult: PendingResult = {
@@ -278,11 +290,11 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     this.setResults([pendingResult].concat(sessionResults));
   };
 
-  replacePendingResultWithError = (
+  replacePendingResultWithError: (
     generatedTempId: string,
     statement: string,
     error: string
-  ) => {
+  ) => void = (generatedTempId: string, statement: string, error: string) => {
     const { sessionId, dataSourceName } = this.props;
     const errorResult = {
       query_state: "error",
@@ -299,11 +311,11 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     this.replaceResult(errorResult);
   };
 
-  bindKeysWithoutEditorFocus = () => {
+  bindKeysWithoutEditorFocus: () => void = () => {
     Mousetrap.bind(["command+enter", "ctrl+enter"], this.runQuery);
   };
 
-  queryData = (queryId: string) => {
+  queryData: any | ((queryId: string) => string) = (queryId: string) => {
     const { dataSourceName, sessionId } = this.props;
     const { statement } = this.state;
     return JSON.stringify({
@@ -316,7 +328,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     });
   };
 
-  runQuery = () => {
+  runQuery: any | (() => void) = () => {
     if (!this.runEnabled()) return;
 
     window.clearErrorLocation();
@@ -351,7 +363,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     });
   };
 
-  parseResultError = (error: string) => {
+  parseResultError: (error: string) => void = (error: string) => {
     if (!error) return;
     const matches = error.match(/at line (\d+), column (\d+)/i);
     if (!matches) return;
@@ -360,7 +372,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     window.showErrorLocation(line - 1, char - 1);
   };
 
-  handleLoadHistory = () => {
+  handleLoadHistory: any | (() => void) = () => {
     this.setState((state) => ({
       history: { before: state.history.before, loaded: false, loading: true },
     }));
@@ -400,19 +412,19 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     });
   };
 
-  tableNames = () => {
+  tableNames: any | (() => Array<string>) = () => {
     const { selectables } = this.props;
     return selectables.map<string>((table) => table.id);
   };
 
-  columnNames = (): Array<string> => {
+  columnNames: any | (() => Array<string>) = (): Array<string> => {
     const { selectables } = this.props;
     return selectables.flatMap((table) =>
       table.columns.map<string>((column) => column.name)
     );
   };
 
-  renderCodeEditorOrViewer = () => {
+  renderCodeEditorOrViewer: () => Node = () => {
     if (this.runEnabled()) {
       return (
         <CodeEditor
@@ -429,7 +441,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     }
   };
 
-  renderButton = () => (
+  renderButton: () => Element<"div"> = () => (
     <div>
       <button
         className="btn btn-primary"
@@ -454,7 +466,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     </div>
   );
 
-  render = () => {
+  render: () => Node = () => {
     activateTooltips();
     const { numberFormat, debugModeEnabled } = this.props;
     const { sessionResults, history } = this.state;

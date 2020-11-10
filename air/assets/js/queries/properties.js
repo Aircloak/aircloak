@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import moment from "moment-timezone";
@@ -17,7 +18,12 @@ const formatTime = (isoTime) => {
   return `${time.format("YYYY-MM-DD HH:mm:ss z")} (${time.fromNow()})`;
 };
 
-export default ({ user, dataSource, insertedAt, queryState }: Props) => {
+export default ({
+  user,
+  dataSource,
+  insertedAt,
+  queryState,
+}: Props): Element<"dl"> => {
   return (
     <dl className="row">
       <dt className="col-sm-3 col-md-2">User</dt>

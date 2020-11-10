@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 
 import { ResultView } from "./result";
@@ -24,7 +25,7 @@ export default ({
   debugModeEnabled,
   authentication,
   onDeleteClick,
-}: Props) => {
+}: Props): Element<"div"> => {
   return (
     <div>
       {results.map((result) => {

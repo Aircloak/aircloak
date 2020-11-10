@@ -1,8 +1,9 @@
 // @flow
 
+import type { Node } from "React";
 import React from "react";
 import { Controlled as Codemirror } from "react-codemirror2";
-import type { Editor, EditorChange } from "codemirror";
+import type { Editor, EditorChange, Position } from "codemirror";
 
 import completions from "./code_editor/completion";
 
@@ -12,8 +13,8 @@ require("codemirror/addon/hint/anyword-hint");
 require("./code_editor/mode");
 
 export type Annotations = Array<{
-  start: { line: number, chr: number },
-  end: { line: number, chr: number },
+  start: Position,
+  end: Position,
   properties: Object,
 }>;
 
@@ -35,7 +36,7 @@ export default class CodeEditor extends React.Component<Props> {
     window.clearErrorLocation = this.clearErrorLocation.bind(this);
   }
 
-  editor: Editor;
+  editor: ?Editor;
 
   errorMarker: ?any;
 
@@ -49,32 +50,38 @@ export default class CodeEditor extends React.Component<Props> {
     }
   }
 
-  run = () => {
+  run: () => void = () => {
     const { onRun } = this.props;
     onRun();
   };
 
-  showHint = (editor: Editor) => {
+  showHint: (editor: Editor) => void = (editor: Editor) => {
     editor.showHint({ hint: this.completionList });
   };
 
-  onBeforeChange = (_editor: Editor, _data: EditorChange, value: string) => {
+  onBeforeChange: (_editor: any, _data: any, value: string) => void = (
+    _editor: Editor,
+    _data: EditorChange,
+    value: string
+  ) => {
     this.props.onChange(value);
   };
 
-  editorDidMount = (editor: Editor) => {
+  editorDidMount: (editor: Editor) => void = (editor: Editor) => {
     this.editor = editor;
     editor.focus();
   };
 
-  componentWillUnmount = () => {
+  componentWillUnmount: () => void = () => {
     window.insertWordInEditor = null;
   };
 
-  completionList = (cm: Editor) => {
+  completionList: (cm: Editor) => {| from: any, list: any, to: any |} = (
+    cm: Editor
+  ) => {
     const { tableNames, columnNames, statement } = this.props;
     return completions(
-      cm.getLine(cm.getCursor().line),
+      cm.getDoc().getLine(cm.getCursor().line),
       cm.getCursor().ch,
       (pos) => ({ ...cm.getCursor(), ch: pos }),
       tableNames,
@@ -83,30 +90,39 @@ export default class CodeEditor extends React.Component<Props> {
     );
   };
 
-  insertWordInEditor = (word: String) => {
-    const doc = this.editor.getDoc();
-    doc.replaceSelection(word);
-    this.editor.focus();
+  insertWordInEditor: (word: string) => void = (word) => {
+    const editor = this.editor;
+    if (editor != null) {
+      const doc = editor.getDoc();
+      doc.replaceSelection(word);
+      editor.focus();
+    }
   };
 
-  clearErrorLocation = () => {
+  clearErrorLocation: () => void = () => {
     if (this.errorMarker) {
       this.errorMarker.clear();
       this.errorMarker = null;
     }
   };
 
-  showErrorLocation = (line: number, ch: number) => {
+  showErrorLocation: (line: number, ch: number) => void = (
+    line: number,
+    ch: number
+  ) => {
     this.clearErrorLocation();
-    const doc = this.editor.getDoc();
-    this.errorMarker = doc.markText(
-      { line, ch },
-      { line, ch: ch + 1 },
-      { className: "error-location" }
-    );
+    const editor = this.editor;
+    if (editor != null) {
+      const doc = editor.getDoc();
+      this.errorMarker = doc.markText(
+        { line, ch },
+        { line, ch: ch + 1 },
+        { className: "error-location" }
+      );
+    }
   };
 
-  render = () => {
+  render: () => Node = () => {
     const options = {
       indentUnit: 2,
       indentWithTabs: false,

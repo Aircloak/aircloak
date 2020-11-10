@@ -18,7 +18,7 @@ defmodule DataQuality.Test.Persist do
     all_results
     |> Utility.partition([:dimension, :distribution, :aggregate])
     |> Task.async_stream(&persist/1, timeout: @processing_timeout)
-    |> Enum.map(fn {:ok, val} -> val end)
+    |> Stream.run()
 
     :ok
   end

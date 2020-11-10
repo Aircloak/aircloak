@@ -12,7 +12,7 @@ const headers = ({ CSRFToken }) => ({
   "Content-Type": "application/json",
 });
 
-export const cancel = (queryId: string, authentication: Authentication) =>
+export const cancel = (queryId: string, authentication: Authentication): any =>
   $.ajax(`/queries/${queryId}/cancel`, {
     method: "POST",
     headers: headers(authentication),
@@ -21,7 +21,7 @@ export const cancel = (queryId: string, authentication: Authentication) =>
 export const deleteQueryResult = (
   queryId: string,
   authentication: Authentication
-) =>
+): Promise<Response> =>
   fetch(`/queries/${queryId}`, {
     method: "DELETE",
     headers: headers(authentication),

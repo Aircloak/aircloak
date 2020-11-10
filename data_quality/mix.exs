@@ -23,7 +23,7 @@ defmodule DataQuality.MixProject do
   defp deps do
     [
       {:aircloak_common, path: "../common/elixir"},
-      {:postgrex, "~> 0.13.5"}
+      {:postgrex, "~> 0.15.0"}
     ]
   end
 

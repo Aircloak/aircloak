@@ -35,9 +35,50 @@ defmodule Cloak.DataSource.PostgreSQL do
 
     case run_query(connection, query, row_mapper, &Enum.concat/1) do
       {:ok, []} -> raise ExecutionError, message: "Table `#{table.db_name}` does not exist"
-      {:ok, columns} -> [load_comments(connection, %{table | columns: columns})]
+      {:ok, columns} -> [%{table | columns: columns}]
       {:error, reason} -> raise ExecutionError, message: "`#{reason}`"
     end
+  end
+
+  @impl Driver
+  def load_comments(connection, table) do
+    {schema_name, table_name} = table_name_parts(table)
+
+    table_comment =
+      connection
+      |> select(~s/SELECT obj_description('"#{schema_name}"."#{table_name}"'::regclass)/)
+      |> case do
+        {:ok, [[comment]]} -> comment
+        _ -> nil
+      end
+
+    column_comments =
+      connection
+      |> select("""
+        SELECT
+          cols.column_name,
+          pg_catalog.col_description(c.oid, cols.ordinal_position::int) AS column_comment
+        FROM information_schema.columns cols
+        INNER JOIN pg_catalog.pg_class c
+        ON
+          c.oid     = cols.table_name::regclass::oid AND
+          c.relname = cols.table_name
+        WHERE
+          cols.table_schema = '#{schema_name}' AND
+          cols.table_name   = '#{table_name}' AND
+          pg_catalog.col_description(c.oid, cols.ordinal_position::int) IS NOT NULL
+      """)
+      |> case do
+        {:ok, results} ->
+          results
+          |> Enum.map(&List.to_tuple/1)
+          |> Enum.into(%{})
+
+        _ ->
+          %{}
+      end
+
+    {table_comment, column_comments}
   end
 
   @impl Driver
@@ -90,70 +131,28 @@ defmodule Cloak.DataSource.PostgreSQL do
     Postgrex.transaction(
       pool,
       fn connection ->
-        with {:ok, query} <- Postgrex.prepare(connection, "data select", statement, []) do
-          try do
-            Postgrex.stream(
-              connection,
-              query,
-              [],
-              decode_mapper: decode_mapper,
-              max_rows: Driver.batch_size()
-            )
-            |> Stream.map(fn %Postgrex.Result{rows: rows} -> rows end)
-            |> result_processor.()
-          after
-            safe_close(connection, query)
-          end
-        else
-          {:error, error} -> Postgrex.rollback(connection, Exception.message(error))
+        case Postgrex.prepare(connection, "data select", statement, []) do
+          {:ok, query} ->
+            try do
+              Postgrex.stream(
+                connection,
+                query,
+                [],
+                decode_mapper: decode_mapper,
+                max_rows: Driver.batch_size()
+              )
+              |> Stream.map(fn %Postgrex.Result{rows: rows} -> rows end)
+              |> result_processor.()
+            after
+              safe_close(connection, query)
+            end
+
+          {:error, error} ->
+            Postgrex.rollback(connection, Exception.message(error))
         end
       end,
       timeout: Driver.timeout()
     )
-  end
-
-  defp load_comments(connection, table) do
-    {schema_name, table_name} = table_name_parts(table)
-
-    table_comments =
-      connection
-      |> select(~s/SELECT obj_description('"#{schema_name}"."#{table_name}"'::regclass)/)
-      |> case do
-        {:ok, [[comment]]} -> comment
-        _ -> nil
-      end
-
-    column_comments =
-      connection
-      |> select("""
-        SELECT
-          cols.column_name,
-          pg_catalog.col_description(c.oid, cols.ordinal_position::int) AS column_comment
-        FROM information_schema.columns cols
-        INNER JOIN pg_catalog.pg_class c
-        ON
-          c.oid     = cols.table_name::regclass::oid AND
-          c.relname = cols.table_name
-        WHERE
-          cols.table_schema = '#{schema_name}' AND
-          cols.table_name   = '#{table_name}' AND
-          pg_catalog.col_description(c.oid, cols.ordinal_position::int) IS NOT NULL
-      """)
-      |> case do
-        {:ok, results} ->
-          results
-          |> Enum.map(&List.to_tuple/1)
-          |> Enum.into(%{})
-
-        {:error, _} ->
-          %{}
-      end
-
-    comments =
-      %{table: table_comments, columns: column_comments}
-      |> Aircloak.deep_merge(Map.get(table, :comments, %{}))
-
-    Map.put(table, :comments, comments)
   end
 
   defp table_name_parts(table) do
@@ -187,7 +186,7 @@ defmodule Cloak.DataSource.PostgreSQL do
     Postgrex.close(connection, query)
   rescue
     exception ->
-      {exception, System.stacktrace()}
+      {exception, __STACKTRACE__}
       |> Cloak.LoggerTranslator.format_exit()
       |> Logger.error()
 

@@ -1,5 +1,6 @@
 // @flow
 
+import type { Node } from "React";
 import React from "react";
 import $ from "jquery";
 import CodeEditor from "../code_editor";
@@ -22,17 +23,17 @@ export default class ViewEditor extends React.Component<Props, State> {
     };
   }
 
-  setStatement = (statement: string) => {
+  setStatement: (statement: string) => void = (statement: string) => {
     $("#sql").val(statement);
     this.setState({ statement });
   };
 
-  tableNames() {
+  tableNames(): Array<string> {
     const { selectables } = this.props;
     return selectables.map<string>((table) => table.id);
   }
 
-  columnNames() {
+  columnNames(): Array<string> {
     const { selectables } = this.props;
     return selectables.flatMap<string>((table) =>
       table.columns.map<string>((column) => column.name)
@@ -43,7 +44,7 @@ export default class ViewEditor extends React.Component<Props, State> {
     $("#viewForm").submit();
   }
 
-  render() {
+  render(): Node {
     return (
       <CodeEditor
         statement={this.state.statement}

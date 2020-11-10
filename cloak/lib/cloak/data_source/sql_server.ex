@@ -17,29 +17,10 @@ defmodule Cloak.DataSource.SQLServer do
   end
 
   @impl Driver
-  def load_tables(connection, table) do
-    RODBC.load_tables(connection, table)
-    |> Enum.map(&load_comments(connection, &1))
-  end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp conn_params(normalized_parameters) do
-    %{
-      DSN: "SQLServer",
-      Server: normalized_parameters[:hostname],
-      Uid: normalized_parameters[:username],
-      Pwd: normalized_parameters[:password],
-      Database: normalized_parameters[:database]
-    }
-  end
-
-  defp load_comments(connection, table) do
+  def load_comments(connection, table) do
     {schema_name, table_name} = table_name_parts(table)
 
-    table_comments =
+    table_comment =
       connection
       |> select("""
         SELECT value
@@ -75,11 +56,21 @@ defmodule Cloak.DataSource.SQLServer do
           %{}
       end
 
-    comments =
-      %{table: table_comments, columns: column_comments}
-      |> Aircloak.deep_merge(Map.get(table, :comments, %{}))
+    {table_comment, column_comments}
+  end
 
-    Map.put(table, :comments, comments)
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp conn_params(normalized_parameters) do
+    %{
+      DSN: "SQLServer",
+      Server: normalized_parameters[:hostname],
+      Uid: normalized_parameters[:username],
+      Pwd: normalized_parameters[:password],
+      Database: normalized_parameters[:database]
+    }
   end
 
   defp table_name_parts(table) do

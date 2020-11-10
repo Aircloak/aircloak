@@ -32,27 +32,18 @@ defmodule Cloak.Sql.Parser.Internal do
   defp statement(parser) do
     parser
     |> switch([
-      {keyword_with_position(:select), pair_both(select_statement(), position())},
-      {keyword(:explain), explain_statement()},
+      {keyword(:explain), parenthesised_select_statement()},
       {keyword(:show), show_statement()},
-      {:else, error_message(fail(""), "Expected `select, explain, or show`")}
+      {:else, parenthesised_select_statement("select, explain, or show")}
     ])
     |> map(fn
-      {[{start_location, command}], [{statement_data, end_location}]} ->
-        Map.put(statement_map(command, statement_data), :source_range, {start_location, end_location})
-
-      {[command], [statement_data]} ->
-        statement_map(command, statement_data)
+      {[command], [statement_data]} -> statement_data |> Keyword.put(:command, command) |> statement_map()
+      statement_data -> statement_map(statement_data)
     end)
   end
 
-  defp statement_map(command, statement_data) do
-    defaults = %{having: nil, where: nil}
-
-    statement_data
-    |> Enum.reject(fn value -> value == nil end)
-    |> Enum.into(defaults)
-    |> Map.put(:command, command)
+  defp statement_map(statement_data) do
+    statement_data |> Enum.reject(fn value -> value == nil end) |> Enum.into(%{})
   end
 
   defp statement_termination(parser) do
@@ -69,13 +60,6 @@ defmodule Cloak.Sql.Parser.Internal do
     |> map(fn {[show], data} -> [{:show, show} | data] end)
   end
 
-  defp explain_statement() do
-    pair_right(
-      keyword(:select),
-      select_statement()
-    )
-  end
-
   defp select_statement() do
     sequence([
       optional_distinct(),
@@ -88,6 +72,35 @@ defmodule Cloak.Sql.Parser.Internal do
       optional_limit(),
       optional_offset()
     ])
+    |> map(&[{:command, :select} | &1])
+  end
+
+  defp parenthesised_select_statement(prefix_label \\ "select") do
+    either_deepest_error(
+      between(keyword(:"("), lazy(fn -> parenthesised_select_statement() end), subquery_close_paren()),
+      pair_both(keyword_with_position(:select) |> label(prefix_label), pair_both(select_statement(), position()))
+        |> map(fn {{start_pos, :select}, {statement, end_pos}} -> [{:source_range, {start_pos, end_pos}} | statement] end)
+    )
+    |> sep_by1_eager(union())
+    |> map(fn [first | rest] ->
+      rest
+      |> Enum.chunk_every(2)
+      |> Enum.reduce(first, fn [{:union, type}, right_statement], left_statement ->
+        [
+          command: :union,
+          distinct?: type != :all,
+          from:
+            {:union, {:subquery, %{ast: statement_map(left_statement), alias: nil}},
+             {:subquery, %{ast: statement_map(right_statement), alias: nil}}}
+        ]
+      end)
+    end)
+  end
+
+
+
+  defp union() do
+    pair_both(keyword(:union), option(keyword_of([:all, :distinct])))
   end
 
   defp select_columns() do
@@ -640,7 +653,7 @@ defmodule Cloak.Sql.Parser.Internal do
       {:else, table_name()}
     ])
     |> map(fn
-      {[{location, :subquery}], [subquery_data]} -> {:subquery, postprocess_range(subquery_data, location)}
+      {[{location, :subquery}], [{:subquery, subquery_data}]} -> {:subquery, postprocess_range(subquery_data, location)}
       other -> other
     end)
   end
@@ -671,23 +684,19 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp subquery() do
     sequence([
-      ignore(keyword(:select)),
-      lazy(fn -> select_statement() end),
-      subquery_close_paren(),
+      parenthesised_select_statement(),
+      ignore(subquery_close_paren()),
       option(keyword(:as)),
       label(identifier() |> map(fn {_type, value} -> value end), "subquery alias"),
       position()
     ])
     |> map(fn [select_statement, _as_keyword, alias, pos] ->
-      %{ast: statement_map(:select, [{:end_location, pos} | select_statement]), alias: alias}
+      {:subquery, %{ast: statement_map([{:end_location, pos} | select_statement]), alias: alias}}
     end)
   end
 
-  defp subquery_close_paren() do
-    keyword(:")")
-    |> error_message("Unexpected input after end of valid subquery, expected `)`")
-    |> ignore()
-  end
+  defp subquery_close_paren(),
+    do: keyword(:")") |> error_message("Unexpected input after end of valid subquery, expected `)`")
 
   defp table_with_schema() do
     pipe([identifier(), keyword(:.), identifier()], fn

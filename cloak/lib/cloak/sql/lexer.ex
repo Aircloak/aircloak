@@ -82,7 +82,8 @@ defmodule Cloak.Sql.Lexer do
               "WHEN",
               "THEN",
               "ELSE",
-              "END"
+              "END",
+              "UNION"
             ]
             # Longer keywords have to be checked first to avoid false matches.
             |> Enum.sort_by(&String.length/1, &>=/2)

@@ -1,5 +1,6 @@
 // @flow
 
+import type { Element } from "React";
 import React from "react";
 import { Sparklines, SparklinesLine } from "react-sparklines";
 
@@ -85,7 +86,7 @@ const renderQueriesGraph = (queryStats) => {
 };
 
 export class CloakStatsView extends React.PureComponent<Props> {
-  render() {
+  render(): Element<"tr"> {
     const { cloakStat } = this.props;
     return (
       <tr>

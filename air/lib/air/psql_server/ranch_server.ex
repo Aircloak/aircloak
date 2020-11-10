@@ -188,8 +188,9 @@ defmodule Air.PsqlServer.RanchServer do
 
   def handle_info(:upgrade_to_ssl, conn) do
     with {:ok, ssl_opts} <- Keyword.fetch(conn.opts, :ssl),
-         :ok <- conn.transport.setopts(conn.socket, active: false),
-         {:ok, ssl_socket} = :ssl.handshake(conn.socket, ssl_opts) do
+         :ok <- conn.transport.setopts(conn.socket, active: false) do
+      {:ok, ssl_socket} = :ssl.handshake(conn.socket, ssl_opts)
+
       conn =
         update_protocol(
           %__MODULE__{conn | socket: ssl_socket, transport: :ranch_ssl},
