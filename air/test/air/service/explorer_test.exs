@@ -291,34 +291,44 @@ defmodule Air.Service.ExplorerTest do
   end
 
   describe ".data_source_updated" do
-    test "removes results if table no longer exists in the data source", context do
+    test "soft deletes results if table no longer exists in the data source, and undoes it too", context do
       reanalyze_data_source(context.ds1)
 
       assert_soon [
-                    %ExplorerAnalysis{table_name: "bars"},
-                    %ExplorerAnalysis{table_name: "foos"}
-                  ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name)
+                    %ExplorerAnalysis{table_name: "bars", soft_delete: false},
+                    %ExplorerAnalysis{table_name: "foos", soft_delete: false}
+                  ] = sorted_results_for_data_source(context.ds1)
 
       DataSource.update!(context.ds1, %{
         tables: Jason.encode!([@bars_table])
       })
 
       assert_soon [
-                    %ExplorerAnalysis{table_name: "bars"}
-                  ] = Explorer.results_for_datasource(context.ds1)
+                    %ExplorerAnalysis{table_name: "bars", soft_delete: false},
+                    %ExplorerAnalysis{table_name: "foos", soft_delete: true}
+                  ] = sorted_results_for_data_source(context.ds1)
+
+      DataSource.update!(context.ds1, %{
+        tables: Jason.encode!([@bars_table, @foos_table])
+      })
+
+      assert_soon [
+                    %ExplorerAnalysis{table_name: "bars", soft_delete: false},
+                    %ExplorerAnalysis{table_name: "foos", soft_delete: false}
+                  ] = sorted_results_for_data_source(context.ds1)
     end
   end
 
-  describe ".reanalyze_datasource" do
+  describe ".analyze_datasource" do
     test "creates jobs and polls for results", context do
       MockServer.pause()
       assert :ok == reanalyze_data_source(context.ds1)
 
       assert_soon(
         [
-          %ExplorerAnalysis{table_name: "bars", status: :new},
-          %ExplorerAnalysis{table_name: "foos", status: :new}
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
+          %ExplorerAnalysis{table_name: "bars", status: :processing},
+          %ExplorerAnalysis{table_name: "foos", status: :processing}
+        ] = sorted_results_for_data_source(context.ds1),
         timeout: 500
       )
 
@@ -344,7 +354,7 @@ defmodule Air.Service.ExplorerTest do
               "sampleData" => []
             }
           }
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
+        ] = sorted_results_for_data_source(context.ds1),
         timeout: 500
       )
     end
@@ -364,26 +374,19 @@ defmodule Air.Service.ExplorerTest do
       data_source_name = data_source.name
 
       assert(
-        [
-          _,
-          %{
-            tables: [%{name: "bars", status: :not_enabled}, %{name: "foos", status: not_enabled}],
-            name: ^data_source_name
-          }
-        ] = Explorer.all_data_source_metadata()
+        %{
+          tables: [%{name: "bars", status: :not_enabled}, %{name: "foos", status: :not_enabled}]
+        } = metadata_for_data_source(data_source)
       )
 
       MockServer.pause()
       reanalyze_data_source(data_source)
 
       assert_soon(
-        [
-          _,
-          %{
-            tables: [%{name: "bars", status: :new}, %{name: "foos", status: :new}],
-            name: ^data_source_name
-          }
-        ] = Explorer.all_data_source_metadata()
+        %{
+          tables: [%{name: "bars", status: :processing}, %{name: "foos", status: :processing}],
+          name: ^data_source_name
+        } = metadata_for_data_source(data_source)
       )
 
       MockServer.resume()
@@ -400,7 +403,7 @@ defmodule Air.Service.ExplorerTest do
             status: :error
           },
           %ExplorerAnalysis{}
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
+        ] = sorted_results_for_data_source(context.ds1),
         timeout: 500
       )
 
@@ -429,7 +432,7 @@ defmodule Air.Service.ExplorerTest do
             status: :processing
           },
           %ExplorerAnalysis{}
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds_not_included), & &1.table_name),
+        ] = sorted_results_for_data_source(context.ds_not_included),
         timeout: 500
       )
 
@@ -441,7 +444,7 @@ defmodule Air.Service.ExplorerTest do
             status: :error
           },
           %ExplorerAnalysis{}
-        ] = Enum.sort_by(Explorer.results_for_datasource(context.ds1), & &1.table_name),
+        ] = sorted_results_for_data_source(context.ds1),
         timeout: 500
       )
     end
@@ -452,4 +455,15 @@ defmodule Air.Service.ExplorerTest do
       data_source
       |> Air.Schemas.DataSource.tables()
       |> Enum.each(&Explorer.analyze_table(data_source.id, &1["id"]))
+
+  defp metadata_for_data_source(data_source),
+    do:
+      Explorer.all_data_source_metadata()
+      |> Enum.find(&(&1.id == data_source.id))
+
+  defp sorted_results_for_data_source(data_source),
+    do:
+      data_source
+      |> Explorer.results_for_datasource()
+      |> Enum.sort_by(& &1.table_name)
 end
