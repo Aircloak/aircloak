@@ -248,10 +248,12 @@ defmodule Air.Service.Explorer do
       |> Repo.preload(:data_source)
       |> request_analysis()
     else
-      existing_analysis
-      |> ExplorerAnalysis.changeset(%{status: :new})
-      |> Repo.update!()
-      |> request_analysis()
+      unless existing_analysis.soft_delete do
+        existing_analysis
+        |> ExplorerAnalysis.changeset(%{status: :new})
+        |> Repo.update!()
+        |> request_analysis()
+      end
     end
 
     broadcast_changes()
