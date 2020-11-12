@@ -409,7 +409,8 @@ defmodule Air.Service.ExplorerTest do
         %{
           tables: [%{name: "bars", status: :processing}, %{name: "foos", status: :processing}],
           name: ^data_source_name
-        } = metadata_for_data_source(data_source)
+        } = metadata_for_data_source(data_source),
+        timeout: 500
       )
 
       MockServer.resume()
