@@ -104,7 +104,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     Lens.multiple([
       columns_lens() |> Lens.key(:table),
       Lens.key(:selected_tables) |> Lens.all(),
-      Lens.key(:table_aliases) |> Lens.all() |> Lens.at(1)
+      Lens.key(:table_aliases) |> Lens.map_values()
     ])
   end
 
