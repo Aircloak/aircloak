@@ -57,7 +57,8 @@ defmodule Air.Service.Explorer do
         tables: data_source.tables,
         analysis_id: explorer_analysis.id,
         table_name: explorer_analysis.table_name,
-        analysis_status: explorer_analysis.status
+        analysis_status: explorer_analysis.status,
+        soft_delete: explorer_analysis.soft_delete
       }
     )
     |> Repo.all()
@@ -67,9 +68,15 @@ defmodule Air.Service.Explorer do
         (selected_tables || [])
         |> Enum.reject(&is_nil(&1.analysis_id))
 
+      soft_deleted_table_names =
+        selected_tables
+        |> Enum.filter(& &1.soft_delete)
+        |> Enum.map(& &1.table_name)
+
       selected_table_names =
         selected_tables
         |> Enum.map(& &1.table_name)
+        |> Enum.reject(&(&1 in soft_deleted_table_names))
         |> Enum.sort()
 
       available_table_names =
@@ -78,6 +85,7 @@ defmodule Air.Service.Explorer do
             tables
             |> Enum.filter(fn table -> Enum.any?(table["columns"], & &1["user_id"]) end)
             |> Enum.map(fn %{"id" => table_name} -> table_name end)
+            |> Enum.reject(&(&1 in soft_deleted_table_names))
             |> Enum.sort()
 
           _ ->

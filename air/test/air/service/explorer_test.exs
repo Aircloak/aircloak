@@ -317,6 +317,29 @@ defmodule Air.Service.ExplorerTest do
                     %ExplorerAnalysis{table_name: "foos", soft_delete: false}
                   ] = sorted_results_for_data_source(context.ds1)
     end
+
+    test "soft deleted tables are not part of the metadata", context do
+      reanalyze_data_source(context.ds1)
+      data_source_name = context.ds1.name
+
+      assert_soon(
+        %{
+          tables: [%{name: "bars"}, %{name: "foos"}],
+          name: ^data_source_name
+        } = metadata_for_data_source(context.ds1)
+      )
+
+      DataSource.update!(context.ds1, %{
+        tables: Jason.encode!([@bars_table])
+      })
+
+      assert_soon(
+        %{
+          tables: [%{name: "bars"}],
+          name: ^data_source_name
+        } = metadata_for_data_source(context.ds1)
+      )
+    end
   end
 
   describe ".analyze_datasource" do
