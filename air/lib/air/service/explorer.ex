@@ -64,9 +64,7 @@ defmodule Air.Service.Explorer do
     |> Repo.all()
     |> Enum.group_by(&{&1.id, &1.name, &1.tables})
     |> Enum.map(fn {{id, name, tables}, selected_tables} ->
-      selected_tables =
-        (selected_tables || [])
-        |> Enum.reject(&is_nil(&1.analysis_id))
+      selected_tables = Enum.reject(selected_tables, &is_nil(&1.analysis_id))
 
       soft_deleted_table_names =
         selected_tables
