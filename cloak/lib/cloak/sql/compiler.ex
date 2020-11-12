@@ -78,9 +78,9 @@ defmodule Cloak.Sql.Compiler do
       |> Compiler.Specification.compile(analyst_id, data_source, parameters, views)
       |> Compiler.Normalization.prevalidation_normalizations()
       |> Compiler.Validation.verify_standard_restrictions()
+      |> Compiler.Normalization.postvalidation_normalizations()
       |> Compiler.Optimizer.optimize()
       |> Compiler.Execution.prepare()
-      |> Compiler.Normalization.postvalidation_normalizations()
 
   @doc "Prepares the parsed SQL query for directly querying the data source without any processing in the cloak."
   @spec compile_direct!(
