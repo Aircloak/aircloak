@@ -62,7 +62,6 @@ defmodule Air.Service.Explorer do
     )
     |> Repo.all()
     |> Enum.group_by(&{&1.id, &1.name, &1.tables})
-    |> Map.to_list()
     |> Enum.map(fn {{id, name, tables}, selected_tables} ->
       selected_tables =
         (selected_tables || [])
