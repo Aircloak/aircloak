@@ -105,6 +105,18 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     assert offloaded_query =~ ~s[("t"."col" >= 0) AND ("t"."col" < 100)]
   end
 
+  test "bounded columns in virtual tables are restricted during offload", analysis_data_source do
+    offloaded_query =
+      "SELECT COUNT(*) FROM bounds_analysis_virtual WHERE col = 10"
+      |> compile!(analysis_data_source)
+      |> Cloak.Sql.Query.resolve_db_columns()
+      |> Cloak.DataSource.SqlBuilder.build()
+
+    assert offloaded_query =~
+             ~s[CASE WHEN ("bounds_analysis_virtual"."col" < 5) THEN 5] <>
+               ~s[ WHEN ("bounds_analysis_virtual"."col" > 2000) THEN 2000 ELSE "bounds_analysis_virtual"."col" END]
+  end
+
   describe ".analyze_query" do
     test "sets bounds for each expression in the query", analysis_data_source do
       column = "SELECT 1 + col FROM bounds_analysis" |> compile!(analysis_data_source) |> first_selected_column()

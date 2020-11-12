@@ -73,19 +73,31 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp expand_table(subquery, table_alias) do
-    table = Query.resolve_table(subquery, table_alias)
+  defp used_columns_from_table(query, table_name) do
+    columns_lens()
+    |> Lens.filter(&(&1.table.name == table_name))
+    |> Lens.to_list(query)
+    |> Enum.map(&Expression.unalias/1)
+    |> Enum.uniq_by(& &1.name)
+  end
 
-    columns =
-      columns_lens()
-      |> Lens.filter(&(&1.table.name == table_alias))
-      |> Lens.to_list(subquery)
-      |> Enum.map(&Expression.unalias/1)
-      |> Enum.uniq_by(& &1.name)
-      |> Enum.map(&Map.put(&1, :table, table))
+  defp expand_regular_table(query, table_alias) do
+    table = Query.resolve_table(query, table_alias)
+    columns = query |> used_columns_from_table(table_alias) |> Enum.map(&Map.put(&1, :table, table))
 
-    ast = Cloak.Sql.Compiler.make_select_query(subquery.data_source, table, columns)
+    ast = Cloak.Sql.Compiler.make_select_query(query.data_source, table, columns)
     {:subquery, %{ast: ast, alias: table_alias}}
+  end
+
+  defp expand_virtual_table(query, subquery) do
+    table = Query.resolve_table(query, subquery.alias)
+    columns = query |> used_columns_from_table(subquery.alias) |> Enum.map(&Map.put(&1, :table, table))
+
+    ast =
+      Cloak.Sql.Compiler.make_select_query(query.data_source, table, columns)
+      |> Map.put(:from, {:subquery, subquery})
+
+    %{ast: ast, alias: subquery.alias}
   end
 
   deflensp query_tables_lens() do
@@ -96,16 +108,23 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     ])
   end
 
-  defp expand_tables_with_bounded_columns(subquery) do
+  defp expand_tables_with_bounded_columns(query) do
     expanded_tables =
       bounded_database_columns_lens()
       |> Lens.key(:table)
       |> Lens.key(:name)
-      |> Lens.to_list(subquery)
+      |> Lens.to_list(query)
       |> Expression.unique()
 
-    subquery
-    |> update_in([Query.Lenses.leaf_tables() |> Lens.filter(&(&1 in expanded_tables))], &expand_table(subquery, &1))
+    query
+    |> update_in(
+      [Query.Lenses.leaf_tables() |> Lens.filter(&(&1 in expanded_tables))],
+      &expand_regular_table(query, &1)
+    )
+    |> update_in(
+      [Query.Lenses.direct_subqueries(analyst_tables?: false) |> Lens.filter(&(&1.alias in expanded_tables))],
+      &expand_virtual_table(query, &1)
+    )
     |> put_in([query_tables_lens() |> Lens.filter(&(&1.name in expanded_tables)) |> Lens.key(:type)], :subquery)
   end
 
