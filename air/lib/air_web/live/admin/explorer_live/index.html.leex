@@ -40,7 +40,7 @@
     </div>
     <div class="card-body p-0 d-flex flex-column mt-2">
       <%= for table <- data_source.tables do %>
-      <div class="d-flex align-content-center">
+      <div class="d-flex align-items-baseline">
         <div class="d-block flex-shrink-0 align-middle text-center">
           <div style="width: 38px">
             <%= if table.status == :complete do %>
@@ -48,6 +48,7 @@
             <% end %>
             <%= if table.status in [:new, :processing] do %>
               <img
+                class="mt-n1"
                 src="<%= static_path(@socket, "/frontend/images/loader.gif") %>"
                 alt="indicates that analysis is taking place"
                 width="16" height="16"
