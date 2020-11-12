@@ -96,7 +96,7 @@ defmodule Air.Service.Explorer do
         end)
 
       {complete, processing, error} =
-        List.foldl(selected_tables, {0, 0, 0}, fn table, {complete_acc, processing_acc, error_acc} ->
+        Enum.reduce(selected_tables, {0, 0, 0}, fn table, {complete_acc, processing_acc, error_acc} ->
           case table.analysis_status do
             status when status in [:complete] -> {complete_acc + 1, processing_acc, error_acc}
             status when status in [:new, :processing] -> {complete_acc, processing_acc + 1, error_acc}
