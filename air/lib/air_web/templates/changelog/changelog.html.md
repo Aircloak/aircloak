@@ -8,6 +8,8 @@
 
 ### Enhancements
 
+- Simpler offloaded queries are generated when using bounds analysis.
+
 ### Bugfixes
 
 ### Changes
