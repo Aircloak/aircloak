@@ -12,11 +12,23 @@ require("codemirror/addon/hint/show-hint");
 require("codemirror/addon/hint/anyword-hint");
 require("./code_editor/mode");
 
-export type Annotations = Array<{
-  start: Position,
-  end: Position,
-  properties: Object,
-}>;
+export type Annotations =
+  | Array<{
+      range: {
+        start: Position,
+        end: Position,
+      },
+      query_type: string,
+      emulated: boolean,
+      anonymization_type: string,
+      noise_layers: number,
+    }>
+  | {|
+      type: "ParseError" | "CompilationError",
+      message: string,
+      location: Position | null,
+    |}
+  | "loading";
 
 type Props = {
   onRun: () => void,
@@ -42,13 +54,38 @@ export default class CodeEditor extends React.Component<Props> {
 
   componentDidUpdate(prevProps: Props) {
     if (prevProps.annotations !== this.props.annotations && this.editor) {
-      const doc = this.editor.getDoc();
-      doc.getAllMarks().forEach((mark) => mark.clear());
-      this.props.annotations.forEach((annotation) => {
-        doc.markText(annotation.start, annotation.end, annotation.properties);
-      });
+      this.updateAnnotations(this.editor, this.props.annotations);
+      this.setState({});
     }
   }
+
+  updateAnnotations: (editor: Editor, annotations: Annotations) => void = (
+    editor,
+    annotations
+  ) => {
+    const doc = editor.getDoc();
+    doc.getAllMarks().forEach((mark) => mark.clear());
+    if (Array.isArray(annotations)) {
+      annotations.forEach(({ range, ...data }) => {
+        doc.markText(range.start, range.end, {
+          clearWhenEmpty: true,
+          data,
+          css: `background-color: ${
+            data.query_type === "standard"
+              ? "transparent"
+              : data.query_type === "restricted"
+              ? "rgba(200, 20, 20, 0.05)"
+              : "rgba(205, 205, 250, 0.25)"
+          }`,
+        });
+      });
+    } else if (typeof annotations == "object" && annotations.location != null) {
+      this.showErrorLocation(
+        annotations.location.line,
+        annotations.location.ch
+      );
+    }
+  };
 
   run: () => void = () => {
     const { onRun } = this.props;
@@ -69,6 +106,7 @@ export default class CodeEditor extends React.Component<Props> {
 
   editorDidMount: (editor: Editor) => void = (editor: Editor) => {
     this.editor = editor;
+    this.updateAnnotations(editor, this.props.annotations);
     editor.focus();
   };
 
@@ -122,6 +160,50 @@ export default class CodeEditor extends React.Component<Props> {
     }
   };
 
+  onCursorActivity: (editor: Editor) => void = (editor) => {
+    this.setState({}); // force rerender
+  };
+
+  renderStatusBar: (Annotations) => Node = (annotations) => {
+    if (annotations === "loading") {
+      return <div className="status-bar status-bar-loading">Loading</div>;
+    } else if (Array.isArray(annotations)) {
+      const editor = this.editor;
+      if (editor) {
+        const marks = editor.getDoc().findMarksAt(editor.getCursor());
+        if (marks.length > 0) {
+          const last = marks[marks.length - 1];
+          if (last["data"] != null) {
+            const data = last.data;
+            return (
+              <div
+                className="status-bar"
+                style={{
+                  background:
+                    data.query_type === "standard"
+                      ? "transparent"
+                      : data.query_type === "restricted"
+                      ? "rgb(252 243 244)"
+                      : "rgb(242 242 254)",
+                }}
+              >
+                {data.emulated ? "Emulated" : "Native"}{" "}
+                <span>{data.query_type}</span> query using{" "}
+                {data.anonymization_type} based anonymization.
+              </div>
+            );
+          }
+        }
+        return null;
+      }
+      return null;
+    } else {
+      return (
+        <div className="status-bar status-bar-error">{annotations.message}</div>
+      );
+    }
+  };
+
   render: () => Node = () => {
     const options = {
       indentUnit: 2,
@@ -144,15 +226,20 @@ export default class CodeEditor extends React.Component<Props> {
       },
     };
 
-    const { statement } = this.props;
+    const { statement, annotations } = this.props;
+
     return (
-      <Codemirror
-        value={statement}
-        editorDidMount={this.editorDidMount}
-        onBeforeChange={this.onBeforeChange}
-        options={options}
-        className="editable"
-      />
+      <div className="flex-grow-1 editor-container">
+        <Codemirror
+          value={statement}
+          editorDidMount={this.editorDidMount}
+          onBeforeChange={this.onBeforeChange}
+          onCursorActivity={this.onCursorActivity}
+          options={options}
+          className="editable"
+        />
+        {this.renderStatusBar(annotations)}
+      </div>
     );
   };
 }

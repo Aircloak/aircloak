@@ -1695,6 +1695,9 @@ declare module "codemirror" {
      */
     on(eventName: "unhide", handler: () => void): void,
     off(eventname: "unhide", handler: () => void): void,
+
+    data: any,
+
     ...
   } & $Rest<TextMarkerOptions, { ... }>;
 

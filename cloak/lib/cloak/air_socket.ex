@@ -350,22 +350,49 @@ defmodule Cloak.AirSocket do
   defp handle_air_call("type_check_query", data, from, state) do
     {:ok, data_source} = fetch_data_source(data.data_source)
 
-    explanation =
-      data.statement
-      |> Cloak.Sql.Parser.parse!()
-      |> Cloak.Sql.Compiler.compile!(
-        data.analyst_id,
-        data_source,
-        nil,
-        data.views || %{}
-      )
-      |> Cloak.Query.DbEmulator.compile()
-      |> Cloak.Sql.Query.Explainer.explain()
+    try do
+      explanation =
+        data.statement
+        |> Cloak.Sql.Parser.parse!()
+        |> Cloak.Sql.Compiler.compile!(
+          data.analyst_id,
+          data_source,
+          nil,
+          data.views || %{}
+        )
+        |> Cloak.Query.DbEmulator.compile()
+        |> Cloak.Sql.Query.Explainer.explain()
 
-    respond_to_air(from, :ok, %{"status" => "ok", "data" => Cloak.Sql.Query.Explainer.for_editor(explanation)})
+      respond_to_air(from, :ok, %{"status" => "ok", "data" => Cloak.Sql.Query.Explainer.for_editor(explanation)})
+    rescue
+      e in Cloak.Sql.Parser.ParseError -> respond_with_error(from, e)
+      e in Cloak.Sql.CompilationError -> respond_with_error(from, e)
+    end
 
     {:ok, state}
   end
+
+  defp respond_with_error(from, %Cloak.Sql.Parser.ParseError{message: message, source_location: {row, col}}),
+    do:
+      respond_to_air(from, :ok, %{
+        "status" => "error",
+        "data" => %{
+          "message" => message,
+          "location" => %{line: row - 1, ch: col - 1},
+          "type" => "ParseError"
+        }
+      })
+
+  defp respond_with_error(from, %Cloak.Sql.CompilationError{message: message, source_location: {row, col}}),
+    do:
+      respond_to_air(from, :ok, %{
+        "status" => "error",
+        "data" => %{
+          "message" => message,
+          "location" => %{line: row - 1, ch: col - 1},
+          "type" => "CompilationError"
+        }
+      })
 
   # -------------------------------------------------------------------
   # Handling air async casts

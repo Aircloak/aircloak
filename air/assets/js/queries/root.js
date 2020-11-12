@@ -25,7 +25,6 @@ import Disconnected from "../disconnected";
 import { isFinished } from "./state";
 import { startQuery, loadHistory, deleteQueryResult } from "../request";
 import activateTooltips from "../tooltips";
-import type { Position } from "codemirror";
 
 type Props = {
   userId: number,
@@ -81,23 +80,13 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       connected: true,
       dataSourceStatus,
       history: emptyHistory,
-      annotations: [],
+      annotations: "loading",
     };
 
-    this.setStatement = this.setStatement.bind(this);
     this.runQuery = debounce(this.runQuery.bind(this), runQueryTimeout, {
       leading: true,
       trailing: false,
     });
-    this.queryData = this.queryData.bind(this);
-    this.setResults = this.setResults.bind(this);
-    this.handleLoadHistory = this.handleLoadHistory.bind(this);
-    this.replaceResult = this.replaceResult.bind(this);
-    this.columnNames = this.columnNames.bind(this);
-    this.tableNames = this.tableNames.bind(this);
-    this.runEnabled = this.runEnabled.bind(this);
-    this.updateConnected = this.updateConnected.bind(this);
-    this.initialStatement = this.initialStatement.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     frontendSocket.joinDataSourceChannel(dataSourceName, {
@@ -112,6 +101,10 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       this.updateConnected,
       1000 /* 1 second */
     );
+  }
+
+  componentDidMount() {
+    this.setStatement(this.initialStatement());
   }
 
   // eslint-disable-next-line react/static-property-placement
@@ -146,56 +139,23 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     return dataSourceStatus !== "offline";
   };
 
-  setStatement: (statement: string) => void = (statement) => {
+  requestTypeCheck: (string) => void = debounce((statement) => {
     this.typeCheckingChannel
       .push("type_check", {
         query: statement,
         data_source: this.props.dataSourceName,
       })
       .receive("ok", ({ result }) => {
-        if (result.status === "ok") {
-          this.setState({
-            annotations: this.prepareAnnotations(result.data),
-          });
-        }
+        this.setState({
+          annotations: result.data,
+        });
       });
-    this.setState({ statement });
-  };
+  }, 100);
 
-  prepareAnnotations: (
-    data: Array<{
-      range: {
-        start: Position,
-        end: Position,
-      },
-      query_type: string,
-      emulated: boolean,
-      anonymization_type: string,
-      noise_layers: number,
-    }>
-  ) => Annotations = (data) =>
-    data.map(
-      ({ range, query_type, emulated, anonymization_type, noise_layers }) => ({
-        start: range.start,
-        end: range.end,
-        properties: {
-          clearWhenEmpty: true,
-          attributes: {
-            title: `${
-              emulated ? "Emulated" : "Native"
-            } ${query_type} query using ${anonymization_type} based anonymization with ${noise_layers} noise layers.`,
-            "data-toggle": "tooltip",
-          },
-          css: `background-color: ${
-            query_type === "standard"
-              ? "transparent"
-              : query_type === "restricted"
-              ? "rgba(200, 20, 20, 0.05)"
-              : "rgba(205, 205, 250, 0.25)"
-          }`,
-        },
-      })
-    );
+  setStatement: (statement: string) => void = (statement) => {
+    this.requestTypeCheck(statement);
+    this.setState({ statement, annotations: "loading" });
+  };
 
   setResults: any | ((results: Array<Result>) => void) = (
     results: Result[]

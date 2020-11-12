@@ -79,7 +79,7 @@ defmodule Cloak.Sql.Parser.Internal do
     either_deepest_error(
       between(keyword(:"("), lazy(fn -> parenthesised_select_statement() end), subquery_close_paren()),
       pair_both(keyword_with_position(:select) |> label(prefix_label), pair_both(select_statement(), position()))
-        |> map(fn {{start_pos, :select}, {statement, end_pos}} -> [{:source_range, {start_pos, end_pos}} | statement] end)
+      |> map(fn {{start_pos, :select}, {statement, end_pos}} -> [{:source_range, {start_pos, end_pos}} | statement] end)
     )
     |> sep_by1_eager(union())
     |> map(fn [first | rest] ->
@@ -96,8 +96,6 @@ defmodule Cloak.Sql.Parser.Internal do
       end)
     end)
   end
-
-
 
   defp union() do
     pair_both(keyword(:union), option(keyword_of([:all, :distinct])))
