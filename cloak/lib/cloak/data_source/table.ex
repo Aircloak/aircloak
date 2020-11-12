@@ -233,6 +233,7 @@ defmodule Cloak.DataSource.Table do
         config[:user_id],
         Map.merge(config, %{query: compiled_query, columns: columns, comments: comments})
       )
+      |> map_column_access(data_source)
 
     verify_columns(data_source, table)
     {name, table}
