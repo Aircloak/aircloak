@@ -206,7 +206,7 @@ defmodule Cloak.Query.DbEmulator do
 
   defp joined_table_to_subquery(table_name, query) do
     required_columns = required_columns_from_table(query, table_name)
-    {:ok, table} = Query.resolve_table(query, table_name)
+    table = Enum.find(query.selected_tables, &(&1.name == table_name))
     query = Compiler.make_select_query(query.data_source, table, required_columns)
     {:subquery, %{ast: query, alias: table_name}}
   end
