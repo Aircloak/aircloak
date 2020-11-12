@@ -40,10 +40,10 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   @doc "Takes a query and clamps all bounded columns."
   @spec clamp_columns_to_bounds(Query.t()) :: Query.t()
   def clamp_columns_to_bounds(query) do
-    Helpers.apply_bottom_up(query, fn subquery ->
-      columns_lens()
-      |> Lens.filter(&(&1.table.type in [:regular, :virtual]))
-      |> Lens.map(subquery, &clamp_values/1)
+    query
+    |> Helpers.apply_bottom_up(&expand_tables_with_bounded_columns/1)
+    |> Helpers.apply_bottom_up(fn subquery ->
+      bounded_database_columns_lens() |> Lens.map(subquery, &clamp_values/1)
     end)
   end
 
@@ -70,6 +70,46 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   end
 
   # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp expand_table(subquery, table_alias) do
+    table = Query.resolve_table(subquery, table_alias)
+
+    columns =
+      columns_lens()
+      |> Lens.filter(&(&1.table.name == table_alias))
+      |> Lens.to_list(subquery)
+      |> Enum.map(&Expression.unalias/1)
+      |> Enum.uniq_by(& &1.name)
+      |> Enum.map(&Map.put(&1, :table, table))
+
+    ast = Cloak.Sql.Compiler.make_select_query(subquery.data_source, table, columns)
+    {:subquery, %{ast: ast, alias: table_alias}}
+  end
+
+  deflensp query_tables_lens() do
+    Lens.multiple([
+      columns_lens() |> Lens.key(:table),
+      Lens.key(:selected_tables) |> Lens.all(),
+      Lens.key?(:table_aliases) |> Lens.all() |> Lens.at(1)
+    ])
+  end
+
+  defp expand_tables_with_bounded_columns(subquery) do
+    expanded_tables =
+      bounded_database_columns_lens()
+      |> Lens.key(:table)
+      |> Lens.key(:name)
+      |> Lens.to_list(subquery)
+      |> Expression.unique()
+
+    subquery
+    |> update_in([Query.Lenses.leaf_tables() |> Lens.filter(&(&1 in expanded_tables))], &expand_table(subquery, &1))
+    |> put_in([query_tables_lens() |> Lens.filter(&(&1.name in expanded_tables)) |> Lens.key(:type)], :subquery)
+  end
+
+  # -------------------------------------------------------------------
   # Bound computation
   # -------------------------------------------------------------------
 
@@ -84,6 +124,10 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
   end
 
   deflensp columns_lens(), do: Query.Lenses.query_expressions() |> Lens.filter(&Expression.column?/1)
+
+  deflensp bounded_database_columns_lens() do
+    columns_lens() |> Lens.filter(&(&1.bounds != :unknown)) |> Lens.filter(&(&1.table.type in [:regular, :virtual]))
+  end
 
   defp do_set_bounds(expression = %Expression{kind: :constant, value: value}) when value in [:*, nil],
     do: expression
@@ -233,8 +277,6 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     |> Map.put(:bounds, {min, max})
     |> Map.put(:synthetic?, true)
   end
-
-  defp clamp_values(column), do: column
 
   defp min_year_to_value(:date, year) do
     {:ok, value} = Date.new(year, 1, 1)
