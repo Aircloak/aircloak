@@ -403,7 +403,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     if branch_has_timing_protection?(query.from),
       # Since we are potentially generating additional subqueries here, we need to re-optimize the query
       # to make sure all filters are pushed downstream, so that the invalid row is not prematurely dropped.
-      do: Cloak.Sql.Compiler.Optimizer.optimize(query),
+      do: Optimizer.optimize(query),
       else: query
   end
 
