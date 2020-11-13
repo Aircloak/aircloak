@@ -95,7 +95,7 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
 
     ast =
       Cloak.Sql.Compiler.make_select_query(query.data_source, table, columns)
-      |> Map.put(:from, {:subquery, subquery})
+      |> Map.put(:from, {:subquery, %{ast: subquery.ast, alias: table.name}})
 
     %{ast: ast, alias: subquery.alias}
   end
@@ -118,12 +118,12 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
 
     query
     |> update_in(
-      [Query.Lenses.leaf_tables() |> Lens.filter(&(&1 in expanded_tables))],
-      &expand_regular_table(query, &1)
-    )
-    |> update_in(
       [Query.Lenses.direct_subqueries(analyst_tables?: false) |> Lens.filter(&(&1.alias in expanded_tables))],
       &expand_virtual_table(query, &1)
+    )
+    |> update_in(
+      [Query.Lenses.leaf_tables() |> Lens.filter(&(&1 in expanded_tables))],
+      &expand_regular_table(query, &1)
     )
     |> put_in([query_tables_lens() |> Lens.filter(&(&1.name in expanded_tables)) |> Lens.key(:type)], :subquery)
   end
