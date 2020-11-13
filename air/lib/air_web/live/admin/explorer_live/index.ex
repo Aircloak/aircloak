@@ -36,15 +36,13 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
     {:noreply, socket}
   end
 
-  def handle_event("toggle_table", %{"_target" => [data_source_id_str, table_name]} = payload, socket) do
-    data_source_id = String.to_integer(data_source_id_str)
+  def handle_event("analyze_table", %{"data_source_id" => data_source_id_str, "table_name" => table_name}, socket) do
+    Explorer.analyze_table(String.to_integer(data_source_id_str), table_name)
+    {:noreply, socket}
+  end
 
-    case payload[data_source_id_str][table_name] do
-      "on" -> Explorer.analyze_table(data_source_id, table_name)
-      nil -> Explorer.disable_table(data_source_id, table_name)
-      _ -> :ok
-    end
-
+  def handle_event("disable_table", %{"data_source_id" => data_source_id_str, "table_name" => table_name}, socket) do
+    Explorer.disable_table(String.to_integer(data_source_id_str), table_name)
     {:noreply, socket}
   end
 
