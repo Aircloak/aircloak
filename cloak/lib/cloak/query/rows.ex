@@ -70,7 +70,11 @@ defmodule Cloak.Query.Rows do
 
   @doc "Returns the list of expressions used to form the groups for aggregation and anonymization."
   @spec group_expressions(Query.t()) :: [Expression.t()]
-  def group_expressions(query), do: Query.Lenses.group_expressions() |> Lens.to_list(query)
+  def group_expressions(query) do
+    if query.group_by != [] or Compiler.Helpers.aggregates?(query),
+      do: query.group_by,
+      else: Query.bucket_columns(query)
+  end
 
   @doc "Returns the fields from a row or bucket element."
   @spec fields(Cloak.DataSource.row() | Cloak.Query.Result.bucket()) :: Cloak.DataSource.row()
