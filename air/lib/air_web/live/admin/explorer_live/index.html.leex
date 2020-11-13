@@ -24,24 +24,11 @@
 <div class="card-columns card-columns-responsive">
   <%= for data_source <- analyzable_data_sources(@all_data_sources) do %>
   <div class="card">
-    <div class="card-header d-flex py-1 pr-1" style="height: 45px">
-      <h3 class="h5 text-truncate flex-grow-1 align-self-center" style="margin: unset;"><%= data_source.name %></h3>
-      <%= if length(data_source.selected_tables) > 0 do %>
-      <button
-        class="btn btn-sm btn-outline-secondary flex-shrink-0"
-        phx-value-data_source_id="<%= data_source.id %>" phx-click="reanalyze_datasource"
-        <%= if not (data_source.stats.processing == 0), do: "disabled" %>
-      >
-        <i class="fas fa-redo fa-sm"></i> reanalyze
-      </button>
-      <% end %>
-      <%= if @current_user.debug_mode_enabled do %>
-      <a class="btn btn-outline-secondary ml-1" href="<%= admin_explorer_path(@socket, :show, data_source.name) %>">
-        <i class="fas fa-bug fa-sm"></i>
-      </a>
-      <% end %>
+    <div class="card-body">
+        <h3 class="h5 card-title text-truncate"><%= data_source.name %></h3>
+        <p class="card-text">Only tables that have been enabled will be analyzed.</p>
     </div>
-    <div class="card-body p-0 d-flex flex-column mt-2">
+    <div class="card-body p-0 d-flex flex-column">
       <%= for table <- data_source.tables do %>
       <div class="d-flex align-items-baseline">
         <div class="d-block flex-shrink-0 align-middle text-center">
@@ -71,6 +58,22 @@
         </form>
       </div>
       <% end %>
+    </div>
+    <div class="card-footer text-muted mt-2 d-flex">
+      <button
+        class="btn btn-sm btn-outline-secondary flex-grow-1"
+        phx-value-data_source_id="<%= data_source.id %>" phx-click="reanalyze_datasource"
+        <%= if not (data_source.stats.processing == 0) or length(data_source.selected_tables) == 0, do: "disabled" %>
+      >
+        <i class="fas fa-redo fa-sm"></i> reanalyze tables
+      </button>
+
+      <a
+        class="btn btn-sm btn-outline-secondary ml-1 flex-grow-1 <%= if data_source.stats.complete == 0, do: "disabled" %>"
+        href="<%= admin_explorer_path(@socket, :show, data_source.name) %>"
+      >
+        <i class="fas fa-bug fa-sm"></i> inspect results
+      </a>
     </div>
   </div>
   <% end %>
