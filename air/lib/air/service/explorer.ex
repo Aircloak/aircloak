@@ -241,8 +241,7 @@ defmodule Air.Service.Explorer do
       )
 
     if is_nil(existing_analysis) do
-      {user, _} = find_or_create_explorer_creds()
-      {:ok, data_source} = get_data_source(user, data_source_id)
+      {:ok, data_source} = get_data_source_and_grant_access_if_needed(data_source_id)
       # We create an analysis placeholder. This will be the only place in the service creating analysis.
       # That way we can assume that if one doesn't exist, then it shouldn't exist either.
       %ExplorerAnalysis{data_source: data_source}
@@ -306,16 +305,19 @@ defmodule Air.Service.Explorer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp get_data_source(user, data_source_id) do
-    with {:error, :unauthorized} <- Air.Service.DataSource.fetch_as_user({:id, data_source_id}, user),
-         data_source = %DataSource{} when not is_nil(data_source) <-
-           Repo.get_by(Air.Schemas.DataSource, id: data_source_id) do
-      group = group()
-      new_data_sources = [data_source_id | group.data_sources |> Enum.map(& &1.id)]
-      Air.Service.Group.update!(group, %{data_sources: new_data_sources})
-      get_data_source(user, data_source_id)
-    else
-      {:ok, data_source} -> {:ok, data_source}
+  defp get_data_source_and_grant_access_if_needed(data_source_id) do
+    {user, _} = find_or_create_explorer_creds()
+
+    case Air.Service.DataSource.fetch_as_user({:id, data_source_id}, user) do
+      {:ok, data_source} ->
+        {:ok, data_source}
+
+      {:error, :unauthorized} ->
+        data_source = Repo.get_by(Air.Schemas.DataSource, id: data_source_id)
+        group = group()
+        new_data_sources = [data_source_id | group.data_sources |> Enum.map(& &1.id)]
+        Air.Service.Group.update!(group, %{data_sources: new_data_sources})
+        {:ok, data_source}
     end
   end
 
