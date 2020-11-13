@@ -13,7 +13,10 @@
 
     <div style="max-width: 60ch;">
       <p>The Diffix Explorer integration manages a normal <%= link "user", to: admin_user_path(@socket, :index) %> and <%= link "group", to: admin_group_path(@socket, :index) %> that get permissions to make API requests against these data sources.</p>
-      <p>Once you hit Reanalyze, Diffix Explorer will make a large number of queries about every user table. Once we have the results, we'll present them in the query page.</p>
+      <p>
+        Once you enable a table for analysis Diffix Explorer will attempt to derive statistical properties about the columns of the table
+        by issuing queries against it. The results will be presented to analystis on the query page.
+      </p>
     </div>
   </div>
 </div>
