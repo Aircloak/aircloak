@@ -94,12 +94,14 @@
         <i class="fas fa-redo fa-sm"></i> Reanalyze tables
       </button>
 
-      <a
-        class="btn btn-sm btn-outline-secondary ml-1 flex-grow-1 <%= if data_source.stats.complete == 0, do: "disabled" %>"
-        href="<%= admin_explorer_path(@socket, :show, data_source.name) %>"
-      >
-        <i class="fas fa-bug fa-sm"></i> Inspect results
-      </a>
+      <%= if @current_user.debug_mode_enabled do %>
+        <a
+          class="btn btn-sm btn-outline-secondary ml-1 flex-grow-1 <%= if data_source.stats.complete == 0, do: "disabled" %>"
+          href="<%= admin_explorer_path(@socket, :show, data_source.name) %>"
+        >
+          <i class="fas fa-bug fa-sm"></i> Inspect results
+        </a>
+      <% end %>
     </div>
   </div>
   <% end %>
