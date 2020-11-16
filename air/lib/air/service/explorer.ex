@@ -68,15 +68,10 @@ defmodule Air.Service.Explorer do
     |> Enum.map(fn {{id, name, tables}, selected_tables} ->
       selected_tables = Enum.reject(selected_tables, &is_nil(&1.analysis_id))
 
-      soft_deleted_table_names =
-        selected_tables
-        |> Enum.filter(& &1.soft_delete)
-        |> Enum.map(& &1.table_name)
-
       selected_table_names =
         selected_tables
+        |> Enum.reject(& &1.soft_delete)
         |> Enum.map(& &1.table_name)
-        |> Enum.reject(&(&1 in soft_deleted_table_names))
         |> Enum.sort()
 
       available_table_names =
@@ -85,7 +80,6 @@ defmodule Air.Service.Explorer do
             tables
             |> Enum.filter(fn table -> Enum.any?(table["columns"], & &1["user_id"]) end)
             |> Enum.map(fn %{"id" => table_name} -> table_name end)
-            |> Enum.reject(&(&1 in soft_deleted_table_names))
             |> Enum.sort()
 
           _ ->
