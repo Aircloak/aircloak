@@ -41,10 +41,12 @@ defmodule Air.Service.Explorer do
               processing: integer,
               error: integer
             },
-            tables: %{
-              name: String.t(),
-              status: :not_enabled | :new | :processing | :cancelled | :error | :complete
-            }
+            tables: [
+              %{
+                name: String.t(),
+                status: :not_enabled | :new | :processing | :cancelled | :error | :complete
+              }
+            ]
           }
         ]
   def all_data_source_metadata() do
