@@ -39,7 +39,7 @@
             phx-value-data_source_id="<%= data_source.id %>"
             phx-value-table_name="<%= table.name %>"
           >
-            enable
+            Enable
           </button>
           <% end %>
           <%= if table.status in [:new, :processing] do %>
@@ -49,7 +49,7 @@
             phx-value-data_source_id="<%= data_source.id %>"
             phx-value-table_name="<%= table.name %>"
           >
-            cancel
+            Cancel
           </button>
           <% end %>
           <%= if table.status in [:complete, :cancelled, :error] do %>
@@ -59,7 +59,7 @@
             phx-value-data_source_id="<%= data_source.id %>"
             phx-value-table_name="<%= table.name %>"
           >
-            disable
+            Disable
           </button>
           <% end %>
         </div>
@@ -91,14 +91,14 @@
         phx-value-data_source_id="<%= data_source.id %>" phx-click="reanalyze_datasource"
         <%= if not (data_source.stats.processing == 0) or length(data_source.selected_tables) == 0, do: "disabled" %>
       >
-        <i class="fas fa-redo fa-sm"></i> reanalyze tables
+        <i class="fas fa-redo fa-sm"></i> Reanalyze tables
       </button>
 
       <a
         class="btn btn-sm btn-outline-secondary ml-1 flex-grow-1 <%= if data_source.stats.complete == 0, do: "disabled" %>"
         href="<%= admin_explorer_path(@socket, :show, data_source.name) %>"
       >
-        <i class="fas fa-bug fa-sm"></i> inspect results
+        <i class="fas fa-bug fa-sm"></i> Inspect results
       </a>
     </div>
   </div>
