@@ -150,9 +150,6 @@ defmodule Cloak.Test.QueryHelpers do
       |> Lens.both(Lens.root(), virtual_queries_lens())
       |> Lens.key(:data_source)
 
-  defp source_range_lens(query_lens),
-    do: query_lens |> Lens.key(:source_range)
-
   def scrub_data_sources(query), do: put_in(query, [Query.Lenses.all_queries() |> data_sources_lens()], nil)
 
   def scrub_locations(ast),
@@ -176,7 +173,7 @@ defmodule Cloak.Test.QueryHelpers do
         other ->
           other
       end)
-      |> put_in([Query.Lenses.all_queries() |> source_range_lens()], nil)
+      |> put_in([Query.Lenses.all_queries() |> Lens.key(:source_range)], nil)
 
   def compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)

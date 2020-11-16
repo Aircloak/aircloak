@@ -104,7 +104,8 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   }
 
   componentDidMount() {
-    this.setStatement(this.initialStatement());
+    if (this.state.statement.trim() !== "")
+      this.setStatement(this.initialStatement());
   }
 
   // eslint-disable-next-line react/static-property-placement
@@ -139,22 +140,30 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     return dataSourceStatus !== "offline";
   };
 
-  requestTypeCheck: (string) => void = debounce((statement) => {
-    this.typeCheckingChannel
-      .push("type_check", {
-        query: statement,
-        data_source: this.props.dataSourceName,
-      })
-      .receive("ok", ({ result }) => {
-        this.setState({
-          annotations: result.data,
+  requestTypeCheck: (string) => void = debounce(
+    (statement) => {
+      if (this.state.annotations.type)
+        this.setState({ annotations: "loading" });
+
+      this.typeCheckingChannel
+        .push("type_check", {
+          query: statement,
+          data_source: this.props.dataSourceName,
+        })
+        .receive("ok", ({ result }) => {
+          if (this.state.statement === statement || result.data.length)
+            this.setState({
+              annotations: result.data,
+            });
         });
-      });
-  }, 100);
+    },
+    100,
+    { leading: true, trailing: true }
+  );
 
   setStatement: (statement: string) => void = (statement) => {
     this.requestTypeCheck(statement);
-    this.setState({ statement, annotations: "loading" });
+    this.setState({ statement });
   };
 
   setResults: any | ((results: Array<Result>) => void) = (

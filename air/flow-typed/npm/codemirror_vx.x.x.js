@@ -1648,7 +1648,7 @@ declare module "codemirror" {
     clientHeight: any;
   }
 
-  declare type TextMarker = {
+  declare export type TextMarker = {
     /**
      * Remove the mark.
      */

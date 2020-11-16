@@ -351,18 +351,7 @@ defmodule Cloak.AirSocket do
     {:ok, data_source} = fetch_data_source(data.data_source)
 
     try do
-      explanation =
-        data.statement
-        |> Cloak.Sql.Parser.parse!()
-        |> Cloak.Sql.Compiler.compile!(
-          data.analyst_id,
-          data_source,
-          nil,
-          data.views || %{}
-        )
-        |> Cloak.Query.DbEmulator.compile()
-        |> Cloak.Sql.Query.Explainer.explain()
-
+      explanation = perform_type_check!(data, data_source)
       respond_to_air(from, :ok, %{"status" => "ok", "data" => Cloak.Sql.Query.Explainer.for_editor(explanation)})
     rescue
       e in Cloak.Sql.Parser.ParseError -> respond_with_error(from, e)
@@ -372,27 +361,59 @@ defmodule Cloak.AirSocket do
     {:ok, state}
   end
 
-  defp respond_with_error(from, %Cloak.Sql.Parser.ParseError{message: message, source_location: {row, col}}),
+  defp perform_type_check!(data, data_source) do
+    parse = Cloak.Sql.Parser.parse!(data.statement)
+
+    case parse.command do
+      :explain ->
+        parse
+        |> Map.put(:command, :select)
+        |> compile!(data, data_source)
+
+      :show ->
+        nil
+
+      _ ->
+        compile!(parse, data, data_source)
+    end
+  end
+
+  defp compile!(parse, data, data_source) do
+    parse
+    |> Cloak.Sql.Compiler.compile!(
+      data.analyst_id,
+      data_source,
+      nil,
+      data.views || %{}
+    )
+    |> Cloak.Query.DbEmulator.compile()
+    |> Cloak.Sql.Query.Explainer.explain()
+  end
+
+  defp respond_with_error(from, %Cloak.Sql.Parser.ParseError{message: message, source_location: location}),
     do:
       respond_to_air(from, :ok, %{
         "status" => "error",
         "data" => %{
           "message" => message,
-          "location" => %{line: row - 1, ch: col - 1},
+          "location" => format_location(location),
           "type" => "ParseError"
         }
       })
 
-  defp respond_with_error(from, %Cloak.Sql.CompilationError{message: message, source_location: {row, col}}),
+  defp respond_with_error(from, %Cloak.Sql.CompilationError{message: message, source_location: location}),
     do:
       respond_to_air(from, :ok, %{
         "status" => "error",
         "data" => %{
           "message" => message,
-          "location" => %{line: row - 1, ch: col - 1},
+          "location" => format_location(location),
           "type" => "CompilationError"
         }
       })
+
+  defp format_location({row, col}), do: %{line: row - 1, ch: col - 1}
+  defp format_location(nil), do: nil
 
   # -------------------------------------------------------------------
   # Handling air async casts

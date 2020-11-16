@@ -24,6 +24,8 @@ defmodule Cloak.Sql.Query.Explainer do
   @spec format_explanation(map) :: [String.t()]
   def format_explanation(explanation), do: format_explanation(explanation, "query", 0)
 
+  @doc "Provides a datastructure explaining the query suitable for the front-end editor."
+  @spec for_editor(any) :: [map]
   def for_editor({:subquery, %{query: explanation, alias: "__ac_" <> _alias}}),
     do: Enum.flat_map(explanation.subqueries, &for_editor/1)
 
@@ -31,6 +33,7 @@ defmodule Cloak.Sql.Query.Explainer do
   def for_editor({:table, _table}), do: []
   def for_editor(%{range: nil}), do: []
   def for_editor(%{view?: true}), do: []
+  def for_editor(nil), do: []
 
   def for_editor(explanation),
     do: [

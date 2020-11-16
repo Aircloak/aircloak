@@ -269,15 +269,6 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
-  test "stripping source locations" do
-    result1 = compile!("SELECT    count(*)    FROM table WHERE   abs(numeric) = 1", data_source())
-    result2 = compile!("SELECT count(*) FROM table WHERE abs(numeric) = 1", data_source())
-
-    # Note, this used to assert, but now we need to know concrete source locations higher
-    # up the compilation stack for editor support. Leaving this test here to document the decision.
-    refute result1 == result2
-  end
-
   describe "making boolean comparisons explicit" do
     test "positive" do
       assert_equivalent(

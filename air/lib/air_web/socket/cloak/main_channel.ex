@@ -89,7 +89,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   @doc """
-  Asks the cloak for typechecking information about the query.
+  Asks the cloak for type checking information about the query.
 
   Unlike `run_query/2`, this function is synchronous, meaning it waits for the
   cloak to respond, and returns the result obtained by the cloak.
