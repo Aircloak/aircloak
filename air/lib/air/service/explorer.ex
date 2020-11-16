@@ -416,7 +416,7 @@ defmodule Air.Service.Explorer do
         Logger.info("Cancelled analysis of #{analysis_name(analysis)}")
 
       _ ->
-        Logger.warn("Ignoring failed attempt a cancelling analysis of #{analysis_name(analysis)}.")
+        Logger.error("Ignoring failed attempt a cancelling analysis of #{analysis_name(analysis)}.")
     end
   end
 
