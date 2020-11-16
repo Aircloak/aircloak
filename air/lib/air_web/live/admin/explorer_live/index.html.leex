@@ -31,10 +31,10 @@
     <div class="card-body d-flex flex-column">
       <%= for table <- data_source.tables do %>
       <div class="d-flex mt-1 align-items-baseline">
-        <div class="flex-shrink-0 w-25">
+        <div class="flex-shrink-0 w-25 pr-2">
           <%= if table.status == :not_enabled do %>
           <button
-            class="btn btn-sm btn-outline-success"
+            class="btn btn-sm btn-outline-secondary w-100"
             phx-click="analyze_table"
             phx-value-data_source_id="<%= data_source.id %>"
             phx-value-table_name="<%= table.name %>"
@@ -44,7 +44,7 @@
           <% end %>
           <%= if table.status in [:new, :processing] do %>
           <button
-            class="btn btn-sm btn-outline-info"
+            class="btn btn-sm btn-outline-secondary w-100"
             phx-click="disable_table"
             phx-value-data_source_id="<%= data_source.id %>"
             phx-value-table_name="<%= table.name %>"
@@ -54,7 +54,7 @@
           <% end %>
           <%= if table.status in [:complete, :cancelled, :error] do %>
           <button
-            class="btn btn-sm btn-outline-danger"
+            class="btn btn-sm btn-outline-secondary w-100"
             phx-click="disable_table"
             phx-value-data_source_id="<%= data_source.id %>"
             phx-value-table_name="<%= table.name %>"
