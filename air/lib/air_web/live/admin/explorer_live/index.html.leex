@@ -9,13 +9,23 @@
 <div class="row">
   <div class="col">
     <h3>Data Sources</h3>
-    <p class="lead">These are the data sources that Diffix Explorer will start analyzing.</p>
+    <p class="lead">These are the data sources that can be analyzed by Diffix Explorer.</p>
 
     <div style="max-width: 60ch;">
-      <p>The Diffix Explorer integration manages a normal <%= link "user", to: admin_user_path(@socket, :index) %> and <%= link "group", to: admin_group_path(@socket, :index) %> that get permissions to make API requests against these data sources.</p>
       <p>
-        Once you enable a table for analysis Diffix Explorer will attempt to derive statistical properties about the columns of the table
-        by issuing queries against it. The results will be presented to analystis on the query page.
+        The Diffix Explorer integration manages a normal <%= link "user", to: admin_user_path(@socket, :index) %>
+        and <%= link "group", to: admin_group_path(@socket, :index) %> that get permissions to make API requests
+        against these data sources.
+      </p>
+      <p>
+        Once you enable a table below Diffix Explorer will attempt to analyze it.
+        It will do so through the regular anonymized query interface.
+        This way the analyses are always safe to view and share.
+        Analysts can view the analysis results on the page where they write queries.
+      </p>
+      <p>
+        It is only possible to enable tables containing a <code>user-id</code> column.
+        The list below only contains data sources with at least one such table.
       </p>
     </div>
   </div>
