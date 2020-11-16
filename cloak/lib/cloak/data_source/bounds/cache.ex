@@ -53,7 +53,7 @@ defmodule Cloak.DataSource.Bounds.Cache do
       name: __MODULE__,
       registered?: true,
       auto_refresh?: true,
-      default: true
+      default: :unknown
     ]
     |> Keyword.merge(opts)
     |> Cache.child_spec()
