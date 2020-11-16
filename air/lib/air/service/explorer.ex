@@ -29,39 +29,97 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  @doc "Returns counts of tables in various stages grouped by data source."
-  @spec statistics :: [
+  @doc "Returns all data sources along with the some metadata about the tables selected."
+  @spec all_data_source_metadata :: [
           %{
-            complete: integer,
-            processing: integer,
-            error: integer,
-            total: integer,
             id: integer,
             name: String.t(),
-            description: String.t()
+            selected_tables: [String.t()],
+            stats: %{
+              total: integer,
+              complete: integer,
+              processing: integer,
+              error: integer
+            },
+            tables: [
+              %{
+                name: String.t(),
+                status: :not_enabled | :new | :processing | :cancelled | :error | :complete
+              }
+            ]
           }
         ]
-  def statistics() do
-    from(explorer_analysis in ExplorerAnalysis,
-      right_join: data_source in DataSource,
+  def all_data_source_metadata() do
+    from(data_source in DataSource,
+      left_join: explorer_analysis in ExplorerAnalysis,
       on: explorer_analysis.data_source_id == data_source.id,
-      join: data_source_groups in "data_sources_groups",
-      on: data_source_groups.data_source_id == data_source.id,
-      join: group in Air.Schemas.Group,
-      on: group.id == data_source_groups.group_id,
-      where: group.name == "Diffix Explorer" and group.system,
       select: %{
-        complete: count(explorer_analysis.status in ["complete"] or nil),
-        processing: count(explorer_analysis.status in ["new", "processing"] or nil),
-        error: count(explorer_analysis.status in ["error"] or nil),
-        total: count(explorer_analysis.id),
         id: data_source.id,
         name: data_source.name,
-        description: data_source.description
-      },
-      group_by: data_source.id
+        tables: data_source.tables,
+        analysis_id: explorer_analysis.id,
+        table_name: explorer_analysis.table_name,
+        analysis_status: explorer_analysis.status,
+        soft_delete: explorer_analysis.soft_delete
+      }
     )
     |> Repo.all()
+    |> Enum.group_by(&{&1.id, &1.name, &1.tables})
+    |> Enum.map(fn {{id, name, tables}, selected_tables} ->
+      selected_tables = Enum.reject(selected_tables, &is_nil(&1.analysis_id))
+
+      selected_table_names =
+        selected_tables
+        |> Enum.reject(& &1.soft_delete)
+        |> Enum.map(& &1.table_name)
+        |> Enum.sort()
+
+      available_table_names =
+        case Jason.decode(tables) do
+          {:ok, tables} ->
+            tables
+            |> Enum.filter(fn table -> Enum.any?(table["columns"], & &1["user_id"]) end)
+            |> Enum.map(fn %{"id" => table_name} -> table_name end)
+            |> Enum.sort()
+
+          _ ->
+            []
+        end
+
+      tables_with_state =
+        available_table_names
+        |> Enum.map(fn table_name ->
+          table = Enum.find(selected_tables, %{analysis_status: :not_enabled}, &(&1.table_name == table_name))
+
+          %{
+            name: table_name,
+            status: table.analysis_status
+          }
+        end)
+
+      {complete, processing, error} =
+        Enum.reduce(selected_tables, {0, 0, 0}, fn table, {complete_acc, processing_acc, error_acc} ->
+          case table.analysis_status do
+            status when status in [:complete] -> {complete_acc + 1, processing_acc, error_acc}
+            status when status in [:new, :processing] -> {complete_acc, processing_acc + 1, error_acc}
+            status when status in [:error, :cancelled] -> {complete_acc, processing_acc, error_acc + 1}
+            _else -> {complete_acc, processing_acc, error_acc}
+          end
+        end)
+
+      %{
+        id: id,
+        name: name,
+        selected_tables: selected_table_names,
+        tables: tables_with_state,
+        stats: %{
+          total: length(selected_table_names),
+          complete: complete,
+          processing: processing,
+          error: error
+        }
+      }
+    end)
   end
 
   @doc "Is diffix explorer integration enabled for this datasource?"
@@ -86,22 +144,15 @@ defmodule Air.Service.Explorer do
         )
       )
 
-  @doc "Requests new analyses for datasource."
-  @spec reanalyze_datasource(Air.Schemas.DataSource.t()) :: :ok
-  def reanalyze_datasource(data_source),
-    do:
-      Enum.each(
-        results_for_datasource(data_source),
-        &GenServer.cast(__MODULE__, {:request_analysis, set_status_to_processing(&1)})
-      )
+  @doc "Spawns the analysis of a table, whether or not it has previously been analyzed"
+  @spec analyze_table(data_source_id :: integer, table_name :: String.t()) :: :ok
+  def analyze_table(data_source_id, table_name),
+    do: GenServer.cast(__MODULE__, {:analyze_table, data_source_id, table_name})
 
-  @doc "Returns a list of tables that are elligible for analysis for a particular datasource"
-  @spec elligible_tables_for_datasource(Air.Schemas.DataSource.t()) :: [String.t()]
-  def elligible_tables_for_datasource(data_source) do
-    DataSource.tables(data_source)
-    |> Enum.filter(fn table -> Enum.any?(table["columns"], & &1["user_id"]) end)
-    |> Enum.map(fn %{"id" => table_name} -> table_name end)
-  end
+  @doc "Removes a table from being analyzed."
+  @spec disable_table(data_source_id :: integer, table_name :: String.t()) :: :ok
+  def disable_table(data_source_id, table_name),
+    do: GenServer.cast(__MODULE__, {:disable_table, data_source_id, table_name})
 
   @doc "Removes results for tables which no longer exist in the data source."
   @spec data_source_updated(Air.Schemas.DataSource.t()) :: :ok
@@ -110,53 +161,27 @@ defmodule Air.Service.Explorer do
       DataSource.tables(data_source)
       |> Enum.map(fn %{"id" => name} -> name end)
 
-    from(explorer_analysis in ExplorerAnalysis,
-      where:
-        explorer_analysis.data_source_id == ^data_source.id and
-          explorer_analysis.table_name not in ^tables
+    Repo.update_all(
+      from(explorer_analysis in ExplorerAnalysis,
+        where:
+          explorer_analysis.data_source_id == ^data_source.id and
+            explorer_analysis.table_name in ^tables
+      ),
+      set: [soft_delete: false]
     )
-    |> Repo.delete_all()
+
+    Repo.update_all(
+      from(explorer_analysis in ExplorerAnalysis,
+        where:
+          explorer_analysis.data_source_id == ^data_source.id and
+            explorer_analysis.table_name not in ^tables
+      ),
+      set: [soft_delete: true]
+    )
+
+    broadcast_changes()
 
     :ok
-  end
-
-  @doc """
-  Modifies the data source membership of the Diffix Explorer group.
-  It then deletes all analysis results belonging to data sources that Diffix Explorer no longer has access to.
-  Finally it will request analysis results of all tables of all groups that have been added to it.
-  """
-  @spec change_permitted_data_sources(map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
-  def change_permitted_data_sources(params) do
-    old_group = group()
-
-    tables_by_datasource =
-      Enum.reduce(params["tables"], %{}, fn input, acc ->
-        with true <- is_map(input),
-             [{data_source_id_str, table_name}] <- Map.to_list(input),
-             {data_source_id, _remainder} <- Integer.parse(data_source_id_str) do
-          Map.update(acc, data_source_id, [table_name], &[table_name | &1])
-        else
-          _ -> acc
-        end
-      end)
-
-    case Air.Service.Group.update(old_group, params) do
-      {:ok, new_group} ->
-        new_group.data_sources
-        |> Enum.map(fn data_source -> {data_source, tables_by_datasource[data_source.id] || []} end)
-        |> delete_all_unauthorized()
-        |> reject_all_unchanged()
-        |> Enum.each(fn {data_source, tables} ->
-          Enum.each(tables, fn table ->
-            GenServer.cast(__MODULE__, {:request_analysis, create_placeholder_result(data_source, table)})
-          end)
-        end)
-
-        {:ok, new_group}
-
-      {:error, changeset} ->
-        {:error, changeset}
-    end
   end
 
   @doc "Creates the Diffix Explorer user and group unless they exist already."
@@ -202,6 +227,58 @@ defmodule Air.Service.Explorer do
     {:noreply, poll_unless_already_pending_poll(poll_in_progress?)}
   end
 
+  def handle_cast({:analyze_table, data_source_id, table_name}, poll_in_progress?) do
+    existing_analysis =
+      Repo.one(
+        from(explorer_analysis in ExplorerAnalysis,
+          where: explorer_analysis.data_source_id == ^data_source_id and explorer_analysis.table_name == ^table_name,
+          preload: [:data_source]
+        )
+      )
+
+    if is_nil(existing_analysis) do
+      {:ok, data_source} = get_data_source_and_grant_access_if_needed(data_source_id)
+      # We create an analysis placeholder. This will be the only place in the service creating analysis.
+      # That way we can assume that if one doesn't exist, then it shouldn't exist either.
+      %ExplorerAnalysis{data_source: data_source}
+      |> ExplorerAnalysis.changeset(%{
+        table_name: table_name,
+        status: :new
+      })
+      |> Repo.insert!()
+      |> Repo.preload(:data_source)
+      |> request_analysis()
+    else
+      unless existing_analysis.soft_delete do
+        existing_analysis
+        |> ExplorerAnalysis.changeset(%{status: :new})
+        |> Repo.update!()
+        |> request_analysis()
+      end
+    end
+
+    broadcast_changes()
+    {:noreply, poll_unless_already_pending_poll(poll_in_progress?)}
+  end
+
+  def handle_cast({:disable_table, data_source_id, table_name}, poll_in_progress?) do
+    analysis =
+      Repo.one(
+        from(explorer_analysis in ExplorerAnalysis,
+          where: explorer_analysis.data_source_id == ^data_source_id and explorer_analysis.table_name == ^table_name,
+          preload: :data_source
+        )
+      )
+
+    unless is_nil(analysis) do
+      if analysis.status in [:new, :processing], do: cancel_analysis(analysis)
+      Repo.delete!(analysis)
+      broadcast_changes()
+    end
+
+    {:noreply, poll_in_progress?}
+  end
+
   @impl GenServer
   def handle_info(:poll, _state) do
     pending_analyses_query()
@@ -224,6 +301,22 @@ defmodule Air.Service.Explorer do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp get_data_source_and_grant_access_if_needed(data_source_id) do
+    {user, _} = find_or_create_explorer_creds()
+
+    case Air.Service.DataSource.fetch_as_user({:id, data_source_id}, user) do
+      {:ok, data_source} ->
+        {:ok, data_source}
+
+      {:error, :unauthorized} ->
+        data_source = Repo.get_by(Air.Schemas.DataSource, id: data_source_id)
+        group = group()
+        new_data_sources = [data_source_id | group.data_sources |> Enum.map(& &1.id)]
+        Air.Service.Group.update!(group, %{data_sources: new_data_sources})
+        {:ok, data_source}
+    end
+  end
+
   defp schedule_poll(), do: poll_unless_already_pending_poll(false)
 
   defp poll_unless_already_pending_poll(poll_in_progress?) do
@@ -232,43 +325,6 @@ defmodule Air.Service.Explorer do
     end
 
     true
-  end
-
-  defp create_placeholder_result(data_source, table) do
-    Repo.insert!(%ExplorerAnalysis{data_source: data_source, table_name: table, status: :new})
-  end
-
-  defp delete_all_unauthorized(current_datasources) do
-    current_datasources
-    |> Enum.reduce(ExplorerAnalysis, fn {data_source, tables}, query ->
-      if Enum.empty?(tables) do
-        query
-      else
-        where(
-          query,
-          [explorer_analysis],
-          not (explorer_analysis.data_source_id == ^data_source.id and explorer_analysis.table_name in ^tables)
-        )
-      end
-    end)
-    |> Repo.delete_all()
-
-    current_datasources
-  end
-
-  defp reject_all_unchanged(current_datasources) do
-    results = Repo.all(ExplorerAnalysis)
-
-    current_datasources
-    |> Enum.map(fn {data_source, tables} ->
-      {data_source,
-       Enum.reject(tables, fn table ->
-         Enum.find(results, false, fn result ->
-           result.data_source_id == data_source.id && result.table_name == table
-         end)
-       end)}
-    end)
-    |> Enum.reject(fn {_data_source, tables} -> Enum.empty?(tables) end)
   end
 
   defp pending_analyses_query() do
@@ -297,6 +353,8 @@ defmodule Air.Service.Explorer do
   end
 
   defp request_analysis(analysis) do
+    set_status_to_processing(analysis)
+
     {_, token} = find_or_create_explorer_creds()
 
     %{"columns" => columns} =
@@ -327,8 +385,8 @@ defmodule Air.Service.Explorer do
       {:ok, %HTTPoison.Response{status_code: status_code, body: err}} when status_code >= 400 ->
         Logger.error(
           "Explorer encountered an unexpected error (HTTP: #{status_code}) when requesting an analysis for #{
-            analysis.data_source.name
-          }/#{analysis.table_name}: #{err}"
+            analysis_name(analysis)
+          }: #{err}"
         )
 
         {:ok, _} =
@@ -341,14 +399,24 @@ defmodule Air.Service.Explorer do
 
       err ->
         Logger.error(
-          "Explorer encountered an unexpected error when requesting an analysis for #{analysis.data_source.name}/#{
-            analysis.table_name
-          }: #{inspect(err)}"
+          "Explorer encountered an unexpected error when requesting an analysis for #{analysis_name(analysis)}: #{
+            inspect(err)
+          }"
         )
 
         {:ok, _} = update_analysis(analysis, status: :error, errors: [inspect(err)])
 
         :error
+    end
+  end
+
+  defp cancel_analysis(analysis) do
+    case HTTPoison.get(base_url() <> "/cancel/#{analysis.job_id}") do
+      {:ok, %HTTPoison.Response{status_code: 200, body: _response}} ->
+        Logger.info("Cancelled analysis of #{analysis_name(analysis)}")
+
+      _ ->
+        Logger.error("Ignoring failed attempt a cancelling analysis of #{analysis_name(analysis)}.")
     end
   end
 
@@ -361,7 +429,7 @@ defmodule Air.Service.Explorer do
   defp handle_result_changeset(changeset, results), do: ExplorerAnalysis.from_decoded_result_json(changeset, results)
 
   defp set_status_to_processing(analysis) do
-    {:ok, analysis} = Repo.insert_or_update(ExplorerAnalysis.changeset(analysis, %{status: :processing}))
+    {:ok, analysis} = Repo.update(ExplorerAnalysis.changeset(analysis, %{status: :processing}))
     analysis
   end
 
@@ -374,7 +442,7 @@ defmodule Air.Service.Explorer do
         |> Keyword.delete(:result)
         |> Enum.into(%{})
       )
-      |> Repo.insert_or_update()
+      |> Repo.update()
 
     broadcast_changes()
     result
@@ -467,6 +535,8 @@ defmodule Air.Service.Explorer do
 
     broadcast_changes()
   end
+
+  defp analysis_name(analysis), do: analysis.data_source.name <> "/" <> analysis.table_name
 
   defp base_url(), do: config!("url") <> "/api/v1"
 

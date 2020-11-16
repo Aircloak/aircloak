@@ -14,6 +14,7 @@ defmodule Air.Schemas.ExplorerAnalysis do
     field(:table_name, :string)
     field(:errors, {:array, :string}, default: [])
     field(:version, :string)
+    field(:soft_delete, :boolean, default: false)
     belongs_to(:data_source, DataSource, on_replace: :delete)
 
     timestamps(type: :naive_datetime_usec)

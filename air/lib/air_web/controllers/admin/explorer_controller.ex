@@ -5,7 +5,7 @@ defmodule AirWeb.Admin.ExplorerController do
   import Phoenix.LiveView.Controller
 
   plug(:check_if_enabled)
-  plug(:prepare_debug when action in [:show, :update])
+  plug(:prepare_debug when action in [:show])
   plug(:disable_layout_flash when action in [:index])
 
   # -------------------------------------------------------------------

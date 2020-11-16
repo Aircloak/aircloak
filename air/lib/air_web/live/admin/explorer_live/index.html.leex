@@ -7,79 +7,102 @@
 
 <div class="container-lg mx-0 px-0">
 <div class="row">
-  <div class="col-xl-7">
+  <div class="col">
+    <h3>Data Sources</h3>
+    <p class="lead">These are the data sources that Diffix Explorer will start analyzing.</p>
 
-    <%= f = form_for @changeset,  "#", [phx_submit: :save_settings] %>
-      <h3>Data Sources</h3>
-      <p class="lead">These are the data sources that Diffix Explorer will start analyzing.</p>
-
-      <div class="mx-1 mb-3">
-        <%= PhoenixMTM.Helpers.collection_checkboxes f, :data_sources, @all_data_sources,
-            selected: Enum.map(@data_sources, & &1.id) , mapper: &checkbox_mapper/6
-          %>
-      </div>
-
-      <div class="form-group">
-      <%= submit "Save", class: "btn btn-success" %>
-      </div>
-    </form>
-  </div>
-  <div class="col-xl-5 p-xl-4 border-xl-left">
-    <p>The Diffix Explorer integration manages a normal <%= link "user", to: admin_user_path(@socket, :index) %> and <%= link "group", to: admin_group_path(@socket, :index) %> that get permissions to make API requests against these data sources.</p>
-    <p>Once you hit Reanalyze, Diffix Explorer will make a large number of queries about every user table. Once we have the results, we'll present them in the query page.</p>
+    <div style="max-width: 60ch;">
+      <p>The Diffix Explorer integration manages a normal <%= link "user", to: admin_user_path(@socket, :index) %> and <%= link "group", to: admin_group_path(@socket, :index) %> that get permissions to make API requests against these data sources.</p>
+      <p>
+        Once you enable a table for analysis Diffix Explorer will attempt to derive statistical properties about the columns of the table
+        by issuing queries against it. The results will be presented to analystis on the query page.
+      </p>
+    </div>
   </div>
 </div>
-</div>
 
-<%= if length(@data_sources) > 0 do %>
-  <section>
-    <%= if @current_user.debug_mode_enabled and length(@data_sources) > 1 do %>
-      <button class="btn btn-sm float-right btn-primary" data-confirm="Reanalyzing all data sources can dramatically increase the load on your system. Are you sure?" phx-click="reanalyze_all">
-        <i class="fas fa-redo fa-sm"></i>
-        Reanalyze all data sources
-      </button>
-    <% end %>
-    <h3 class="mt-5 pb-2">Analysis Progress</h3>
-    <div class="card-columns card-columns-responsive">
-      <%= for data_source <- @data_sources do %>
-        <div class="card">
-          <div class="card-header">
-            <h3 class="h5 text-truncate"><%= data_source.name %></h3>
-          </div>
-          <div class="card-body">
-            <%= if data_source.total == 0 do %>
-              <p class="card-text">No analyses available</p>
-            <% else %>
-              <div class="progress mb-4">
-                <div class="progress-bar bg-success <%= unless data_source.processing == 0, do: "progress-bar-striped progress-bar-animated" %>" role="progressbar" style="width: <%= 100 * data_source.complete / data_source.total %>%" aria-valuenow="<%= data_source.complete %>" aria-valuemin="0" aria-valuemax="<%= data_source.total %>">
-                  <%= unless data_source.complete / data_source.total < 0.2 do %>
-                    <%= data_source.complete %> complete
-                  <% end %>
-                </div>
-                <div class="progress-bar bg-danger <%= unless data_source.processing == 0, do: "progress-bar-striped progress-bar-animated" %>" role="progressbar" style="width: <%= 100 * data_source.error / data_source.total %>%" aria-valuenow="<%= data_source.error %>" aria-valuemin="0" aria-valuemax="<%= data_source.total %>">
-                  <%= unless data_source.error / data_source.total < 0.2 do %>
-                    <%= data_source.error %> errors
-                  <% end %>
-                </div>
-              </div>
-            <% end %>
-
-            <div class="btn-group w-100">
-              <button class="btn btn-outline-secondary" style="flex-basis: 50%" phx-value-data_source_id="<%= data_source.name %>" phx-click="reanalyze_datasource">
-                <i class="fas fa-redo fa-sm"></i>
-                Reanalyze
-              </button>
-
-              <%= if @current_user.debug_mode_enabled do %>
-                <a class="btn btn-outline-secondary" href="<%= admin_explorer_path(@socket, :show, data_source.name) %>" style="flex-basis: 50%">
-                  <i class="fas fa-bug fa-sm"></i>
-                  Debug
-                </a>
-              <% end %>
-            </div>
-          </div>
+<div class="card-columns mt-0 card-columns-responsive">
+  <%= for data_source <- analyzable_data_sources(@all_data_sources) do %>
+  <div class="card">
+    <div class="card-body">
+        <h3 class="h5 card-title text-truncate"><%= data_source.name %></h3>
+        <p class="card-text">Only tables that have been enabled will be analyzed.</p>
+    </div>
+    <div class="card-body d-flex flex-column">
+      <%= for table <- data_source.tables do %>
+      <div class="d-flex mt-1 align-items-baseline">
+        <div class="flex-shrink-0 w-25 pr-2">
+          <%= if table.status == :not_enabled do %>
+          <button
+            class="btn btn-sm btn-outline-secondary w-100"
+            phx-click="analyze_table"
+            phx-value-data_source_id="<%= data_source.id %>"
+            phx-value-table_name="<%= table.name %>"
+          >
+            Enable
+          </button>
+          <% end %>
+          <%= if table.status in [:new, :processing] do %>
+          <button
+            class="btn btn-sm btn-outline-secondary w-100"
+            phx-click="disable_table"
+            phx-value-data_source_id="<%= data_source.id %>"
+            phx-value-table_name="<%= table.name %>"
+          >
+            Cancel
+          </button>
+          <% end %>
+          <%= if table.status in [:complete, :cancelled, :error] do %>
+          <button
+            class="btn btn-sm btn-outline-secondary w-100"
+            phx-click="disable_table"
+            phx-value-data_source_id="<%= data_source.id %>"
+            phx-value-table_name="<%= table.name %>"
+          >
+            Disable
+          </button>
+          <% end %>
         </div>
+
+        <div class="d-block w-75 text-wrap">
+          <%= table.name %>
+          <%= if table.status == :complete do %>
+          <span class="badge badge-success">
+            completed
+          </span>
+          <% end %>
+          <%= if table.status in [:new, :processing] do %>
+          <span class="badge badge-info">
+            analyzing
+          </span>
+          <% end %>
+          <%= if table.status in [:error, :cancelled] do %>
+          <span class="badge badge-danger">
+            failed
+          </span>
+          <% end %>
+        </div>
+      </div>
       <% end %>
     </div>
-  </section>
-<% end %>
+    <div class="card-footer text-muted mt-2 d-flex">
+      <button
+        class="btn btn-sm btn-outline-secondary flex-grow-1"
+        phx-value-data_source_id="<%= data_source.id %>" phx-click="reanalyze_datasource"
+        <%= if not (data_source.stats.processing == 0) or length(data_source.selected_tables) == 0, do: "disabled" %>
+      >
+        <i class="fas fa-redo fa-sm"></i> Reanalyze tables
+      </button>
+
+      <%= if @current_user.debug_mode_enabled do %>
+        <a
+          class="btn btn-sm btn-outline-secondary ml-1 flex-grow-1 <%= if data_source.stats.complete == 0, do: "disabled" %>"
+          href="<%= admin_explorer_path(@socket, :show, data_source.name) %>"
+        >
+          <i class="fas fa-bug fa-sm"></i> Inspect results
+        </a>
+      <% end %>
+    </div>
+  </div>
+  <% end %>
+</div>
