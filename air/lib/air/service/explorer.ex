@@ -426,7 +426,7 @@ defmodule Air.Service.Explorer do
     do:
       table["columns"]
       |> Enum.reject(&unanalyzable_column?/1)
-      |> Enum.count() > 0
+      |> length() > 0
 
   defp unanalyzable_column?(column),
     do:
