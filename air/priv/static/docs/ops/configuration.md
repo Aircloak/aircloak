@@ -349,6 +349,18 @@ includes if your reverse proxy redirects from HTTP to HTTPS. In the latter case,
 in the URL. For the Diffix Explorer integration to work properly, you will also need to configure the
 [`site.endpoint_public_url`](#web-site-configuration) setting.
 
+In the admin control panel you can choose which tables Diffix Explorer should analyze – by default none are.
+
+Only tables meeting the following criteria can be analyzed:
+- the table must contain a `user-id` column
+- the table must have a least one column besides the `user-id` column that is selectable (i.e. not marked as unselectable)
+- the table must have a least one column besides the `user-id` column that is not classified or defined as isolating.
+
+Some of Diffix Explorer's behaviors can only be configured through the use of environment variables.
+For example, in order to limit the number of parallel queries issued, you can use the `Explorer__MaxConcurrentQueries` environment variable.
+
+A full overview of the configuration variables can be found in the [project documentation](https://github.com/diffix/explorer/#configuration).
+
 ## Insights Cloak configuration
 
 The Insights Cloak configuration is used to provide the following information:

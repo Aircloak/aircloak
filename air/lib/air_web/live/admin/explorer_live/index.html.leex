@@ -24,9 +24,9 @@
         Analysts can view the analysis results on the page where they write queries.
       </p>
       <p>
-        Not all tables can are analyzable. To be analyzable a table must contain a <code>user-id</code>
-        column and at least one other column that is not unselectable or classified as isolating.
-        The list below only contains data sources with at least one table that can is analyzable.
+        The list below only contains tables that can be analysed and data source containing at least one such table.
+        For more information, please consult the <a href="/docs/#/ops/configuration?id=diffix-explorer-configuration">
+        Diffix Explorer section of the user guide</a>.
       </p>
     </div>
   </div>
@@ -95,11 +95,16 @@
         </div>
       </div>
       <% end %>
+      <%= if length(data_source.unanalyzable_tables) > 0 do %>
       <p class="card-text mt-3"><small class="text-muted">
-        Only tables with analyzable columns are listed.
+        <%= if length(data_source.unanalyzable_tables) == 1, do: "Table", else: "Tables" %>
+        <%= Aircloak.OxfordComma.join(data_source.unanalyzable_tables) %>
+        <%= if length(data_source.unanalyzable_tables) == 1, do: "is", else: "are" %>
+        not analyzable. Only tables with analyzable columns are listed.
         To be analyzable a table must contain a <code>user-id</code>
         column and at least one other column that is not unselectable or classified as isolating.
       </small></p>
+      <% end %>
     </div>
     <div class="card-footer text-muted d-flex">
       <button

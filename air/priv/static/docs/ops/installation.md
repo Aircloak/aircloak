@@ -115,4 +115,4 @@ Mounting of the persisted folder is optional. If you don't mount this folder, th
 
 ## Diffix Explorer
 
-Please follow the [project documentation](https://github.com/diffix/explorer#getting-started).
+For installation information, please follow the [documentation on dockerhub](https://hub.docker.com/r/diffix/explorer).
