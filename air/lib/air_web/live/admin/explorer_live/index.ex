@@ -2,7 +2,7 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
   @moduledoc false
   use Air.Web, :live_view
 
-  alias Air.Service.{Explorer, Group}
+  alias Air.Service.{AuditLog, Explorer, Group}
 
   @impl true
   def mount(_params, session, socket) do
@@ -37,12 +37,38 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
   end
 
   def handle_event("analyze_table", %{"data_source_id" => data_source_id_str, "table_name" => table_name}, socket) do
-    Explorer.analyze_table(String.to_integer(data_source_id_str), table_name)
+    data_source_id = String.to_integer(data_source_id_str)
+    data_source = Enum.find(socket.assigns.all_data_sources, & &1.id == data_source_id)
+    AuditLog.log(
+      socket.assigns.current_user,
+      "Diffix Explorer settings",
+      %{
+        action: "Enabled table for analysis",
+        data_source: data_source.name,
+        enabled_table: table_name,
+        before: %{tables: data_source.selected_tables},
+        after: %{tables: data_source.selected_tables ++ [table_name]}
+      }
+    )
+    Explorer.analyze_table(data_source_id, table_name)
     {:noreply, socket}
   end
 
   def handle_event("disable_table", %{"data_source_id" => data_source_id_str, "table_name" => table_name}, socket) do
-    Explorer.disable_table(String.to_integer(data_source_id_str), table_name)
+    data_source_id = String.to_integer(data_source_id_str)
+    data_source = Enum.find(socket.assigns.all_data_sources, & &1.id == data_source_id)
+    AuditLog.log(
+      socket.assigns.current_user,
+      "Diffix Explorer settings",
+      %{
+        action: "Excluded table from analysis",
+        data_source: data_source.name,
+        excluded_table: table_name,
+        before: %{tables: data_source.selected_tables},
+        after: %{tables: data_source.selected_tables -- [table_name]}
+      }
+    )
+    Explorer.disable_table(data_source_id, table_name)
     {:noreply, socket}
   end
 
