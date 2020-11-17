@@ -177,7 +177,7 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
 
         <%= for {key, val} <- Map.drop(@metadata, ["remote_ip", "peer", "data_source", "diff", "group_id", "group_name", "query", "user"]) do %>
           <div class="d-flex">
-            <strong style="width: 150px"><%= key %></strong>
+            <strong style="width: 150px"><%= event_key_for_display(key) %></strong>
             <span><%= val %></span>
           </div>
         <% end %>
@@ -185,6 +185,9 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
     </div>
     """
   end
+
+  defp event_key_for_display(key) when is_atom(key), do: key |> Atom.to_string() |> event_key_for_display()
+  defp event_key_for_display(key), do: key |> String.replace("_", " ") |> String.capitalize()
 
   defp parse_datetime(value, default) do
     case Timex.parse(value, "{ISOdate} {ISOtime}") do
