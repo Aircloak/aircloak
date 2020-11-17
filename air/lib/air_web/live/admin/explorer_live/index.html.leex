@@ -32,7 +32,7 @@
 </div>
 
 <div class="card-columns mt-0 card-columns-responsive">
-  <%= for data_source <- analyzable_data_sources(@all_data_sources) do %>
+  <%= for data_source <- @all_data_sources do %>
   <div class="card">
     <div class="card-body">
         <h3 class="h5 card-title text-truncate"><%= data_source.name %></h3>

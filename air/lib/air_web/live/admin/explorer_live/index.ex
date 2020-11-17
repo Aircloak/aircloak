@@ -81,6 +81,4 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
     {:ok, user} = Air.Service.User.load_enabled(user_id)
     user
   end
-
-  defp analyzable_data_sources(data_sources), do: Enum.reject(data_sources, &(&1.tables == []))
 end
