@@ -42,13 +42,10 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
 
     AuditLog.log(
       socket.assigns.current_user,
-      "Diffix Explorer settings",
+      "Added table to Diffix Explorer",
       %{
-        action: "Enabled table for analysis",
         data_source: data_source.name,
-        enabled_table: table_name,
-        before: %{tables: data_source.selected_tables},
-        after: %{tables: data_source.selected_tables ++ [table_name]}
+        table: table_name
       }
     )
 
@@ -62,13 +59,10 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
 
     AuditLog.log(
       socket.assigns.current_user,
-      "Diffix Explorer settings",
+      "Removed table from Diffix Explorer",
       %{
-        action: "Excluded table from analysis",
         data_source: data_source.name,
-        excluded_table: table_name,
-        before: %{tables: data_source.selected_tables},
-        after: %{tables: data_source.selected_tables -- [table_name]}
+        table: table_name
       }
     )
 
