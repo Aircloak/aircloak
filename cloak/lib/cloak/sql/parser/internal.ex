@@ -78,7 +78,8 @@ defmodule Cloak.Sql.Parser.Internal do
   defp parenthesised_select_statement(prefix_label \\ "select") do
     either_deepest_error(
       between(keyword(:"("), lazy(fn -> parenthesised_select_statement() end), subquery_close_paren()),
-      pair_right(keyword(:select) |> label(prefix_label), select_statement())
+      pair_both(keyword_with_position(:select) |> label(prefix_label), pair_both(select_statement(), position()))
+      |> map(fn {{start_pos, :select}, {statement, end_pos}} -> [{:source_range, {start_pos, end_pos}} | statement] end)
     )
     |> sep_by1_eager(union())
     |> map(fn [first | rest] ->
@@ -645,10 +646,24 @@ defmodule Cloak.Sql.Parser.Internal do
   end
 
   defp table_or_subquery() do
-    either_deepest_error(
-      pair_right(keyword(:"("), subquery()),
-      table_name()
-    )
+    switch([
+      {keyword_with_position(:"(") |> map(fn {location, _} -> {location, :subquery} end), subquery()},
+      {:else, table_name()}
+    ])
+    |> map(fn
+      {[{location, :subquery}], [{:subquery, subquery_data}]} -> {:subquery, postprocess_range(subquery_data, location)}
+      other -> other
+    end)
+  end
+
+  defp postprocess_range(data, start_location) do
+    end_location = data.ast.end_location
+
+    update_in(data.ast, fn ast ->
+      ast
+      |> Map.delete(:end_location)
+      |> Map.put(:source_range, {start_location, end_location})
+    end)
   end
 
   defp table_name() do
@@ -670,10 +685,11 @@ defmodule Cloak.Sql.Parser.Internal do
       parenthesised_select_statement(),
       ignore(subquery_close_paren()),
       option(keyword(:as)),
-      label(identifier() |> map(fn {_type, value} -> value end), "subquery alias")
+      label(identifier() |> map(fn {_type, value} -> value end), "subquery alias"),
+      position()
     ])
-    |> map(fn [select_statement, _as_keyword, alias] ->
-      {:subquery, %{ast: statement_map(select_statement), alias: alias}}
+    |> map(fn [select_statement, _as_keyword, alias, pos] ->
+      {:subquery, %{ast: statement_map([{:end_location, pos} | select_statement]), alias: alias}}
     end)
   end
 

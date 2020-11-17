@@ -1387,10 +1387,7 @@ defmodule Cloak.Sql.Parser.Test do
       )
 
   test "cast to timestamp" do
-    result1 = Parser.parse!("select cast(a as datetime) from bar")
-    result2 = Parser.parse!("select cast(a as timestamp) from bar")
-
-    assert result1 == result2
+    assert_equal_parse("select cast(a as datetime) from bar", "select cast(a as timestamp) from bar")
   end
 
   test "cast to float",

@@ -173,6 +173,7 @@ defmodule Cloak.Test.QueryHelpers do
         other ->
           other
       end)
+      |> put_in([Query.Lenses.all_queries() |> Lens.key(:source_range)], nil)
 
   def compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)

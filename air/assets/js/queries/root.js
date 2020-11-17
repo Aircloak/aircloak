@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { AuthContext } from "../authentication_provider";
 import CodeEditor from "../code_editor";
+import type { Annotations } from "../code_editor";
 import CodeViewer from "../code_viewer";
 import Results from "./results";
 import type { Result, PendingResult } from "./result";
@@ -44,6 +45,7 @@ type State = {
   history: History,
   connected: boolean,
   dataSourceStatus: string,
+  annotations: Annotations,
 };
 
 const upgradeRequired = 426;
@@ -78,22 +80,13 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       connected: true,
       dataSourceStatus,
       history: emptyHistory,
+      annotations: "loading",
     };
 
-    this.setStatement = this.setStatement.bind(this);
     this.runQuery = debounce(this.runQuery.bind(this), runQueryTimeout, {
       leading: true,
       trailing: false,
     });
-    this.queryData = this.queryData.bind(this);
-    this.setResults = this.setResults.bind(this);
-    this.handleLoadHistory = this.handleLoadHistory.bind(this);
-    this.replaceResult = this.replaceResult.bind(this);
-    this.columnNames = this.columnNames.bind(this);
-    this.tableNames = this.tableNames.bind(this);
-    this.runEnabled = this.runEnabled.bind(this);
-    this.updateConnected = this.updateConnected.bind(this);
-    this.initialStatement = this.initialStatement.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     frontendSocket.joinDataSourceChannel(dataSourceName, {
@@ -102,10 +95,17 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     this.channel = frontendSocket.joinUserQueriesChannel(userId, {
       handleEvent: (event) => this.resultReceived(event),
     });
+    this.typeCheckingChannel = frontendSocket.joinTypeCheckChannel(userId, {});
+
     this.connectedInterval = setInterval(
       this.updateConnected,
       1000 /* 1 second */
     );
+  }
+
+  componentDidMount() {
+    if (this.state.statement.trim() !== "")
+      this.setStatement(this.initialStatement());
   }
 
   // eslint-disable-next-line react/static-property-placement
@@ -114,6 +114,8 @@ export default class QueriesView extends React.PureComponent<Props, State> {
   connectedInterval: IntervalID;
 
   channel: Channel;
+
+  typeCheckingChannel: Channel;
 
   initialStatement: any | (() => string) = () => {
     const { lastQuery } = this.props;
@@ -138,7 +140,29 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     return dataSourceStatus !== "offline";
   };
 
-  setStatement: any | ((statement: string) => void) = (statement: string) => {
+  requestTypeCheck: (string) => void = debounce(
+    (statement) => {
+      if (this.state.annotations.type)
+        this.setState({ annotations: "loading" });
+
+      this.typeCheckingChannel
+        .push("type_check", {
+          query: statement,
+          data_source: this.props.dataSourceName,
+        })
+        .receive("ok", ({ result }) => {
+          if (this.state.statement === statement || result.data.length)
+            this.setState({
+              annotations: result.data,
+            });
+        });
+    },
+    100,
+    { leading: true, trailing: true }
+  );
+
+  setStatement: (statement: string) => void = (statement) => {
+    this.requestTypeCheck(statement);
     this.setState({ statement });
   };
 
@@ -378,6 +402,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
           statement={this.state.statement}
           tableNames={this.tableNames()}
           columnNames={this.columnNames()}
+          annotations={this.state.annotations}
         />
       );
     } else {

@@ -1,6 +1,7 @@
 // @flow
 
 import { Socket, LongPoll } from "phoenix";
+import type { Channel } from "phoenix";
 
 type Callback = (event: any) => void;
 type Callbacks = {
@@ -60,6 +61,12 @@ export default class FrontendSocket {
     return this.joinChannel(callbacks, "cloak_stats", ["updated_cloak_infos"]);
   }
 
+  joinTypeCheckChannel(userId: number, callbacks: Callbacks): any {
+    return this.joinChannel(callbacks, `type_check:${userId}`, [
+      "state_change",
+    ]);
+  }
+
   joinSelectablesChannel(
     dataSourceName: string,
     userId: number,
@@ -76,7 +83,7 @@ export default class FrontendSocket {
     callbacks: Callbacks,
     channelName: string,
     eventNames: string[]
-  ): any {
+  ): Channel {
     const channel = this.socket.channel(channelName, {});
     const noop = () => {};
     const { joined = noop, failedJoin = noop, handleEvent = noop } = callbacks;

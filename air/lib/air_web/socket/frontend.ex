@@ -18,6 +18,7 @@ defmodule AirWeb.Socket.Frontend do
 
   # List of exposed channels
   channel("user_queries:*", AirWeb.Socket.Frontend.UserChannel)
+  channel("type_check:*", AirWeb.Socket.Frontend.UserChannel)
   channel("query:*", AirWeb.Socket.Frontend.UserChannel)
   channel("state_changes:*", AirWeb.Socket.Frontend.UserChannel)
   channel("selectables:*", AirWeb.Socket.Frontend.UserChannel)

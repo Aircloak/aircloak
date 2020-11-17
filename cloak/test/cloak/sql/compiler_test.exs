@@ -1178,7 +1178,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "silently discards redundant inequalities" do
     query1 = "select count(*) from table where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1"
     query2 = "select count(*) from table where numeric >= 1 and numeric < 2"
-    assert compile!(query1, data_source()) == compile!(query2, data_source())
+    assert scrub_locations(compile!(query1, data_source())) == scrub_locations(compile!(query2, data_source()))
   end
 
   test "unquoted columns are case-insensitive" do
@@ -1223,7 +1223,7 @@ defmodule Cloak.Sql.Compiler.Test do
     first = compile!("select bucket(numeric by 0.11) as foo, stddev(uid) from table group by numeric", data_source())
     second = compile!("select bucket(numeric by 0.1) as foo, stddev(uid) from table group by numeric", data_source())
 
-    assert Map.drop(first, [:info]) == Map.drop(second, [:info])
+    assert scrub_locations(Map.drop(first, [:info])) == scrub_locations(Map.drop(second, [:info]))
     assert ["Bucket size adjusted from 0.11 to 0.1"] = first.info
     assert [] = second.info
   end
@@ -1481,10 +1481,12 @@ defmodule Cloak.Sql.Compiler.Test do
         test "removes redundant cast to #{target}",
           do:
             assert(
-              compile!(
-                "SELECT cast(#{unquote(column)} as #{unquote(target)}) as c FROM table",
-                data_source()
-              ) == compile!("SELECT #{unquote(column)} as c FROM table", data_source())
+              scrub_locations(
+                compile!(
+                  "SELECT cast(#{unquote(column)} as #{unquote(target)}) as c FROM table",
+                  data_source()
+                )
+              ) == scrub_locations(compile!("SELECT #{unquote(column)} as c FROM table", data_source()))
             )
       end
     )

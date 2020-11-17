@@ -1648,7 +1648,7 @@ declare module "codemirror" {
     clientHeight: any;
   }
 
-  declare type TextMarker = {
+  declare export type TextMarker = {
     /**
      * Remove the mark.
      */
@@ -1695,6 +1695,9 @@ declare module "codemirror" {
      */
     on(eventName: "unhide", handler: () => void): void,
     off(eventname: "unhide", handler: () => void): void,
+
+    data: any,
+
     ...
   } & $Rest<TextMarkerOptions, { ... }>;
 
@@ -1815,7 +1818,7 @@ declare module "codemirror" {
     empty(): boolean;
   }
 
-  declare type Position = {
+  declare export type Position = {
     ch: number,
     line: number,
     sticky?: string,

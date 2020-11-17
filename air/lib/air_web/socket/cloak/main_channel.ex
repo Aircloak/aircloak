@@ -88,6 +88,31 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     call(channel_pid, "describe_query", encode(payload), @short_timeout)
   end
 
+  @doc """
+  Asks the cloak for type checking information about the query.
+
+  Unlike `run_query/2`, this function is synchronous, meaning it waits for the
+  cloak to respond, and returns the result obtained by the cloak.
+  """
+  @spec type_check_query(
+          pid,
+          pos_integer,
+          String.t(),
+          String.t(),
+          View.view_map()
+        ) ::
+          {:ok, map} | {:error, any}
+  def type_check_query(channel_pid, analyst_id, statement, data_source_name, views) do
+    payload = %{
+      analyst_id: analyst_id,
+      statement: statement,
+      data_source: data_source_name,
+      views: views
+    }
+
+    call(channel_pid, "type_check_query", payload, @short_timeout)
+  end
+
   @doc "Validates the view on the cloak."
   @spec validate_views(pid, String.t(), String.t(), View.view_map()) :: validated_views
   def validate_views(channel_pid, analyst_id, data_source_name, views) do

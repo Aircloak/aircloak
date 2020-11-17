@@ -11,7 +11,7 @@ declare module "phoenix" {
     ): this;
     send(): void;
     resend(timeout: number): void;
-    receive(status: string, callback: (response?: any) => any): this;
+    receive(status: string, callback: (response: any) => any): this;
   }
 
   declare export class Channel {

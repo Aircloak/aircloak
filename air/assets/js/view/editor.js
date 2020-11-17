@@ -52,6 +52,7 @@ export default class ViewEditor extends React.Component<Props, State> {
         columnNames={this.columnNames()}
         onChange={this.setStatement}
         onRun={ViewEditor.save}
+        annotations={[]}
       />
     );
   }
