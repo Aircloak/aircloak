@@ -83,13 +83,13 @@ defmodule Air.Service.Explorer do
 
       available_table_names =
         tables
-        |> Enum.filter(& is_analyzable?/1)
+        |> Enum.filter(&is_analyzable?/1)
         |> Enum.map(fn %{"id" => table_name} -> table_name end)
         |> Enum.sort()
 
       unanalyzable_tables_names =
         tables
-        |> Enum.reject(& is_analyzable?/1)
+        |> Enum.reject(&is_analyzable?/1)
         |> Enum.map(fn %{"id" => table_name} -> table_name end)
         |> Enum.sort()
 
@@ -429,15 +429,15 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  defp is_analyzable?(table), do:
-    has_user_id?(table["columns"]) && has_analyzable_columns?(table["columns"])
+  defp is_analyzable?(table), do: has_user_id?(table["columns"]) && has_analyzable_columns?(table["columns"])
 
   defp has_user_id?(columns), do: Enum.any?(columns, & &1["user_id"])
 
-  defp has_analyzable_columns?(columns), do:
-    columns
-    |> Enum.reject(&unanalyzable_column?/1)
-    |> length() > 0
+  defp has_analyzable_columns?(columns),
+    do:
+      columns
+      |> Enum.reject(&unanalyzable_column?/1)
+      |> length() > 0
 
   defp unanalyzable_column?(column),
     do:
