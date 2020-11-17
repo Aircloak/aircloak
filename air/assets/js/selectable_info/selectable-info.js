@@ -111,20 +111,9 @@ const SelectableDetails = React.forwardRef(
                           return (
                             <tr key={`sample-row-${i}`}>
                               {row.map((column, j) => {
-                                let columnValue;
-                                if (column === null) {
-                                  columnValue = (
-                                    <span className="badge badge-secondary">
-                                      &#x3C;null&#x3E;
-                                    </span>
-                                  );
-                                } else {
-                                  columnValue = column;
-                                }
-
                                 return (
                                   <td key={`sample-row-${i}-column-${j}`}>
-                                    {columnValue}
+                                    {column === null ? <em>null</em> : column}
                                   </td>
                                 );
                               })}

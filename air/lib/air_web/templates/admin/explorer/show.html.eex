@@ -51,9 +51,7 @@
                 <%= for column <- row do %>
                   <td>
                     <%= if is_nil column do %>
-                      <span class="badge badge-secondary">
-                        &#x3C;null&#x3E;
-                      </span>
+                      <em>null</em>
                     <% else %>
                       <%= column %>
                     <% end %>
