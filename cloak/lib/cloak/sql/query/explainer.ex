@@ -104,9 +104,9 @@ defmodule Cloak.Sql.Query.Explainer do
 
   defp explain_from(_, nil), do: []
 
-  defp explain_from(query, table) when is_binary(table) do
-    {:ok, %{content_type: content_type}} = Query.resolve_table(query, table)
-    [{:table, %{alias: table, content_type: content_type}}]
+  defp explain_from(query, table_name) when is_binary(table_name) do
+    %{content_type: content_type} = Query.resolve_table(query, table_name)
+    [{:table, %{alias: table_name, content_type: content_type}}]
   end
 
   defp explain_from(_, {:subquery, %{ast: ast, alias: alias}}),

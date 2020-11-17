@@ -403,7 +403,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     if branch_has_timing_protection?(query.from),
       # Since we are potentially generating additional subqueries here, we need to re-optimize the query
       # to make sure all filters are pushed downstream, so that the invalid row is not prematurely dropped.
-      do: Cloak.Sql.Compiler.Optimizer.optimize(query),
+      do: Optimizer.optimize(query),
       else: query
   end
 
@@ -499,24 +499,9 @@ defmodule Cloak.Sql.Compiler.Execution do
     do: {:subquery, Map.put(subquery, :join_timing_protection, :invalid_row)}
 
   defp add_invalid_row_to_leafs(table_name, query) do
-    table =
-      query.table_aliases
-      |> Enum.find(fn {alias, _table} -> alias == table_name end)
-      |> case do
-        {^table_name, table} -> table
-        nil -> Enum.find(query.selected_tables, &(&1.name == table_name))
-      end
-
-    ast = %Query{
-      command: :select,
-      type: :standard,
-      data_source: query.data_source,
-      columns: Enum.map(table.columns, &Expression.column(&1, table)),
-      column_titles: Enum.map(table.columns, & &1.name),
-      from: table.name,
-      selected_tables: [table]
-    }
-
+    table = Query.resolve_table(query, table_name)
+    columns = Enum.map(table.columns, &Expression.column(&1, table))
+    ast = Cloak.Sql.Compiler.make_select_query(query.data_source, table, columns)
     {:subquery, %{ast: ast, join_timing_protection: :invalid_row, alias: table_name}}
   end
 end
