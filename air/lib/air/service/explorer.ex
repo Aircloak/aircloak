@@ -422,10 +422,11 @@ defmodule Air.Service.Explorer do
     end
   end
 
-  defp has_analyzable_columns?(table), do:
-    (table["columns"]
-    |> Enum.reject(&unanalyzable_column?/1)
-    |> Enum.count()) > 0
+  defp has_analyzable_columns?(table),
+    do:
+      table["columns"]
+      |> Enum.reject(&unanalyzable_column?/1)
+      |> Enum.count() > 0
 
   defp unanalyzable_column?(column),
     do:

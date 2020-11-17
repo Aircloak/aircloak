@@ -38,7 +38,8 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
 
   def handle_event("analyze_table", %{"data_source_id" => data_source_id_str, "table_name" => table_name}, socket) do
     data_source_id = String.to_integer(data_source_id_str)
-    data_source = Enum.find(socket.assigns.all_data_sources, & &1.id == data_source_id)
+    data_source = Enum.find(socket.assigns.all_data_sources, &(&1.id == data_source_id))
+
     AuditLog.log(
       socket.assigns.current_user,
       "Diffix Explorer settings",
@@ -50,13 +51,15 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
         after: %{tables: data_source.selected_tables ++ [table_name]}
       }
     )
+
     Explorer.analyze_table(data_source_id, table_name)
     {:noreply, socket}
   end
 
   def handle_event("disable_table", %{"data_source_id" => data_source_id_str, "table_name" => table_name}, socket) do
     data_source_id = String.to_integer(data_source_id_str)
-    data_source = Enum.find(socket.assigns.all_data_sources, & &1.id == data_source_id)
+    data_source = Enum.find(socket.assigns.all_data_sources, &(&1.id == data_source_id))
+
     AuditLog.log(
       socket.assigns.current_user,
       "Diffix Explorer settings",
@@ -68,6 +71,7 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
         after: %{tables: data_source.selected_tables -- [table_name]}
       }
     )
+
     Explorer.disable_table(data_source_id, table_name)
     {:noreply, socket}
   end
