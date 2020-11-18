@@ -47,6 +47,10 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
     end)
   end
 
+  @doc "Takes a query and forces usage of unsafe function calls."
+  @spec force_unsafe_calls(Query.t()) :: Query.t()
+  def force_unsafe_calls(query), do: Helpers.apply_bottom_up(query, &force_unsafe_calls_in_subquery/1)
+
   @doc """
   Sets the `bounds` for the given expression.
 
@@ -126,6 +130,13 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis do
       &expand_regular_table(query, &1)
     )
     |> put_in([query_tables_lens() |> Lens.filter(&(&1.name in expanded_tables)) |> Lens.key(:type)], :subquery)
+  end
+
+  defp force_unsafe_calls_in_subquery(query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&Expression.function?/1)
+    |> Lens.filter(&(@unsafe_names[&1.name] != nil))
+    |> Lens.map(query, &%Expression{&1 | name: @unsafe_names[&1.name]})
   end
 
   # -------------------------------------------------------------------
