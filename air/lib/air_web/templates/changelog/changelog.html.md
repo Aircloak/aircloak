@@ -2,6 +2,8 @@
 
 ### **Breaking changes**
 
+- Aggregated `CASE` expressions can no longer return 0, meaning valid return values are only 1 and NULL.
+
 ### New features
 
 - Added support for `UNION` between non-restricted queries.

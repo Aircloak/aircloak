@@ -61,7 +61,7 @@ described in the following sections don't apply to the top-level `HAVING` clause
   [Insights Cloak configuration](/ops/configuration.md#insights-cloak-configuration) section for information
   on how to enable it.
 - The `THEN`/`ELSE` clauses can only return constant values; furthermore, when aggregated, they can only return
-  the values 0, 1 or NULL.
+  the values 1 or NULL.
 
 A few examples:
 
