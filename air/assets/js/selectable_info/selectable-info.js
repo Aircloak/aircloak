@@ -113,7 +113,7 @@ const SelectableDetails = React.forwardRef(
                               {row.map((column, j) => {
                                 return (
                                   <td key={`sample-row-${i}-column-${j}`}>
-                                    {column}
+                                    {column === null ? <em>null</em> : column}
                                   </td>
                                 );
                               })}

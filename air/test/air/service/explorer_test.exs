@@ -154,12 +154,14 @@ defmodule Air.Service.ExplorerTest do
       %{
         name: "user_id",
         user_id: true,
-        isolated: true
+        isolated: true,
+        access: "visible"
       },
       %{
         name: "foo",
         user_id: false,
-        isolated: false
+        isolated: false,
+        access: "visible"
       }
     ],
     id: "foos"
@@ -170,15 +172,35 @@ defmodule Air.Service.ExplorerTest do
       %{
         name: "user_id",
         user_id: true,
-        isolated: true
+        isolated: true,
+        access: "visible"
       },
       %{
         name: "bar",
         user_id: false,
-        isolated: false
+        isolated: false,
+        access: "visible"
       }
     ],
     id: "bars"
+  }
+
+  @bazs_table %{
+    columns: [
+      %{
+        name: "user_id",
+        user_id: true,
+        isolated: true,
+        access: "visible"
+      },
+      %{
+        name: "unselectable",
+        user_id: false,
+        isolated: false,
+        access: "unselectable"
+      }
+    ],
+    id: "bazs"
   }
 
   setup_all do
@@ -262,6 +284,12 @@ defmodule Air.Service.ExplorerTest do
           _
         ] = Explorer.all_data_source_metadata()
       )
+    end
+
+    test "excludes tables that can't be analyzed", %{ds1: ds1} do
+      DataSource.update!(ds1, %{tables: Jason.encode!([@bazs_table])})
+
+      assert_soon(is_nil(metadata_for_data_source(ds1)))
     end
   end
 

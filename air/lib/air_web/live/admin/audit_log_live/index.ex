@@ -177,7 +177,7 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
 
         <%= for {key, val} <- Map.drop(@metadata, ["remote_ip", "peer", "data_source", "diff", "group_id", "group_name", "query", "user"]) do %>
           <div class="d-flex">
-            <strong style="width: 150px"><%= key %></strong>
+            <strong style="width: 150px"><%= event_key_for_display(key) %></strong>
             <span><%= val %></span>
           </div>
         <% end %>
@@ -185,6 +185,9 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
     </div>
     """
   end
+
+  defp event_key_for_display(key) when is_atom(key), do: key |> Atom.to_string() |> event_key_for_display()
+  defp event_key_for_display(key), do: key |> String.replace("_", " ") |> String.capitalize()
 
   defp parse_datetime(value, default) do
     case Timex.parse(value, "{ISOdate} {ISOtime}") do
@@ -209,7 +212,8 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
   defp icon_class("Logged in"), do: "fa-sign-in-alt"
   defp icon_class("Failed login"), do: "fa-sign-in-alt"
   defp icon_class("Logged out"), do: "fa-sign-out-alt"
-  defp icon_class("Altered Diffix Explorer permissions"), do: "fa-compass"
+  defp icon_class("Added table to Diffix Explorer"), do: "fa-compass"
+  defp icon_class("Removed table from Diffix Explorer"), do: "fa-compass"
   defp icon_class("Updated settings"), do: "fa-cog"
   defp icon_class("Cancelled query"), do: "fa-ban"
   defp icon_class("Deleted query"), do: "fa-trash"
@@ -251,11 +255,11 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
 
   defp event_hue(event) do
     cond do
-      String.contains?(event, "clear") || String.contains?(event, "remov") || String.contains?(event, "fail") ->
+      String.contains?(event, ["clear", "remov", "fail"]) ->
         # reds
         {0, 30}
 
-      String.contains?(event, "alter") || String.contains?(event, "chang") || String.contains?(event, "updat") ->
+      String.contains?(event, ["alter", "chang", "updat", "add"]) ->
         # yellows
         {30, 70}
 
@@ -263,8 +267,7 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
         # greens
         {70, 160}
 
-      String.contains?(event, "disabl") ||
-          String.contains?(event, "delet") ->
+      String.contains?(event, ["disabl", "delet"]) ->
         # reds
         {320, 360}
 

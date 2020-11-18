@@ -35,6 +35,7 @@ defmodule Air.Service.Explorer do
             id: integer,
             name: String.t(),
             selected_tables: [String.t()],
+            unanalyzable_tables: [String.t()],
             stats: %{
               total: integer,
               complete: integer,
@@ -74,17 +75,23 @@ defmodule Air.Service.Explorer do
         |> Enum.map(& &1.table_name)
         |> Enum.sort()
 
-      available_table_names =
+      tables =
         case Jason.decode(tables) do
-          {:ok, tables} ->
-            tables
-            |> Enum.filter(fn table -> Enum.any?(table["columns"], & &1["user_id"]) end)
-            |> Enum.map(fn %{"id" => table_name} -> table_name end)
-            |> Enum.sort()
-
-          _ ->
-            []
+          {:ok, tables} -> tables
+          _ -> []
         end
+
+      available_table_names =
+        tables
+        |> Enum.filter(&is_analyzable?/1)
+        |> Enum.map(fn %{"id" => table_name} -> table_name end)
+        |> Enum.sort()
+
+      unanalyzable_tables_names =
+        tables
+        |> Enum.reject(&is_analyzable?/1)
+        |> Enum.map(fn %{"id" => table_name} -> table_name end)
+        |> Enum.sort()
 
       tables_with_state =
         available_table_names
@@ -111,6 +118,7 @@ defmodule Air.Service.Explorer do
         id: id,
         name: name,
         selected_tables: selected_table_names,
+        unanalyzable_tables: unanalyzable_tables_names,
         tables: tables_with_state,
         stats: %{
           total: length(selected_table_names),
@@ -120,6 +128,7 @@ defmodule Air.Service.Explorer do
         }
       }
     end)
+    |> Enum.reject(&(&1.tables == []))
   end
 
   @doc "Is diffix explorer integration enabled for this datasource?"
@@ -419,6 +428,16 @@ defmodule Air.Service.Explorer do
         Logger.error("Ignoring failed attempt a cancelling analysis of #{analysis_name(analysis)}.")
     end
   end
+
+  defp is_analyzable?(table), do: has_user_id?(table["columns"]) && has_analyzable_columns?(table["columns"])
+
+  defp has_user_id?(columns), do: Enum.any?(columns, & &1["user_id"])
+
+  defp has_analyzable_columns?(columns),
+    do:
+      columns
+      |> Enum.reject(&unanalyzable_column?/1)
+      |> length() > 0
 
   defp unanalyzable_column?(column),
     do:
