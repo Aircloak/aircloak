@@ -352,9 +352,12 @@ in the URL. For the Diffix Explorer integration to work properly, you will also 
 In the admin control panel you can choose which tables Diffix Explorer should analyze – by default none are.
 
 Only tables meeting the following criteria can be analyzed:
-- the table must contain a `user-id` column
-- the table must have a least one column besides the `user-id` column that is selectable (i.e. not marked as unselectable)
-- the table must have a least one column besides the `user-id` column that is not classified or defined as isolating.
+- the table must contain a `user-id` column, and
+- the table must have a least one other column that is selectable (i.e. not marked as unselectable) and not isolating
+
+For more information about selectable and unselectable columns, please have a look at the
+[section on configuring tables in data sources](/ops/configuration?id=tables).
+For more information about isolating columns, [read the section that describes what they are and how they can be configured](/sql/restrictions?id=isolating-columns).
 
 Some of Diffix Explorer's behaviors can only be configured through the use of environment variables.
 For example, in order to limit the number of parallel queries issued, you can use the `Explorer__MaxConcurrentQueries` environment variable.
