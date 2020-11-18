@@ -942,7 +942,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Lens.key(:args)
     |> Lens.all()
     |> Query.Lenses.case_then_else_clauses()
-    |> Lens.reject(&(Expression.constant?(&1) and &1.value in [0, 1, nil]))
+    |> Lens.reject(&(Expression.constant?(&1) and &1.value in [1, nil]))
     |> Lens.to_list(query)
     |> case do
       [] ->
@@ -950,7 +950,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
       [invalid_value | _rest] ->
         raise CompilationError,
-          message: "Aggregated `case` expressions can only return the constants `0`, `1` or `NULL`.",
+          message: "Aggregated `case` expressions can only return the constants `1` or `NULL`.",
           source_location: invalid_value.source_location
     end
   end

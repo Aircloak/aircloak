@@ -1548,7 +1548,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "reject invalid return values when aggregated" do
-      assert {:error, "Aggregated `case` expressions can only return the constants `0`, `1` or `NULL`."} =
+      assert {:error, "Aggregated `case` expressions can only return the constants `1` or `NULL`."} =
                compile("select sum(case when string = 'xxx' then 1 else 3 end) from table", data_source())
     end
 
