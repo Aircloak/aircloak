@@ -199,6 +199,7 @@ defmodule Cloak.DataSource.Table do
         parsed_query
         |> Map.put(:subquery?, true)
         |> Compiler.compile_standard!(nil, data_source)
+        |> Compiler.BoundAnalysis.force_unsafe_calls()
         |> drop_duplicate_columns()
         |> drop_constant_columns()
       rescue

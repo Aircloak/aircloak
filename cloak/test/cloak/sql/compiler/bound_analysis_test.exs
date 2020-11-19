@@ -115,6 +115,8 @@ defmodule Cloak.Sql.Compiler.BoundAnalysis.Test do
     assert offloaded_query =~
              ~s[CASE WHEN ("bounds_analysis_virtual"."col" < 5) THEN 5] <>
                ~s[ WHEN ("bounds_analysis_virtual"."col" > 2000) THEN 2000 ELSE "bounds_analysis_virtual"."col" END]
+
+    refute offloaded_query =~ "PG_TEMP.AC_MUL"
   end
 
   describe ".analyze_query" do

@@ -10,6 +10,7 @@
 ### Enhancements
 
 - Simpler offloaded queries are generated when using bounds analysis.
+- Virtual table queries don't use safe operators anymore, leading to better performance in some cases.
 
 ### Bugfixes
 
