@@ -378,6 +378,11 @@ defmodule Cloak.Sql.Query do
   def lcf_buckets_aggregation_limit(%__MODULE__{data_source: data_source}),
     do: data_source[:lcf_buckets_aggregation_limit] || Application.get_env(:cloak, :lcf_buckets_aggregation_limit, 3)
 
+  @doc "Returns the source starting location for the given query, if available."
+  @spec source_location(t()) :: Parser.location() | nil
+  def source_location(%__MODULE__{source_range: {start, _end}}), do: start
+  def source_location(%__MODULE__{source_range: nil}), do: nil
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

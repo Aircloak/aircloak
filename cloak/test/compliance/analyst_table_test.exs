@@ -503,7 +503,7 @@ defmodule Compliance.AnalystTableTest do
           assert_query(
             "select from table49",
             [analyst_id: 1, data_sources: [data_source]],
-            %{error: "Table `table49` doesn't exist."}
+            %{error: "Table `table49` doesn't exist." <> _}
           )
         end
       end
