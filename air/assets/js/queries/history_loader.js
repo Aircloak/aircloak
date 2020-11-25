@@ -51,6 +51,7 @@ export const HistoryLoader = ({
     return (
       <button
         type="button"
+        id="LoadHistory"
         className="btn btn-secondary"
         onClick={handleLoadHistory}
       >
