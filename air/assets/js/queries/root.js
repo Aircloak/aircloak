@@ -119,7 +119,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
   initialStatement: any | (() => string) = () => {
     const { lastQuery } = this.props;
-    return lastQuery ? lastQuery.statement : "";
+    return lastQuery ? lastQuery.statement || "" : "";
   };
 
   componentWillUnmount: () => void = () => {
