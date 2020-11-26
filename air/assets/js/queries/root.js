@@ -140,7 +140,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     return dataSourceStatus !== "offline";
   };
 
-  setTypeCheckLoading = debounce(
+  setTypeCheckLoading: { cancel(): void } & (() => void) = debounce(
     () => {
       this.setState({ annotations: "loading" });
     },
@@ -150,7 +150,9 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
   requestTypeCheck: (string) => void = debounce(
     (statement) => {
-      this.setTypeCheckLoading();
+      if (this.state.annotations.type) {
+        this.setTypeCheckLoading();
+      }
 
       this.typeCheckingChannel
         .push("type_check", {
