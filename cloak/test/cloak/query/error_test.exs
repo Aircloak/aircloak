@@ -90,7 +90,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports an error on invalid table" do
     assert_query("select column from invalid_table", %{error: error})
-    assert ~s/Table `invalid_table` doesn't exist./ == error
+    assert "Table `invalid_table` doesn't exist." <> _ = error
   end
 
   test "query reports an error when mixing aggregated and normal columns" do

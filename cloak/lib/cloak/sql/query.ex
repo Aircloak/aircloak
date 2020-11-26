@@ -79,7 +79,7 @@ defmodule Cloak.Sql.Query do
           analyst_tables: %{String.t() => Cloak.AnalystTable.t()},
           analyst_table: nil | Cloak.AnalystTable.t(),
           required_analyst_tables: MapSet.t(),
-          source_range: nil | {Cloak.Sql.Parser.location(), Cloak.Sql.Parser.location()}
+          source_range: nil | {Parser.location(), Parser.location()}
         }
 
   @type analyst_id :: pos_integer | nil
@@ -368,15 +368,20 @@ defmodule Cloak.Sql.Query do
 
   @doc "Returns the maximum allowed number of rare conditions for the query"
   @spec max_rare_negative_conditions(t) :: non_neg_integer
-  def max_rare_negative_conditions(%Cloak.Sql.Query{data_source: data_source}) do
+  def max_rare_negative_conditions(%__MODULE__{data_source: data_source}) do
     default_limit = Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:max_rare_negative_conditions)
     data_source[:max_rare_negative_conditions] || default_limit
   end
 
   @doc "Returns the partial-aggregation limit for buckets."
-  @spec lcf_buckets_aggregation_limit(Query.t()) :: non_neg_integer()
-  def lcf_buckets_aggregation_limit(%Cloak.Sql.Query{data_source: data_source}),
+  @spec lcf_buckets_aggregation_limit(t()) :: non_neg_integer()
+  def lcf_buckets_aggregation_limit(%__MODULE__{data_source: data_source}),
     do: data_source[:lcf_buckets_aggregation_limit] || Application.get_env(:cloak, :lcf_buckets_aggregation_limit, 3)
+
+  @doc "Returns the source starting location for the given query, if available."
+  @spec source_location(t()) :: Parser.location() | nil
+  def source_location(%__MODULE__{source_range: {start, _end}}), do: start
+  def source_location(%__MODULE__{source_range: nil}), do: nil
 
   # -------------------------------------------------------------------
   # Internal functions

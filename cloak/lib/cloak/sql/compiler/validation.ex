@@ -69,7 +69,9 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_duplicate_tables(query) do
     with [duplicate_table | _] <- duplicate_tables(query) do
-      raise CompilationError, message: "Table name `#{duplicate_table}` specified more than once."
+      raise CompilationError,
+        source_location: Query.source_location(query),
+        message: "Table name `#{duplicate_table}` specified more than once."
     end
   end
 
@@ -386,6 +388,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
       _ ->
         raise CompilationError,
+          source_location: Query.source_location(query),
           message: "Duplicated grouping sets used in the `GROUP BY` clause."
     end
   end
@@ -394,6 +397,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Enum.map(query.grouping_sets, fn grouping_set ->
       unless Enum.any?(grouping_set, &(query.group_by |> Enum.at(&1) |> Expression.key_type() == :user_id)) do
         raise CompilationError,
+          source_location: Query.source_location(query),
           message: "Grouping set in restricted query doesn't contain a user id."
       end
     end)
@@ -465,7 +469,9 @@ defmodule Cloak.Sql.Compiler.Validation do
         end
 
         with [{table1, table2} | _] <- CyclicGraph.disconnected_pairs(graph) do
-          raise CompilationError, message: unconnected_tables_error_message(query.selected_tables, table1, table2)
+          raise CompilationError,
+            source_location: Query.source_location(query),
+            message: unconnected_tables_error_message(query.selected_tables, table1, table2)
         end
       end)
 
@@ -549,8 +555,13 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> Lens.filter(&(&1.type == :full_outer_join))
     |> Lens.to_list(query)
     |> case do
-      [] -> :ok
-      _ -> raise CompilationError, message: "FULL OUTER JOINs are not currently allowed."
+      [] ->
+        :ok
+
+      _ ->
+        raise CompilationError,
+          source_location: Query.source_location(query),
+          message: "FULL OUTER JOINs are not currently allowed."
     end
   end
 
@@ -635,28 +646,25 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_limit(%Query{order_by: [], limit: amount}) when amount != nil,
-    do:
-      raise(
-        CompilationError,
-        message: "Using the `LIMIT` clause requires the `ORDER BY` clause to be specified."
-      )
+  defp verify_limit(%Query{order_by: [], limit: amount} = query) when amount != nil do
+    raise CompilationError,
+      source_location: Query.source_location(query),
+      message: "Using the `LIMIT` clause requires the `ORDER BY` clause to be specified."
+  end
 
   defp verify_limit(_query), do: :ok
 
-  defp verify_offset(%Query{order_by: [], offset: amount}) when amount > 0,
-    do:
-      raise(
-        CompilationError,
-        message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
-      )
+  defp verify_offset(%Query{order_by: [], offset: amount} = query) when amount > 0 do
+    raise CompilationError,
+      source_location: Query.source_location(query),
+      message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
+  end
 
-  defp verify_offset(%Query{offset: offset, limit: nil, type: :restricted}) when offset > 0,
-    do:
-      raise(
-        CompilationError,
-        message: "`OFFSET` clause requires a `LIMIT` clause in `restricted` subqueries."
-      )
+  defp verify_offset(%Query{offset: offset, limit: nil, type: :restricted} = query) when offset > 0 do
+    raise CompilationError,
+      source_location: Query.source_location(query),
+      message: "`OFFSET` clause requires a `LIMIT` clause in `restricted` subqueries."
+  end
 
   defp verify_offset(_query), do: :ok
 
@@ -710,7 +718,11 @@ defmodule Cloak.Sql.Compiler.Validation do
   # -------------------------------------------------------------------
 
   defp verify_user_id_usage(query, alias) do
-    unless valid_user_id?(query), do: raise(CompilationError, missing_uid_error_message(query, alias))
+    unless valid_user_id?(query) do
+      raise CompilationError,
+        source_location: Query.source_location(query),
+        message: missing_uid_error_message(query, alias)
+    end
 
     verify_user_id_references(query)
 
@@ -1021,17 +1033,21 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Unions
   # -------------------------------------------------------------------
 
-  defp verify_unions_usage(%Query{command: :union, from: {:union, {:subquery, lhs}, {:subquery, rhs}}}) do
+  defp verify_unions_usage(%Query{command: :union, from: {:union, {:subquery, lhs}, {:subquery, rhs}}} = query) do
     if lhs.ast.type == :restricted or rhs.ast.type == :restricted do
-      raise CompilationError, message: "Unions over restricted queries are forbidden."
+      raise CompilationError,
+        source_location: Query.source_location(query),
+        message: "Unions over restricted queries are forbidden."
     end
   end
 
   defp verify_unions_usage(%Query{}), do: :ok
 
-  defp verify_union_columns(%Query{command: :union, from: {:union, {:subquery, lhs}, {:subquery, rhs}}}) do
+  defp verify_union_columns(%Query{command: :union, from: {:union, {:subquery, lhs}, {:subquery, rhs}}} = query) do
     if Enum.count(lhs.ast.columns) != Enum.count(rhs.ast.columns) do
-      raise CompilationError, message: "Queries in a `union` must have the same number of columns."
+      raise CompilationError,
+        source_location: Query.source_location(query),
+        message: "Queries in a `union` must have the same number of columns."
     end
 
     Enum.zip(lhs.ast.columns, rhs.ast.columns)

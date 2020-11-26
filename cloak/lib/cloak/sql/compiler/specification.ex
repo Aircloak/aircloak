@@ -125,12 +125,12 @@ defmodule Cloak.Sql.Compiler.Specification do
         {alias, find_table!(query, table_identifier)}
       end)
 
-    verify_duplicate_aliases(aliases)
+    verify_duplicate_aliases(query, aliases)
 
     %Query{query | table_aliases: Map.new(aliases)}
   end
 
-  defp verify_duplicate_aliases(aliases) do
+  defp verify_duplicate_aliases(query, aliases) do
     aliases
     |> Enum.map(fn {alias, _} -> alias end)
     |> Enum.group_by(& &1)
@@ -138,7 +138,9 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> Enum.map(fn {alias, _} -> alias end)
     |> case do
       [duplicate_alias | _] ->
-        raise CompilationError, message: "Table alias `#{duplicate_alias}` used more than once."
+        raise CompilationError,
+          source_location: Query.source_location(query),
+          message: "Table alias `#{duplicate_alias}` used more than once."
 
       [] ->
         :ok
@@ -151,8 +153,13 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp find_table!(query, table_identifier = {_, table_name}) do
     case find_table(query.available_tables, table_identifier) do
-      nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
-      table -> table
+      nil ->
+        raise CompilationError,
+          source_location: Query.source_location(query),
+          message: "Table `#{table_name}` doesn't exist."
+
+      table ->
+        table
     end
   end
 
@@ -216,6 +223,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp view_to_subquery(view_name, view, alias, query) do
     if Enum.any?(query.data_source.tables, fn {_id, table} -> insensitive_equal?(table.name, view_name) end) do
       raise CompilationError,
+        source_location: Query.source_location(query),
         message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
     end
 
@@ -358,23 +366,24 @@ defmodule Cloak.Sql.Compiler.Specification do
     # not been casted, or if it's omitted from the query.
     case Enum.find_index(Query.parameter_types(query), &(&1 == :unknown)) do
       nil -> query
-      index -> parameter_error(index + 1)
+      index -> parameter_error(query, index + 1)
     end
   end
 
-  defp parameter_error(parameter_index),
-    do:
-      raise(
-        CompilationError,
-        message: "The type for parameter `$#{parameter_index}` cannot be determined."
-      )
+  defp parameter_error(query, parameter_index) do
+    raise CompilationError,
+      source_location: Query.source_location(query),
+      message: "The type for parameter `$#{parameter_index}` cannot be determined."
+  end
 
   # -------------------------------------------------------------------
   # Transformation of columns
   # -------------------------------------------------------------------
 
-  defp expand_star_select(query),
-    do: %Query{query | columns: Enum.flat_map(query.columns, &(&1 |> expand_select_all(query) |> verify_star_select()))}
+  defp expand_star_select(query) do
+    columns = Enum.flat_map(query.columns, &(&1 |> expand_select_all(query) |> verify_star_select(query)))
+    %Query{query | columns: columns}
+  end
 
   defp expand_select_all({:*, location}, query),
     do:
@@ -408,13 +417,14 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp columns_to_identifiers(columns, location),
     do: Enum.map(columns, &{:identifier, &1.table.name, {:unquoted, &1.column.name}, location})
 
-  defp verify_star_select(columns) do
+  defp verify_star_select(columns, query) do
     case columns -- Enum.uniq(columns) do
       [] ->
         columns
 
       [{:identifier, table_name, {:unquoted, column_name}, _} | _] ->
         raise CompilationError,
+          source_location: Query.source_location(query),
           message:
             "Selecting all from subquery `#{table_name}` is not supported" <>
               " because the column name `#{column_name}` is ambiguous."
@@ -673,7 +683,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
     param_value = if query.parameters != nil, do: Enum.at(query.parameters, index - 1).value
     param_type = Query.parameter_type(query, index)
-    if param_type == :unknown, do: parameter_error(index)
+    if param_type == :unknown, do: parameter_error(query, index)
     Expression.constant(param_type, param_value)
   end
 
