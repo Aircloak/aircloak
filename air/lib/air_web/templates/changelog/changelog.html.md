@@ -16,6 +16,8 @@
 
 ### Changes
 
+- Data source query history is now loaded by default on page load.
+
 ### Deprecation
 
 ## Version 20.3.0

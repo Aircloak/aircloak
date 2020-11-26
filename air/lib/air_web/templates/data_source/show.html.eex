@@ -35,6 +35,8 @@
 
       App.selectableInfo(<%= selectable_setup(@conn) %>, document.getElementById("selectable-info"));
       App.queryPage(props, document.getElementById("query-view"));
+
+      document.getElementById("LoadHistory").click();
     }
   };
 </script>
