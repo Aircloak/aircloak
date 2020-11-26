@@ -6,6 +6,7 @@ defmodule Air.Service.Query do
   alias AirWeb.Socket.Frontend.UserChannel
 
   import Ecto.Query
+  import Air.Ecto.Pg
   require Logger
 
   @type query_id :: Query.id() | :autogenerate
@@ -294,6 +295,123 @@ defmodule Air.Service.Query do
       [desired_chunk]
       |> Stream.map(&Repo.one(result_chunks(query.id, &1)))
       |> Stream.take_while(&(&1 != nil))
+
+  @doc "Returns a histogram of query performance matching the filters."
+  @spec performance_histogram(filters) :: [
+          %{
+            bucket: integer,
+            count: integer,
+            started: float,
+            parsing: float,
+            compiling: float,
+            awaiting_data: float,
+            ingesting_data: float,
+            processing: float,
+            post_processing: float,
+            completed: float,
+            min: float,
+            max: float
+          }
+        ]
+  def performance_histogram(filters) do
+    main_query =
+      Query
+      |> apply_filters(filters)
+      |> select([q], %{total_time: fragment("(SELECT SUM(CAST(value as int)) FROM jsonb_each(?))", q.time_spent)})
+
+    %{max: max, count: count} =
+      from(
+        timings in subquery(main_query),
+        select: %{
+          max: max(timings.total_time),
+          count: count()
+        }
+      )
+      |> Repo.one()
+
+    # Implements the Sturges formula
+    bin_count = ceil(:math.log2(count)) + 1
+
+    delta = max / bin_count
+
+    from(
+      timings in subquery(
+        select_merge(main_query, [q], %{
+          time_spent: q.time_spent
+        })
+      ),
+      select: %{
+        bucket: width_bucket(timings.total_time, 0, ^max, ^bin_count),
+        count: count(),
+        started: avg(type(timings.time_spent ~> "started", :decimal)) / 1000,
+        parsing: avg(type(timings.time_spent ~> "parsing", :decimal)) / 1000,
+        compiling: avg(type(timings.time_spent ~> "compiling", :decimal)) / 1000,
+        awaiting_data: avg(type(timings.time_spent ~> "awaiting_data", :decimal)) / 1000,
+        ingesting_data: avg(type(timings.time_spent ~> "ingesting_data", :decimal)) / 1000,
+        processing: avg(type(timings.time_spent ~> "processing", :decimal)) / 1000,
+        post_processing: avg(type(timings.time_spent ~> "post_processing", :decimal)) / 1000,
+        completed: avg(type(timings.time_spent ~> "completed", :decimal)) / 1000
+      },
+      order_by: [asc: 1],
+      group_by: [1]
+    )
+    |> Repo.all()
+    |> Enum.map(fn data ->
+      Map.merge(data, %{min: (data.bucket - 1) * delta / 1000, max: data.bucket * delta / 1000})
+    end)
+  end
+
+  @doc "Returns Queries matching filters that are 'interesting' from a performance analysis perspective."
+  @spec performance_interesting_queries(filters) ::
+          %{
+            sufficient_data: true,
+            median: Query.t(),
+            percentile_95: Query.t(),
+            percentile_99: Query.t(),
+            top10: [Query.t()]
+          }
+          | %{sufficient_data: false, top10: [Query.t()]}
+  def performance_interesting_queries(filters) do
+    base_query =
+      Query
+      |> apply_filters(filters)
+      |> select([q], map(q, ^Air.Schemas.Query.__schema__(:fields)))
+      |> select_merge([q], %{
+        total_time: fragment("(SELECT SUM(CAST(value as int)) FROM jsonb_each(?))", q.time_spent)
+      })
+      |> join(:inner, [q], u in User, on: q.user_id == u.id)
+      |> join(:inner, [q], ds in DataSource, on: q.data_source_id == ds.id)
+      |> select_merge([q, u, ds], %{user_name: u.name, data_source_name: ds.name})
+
+    percentile_queries =
+      from(
+        timings in subquery(
+          select_merge(base_query, [q], %{
+            percentile:
+              ntile(100)
+              |> over(order_by: fragment("(SELECT SUM(CAST(value as int)) FROM jsonb_each(?))", q.time_spent))
+          })
+        ),
+        distinct: timings.percentile,
+        order_by: [asc: timings.percentile, desc: timings.total_time],
+        where: timings.percentile in [99, 95, 50]
+      )
+      |> Repo.all()
+
+    top10 =
+      from(
+        timings in subquery(base_query),
+        limit: 10,
+        order_by: [desc: timings.total_time]
+      )
+      |> Repo.all()
+
+    case percentile_queries do
+      # you need to have at least 100 queries to get meaningful percentiles...
+      [p50, p95, p99] -> %{sufficient_data: true, median: p50, percentile_95: p95, percentile_99: p99, top10: top10}
+      _ -> %{sufficient_data: false, top10: top10}
+    end
+  end
 
   # -------------------------------------------------------------------
   # Internal functions

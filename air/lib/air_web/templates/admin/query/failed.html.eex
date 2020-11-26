@@ -7,7 +7,16 @@
         data-target="#sidebar" aria-expanded="false">
       <i class="fas fa-list"></i> Filters
     </button>
-    <h1>Failed queries</h1>
+    <h1>Queries</h1>
+
+    <ul class="nav nav-tabs nav-overflow header-tabs">
+      <li class="nav-item" role="presentation">
+        <%= link "Performance", to: admin_query_performance_index_path(@conn, :index, @conn.query_params), class: "nav-link" %>
+      </li>
+      <li class="nav-item" role="presentation">
+        <%= link "Failed", to: admin_query_path(@conn, :failed), class: "nav-link active" %>
+      </li>
+    </ul>
   </header>
 
 

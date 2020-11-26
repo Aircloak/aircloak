@@ -31,7 +31,7 @@
               <%= sidebar_link(@conn, "Cloaks", "user-secret", admin_cloaks_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Data sources", "database", admin_data_source_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Analysis", "signal", admin_analysis_path(@conn, :index)) %>
-              <%= sidebar_link(@conn, "Failed queries", "bomb", admin_query_path(@conn, :failed)) %>
+              <%= sidebar_link(@conn, "Queries", "terminal", admin_query_performance_index_path(@conn, :index)) %>
             </ul>
             <hr class="navbar-divider my-3 w-100" />
             <ul class="navbar-nav">

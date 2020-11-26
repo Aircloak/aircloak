@@ -285,12 +285,6 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
     end
   end
 
-  defp current_user!(%{"_air_session_token" => token}) do
-    {:ok, user_id} = Air.Service.RevokableToken.verify(token, :session)
-    {:ok, user} = Air.Service.User.load_enabled(user_id)
-    user
-  end
-
   defp fetch_page_data(expanded, audit_log, key, default) do
     get_in(expanded, [{audit_log.event, audit_log.user_id, audit_log.max_date}, key]) || default
   end

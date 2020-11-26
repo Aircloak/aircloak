@@ -3,11 +3,12 @@ import LiveSocket from "phoenix_live_view";
 import CodeMirror from "codemirror";
 import NProgress from "nprogress";
 import "nprogress/nprogress.css";
+import "./elements/histogram_chart";
+import "./elements/sql_code_block";
 
 export default () => {
   const csrfElement = document.querySelector("meta[name='csrf-token']");
   const _csrf_token = csrfElement && csrfElement.getAttribute("content");
-
   window.addEventListener("phx:page-loading-start", (info) =>
     NProgress.start()
   );

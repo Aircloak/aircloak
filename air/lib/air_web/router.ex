@@ -133,9 +133,6 @@ defmodule AirWeb.Router do
   scope "/admin", AirWeb.Admin, as: :admin do
     pipe_through([:browser, :browser_auth, :admin_only])
 
-    get("/queries/failed", QueryController, :failed)
-    get("/queries/:id", QueryController, :show)
-
     resources("/users", UserController) do
       put("/enable", UserController, :enable)
       put("/disable", UserController, :disable)
@@ -158,7 +155,10 @@ defmodule AirWeb.Router do
     get("/audit_log/confirm_deletion", AuditLogController, :confirm_deletion)
     post("/audit_log/clear", AuditLogController, :delete_all)
     live("/audit_log", AuditLogLive.Index, :index, layout: {AirWeb.LayoutView, :admin})
+    live("/queries/performance", QueryPerformanceLive.Index, :index, layout: {AirWeb.LayoutView, :admin})
 
+    get("/queries/failed", QueryController, :failed)
+    get("/queries/:id", QueryController, :show)
     resources("/cloaks", CloaksController)
     post("/cloaks/:id/reinitialize", CloaksController, :reinitialize)
     get("/activity_monitor", ActivityMonitorController, :index)

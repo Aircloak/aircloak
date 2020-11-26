@@ -69,14 +69,4 @@ defmodule AirWeb.Admin.ExplorerLive.Index do
     Explorer.disable_table(data_source_id, table_name)
     {:noreply, socket}
   end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp current_user!(%{"_air_session_token" => token}) do
-    {:ok, user_id} = Air.Service.RevokableToken.verify(token, :session)
-    {:ok, user} = Air.Service.User.load_enabled(user_id)
-    user
-  end
 end

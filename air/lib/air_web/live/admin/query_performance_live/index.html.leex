@@ -1,0 +1,73 @@
+<div class="container-with-sidebar-narrow">
+  <header class="page-header">
+    <ol class="breadcrumb bg-white">
+      <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    </ol>
+    <button type="button" class="btn btn-primary d-block d-lg-none float-right" data-toggle="collapse"
+        data-target="#sidebar" aria-expanded="false">
+      <i class="fas fa-list"></i> Filters
+    </button>
+    <h1>Queries</h1>
+
+    <ul class="nav nav-tabs nav-overflow header-tabs">
+      <li class="nav-item" role="presentation">
+        <%= link "Performance", to: admin_query_performance_index_path(@socket, :index), class: "nav-link active" %>
+      </li>
+      <li class="nav-item" role="presentation">
+        <%= link "Failed", to: admin_query_path(@socket, :failed, @query_params), class: "nav-link" %>
+      </li>
+    </ul>
+  </header>
+
+  <histogram-chart data='<%= to_json(@histogram) %>'></histogram-chart>
+
+  <h2 class="mt-5">Important Queries</h2>
+  <%= if @interesting_queries.sufficient_data do %>
+    <div class="card my-3">
+      <div class="card-body">
+        <h5 class="card-title">99th percentile query</h5>
+        <%= render_query_details(@interesting_queries.percentile_99) %>
+      </div>
+    </div>
+
+     <div class="card my-3">
+      <div class="card-body">
+        <h5 class="card-title">95th percentile query</h5>
+        <%= render_query_details(@interesting_queries.percentile_95) %>
+      </div>
+    </div>
+
+    <div class="card my-3">
+      <div class="card-body">
+        <h5 class="card-title">Median query</h5>
+        <%= render_query_details(@interesting_queries.median) %>
+      </div>
+    </div>
+  <% end %>
+  <%= if Enum.empty?(@interesting_queries.top10) do %>
+    <p>Insufficient data</p>
+  <% else %>
+    <h4>Slowest <%= length(@interesting_queries.top10) %> queries</h4>
+    <%= for {query, index} <- Enum.with_index(@interesting_queries.top10) do %>
+      <div class="card my-3">
+        <div class="card-body">
+          <h5 class="card-title">#<%= index + 1 %></h5>
+          <%= render_query_details(query) %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+
+<%= render(AirWeb.Admin.SharedView, "filter_sidebar.html",
+  conn: @socket,
+  from: @from,
+  to: @to,
+  path: &admin_query_performance_index_path(@socket, :index, &1),
+  users: @users,
+  data_sources: @data_sources,
+  event_types: nil,
+  live?: true,
+  params: @query_params)
+%>
