@@ -28,6 +28,7 @@ export type Annotations =
       message: string,
       location: Position | null,
     |}
+  | "none"
   | "loading";
 
 type Props = {
@@ -211,7 +212,9 @@ export default class CodeEditor extends React.Component<Props, State> {
   };
 
   renderStatusBar: (Annotations) => Node = (annotations) => {
-    if (annotations === "loading") {
+    if (annotations === "none") {
+      return null;
+    } else if (annotations === "loading") {
       return <div className="status-bar status-bar-loading">Loading</div>;
     } else if (Array.isArray(annotations)) {
       const { activeMark } = this.state;
