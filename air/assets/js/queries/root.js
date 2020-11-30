@@ -80,7 +80,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       connected: true,
       dataSourceStatus,
       history: emptyHistory,
-      annotations: "loading",
+      annotations: "none",
     };
 
     this.runQuery = debounce(this.runQuery.bind(this), runQueryTimeout, {
