@@ -179,8 +179,8 @@ export default class SelectableInfo extends React.Component<Props, State> {
         className="sidebar fixed-right border-left navbar-expand-md collapse"
       >
         <div className="d-flex flex-column h-100">
-          <div className="sidebar-header d-flex justify-content-between align-items-baseline flex-shrink-0">
-            <h1 className="h3 text-truncate">{dataSourceName}</h1>
+          <div className="sidebar-header d-flex justify-content-between align-items-center flex-shrink-0">
+            <h1 className="h3 m-0 text-truncate">{dataSourceName}</h1>
             {this.renderAvailabilityLabel()}
 
             <button
