@@ -88,7 +88,7 @@ const FilterDetails = React.forwardRef(
 );
 
 const FilterView = ({ filter, onFilterChange }: Props): Element<"div"> => (
-  <div className="column-filter my-3">
+  <div className="column-filter my-3 flex-shrink-0">
     <div className="input-group input-group-sm">
       <div className="input-group-prepend">
         <OverlayTrigger
