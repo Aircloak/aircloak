@@ -65,14 +65,14 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
   end
 
   @color_map %{
-    "awaiting_data" => "#4b78a8",
-    "compiling" => "#f58518",
+    "waiting for database" => "#ff9da6",
+    "compiling" => "#4b78a8",
     "completed" => "#e45756",
-    "ingesting_data" => "#73b7b2",
-    "parsing" => "#73b7b2",
-    "post_processing" => "#eeca3b",
-    "processing" => "#b279a2",
-    "started" => "#ff9da6"
+    "ingesting data" => "#e45857",
+    "parsing" => "#f58518",
+    "post-processing" => "#54a24b",
+    "processing" => "#eeca3b",
+    "started" => "#b279a2"
   }
 
   defp get_color(phase), do: Map.get(@color_map, phase, "black")
@@ -82,7 +82,7 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
     <div class="query-details">
       <p><strong>Execution time:</strong> <%= Float.round(@total_time / 1000, 2) %>s</p>
       <div class="progress">
-        <%= for {phase, dur} <- @time_spent do %>
+        <%= for {phase, dur} <- sort_phases(@time_spent) do %>
           <div class="progress-bar" style="width: <%= dur / @total_time * 100 %>%; background-color: <%= get_color(phase) %>" <%= if dur / @total_time <= 0.15 do %>title="<%= phase %> (<%= Float.round(dur / 1000, 1) %>s)"<% end %>>
             <%= if dur / @total_time > 0.15 do %>
               <%= phase %> (<%= Float.round(dur / 1000, 1) %>s)
@@ -98,6 +98,20 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
       </div>
     </div>
     """
+  end
+
+  @sort_order %{
+    "started" => 1,
+    "parsing" => 2,
+    "compiling" => 3,
+    "waiting for database" => 4,
+    "ingesting data" => 5,
+    "processing" => 6,
+    "post-processing" => 7,
+    "completed" => 8
+  }
+  defp sort_phases(phases) do
+    phases |> Enum.sort_by(fn {key, _val} -> @sort_order[key] end)
   end
 
   defp parse_datetime(value, default) do

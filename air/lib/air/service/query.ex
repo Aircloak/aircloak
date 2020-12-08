@@ -304,10 +304,10 @@ defmodule Air.Service.Query do
             started: float,
             parsing: float,
             compiling: float,
-            awaiting_data: float,
-            ingesting_data: float,
+            "waiting for database": float,
+            "ingesting data": float,
             processing: float,
-            post_processing: float,
+            "post-processing": float,
             completed: float,
             min: float,
             max: float
@@ -329,7 +329,8 @@ defmodule Air.Service.Query do
       )
       |> Repo.one()
 
-    # Implements the Sturges formula
+    # Implements the Sturges formula (https://en.wikipedia.org/wiki/Histogram#Sturges'_formula),
+    # which is probably not ideal for the expected distribution, but is hopefully not too bad.
     bin_count = ceil(:math.log2(count)) + 1
 
     delta = max / bin_count
@@ -356,6 +357,7 @@ defmodule Air.Service.Query do
       group_by: [1]
     )
     |> Repo.all()
+    |> Enum.map(&format_processing_stages/1)
     |> Enum.map(fn data ->
       Map.merge(data, %{min: (data.bucket - 1) * delta / 1000, max: data.bucket * delta / 1000})
     end)
@@ -397,6 +399,7 @@ defmodule Air.Service.Query do
         where: timings.percentile in [99, 95, 50]
       )
       |> Repo.all()
+      |> update_in([Access.all(), :time_spent], &format_processing_stages/1)
 
     top10 =
       from(
@@ -405,6 +408,7 @@ defmodule Air.Service.Query do
         order_by: [desc: timings.total_time]
       )
       |> Repo.all()
+      |> update_in([Access.all(), :time_spent], &format_processing_stages/1)
 
     case percentile_queries do
       # you need to have at least 100 queries to get meaningful percentiles...
@@ -416,6 +420,20 @@ defmodule Air.Service.Query do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp format_processing_stages(result),
+    do:
+      Enum.into(result, %{}, fn {key, val} ->
+        {format_processing_stage(key), val}
+      end)
+
+  defp format_processing_stage(:awaiting_data), do: :"waiting for database"
+  defp format_processing_stage(:ingesting_data), do: :"ingesting data"
+  defp format_processing_stage(:post_processing), do: :"post-processing"
+  defp format_processing_stage("awaiting_data"), do: "waiting for database"
+  defp format_processing_stage("ingesting_data"), do: "ingesting data"
+  defp format_processing_stage("post_processing"), do: "post-processing"
+  defp format_processing_stage(any), do: any
 
   defp do_process_result(query, result) do
     query = store_query_result!(query, result)
