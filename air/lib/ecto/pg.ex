@@ -6,24 +6,6 @@ defmodule Air.Ecto.Pg do
   """
   require Ecto.Query
 
-  @doc "Models the WITHIN GROUP statement used to run functions on ordered subsets."
-  defmacro within_group(agg, [{:order_by, order}]),
-    do: quote(do: fragment("? WITHIN GROUP (ORDER BY ?)", unquote(agg), unquote(order)))
-
-  @doc "Computes the specified percentile, performing linear interpolation if necessary."
-  defmacro percentile_cont(p) do
-    quote do
-      fragment("percentile_cont(?)", unquote(p))
-    end
-  end
-
-  @doc "Computes the specified percentile, or the nearest value."
-  defmacro percentile_disc(p) do
-    quote do
-      fragment("percentile_disc(?)", unquote(p))
-    end
-  end
-
   @doc "Computes buckets on the source"
   defmacro width_bucket(field, min, max, bins),
     do: quote(do: fragment("width_bucket(?, ?, ?, ?)", unquote(field), unquote(min), unquote(max), unquote(bins)))
