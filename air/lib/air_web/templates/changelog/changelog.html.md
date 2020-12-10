@@ -6,6 +6,7 @@
 
 - Added support for `UNION` between non-restricted queries.
 - Analysts now get feedback about errors and query structure as they type.
+- Administrators now get a dashboard for exploring query performance issues.
 
 ### Enhancements
 

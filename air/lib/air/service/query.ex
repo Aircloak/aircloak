@@ -317,11 +317,10 @@ defmodule Air.Service.Query do
     main_query =
       Query
       |> apply_filters(filters)
-      |> select([q], %{total_time: fragment("(SELECT SUM(CAST(value as int)) FROM jsonb_each(?))", q.time_spent)})
 
     %{max: max, count: count} =
       from(
-        timings in subquery(main_query),
+        timings in main_query,
         select: %{
           max: max(timings.total_time),
           count: count()
@@ -336,11 +335,7 @@ defmodule Air.Service.Query do
     delta = max / bin_count
 
     from(
-      timings in subquery(
-        select_merge(main_query, [q], %{
-          time_spent: q.time_spent
-        })
-      ),
+      timings in main_query,
       select: %{
         bucket: width_bucket(timings.total_time, 0, ^max, ^bin_count),
         count: count(),
@@ -374,39 +369,49 @@ defmodule Air.Service.Query do
           }
           | %{sufficient_data: false, top10: [Query.t()]}
   def performance_interesting_queries(filters) do
-    base_query =
-      Query
-      |> apply_filters(filters)
-      |> select([q], map(q, ^Air.Schemas.Query.__schema__(:fields)))
-      |> select_merge([q], %{
-        total_time: fragment("(SELECT SUM(CAST(value as int)) FROM jsonb_each(?))", q.time_spent)
-      })
-      |> join(:inner, [q], u in User, on: q.user_id == u.id)
-      |> join(:inner, [q], ds in DataSource, on: q.data_source_id == ds.id)
-      |> select_merge([q, u, ds], %{user_name: u.name, data_source_name: ds.name})
+    fields = [
+      :statement,
+      :time_spent,
+      :total_time,
+      :user_id,
+      :data_source_id,
+      :inserted_at,
+      :query_state
+    ]
 
     percentile_queries =
       from(
         timings in subquery(
-          select_merge(base_query, [q], %{
+          Query
+          |> apply_filters(filters)
+          |> select([q], map(q, ^fields))
+          |> select_merge([q], %{
             percentile:
               ntile(100)
-              |> over(order_by: fragment("(SELECT SUM(CAST(value as int)) FROM jsonb_each(?))", q.time_spent))
+              |> over(order_by: q.time_spent)
           })
         ),
         distinct: timings.percentile,
         order_by: [asc: timings.percentile, desc: timings.total_time],
-        where: timings.percentile in [99, 95, 50]
+        where: timings.percentile in [99, 95, 50],
+        join: u in User,
+        on: timings.user_id == u.id,
+        join: ds in DataSource,
+        on: timings.data_source_id == ds.id,
+        select_merge: %{user_name: u.name, data_source_name: ds.name}
       )
       |> Repo.all()
       |> update_in([Access.all(), :time_spent], &format_processing_stages/1)
 
     top10 =
-      from(
-        timings in subquery(base_query),
-        limit: 10,
-        order_by: [desc: timings.total_time]
-      )
+      Query
+      |> apply_filters(filters)
+      |> limit(10)
+      |> order_by(desc: :total_time)
+      |> join(:inner, [q], u in User, on: q.user_id == u.id)
+      |> join(:inner, [q], ds in DataSource, on: q.data_source_id == ds.id)
+      |> select([q], map(q, ^fields))
+      |> select_merge([q, u, ds], %{user_name: u.name, data_source_name: ds.name})
       |> Repo.all()
       |> update_in([Access.all(), :time_spent], &format_processing_stages/1)
 
@@ -508,7 +513,8 @@ defmodule Air.Service.Query do
 
     %{
       last_state_change_at: NaiveDateTime.utc_now(),
-      time_spent: Map.put(query.time_spent, to_string(query.query_state), time_spent_current_state)
+      time_spent: Map.put(query.time_spent, to_string(query.query_state), time_spent_current_state),
+      total_time: query.total_time + time_spent_current_state
     }
   end
 

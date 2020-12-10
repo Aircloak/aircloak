@@ -45,6 +45,7 @@ defmodule Air.Schemas.Query do
     field(:context, Context)
     field(:result, :map)
     field(:time_spent, :map, default: State.all() |> Enum.map(&{to_string(&1), 0}) |> Enum.into(%{}))
+    field(:total_time, :integer)
     field(:last_state_change_at, :naive_datetime_usec)
     field(:audit_meta, :map)
 
@@ -58,7 +59,7 @@ defmodule Air.Schemas.Query do
   @required_fields ~w()a
   @optional_fields ~w(
     cloak_id statement data_source_id tables execution_time users_count selected_types parameter_types session_id
-    parameters query_state context result last_state_change_at time_spent audit_meta
+    parameters query_state context result last_state_change_at time_spent audit_meta total_time
   )a
 
   # -------------------------------------------------------------------

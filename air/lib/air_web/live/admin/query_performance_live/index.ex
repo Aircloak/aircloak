@@ -83,7 +83,7 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
       <p><strong>Execution time:</strong> <%= Float.round(@total_time / 1000, 2) %>s</p>
       <div class="progress">
         <%= for {phase, dur} <- sort_phases(@time_spent) do %>
-          <div class="progress-bar" style="width: <%= dur / @total_time * 100 %>%; background-color: <%= get_color(phase) %>" <%= if dur / @total_time <= 0.15 do %>title="<%= phase %> (<%= Float.round(dur / 1000, 1) %>s)"<% end %>>
+          <div class="progress-bar" style="width: <%= dur / @total_time * 100 %>%; background-color: <%= get_color(phase) %>" title="<%= phase %> (<%= Float.round(dur / 1000, 1) %>s)">
             <%= if dur / @total_time > 0.15 do %>
               <%= phase %> (<%= Float.round(dur / 1000, 1) %>s)
             <% end %>
