@@ -30,7 +30,8 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
     {
       :noreply,
       socket
-      |> assign(:interesting_queries, Query.performance_interesting_queries(filters))
+      |> assign(:interesting_queries, %{sufficient_data: false})
+      |> assign(:top_10_queries, Query.peformance_top_10_queries(filters))
       |> assign(:histogram, Query.performance_histogram(filters))
       |> assign(
         :users,
@@ -45,6 +46,7 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
       |> assign(:from, from)
       |> assign(:to, to)
       |> assign(:query_params, params)
+      |> assign(:showing_interesting_tab, false)
     }
   end
 
@@ -62,6 +64,31 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
            )
          )
      )}
+  end
+
+  def handle_event("toggle_interesting_queries", _params, socket) do
+    params = socket.assigns.query_params
+
+    if socket.assigns.showing_interesting_tab do
+      {:noreply, assign(socket, :showing_interesting_tab, false)}
+    else
+      from = parse_datetime(params["from"], Timex.now() |> Timex.shift(months: -1))
+      to = parse_datetime(params["to"], Timex.now())
+
+      filters = %{
+        from: from,
+        to: to,
+        users: params["users"] || [],
+        data_sources: params["data_sources"] || [],
+        query_states: [:completed],
+        max_results: 1000
+      }
+
+      {:noreply,
+       socket
+       |> assign(:interesting_queries, Query.performance_interesting_queries(filters))
+       |> assign(:showing_interesting_tab, true)}
+    end
   end
 
   @color_map %{

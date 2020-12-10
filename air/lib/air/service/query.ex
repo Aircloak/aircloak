@@ -368,10 +368,9 @@ defmodule Air.Service.Query do
             sufficient_data: true,
             median: Query.t(),
             percentile_95: Query.t(),
-            percentile_99: Query.t(),
-            top10: [Query.t()]
+            percentile_99: Query.t()
           }
-          | %{sufficient_data: false, top10: [Query.t()]}
+          | %{sufficient_data: false}
   def performance_interesting_queries(filters) do
     fields = [
       :statement,
@@ -379,8 +378,7 @@ defmodule Air.Service.Query do
       :total_time,
       :user_id,
       :data_source_id,
-      :inserted_at,
-      :query_state
+      :inserted_at
     ]
 
     percentile_queries =
@@ -392,7 +390,7 @@ defmodule Air.Service.Query do
           |> select_merge([q], %{
             percentile:
               ntile(100)
-              |> over(order_by: q.time_spent)
+              |> over(order_by: q.total_time)
           })
         ),
         distinct: timings.percentile,
@@ -407,23 +405,37 @@ defmodule Air.Service.Query do
       |> Repo.all()
       |> update_in([Access.all(), :time_spent], &format_processing_stages/1)
 
-    top10 =
-      Query
-      |> apply_filters(filters)
-      |> limit(10)
-      |> order_by(desc: :total_time)
-      |> join(:inner, [q], u in User, on: q.user_id == u.id)
-      |> join(:inner, [q], ds in DataSource, on: q.data_source_id == ds.id)
-      |> select([q], map(q, ^fields))
-      |> select_merge([q, u, ds], %{user_name: u.name, data_source_name: ds.name})
-      |> Repo.all()
-      |> update_in([Access.all(), :time_spent], &format_processing_stages/1)
-
     case percentile_queries do
       # you need to have at least 100 queries to get meaningful percentiles...
-      [p50, p95, p99] -> %{sufficient_data: true, median: p50, percentile_95: p95, percentile_99: p99, top10: top10}
-      _ -> %{sufficient_data: false, top10: top10}
+      [p50, p95, p99] -> %{sufficient_data: true, median: p50, percentile_95: p95, percentile_99: p99}
+      _ -> %{sufficient_data: false}
     end
+  end
+
+  @doc "Returns Queries matching filters that are 'interesting' from a performance analysis perspective."
+  @spec peformance_top_10_queries(filters) :: [Query.t()]
+  def peformance_top_10_queries(filters) do
+    Query
+    |> apply_filters(filters)
+    |> limit(10)
+    |> order_by(desc: :total_time)
+    |> join(:inner, [q], u in User, on: q.user_id == u.id)
+    |> join(:inner, [q], ds in DataSource, on: q.data_source_id == ds.id)
+    |> select(
+      [q],
+      map(q, [
+        :statement,
+        :time_spent,
+        :total_time,
+        :user_id,
+        :data_source_id,
+        :inserted_at,
+        :query_state
+      ])
+    )
+    |> select_merge([q, u, ds], %{user_name: u.name, data_source_name: ds.name})
+    |> Repo.all()
+    |> update_in([Access.all(), :time_spent], &format_processing_stages/1)
   end
 
   # -------------------------------------------------------------------
