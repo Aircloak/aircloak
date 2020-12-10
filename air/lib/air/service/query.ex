@@ -328,34 +328,38 @@ defmodule Air.Service.Query do
       )
       |> Repo.one()
 
-    # Implements the Sturges formula (https://en.wikipedia.org/wiki/Histogram#Sturges'_formula),
-    # which is probably not ideal for the expected distribution, but is hopefully not too bad.
-    bin_count = ceil(:math.log2(count)) + 1
+    if count > 0 do
+      # Implements the Sturges formula (https://en.wikipedia.org/wiki/Histogram#Sturges'_formula),
+      # which is probably not ideal for the expected distribution, but is hopefully not too bad.
+      bin_count = ceil(:math.log2(count)) + 1
 
-    delta = max / bin_count
+      delta = max / bin_count
 
-    from(
-      timings in main_query,
-      select: %{
-        bucket: width_bucket(timings.total_time, 0, ^max, ^bin_count),
-        count: count(),
-        started: avg(type(timings.time_spent ~> "started", :decimal)) / 1000,
-        parsing: avg(type(timings.time_spent ~> "parsing", :decimal)) / 1000,
-        compiling: avg(type(timings.time_spent ~> "compiling", :decimal)) / 1000,
-        awaiting_data: avg(type(timings.time_spent ~> "awaiting_data", :decimal)) / 1000,
-        ingesting_data: avg(type(timings.time_spent ~> "ingesting_data", :decimal)) / 1000,
-        processing: avg(type(timings.time_spent ~> "processing", :decimal)) / 1000,
-        post_processing: avg(type(timings.time_spent ~> "post_processing", :decimal)) / 1000,
-        completed: avg(type(timings.time_spent ~> "completed", :decimal)) / 1000
-      },
-      order_by: [asc: 1],
-      group_by: [1]
-    )
-    |> Repo.all()
-    |> Enum.map(&format_processing_stages/1)
-    |> Enum.map(fn data ->
-      Map.merge(data, %{min: (data.bucket - 1) * delta / 1000, max: data.bucket * delta / 1000})
-    end)
+      from(
+        timings in main_query,
+        select: %{
+          bucket: width_bucket(timings.total_time, 0, ^max, ^bin_count),
+          count: count(),
+          started: avg(type(timings.time_spent ~> "started", :decimal)) / 1000,
+          parsing: avg(type(timings.time_spent ~> "parsing", :decimal)) / 1000,
+          compiling: avg(type(timings.time_spent ~> "compiling", :decimal)) / 1000,
+          awaiting_data: avg(type(timings.time_spent ~> "awaiting_data", :decimal)) / 1000,
+          ingesting_data: avg(type(timings.time_spent ~> "ingesting_data", :decimal)) / 1000,
+          processing: avg(type(timings.time_spent ~> "processing", :decimal)) / 1000,
+          post_processing: avg(type(timings.time_spent ~> "post_processing", :decimal)) / 1000,
+          completed: avg(type(timings.time_spent ~> "completed", :decimal)) / 1000
+        },
+        order_by: [asc: 1],
+        group_by: [1]
+      )
+      |> Repo.all()
+      |> Enum.map(&format_processing_stages/1)
+      |> Enum.map(fn data ->
+        Map.merge(data, %{min: (data.bucket - 1) * delta / 1000, max: data.bucket * delta / 1000})
+      end)
+    else
+      []
+    end
   end
 
   @doc "Returns Queries matching filters that are 'interesting' from a performance analysis perspective."
