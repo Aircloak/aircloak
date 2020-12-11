@@ -6,6 +6,7 @@ defmodule Air.Service.Query do
   alias AirWeb.Socket.Frontend.UserChannel
 
   import Ecto.Query
+  import Air.Ecto.Pg
   require Logger
 
   @type query_id :: Query.id() | :autogenerate
@@ -295,9 +296,165 @@ defmodule Air.Service.Query do
       |> Stream.map(&Repo.one(result_chunks(query.id, &1)))
       |> Stream.take_while(&(&1 != nil))
 
+  @doc "Returns a histogram of query performance matching the filters."
+  @spec performance_histogram(filters) :: [
+          %{
+            bucket: integer,
+            count: integer,
+            started: float,
+            parsing: float,
+            compiling: float,
+            "waiting for database": float,
+            "ingesting data": float,
+            processing: float,
+            "post-processing": float,
+            completed: float,
+            min: float,
+            max: float
+          }
+        ]
+  def performance_histogram(filters) do
+    main_query =
+      Query
+      |> apply_filters(filters)
+
+    %{max: max, count: count} =
+      from(
+        timings in main_query,
+        select: %{
+          max: max(timings.total_time),
+          count: count()
+        }
+      )
+      |> Repo.one()
+
+    if count > 0 do
+      # Implements the Sturges formula (https://en.wikipedia.org/wiki/Histogram#Sturges'_formula),
+      # which is probably not ideal for the expected distribution, but is hopefully not too bad.
+      bin_count = ceil(:math.log2(count)) + 1
+
+      delta = max / bin_count
+
+      from(
+        timings in main_query,
+        select: %{
+          bucket: width_bucket(timings.total_time, 0, ^max, ^bin_count),
+          count: count(),
+          started: avg(type(timings.time_spent ~> "started", :decimal)) / 1000,
+          parsing: avg(type(timings.time_spent ~> "parsing", :decimal)) / 1000,
+          compiling: avg(type(timings.time_spent ~> "compiling", :decimal)) / 1000,
+          awaiting_data: avg(type(timings.time_spent ~> "awaiting_data", :decimal)) / 1000,
+          ingesting_data: avg(type(timings.time_spent ~> "ingesting_data", :decimal)) / 1000,
+          processing: avg(type(timings.time_spent ~> "processing", :decimal)) / 1000,
+          post_processing: avg(type(timings.time_spent ~> "post_processing", :decimal)) / 1000,
+          completed: avg(type(timings.time_spent ~> "completed", :decimal)) / 1000
+        },
+        order_by: [asc: 1],
+        group_by: [1]
+      )
+      |> Repo.all()
+      |> Enum.map(&format_processing_stages/1)
+      |> Enum.map(fn data ->
+        Map.merge(data, %{min: (data.bucket - 1) * delta / 1000, max: data.bucket * delta / 1000})
+      end)
+    else
+      []
+    end
+  end
+
+  @doc "Returns Queries matching filters that are 'interesting' from a performance analysis perspective."
+  @spec performance_interesting_queries(filters) ::
+          %{
+            sufficient_data: true,
+            median: Query.t(),
+            percentile_95: Query.t(),
+            percentile_99: Query.t()
+          }
+          | %{sufficient_data: false}
+  def performance_interesting_queries(filters) do
+    fields = [
+      :statement,
+      :time_spent,
+      :total_time,
+      :user_id,
+      :data_source_id,
+      :inserted_at
+    ]
+
+    percentile_queries =
+      from(
+        timings in subquery(
+          Query
+          |> apply_filters(filters)
+          |> select([q], map(q, ^fields))
+          |> select_merge([q], %{
+            percentile:
+              ntile(100)
+              |> over(order_by: q.total_time)
+          })
+        ),
+        distinct: timings.percentile,
+        order_by: [asc: timings.percentile, desc: timings.total_time],
+        where: timings.percentile in [99, 95, 50],
+        join: u in User,
+        on: timings.user_id == u.id,
+        join: ds in DataSource,
+        on: timings.data_source_id == ds.id,
+        select_merge: %{user_name: u.name, data_source_name: ds.name}
+      )
+      |> Repo.all()
+      |> update_in([Access.all(), :time_spent], &format_processing_stages/1)
+
+    case percentile_queries do
+      # you need to have at least 100 queries to get meaningful percentiles...
+      [p50, p95, p99] -> %{sufficient_data: true, median: p50, percentile_95: p95, percentile_99: p99}
+      _ -> %{sufficient_data: false}
+    end
+  end
+
+  @doc "Returns Queries matching filters that are 'interesting' from a performance analysis perspective."
+  @spec peformance_top_10_queries(filters) :: [Query.t()]
+  def peformance_top_10_queries(filters) do
+    Query
+    |> apply_filters(filters)
+    |> limit(10)
+    |> order_by(desc: :total_time)
+    |> join(:inner, [q], u in User, on: q.user_id == u.id)
+    |> join(:inner, [q], ds in DataSource, on: q.data_source_id == ds.id)
+    |> select(
+      [q],
+      map(q, [
+        :statement,
+        :time_spent,
+        :total_time,
+        :user_id,
+        :data_source_id,
+        :inserted_at,
+        :query_state
+      ])
+    )
+    |> select_merge([q, u, ds], %{user_name: u.name, data_source_name: ds.name})
+    |> Repo.all()
+    |> update_in([Access.all(), :time_spent], &format_processing_stages/1)
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp format_processing_stages(result),
+    do:
+      Enum.into(result, %{}, fn {key, val} ->
+        {format_processing_stage(key), val}
+      end)
+
+  defp format_processing_stage(:awaiting_data), do: :"waiting for database"
+  defp format_processing_stage(:ingesting_data), do: :"ingesting data"
+  defp format_processing_stage(:post_processing), do: :"post-processing"
+  defp format_processing_stage("awaiting_data"), do: "waiting for database"
+  defp format_processing_stage("ingesting_data"), do: "ingesting data"
+  defp format_processing_stage("post_processing"), do: "post-processing"
+  defp format_processing_stage(any), do: any
 
   defp do_process_result(query, result) do
     query = store_query_result!(query, result)
@@ -372,7 +529,8 @@ defmodule Air.Service.Query do
 
     %{
       last_state_change_at: NaiveDateTime.utc_now(),
-      time_spent: Map.put(query.time_spent, to_string(query.query_state), time_spent_current_state)
+      time_spent: Map.put(query.time_spent, to_string(query.query_state), time_spent_current_state),
+      total_time: query.total_time + time_spent_current_state
     }
   end
 

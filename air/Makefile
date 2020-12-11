@@ -84,4 +84,7 @@ check-format:
 fix:
 	mix format --check-equivalent
 	cd assets && yarn fix
+
+psql:
+	psql -d air_dev -h localhost -p 20002 -U air -w 
 	

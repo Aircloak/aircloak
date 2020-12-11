@@ -352,6 +352,7 @@ in the URL. For the Diffix Explorer integration to work properly, you will also 
 In the admin control panel you can choose which tables Diffix Explorer should analyze – by default none are.
 
 Only tables meeting the following criteria can be analyzed:
+
 - the table must contain a `user-id` column, and
 - the table must have a least one other column that is selectable (i.e. not marked as unselectable) and not isolating
 

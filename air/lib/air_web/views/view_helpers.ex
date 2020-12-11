@@ -163,6 +163,7 @@ defmodule AirWeb.ViewHelpers do
     do: "active"
 
   defp active_class("/admin/queries/failed" <> _, "/admin/activity_monitor"), do: nil
+  defp active_class("/admin/queries/performance" <> _, "/admin/activity_monitor"), do: nil
   defp active_class("/admin/queries/" <> _, "/admin/activity_monitor"), do: "active"
   defp active_class("/settings/" <> _, "/settings"), do: nil
 
