@@ -107,12 +107,12 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
   defp render_query_details(assigns) do
     ~L"""
     <div class="query-details">
-      <p><strong>Execution time:</strong> <%= Float.round(@total_time / 1000, 2) %>s</p>
+      <p><strong>Execution time:</strong> <%= format_duration(@total_time) %></p>
       <div class="progress">
         <%= for {phase, dur} <- sort_phases(@time_spent) do %>
-          <div class="progress-bar" style="width: <%= dur / @total_time * 100 %>%; background-color: <%= get_color(phase) %>" title="<%= phase %> (<%= Float.round(dur / 1000, 1) %>s)">
+          <div class="progress-bar" style="width: <%= dur / @total_time * 100 %>%; background-color: <%= get_color(phase) %>" title="<%= phase %> (<%= format_duration(dur) %>)">
             <%= if dur / @total_time > 0.15 do %>
-              <%= phase %> (<%= Float.round(dur / 1000, 1) %>s)
+              <%= phase %> (<%= format_duration(dur) %>)
             <% end %>
           </div>
         <% end %>
@@ -145,6 +145,22 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
     case Timex.parse(value, "{ISOdate} {ISOtime}") do
       {:ok, result} -> result
       _error -> default
+    end
+  end
+
+  defp format_duration(millis) do
+    seconds = div(millis, 1000)
+    frac = Float.round(rem(millis, 1000) / 1000, 2)
+
+    cond do
+      seconds > 3600 ->
+        "#{div(seconds, 3600)}h #{div(rem(seconds, 3600), 60)}m #{rem(seconds, 60) + frac}s"
+
+      seconds > 60 ->
+        "#{div(seconds, 60)}m #{rem(seconds, 60) + frac}s"
+
+      true ->
+        "#{seconds + frac}s"
     end
   end
 end
