@@ -121,7 +121,7 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
       <div class="d-flex justify-content-between mt-2">
         <span class="flex-basis-1 flex-grow-1"><i class="fas fa-user" aria-label="User"></i> <%= @user_name %></span>
         <span class="flex-basis-1 flex-grow-1 text-center"><i class="fas fa-database" aria-label="Data source"></i> <%= @data_source_name %></span>
-        <span class="flex-basis-1 flex-grow-1 text-right"><i class="fas fa-stopwatch" aria-label="Started"></i> <%= @inserted_at %></span>
+        <span class="flex-basis-1 flex-grow-1 text-right"><i class="fas fa-stopwatch" aria-label="Started"></i> <%= format_datetime(@inserted_at) %></span>
       </div>
     </div>
     """
@@ -162,5 +162,11 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
       true ->
         "#{seconds + frac}s"
     end
+  end
+
+  defp format_datetime(datetime) do
+    datetime
+    |> NaiveDateTime.truncate(:second)
+    |> NaiveDateTime.to_string()
   end
 end
