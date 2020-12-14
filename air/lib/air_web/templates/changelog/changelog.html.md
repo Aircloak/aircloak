@@ -1,4 +1,4 @@
-## Version 20.4.0-dev
+## Version 21.1.0
 
 ### **Breaking changes**
 
@@ -14,13 +14,9 @@
 - Virtual table queries don't use safe operators anymore, leading to better performance in some cases.
 - Indicate query starting location in per-query compilation error messages.
 
-### Bugfixes
-
 ### Changes
 
 - Data source query history is now loaded by default on page load.
-
-### Deprecation
 
 ## Version 20.3.0
 
