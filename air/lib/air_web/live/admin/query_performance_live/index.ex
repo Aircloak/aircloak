@@ -119,8 +119,14 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
       </div>
       <sql-code-block phx-update="ignore" code="<%= @statement %>"></sql-code-block>
       <div class="d-flex justify-content-between mt-2">
-        <span class="flex-basis-1 flex-grow-1"><i class="fas fa-user" aria-label="User"></i> <%= @user_name %></span>
-        <span class="flex-basis-1 flex-grow-1 text-center"><i class="fas fa-database" aria-label="Data source"></i> <%= @data_source_name %></span>
+        <span class="flex-basis-1 flex-grow-1">
+          <i class="fas fa-user" aria-label="User"></i>
+          <%= live_patch @user_name, to: admin_query_performance_index_path(@socket, :index, Map.put(@query_params, :users, [@user_id])) %>
+        </span>
+        <span class="flex-basis-1 flex-grow-1 text-center">
+          <i class="fas fa-database" aria-label="Data source"></i>
+          <%= live_patch @data_source_name, to: admin_query_performance_index_path(@socket, :index, Map.put(@query_params, :data_sources, [@data_source_id])) %>
+        </span>
         <span class="flex-basis-1 flex-grow-1 text-right"><i class="fas fa-stopwatch" aria-label="Started"></i> <%= format_datetime(@inserted_at) %></span>
       </div>
     </div>

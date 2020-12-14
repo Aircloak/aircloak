@@ -43,7 +43,10 @@
           <div class="card my-3">
             <div class="card-body">
               <h5 class="card-title">#<%= index + 1 %></h5>
-              <%= render_query_details(query) %>
+              <%= render_query_details(Map.merge(query, %{
+                socket: @socket,
+                query_params: @query_params
+              })) %>
             </div>
           </div>
         <% end %>
@@ -53,21 +56,30 @@
           <div class="card my-3">
             <div class="card-body">
               <h5 class="card-title">99th percentile query</h5>
-              <%= render_query_details(@interesting_queries.percentile_99) %>
+              <%= render_query_details(Map.merge(@interesting_queries.percentile_99, %{
+                socket: @socket,
+                query_params: @query_params
+              })) %>
             </div>
           </div>
 
           <div class="card my-3">
             <div class="card-body">
               <h5 class="card-title">95th percentile query</h5>
-              <%= render_query_details(@interesting_queries.percentile_95) %>
+              <%= render_query_details(Map.merge(@interesting_queries.percentile_95, %{
+                socket: @socket,
+                query_params: @query_params
+              })) %>
             </div>
           </div>
 
           <div class="card my-3">
             <div class="card-body">
               <h5 class="card-title">Median query</h5>
-              <%= render_query_details(@interesting_queries.median) %>
+              <%= render_query_details(Map.merge(@interesting_queries.median, %{
+                socket: @socket,
+                query_params: @query_params
+              })) %>
             </div>
           </div>
         <% else %>
