@@ -30,7 +30,7 @@
 
     <ul class="nav nav-tabs nav-overflow" role="tablist">
       <li class="nav-item" role="presentation">
-        <a class="nav-link <%= if(@showing_interesting_tab, do: "", else: "active")%>"  id="slowest-tab" role="tab" aria-controls="slowest" aria-selected="<%= if(@showing_interesting_tab, do: "false", else: "true")%>"  phx-click="toggle_interesting_queries">Slowest <%= length(@top_10_queries) %> queries</a>
+        <a class="nav-link <%= if(@showing_interesting_tab, do: "", else: "active")%>"  id="slowest-tab" role="tab" aria-controls="slowest" aria-selected="<%= if(@showing_interesting_tab, do: "false", else: "true")%>"  phx-click="toggle_interesting_queries"><%= length(@top_10_queries) %> slowest queries</a>
       </li>
       <li class="nav-item" role="presentation">
         <a class="nav-link <%= if(@showing_interesting_tab, do: "active", else: "")%>"  id="representative-tab"  role="tab" aria-controls="representative" aria-selected="<%= if(@showing_interesting_tab, do: "true", else: "false")%>" phx-click="toggle_interesting_queries" phx-page-loading>Representative queries</a>
