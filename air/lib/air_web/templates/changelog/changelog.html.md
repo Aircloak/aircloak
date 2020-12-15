@@ -1,7 +1,5 @@
 ## Version 21.1.0
 
-### **Breaking changes**
-
 ### New features
 
 - Added support for `UNION` between non-restricted queries.
