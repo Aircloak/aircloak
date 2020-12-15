@@ -365,9 +365,9 @@ defmodule Cloak.AirSocket do
     parse = Cloak.Sql.Parser.parse!(data.statement)
 
     case parse.command do
-      :explain ->
+      {:explain, what} ->
         parse
-        |> Map.put(:command, :select)
+        |> Map.put(:command, what)
         |> compile!(data, data_source)
 
       :show ->
