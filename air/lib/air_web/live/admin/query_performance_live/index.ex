@@ -156,17 +156,17 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
 
   defp format_duration(millis) do
     seconds = div(millis, 1000)
-    frac = Float.round(rem(millis, 1000) / 1000, 2)
+    frac = rem(millis, 1000) / 1000
 
     cond do
       seconds > 3600 ->
-        "#{div(seconds, 3600)}h #{div(rem(seconds, 3600), 60)}m #{rem(seconds, 60) + frac}s"
+        "#{div(seconds, 3600)}h #{div(rem(seconds, 3600), 60)}m #{round2(rem(seconds, 60) + frac)}s"
 
       seconds > 60 ->
-        "#{div(seconds, 60)}m #{rem(seconds, 60) + frac}s"
+        "#{div(seconds, 60)}m #{round2(rem(seconds, 60) + frac)}s"
 
       true ->
-        "#{seconds + frac}s"
+        "#{round2(seconds + frac)}s"
     end
   end
 
@@ -175,4 +175,6 @@ defmodule AirWeb.Admin.QueryPerformanceLive.Index do
     |> NaiveDateTime.truncate(:second)
     |> NaiveDateTime.to_string()
   end
+
+  defp round2(num), do: Float.round(num, 2)
 end
