@@ -51,9 +51,9 @@ defmodule Cloak.Sql.Parser.Test do
   end
 
   # Produces a pattern which matches an AST of an explain query.
-  defmacrop explain(select_data) do
+  defmacrop explain(what, query_data) do
     quote do
-      %{unquote_splicing([command: :explain] ++ select_data)}
+      %{unquote_splicing([command: {:explain, what}] ++ query_data)}
     end
   end
 
@@ -356,14 +356,25 @@ defmodule Cloak.Sql.Parser.Test do
   test "explain select" do
     assert_parse(
       "EXPLAIN SELECT foo FROM baz",
-      explain(columns: [identifier("foo")], from: unquoted("baz"))
+      explain(:select, columns: [identifier("foo")], from: unquoted("baz"))
+    )
+  end
+
+  test "explain union" do
+    assert_parse(
+      "EXPLAIN SELECT foo FROM bar UNION SELECT foo FROM baz",
+      explain(:union,
+        from:
+          {:union, {:subquery, %{ast: select(from: unquoted("bar"))}},
+           {:subquery, %{ast: select(from: unquoted("baz"))}}}
+      )
     )
   end
 
   test "explain select with parens" do
     assert_parse(
       "EXPLAIN (SELECT foo FROM baz)",
-      explain(columns: [identifier("foo")], from: unquoted("baz"))
+      explain(:select, columns: [identifier("foo")], from: unquoted("baz"))
     )
   end
 

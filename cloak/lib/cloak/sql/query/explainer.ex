@@ -115,6 +115,9 @@ defmodule Cloak.Sql.Query.Explainer do
   defp explain_from(query, {:join, %{lhs: lhs, rhs: rhs}}),
     do: explain_from(query, lhs) ++ explain_from(query, rhs)
 
+  defp explain_from(_query, {:union, {:subquery, %{ast: ast1}}, {:subquery, %{ast: ast2}}}),
+    do: [{:subquery, %{alias: "union", query: explain(ast1)}}, {:subquery, %{alias: "union", query: explain(ast2)}}]
+
   @indent_size 2
   defp indent(depth), do: String.duplicate(" ", depth * @indent_size)
 end

@@ -37,8 +37,15 @@ defmodule Cloak.Sql.Parser.Internal do
       {:else, parenthesised_select_statement("select, explain, or show")}
     ])
     |> map(fn
-      {[command], [statement_data]} -> statement_data |> Keyword.put(:command, command) |> statement_map()
-      statement_data -> statement_map(statement_data)
+      {[:explain], [statement_data]} ->
+        statement = statement_map(statement_data)
+        %{statement | command: {:explain, statement.command}}
+
+      {[:show], [statement_data]} ->
+        statement_map([{:command, :show} | statement_data])
+
+      statement_data ->
+        statement_map(statement_data)
     end)
   end
 
@@ -86,12 +93,16 @@ defmodule Cloak.Sql.Parser.Internal do
       rest
       |> Enum.chunk_every(2)
       |> Enum.reduce(first, fn [{:union, type}, right_statement], left_statement ->
+        left_ast = statement_map(left_statement)
+        right_ast = statement_map(right_statement)
+        {start_pos, _} = left_ast.source_range
+        {_, end_pos} = right_ast.source_range
+
         [
+          {:source_range, {start_pos, end_pos}},
           command: :union,
           distinct?: type != :all,
-          from:
-            {:union, {:subquery, %{ast: statement_map(left_statement), alias: nil}},
-             {:subquery, %{ast: statement_map(right_statement), alias: nil}}}
+          from: {:union, {:subquery, %{ast: left_ast, alias: nil}}, {:subquery, %{ast: right_ast, alias: nil}}}
         ]
       end)
     end)
