@@ -1,5 +1,0 @@
-<div class="footer mt-auto">
-  <div class="container-lg">
-    <%= render "_footer_content.html", conn: @conn %>
-  </div>
-</div>

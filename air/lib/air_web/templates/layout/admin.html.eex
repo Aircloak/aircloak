@@ -59,7 +59,9 @@
         </div>
       </main>
     </div> <!-- /container-fluid -->
-    <div class="admin-footer mt-auto"><%= render AirWeb.SharedView, "footer.html", conn: @conn %></div>
+    <div class="admin-footer mt-auto">
+      <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
+    </div>
     <script src="<%= static_path(@conn, "/frontend/app.js") %>"></script>
   </body>
 </html>
