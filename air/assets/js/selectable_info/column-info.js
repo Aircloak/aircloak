@@ -30,7 +30,7 @@ const AnalysisDetails = React.forwardRef(
         style={{
           ...props.style,
           minWidth: "200px",
-          maxWidth: "min(360px, calc(100vw - 100px))",
+          maxWidth: "min(380px, calc(100vw - 100px))",
         }}
       >
         <Popover.Title className="d-flex justify-content-between align-items-baseline">
@@ -62,7 +62,7 @@ const AnalysisDetails = React.forwardRef(
               </div>
             </Popover.Content>
           )}
-          <Popover.Content className="bg-white">
+          <Popover.Content className="bg-white px-2">
             <div className="list-group list-group-horizontal">
               <div className="list-group-item d-flex flex-column flex-grow-1 align-items-center flex-basis-1">
                 <b className="text-muted font-weight-bold text-uppercase small">
@@ -94,7 +94,7 @@ const AnalysisDetails = React.forwardRef(
           </Popover.Content>
 
           {item.analysis && (
-            <Popover.Content className="bg-white mt-3">
+            <Popover.Content className="bg-white mt-3 px-2">
               <React.Suspense
                 fallback={
                   <img
