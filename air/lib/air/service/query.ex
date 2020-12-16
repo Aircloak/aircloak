@@ -340,14 +340,14 @@ defmodule Air.Service.Query do
         select: %{
           bucket: width_bucket(timings.total_time, 0, ^max, ^bin_count),
           count: count(),
-          started: avg(type(timings.time_spent ~> "started", :decimal)) / 1000,
-          parsing: avg(type(timings.time_spent ~> "parsing", :decimal)) / 1000,
-          compiling: avg(type(timings.time_spent ~> "compiling", :decimal)) / 1000,
-          awaiting_data: avg(type(timings.time_spent ~> "awaiting_data", :decimal)) / 1000,
-          ingesting_data: avg(type(timings.time_spent ~> "ingesting_data", :decimal)) / 1000,
-          processing: avg(type(timings.time_spent ~> "processing", :decimal)) / 1000,
-          post_processing: avg(type(timings.time_spent ~> "post_processing", :decimal)) / 1000,
-          completed: avg(type(timings.time_spent ~> "completed", :decimal)) / 1000
+          started: avg(type(timings.time_spent ~>> "started", :decimal)) / 1000,
+          parsing: avg(type(timings.time_spent ~>> "parsing", :decimal)) / 1000,
+          compiling: avg(type(timings.time_spent ~>> "compiling", :decimal)) / 1000,
+          awaiting_data: avg(type(timings.time_spent ~>> "awaiting_data", :decimal)) / 1000,
+          ingesting_data: avg(type(timings.time_spent ~>> "ingesting_data", :decimal)) / 1000,
+          processing: avg(type(timings.time_spent ~>> "processing", :decimal)) / 1000,
+          post_processing: avg(type(timings.time_spent ~>> "post_processing", :decimal)) / 1000,
+          completed: avg(type(timings.time_spent ~>> "completed", :decimal)) / 1000
         },
         order_by: [asc: 1],
         group_by: [1]
