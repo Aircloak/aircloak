@@ -10,10 +10,10 @@ defmodule Air.Ecto.Pg do
   defmacro width_bucket(field, min, max, bins),
     do: quote(do: fragment("width_bucket(?, ?, ?, ?)", unquote(field), unquote(min), unquote(max), unquote(bins)))
 
-  @doc "Access a field in a JSONB or JSON field. Note: the return type is JSON(b) so, you may need to wrap in `type/2`."
-  defmacro a ~> b do
+  @doc "Access a field in a JSONB or JSON object as text."
+  defmacro a ~>> b do
     quote do
-      fragment("(? -> ?)", unquote(a), unquote(b))
+      fragment("(? ->> ?)", unquote(a), unquote(b))
     end
   end
 end
