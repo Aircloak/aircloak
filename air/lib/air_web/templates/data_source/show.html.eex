@@ -32,6 +32,7 @@
         selectables: @selectables |> order_by_id,
         numberFormat: @number_format,
         debugModeEnabled: @debug_mode_enabled,
+        typeCheckingEnabled: @type_checking_enabled,
       } %>;
 
       App.selectableInfo(<%= selectable_setup(@conn) %>, document.getElementById("selectable-info"));

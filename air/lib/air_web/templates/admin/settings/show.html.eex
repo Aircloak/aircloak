@@ -47,6 +47,21 @@
   </div>
 
   <div class="form-group row">
+    <label class="col-sm-3 control-label label-right" for="<%= input_id(f, :type_checking_enabled)%>">Realtime type checking</label>
+    <div class="col-sm-9">
+      <div class="checkbox">
+        <label>
+          <%= checkbox(f, :type_checking_enabled) %>
+          (enabled when checked)
+        </label>
+        <small class="form-text text-muted">
+          When enabled, the query editor will type check the input in realtime.
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group row">
     <label class="col-sm-3 control-label label-right">Login screen message<br/>(Markdown)</label>
     <div class="col-sm-9">
       <%= textarea f, :login_message, class: "form-control input-sm" %>

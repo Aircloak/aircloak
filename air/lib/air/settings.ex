@@ -8,7 +8,8 @@ defmodule Air.Settings do
           thousand_sep: String.t(),
           decimal_digits: integer,
           login_message: String.t(),
-          main_message: String.t()
+          main_message: String.t(),
+          type_checking_enabled: boolean
         }
 
   defstruct [
@@ -18,6 +19,7 @@ defmodule Air.Settings do
     :thousand_sep,
     :decimal_digits,
     :login_message,
-    :main_message
+    :main_message,
+    :type_checking_enabled
   ]
 end
