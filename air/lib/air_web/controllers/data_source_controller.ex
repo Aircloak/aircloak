@@ -57,7 +57,8 @@ defmodule AirWeb.DataSourceController do
         session_id: Ecto.UUID.generate(),
         selectables: DataSource.selectables(conn.assigns.current_user, data_source),
         number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
-        debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled
+        debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled,
+        type_checking_enabled: Air.Service.Settings.read().type_checking_enabled
       )
     else
       _ ->

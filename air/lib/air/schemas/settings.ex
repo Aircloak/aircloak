@@ -15,6 +15,8 @@ defmodule Air.Schemas.Settings do
     field(:login_message, :string)
     field(:main_message, :string)
 
+    field(:type_checking_enabled, :boolean)
+
     timestamps(type: :naive_datetime_usec)
   end
 end

@@ -37,6 +37,7 @@ type Props = {
   frontendSocket: FrontendSocket,
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
+  typeCheckingEnabled: boolean,
 };
 
 type State = {
@@ -150,6 +151,8 @@ export default class QueriesView extends React.PureComponent<Props, State> {
 
   requestTypeCheck: (string) => void = debounce(
     (statement) => {
+      if (!this.props.typeCheckingEnabled) return;
+
       if (this.state.annotations.type) {
         this.setTypeCheckLoading();
       }
