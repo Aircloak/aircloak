@@ -42,7 +42,7 @@
     <div class="card-body d-flex flex-column mt-n4">
       <%= for table <- data_source.tables do %>
       <div class="d-flex mt-1 align-items-baseline">
-        <div class="flex-shrink-0 w-25 pr-2">
+        <div class="flex-shrink-0 pr-2" style="width: 9ch;">
           <%= if table.status == :not_enabled do %>
           <button
             class="btn btn-sm btn-outline-secondary w-100"
