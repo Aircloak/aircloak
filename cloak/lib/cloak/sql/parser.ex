@@ -74,7 +74,7 @@ defmodule Cloak.Sql.Parser do
 
   @type explain ::
           %{
-            command: :explain,
+            command: {:explain, :select | :union},
             from: select
           }
 

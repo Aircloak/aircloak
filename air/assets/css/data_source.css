@@ -7,10 +7,3 @@
 .data-source .column {
   height: 100%;
 }
-
-.content-wrapper {
-  position: relative;
-  min-height: calc(100vh - 120px);
-  /* Footer */
-  padding-bottom: 100px;
-}

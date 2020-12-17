@@ -501,6 +501,30 @@ defmodule Cloak.Sql.Query.Explainer.Test do
              ]
   end
 
+  test "union" do
+    query = "select stddev(0) from table_1 union select stddev(0) from table_2"
+
+    assert explain(query) == [
+             "query (emulated, standard)",
+             "  --> union (anonymized, user_id, default noise layer)",
+             "    --> table_1 (personal table)",
+             "  --> union (anonymized, user_id, default noise layer)",
+             "    --> table_2 (personal table)"
+           ]
+
+    assert [
+             %{
+               anonymization_type: :user_id,
+               emulated: true,
+               noise_layers: 0,
+               query_type: :standard,
+               range: %{end: %{ch: 65, line: 0}, start: %{ch: 0, line: 0}}
+             },
+             _,
+             _
+           ] = explain_for_editor(query)
+  end
+
   @data_source %{
     name: "explainer_test_data_source",
     driver: Cloak.DataSource.PostgreSQL,

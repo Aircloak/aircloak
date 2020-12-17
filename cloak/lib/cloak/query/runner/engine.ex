@@ -52,14 +52,14 @@ defmodule Cloak.Query.Runner.Engine do
     Sql.Parser.parse!(statement)
   end
 
-  defp compile!(%{command: :explain} = parsed_query, runner_args) do
+  defp compile!(%{command: {:explain, what}} = parsed_query, runner_args) do
     query =
       parsed_query
-      |> Map.put(:command, :select)
+      |> Map.put(:command, what)
       |> compile!(runner_args)
 
     %Sql.Query{
-      command: :explain,
+      command: {:explain, what},
       from: {:subquery, %{ast: query}},
       column_titles: ["query plan"],
       columns: [Sql.Expression.constant(:text, "query plan")]
@@ -153,7 +153,7 @@ defmodule Cloak.Query.Runner.Engine do
     )
   end
 
-  defp run_statement(%Sql.Query{command: :explain, from: {:subquery, %{ast: query}}}, _),
+  defp run_statement(%Sql.Query{command: {:explain, _}, from: {:subquery, %{ast: query}}}, _),
     do:
       query
       |> Sql.Query.Explainer.explain()

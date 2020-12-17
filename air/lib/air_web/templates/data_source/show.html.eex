@@ -1,4 +1,4 @@
-<div class="container-fluid mt-3 full-height d-flex">
+<div class="container-fluid mt-3 full-height-query-page d-flex">
   <div class="container-with-sidebar-fluid">
     <%= if get_flash(@conn, :warn) do %>
       <p class="alert alert-warning alert-dismissible" role="alert">
@@ -10,6 +10,7 @@
     <% end %>
 
     <div id="query-view" class="mb-3"></div>
+
     <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
   </div>
 

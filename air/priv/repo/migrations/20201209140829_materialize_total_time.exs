@@ -9,6 +9,6 @@ defmodule Air.Repo.Migrations.MaterializeTotalTime do
       )
     end
 
-    execute("UPDATE queries SET total_time = (SELECT SUM(CAST(value as int)) FROM jsonb_each(time_spent))", "SELECT 1")
+    execute("UPDATE queries SET total_time = (SELECT SUM(value::int) FROM jsonb_each_text(time_spent))", "SELECT 1")
   end
 end

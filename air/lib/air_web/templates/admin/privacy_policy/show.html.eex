@@ -17,7 +17,7 @@
 <% end %>
 
 <div class="bg-light p-4" id="current" role="tabpanel" aria-labelledby="current-tab">
-  <div class="bg-white p-3 mb-0 container-lg ml-0" id="privacy-policy" style="min-height: 300px">
+  <div class="bg-white p-3 mb-0 container-lg ml-0" id="privacy-policy-container" style="min-height: 300px">
     <%= raw(AirWeb.PrivacyPolicyView.content_as_html(@privacy_policy)) %>
   </div>
 </div>

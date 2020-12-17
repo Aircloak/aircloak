@@ -24,7 +24,9 @@
 
     </div> <!-- /container -->
 
-    <%= render AirWeb.SharedView, "full_footer.html", conn: @conn %>
+    <div class="footer mt-auto d-flex justify-content-center">
+      <%= render AirWeb.SharedView, "_footer_content.html", conn: @conn %>
+    </div>
     <script src="<%= static_path(@conn, "/frontend/app.js") %>"></script>
   </body>
 </html>

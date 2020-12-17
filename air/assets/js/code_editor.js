@@ -24,7 +24,7 @@ export type Annotations =
       noise_layers: number,
     }>
   | {|
-      type: "ParseError" | "CompilationError",
+      type: "ParseError" | "CompilationError" | "SystemError",
       message: string,
       location: Position | null,
     |}
