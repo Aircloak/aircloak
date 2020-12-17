@@ -47,16 +47,6 @@
   </div>
 
   <div class="form-group row">
-    <h4 class="col-sm-3 label-right">Number format</h4>
-    <div class="col-sm-7">(applies only to the user interface)</div>
-    <div class="offset-3 col-sm-7" id="example"></div>
-  </div>
-
-  <%= validated_text_input f, :decimal_sep, "Decimal separator", horizontal: {3, 2}, label_class: "label-right" %>
-  <%= validated_text_input f, :thousand_sep, "Thousand separator", horizontal: {3, 2}, label_class: "label-right" %>
-  <%= validated_number_input f, :decimal_digits, "Decimal digits", horizontal: {3, 2}, label_class: "label-right" %>
-
-  <div class="form-group row">
     <label class="col-sm-3 control-label label-right">Login screen message<br/>(Markdown)</label>
     <div class="col-sm-9">
       <%= textarea f, :login_message, class: "form-control input-sm" %>
@@ -68,6 +58,16 @@
       <%= textarea f, :main_message, class: "form-control input-sm" %>
     </div>
   </div>
+
+  <div class="form-group row">
+    <h4 class="col-sm-3 label-right">Number format</h4>
+    <div class="col-sm-7">(applies only to the user interface)</div>
+    <div class="offset-3 col-sm-7" id="example"></div>
+  </div>
+
+  <%= validated_text_input f, :decimal_sep, "Decimal separator", horizontal: {3, 2}, label_class: "label-right" %>
+  <%= validated_text_input f, :thousand_sep, "Thousand separator", horizontal: {3, 2}, label_class: "label-right" %>
+  <%= validated_number_input f, :decimal_digits, "Decimal digits", horizontal: {3, 2}, label_class: "label-right" %>
 
   <div class="form-group row">
     <div class="offset-3 col-sm-9">
