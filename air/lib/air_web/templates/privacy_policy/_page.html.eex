@@ -1,6 +1,6 @@
 <div class="row">
   <div class="col-md-12 col-sm-12">
-    <div id="privacy-policy">
+    <div id="privacy-policy-container">
       <%= raw(content_as_html(@privacy_policy)) %>
     </div>
   </div>
