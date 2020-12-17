@@ -131,7 +131,7 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
         {:reply, {:ok, %{"result" => result}}, socket}
 
       {:error, error} ->
-        potentialReason =
+        potential_reason =
           case error do
             :unauthorized -> " as you are not authorized to query this data source"
             :not_connected -> " as the data source is offline"
@@ -139,13 +139,13 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
             _ -> ""
           end
 
-        errorMessage = %{
+        error_message = %{
           type: "SystemError",
-          message: "Could not type check the query #{potentialReason}",
+          message: "Could not type check the query #{potential_reason}",
           location: nil
         }
 
-        {:reply, {:ok, %{"result" => %{data: errorMessage}}}, socket}
+        {:reply, {:ok, %{"result" => %{data: error_message}}}, socket}
     end
   end
 
