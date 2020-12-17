@@ -14,7 +14,8 @@ defmodule Air.Service.Settings.Test do
                audit_log_enabled: true,
                decimal_digits: 3,
                decimal_sep: ".",
-               thousand_sep: " "
+               thousand_sep: " ",
+               type_checking_enabled: true
              }
   end
 
