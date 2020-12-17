@@ -113,7 +113,7 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
   def handle_in("type_check", %{"query" => statement, "data_source" => data_source}, socket) do
     user = socket.assigns.user
 
-    {:ok, result} =
+    type_check_result =
       Air.Service.DataSource.with_available_cloak(
         {:name, data_source},
         user,
@@ -126,7 +126,27 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
         )
       )
 
-    {:reply, {:ok, %{"result" => result}}, socket}
+    case type_check_result do
+      {:ok, result} ->
+        {:reply, {:ok, %{"result" => result}}, socket}
+
+      {:error, error} ->
+        potentialReason =
+          case error do
+            :unauthorized -> " as you are not authorized to query this data source"
+            :not_connected -> " as the data source is offline"
+            :internal_error -> " due to an internal error"
+            _ -> ""
+          end
+
+        errorMessage = %{
+          type: "SystemError",
+          message: "Could not type check the query #{potentialReason}",
+          location: nil
+        }
+
+        {:reply, {:ok, %{"result" => %{data: errorMessage}}}, socket}
+    end
   end
 
   # -------------------------------------------------------------------
