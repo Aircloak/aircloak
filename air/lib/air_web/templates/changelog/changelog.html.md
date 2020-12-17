@@ -1,5 +1,12 @@
 ## Version 21.1.0
 
+### **Breaking changes**
+
+- The Oracle column type `date` now maps to an Aircloak `datetime`.
+  This accounts for the fact that `date`s in Oracle can also include a time component.
+  Existing analyst tables which include `date` columns must be updated to reflect this change.
+  Analyst tables are updated by resaving their definition in Insights Air interface.
+
 ### New features
 
 - Added support for `UNION` between non-restricted queries.
@@ -15,8 +22,6 @@
 ### Changes
 
 - Data source query history is now loaded by default on page load.
-- The Oracle column type `date` now maps to an Aircloak `datetime`. This accounts for the fact that
-  `date`s in Oracle can also include a time component.
 
 ## Version 20.3.0
 
