@@ -97,6 +97,7 @@ const App = {
       statement,
       supportsCreateTable,
       userId,
+      typeCheckingEnabled,
     } = props;
     switch (page) {
       case "queries":
@@ -113,6 +114,7 @@ const App = {
             frontendSocket={App.buildSocket(props)}
             numberFormat={numberFormat}
             debugModeEnabled={debugModeEnabled}
+            typeCheckingEnabled={typeCheckingEnabled}
           />
         );
       case "query_show":
