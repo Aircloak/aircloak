@@ -1,5 +1,4 @@
 FROM debian:$DEBIAN_VERSION
-MAINTAINER Aircloak
 
 MPI_INIT
 
