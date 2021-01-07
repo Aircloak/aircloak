@@ -1,5 +1,4 @@
 FROM aircloak/erlang:$ERLANG_VERSION
-MAINTAINER Aircloak
 
 RUN apt-get install -y locales unzip
 

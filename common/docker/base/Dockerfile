@@ -1,12 +1,11 @@
 FROM debian:$DEBIAN_VERSION
-MAINTAINER Aircloak
 
 MPI_INIT
 
 # Support for rebuilding of all images. Change this date if you want to
 # force the rebuild of all images. Usually you want to do this if you
 # want to upgrade Debian packages on all images.
-RUN echo 20200217 > /dev/null
+RUN echo 20210104 > /dev/null
 
 # Setting alternative repositories because Jessie has been removed from mirrors
 # See https://www.jesusamieiro.com/failed-to-fetch-http-ftp-debian-org-debian-dists-jessie-updates-main-404-not-found/

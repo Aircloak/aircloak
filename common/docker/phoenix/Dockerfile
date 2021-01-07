@@ -1,8 +1,7 @@
 FROM aircloak/elixir:$ELIXIR_VERSION
-MAINTAINER Aircloak
 
 # Installs the node version specified in the .tool-versions in addition to
-# yarn as a replacement for npm. 
+# yarn as a replacement for npm.
 # The brunch node package is needed for building central, whereas
 # the webpack node package is needed for building air.
 # our app requires python to be installed to build cleanly, hence the python
