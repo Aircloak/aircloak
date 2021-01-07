@@ -9,6 +9,6 @@
     "ssl": false,
     "user": "central",
     "password": "",
-    "name": "central_test"
+    "name": "central_dev"
   }
 }
