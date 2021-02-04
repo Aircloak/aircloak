@@ -1,3 +1,9 @@
+## Version 21.1.1
+
+### Enhancements
+
+- Made execution time of queries more consistent.
+
 ## Version 21.1.0
 
 ### **Breaking changes**
