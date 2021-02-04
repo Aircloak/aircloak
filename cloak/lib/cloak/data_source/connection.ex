@@ -41,9 +41,9 @@ defmodule Cloak.DataSource.Connection do
   end
 
   @doc "Starts the streamer process as the child of the given connection."
-  @spec start_streamer(pid, String.t(), Cloak.Sql.Query.t(), Streamer.reporter()) :: {:ok, pid} | {:error, String.t()}
-  def start_streamer(connection, query_id, query, reporter) do
-    GenServer.call(connection, {:start_streamer, query_id, query, reporter}, Driver.connect_timeout())
+  @spec start_streamer(pid, String.t(), Cloak.Sql.Query.t()) :: {:ok, pid} | {:error, String.t()}
+  def start_streamer(connection, query_id, query) do
+    GenServer.call(connection, {:start_streamer, query_id, query}, Driver.connect_timeout())
   catch
     :exit, {:timeout, _} ->
       Process.exit(connection, :kill)
@@ -110,13 +110,13 @@ defmodule Cloak.DataSource.Connection do
   end
 
   @impl GenServer
-  def handle_call({:start_streamer, query_id, query, reporter}, {query_runner, _}, state) do
+  def handle_call({:start_streamer, query_id, query}, {query_runner, _}, state) do
     assert_not_used!(state)
 
     case ensure_connected(state) do
       {:ok, state} ->
         Logger.metadata(query_id: query_id)
-        {:ok, streamer} = Streamer.start_link(state.connection, query_runner, query_id, query, reporter)
+        {:ok, streamer} = Streamer.start_link(state.connection, query_runner, query_id, query)
         query_mref = Process.monitor(query_runner)
         {:reply, {:ok, streamer}, %{state | query_runner: query_runner, streamer: streamer, query_mref: query_mref}}
 

@@ -8,9 +8,6 @@ defmodule Cloak.DataSource.Streamer do
   require Logger
   alias Cloak.DataSource.Connection
 
-  @type reporter :: (reporter_state -> reporter_state) | nil
-  @type reporter_state :: any
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -27,26 +24,24 @@ defmodule Cloak.DataSource.Streamer do
     query or transaction) won't affect the outcome of the query runner process.
   - Streaming is performed in a lookahead fashion to ensure that the next row is available in the consumer process when
     it's needed.
-  - If the `reporter` function is provided, it will be invoked from the streamer process on every fetched chunk with the
-    reporter state, which is the result of the previous reporter invocation. The initial reporter state is `nil`.
   """
-  @spec rows(Cloak.Sql.Query.t(), reporter) :: {:ok, Enumerable.t()} | {:error, String.t()}
-  def rows(query, reporter \\ nil) do
+  @spec rows(Cloak.Sql.Query.t()) :: {:ok, Enumerable.t()} | {:error, String.t()}
+  def rows(query) do
     Logger.debug("Selecting data ...")
 
     query_id = Keyword.get(Logger.metadata(), :query_id, nil)
     connection_owner = Connection.Pool.checkout(query.data_source)
 
-    with {:ok, streamer} <- Connection.start_streamer(connection_owner, query_id, query, reporter),
+    with {:ok, streamer} <- Connection.start_streamer(connection_owner, query_id, query),
          do: {:ok, fetch_rows(streamer)}
   end
 
   @doc "Invoked by the connection owner to start the streamer process."
-  @spec start_link(Cloak.DataSource.Driver.connection(), pid, String.t(), Cloak.Sql.Query.t(), reporter) :: {:ok, pid}
-  def start_link(driver_connection, query_runner, query_id, query, reporter) do
+  @spec start_link(Cloak.DataSource.Driver.connection(), pid, String.t(), Cloak.Sql.Query.t()) :: {:ok, pid}
+  def start_link(driver_connection, query_runner, query_id, query) do
     # Since streaming from the datasource has to be done in a lambda, we can't implement the streamer as a GenServer.
     # Instead, we're starting a task, and receive messages manually while streaming from the database.
-    Task.start_link(fn -> stream(self(), driver_connection, query_runner, query_id, query, reporter) end)
+    Task.start_link(fn -> stream(self(), driver_connection, query_runner, query_id, query) end)
   end
 
   # -------------------------------------------------------------------
@@ -97,7 +92,7 @@ defmodule Cloak.DataSource.Streamer do
   # Server-side functions
   # -------------------------------------------------------------------
 
-  defp stream(connection_owner, driver_connection, query_runner, query_id, query, reporter) do
+  defp stream(connection_owner, driver_connection, query_runner, query_id, query) do
     Logger.metadata(query_id: query_id)
 
     try do
@@ -105,7 +100,7 @@ defmodule Cloak.DataSource.Streamer do
              query.data_source.driver.select(
                driver_connection,
                query,
-               &stream_chunks(&1, connection_owner, query_runner, reporter)
+               &stream_chunks(&1, connection_owner, query_runner)
              ),
            do: stream_error(query_runner, sanitize_database_error(error))
 
@@ -125,28 +120,28 @@ defmodule Cloak.DataSource.Streamer do
       else: message
   end
 
-  defp stream_chunks(chunks, connection_owner, query_runner, reporter) do
-    process_chunks(chunks, query_runner, reporter)
+  defp stream_chunks(chunks, connection_owner, query_runner) do
+    process_chunks(chunks, query_runner)
 
     # We're issuing this notification here, before we're closing the resources (e.g. query or transaction). This ensures
     # that the query runner won't be taken down if closing of resources fails.
     Connection.streaming_done(connection_owner)
   end
 
-  defp process_chunks(chunks, query_runner, reporter) do
+  defp process_chunks(chunks, query_runner) do
     query_runner_mref = Process.monitor(query_runner)
 
     Enum.reduce_while(
       Stream.reject(chunks, &Enum.empty?/1),
       nil,
-      fn chunk, reporter_state ->
+      fn chunk, _ ->
         receive do
           {:next_chunk, request_id, requester_pid} ->
             send(requester_pid, {request_id, chunk})
-            {:cont, invoke_reporter(reporter, reporter_state)}
+            {:cont, nil}
 
           {:DOWN, ^query_runner_mref, :process, ^query_runner, _reason} ->
-            {:halt, reporter_state}
+            {:halt, nil}
 
           message ->
             raise("invalid message #{inspect(message)} while streaming the query")
@@ -169,7 +164,4 @@ defmodule Cloak.DataSource.Streamer do
         raise("invalid message #{inspect(message)} while streaming the query")
     end
   end
-
-  defp invoke_reporter(nil, _reporter_state), do: nil
-  defp invoke_reporter(reporter, reporter_state), do: reporter.(reporter_state)
 end

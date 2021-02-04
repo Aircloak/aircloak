@@ -35,43 +35,6 @@ defmodule Cloak.DataSource.StreamerTest do
     end
   end
 
-  test "reporting" do
-    test_pid = self()
-
-    reporter = fn chunk_index ->
-      chunk_index = chunk_index || 1
-      send(test_pid, {:processing_chunk, chunk_index})
-      chunk_index + 1
-    end
-
-    assert {:ok, rows_stream} = rows("select stddev(intval) from test_streamer", data_source(), reporter)
-    num_chunks = rows_stream |> Enum.count() |> div(100)
-    Enum.each(1..num_chunks, &assert_receive({:processing_chunk, &1}))
-    refute_receive {:processing_chunk, _}
-  end
-
-  test "reporting from concurrent processes" do
-    test_pid = self()
-
-    reporter = fn chunk_index ->
-      chunk_index = chunk_index || 1
-      send(test_pid, {:processing_chunk, chunk_index})
-      chunk_index + 1
-    end
-
-    assert {:ok, rows_stream} = rows("select stddev(intval) from test_streamer", data_source(), reporter)
-
-    num_chunks =
-      1..2
-      |> Enum.map(fn _ -> Task.async(fn -> Enum.to_list(rows_stream) end) end)
-      |> Enum.flat_map(&Task.await/1)
-      |> Enum.count()
-      |> div(100)
-
-    Enum.each(1..num_chunks, &assert_receive({:processing_chunk, &1}))
-    refute_receive {:processing_chunk, _}
-  end
-
   test "connection failure" do
     with_short_connection_timeout(fn ->
       soon do
@@ -104,11 +67,11 @@ defmodule Cloak.DataSource.StreamerTest do
     assert e.message =~ ~r/relation "cloak_test.temp_table" does not exist/
   end
 
-  defp rows(query, data_source \\ data_source(), reporter \\ nil) do
+  defp rows(query, data_source \\ data_source()) do
     Cloak.Sql.Parser.parse!(query)
     |> Cloak.Sql.Compiler.compile!(nil, data_source, [], %{})
     |> Cloak.Sql.Query.resolve_db_columns()
-    |> Streamer.rows(reporter)
+    |> Streamer.rows()
   end
 
   defp with_short_connection_timeout(timeout \\ 50, fun) do
