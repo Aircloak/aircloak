@@ -2,7 +2,9 @@
 
 ### Enhancements
 
-- Made execution time of queries more consistent.
+- Made execution time of queries more consistent to prevent some types of timing attacks.
+- Debug logs for queries always show the `ingesting data` state.
+  This prevents an attack where the presence of this line could be used to determine whether a query result contains any rows.
 
 ## Version 21.1.0
 
