@@ -1,3 +1,16 @@
+## Version 21.1.1
+
+### Enhancements
+
+- Made execution time of queries more consistent to prevent some types of timing attacks.
+- Debug logs for queries always show the `ingesting data` state.
+  This prevents an attack where the presence of this line could be used to determine whether a query result contains any rows.
+
+### Changes
+
+- It is no longer possible to observe the difference between the database
+  processing phase and the data ingestion phase of a query.
+
 ## Version 21.1.0
 
 ### **Breaking changes**

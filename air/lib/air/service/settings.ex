@@ -41,7 +41,7 @@ defmodule Air.Service.Settings do
     |> changeset(params)
     |> do_save()
     |> case do
-      {:ok, updated} -> {:reply, {:ok, updated}, updated}
+      {:ok, updated} -> {:reply, {:ok, parse(updated)}, updated}
       {:error, changeset} -> {:reply, {:error, changeset}, state}
     end
   end

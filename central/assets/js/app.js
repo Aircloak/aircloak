@@ -14,10 +14,3 @@
 // If you no longer want to use a dependency, remember
 // to also remove its path from "config.paths.watched".
 import "phoenix_html";
-
-const App = {
-};
-
-if (window.pageConfig !== undefined) {
-  window.pageConfig.onLoad.call(this, App);
-}

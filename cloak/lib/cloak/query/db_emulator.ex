@@ -102,22 +102,13 @@ defmodule Cloak.Query.DbEmulator do
   end
 
   defp db_rows!(query, state_updater) do
+    state_updater.(nil, :ingesting_data)
+
     %Query{query | subquery?: not query.emulated? and query.type != :anonymized, where: Query.offloaded_where(query)}
-    |> DataSource.Streamer.rows(ingestion_reporter(state_updater))
+    |> DataSource.Streamer.rows()
     |> case do
       {:ok, rows} -> rows
       {:error, reason} -> raise Cloak.Query.ExecutionError, message: reason
-    end
-  end
-
-  defp ingestion_reporter(state_updater) do
-    fn
-      nil ->
-        state_updater.(nil, :ingesting_data)
-        :done
-
-      :done ->
-        :done
     end
   end
 
