@@ -18,7 +18,11 @@ defmodule AirWeb.Endpoint do
 
   socket("/cloak/socket", AirWeb.Socket.Cloak, websocket: [serializer: [{AirWeb.Socket.Cloak.Serializer, "~> 2.0.0"}]])
   socket("/frontend/socket", AirWeb.Socket.Frontend, websocket: true, longpoll: true)
-  socket("/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session_options]])
+
+  socket("/live", Phoenix.LiveView.Socket,
+    websocket: [connect_info: [session: @session_options]],
+    longpoll: [connect_info: [session: @session_options]]
+  )
 
   plug(
     AirWeb.Plug.Redirect,

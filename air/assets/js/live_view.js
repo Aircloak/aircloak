@@ -5,8 +5,9 @@ import NProgress from "nprogress";
 import "nprogress/nprogress.css";
 import "./elements/histogram_chart";
 import "./elements/sql_code_block";
+import FrontendSocket from "./frontend_socket";
 
-export default () => {
+export default (transportName) => {
   const csrfElement = document.querySelector("meta[name='csrf-token']");
   const _csrf_token = csrfElement && csrfElement.getAttribute("content");
   window.addEventListener("phx:page-loading-start", (info) =>
@@ -15,6 +16,7 @@ export default () => {
   window.addEventListener("phx:page-loading-stop", (info) => NProgress.done());
   const liveSocket = new LiveSocket("/live", Socket, {
     params: { _csrf_token },
+    transport: FrontendSocket.transport(transportName),
     hooks: {
       SQLCodeViewer: {
         mounted() {

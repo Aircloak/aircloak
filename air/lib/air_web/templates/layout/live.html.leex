@@ -7,7 +7,8 @@
 <script type="application/javascript">
   window.pageConfig = {
     onLoad: function(App) {
-      App.liveView();
+      const transportType = "<%= Air.browser_socket_transport() %>";
+      App.liveView(transportType);
     }
   };
 </script>
