@@ -1,3 +1,10 @@
+## Version Evergreen 1.0 LTS
+
+### Bugfixes
+
+- The audit log and the query performance page would fail on installations configured to use long polling rather
+  than websockets.
+
 ## Version 21.1.1
 
 ### Enhancements
