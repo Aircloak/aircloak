@@ -7,19 +7,19 @@ MPI_INIT
 # want to upgrade Debian packages on all images.
 RUN echo 20210104 > /dev/null
 
-# Setting alternative repositories because Jessie has been removed from mirrors
-# See https://www.jesusamieiro.com/failed-to-fetch-http-ftp-debian-org-debian-dists-jessie-updates-main-404-not-found/
-RUN printf '\\\n\
-deb http://deb.debian.org/debian/ jessie main\\\n\
-deb-src http://deb.debian.org/debian/ jessie main\\\n\
-\\\n\
-deb http://security.debian.org/ jessie/updates main\\\n\
-deb-src http://security.debian.org/ jessie/updates main\\\n\
-\\\n\
-deb http://archive.debian.org/debian jessie-backports main\\\n\
-deb-src http://archive.debian.org/debian jessie-backports main\\\n\
-' > /etc/apt/sources.list && \
-echo "Acquire::Check-Valid-Until false;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
+# # Setting alternative repositories because Jessie has been removed from mirrors
+# # See https://www.jesusamieiro.com/failed-to-fetch-http-ftp-debian-org-debian-dists-jessie-updates-main-404-not-found/
+# RUN printf '\\\n\
+# deb http://deb.debian.org/debian/ jessie main\\\n\
+# deb-src http://deb.debian.org/debian/ jessie main\\\n\
+# \\\n\
+# deb http://security.debian.org/ jessie/updates main\\\n\
+# deb-src http://security.debian.org/ jessie/updates main\\\n\
+# \\\n\
+# deb http://archive.debian.org/debian jessie-backports main\\\n\
+# deb-src http://archive.debian.org/debian jessie-backports main\\\n\
+# ' > /etc/apt/sources.list && \
+# echo "Acquire::Check-Valid-Until false;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
 
 # locale setup for properly working Erlang nodes
 RUN \
