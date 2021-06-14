@@ -1,4 +1,7 @@
-## Version Evergreen 1.0 LTS
+## Version 21.2.0 - Long term support
+
+Version 21.2.0 marks the first Aircloak Insights long term support release.
+It is called Aircloak Insights Evergreen.
 
 ### Bugfixes
 

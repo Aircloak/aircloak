@@ -1,6 +1,6 @@
 <div class="content">
   <small>
-    Aircloak - version <%= version() %> - Diffix <%= diffix_version() %>
+    Aircloak Insight 🌲 - version <%= version() %> - Diffix <%= diffix_version() %>
   </small>
   <%= if permitted?(@conn, AirWeb.LicenseController, :index) do %>
     <small>
