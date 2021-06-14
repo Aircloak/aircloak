@@ -1,6 +1,6 @@
 FROM aircloak/base:$DEBIAN_VERSION
 
-RUN apt-get install -y libz-dev autoconf libncurses-dev build-essential libssl-dev unixodbc-dev xsltproc fop
+RUN apt-get install -y libz-dev autoconf libncurses5-dev libncurses-dev build-essential libssl-dev unixodbc-dev xsltproc fop
 
 RUN \
   . /tmp/build_config/proxies.sh && \
