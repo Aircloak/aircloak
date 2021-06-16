@@ -8,10 +8,13 @@ MPI_INIT
 RUN echo 20210616 > /dev/null
 
 # locale setup for properly working Erlang nodes
+# note: we need to kill dirmngr after installing gnupg, otherwise
+#       it won't be able to contact the keyservers due to a bug.
 RUN \
   apt-get update && \
   apt-get upgrade -y && \
   apt-get install -y locales wget curl git nano telnet gnupg && \
+  pkill dirmngr && \
   . /tmp/build_config/proxies.sh && \
   locale-gen en_US.UTF-8 en_us && \
   dpkg-reconfigure locales && \
