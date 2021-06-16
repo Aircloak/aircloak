@@ -99,7 +99,7 @@ defmodule AirWeb.LayoutView do
       photographer: "Scott Taylor",
       credit_url: "https://unsplash.com/photos/02a4DSekRVg",
       motive: "Blue ocean by forest road - Thailand"
-    },
+    }
   ]
 
   defp background_image_num(), do: rem(NaiveDateTime.utc_now().day, 8)
