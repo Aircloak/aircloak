@@ -52,7 +52,6 @@ defmodule Cloak.DataSource.Utility do
 
   @driver_name_to_module_mappings [
     {"postgresql", Cloak.DataSource.PostgreSQL},
-    {"sqlserver", Cloak.DataSource.SQLServer},
     {"oracle", Cloak.DataSource.Oracle},
     {"cloudera-impala", Cloak.DataSource.ClouderaImpala}
   ]

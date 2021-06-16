@@ -5,7 +5,7 @@ It is called Aircloak Insights Evergreen.
 
 ### **Breaking changes**
 
-- Support removed for MariaDB and MySQL.
+- Support removed for MariaDB, MySQL and Microsoft SQL Server.
 
 ### Bugfixes
 

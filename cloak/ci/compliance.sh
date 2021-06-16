@@ -25,7 +25,7 @@ function cleanup {
 
   if [ "$KEEP_DB_CONTAINERS" != "true" ]; then
     # also stop named db containers so they don't waste dev resources
-    for container in postgres9.6 sqlserver2017 quickstart.cloudera; do
+    for container in postgres9.6 quickstart.cloudera; do
       docker rm -f $container > /dev/null 2>&1 || true
     done
   fi

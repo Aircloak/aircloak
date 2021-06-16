@@ -78,12 +78,6 @@ perftest: deps
 	MIX_ENV=prod mix compile
 	PERFORMANCE_TEST=true MIX_ENV=prod mix run perftest/main.exs
 
-sql-server-container:
-	$(call start_container, aircloak_sql_server, -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Sql{}server1' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest)
-
-sql-server-database:
-	docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P Sql{}server1 -Q "CREATE DATABASE $(DB_NAME)"
-
 odbc_drivers: odbc_drivers_folder oracle_drivers cloudera-impala_drivers
 
 odbc_drivers_folder:

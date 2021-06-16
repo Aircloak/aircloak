@@ -19,7 +19,6 @@
       - [Deploying](#deploying)
       - [Running performance tests locally](#running-performance-tests-locally)
     - [Installing database servers](#installing-database-servers)
-      - [SQL Server](#sql-server)
       - [Working in a dev container](#working-in-a-dev-container)
 
 ----------------------
@@ -262,32 +261,6 @@ Before running the tests you need to prepare the performance database.
 Note that the tests submit results to InfluxDB - it will be started with `start_dependencies.sh`.
 
 ### Installing database servers
-
-#### SQL Server
-
-- Change the memory allowed to docker to at least 3,5 GB
-- `make sql-server-container` - starts the container
-- `DB_NAME=cloaktest2 make sql-server-database` - creates a database named `cloaktest2`
-- Note that connecting to SQL Server will only work in the CI container (`make ci.compliance`)
-- The following example section will allow you to add an SQL Server datasource to the appropriate config.json:
-
-```json
-{
-  "driver": "sqlserver",
-  "name": "sql_server",
-  "parameters": {
-    "hostname": "docker.for.mac.localhost",
-    "username": "sa",
-    "password": "Sql{}server1",
-    "database": "cloaktest2",
-    "odbc_parameters": {
-      "Port": "1433"
-    }
-  },
-  "tables": {
-  }
-}
-```
 
 #### Working in a dev container
 

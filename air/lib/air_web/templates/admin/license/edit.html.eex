@@ -77,7 +77,6 @@
             <td colspan="2"><strong>Data sources</strong></td>
           </tr>
           <%= feature_row("Postgres", :ds_postgres) %>
-          <%= feature_row("Microsoft SQL Server", :ds_sqlserver) %>
           <%= feature_row("Oracle DB", :ds_oracle) %>
           <%= feature_row("Cloudera Impala", :ds_impala) %>
           <tr>

@@ -10,8 +10,6 @@ WORKDIR /aircloak/cloak
 RUN apt-get update
 RUN apt-get install -y unixodbc odbc-postgresql libaio1 inotify-tools unzip gnupg
 COPY cloak/priv/odbc/docker/odbc.ini /etc/
-COPY cloak/priv/odbc/docker/sqlserver_setup.sh /aircloak/
-RUN /aircloak/sqlserver_setup.sh
 
 # Setup Oracle Instant Client
 RUN \

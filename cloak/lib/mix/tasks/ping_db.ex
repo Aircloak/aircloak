@@ -152,7 +152,6 @@ defmodule Mix.Tasks.Cloak.PingDb do
     case driver do
       Cloak.DataSource.Oracle -> %{port: 1521}
       Cloak.DataSource.PostgreSQL -> %{port: 5432}
-      Cloak.DataSource.SQLServer -> %{port: 1433}
       Cloak.DataSource.ClouderaImpala -> %{port: 21_050}
       _ -> %{}
     end
@@ -168,9 +167,6 @@ defmodule Mix.Tasks.Cloak.PingDb do
       Cloak.DataSource.PostgreSQL ->
         Map.put(parameters, :database, "postgres")
 
-      Cloak.DataSource.SQLServer ->
-        Map.put(parameters, :database, "master")
-
       Cloak.DataSource.ClouderaImpala ->
         Map.put_new(parameters, :database, "default")
 
@@ -183,7 +179,6 @@ defmodule Mix.Tasks.Cloak.PingDb do
     case driver do
       Cloak.DataSource.Oracle -> [:odbc]
       Cloak.DataSource.PostgreSQL -> [:postgrex]
-      Cloak.DataSource.SQLServer -> [:odbc]
       Cloak.DataSource.ClouderaImpala -> [:odbc]
       _ -> []
     end

@@ -233,7 +233,6 @@ defmodule Compliance.DataSources do
   end
 
   defp handler_for_data_source(%{driver: Cloak.DataSource.PostgreSQL}), do: Compliance.DataSource.PostgreSQL
-  defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServer}), do: Compliance.DataSource.SQLServer
   defp handler_for_data_source(%{driver: Cloak.DataSource.Oracle}), do: Compliance.DataSource.Oracle
   defp handler_for_data_source(%{driver: Cloak.DataSource.ClouderaImpala}), do: Compliance.DataSource.ClouderaImpala
 

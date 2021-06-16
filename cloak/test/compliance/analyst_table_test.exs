@@ -279,7 +279,7 @@ defmodule Compliance.AnalystTableTest do
       test "table can't be created if the driver doesn't support analyst tables" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
              true <- String.starts_with?(data_source.name, "postgresql") do
-          data_source = %{data_source | driver: Cloak.DataSource.SQLServer}
+          data_source = %{data_source | driver: Cloak.DataSource.ClouderaImpala}
 
           assert_raise(
             RuntimeError,

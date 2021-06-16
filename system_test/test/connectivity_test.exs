@@ -9,7 +9,7 @@ defmodule SystemTest.Connectivity do
     data_sources = Jason.decode!(response.body)
 
     data_source_names = data_sources |> Enum.map(&Map.fetch!(&1, "name")) |> Enum.sort()
-    assert data_source_names == ~w(postgresql sqlserver)
+    assert data_source_names == ~w(postgresql)
 
     Enum.each(data_sources, fn data_source ->
       assert Map.fetch!(data_source, "errors") |> Enum.reject(&String.contains?(&1, " deprecated ")) == []
