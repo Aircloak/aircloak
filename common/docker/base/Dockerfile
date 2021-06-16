@@ -13,8 +13,7 @@ RUN echo 20210616 > /dev/null
 RUN \
   apt-get update && \
   apt-get upgrade -y && \
-  apt-get install -y locales wget curl git nano telnet gnupg && \
-  pkill dirmngr && \
+  apt-get install -y locales wget curl git nano telnet gnupg2 && \
   . /tmp/build_config/proxies.sh && \
   locale-gen en_US.UTF-8 en_us && \
   dpkg-reconfigure locales && \
