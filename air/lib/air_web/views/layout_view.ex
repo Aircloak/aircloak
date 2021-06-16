@@ -77,7 +77,7 @@ defmodule AirWeb.LayoutView do
     },
     %{
       photographer: "Geran de Klerk",
-      credit_url: "https://pixabay.com/photos/dogwood-spring-bloom-nature-flora-4113098/",
+      credit_url: "https://unsplash.com/photos/WJkc3xZjSXw",
       motive: "Remote forest path"
     },
     %{
