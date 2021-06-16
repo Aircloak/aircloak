@@ -1,5 +1,4 @@
 FROM aircloak/phoenix:$NODEJS_VERSION
-MAINTAINER Aircloak
 
 # needed for flow
 RUN apt-get update && apt-get install -y libelf-dev

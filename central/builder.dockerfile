@@ -1,5 +1,4 @@
 FROM aircloak/phoenix:$NODEJS_VERSION
-MAINTAINER Aircloak
 
 # First we'll copy only the subset of needed files and compile deps
 # This will reduce the amount of rebuilding when only the source code is changed.

@@ -1,5 +1,4 @@
 FROM aircloak/base:$DEBIAN_VERSION
-MAINTAINER Aircloak
 
 # ---------------------------------------------------------------------
 # Create user and copy in app
