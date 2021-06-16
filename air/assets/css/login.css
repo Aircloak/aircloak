@@ -126,8 +126,8 @@ div#aircloak {
     }
 
     body.img1 {
-      background: url(../static/images/bg-evergreen1.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen1.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
         url(../static/images/bg-evergreen1.jpg) 1x,
         url(../static/images/bg-evergreen1-large.jpg) 2x
@@ -135,8 +135,8 @@ div#aircloak {
     }
 
     body.img2 {
-      background: url(../static/images/bg-evergreen2.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen2.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
         url(../static/images/bg-evergreen2.jpg) 1x,
         url(../static/images/bg-evergreen2-large.jpg) 2x
@@ -144,8 +144,8 @@ div#aircloak {
     }
 
     body.img3 {
-      background: url(../static/images/bg-evergreen3.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen3.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
         url(../static/images/bg-evergreen3.jpg) 1x,
         url(../static/images/bg-evergreen3-large.jpg) 2x
@@ -153,8 +153,8 @@ div#aircloak {
     }
 
     body.img4 {
-      background: url(../static/images/bg-evergreen4.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen4.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
         url(../static/images/bg-evergreen4.jpg) 1x,
         url(../static/images/bg-evergreen4-large.jpg) 2x
@@ -162,8 +162,8 @@ div#aircloak {
     }
 
     body.img5 {
-      background: url(../static/images/bg-evergreen5.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen5.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
         url(../static/images/bg-evergreen5.jpg) 1x,
         url(../static/images/bg-evergreen5-large.jpg) 2x
@@ -171,8 +171,8 @@ div#aircloak {
     }
 
     body.img6 {
-      background: url(../static/images/bg-evergreen6.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen6.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
         url(../static/images/bg-evergreen6.jpg) 1x,
         url(../static/images/bg-evergreen6-large.jpg) 2x
@@ -180,8 +180,8 @@ div#aircloak {
     }
 
     body.img7 {
-      background: url(../static/images/bg-evergreen7.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen7.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
         url(../static/images/bg-evergreen7.jpg) 1x,
         url(../static/images/bg-evergreen7-large.jpg) 2x
@@ -189,8 +189,8 @@ div#aircloak {
     }
 
     body.img8 {
-      background: url(../static/images/bg-evergreen8.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen8.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
         url(../static/images/bg-evergreen8.jpg) 1x,
         url(../static/images/bg-evergreen8-large.jpg) 2x
