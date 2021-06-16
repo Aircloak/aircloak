@@ -25,7 +25,7 @@ function prepare_for_compliance {
   container_name=$1
   ensure_database_containers
 
-  for db_container in oracle-db12ee postgres9.6 mysql5.7 sqlserver2017 quickstart.cloudera tidb4; do
+  for db_container in oracle-db12ee postgres9.6 sqlserver2017 quickstart.cloudera; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container
   done
@@ -42,10 +42,6 @@ function ensure_database_containers {
     -e POSTGRES_HOST_AUTH_METHOD=trust \
     postgres:9.6 -c "listen_addresses=*"
 
-  ensure_supporting_container mysql5.7 --tmpfs=/var/lib/mysql:rw,size=2G \
-    -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 \
-    --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-
   ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Sql{}server1' \
     microsoft/mssql-server-linux:2017-latest
 
@@ -53,8 +49,6 @@ function ensure_database_containers {
     --hostname quickstart.cloudera -p 21050:21050 \
     quay.io/aircloak/cloudera-quickstart-vm-5.13.0-0-beta \
     /usr/bin/docker-quickstart
-
-  ensure_supporting_container tidb4 pingcap/tidb:v4.0.3
 }
 
 mount $(pwd)/cloak/priv/odbc/drivers/cloudera /opt/cloudera

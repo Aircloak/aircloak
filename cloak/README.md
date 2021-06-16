@@ -19,7 +19,6 @@
       - [Deploying](#deploying)
       - [Running performance tests locally](#running-performance-tests-locally)
     - [Installing database servers](#installing-database-servers)
-      - [MySQL](#mysql)
       - [SQL Server](#sql-server)
       - [Working in a dev container](#working-in-a-dev-container)
 
@@ -110,7 +109,7 @@ configuration might look like this:
 },
 ```
 
-A data source requires a driver supported by the cloak. For example `postgressql`, `mysql` or `odbc`.
+A data source requires a driver supported by the cloak. For example `postgressql` or `odbc`.
 The ODBC connector is a catch-all for drivers that don't have native support in the cloak.
 
 The parameters are used by the driver to connect to the data store. In the case of the `ODBC` driver, the
@@ -164,7 +163,7 @@ this you can run following commands:
 
 - `mix test --only compliance` - to run only the compliance tests
 - `make test_all` - to run all tests which are running on CI: standard tests, and tests for all other
-  database adapters (MySQL, Oracle, ...). Note however that compliance tests are going to be executed
+  database adapters (Oracle, ...). Note however that compliance tests are going to be executed
   on a reduced database set (as specified in `compliance.json`).
 
 In order to have working tests on other drivers, you need to start corresponding database servers locally - see
@@ -263,27 +262,6 @@ Before running the tests you need to prepare the performance database.
 Note that the tests submit results to InfluxDB - it will be started with `start_dependencies.sh`.
 
 ### Installing database servers
-
-#### MySQL
-
-- `make mysql-server-container` - starts the container
-- `DB_NAME=cloaktest2 make mysql-server-database` - creates a database named `cloaktest2`
-- Add something like the following section to the appropriate config.json:
-
-```json
-{
-  "driver": "mysql",
-  "marker": "connector",
-  "name": "mysql",
-  "parameters": {
-    "hostname": "localhost",
-    "username": "root",
-    "database": "cloaktest2"
-  },
-  "tables": {
-  }
-}
-```
 
 #### SQL Server
 

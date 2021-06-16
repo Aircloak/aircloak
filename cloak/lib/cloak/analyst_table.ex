@@ -13,7 +13,7 @@ defmodule Cloak.AnalystTable do
       used in the cloak compiler to resolve analyst table references.
 
     - `Cloak.DataSource.Driver.SQL.AnalystTables` is the supporting driver functionality for manipulating analyst tables
-       in SQL based drivers, such as PostgreSQL or MySql.
+       in SQL based drivers, such as PostgreSQL.
 
 
   ## Process structure

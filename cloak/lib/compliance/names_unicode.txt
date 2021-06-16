@@ -8,7 +8,7 @@ Saša Jurić
   １２３
 Emma
 # The following name has an extra space at the end in order
-# to test trailing space support in MySQL and SQL Server
-Emma 
+# to test trailing space support in SQL Server
+Emma
 Otto
 Bertha
