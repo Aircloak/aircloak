@@ -8,7 +8,7 @@ WORKDIR /aircloak/cloak
 
 # Setup ODBC drivers
 RUN apt-get update
-RUN apt-get install -y unixodbc odbc-postgresql libaio1 inotify-tools unzip gnupg
+RUN apt-get install -y unixodbc odbc-postgresql libaio1 inotify-tools unzip
 COPY cloak/priv/odbc/docker/odbc.ini /etc/
 
 # Setup Oracle Instant Client
