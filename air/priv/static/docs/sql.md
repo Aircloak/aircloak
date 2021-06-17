@@ -16,7 +16,7 @@ results](/sql/query-results.md) for an explanation of the effects of anonymizati
 The syntax conforms to the standard SQL syntax (with some exceptions), but only a subset of features is supported. The
 general shape of the query looks like:
 
-[filename](sql/_syntax.md ":include")
+[SQL Syntax](sql/_syntax.md ':include')
 
 ## Describing the query plan
 
