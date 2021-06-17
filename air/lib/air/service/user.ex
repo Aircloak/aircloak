@@ -283,7 +283,7 @@ defmodule Air.Service.User do
   Calls `success_callback` if the deletions succeed, and the `failure_callback` in case no admin is left
   active or the deletions otherwise fail.
   """
-  @spec delete_disabled_async((() -> any), (() -> any), (any -> any)) :: :ok | {:error, :forbidden_no_active_admin}
+  @spec delete_disabled_async((() -> any), (() -> any), (any -> any)) :: :ok
   def delete_disabled_async(start_callback, success_callback, failure_callback) do
     start_callback.()
 
