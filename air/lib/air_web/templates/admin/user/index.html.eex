@@ -2,7 +2,10 @@
   <ol class="breadcrumb bg-white">
     <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
   </ol>
-  <a class="btn btn-success btn-sm float-right" href="<%= admin_user_path(@conn, :new) %>">Add a user</a>
+  <div class="float-right">
+    <a class="btn btn-success btn-sm" href="<%= admin_user_path(@conn, :new) %>">Add a user</a>
+    <%= button "Delete all disabled users", to:  admin_user_path(@conn, :delete_disabled), method: :delete, class: "btn btn-danger btn-sm", disabled: not inactive_users?(@conn), "data-confirm": "Do you want to permanently delete all inactive users? This action cannot be undone." %>
+  </div>
   <h1>Users</h1>
 </header>
 
