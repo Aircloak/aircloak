@@ -69,7 +69,7 @@
     "watch": "PARCEL_AUTOINSTALL=false parcel watch js/{app,docs}.js --out-dir ../priv/static/frontend --public-url /frontend/",
     "build-dev": "NODE_ENV=development parcel build js/{app,docs}.js --no-minify --out-dir ../priv/static/frontend --public-url /frontend/  --no-autoinstall",
     "lint": "eslint --max-warnings 0 js test && prettier --version && prettier --no-config -c css/**.css \"../*.md\" \"../priv/**/*.md\"",
-    "fix": "eslint --fix js test && prettier --write css/**.css \"../*.md\" \"../priv/**/*.md\""
+    "fix": "eslint --fix js test && prettier --write css/**.css && prettier --write --single-quote \"../*.md\" \"../priv/**/*.md\""
   },
   "eslintConfig": {
     "extends": [
