@@ -33,13 +33,9 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       page: 1
     }
 
-    {more_pages, audit_logs} = AuditLog.grouped_for(filters)
-
     {
       :noreply,
       socket
-      |> assign(:audit_logs, audit_logs)
-      |> assign(:more_pages, more_pages)
       |> assign(:page, 1)
       |> assign(:expanded, %{})
       |> assign(:users, AuditLog.users(filters) |> Enum.map(&%{label: &1.name, value: &1.id}))
@@ -48,6 +44,13 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       |> assign(:from, from)
       |> assign(:to, to)
       |> assign(:query_params, params)
+      |> then_try(fn socket ->
+        {more_pages, audit_logs} = AuditLog.grouped_for(filters)
+
+        socket
+        |> assign(:more_pages, more_pages)
+        |> assign(:audit_logs, audit_logs)
+      end)
     }
   end
 
@@ -82,14 +85,17 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       page: page
     }
 
-    {more_pages, audit_logs} = AuditLog.grouped_for(filters)
-
     {
       :noreply,
       socket
-      |> assign(:audit_logs, AuditLog.merged_grouped_lists(socket.assigns.audit_logs, audit_logs))
-      |> assign(:more_pages, more_pages)
       |> assign(:page, page)
+      |> then_try(fn socket ->
+        {more_pages, audit_logs} = AuditLog.grouped_for(filters)
+
+        socket
+        |> assign(:more_pages, more_pages)
+        |> assign(:audit_logs, AuditLog.merged_grouped_lists(socket.assigns.audit_logs, audit_logs))
+      end)
     }
   end
 
@@ -184,6 +190,21 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       </div>
     </div>
     """
+  end
+
+  defp then_try(socket, fun) do
+    fun.(socket)
+  rescue
+    DBConnection.ConnectionError ->
+      socket
+      |> assign(:audit_logs, [])
+      |> assign(:more_pages, false)
+      |> assign(:expanded, %{})
+      |> assign(:page, 1)
+      |> put_flash(
+        :error,
+        "Could not retrieve data due to high database load. Try narrowing the filters to get fewer results."
+      )
   end
 
   defp event_key_for_display(key) when is_atom(key), do: key |> Atom.to_string() |> event_key_for_display()

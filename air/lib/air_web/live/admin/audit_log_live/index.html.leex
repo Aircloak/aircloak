@@ -15,10 +15,18 @@
 
     <%= if Enum.empty?(@audit_logs) do %>
       <div class="d-flex align-items-center">
-      <img src="/frontend/images/report_analysis.svg" alt="" class="d-none d-xl-block float-left mr-5" width="300" />
-      <div>
-        <h2 >No audit logs matched</h2>
-        <p>There are no audit log entries that match the current set of filters. Try expanding the filters to a broader range.</p>
+        <img src="/frontend/images/report_analysis.svg" alt="" class="d-none d-xl-block float-left mr-5" width="300" />
+        <%= if live_flash(@flash, :error) do  %>
+          <div>
+            <h2>Failed loading data</h2>
+            <p>Try narrowing the filters to get fewer results.</p>
+          </div>
+        <% else %>
+          <div>
+            <h2>No audit logs matched</h2>
+            <p>There are no audit log entries that match the current set of filters. Try expanding the filters to a broader range.</p>
+          </div>
+        <% end %>
       </div>
     <% end %>
 
