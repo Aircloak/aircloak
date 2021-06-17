@@ -1,4 +1,4 @@
-defmodule AirWeb.Admin.ActivityMonitorController do
+defmodule AirWeb.Admin.SystemStatusController do
   @moduledoc """
   Controller for administrators to get a view of the live state of their system.
   """

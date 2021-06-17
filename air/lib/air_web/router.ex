@@ -163,7 +163,7 @@ defmodule AirWeb.Router do
     get("/queries/:id", QueryController, :show)
     resources("/cloaks", CloaksController)
     post("/cloaks/:id/reinitialize", CloaksController, :reinitialize)
-    get("/activity_monitor", ActivityMonitorController, :index)
+    get("/system_status", SystemStatusController, :index)
     get("/", WarningsController, :warnings_if_any, as: :warnings_if_any)
 
     get("/warnings", WarningsController, :index)

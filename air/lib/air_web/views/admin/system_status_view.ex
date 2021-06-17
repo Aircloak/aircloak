@@ -1,4 +1,4 @@
-defmodule AirWeb.Admin.ActivityMonitorView do
+defmodule AirWeb.Admin.SystemStatusView do
   @moduledoc false
   use Air.Web, :view
 

@@ -24,7 +24,7 @@
             <ul class="navbar-nav">
               <%= warning_sidebar_link(@conn) %>
 
-              <%= sidebar_link(@conn, "Activity monitor", "chart-line", admin_activity_monitor_path(@conn, :index)) %>
+              <%= sidebar_link(@conn, "System Status", "chart-line", admin_system_status_path(@conn, :index)) %>
               <%= if audit_log_enabled?() do %>
                 <%= sidebar_link(@conn, "Audit log", "stream", admin_audit_log_index_path(@conn, :index)) %>
               <% end %>
@@ -33,13 +33,13 @@
               <%= sidebar_link(@conn, "Analysis", "signal", admin_analysis_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Queries", "terminal", admin_query_performance_index_path(@conn, :index)) %>
             </ul>
-            <hr class="navbar-divider my-3 w-100" />
+            <hr class="my-3 navbar-divider w-100" />
             <ul class="navbar-nav">
               <%= sidebar_link(@conn, "Users", "user", admin_user_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Groups", "user-friends", admin_group_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Diffix Explorer", "compass", admin_explorer_path(@conn, :index)) %>
             </ul>
-            <hr class="navbar-divider my-3 w-100" />
+            <hr class="my-3 navbar-divider w-100" />
             <ul class="navbar-nav">
               <%= sidebar_link(@conn, "Settings", "cogs", admin_settings_path(@conn, :show)) %>
               <%= sidebar_link(@conn, "Privacy policy", "user-shield", admin_privacy_policy_path(@conn, :index)) %>
@@ -59,7 +59,7 @@
         </div>
       </main>
     </div> <!-- /container-fluid -->
-    <div class="admin-footer mt-auto">
+    <div class="mt-auto admin-footer">
       <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
     </div>
     <script src="<%= static_path(@conn, "/frontend/app.js") %>"></script>

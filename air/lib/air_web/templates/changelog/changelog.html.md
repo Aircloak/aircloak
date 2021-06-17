@@ -557,7 +557,7 @@ It is called Aircloak Insights Evergreen.
 
 ### New features
 
-- Adds an [Activity Monitor](/admin/activity_monitor) that allows an administrator to see all queries running in the system across all analysts, as well as the memory usage across all connected cloaks.
+- Adds an [Activity Monitor](/admin/system_status) that allows an administrator to see all queries running in the system across all analysts, as well as the memory usage across all connected cloaks.
 - Show indication of progress when a query is executing.
 - Adds an [endpoint for monitoring](/docs/#/ops/monitoring) by external tools.
 - Adds a [settings pane](/admin/settings) with the ability to specify the retention time for past queries.

@@ -159,12 +159,12 @@ defmodule AirWeb.ViewHelpers do
     |> String.trim()
   end
 
-  defp active_class(path, "/admin/activity_monitor") when path in ["/admin", "/admin/"],
+  defp active_class(path, "/admin/system_status") when path in ["/admin", "/admin/"],
     do: "active"
 
-  defp active_class("/admin/queries/failed" <> _, "/admin/activity_monitor"), do: nil
-  defp active_class("/admin/queries/performance" <> _, "/admin/activity_monitor"), do: nil
-  defp active_class("/admin/queries/" <> _, "/admin/activity_monitor"), do: "active"
+  defp active_class("/admin/queries/failed" <> _, "/admin/system_status"), do: nil
+  defp active_class("/admin/queries/performance" <> _, "/admin/system_status"), do: nil
+  defp active_class("/admin/queries/" <> _, "/admin/system_status"), do: "active"
   defp active_class("/settings/" <> _, "/settings"), do: nil
 
   defp active_class(request_path, link_path) do

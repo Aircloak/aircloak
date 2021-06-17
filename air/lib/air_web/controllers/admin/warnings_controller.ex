@@ -18,7 +18,7 @@ defmodule AirWeb.Admin.WarningsController do
     if length(Warnings.problems()) > 0 do
       redirect(conn, to: admin_warnings_path(conn, :index))
     else
-      redirect(conn, to: admin_activity_monitor_path(conn, :index))
+      redirect(conn, to: admin_system_status_path(conn, :index))
     end
   end
 end

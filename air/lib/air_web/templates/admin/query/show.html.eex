@@ -1,7 +1,7 @@
 <header class="page-header">
-  <ol class="breadcrumb bg-white">
+  <ol class="bg-white breadcrumb">
     <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
-    <li class="breadcrumb-item"><%= link "Activity monitor", to: admin_activity_monitor_path(@conn, :index), class: "text-muted" %></li>
+    <li class="breadcrumb-item"><%= link "System Status", to: admin_system_status_path(@conn, :index), class: "text-muted" %></li>
   </ol>
 
   <h1>Query view (ID: <%= @query.id %>)</h1>
