@@ -104,6 +104,30 @@ defmodule AirWeb.Admin.UserController do
     end
   end
 
+  def delete_disabled(conn, _params) do
+    start_callback = fn ->
+      audit_log(conn, "Removal of disabled users scheduled")
+    end
+
+    success_callback = fn -> audit_log(conn, "Removal of disabled users succeeded") end
+    failure_callback = fn reason -> audit_log(conn, "Removal of disabled users failed", %{reason: reason}) end
+
+    case User.delete_disabled_async(start_callback, success_callback, failure_callback) do
+      :ok ->
+        conn
+        |> put_flash(
+          :info,
+          "All disabled users have been marked for deletion. The deletion will be performed in the background"
+        )
+        |> redirect(to: admin_user_path(conn, :index))
+
+      {:error, error} ->
+        conn
+        |> put_flash(:error, delete_error_message(error))
+        |> redirect(to: admin_user_path(conn, :index))
+    end
+  end
+
   def disable(conn, _params) do
     case User.disable(conn.assigns.user) do
       {:error, :forbidden_no_active_admin} ->

@@ -279,6 +279,26 @@ defmodule Air.Service.User do
   end
 
   @doc """
+  Deletes all disabled users in the background. Calls `start_callback` and returns `:ok` immediately.
+  Calls `success_callback` if the deletions succeed, and the `failure_callback` in case no admin is left
+  active or the deletions otherwise fail.
+  """
+  @spec delete_disabled_async((() -> any), (() -> any), (any -> any)) :: :ok | {:error, :forbidden_no_active_admin}
+  def delete_disabled_async(start_callback, success_callback, failure_callback) do
+    start_callback.()
+
+    AdminGuard.commit_if_active_last_admin_async(
+      fn ->
+        {:ok,
+         Repo.all(from(u in User, where: not u.enabled, select: u))
+         |> Enum.map(&do_delete/1)}
+      end,
+      success_callback,
+      failure_callback
+    )
+  end
+
+  @doc """
   Deletes the given user in the background. Calls `start_callback` and returns `:ok` immediately if the user can be
   disabled and the deletion process was started. Calls `success_callback` or `failure_callback` in the background when
   finished.

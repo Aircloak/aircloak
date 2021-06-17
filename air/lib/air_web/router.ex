@@ -133,6 +133,8 @@ defmodule AirWeb.Router do
   scope "/admin", AirWeb.Admin, as: :admin do
     pipe_through([:browser, :browser_auth, :admin_only])
 
+    delete("/users/delete_disabled", UserController, :delete_disabled)
+
     resources("/users", UserController) do
       put("/enable", UserController, :enable)
       put("/disable", UserController, :disable)
