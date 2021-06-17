@@ -1,5 +1,5 @@
 <header class="page-header">
-  <ol class="breadcrumb bg-white">
+  <ol class="bg-white breadcrumb">
     <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
   </ol>
   <div class="float-right">
