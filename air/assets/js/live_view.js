@@ -15,6 +15,7 @@ export default (transportName) => {
   );
   window.addEventListener("phx:page-loading-stop", (info) => NProgress.done());
   const liveSocket = new LiveSocket("/live", Socket, {
+    timeout: 30000,
     params: { _csrf_token },
     transport: FrontendSocket.transport(transportName),
     hooks: {
