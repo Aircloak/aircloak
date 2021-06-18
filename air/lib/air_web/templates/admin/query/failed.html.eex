@@ -1,15 +1,18 @@
 <div class="container-with-sidebar-narrow">
-  <header class="page-header px-0">
-    <ol class="breadcrumb bg-white">
+  <header class="px-0 page-header">
+    <ol class="bg-white breadcrumb">
       <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
     </ol>
-    <button type="button" class="btn btn-primary d-block d-lg-none float-right" data-toggle="collapse"
+    <button type="button" class="float-right btn btn-primary d-block d-lg-none" data-toggle="collapse"
         data-target="#sidebar" aria-expanded="false">
       <i class="fas fa-list"></i> Filters
     </button>
     <h1>Queries</h1>
 
     <ul class="nav nav-tabs nav-overflow header-tabs">
+      <li class="nav-item" role="presentation">
+        <%= link "Active", to: admin_query_path(@conn, :active), class: "nav-link" %>
+      </li>
       <li class="nav-item" role="presentation">
         <%= link "Performance", to: admin_query_performance_index_path(@conn, :index, @conn.query_params), class: "nav-link" %>
       </li>

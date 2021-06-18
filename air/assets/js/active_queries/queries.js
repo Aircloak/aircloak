@@ -53,7 +53,6 @@ export default class QueriesView extends React.PureComponent<Props> {
     const { queries } = this.props;
     return (
       <div>
-        <h3>Queries</h3>
         {renderNumActiveQueriesShown(queries)}
         <table className="table table-responsive-lg">
           <thead>

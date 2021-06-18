@@ -5,7 +5,7 @@
   <h1>System Status</h1>
 </header>
 
-<div id="activity-monitor-view" />
+<div id="cloaks-status-view" />
 
 <script>
   window.pageConfig = {
@@ -15,11 +15,10 @@
         socketToken: "<%= @socket_token %>",
         browserSocketTransport: "<%= Air.browser_socket_transport() %>",
         userId: "<%= @current_user.id %>",
-        queries: <%= to_json(format_queries(@running_queries)) %>,
         cloakStats: <%= to_json(@cloak_stats) %>
       };
 
-      App.activityMonitor(props, document.getElementById("activity-monitor-view"));
+      App.cloaksStatusView(props, document.getElementById("cloaks-status-view"));
     }
   };
 </script>

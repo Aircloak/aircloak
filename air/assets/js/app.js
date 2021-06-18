@@ -10,7 +10,8 @@ import SingleQueryView from "./queries/single_query_root";
 import ImmutableSingleQueryView from "./queries/immutable_single_query";
 import SelectableInfoView from "./selectable_info/root";
 import ViewEditor from "./view/editor";
-import ActivityMonitorView from "./activity_monitor/root";
+import CloaksStatusView from "./cloaks_status/root";
+import ActiveQueriesView from "./active_queries/root";
 import AuthenticationProvider from "./authentication_provider";
 import FrontendSocket from "./frontend_socket";
 import { NumberFormatExampleView } from "./number_format";
@@ -33,7 +34,9 @@ const App = {
   codeViewer: (props, elem) => App.render("code_viewer", props, elem),
   selectableInfo: (props, elem) => App.render("selectable_info", props, elem),
   viewEditor: (props, elem) => App.render("view_editor", props, elem),
-  activityMonitor: (props, elem) => App.render("activity_monitor", props, elem),
+  cloaksStatusView: (props, elem) =>
+    App.render("cloaks_status_view", props, elem),
+  activeQueries: (props, elem) => App.render("active_queries", props, elem),
   numberFormatExample: (props, elem) =>
     ReactDOM.render(
       <NumberFormatExampleView numberFormat={props.numberFormat} />,
@@ -160,9 +163,9 @@ const App = {
         );
       case "view_editor":
         return <ViewEditor statement={statement} selectables={selectables} />;
-      case "activity_monitor":
+      case "cloaks_status_view":
         return (
-          <ActivityMonitorView
+          <CloaksStatusView
             userId={userId}
             socketToken={socketToken}
             frontendSocket={App.buildSocket(props)}
@@ -170,7 +173,13 @@ const App = {
             cloakStats={cloakStats}
           />
         );
-
+      case "active_queries":
+        return (
+          <ActiveQueriesView
+            frontendSocket={App.buildSocket(props)}
+            queries={queries}
+          />
+        );
       case "password_field":
         return <PasswordField initialError={initialError || null} />;
       default:

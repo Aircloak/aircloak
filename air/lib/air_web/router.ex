@@ -160,6 +160,7 @@ defmodule AirWeb.Router do
     live("/queries/performance", QueryPerformanceLive.Index, :index, layout: {AirWeb.LayoutView, :admin})
 
     get("/queries/failed", QueryController, :failed)
+    get("/queries/active", QueryController, :active)
     get("/queries/:id", QueryController, :show)
     resources("/cloaks", CloaksController)
     post("/cloaks/:id/reinitialize", CloaksController, :reinitialize)
