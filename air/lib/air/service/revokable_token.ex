@@ -89,6 +89,8 @@ defmodule Air.Service.RevokableToken do
   @doc "Revokes all of the given user's tokens with the given type."
   @spec revoke_all(User.t(), RevokableToken.RevokableTokenType.t()) :: :ok
   def revoke_all(user, type) do
+    main_login = Air.Service.User.main_login(user)
+    Air.Service.User.LoginStats.log_event(main_login, :tokens_revoked)
     token_scope(user, type) |> Repo.delete_all()
     :ok
   end

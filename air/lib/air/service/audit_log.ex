@@ -208,6 +208,18 @@ defmodule Air.Service.AuditLog do
   @spec count() :: integer
   def count(), do: Repo.one(from(audit_log_entry in AuditLog, select: count(audit_log_entry.id)))
 
+  @doc "Returns login events"
+  def login_events() do
+    Repo.all(
+      from a in AuditLog,
+      where: fragment("? > now() - interval '1 hour'", a.inserted_at),
+      where: fragment("lower(?)", a.event) in ["failed login", "logged in"],
+      order_by: [desc: a.inserted_at],
+      preload: [:user],
+      select: a
+    )
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

@@ -3,7 +3,7 @@ defmodule Air.Service.User do
 
   alias Air.Repo
   alias Air.Service
-  alias Air.Service.{AuditLog, LDAP, Password, RevokableToken, AdminGuard}
+  alias Air.Service.{AuditLog, LDAP, Password, RevokableToken, AdminGuard, User.LoginStats}
   alias Air.Schemas.{DataSource, Group, User, Login}
   import Ecto.Query, only: [from: 2, join: 4, where: 3, preload: 3]
   import Ecto.Changeset
@@ -472,6 +472,14 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Loads information about active user sessions, and failed and successful login attempts"
+  # @spec session_stats() ::
+  def session_stats() do
+    %{
+      login_events: Air.Service.AuditLog.login_events()
+    }
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -494,17 +502,23 @@ defmodule Air.Service.User do
       valid_password?(login, password) ->
         mask_timing(fn ->
           AuditLog.log(login.user, "Logged in", meta)
+          LoginStats.log_event(normalized_login, :successful_login)
           Air.TimestampUpdater.start_toucher(login)
         end)
 
         {:ok, login.user}
 
       login ->
-        mask_timing(fn -> AuditLog.log(login.user, "Failed login", meta) end)
+        mask_timing(fn ->
+          LoginStats.log_event(normalized_login, :wrong_credentials)
+          AuditLog.log(login.user, "Failed login", meta)
+        end)
         {:error, :invalid_login_or_password}
 
       true ->
-        mask_timing(fn -> :noop end)
+        mask_timing(fn ->
+          LoginStats.log_event(normalized_login, :unknown_login)
+        end)
         {:error, :invalid_login_or_password}
     end
   end
