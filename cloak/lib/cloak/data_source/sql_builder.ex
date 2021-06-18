@@ -303,12 +303,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp constant_to_fragment(value, dialect), do: dialect.literal(value)
 
-  defp dot_terminate(%Expression{kind: :constant, type: :text, value: value} = expression) when is_binary(value),
-    do: %Expression{expression | value: value <> "."}
-
-  defp dot_terminate(%Expression{type: :text} = expression),
-    do: Expression.function("concat", [expression, Expression.constant(:text, ".")], :text)
-
   defp group_by_fragments(%Query{subquery?: true, grouping_sets: [_ | _]} = query) do
     dialect = sql_dialect_module(query)
 

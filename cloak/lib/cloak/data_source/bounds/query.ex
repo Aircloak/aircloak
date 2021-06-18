@@ -139,7 +139,7 @@ defmodule Cloak.DataSource.Bounds.Query do
     end
   end
 
-  defp overflow_safe?(data_source), do: false
+  defp overflow_safe?(_data_source), do: false
 
   defp config(name), do: Application.get_env(:cloak, :bound_size_cutoff) |> Keyword.fetch!(name)
 end
