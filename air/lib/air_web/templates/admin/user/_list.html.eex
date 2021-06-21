@@ -20,9 +20,9 @@
     <%= for user <- @users do %>
       <tr>
         <td><%= user.name %></td>
-        <td><%= login(user) %></td>
-        <td><%= AirWeb.Admin.GroupView.names(user.groups) %></td>
-        <td><%= Map.get(@data_sources_count, user.id, 0) %></td>
+        <td><%= unless user.system, do: login(user) %></td>
+        <td><%= unless user.system, do: AirWeb.Admin.GroupView.names(user.groups) %></td>
+        <td><%= if (not user.system || is_explorer?(user)), do: Map.get(@data_sources_count, user.id, 0) %></td>
 
         <%= if @role do %>
           <td>
@@ -33,9 +33,7 @@
         <% end %>
 
         <td>
-        <%= if is_explorer?(user) do %>
-          <%= link "Manage", to: admin_explorer_path(@conn, :index) %>
-        <% else %>
+        <%= if not user.system do %>
           <div class="btn-group">
             <%= if can_edit?(user) do %>
               <%= link "Edit", to: admin_user_path(@conn, :edit, user), class: "btn btn-outline-secondary btn-sm" %>
@@ -62,8 +60,12 @@
                       " All of that user's queries, views, and all the audit logs associated with that user" <>
                       " will be deleted as well." %>
             <% end %>
-            </div>
+          </div>
+        <% else %>
+          <%= if is_explorer?(user) do %>
+              <%= link "Manage", to: admin_explorer_path(@conn, :index) %>
           <% end %>
+        <% end %>
         </td>
       </tr>
     <% end %>
