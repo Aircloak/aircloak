@@ -208,3 +208,19 @@
   margin-left: 1em;
   margin-bottom: -8px;
 }
+
+.delayed-spinner {
+  opacity: 0;
+  animation: 200ms fadeIn;
+  animation-delay: 800ms;
+  animation-fill-mode: forwards;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}

@@ -19,36 +19,7 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
 
   @impl true
   def handle_params(params, _uri, socket) do
-    from = parse_datetime(params["from"], Timex.now() |> Timex.shift(months: -1))
-    to = parse_datetime(params["to"], Timex.now())
-
-    filters = %{
-      from: from,
-      to: to,
-      users: params["users"] || [],
-      events: params["events"] || [],
-      data_sources: params["data_sources"] || [],
-      except: [],
-      max_results: @page_size,
-      page: 1
-    }
-
-    {more_pages, audit_logs} = AuditLog.grouped_for(filters)
-
-    {
-      :noreply,
-      socket
-      |> assign(:audit_logs, audit_logs)
-      |> assign(:more_pages, more_pages)
-      |> assign(:page, 1)
-      |> assign(:expanded, %{})
-      |> assign(:users, AuditLog.users(filters) |> Enum.map(&%{label: &1.name, value: &1.id}))
-      |> assign(:event_types, AuditLog.event_types(filters) |> Enum.map(&%{label: &1, value: &1}))
-      |> assign(:data_sources, AuditLog.data_sources(filters) |> Enum.map(&%{label: &1.name, value: &1.name}))
-      |> assign(:from, from)
-      |> assign(:to, to)
-      |> assign(:query_params, params)
-    }
+    {:noreply, load_audit_log(socket, params, connected: connected?(socket))}
   end
 
   @impl true
@@ -82,14 +53,17 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       page: page
     }
 
-    {more_pages, audit_logs} = AuditLog.grouped_for(filters)
-
     {
       :noreply,
       socket
-      |> assign(:audit_logs, AuditLog.merged_grouped_lists(socket.assigns.audit_logs, audit_logs))
-      |> assign(:more_pages, more_pages)
       |> assign(:page, page)
+      |> then_try(fn socket ->
+        {more_pages, audit_logs} = AuditLog.grouped_for(filters)
+
+        socket
+        |> assign(:more_pages, more_pages)
+        |> assign(:audit_logs, AuditLog.merged_grouped_lists(socket.assigns.audit_logs, audit_logs))
+      end)
     }
   end
 
@@ -142,6 +116,41 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
   # Helpers
   # -------------------------------------------------------------------
 
+  defp load_audit_log(socket, params, connected: true) do
+    from = parse_datetime(params["from"], Timex.now() |> Timex.shift(months: -1))
+    to = parse_datetime(params["to"], Timex.now())
+
+    filters = %{
+      from: from,
+      to: to,
+      users: params["users"] || [],
+      events: params["events"] || [],
+      data_sources: params["data_sources"] || [],
+      except: [],
+      max_results: @page_size,
+      page: 1
+    }
+
+    socket
+    |> assign(:page, 1)
+    |> assign(:expanded, %{})
+    |> assign(:users, AuditLog.users(filters) |> Enum.map(&%{label: &1.name, value: &1.id}))
+    |> assign(:event_types, AuditLog.event_types(filters) |> Enum.map(&%{label: &1, value: &1}))
+    |> assign(:data_sources, AuditLog.data_sources(filters) |> Enum.map(&%{label: &1.name, value: &1.name}))
+    |> assign(:from, from)
+    |> assign(:to, to)
+    |> assign(:query_params, params)
+    |> then_try(fn socket ->
+      {more_pages, audit_logs} = AuditLog.grouped_for(filters)
+
+      socket
+      |> assign(:more_pages, more_pages)
+      |> assign(:audit_logs, audit_logs)
+    end)
+  end
+
+  defp load_audit_log(socket, _params, connected: false), do: socket
+
   defp render_audit_log(assigns) do
     ~L"""
     <div id="audit-log-<%= @id %>" class="d-flex mb-3 align-self-stretch ml-3">
@@ -184,6 +193,21 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
       </div>
     </div>
     """
+  end
+
+  defp then_try(socket, fun) do
+    fun.(socket)
+  rescue
+    DBConnection.ConnectionError ->
+      socket
+      |> assign(:audit_logs, [])
+      |> assign(:more_pages, false)
+      |> assign(:expanded, %{})
+      |> assign(:page, 1)
+      |> put_flash(
+        :error,
+        "Could not retrieve data due to high database load. Try narrowing the filters to get fewer results."
+      )
   end
 
   defp event_key_for_display(key) when is_atom(key), do: key |> Atom.to_string() |> event_key_for_display()

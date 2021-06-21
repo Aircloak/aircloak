@@ -1,3 +1,6 @@
+<%# Show main view %>
+<%= if connected?(@socket) do %>
+
 <div class="container-with-sidebar-narrow">
   <header class="page-header">
     <ol class="breadcrumb bg-white">
@@ -15,10 +18,18 @@
 
     <%= if Enum.empty?(@audit_logs) do %>
       <div class="d-flex align-items-center">
-      <img src="/frontend/images/report_analysis.svg" alt="" class="d-none d-xl-block float-left mr-5" width="300" />
-      <div>
-        <h2 >No audit logs matched</h2>
-        <p>There are no audit log entries that match the current set of filters. Try expanding the filters to a broader range.</p>
+        <img src="/frontend/images/report_analysis.svg" alt="" class="d-none d-xl-block float-left mr-5" width="300" />
+        <%= if live_flash(@flash, :error) do  %>
+          <div>
+            <h2>Failed loading data</h2>
+            <p>Try narrowing the filters to get fewer results.</p>
+          </div>
+        <% else %>
+          <div>
+            <h2>No audit logs matched</h2>
+            <p>There are no audit log entries that match the current set of filters. Try expanding the filters to a broader range.</p>
+          </div>
+        <% end %>
       </div>
     <% end %>
 
@@ -80,8 +91,6 @@
   </div>
 </div>
 
-
-
 <%= render(AirWeb.Admin.SharedView, "filter_sidebar.html",
   conn: @socket,
   from: @from,
@@ -93,3 +102,27 @@
   live?: true,
   params: @query_params)
 %>
+
+<%# Show loading template if not connected %>
+<% else %>
+
+<div class="container-with-sidebar-narrow">
+  <header class="page-header">
+    <ol class="breadcrumb bg-white">
+      <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+    </ol>
+    <h1>Audit Log</h1>
+  </header>
+
+  <div class="d-flex justify-content-center">
+    <div class="delayed-spinner">
+      <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar fixed-right border-left navbar-expand-lg collapse narrow"></div>
+
+<% end %>
