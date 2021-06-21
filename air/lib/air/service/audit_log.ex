@@ -60,6 +60,11 @@ defmodule Air.Service.AuditLog do
     end
   end
 
+  @doc "Creates an audit log entry as system user. Useful for events that are not associated with a natural user."
+  @spec log_as_system_user(String.t(), %{atom => any}) :: :ok | {:error, any}
+  def log_as_system_user(event, metadata \\ %{}), do:
+    log(Air.Service.User.system_user!(), event, metadata)
+
   @doc """
   Returns audit log entries created in a given time interval (inclusive).
 
