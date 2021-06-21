@@ -68,7 +68,7 @@ defmodule AirWeb.Admin.GroupController.Test do
   end
 
   test "error is reported when unsetting the admin status of the group containing last admin" do
-    admin = create_only_user_as_admin!()
+    admin = create_only_admin_user!()
     conn = login(admin)
     conn = put(conn, admin_group_path(conn, :update, hd(admin.groups)), group: %{admin: false})
 
@@ -91,7 +91,7 @@ defmodule AirWeb.Admin.GroupController.Test do
   end
 
   test "error is reported when deleting the group containing last admin" do
-    admin = create_only_user_as_admin!()
+    admin = create_only_admin_user!()
     conn = login(admin) |> delete("/admin/groups/#{hd(admin.groups).id}")
 
     assert redirected_to(conn) == "/admin/groups"

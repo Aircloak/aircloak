@@ -81,7 +81,7 @@ defmodule AirWeb.Admin.UserController.Test do
   end
 
   test "error is reported when updating tha last admin to non-admin status" do
-    admin = create_only_user_as_admin!()
+    admin = create_only_admin_user!()
 
     conn = login(admin) |> put("/admin/users/#{admin.id}", user: %{groups: []})
 

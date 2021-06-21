@@ -66,7 +66,7 @@ defmodule Air.Service.Group.Test do
     end
 
     test "deleting the group is not allowed if it leads to no administrators" do
-      admin1 = TestRepoHelper.create_only_user_as_admin!()
+      admin1 = TestRepoHelper.create_only_admin_user!()
       deletable_admin_group = Group.create!(%{name: "group name", admin: true})
       non_deletable_admin_group = hd(admin1.groups)
       admin2 = TestRepoHelper.create_user!(%{groups: [non_deletable_admin_group.id]})
@@ -81,7 +81,7 @@ defmodule Air.Service.Group.Test do
     end
 
     test "unsetting the group admin flag is not allowed if it leads to no administrators" do
-      admin1 = TestRepoHelper.create_only_user_as_admin!()
+      admin1 = TestRepoHelper.create_only_admin_user!()
       deletable_admin_group = Group.create!(%{name: "group name", admin: true})
       non_deletable_admin_group = hd(admin1.groups)
       admin2 = TestRepoHelper.create_user!(%{groups: [non_deletable_admin_group.id]})

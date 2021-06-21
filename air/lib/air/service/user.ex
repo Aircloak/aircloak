@@ -310,7 +310,7 @@ defmodule Air.Service.User do
   finished.
   """
   @spec delete_async(User.t(), (() -> any), (() -> any), (any -> any)) ::
-          :ok | {:error, :forbidden_no_active_admin | :invalid_ldap_delete}
+          :ok | {:error, :forbidden_no_active_admin | :invalid_ldap_delete | :cannot_delete_system_user}
   def delete_async(%User{source: :ldap, enabled: true}, _, _, _), do: {:error, :invalid_ldap_delete}
 
   def delete_async(user = %User{source: :ldap, enabled: false}, start_callback, success_callback, failure_callback) do
@@ -337,7 +337,7 @@ defmodule Air.Service.User do
   end
 
   @doc "Deletes the given user."
-  @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin | :invalid_ldap_delete}
+  @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin | :invalid_ldap_delete | :cannot_delete_system_user}
   def delete(%User{source: :ldap, enabled: true}), do: {:error, :invalid_ldap_delete}
   def delete(user), do: AdminGuard.commit_if_active_last_admin(fn -> do_delete(user) end)
 
@@ -730,6 +730,7 @@ defmodule Air.Service.User do
 
   defp merge_login_errors(other), do: other
 
+  defp do_delete(%User{system: true}), do: {:error, :cannot_delete_system_user}
   defp do_delete(user) do
     Repo.transaction(fn ->
       Air.Service.AnalystTable.delete_all(user)
