@@ -113,6 +113,10 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Loads and returns the system user."
+  @spec system_user!() :: User.t()
+  def system_user!(), do: get_by_login("system_user") |> elem(1)
+
   @doc "Loads the user with the given id if they are enabled."
   @spec load_enabled(pos_integer | binary) :: {:ok, User.t()} | {:error, :not_found}
   def load_enabled(user_id) do

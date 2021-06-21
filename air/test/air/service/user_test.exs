@@ -31,6 +31,13 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe "system user" do
+    test "can be loaded" do
+      system_user = User.system_user!()
+      assert not is_nil system_user
+    end
+  end
+
   describe "user operations" do
     test "required fields" do
       assert errors_on(&User.create/1, %{}) == [
