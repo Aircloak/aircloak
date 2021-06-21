@@ -34,7 +34,7 @@ defmodule Air.Service.UserTest do
   describe "system user" do
     test "can be loaded" do
       system_user = User.system_user!()
-      assert not is_nil system_user
+      assert not is_nil(system_user)
     end
   end
 

@@ -59,10 +59,12 @@ defmodule Air.TestRepoHelper do
   def create_only_admin_user!() do
     previous_users = User.all()
     admin = create_admin_user!()
+
     previous_users
-    |> Enum.filter(& Air.Schemas.User.admin?/1)
+    |> Enum.filter(&Air.Schemas.User.admin?/1)
     |> Enum.reject(& &1.system)
     |> Enum.each(&User.delete!/1)
+
     admin
   end
 

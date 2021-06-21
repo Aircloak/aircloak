@@ -337,7 +337,8 @@ defmodule Air.Service.User do
   end
 
   @doc "Deletes the given user."
-  @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin | :invalid_ldap_delete | :cannot_delete_system_user}
+  @spec delete(User.t()) ::
+          {:ok, User.t()} | {:error, :forbidden_no_active_admin | :invalid_ldap_delete | :cannot_delete_system_user}
   def delete(%User{source: :ldap, enabled: true}), do: {:error, :invalid_ldap_delete}
   def delete(user), do: AdminGuard.commit_if_active_last_admin(fn -> do_delete(user) end)
 
@@ -517,6 +518,7 @@ defmodule Air.Service.User do
           LoginStats.log_event(normalized_login, :wrong_credentials)
           AuditLog.log(login.user, "Failed login", meta)
         end)
+
         {:error, :invalid_login_or_password}
 
       true ->
@@ -524,6 +526,7 @@ defmodule Air.Service.User do
           AuditLog.log_as_system_user("Unknown user login attempt", %{login: normalized_login})
           LoginStats.log_event(normalized_login, :unknown_login)
         end)
+
         {:error, :invalid_login_or_password}
     end
   end
@@ -732,6 +735,7 @@ defmodule Air.Service.User do
   defp merge_login_errors(other), do: other
 
   defp do_delete(%User{system: true}), do: {:error, :cannot_delete_system_user}
+
   defp do_delete(user) do
     Repo.transaction(fn ->
       Air.Service.AnalystTable.delete_all(user)

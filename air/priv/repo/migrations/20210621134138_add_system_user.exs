@@ -3,8 +3,7 @@ defmodule Air.Repo.Migrations.AddSystemUser do
 
   alias Air.Service.User
 
-  def up, do:
-    User.create!(%{name: "System user", login: "system_user", system: true})
+  def up, do: User.create!(%{name: "System user", login: "system_user", system: true})
 
   def down do
     user = User.system_user!("system_user")

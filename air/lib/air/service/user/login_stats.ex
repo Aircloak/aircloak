@@ -4,11 +4,11 @@ defmodule Air.Service.User.LoginStats do
   @type event_type :: :tokens_revoked | :wrong_credentials | :unknown_login | :successful_login
 
   @type login_event :: %{
-    type: :success | :failure,
-    description: String.t(),
-    login: String.t(),
-    time: DateTime.t()
-  }
+          type: :success | :failure,
+          description: String.t(),
+          login: String.t(),
+          time: DateTime.t()
+        }
 
   # -------------------------------------------------------------------
   # API functions
@@ -34,8 +34,7 @@ defmodule Air.Service.User.LoginStats do
   end
 
   @impl GenServer
-  def handle_call(:get_stats, _from, state), do:
-    {:reply, state.events, state}
+  def handle_call(:get_stats, _from, state), do: {:reply, state.events, state}
 
   @impl GenServer
   def handle_cast({:log_event, login, event_type}, state) do
@@ -65,15 +64,14 @@ defmodule Air.Service.User.LoginStats do
   def handle_info(:cleanup, state) do
     schedule_cleanup()
     one_hour_ago = DateTime.add(DateTime.utc_now(), -3600, :second)
-    {:noreply, %{state | events: state.events |> Enum.filter(& &1.time > one_hour_ago)}}
+    {:noreply, %{state | events: state.events |> Enum.filter(&(&1.time > one_hour_ago))}}
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp schedule_cleanup(), do:
-    Process.send_after(self(), :cleanup, :timer.minutes(1))
+  defp schedule_cleanup(), do: Process.send_after(self(), :cleanup, :timer.minutes(1))
 
   # -------------------------------------------------------------------
   # Supervision tree

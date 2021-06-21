@@ -62,8 +62,7 @@ defmodule Air.Service.AuditLog do
 
   @doc "Creates an audit log entry as system user. Useful for events that are not associated with a natural user."
   @spec log_as_system_user(String.t(), %{atom => any}) :: :ok | {:error, any}
-  def log_as_system_user(event, metadata \\ %{}), do:
-    log(Air.Service.User.system_user!(), event, metadata)
+  def log_as_system_user(event, metadata \\ %{}), do: log(Air.Service.User.system_user!(), event, metadata)
 
   @doc """
   Returns audit log entries created in a given time interval (inclusive).
@@ -216,12 +215,13 @@ defmodule Air.Service.AuditLog do
   @doc "Returns login events"
   def login_events() do
     Repo.all(
-      from a in AuditLog,
-      where: fragment("? > now() - interval '1 hour'", a.inserted_at),
-      where: fragment("lower(?)", a.event) in ["failed login", "logged in"],
-      order_by: [desc: a.inserted_at],
-      preload: [:user],
-      select: a
+      from(a in AuditLog,
+        where: fragment("? > now() - interval '1 hour'", a.inserted_at),
+        where: fragment("lower(?)", a.event) in ["failed login", "logged in"],
+        order_by: [desc: a.inserted_at],
+        preload: [:user],
+        select: a
+      )
     )
   end
 
