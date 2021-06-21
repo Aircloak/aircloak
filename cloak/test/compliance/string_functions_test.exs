@@ -46,7 +46,6 @@ Enum.each(
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
           |> disable_for(:all, unquote(table) == "users_public")
-          |> disable_for(Cloak.DataSource.SQLServer, match?("hex" <> _, unquote(function)))
           |> disable_unicode(unquote(function), unquote(column))
           |> assert_consistent_and_not_failing("""
             SELECT
@@ -69,7 +68,6 @@ Enum.each(
       defp disable_unicode(context, function, column) do
         if column == "name_unicode" do
           context
-          |> disable_for(Cloak.DataSource.SQLServer, String.starts_with?(function, ~w(lower lcase upper ucase)))
           |> disable_for(
             Cloak.DataSource.ClouderaImpala,
             String.starts_with?(function, ~w(length lower lcase upper ucase substring left right))

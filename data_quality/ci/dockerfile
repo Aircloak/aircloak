@@ -1,5 +1,4 @@
 FROM aircloak/elixir:$ELIXIR_VERSION
-MAINTAINER Aircloak
 
 MPI_INIT
 

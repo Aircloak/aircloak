@@ -28,8 +28,6 @@ defmodule CentralWeb.LicenseView do
   defp datasource_features() do
     %{
       "Postgres" => "ds_postgres",
-      "MySQL and MariaDB" => "ds_mysql",
-      "SQL Server" => "ds_sqlserver",
       "MongoDB" => "ds_mongodb",
       "Oracle DB" => "ds_oracle",
       "Cloudera Impala" => "ds_impala"

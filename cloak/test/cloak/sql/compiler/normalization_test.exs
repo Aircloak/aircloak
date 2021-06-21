@@ -224,7 +224,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
       assert %{from: {:subquery, %{ast: %{order_by: []}}}} =
                compile!(
                  "SELECT STDDEV(uid) FROM (SELECT 'constant' FROM table) x",
-                 sql_server_data_source()
+                 postgres_data_source()
                )
     end
 
@@ -232,7 +232,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
       assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} =
                compile!(
                  "SELECT STDDEV(uid) FROM (SELECT 'constant' FROM table ORDER BY 1, uid) x",
-                 sql_server_data_source()
+                 postgres_data_source()
                )
     end
 
@@ -240,7 +240,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
       assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} =
                compile!(
                  "SELECT STDDEV(uid) FROM (SELECT 'constant' FROM table ORDER BY 1) x",
-                 sql_server_data_source()
+                 postgres_data_source()
                )
     end
 
@@ -252,7 +252,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
                      SELECT 'constant' FROM table AS t1 JOIN table AS t2 ON t1.uid = t2.uid ORDER BY 1
                    ) x
                  """,
-                 sql_server_data_source()
+                 postgres_data_source()
                )
     end
 
@@ -264,7 +264,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
                      SELECT 'constant' FROM (SELECT uid FROM table) x ORDER BY 1
                    ) x
                  """,
-                 sql_server_data_source()
+                 postgres_data_source()
                )
     end
   end
@@ -473,7 +473,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     )
   end
 
-  defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
+  defp postgres_data_source(), do: %{data_source() | driver: Cloak.DataSource.PostgreSQL}
 
   defp data_source() do
     %{

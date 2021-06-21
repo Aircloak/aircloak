@@ -4,7 +4,6 @@ SHELL=/bin/bash -o pipefail
 .PHONY: recreate-db recreate-perf-db dialyze lint release release-local perftest
 .PHONY: odbc_drivers odbc_drivers_folder oracle_drivers oracle_drivers_folder cloudera-impala_drivers
 .PHONY: sql-server-container sql-server-database
-.PHONY: mysql-server-container mysql-server-database
 .PHONY: ci.compliance dev-container
 .PHONY: format check-format
 
@@ -78,18 +77,6 @@ release-local:
 perftest: deps
 	MIX_ENV=prod mix compile
 	PERFORMANCE_TEST=true MIX_ENV=prod mix run perftest/main.exs
-
-sql-server-container:
-	$(call start_container, aircloak_sql_server, -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Sql{}server1' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest)
-
-sql-server-database:
-	docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P Sql{}server1 -Q "CREATE DATABASE $(DB_NAME)"
-
-mysql-server-container:
-	$(call start_container, aircloak_mysql_server, -e MYSQL_ALLOW_EMPTY_PASSWORD=true -p 3306:3306 -d mysql:5.7.19)
-
-mysql-server-database:
-	docker exec -it aircloak_mysql_server mysql -u root -e "CREATE DATABASE $(DB_NAME)"
 
 odbc_drivers: odbc_drivers_folder oracle_drivers cloudera-impala_drivers
 

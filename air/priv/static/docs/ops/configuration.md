@@ -494,7 +494,7 @@ The configuration takes the following form:
 
 The `name` parameter is a string which will be used to identify the data source throughout the Insights Air interface and APIs.
 
-The `driver` parameter can be one of the following: `postgresql`, `mysql`, `sqlserver`, `oracle`. The `parameters` json, then specifies the database connection parameters.
+The `driver` parameter can be one of the following: `postgresql`, `sqlserver`, `oracle`. The `parameters` json, then specifies the database connection parameters.
 
 Some of these drivers use the ODBC protocol to talk to the database. These drivers are `sqlserver`, and `oracle`.
 Since they rely on ODBC, they accept some additional connection parameters:

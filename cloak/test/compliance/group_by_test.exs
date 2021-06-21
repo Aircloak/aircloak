@@ -72,9 +72,6 @@ defmodule Compliance.GroupByTest do
       # but tests will fail because other databases return results as date only.
       |> disable_for(Cloak.DataSource.ClouderaImpala, unquote(column) == "birthday")
       |> disable_for(Cloak.DataSource.Oracle, unquote(column) == "birthday")
-      # MySQL and SQL Server order NULLs differently by default
-      |> disable_for(Cloak.DataSource.MySQL, unquote(column) == "nullable")
-      |> disable_for(Cloak.DataSource.SQLServer, unquote(column) == "nullable")
       |> disable_for(
         Cloak.DataSource.Oracle,
         unquote(table) == "users_public" and unquote(column) == "column_with_a_very_long_name"
@@ -88,8 +85,6 @@ defmodule Compliance.GroupByTest do
 
   defp disable_unicode(context, table, column) do
     context
-    |> disable_for(Cloak.DataSource.SQLServer, column == "name_unicode")
-    |> disable_for(Cloak.DataSource.MySQL, column == "name_unicode")
     |> disable_for(Cloak.DataSource.ClouderaImpala, column == "name_unicode")
     |> disable_for(:all, table == "users_public" and column == "name_unicode")
   end

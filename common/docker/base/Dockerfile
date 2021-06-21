@@ -5,27 +5,15 @@ MPI_INIT
 # Support for rebuilding of all images. Change this date if you want to
 # force the rebuild of all images. Usually you want to do this if you
 # want to upgrade Debian packages on all images.
-RUN echo 20210104 > /dev/null
-
-# Setting alternative repositories because Jessie has been removed from mirrors
-# See https://www.jesusamieiro.com/failed-to-fetch-http-ftp-debian-org-debian-dists-jessie-updates-main-404-not-found/
-RUN printf '\\\n\
-deb http://deb.debian.org/debian/ jessie main\\\n\
-deb-src http://deb.debian.org/debian/ jessie main\\\n\
-\\\n\
-deb http://security.debian.org/ jessie/updates main\\\n\
-deb-src http://security.debian.org/ jessie/updates main\\\n\
-\\\n\
-deb http://archive.debian.org/debian jessie-backports main\\\n\
-deb-src http://archive.debian.org/debian jessie-backports main\\\n\
-' > /etc/apt/sources.list && \
-echo "Acquire::Check-Valid-Until false;" | tee -a /etc/apt/apt.conf.d/10-nocheckvalid
+RUN echo 20210616 > /dev/null
 
 # locale setup for properly working Erlang nodes
+# note: we need to kill dirmngr after installing gnupg, otherwise
+#       it won't be able to contact the keyservers due to a bug.
 RUN \
   apt-get update && \
   apt-get upgrade -y && \
-  apt-get install -y locales wget curl git nano telnet && \
+  apt-get install -y locales wget curl git nano telnet gnupg2 && \
   . /tmp/build_config/proxies.sh && \
   locale-gen en_US.UTF-8 en_us && \
   dpkg-reconfigure locales && \

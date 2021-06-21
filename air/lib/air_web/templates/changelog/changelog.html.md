@@ -1,3 +1,17 @@
+## Version 21.2.0 - Long term support
+
+Version 21.2.0 marks the first Aircloak Insights long term support release.
+It is called Aircloak Insights Evergreen.
+
+### **Breaking changes**
+
+- Support removed for MariaDB, MySQL and Microsoft SQL Server.
+
+### Bugfixes
+
+- The audit log and the query performance page would fail on installations configured to use long polling rather
+  than websockets.
+
 ## Version 21.1.1
 
 ### Enhancements

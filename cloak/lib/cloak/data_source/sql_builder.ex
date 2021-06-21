@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   use Combine
   alias Cloak.Sql.{Query, Expression, Compiler, Function}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, TiDB, ClouderaImpala}
+  alias Cloak.DataSource.SqlBuilder.{Support, ClouderaImpala}
   alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
@@ -201,38 +201,6 @@ defmodule Cloak.DataSource.SqlBuilder do
     Support.function_sql("sum", [arg |> cast(:real) |> to_fragment(dialect)], dialect)
   end
 
-  defp column_sql(
-         %Expression{kind: :function, name: comparator, args: [%Expression{type: :text} = arg1, arg2]},
-         dialect
-       )
-       when comparator in ~w(> < = <> >= <=) and dialect in [SQLServer, MySQL, TiDB],
-       # Some servers ignore trailing spaces during text comparisons.
-       do:
-         Support.function_sql(
-           comparator,
-           [
-             arg1 |> dot_terminate() |> column_sql(dialect),
-             arg2 |> dot_terminate() |> column_sql(dialect)
-           ],
-           dialect
-         )
-
-  defp column_sql(
-         %Expression{kind: :function, name: "in", args: [%Expression{type: :text} = subject | values]},
-         dialect
-       )
-       # Some servers ignore trailing spaces during text comparisons.
-       when dialect in [SQLServer, MySQL, TiDB],
-       do:
-         Support.function_sql(
-           "in",
-           [
-             subject |> dot_terminate() |> column_sql(dialect)
-             | Enum.map(values, &(&1 |> dot_terminate() |> to_fragment(dialect)))
-           ],
-           dialect
-         )
-
   defp column_sql(%Expression{kind: :function, name: fun_name, args: args}, dialect) do
     args =
       if Cloak.Sql.Function.math_function?(fun_name) do
@@ -335,12 +303,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp constant_to_fragment(value, dialect), do: dialect.literal(value)
 
-  defp dot_terminate(%Expression{kind: :constant, type: :text, value: value} = expression) when is_binary(value),
-    do: %Expression{expression | value: value <> "."}
-
-  defp dot_terminate(%Expression{type: :text} = expression),
-    do: Expression.function("concat", [expression, Expression.constant(:text, ".")], :text)
-
   defp group_by_fragments(%Query{subquery?: true, grouping_sets: [_ | _]} = query) do
     dialect = sql_dialect_module(query)
 
@@ -351,7 +313,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       |> Enum.intersperse(", ")
     end)
     |> case do
-      [[]] -> if dialect in [MySQL, ClouderaImpala, TiDB], do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
+      [[]] -> if dialect in [ClouderaImpala], do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
       [grouping_set] -> [" GROUP BY ", grouping_set]
       grouping_sets -> [" GROUP BY GROUPING SETS ((", Enum.intersperse(grouping_sets, "), ("), "))"]
     end
@@ -462,7 +424,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   # Mark boolean expressions
   # -------------------------------------------------------------------
 
-  # Some backends (like SQL Server and Oracle) have limited support for boolean expressions.
+  # Some backends (like Oracle) have limited support for boolean expressions.
   # A boolean expression is an expression consisting of conditions and boolean operators (`and`, `or`, `not`).
   # We wrap boolean expressions in non-filtering clauses inside a dummy `boolean_expression` function call.
   # This will result in no-op on backends where boolean expressions are supported and

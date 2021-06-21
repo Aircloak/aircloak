@@ -60,11 +60,6 @@ defmodule Cloak.DataSource.Bounds.Query.Test do
     assert_bounds("bounds", "date", {1975, 2125})
   end
 
-  test "shortcircuits to `:unknown` for totally safe data source: SQLServer" do
-    data_source = default_data_source() |> Map.put(:driver, DataSource.SQLServer)
-    assert Query.bounds(data_source, "bounds", "value") == :unknown
-  end
-
   test "ignores NULLs" do
     :ok =
       Cloak.Test.DB.insert_data("bounds", ["user_id", "value"], [

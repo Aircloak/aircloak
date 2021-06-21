@@ -1,5 +1,4 @@
 FROM aircloak/base:$DEBIAN_VERSION
-MAINTAINER Aircloak
 
 # ---------------------------------------------------------------------
 # Create user and copy in app
@@ -9,10 +8,8 @@ WORKDIR /aircloak/cloak
 
 # Setup ODBC drivers
 RUN apt-get update
-RUN apt-get install -y unixodbc odbc-postgresql libmyodbc libaio1 inotify-tools unzip
+RUN apt-get install -y unixodbc odbc-postgresql libaio1 inotify-tools unzip
 COPY cloak/priv/odbc/docker/odbc.ini /etc/
-COPY cloak/priv/odbc/docker/sqlserver_setup.sh /aircloak/
-RUN /aircloak/sqlserver_setup.sh
 
 # Setup Oracle Instant Client
 RUN \
