@@ -521,6 +521,7 @@ defmodule Air.Service.User do
 
       true ->
         mask_timing(fn ->
+          AuditLog.log_as_system_user("Unknown user login attempt", %{login: normalized_login})
           LoginStats.log_event(normalized_login, :unknown_login)
         end)
         {:error, :invalid_login_or_password}
