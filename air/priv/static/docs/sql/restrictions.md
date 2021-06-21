@@ -547,7 +547,7 @@ The bounds are computed with some "extra room", so this can most often happen in
 outlier.
 
 So long as this analysis is not complete for a certain column, mathematical operations on that column need to be
-performed using the safe method, wich might be slower on some data sources. In Oracle DB these operations are emulated by default. However, the database administrator can enable
+performed using the safe method, which might be slower on some data sources. In Oracle DB these operations are emulated by default. However, the database administrator can enable
 Aircloak UDFs to avoid this emulation - [see here for details](/datastores.md#oracle-safe-functions).
 
 ## Column analysis
