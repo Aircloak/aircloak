@@ -57,7 +57,7 @@ defmodule AirWeb.SessionController do
 
     conn
     |> AirWeb.Plug.Session.sign_out()
-    |> put_flash(:info, "Logged out successfully")
+    |> put_flash(:info, "Logged out successfully.")
     |> redirect(to: session_path(conn, :new))
   end
 

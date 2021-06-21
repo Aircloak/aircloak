@@ -53,7 +53,7 @@ defmodule AirWeb.Admin.UserController do
         token = User.reset_password_token(user)
 
         conn
-        |> put_flash(:info, "User created")
+        |> put_flash(:info, "User created.")
         |> put_flash(:reset_password_token, {user.id, token})
         |> redirect(to: admin_user_path(conn, :edit, user.id))
 
@@ -69,7 +69,7 @@ defmodule AirWeb.Admin.UserController do
         audit_log_for_user(conn, user, "User altered")
 
         conn
-        |> put_flash(:info, "User updated")
+        |> put_flash(:info, "User updated.")
         |> redirect(to: admin_user_path(conn, :index))
 
       {:error, changeset} ->
@@ -94,7 +94,7 @@ defmodule AirWeb.Admin.UserController do
     case User.delete_async(user, start_callback, success_callback, failure_callback) do
       :ok ->
         conn
-        |> put_flash(:info, "The user has been disabled. The deletion will be performed in the background")
+        |> put_flash(:info, "The user has been disabled. The deletion will be performed in the background.")
         |> redirect(to: admin_user_path(conn, :index))
 
       {:error, error} ->
@@ -114,7 +114,7 @@ defmodule AirWeb.Admin.UserController do
     conn
     |> put_flash(
       :info,
-      "All disabled users have been marked for deletion. The deletion will be performed in the background"
+      "All disabled users have been marked for deletion. The deletion will be performed in the background."
     )
     |> redirect(to: admin_user_path(conn, :index))
   end

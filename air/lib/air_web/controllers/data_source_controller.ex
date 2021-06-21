@@ -63,7 +63,7 @@ defmodule AirWeb.DataSourceController do
     else
       _ ->
         conn
-        |> put_flash(:error, "Not permitted to access data source")
+        |> put_flash(:error, "Not permitted to access data source.")
         |> redirect(to: data_source_path(conn, :index))
         |> halt()
     end

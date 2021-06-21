@@ -31,7 +31,7 @@ defmodule AirWeb.SettingsController do
 
         conn
         |> maybe_login(sessions_revoked?)
-        |> put_flash(:info, "Profile updated")
+        |> put_flash(:info, "Profile updated.")
         |> redirect(to: settings_path(conn, :profile))
 
       {:error, changeset} ->
@@ -57,7 +57,7 @@ defmodule AirWeb.SettingsController do
 
         conn
         |> maybe_login(sessions_revoked?)
-        |> put_flash(:info, "Changed own password")
+        |> put_flash(:info, "Changed own password.")
         |> redirect(to: settings_path(conn, :security))
 
       {:error, changeset} ->

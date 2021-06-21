@@ -23,7 +23,7 @@ defmodule AirWeb.Plug.Session.Authenticated do
 
       _ ->
         conn
-        |> Phoenix.Controller.put_flash(:error, "You must be authenticated to view this page")
+        |> Phoenix.Controller.put_flash(:error, "You must be authenticated to view this page.")
         |> Plug.Conn.put_session(:return_path, conn.request_path)
         |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.session_path(conn, :new))
         |> Plug.Conn.halt()

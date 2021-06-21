@@ -131,7 +131,7 @@ defmodule AirWeb.SelectableController do
         put_flash(
           conn,
           :warn,
-          "After this change the following views are invalid: #{broken_names}"
+          "After this change the following views are invalid: #{broken_names}."
         )
     end
   end
