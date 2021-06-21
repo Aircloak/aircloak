@@ -49,4 +49,4 @@ If queries routinely fail with “out of memory” warnings the amount of memory
 
 Insights Cloak benefits from having access to multiple CPU cores when multiple queries are to be run in parallel.
 
-[filename](_important-notice.md ":include")
+[Important notice](_important-notice.md ':include')

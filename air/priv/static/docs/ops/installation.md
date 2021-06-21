@@ -20,7 +20,7 @@ Before installing components, make sure that the following prerequisites are met
 - The Insights Air component requires at least 2GB of RAM.
 - The Insights Cloak component requires at least 8GB of RAM. However, for more complex queries on a larger dataset, more memory might be needed.
 
-[filename](../_important-notice.md ":include")
+[Important notice](../_important-notice.md ':include')
 
 ## Insights Air
 

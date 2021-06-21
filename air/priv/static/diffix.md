@@ -205,7 +205,7 @@ The procedure for `date`, `time`, and `datetime` columns is similar but differs 
 
 The following shows what SQL is supported. Any received SQL that has syntax outside of this specification is rejected.
 
-[filename](sql/_syntax.md ":include")
+[SQL Syntax](sql/_syntax.md ':include')
 
 ## Rejecting queries
 
