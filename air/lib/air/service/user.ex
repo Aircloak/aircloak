@@ -284,7 +284,7 @@ defmodule Air.Service.User do
 
   @doc """
   Deletes all disabled users in the background. Calls `start_callback` and returns `:ok` immediately.
-  Calls `success_callback` if the deletions succeed, and conversely the `failure_callback` in case it does not.
+  Calls `success_callback` if the deletions succeed, and conversely the `failure_callback` in case they do not.
   """
   @spec delete_disabled_async((() -> any), (() -> any), (any -> any)) :: :ok
   def delete_disabled_async(start_callback, success_callback, failure_callback) do
