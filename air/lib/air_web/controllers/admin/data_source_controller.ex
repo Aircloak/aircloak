@@ -54,7 +54,7 @@ defmodule AirWeb.Admin.DataSourceController do
         )
 
         conn
-        |> put_flash(:info, "Data source updated")
+        |> put_flash(:info, "Data source updated.")
         |> redirect(to: admin_data_source_path(conn, :index))
 
       {:error, changeset} ->

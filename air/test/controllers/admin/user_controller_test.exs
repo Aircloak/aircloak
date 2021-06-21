@@ -102,6 +102,26 @@ defmodule AirWeb.Admin.UserController.Test do
     refute users_html =~ User.main_login(user)
   end
 
+  test "deleting all disabled users" do
+    admin = create_admin_user!()
+    user1 = create_user!()
+    user2 = create_user!()
+    user3 = create_user!()
+
+    assert "/admin/users" == login(admin) |> put("/admin/users/#{user1.id}/disable") |> redirected_to()
+    refute User.load!(user1.id).enabled
+    assert "/admin/users" == login(admin) |> put("/admin/users/#{user2.id}/disable") |> redirected_to()
+    refute User.load!(user2.id).enabled
+    assert User.load!(user3.id).enabled
+
+    assert "/admin/users" == login(admin) |> delete("/admin/users/delete_disabled") |> redirected_to()
+
+    users_html = login(admin) |> get("/admin/users") |> response(200)
+    refute users_html =~ User.main_login(user1)
+    refute users_html =~ User.main_login(user2)
+    assert users_html =~ User.main_login(user3)
+  end
+
   test "admins cannot delete themselves" do
     admin = create_admin_user!()
 

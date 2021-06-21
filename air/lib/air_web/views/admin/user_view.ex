@@ -81,4 +81,9 @@ defmodule AirWeb.Admin.UserView do
   defp is_self?(conn, user), do: conn.assigns.current_user.id == user.id
 
   defp is_explorer?(user), do: user.name == "Diffix Explorer" && user.system
+
+  defp inactive_users?(conn) do
+    inactive_users = conn.assigns[:disabled_users] ++ conn.assigns[:disabled_ldap_users]
+    length(inactive_users) > 0
+  end
 end

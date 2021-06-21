@@ -53,7 +53,7 @@ defmodule AirWeb.ApiTokenController do
         audit_log(conn, "Invalidated API token")
 
         conn
-        |> put_flash(:info, "Token revoked")
+        |> put_flash(:info, "Token revoked.")
         |> redirect(to: api_token_path(conn, :index))
 
       false ->

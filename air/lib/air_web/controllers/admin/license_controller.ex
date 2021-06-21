@@ -16,7 +16,7 @@ defmodule AirWeb.Admin.LicenseController do
     case File.read(path) do
       {:ok, text} ->
         case License.load(text) do
-          :ok -> redirect_to_edit(conn, :info, "License uploaded")
+          :ok -> redirect_to_edit(conn, :info, "License uploaded.")
           {:error, reason} -> redirect_to_edit(conn, :error, reason)
         end
 

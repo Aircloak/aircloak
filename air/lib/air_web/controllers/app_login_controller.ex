@@ -44,7 +44,7 @@ defmodule AirWeb.AppLoginController do
         audit_log(conn, "Revoked app login")
 
         conn
-        |> put_flash(:info, "Login revoked")
+        |> put_flash(:info, "Login revoked.")
         |> redirect(to: app_login_path(conn, :index))
 
       :error ->

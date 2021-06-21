@@ -15,7 +15,7 @@ defmodule AirWeb.Admin.AuditLogController do
     Repo.delete_all(Air.Schemas.AuditLog)
 
     conn
-    |> put_flash(:info, "All audit log entries have been deleted")
+    |> put_flash(:info, "All audit log entries have been deleted.")
     |> redirect(to: admin_settings_path(conn, :show))
   end
 end

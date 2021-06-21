@@ -39,7 +39,7 @@ defmodule AirWeb.Admin.PrivacyPolicyController do
     case PrivacyPolicy.get_by_id(id) do
       {:error, :not_found} ->
         conn
-        |> put_flash(:error, "Privacy policy revision not found")
+        |> put_flash(:error, "Privacy policy revision not found.")
         |> redirect(to: admin_privacy_policy_path(conn, :index))
 
       {:ok, policy} ->

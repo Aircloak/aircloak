@@ -44,7 +44,7 @@ defmodule AirWeb.Admin.GroupController do
         audit_log(conn, "Altered group", group_name: group.name, group_id: group.id, before: old_group, after: group)
 
         conn
-        |> put_flash(:info, "Group updated")
+        |> put_flash(:info, "Group updated.")
         |> redirect(to: admin_group_path(conn, :index))
 
       {:error, changeset} ->
@@ -58,7 +58,7 @@ defmodule AirWeb.Admin.GroupController do
         audit_log(conn, "Created group", group_name: group.name, group_id: group.id)
 
         conn
-        |> put_flash(:info, "Group created")
+        |> put_flash(:info, "Group created.")
         |> redirect(to: admin_group_path(conn, :index))
 
       {:error, changeset} ->
@@ -73,7 +73,7 @@ defmodule AirWeb.Admin.GroupController do
       audit_log(conn, "Removed group", group_name: group.name)
 
       conn
-      |> put_flash(:info, "Group deleted")
+      |> put_flash(:info, "Group deleted.")
       |> redirect(to: admin_group_path(conn, :index))
     end)
   end
