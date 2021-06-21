@@ -61,38 +61,48 @@ defmodule AirWeb.LayoutView do
 
   @background_images [
     %{
-      photographer: "LExie Blessing",
-      credit_url: "https://www.pexels.com/photo/photo-of-pink-dogwood-plant-4273058/",
-      motive: "Pink Dogwood, Washington State"
+      photographer: "Marc St",
+      credit_url: "https://unsplash.com/photos/0NGQmnuDnJ0",
+      motive: "Magic places tucked away in the Italian mountains - Karersee, Italy"
     },
     %{
-      photographer: "Manfred Richter",
-      credit_url: "https://pixabay.com/photos/dogwood-ornamental-shrub-bush-4142742/",
-      motive: "Dogwood"
+      photographer: "CHUTTERSNAP",
+      credit_url: "https://unsplash.com/photos/90fArTCswjQ",
+      motive: "Evergreen"
     },
     %{
-      photographer: "Melissa Wilt",
-      credit_url: "https://pixabay.com/photos/flower-dogwood-plant-flora-bud-2419960/",
-      motive: "Dogwood"
+      photographer: "Noah Silliman",
+      credit_url: "https://unsplash.com/photos/01Qqkfz-ck8",
+      motive: "Evergreen treetops from above"
     },
     %{
-      photographer: "Susanne Jutzeler",
-      credit_url: "https://pixabay.com/photos/dogwood-spring-bloom-nature-flora-4113098/",
-      motive: "Dogwood"
+      photographer: "Geran de Klerk",
+      credit_url: "https://unsplash.com/photos/WJkc3xZjSXw",
+      motive: "Remote forest path"
     },
     %{
-      photographer: "Kendall",
-      credit_url: "https://unsplash.com/photos/RLlwhlh0KpM",
-      motive: "Dogwood, North Carolina, Charlotte, United States"
+      photographer: "Sebastian Unrau",
+      credit_url: "https://unsplash.com/photos/sp-p7uuT0tw",
+      motive: "Bad Pyrmont, Deutschland"
     },
     %{
-      photographer: "Shell Ghostcage",
-      credit_url: "https://pixabay.com/photos/landscape-natural-flowers-arboretum-1345588/",
-      motive: "Dogwood"
+      photographer: "Luca Bravo",
+      credit_url: "https://unsplash.com/photos/ESkw2ayO2As",
+      motive: "Lago di Braies"
+    },
+    %{
+      photographer: "Samuel Ferrara",
+      credit_url: "https://unsplash.com/photos/iecJiKe_RNg",
+      motive: "Autumn woods across the lake"
+    },
+    %{
+      photographer: "Scott Taylor",
+      credit_url: "https://unsplash.com/photos/02a4DSekRVg",
+      motive: "Blue ocean by forest road - Thailand"
     }
   ]
 
-  defp background_image_num(), do: rem(NaiveDateTime.utc_now().day, 6)
+  defp background_image_num(), do: rem(NaiveDateTime.utc_now().day, 8)
 
   defp background_img_info(), do: Enum.at(@background_images, background_image_num())
 

@@ -126,88 +126,116 @@ div#aircloak {
     }
 
     body.img1 {
-      background: url(../static/images/bg-dogwood1.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen1.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
-        url(../static/images/bg-dogwood1.jpg) 1x,
-        url(../static/images/bg-dogwood1-large.jpg) 2x
+        url(../static/images/bg-evergreen1.jpg) 1x,
+        url(../static/images/bg-evergreen1-large.jpg) 2x
       );
     }
 
     body.img2 {
-      background: url(../static/images/bg-dogwood2.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen2.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
-        url(../static/images/bg-dogwood2.jpg) 1x,
-        url(../static/images/bg-dogwood2-large.jpg) 2x
+        url(../static/images/bg-evergreen2.jpg) 1x,
+        url(../static/images/bg-evergreen2-large.jpg) 2x
       );
     }
 
     body.img3 {
-      background: url(../static/images/bg-dogwood3.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen3.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
-        url(../static/images/bg-dogwood3.jpg) 1x,
-        url(../static/images/bg-dogwood3-large.jpg) 2x
+        url(../static/images/bg-evergreen3.jpg) 1x,
+        url(../static/images/bg-evergreen3-large.jpg) 2x
       );
     }
 
     body.img4 {
-      background: url(../static/images/bg-dogwood4.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen4.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
-        url(../static/images/bg-dogwood4.jpg) 1x,
-        url(../static/images/bg-dogwood4-large.jpg) 2x
+        url(../static/images/bg-evergreen4.jpg) 1x,
+        url(../static/images/bg-evergreen4-large.jpg) 2x
       );
     }
 
     body.img5 {
-      background: url(../static/images/bg-dogwood5.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen5.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
-        url(../static/images/bg-dogwood5.jpg) 1x,
-        url(../static/images/bg-dogwood5-large.jpg) 2x
+        url(../static/images/bg-evergreen5.jpg) 1x,
+        url(../static/images/bg-evergreen5-large.jpg) 2x
       );
     }
 
     body.img6 {
-      background: url(../static/images/bg-dogwood6.jpg) no-repeat center center
-        fixed;
+      background: url(../static/images/bg-evergreen6.jpg) no-repeat center
+        center fixed;
       background-image: image-set(
-        url(../static/images/bg-dogwood6.jpg) 1x,
-        url(../static/images/bg-dogwood6-large.jpg) 2x
+        url(../static/images/bg-evergreen6.jpg) 1x,
+        url(../static/images/bg-evergreen6-large.jpg) 2x
+      );
+    }
+
+    body.img7 {
+      background: url(../static/images/bg-evergreen7.jpg) no-repeat center
+        center fixed;
+      background-image: image-set(
+        url(../static/images/bg-evergreen7.jpg) 1x,
+        url(../static/images/bg-evergreen7-large.jpg) 2x
+      );
+    }
+
+    body.img8 {
+      background: url(../static/images/bg-evergreen8.jpg) no-repeat center
+        center fixed;
+      background-image: image-set(
+        url(../static/images/bg-evergreen8.jpg) 1x,
+        url(../static/images/bg-evergreen8-large.jpg) 2x
       );
     }
   }
 
   @media only screen and (min-width: 1920px) {
     body.img1 {
-      background: url(../static/images/bg-dogwood1-large.jpg) no-repeat center
+      background: url(../static/images/bg-evergreen1-large.jpg) no-repeat center
         center fixed;
     }
 
     body.img2 {
-      background: url(../static/images/bg-dogwood2-large.jpg) no-repeat center
+      background: url(../static/images/bg-evergreen2-large.jpg) no-repeat center
         center fixed;
     }
 
     body.img3 {
-      background: url(../static/images/bg-dogwood3-large.jpg) no-repeat center
+      background: url(../static/images/bg-evergreen3-large.jpg) no-repeat center
         center fixed;
     }
 
     body.img4 {
-      background: url(../static/images/bg-dogwood4-large.jpg) no-repeat center
+      background: url(../static/images/bg-evergreen4-large.jpg) no-repeat center
         center fixed;
     }
 
     body.img5 {
-      background: url(../static/images/bg-dogwood5-large.jpg) no-repeat center
+      background: url(../static/images/bg-evergreen5-large.jpg) no-repeat center
         center fixed;
     }
 
     body.img6 {
-      background: url(../static/images/bg-dogwood6-large.jpg) no-repeat center
+      background: url(../static/images/bg-evergreen6-large.jpg) no-repeat center
+        center fixed;
+    }
+
+    body.img7 {
+      background: url(../static/images/bg-evergreen7-large.jpg) no-repeat center
+        center fixed;
+    }
+
+    body.img8 {
+      background: url(../static/images/bg-evergreen8-large.jpg) no-repeat center
         center fixed;
     }
   }
