@@ -280,13 +280,15 @@ defmodule Air.Service.User do
 
   @doc """
   Deletes all disabled users in the background. Calls `start_callback` and returns `:ok` immediately.
-  Calls `success_callback` if the deletions succeed, and the `failure_callback` in case no admin is left
-  active or the deletions otherwise fail.
+  Calls `success_callback` if the deletions succeed, and conversely the `failure_callback` in case it does not.
   """
   @spec delete_disabled_async((() -> any), (() -> any), (any -> any)) :: :ok
   def delete_disabled_async(start_callback, success_callback, failure_callback) do
     start_callback.()
 
+    # Misuse of the admin guard to get an asynchronous batched delete, without having to
+    # implement it manually. The admin check will always pass, since the last admin user
+    # should not be possible to disable. Checking doesn't hurt though!
     AdminGuard.commit_if_active_last_admin_async(
       fn ->
         {:ok,
