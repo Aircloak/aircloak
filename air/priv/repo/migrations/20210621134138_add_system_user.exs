@@ -6,7 +6,7 @@ defmodule Air.Repo.Migrations.AddSystemUser do
   def up, do: User.create!(%{name: "System user", login: "system_user", system: true})
 
   def down do
-    user = User.system_user!("system_user")
+    user = User.system_user!()
     Air.Repo.delete!(user)
   end
 end
