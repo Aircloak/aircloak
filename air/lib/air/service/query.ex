@@ -438,9 +438,35 @@ defmodule Air.Service.Query do
     |> update_in([Access.all(), :time_spent], &format_processing_stages/1)
   end
 
+  def most_active_users() do
+    current_time = DateTime.utc_now()
+
+    %{
+      last_hour: most_active_users_for_time_window(Timex.shift(current_time, hours: -1)),
+      last_day: most_active_users_for_time_window(Timex.shift(current_time, hours: -1)),
+      last_month: most_active_users_for_time_window(Timex.shift(current_time, hours: -1))
+    }
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp most_active_users_for_time_window(time) do
+    Repo.all(
+      from q in Query,
+      where: q.inserted_at > ^time,
+      order_by: [desc: count(q.id)],
+      inner_join: u in User,
+      on: u.id == q.user_id,
+      group_by: u.id,
+      limit: 3,
+      select: %{
+        count: count(q.id),
+        user: u
+      }
+    )
+  end
 
   defp format_processing_stages(result),
     do:

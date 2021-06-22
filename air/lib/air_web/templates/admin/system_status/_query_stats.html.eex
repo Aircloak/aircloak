@@ -8,12 +8,63 @@
 <div class="row">
 	<div class="col">
 		<%= render("_event_card.html", title: "Query executions",
-			hour: @query_stats[:last_hour],
-			day: @query_stats[:last_day],
-			month: @query_stats[:last_month])
+			hour: @query_stats[:counts][:last_hour],
+			day: @query_stats[:counts][:last_day],
+			month: @query_stats[:counts][:last_month])
 		%>
 	</div>
 
 	<div class="col">
+		<div class="card">
+			<div class="card-header">
+				Most active users
+			</div>
+			<table class="table">
+				<tbody>
+					<tr>
+						<td>Last hour</td>
+						<td>
+							<ul>
+							<%= for stat <- @query_stats[:users][:last_hour] do%>
+								<li class="small">
+									<a href="/admin/audit_log?users[]=<%= stat.user.id %>">
+										<%= stat.count %> queries: <%= stat.user.name %>
+									</a>
+								</li>
+							<% end %>
+						</td>
+					</tr>
+
+					<tr>
+						<td>Last day</td>
+						<td>
+							<ul>
+							<%= for stat <- @query_stats[:users][:last_day] do%>
+								<li class="small">
+									<a href="/admin/audit_log?users[]=<%= stat.user.id %>">
+										<%= stat.count %> queries: <%= stat.user.name %>
+									</a>
+								</li>
+							<% end %>
+						</td>
+					</tr>
+
+					<tr>
+						<td>Last 30 days</td>
+						<td>
+							<ul>
+							<%= for stat <- @query_stats[:users][:last_month] do%>
+								<li class="small">
+									<a href="/admin/audit_log?users[]=<%= stat.user.id %>">
+										<%= stat.count %> queries: <%= stat.user.name %>
+									</a>
+								</li>
+							<% end %>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
 	</div>
 </div>
