@@ -6,10 +6,10 @@
 </header>
 
 <div class="row">
-  <div class="col">
+  <div class="col-sm-12 col-xl-6">
     <%= render("_login_events.html", login_events: @login_events) %>
   </div>
-  <div class="col">
+  <div class="col-sm-12 col-xl-6 mt-5 mt-xl-0">
     <%= render("_query_stats.html", query_stats: @query_stats) %>
   </div>
 </div>
