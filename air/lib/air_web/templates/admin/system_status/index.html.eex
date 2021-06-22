@@ -5,8 +5,6 @@
   <h1>System Status</h1>
 </header>
 
-<%= live_render(@conn, AirWeb.Admin.SystemStatusLive.Sessions) %>
-
 <div id="cloaks-status-view" />
 
 <script>

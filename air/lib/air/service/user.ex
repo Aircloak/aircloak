@@ -3,7 +3,7 @@ defmodule Air.Service.User do
 
   alias Air.Repo
   alias Air.Service
-  alias Air.Service.{AuditLog, LDAP, Password, RevokableToken, AdminGuard, User.LoginStats}
+  alias Air.Service.{AuditLog, LDAP, Password, RevokableToken, AdminGuard}
   alias Air.Schemas.{DataSource, Group, User, Login}
   import Ecto.Query, only: [from: 2, join: 4, where: 3, preload: 3]
   import Ecto.Changeset
@@ -507,7 +507,6 @@ defmodule Air.Service.User do
       valid_password?(login, password) ->
         mask_timing(fn ->
           AuditLog.log(login.user, "Logged in", meta)
-          LoginStats.log_event(normalized_login, :successful_login)
           Air.TimestampUpdater.start_toucher(login)
         end)
 
@@ -515,7 +514,6 @@ defmodule Air.Service.User do
 
       login ->
         mask_timing(fn ->
-          LoginStats.log_event(normalized_login, :wrong_credentials)
           AuditLog.log(login.user, "Failed login", meta)
         end)
 
@@ -524,7 +522,6 @@ defmodule Air.Service.User do
       true ->
         mask_timing(fn ->
           AuditLog.log_as_system_user("Unknown user login attempt", %{login: normalized_login})
-          LoginStats.log_event(normalized_login, :unknown_login)
         end)
 
         {:error, :invalid_login_or_password}

@@ -30,7 +30,6 @@ defmodule Air.Supervisor do
         AirWeb.MonitoringEndpoint,
         AirWeb.Telemetry,
         Air.BOM,
-        Air.Service.User.LoginStats
       ]
       |> Enum.reject(&is_nil/1),
       strategy: :one_for_one,
