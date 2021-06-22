@@ -5,7 +5,13 @@
   <h1>System Status</h1>
 </header>
 
-<div id="cloaks-status-view" />
+<div class="row">
+  <div class="col">
+    <%= render("_login_events.html", login_events: @login_events) %>
+  </div>
+</div>
+
+<div class="mt-5" id="cloaks-status-view" />
 
 <script>
   window.pageConfig = {

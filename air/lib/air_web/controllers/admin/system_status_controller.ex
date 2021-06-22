@@ -6,7 +6,7 @@ defmodule AirWeb.Admin.SystemStatusController do
   use Air.Web, :admin_controller
 
   alias Plug.CSRFProtection
-  alias Air.Service.{Cloak.Stats, Query}
+  alias Air.Service.{AuditLog, Cloak.Stats, Query}
 
   # -------------------------------------------------------------------
   # Actions
@@ -19,7 +19,8 @@ defmodule AirWeb.Admin.SystemStatusController do
       csrf_token: CSRFProtection.get_csrf_token(),
       socket_token: AirWeb.Plug.Session.current_token(conn),
       running_queries: Query.not_finished(),
-      cloak_stats: Stats.cloak_stats()
+      cloak_stats: Stats.cloak_stats(),
+      login_events: AuditLog.login_events_stats()
     )
   end
 end

@@ -35,6 +35,12 @@ defmodule Air.Service.AuditLog do
 
   @type by_date :: {DateTime.t(), [group]}
 
+  @type login_stats :: %{
+    count: non_neg_integer,
+    start_time: DateTime.t(),
+    event_types: [String.t()]
+  }
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -212,22 +218,44 @@ defmodule Air.Service.AuditLog do
   @spec count() :: integer
   def count(), do: Repo.one(from(audit_log_entry in AuditLog, select: count(audit_log_entry.id)))
 
-  @doc "Returns login events"
-  def login_events() do
-    Repo.all(
-      from(a in AuditLog,
-        where: fragment("? > now() - interval '1 hour'", a.inserted_at),
-        where: fragment("lower(?)", a.event) in ["failed login", "logged in"],
-        order_by: [desc: a.inserted_at],
-        preload: [:user],
-        select: a
-      )
-    )
+  @doc "Returns login events stats."
+  @spec login_events_stats() :: %{successful: login_stats, failed: login_stats}
+  def login_events_stats() do
+    current_time = DateTime.utc_now()
+
+    %{
+      successful: %{
+        last_hour: count_for_event_type(["Logged in"], Timex.shift(current_time, hours: -1)),
+        last_day: count_for_event_type(["Logged in"], Timex.shift(current_time, days: -1)),
+        last_month: count_for_event_type(["Logged in"], Timex.shift(current_time, days: -30))
+      },
+
+      failed: %{
+        last_hour: count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, hours: -1)),
+        last_day: count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -1)),
+        last_month: count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -30))
+      },
+    }
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp count_for_event_type(event_types, time) do
+    count =
+      Repo.one(
+        from a in AuditLog,
+        where: a.inserted_at > ^time,
+        where: a.event in ^event_types,
+        select: count(a.id)
+      )
+    %{
+      count: count,
+      start_time: time,
+      event_types: event_types
+    }
+  end
 
   defp order_by_event(query) do
     from(a in query, order_by: [desc: :inserted_at])
