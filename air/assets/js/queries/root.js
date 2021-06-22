@@ -254,6 +254,19 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     }
   };
 
+  editNote: (result: Result) => void = (result: Result) => {
+    const { id, note } = result;
+
+    const newNote = prompt("Enter note for query", note || "");
+    if (newNote === null) return;
+
+    this.setState((state) => ({
+      sessionResults: state.sessionResults.map((r: any) =>
+        r.id !== id ? r : { ...r, note: newNote }
+      ),
+    }));
+  };
+
   addPendingResult: (queryId: string, statement: string) => void = (
     queryId: string,
     statement: string
@@ -263,6 +276,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     const pendingResult: PendingResult = {
       id: queryId,
       statement,
+      note: null,
       query_state: "created",
       session_id: sessionId,
       private_permalink: null,
@@ -283,6 +297,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       query_state: "error",
       id: generatedTempId,
       statement,
+      note: null,
       error,
       info: [],
       private_permalink: null,
@@ -471,6 +486,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
           debugModeEnabled={debugModeEnabled}
           authentication={authentication}
           onDeleteClick={this.deleteResult}
+          onEditNoteClick={this.editNote}
         />
 
         <HistoryLoader

@@ -17,6 +17,7 @@ type Props = {
   debugModeEnabled: boolean,
   authentication: Authentication,
   onDeleteClick?: (id: string) => void,
+  onEditNoteClick?: (result: Result) => void,
 };
 
 export default ({
@@ -25,6 +26,7 @@ export default ({
   debugModeEnabled,
   authentication,
   onDeleteClick,
+  onEditNoteClick,
 }: Props): Element<"div"> => {
   return (
     <div>
@@ -38,6 +40,7 @@ export default ({
                 numberFormat={numberFormat}
                 debugModeEnabled={debugModeEnabled}
                 onDeleteClick={onDeleteClick}
+                onEditNoteClick={onEditNoteClick}
               />
             );
           case "cancelled":
@@ -47,6 +50,7 @@ export default ({
                 result={result}
                 debugModeEnabled={debugModeEnabled}
                 onDeleteClick={onDeleteClick}
+                onEditNoteClick={onEditNoteClick}
               />
             );
           case "error":
@@ -56,6 +60,7 @@ export default ({
                 result={result}
                 debugModeEnabled={debugModeEnabled}
                 onDeleteClick={onDeleteClick}
+                onEditNoteClick={onEditNoteClick}
               />
             );
           default:
@@ -64,6 +69,7 @@ export default ({
                 key={result.id}
                 authentication={authentication}
                 result={result}
+                onEditNoteClick={onEditNoteClick}
               />
             );
         }

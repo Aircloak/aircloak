@@ -6,6 +6,7 @@ import React from "react";
 import { AuthContext } from "../authentication_provider";
 import CodeViewer from "../code_viewer";
 import InfoView from "./info_view";
+import QueryNote from "./query_note";
 import { GraphData, GraphInfo, GraphConfig } from "./graph_data";
 import GraphConfigView from "./graph_config_view";
 import GraphView from "./graph_view";
@@ -33,6 +34,7 @@ export type Type = string;
 type CommonResultFeatures = {
   id: string,
   statement: string,
+  note: string | null,
   data_source: {
     name: string,
   },
@@ -80,6 +82,7 @@ type Props = {
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
   onDeleteClick?: (queryId: string) => void,
+  onEditNoteClick?: (result: SuccessResult) => void,
 };
 
 type State = {
@@ -522,7 +525,7 @@ export class ResultView extends React.Component<Props, State> {
   };
 
   render: () => Element<"div"> = () => {
-    const { result, onDeleteClick } = this.props;
+    const { result, onDeleteClick, onEditNoteClick } = this.props;
     const { tableAligner } = this.state;
     return (
       <div className="card border-success mb-3">
@@ -537,9 +540,19 @@ export class ResultView extends React.Component<Props, State> {
               <i className="fas fa-times" aria-label="Delete"></i>
             </button>
           )}
+          {onEditNoteClick && (
+            <button
+              type="button"
+              className="btn btn-sm float-right"
+              onClick={() => onEditNoteClick(result)}
+            >
+              <i className="far fa-comment-alt" aria-label="Set note"></i>
+            </button>
+          )}
           <CodeViewer statement={result.statement} />
         </div>
         <div className="card-body">
+          <QueryNote note={result.note} />
           <InfoView info={this.getInfoMessages()} />
           <div className="result-table">
             <table className="table table-striped table-condensed table-hover">
