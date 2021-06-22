@@ -35,10 +35,16 @@ defmodule Air.Service.AuditLog do
 
   @type by_date :: {DateTime.t(), [group]}
 
-  @type login_stats :: %{
-    count: non_neg_integer,
+  @type time_period_event :: %{
+    count: non_neg_integer(),
     start_time: DateTime.t(),
     event_types: [String.t()]
+  }
+
+  @type event_stats :: %{
+    last_hour: time_period_event,
+    last_day: time_period_event,
+    last_month: time_period_event
   }
 
   # -------------------------------------------------------------------
@@ -219,7 +225,7 @@ defmodule Air.Service.AuditLog do
   def count(), do: Repo.one(from(audit_log_entry in AuditLog, select: count(audit_log_entry.id)))
 
   @doc "Returns login events stats."
-  @spec login_events_stats() :: %{successful: login_stats, failed: login_stats}
+  @spec login_events_stats() :: %{successful: event_stats, failed: event_stats}
   def login_events_stats() do
     current_time = DateTime.utc_now()
 
@@ -235,6 +241,18 @@ defmodule Air.Service.AuditLog do
         last_day: count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -1)),
         last_month: count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -30))
       },
+    }
+  end
+
+  @doc "Returns stats about the number of queries run during a set of time intervals"
+  @spec query_stats() :: event_stats
+  def query_stats() do
+    current_time = DateTime.utc_now()
+
+    %{
+      last_hour: count_for_event_type(["Executed query"], Timex.shift(current_time, hours: -1)),
+      last_day: count_for_event_type(["Executed query"], Timex.shift(current_time, days: -1)),
+      last_month: count_for_event_type(["Executed query"], Timex.shift(current_time, days: -30))
     }
   end
 

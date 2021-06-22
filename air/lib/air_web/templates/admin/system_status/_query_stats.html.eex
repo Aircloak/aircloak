@@ -1,0 +1,19 @@
+<h2>Query statistics</h2>
+
+<p>
+	For all query related events, please visit the
+	<a href="/admin/audit_log?events[]=Cancelled+query&events[]=Deleted+query&events[]=Executed+query">audit log</a>.
+</p>
+
+<div class="row">
+	<div class="col">
+		<%= render("_event_card.html", title: "Query executions",
+			hour: @query_stats[:last_hour],
+			day: @query_stats[:last_day],
+			month: @query_stats[:last_month])
+		%>
+	</div>
+
+	<div class="col">
+	</div>
+</div>

@@ -9,6 +9,9 @@
   <div class="col">
     <%= render("_login_events.html", login_events: @login_events) %>
   </div>
+  <div class="col">
+    <%= render("_query_stats.html", query_stats: @query_stats) %>
+  </div>
 </div>
 
 <div class="mt-5" id="cloaks-status-view" />
