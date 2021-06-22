@@ -477,14 +477,6 @@ defmodule Air.Service.User do
     end
   end
 
-  @doc "Loads information about active user sessions, and failed and successful login attempts"
-  # @spec session_stats() ::
-  def session_stats() do
-    %{
-      login_events: Air.Service.AuditLog.login_events()
-    }
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
