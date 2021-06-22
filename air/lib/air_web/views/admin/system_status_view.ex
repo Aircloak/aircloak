@@ -11,7 +11,7 @@ defmodule AirWeb.Admin.SystemStatusView do
 
     events =
       metadata.event_types
-      |> Enum.map(& "events[]=#{&1}")
+      |> Enum.map(&"events[]=#{&1}")
       |> Enum.join("&")
 
     "/admin/audit_log?#{time_range}&#{events}"

@@ -454,17 +454,18 @@ defmodule Air.Service.Query do
 
   defp most_active_users_for_time_window(time) do
     Repo.all(
-      from q in Query,
-      where: q.inserted_at > ^time,
-      order_by: [desc: count(q.id)],
-      inner_join: u in User,
-      on: u.id == q.user_id,
-      group_by: u.id,
-      limit: 3,
-      select: %{
-        count: count(q.id),
-        user: u
-      }
+      from(q in Query,
+        where: q.inserted_at > ^time,
+        order_by: [desc: count(q.id)],
+        inner_join: u in User,
+        on: u.id == q.user_id,
+        group_by: u.id,
+        limit: 3,
+        select: %{
+          count: count(q.id),
+          user: u
+        }
+      )
     )
   end
 

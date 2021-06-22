@@ -481,19 +481,19 @@ defmodule Air.Service.User do
   @spec token_stats() :: [%{user: User.t(), token_count: pos_integer, most_recent: DateTime.t()}]
   def token_stats() do
     Repo.all(
-      from t in Air.Schemas.RevokableToken,
-      join: u in assoc(t, :user),
-      group_by: [u.id],
-      order_by: [desc: max(t.inserted_at)],
-      where: t.valid_until > fragment("now()"),
-      select: %{
-        user: u,
-        token_count: count(t.id),
-        most_recent: max(t.inserted_at)
-      }
+      from(t in Air.Schemas.RevokableToken,
+        join: u in assoc(t, :user),
+        group_by: [u.id],
+        order_by: [desc: max(t.inserted_at)],
+        where: t.valid_until > fragment("now()"),
+        select: %{
+          user: u,
+          token_count: count(t.id),
+          most_recent: max(t.inserted_at)
+        }
+      )
     )
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions

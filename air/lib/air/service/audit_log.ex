@@ -36,16 +36,16 @@ defmodule Air.Service.AuditLog do
   @type by_date :: {DateTime.t(), [group]}
 
   @type time_period_event :: %{
-    count: non_neg_integer(),
-    start_time: DateTime.t(),
-    event_types: [String.t()]
-  }
+          count: non_neg_integer(),
+          start_time: DateTime.t(),
+          event_types: [String.t()]
+        }
 
   @type event_stats :: %{
-    last_hour: time_period_event,
-    last_day: time_period_event,
-    last_month: time_period_event
-  }
+          last_hour: time_period_event,
+          last_day: time_period_event,
+          last_month: time_period_event
+        }
 
   # -------------------------------------------------------------------
   # API functions
@@ -235,12 +235,14 @@ defmodule Air.Service.AuditLog do
         last_day: count_for_event_type(["Logged in"], Timex.shift(current_time, days: -1)),
         last_month: count_for_event_type(["Logged in"], Timex.shift(current_time, days: -30))
       },
-
       failed: %{
-        last_hour: count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, hours: -1)),
-        last_day: count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -1)),
-        last_month: count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -30))
-      },
+        last_hour:
+          count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, hours: -1)),
+        last_day:
+          count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -1)),
+        last_month:
+          count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -30))
+      }
     }
   end
 
@@ -263,11 +265,13 @@ defmodule Air.Service.AuditLog do
   defp count_for_event_type(event_types, time) do
     count =
       Repo.one(
-        from a in AuditLog,
-        where: a.inserted_at > ^time,
-        where: a.event in ^event_types,
-        select: count(a.id)
+        from(a in AuditLog,
+          where: a.inserted_at > ^time,
+          where: a.event in ^event_types,
+          select: count(a.id)
+        )
       )
+
     %{
       count: count,
       start_time: time,
