@@ -9,7 +9,7 @@
       <%= link "Overview", to: admin_system_status_path(@conn, :index), class: "nav-link" %>
     </li>
     <li class="nav-item" role="presentation">
-      <%= link "Warnings", to: admin_warnings_path(@conn, :index), class: "nav-link active" %>
+      <%= link "Warnings", to: admin_system_status_path(@conn, :warnings), class: "nav-link active" %>
     </li>
   </ul>
 </header>

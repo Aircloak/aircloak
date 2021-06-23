@@ -22,9 +22,7 @@
       <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-light border-right collapse navbar-collapse align-items-start" id="sidebarCollapse">
         <div class="container-fluid d-block">
             <ul class="navbar-nav">
-              <%= warning_sidebar_link(@conn) %>
-
-              <%= sidebar_link(@conn, "System Status", "chart-line", admin_system_status_path(@conn, :index)) %>
+              <%= system_status_sidebar_link(@conn) %>
               <%= if audit_log_enabled?() do %>
                 <%= sidebar_link(@conn, "Audit log", "stream", admin_audit_log_index_path(@conn, :index)) %>
               <% end %>

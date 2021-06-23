@@ -69,7 +69,7 @@ defmodule AirWeb.ViewHelpers do
 
     if admin?(conn) do
       if length(problems) > 0 do
-        path = AirWeb.Router.Helpers.admin_warnings_path(conn, :index)
+        path = AirWeb.Router.Helpers.admin_system_status_path(conn, :warnings)
         navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
         navbar_link(conn, admin_title(length(problems), navbar_class), path)
       else
@@ -80,18 +80,27 @@ defmodule AirWeb.ViewHelpers do
     end
   end
 
-  @doc "Conditionally creates a sidebar link if there are warnings"
-  @spec warning_sidebar_link(Plug.Conn.t()) :: {:safe, [any]}
-  def warning_sidebar_link(conn) do
+  @doc "Creates a system status side bar link conditionally with a warning indicator"
+  @spec system_status_sidebar_link(Plug.Conn.t()) :: {:safe, [any]}
+  def system_status_sidebar_link(conn) do
     problems = Warnings.problems()
+    num_problems = Enum.count(problems)
+    {link_content, action} =
+      if num_problems > 0 do
+        severity_class = problems |> Warnings.highest_severity_class() |> severity_class()
+        {
+          [
+            "System Status ",
+            content_tag(:span, [class: "badge badge-" <> severity_class], do: num_problems)
+          ],
+          :warnings
+        }
+      else
+        {"System Status", :index}
+      end
 
-    if length(problems) > 0 and admin?(conn) do
-      path = AirWeb.Router.Helpers.admin_warnings_path(conn, :index)
-      navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
-      sidebar_link(conn, warnings_title(length(problems), navbar_class), "exclamation-triangle", path)
-    else
-      {:safe, []}
-    end
+    path = AirWeb.Router.Helpers.admin_system_status_path(conn, action)
+    sidebar_link(conn, link_content, "chart-line", path)
   end
 
   @doc "Warnings title"
@@ -159,12 +168,10 @@ defmodule AirWeb.ViewHelpers do
     |> String.trim()
   end
 
-  defp active_class(path, "/admin/system_status") when path in ["/admin", "/admin/"],
-    do: "active"
-
-  defp active_class("/admin/queries/failed" <> _, "/admin/system_status"), do: nil
-  defp active_class("/admin/queries/performance" <> _, "/admin/system_status"), do: nil
-  defp active_class("/admin/queries/" <> _, "/admin/system_status"), do: "active"
+  # Note: the parameters are active_class(<Path of page being rendered>, <Path being linked to>)
+  defp active_class("/admin/system_status" <> _, "/admin/system_status" <> _), do: "active"
+  defp active_class("/admin/queries" <> _, "/admin/queries" <> _), do: "active"
+  defp active_class("/admin", "/admin/system_status" <> _), do: "active"
   defp active_class("/settings/" <> _, "/settings"), do: nil
 
   defp active_class(request_path, link_path) do

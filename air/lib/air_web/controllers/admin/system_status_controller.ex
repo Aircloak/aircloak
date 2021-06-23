@@ -6,7 +6,7 @@ defmodule AirWeb.Admin.SystemStatusController do
   use Air.Web, :admin_controller
 
   alias Plug.CSRFProtection
-  alias Air.Service.{AuditLog, Cloak.Stats, Query, User}
+  alias Air.Service.{AuditLog, Cloak.Stats, Query, User, Warnings}
 
   # -------------------------------------------------------------------
   # Actions
@@ -27,5 +27,19 @@ defmodule AirWeb.Admin.SystemStatusController do
       },
       token_stats: User.token_stats()
     )
+  end
+
+  def warnings(conn, _params), do: render(conn, "warnings.html", problems: Air.Service.Warnings.problems())
+
+  @doc """
+  Redirects to the warnings index if there are any, otherwise
+  to the activity monitor, which is the default admin page.
+  """
+  def warnings_if_any(conn, _params) do
+    if length(Warnings.problems()) > 0 do
+      redirect(conn, to: admin_system_status_path(conn, :warnings))
+    else
+      redirect(conn, to: admin_system_status_path(conn, :index))
+    end
   end
 end
