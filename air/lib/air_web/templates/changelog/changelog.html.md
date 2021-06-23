@@ -9,9 +9,19 @@ It is called Aircloak Insights Evergreen.
 
 ### Bugfixes
 
-- The audit log and the query performance page would fail on installations configured to use long polling rather
-  than websockets.
+- The audit log and the query performance page would not load correctly on installations configured to use long polling rather
+  than web sockets.
 - Show the "Not Found" page on invalid paths.
+
+### New features
+
+- The system status page now shows statistics on failed and successful login attempts, currently active user sessions,
+  as well as historic query execution statistics.
+
+### Changes
+
+- The list of actively running queries has been moved from the activity monitor to the queries section of the admin interface.
+- The activity monitor page has been renamed to system status and now incorporates the warnings page.
 
 ## Version 21.1.1
 
