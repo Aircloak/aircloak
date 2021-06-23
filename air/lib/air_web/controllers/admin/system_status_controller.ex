@@ -25,7 +25,8 @@ defmodule AirWeb.Admin.SystemStatusController do
         counts: AuditLog.query_stats(),
         users: Query.most_active_users()
       },
-      token_stats: User.token_stats()
+      token_stats: User.token_stats(),
+      problems: Warnings.problems()
     )
   end
 

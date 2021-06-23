@@ -70,8 +70,7 @@ defmodule AirWeb.ViewHelpers do
     if admin?(conn) do
       if length(problems) > 0 do
         path = AirWeb.Router.Helpers.admin_system_status_path(conn, :warnings)
-        navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
-        navbar_link(conn, admin_title(length(problems), navbar_class), path)
+        navbar_link(conn, admin_title(problems), path)
       else
         navbar_link(conn, "Admin", "/admin")
       end
@@ -80,18 +79,25 @@ defmodule AirWeb.ViewHelpers do
     end
   end
 
+  @doc "Returns a warning severity badge for a set of problems"
+  @spec warning_badge([Warnings.problem()]) :: {:safe, [any]}
+  def warning_badge(problems) do
+    num_problems = Enum.count(problems)
+    severity_class = problems |> Warnings.highest_severity_class() |> severity_class()
+    content_tag(:span, [class: "badge badge-" <> severity_class], do: num_problems)
+  end
+
   @doc "Creates a system status side bar link conditionally with a warning indicator"
   @spec system_status_sidebar_link(Plug.Conn.t()) :: {:safe, [any]}
   def system_status_sidebar_link(conn) do
     problems = Warnings.problems()
-    num_problems = Enum.count(problems)
+
     {link_content, action} =
-      if num_problems > 0 do
-        severity_class = problems |> Warnings.highest_severity_class() |> severity_class()
+      if Enum.count(problems) > 0 do
         {
           [
             "System Status ",
-            content_tag(:span, [class: "badge badge-" <> severity_class], do: num_problems)
+            warning_badge(problems)
           ],
           :warnings
         }
@@ -104,20 +110,11 @@ defmodule AirWeb.ViewHelpers do
   end
 
   @doc "Warnings title"
-  @spec admin_title(non_neg_integer, String.t()) :: [any]
-  def admin_title(num_problems, severity_class),
+  @spec admin_title([Warning.problems()]) :: [any]
+  def admin_title(problems),
     do: [
       "Admin ",
-      content_tag(:span, [class: "badge badge-" <> severity_class], do: num_problems)
-    ]
-
-  @doc "Warnings title"
-  @spec warnings_title(non_neg_integer, String.t()) :: [any]
-  def warnings_title(num_problems, severity_class),
-    do: [
-      Inflex.inflect("Warning", num_problems),
-      " ",
-      content_tag(:span, [class: "badge badge-" <> severity_class], do: num_problems)
+      warning_badge(problems)
     ]
 
   @doc """

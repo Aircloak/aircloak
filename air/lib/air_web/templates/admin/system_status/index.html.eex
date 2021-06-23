@@ -9,7 +9,9 @@
       <%= link "Overview", to: admin_system_status_path(@conn, :index), class: "nav-link active" %>
     </li>
     <li class="nav-item" role="presentation">
-      <%= link "Warnings", to: admin_system_status_path(@conn, :warnings), class: "nav-link" %>
+      <a href="<%= admin_system_status_path(@conn, :warnings) %>" class="nav-link">
+        Warnings <%= warning_badge(@problems) %>
+      </a>
     </li>
   </ul>
 </header>
