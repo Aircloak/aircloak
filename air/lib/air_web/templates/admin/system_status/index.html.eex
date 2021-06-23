@@ -1,0 +1,81 @@
+<header class="page-header">
+  <ol class="bg-white breadcrumb">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+  <h1>System Status</h1>
+
+  <ul class="nav nav-tabs nav-overflow header-tabs">
+    <li class="nav-item" role="presentation">
+      <%= link "Overview", to: admin_system_status_path(@conn, :index), class: "nav-link active" %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a href="<%= admin_system_status_path(@conn, :warnings) %>" class="nav-link">
+        Warnings <%= warning_badge(@problems) %>
+      </a>
+    </li>
+  </ul>
+</header>
+
+<div class="row">
+  <div class="col-sm-12 col-xl-6">
+    <%= render("_login_events.html", login_events: @login_events) %>
+  </div>
+
+  <div class="col-sm-12 col-xl-6 mt-5 mt-xl-0">
+    <%= render("_query_stats.html", query_stats: @query_stats) %>
+  </div>
+</div>
+
+<div class="mt-5 row">
+  <div class="col-sm-12 col-xl-4">
+    <h2>Active sessions</h2>
+    <div class="card">
+      <ul class="list-group list-group-flush">
+        <%= for token_stat <- @token_stats do %>
+        <li class="list-group-item d-flex">
+          <%= if token_stat.token_count > 1 do %>
+            <div class="flex-grow-1 mr-2">
+              <%= token_stat.user.name %> has <%= token_stat.token_count %> sessions.
+              The most recent session was created <%= Air.Utils.DateTime.time_ago(token_stat.most_recent) %>.
+            </div>
+
+            <%= link "Sign out all sessions", to: admin_user_user_path(@conn, :delete_sessions, token_stat.user),
+              class: "align-self-start flex-shrink-0 btn btn-warning btn-sm", method: :delete,
+              "data-confirm": "Sign out the user #{token_stat.user.name} from all devices?" %>
+          <% else %>
+            <div class="flex-grow-1 mr-2">
+              <%= token_stat.user.name %> has 1 session. It was created
+              <%= Air.Utils.DateTime.time_ago(token_stat.most_recent) %>.
+            </div>
+
+            <%= link "Sign out session", to: admin_user_user_path(@conn, :delete_sessions, token_stat.user),
+              class: "align-self-start flex-shrink-0 btn btn-warning btn-sm", method: :delete,
+              "data-confirm": "Sign out the user #{token_stat.user.name} from all devices?" %>
+          <% end %>
+        </li>
+        <% end %>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-sm-12 col-xl-8 mt-5 mt-xl-0">
+    <div id="cloaks-status-view" />
+  </div>
+</div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = {
+        CSRFToken: "<%= @csrf_token %>",
+        socketToken: "<%= @socket_token %>",
+        browserSocketTransport: "<%= Air.browser_socket_transport() %>",
+        userId: "<%= @current_user.id %>",
+        cloakStats: <%= to_json(@cloak_stats) %>
+      };
+
+      App.liveView();
+      App.cloaksStatusView(props, document.getElementById("cloaks-status-view"));
+    }
+  };
+</script>

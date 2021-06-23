@@ -22,24 +22,22 @@
       <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light bg-light border-right collapse navbar-collapse align-items-start" id="sidebarCollapse">
         <div class="container-fluid d-block">
             <ul class="navbar-nav">
-              <%= warning_sidebar_link(@conn) %>
-
-              <%= sidebar_link(@conn, "Activity monitor", "chart-line", admin_activity_monitor_path(@conn, :index)) %>
+              <%= system_status_sidebar_link(@conn) %>
               <%= if audit_log_enabled?() do %>
                 <%= sidebar_link(@conn, "Audit log", "stream", admin_audit_log_index_path(@conn, :index)) %>
               <% end %>
               <%= sidebar_link(@conn, "Cloaks", "user-secret", admin_cloaks_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Data sources", "database", admin_data_source_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Analysis", "signal", admin_analysis_path(@conn, :index)) %>
-              <%= sidebar_link(@conn, "Queries", "terminal", admin_query_performance_index_path(@conn, :index)) %>
+              <%= sidebar_link(@conn, "Queries", "terminal", admin_query_path(@conn, :active)) %>
             </ul>
-            <hr class="navbar-divider my-3 w-100" />
+            <hr class="my-3 navbar-divider w-100" />
             <ul class="navbar-nav">
               <%= sidebar_link(@conn, "Users", "user", admin_user_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Groups", "user-friends", admin_group_path(@conn, :index)) %>
               <%= sidebar_link(@conn, "Diffix Explorer", "compass", admin_explorer_path(@conn, :index)) %>
             </ul>
-            <hr class="navbar-divider my-3 w-100" />
+            <hr class="my-3 navbar-divider w-100" />
             <ul class="navbar-nav">
               <%= sidebar_link(@conn, "Settings", "cogs", admin_settings_path(@conn, :show)) %>
               <%= sidebar_link(@conn, "Privacy policy", "user-shield", admin_privacy_policy_path(@conn, :index)) %>
@@ -59,7 +57,7 @@
         </div>
       </main>
     </div> <!-- /container-fluid -->
-    <div class="admin-footer mt-auto">
+    <div class="mt-auto admin-footer">
       <%= render AirWeb.SharedView, "footer.html", conn: @conn %>
     </div>
     <script src="<%= static_path(@conn, "/frontend/app.js") %>"></script>

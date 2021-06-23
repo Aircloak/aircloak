@@ -1,0 +1,43 @@
+<h2>Query statistics</h2>
+
+<p>
+	For all query related events, please visit the
+	<a href="/admin/audit_log?events[]=Cancelled+query&events[]=Deleted+query&events[]=Executed+query">audit log</a>.
+</p>
+
+<div class="row">
+	<div class="col">
+		<%= render("_event_card.html", title: "Query executions",
+			hour: @query_stats[:counts][:last_hour],
+			day: @query_stats[:counts][:last_day],
+			month: @query_stats[:counts][:last_month])
+		%>
+	</div>
+
+	<div class="col">
+		<div class="card">
+			<div class="card-header">
+				Most active users
+			</div>
+			<table class="table">
+				<tbody>
+					<tr>
+						<td>Last hour</td>
+						<td><%= render("_activity_stats.html", stats: @query_stats[:users][:last_hour]) %></td>
+					</tr>
+
+					<tr>
+						<td>Last day</td>
+						<td><%= render("_activity_stats.html", stats: @query_stats[:users][:last_day]) %></td>
+					</tr>
+
+					<tr>
+						<td>Last 30 days</td>
+						<td><%= render("_activity_stats.html", stats: @query_stats[:users][:last_month]) %></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+	</div>
+</div>

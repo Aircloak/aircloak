@@ -1,15 +1,18 @@
 <div class="container-with-sidebar-narrow">
   <header class="page-header">
-    <ol class="breadcrumb bg-white">
+    <ol class="bg-white breadcrumb">
       <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
     </ol>
-    <button type="button" class="btn btn-primary d-block d-lg-none float-right" data-toggle="collapse"
+    <button type="button" class="float-right btn btn-primary d-block d-lg-none" data-toggle="collapse"
         data-target="#sidebar" aria-expanded="false">
       <i class="fas fa-list"></i> Filters
     </button>
     <h1>Queries</h1>
 
     <ul class="nav nav-tabs nav-overflow header-tabs">
+      <li class="nav-item" role="presentation">
+        <%= link "Active", to: admin_query_path(@socket, :active), class: "nav-link" %>
+      </li>
       <li class="nav-item" role="presentation">
         <%= link "Performance", to: admin_query_performance_index_path(@socket, :index), class: "nav-link active" %>
       </li>
@@ -40,7 +43,7 @@
       <div class="tab-pane fade <%= if(@showing_interesting_tab, do: "", else: "show active")%> py-3" id="slowest" role="tabpanel" aria-labelledby="slowest-tab">
 
         <%= for {query, index} <- Enum.with_index(@top_10_queries) do %>
-          <div class="card my-3">
+          <div class="my-3 card">
             <div class="card-body">
               <h5 class="card-title">#<%= index + 1 %></h5>
               <%= render_query_details(Map.merge(query, %{
@@ -53,7 +56,7 @@
       </div>
       <div class="tab-pane fade <%= if(@showing_interesting_tab, do: "show active", else: "")%> py-3" id="representative" role="tabpanel" aria-labelledby="representative-tab">
          <%= if @interesting_queries.sufficient_data do %>
-          <div class="card my-3">
+          <div class="my-3 card">
             <div class="card-body">
               <h5 class="card-title">99th percentile query</h5>
               <%= render_query_details(Map.merge(@interesting_queries.percentile_99, %{
@@ -63,7 +66,7 @@
             </div>
           </div>
 
-          <div class="card my-3">
+          <div class="my-3 card">
             <div class="card-body">
               <h5 class="card-title">95th percentile query</h5>
               <%= render_query_details(Map.merge(@interesting_queries.percentile_95, %{
@@ -73,7 +76,7 @@
             </div>
           </div>
 
-          <div class="card my-3">
+          <div class="my-3 card">
             <div class="card-body">
               <h5 class="card-title">Median query</h5>
               <%= render_query_details(Map.merge(@interesting_queries.median, %{
@@ -93,7 +96,7 @@
   </div>
 <% else %>
   <div class="d-flex align-items-center">
-    <img src="/frontend/images/report_analysis.svg" alt="" class="d-none d-xl-block float-left mr-5" width="300" />
+    <img src="/frontend/images/report_analysis.svg" alt="" class="float-left mr-5 d-none d-xl-block" width="300" />
     <div>
       <h2>No Queries Found</h2>
       <p>There are no queries that match the current set of filters. Try expanding the filters to a broader range.</p>

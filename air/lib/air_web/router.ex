@@ -160,13 +160,13 @@ defmodule AirWeb.Router do
     live("/queries/performance", QueryPerformanceLive.Index, :index, layout: {AirWeb.LayoutView, :admin})
 
     get("/queries/failed", QueryController, :failed)
+    get("/queries/active", QueryController, :active)
     get("/queries/:id", QueryController, :show)
     resources("/cloaks", CloaksController)
     post("/cloaks/:id/reinitialize", CloaksController, :reinitialize)
-    get("/activity_monitor", ActivityMonitorController, :index)
-    get("/", WarningsController, :warnings_if_any, as: :warnings_if_any)
-
-    get("/warnings", WarningsController, :index)
+    get("/", SystemStatusController, :index)
+    get("/system_status", SystemStatusController, :index)
+    get("/system_status/warnings", SystemStatusController, :warnings)
 
     resources("/license", LicenseController, only: [:edit, :update], singleton: true)
     resources("/privacy_policy", PrivacyPolicyController)

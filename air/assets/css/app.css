@@ -269,13 +269,13 @@ a.suggested-reading:hover {
   pointer-events: none;
 }
 
-@import "./activity-monitor.css";
+@import "./system_status.css";
 @import "./admin.css";
 @import "./audit_log.css";
 @import "./changelog.css";
 @import "./data_source.css";
 @import "./login.css";
-@import "./privacy-policy.css";
+@import "./privacy_policy.css";
 @import "./queries.css";
 @import "./selectable_info.css";
 @import "./sidebar.css";

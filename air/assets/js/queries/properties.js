@@ -4,7 +4,7 @@ import type { Element } from "React";
 import React from "react";
 
 import moment from "moment-timezone";
-import StateView from "../activity_monitor/state_view";
+import StateView from "../active_queries/state_view";
 
 type Props = {
   user: { name: string },

@@ -1,0 +1,37 @@
+<header class="px-0 page-header">
+  <ol class="bg-white breadcrumb">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+
+  <h1>Queries</h1>
+
+  <ul class="nav nav-tabs nav-overflow header-tabs">
+    <li class="nav-item" role="presentation">
+      <%= link "Active", to: admin_query_path(@conn, :active), class: "nav-link active" %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link "Performance", to: admin_query_performance_index_path(@conn, :index, @conn.query_params), class: "nav-link" %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link "Failed", to: admin_query_path(@conn, :failed), class: "nav-link" %>
+    </li>
+  </ul>
+</header>
+
+<div id="active-queries-view" />
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = {
+        CSRFToken: "<%= @csrf_token %>",
+        socketToken: "<%= @socket_token %>",
+        browserSocketTransport: "<%= Air.browser_socket_transport() %>",
+        userId: "<%= @current_user.id %>",
+        queries: <%= to_json(format_queries(@running_queries)) %>,
+      };
+
+      App.activeQueries(props, document.getElementById("active-queries-view"));
+    }
+  };
+</script>

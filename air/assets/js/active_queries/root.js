@@ -2,13 +2,10 @@
 
 import type { Element } from "React";
 import React from "react";
-import sortBy from "lodash/sortBy";
 import type { Channel } from "phoenix";
 
 import QueriesView from "./queries";
 import type { Query } from "./query";
-import CloaksStatsView from "./cloaks_stats";
-import type { CloakStat } from "./cloak_stats";
 
 import FrontendSocket from "../frontend_socket";
 import { isFinished } from "../queries/state";
@@ -23,36 +20,29 @@ type QueryEvent = {
 type Props = {
   frontendSocket: FrontendSocket,
   queries: Query[],
-  cloakStats: CloakStat[],
 };
 
 type State = {
   queries: Query[],
-  cloakStats: CloakStat[],
 };
 
-export default class ActivityMonitorView extends React.Component<Props, State> {
+export default class ActiveQueriesView extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    const { queries, cloakStats, frontendSocket } = this.props;
+    const { queries, frontendSocket } = this.props;
 
     // How long to display a query after it has completed
     this.queryRemovalTime = 10000; // 10 seconds
 
     this.state = {
       queries,
-      cloakStats,
     };
 
     this.handleQueryEvent = this.handleQueryEvent.bind(this);
     this.handleRemoveQuery = this.handleRemoveQuery.bind(this);
-    this.handleCloakStatsUpdate = this.handleCloakStatsUpdate.bind(this);
 
     this.channel = frontendSocket.joinAllQueryEventsChannel({
       handleEvent: this.handleQueryEvent,
-    });
-    frontendSocket.joinCloakStatsChannel({
-      handleEvent: this.handleCloakStatsUpdate,
     });
   }
 
@@ -100,22 +90,11 @@ export default class ActivityMonitorView extends React.Component<Props, State> {
     }
   };
 
-  handleCloakStatsUpdate:
-    | any
-    | ((cloakStatsUpdate: {
-        cloakStats: Array<CloakStat>,
-        ...
-      }) => void) = (cloakStatsUpdate: { cloakStats: CloakStat[] }) => {
-    const cloakStats = sortBy(cloakStatsUpdate.cloakStats, "name");
-    this.setState({ cloakStats });
-  };
-
   render: () => Element<"div"> = () => {
-    const { cloakStats, queries } = this.state;
+    const { queries } = this.state;
     return (
       <div>
         <Disconnected channel={this.channel} />
-        <CloaksStatsView cloakStats={cloakStats} />
         <QueriesView queries={queries} />
       </div>
     );

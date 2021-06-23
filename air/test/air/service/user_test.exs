@@ -31,6 +31,13 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe "system user" do
+    test "can be loaded" do
+      system_user = User.system_user!()
+      assert not is_nil(system_user)
+    end
+  end
+
   describe "user operations" do
     test "required fields" do
       assert errors_on(&User.create/1, %{}) == [
@@ -224,12 +231,15 @@ defmodule Air.Service.UserTest do
     end
 
     test "the only admin can't be deleted",
-      do: assert(User.delete(TestRepoHelper.create_only_user_as_admin!()) == {:error, :forbidden_no_active_admin})
+      do: assert(User.delete(TestRepoHelper.create_only_admin_user!()) == {:error, :forbidden_no_active_admin})
+
+    test "cannot delete system users",
+      do: assert(User.delete(TestRepoHelper.create_only_admin_user!()) == {:error, :forbidden_no_active_admin})
 
     test "the only admin can't be updated to be a normal user",
       do:
         assert(
-          User.update(TestRepoHelper.create_only_user_as_admin!(), %{groups: []}) ==
+          User.update(TestRepoHelper.create_only_admin_user!(), %{groups: []}) ==
             {:error, :forbidden_no_active_admin}
         )
 
@@ -557,7 +567,7 @@ defmodule Air.Service.UserTest do
     end
 
     test "can't disable the last admin user" do
-      user = TestRepoHelper.create_only_user_as_admin!()
+      user = TestRepoHelper.create_only_admin_user!()
       assert {:error, :forbidden_no_active_admin} = User.disable(user)
     end
   end

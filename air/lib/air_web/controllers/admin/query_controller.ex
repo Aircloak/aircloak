@@ -11,6 +11,16 @@ defmodule AirWeb.Admin.QueryController do
   # Actions
   # -------------------------------------------------------------------
 
+  def active(conn, _params) do
+    render(
+      conn,
+      "active.html",
+      csrf_token: CSRFProtection.get_csrf_token(),
+      socket_token: AirWeb.Plug.Session.current_token(conn),
+      running_queries: Query.not_finished()
+    )
+  end
+
   def show(conn, %{"id" => query_id}) do
     case Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->

@@ -113,6 +113,21 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Loads and returns the system user, automatically creating it should it have been deleted."
+  @spec system_user!() :: User.t()
+  def system_user!() do
+    login = "system_user"
+
+    case get_by_login(login) do
+      {:ok, user} ->
+        user
+
+      {:error, :not_found} ->
+        create!(%{name: "System user", login: login, system: true})
+        system_user!()
+    end
+  end
+
   @doc "Loads the user with the given id if they are enabled."
   @spec load_enabled(pos_integer | binary) :: {:ok, User.t()} | {:error, :not_found}
   def load_enabled(user_id) do
@@ -280,7 +295,7 @@ defmodule Air.Service.User do
 
   @doc """
   Deletes all disabled users in the background. Calls `start_callback` and returns `:ok` immediately.
-  Calls `success_callback` if the deletions succeed, and conversely the `failure_callback` in case it does not.
+  Calls `success_callback` if the deletions succeed, and conversely the `failure_callback` in case they do not.
   """
   @spec delete_disabled_async((() -> any), (() -> any), (any -> any)) :: :ok
   def delete_disabled_async(start_callback, success_callback, failure_callback) do
@@ -306,7 +321,7 @@ defmodule Air.Service.User do
   finished.
   """
   @spec delete_async(User.t(), (() -> any), (() -> any), (any -> any)) ::
-          :ok | {:error, :forbidden_no_active_admin | :invalid_ldap_delete}
+          :ok | {:error, :forbidden_no_active_admin | :invalid_ldap_delete | :cannot_delete_system_user}
   def delete_async(%User{source: :ldap, enabled: true}, _, _, _), do: {:error, :invalid_ldap_delete}
 
   def delete_async(user = %User{source: :ldap, enabled: false}, start_callback, success_callback, failure_callback) do
@@ -333,7 +348,8 @@ defmodule Air.Service.User do
   end
 
   @doc "Deletes the given user."
-  @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin | :invalid_ldap_delete}
+  @spec delete(User.t()) ::
+          {:ok, User.t()} | {:error, :forbidden_no_active_admin | :invalid_ldap_delete | :cannot_delete_system_user}
   def delete(%User{source: :ldap, enabled: true}), do: {:error, :invalid_ldap_delete}
   def delete(user), do: AdminGuard.commit_if_active_last_admin(fn -> do_delete(user) end)
 
@@ -472,6 +488,24 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Returns stats about tokens and their users for display purposes"
+  @spec token_stats() :: [%{user: User.t(), token_count: pos_integer, most_recent: DateTime.t()}]
+  def token_stats() do
+    Repo.all(
+      from(t in Air.Schemas.RevokableToken,
+        join: u in assoc(t, :user),
+        group_by: [u.id],
+        order_by: [desc: max(t.inserted_at)],
+        where: t.valid_until > fragment("now()"),
+        select: %{
+          user: u,
+          token_count: count(t.id),
+          most_recent: max(t.inserted_at)
+        }
+      )
+    )
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -500,11 +534,17 @@ defmodule Air.Service.User do
         {:ok, login.user}
 
       login ->
-        mask_timing(fn -> AuditLog.log(login.user, "Failed login", meta) end)
+        mask_timing(fn ->
+          AuditLog.log(login.user, "Failed login", meta)
+        end)
+
         {:error, :invalid_login_or_password}
 
       true ->
-        mask_timing(fn -> :noop end)
+        mask_timing(fn ->
+          AuditLog.log_as_system_user("Unknown user login attempt", %{login: normalized_login})
+        end)
+
         {:error, :invalid_login_or_password}
     end
   end
@@ -711,6 +751,8 @@ defmodule Air.Service.User do
     do: {:error, update_in(changeset, [Access.key(:errors)], fn errors -> errors ++ login_errors end)}
 
   defp merge_login_errors(other), do: other
+
+  defp do_delete(%User{system: true}), do: {:error, :cannot_delete_system_user}
 
   defp do_delete(user) do
     Repo.transaction(fn ->

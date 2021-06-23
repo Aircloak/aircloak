@@ -62,53 +62,60 @@ defmodule AirWeb.ViewHelpers do
     {:safe, Jason.encode!(term)}
   end
 
-  @doc "Conditionally creates a navbar link if there are warnings"
-  @spec warning_navbar_link(Plug.Conn.t()) :: {:safe, [any]}
-  def warning_navbar_link(conn) do
-    problems = Warnings.problems()
-
+  @doc "Create a link to the admin section, conditionally with a badge showing the number of warnings and errors."
+  @spec admin_navbar_link(Plug.Conn.t()) :: {:safe, [any]}
+  def admin_navbar_link(conn) do
     if admin?(conn) do
-      if length(problems) > 0 do
-        path = AirWeb.Router.Helpers.admin_warnings_path(conn, :index)
-        navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
-        navbar_link(conn, admin_title(length(problems), navbar_class), path)
-      else
-        navbar_link(conn, "Admin", "/admin")
-      end
+      problems = Warnings.problems()
+
+      link_title =
+        if Enum.empty?(problems) do
+          "Admin"
+        else
+          [
+            "Admin ",
+            warning_badge(problems)
+          ]
+        end
+
+      navbar_link(conn, link_title, AirWeb.Router.Helpers.admin_system_status_path(conn, :index))
     else
       {:safe, []}
     end
   end
 
-  @doc "Conditionally creates a sidebar link if there are warnings"
-  @spec warning_sidebar_link(Plug.Conn.t()) :: {:safe, [any]}
-  def warning_sidebar_link(conn) do
+  @doc "Returns a warning severity badge for a set of problems"
+  @spec warning_badge([Warnings.problem()]) :: {:safe, [any]}
+  def warning_badge(problems) do
+    num_problems = Enum.count(problems)
+    severity_class = problems |> Warnings.highest_severity_class() |> severity_class()
+    content_tag(:span, [class: "badge badge-" <> severity_class], do: num_problems)
+  end
+
+  @doc "Creates a system status side bar link conditionally with a warning indicator"
+  @spec system_status_sidebar_link(Plug.Conn.t()) :: {:safe, [any]}
+  def system_status_sidebar_link(conn) do
     problems = Warnings.problems()
 
-    if length(problems) > 0 and admin?(conn) do
-      path = AirWeb.Router.Helpers.admin_warnings_path(conn, :index)
-      navbar_class = problems |> Warnings.highest_severity_class() |> severity_class()
-      sidebar_link(conn, warnings_title(length(problems), navbar_class), "exclamation-triangle", path)
-    else
-      {:safe, []}
-    end
+    link_content =
+      if Enum.count(problems) > 0 do
+        [
+          "System Status ",
+          warning_badge(problems)
+        ]
+      else
+        "System Status"
+      end
+
+    sidebar_link(conn, link_content, "chart-line", AirWeb.Router.Helpers.admin_system_status_path(conn, :index))
   end
 
   @doc "Warnings title"
-  @spec admin_title(non_neg_integer, String.t()) :: [any]
-  def admin_title(num_problems, severity_class),
+  @spec admin_title([Warning.problems()]) :: [any]
+  def admin_title(problems),
     do: [
       "Admin ",
-      content_tag(:span, [class: "badge badge-" <> severity_class], do: num_problems)
-    ]
-
-  @doc "Warnings title"
-  @spec warnings_title(non_neg_integer, String.t()) :: [any]
-  def warnings_title(num_problems, severity_class),
-    do: [
-      Inflex.inflect("Warning", num_problems),
-      " ",
-      content_tag(:span, [class: "badge badge-" <> severity_class], do: num_problems)
+      warning_badge(problems)
     ]
 
   @doc """
@@ -159,12 +166,10 @@ defmodule AirWeb.ViewHelpers do
     |> String.trim()
   end
 
-  defp active_class(path, "/admin/activity_monitor") when path in ["/admin", "/admin/"],
-    do: "active"
-
-  defp active_class("/admin/queries/failed" <> _, "/admin/activity_monitor"), do: nil
-  defp active_class("/admin/queries/performance" <> _, "/admin/activity_monitor"), do: nil
-  defp active_class("/admin/queries/" <> _, "/admin/activity_monitor"), do: "active"
+  # Note: the parameters are active_class(<Path of page being rendered>, <Path being linked to>)
+  defp active_class("/admin/system_status" <> _, "/admin/system_status" <> _), do: "active"
+  defp active_class("/admin/queries" <> _, "/admin/queries" <> _), do: "active"
+  defp active_class("/admin", "/admin/system_status" <> _), do: "active"
   defp active_class("/settings/" <> _, "/settings"), do: nil
 
   defp active_class(request_path, link_path) do

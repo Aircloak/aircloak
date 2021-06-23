@@ -55,11 +55,16 @@ defmodule Air.TestRepoHelper do
   end
 
   @doc "Creates an admin user, and deletes all other users."
-  @spec create_only_user_as_admin!() :: Air.Schemas.User.t()
-  def create_only_user_as_admin!() do
+  @spec create_only_admin_user!() :: Air.Schemas.User.t()
+  def create_only_admin_user!() do
     previous_users = User.all()
     admin = create_admin_user!()
-    Enum.each(previous_users, &User.delete!/1)
+
+    previous_users
+    |> Enum.filter(&Air.Schemas.User.admin?/1)
+    |> Enum.reject(& &1.system)
+    |> Enum.each(&User.delete!/1)
+
     admin
   end
 
