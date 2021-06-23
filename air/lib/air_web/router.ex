@@ -84,6 +84,7 @@ defmodule AirWeb.Router do
 
     resources("/queries", QueryController, only: [:create, :show, :delete])
     post("/queries/:id/cancel", QueryController, :cancel)
+    patch("/queries/:id/note", QueryController, :update_note)
     get("/queries/load_history/:data_source_name", QueryController, :load_history)
     get("/queries/:id/buckets", QueryController, :buckets)
     get("/queries/:id/debug_export", QueryController, :debug_export)

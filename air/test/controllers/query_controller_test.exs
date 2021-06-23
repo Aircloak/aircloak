@@ -134,6 +134,14 @@ defmodule AirWeb.QueryController.Test do
     end
   end
 
+  test "updating query note", context do
+    query = create_query!(context.user, %{data_source_id: context.data_source.id})
+    assert login(context.user) |> patch("/queries/#{query.id}/note", note: "my query note") |> response(200)
+
+    assert {:ok, updated_query} = get_query(query.id)
+    assert updated_query.note == "my query note"
+  end
+
   test "returns unauthorized when not authorized to query data source", context do
     query_data_params = %{
       query: %{statement: "Query code", data_source_id: context[:data_source].id}

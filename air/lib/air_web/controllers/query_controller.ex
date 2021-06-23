@@ -13,7 +13,16 @@ defmodule AirWeb.QueryController do
 
   def permissions do
     %{
-      user: [:cancel, :delete, :create, :show, :load_history, :buckets, :debug_export],
+      user: [
+        :buckets,
+        :cancel,
+        :create,
+        :debug_export,
+        :delete,
+        :load_history,
+        :show,
+        :update_note
+      ],
       admin: :all,
       anonymous: [:permalink_show, :permalink_buckets]
     }
@@ -50,7 +59,10 @@ defmodule AirWeb.QueryController do
           conn,
           Enum.map(
             queries,
-            &AirWeb.Query.for_display(&1, authenticated?: true, buckets: Air.Service.Query.buckets(&1, 0))
+            &AirWeb.Query.for_display(&1,
+              authenticated?: true,
+              buckets: Air.Service.Query.buckets(&1, 0)
+            )
           )
         )
 
@@ -149,6 +161,19 @@ defmodule AirWeb.QueryController do
 
       _ ->
         send_resp(conn, Status.code(:internal_server_error), "Failed to delete the query")
+    end
+  end
+
+  def update_note(conn, %{"id" => query_id, "note" => note}) do
+    case Air.Service.Query.update_note_as_user(conn.assigns.current_user, query_id, note) do
+      :ok ->
+        json(conn, %{success: true})
+
+      {:error, reason} when reason in [:not_found, :invalid_id] ->
+        send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
+
+      _ ->
+        send_resp(conn, Status.code(:internal_server_error), "Failed to update the query")
     end
   end
 

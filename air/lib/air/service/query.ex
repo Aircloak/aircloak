@@ -147,6 +147,25 @@ defmodule Air.Service.Query do
     end
   end
 
+  @doc "Updates the note of a user's query."
+  @spec update_note_as_user(User.t(), query_id, String.t() | nil) ::
+          :ok | {:error, :not_found | :invalid_id | :database_error}
+  def update_note_as_user(user, id, note) do
+    case get_as_user(user, id) do
+      {:ok, query} ->
+        query
+        |> Query.changeset(%{note: note})
+        |> Repo.update()
+        |> case do
+          {:ok, _} -> :ok
+          _ -> {:error, :database_error}
+        end
+
+      error ->
+        error
+    end
+  end
+
   @doc """
   Returns the query with the given id, without associations preloaded. In most cases `get_as_user` should be used
   instead as it enforces access rules. The client of this function is responsible for enforcing any such rules.
