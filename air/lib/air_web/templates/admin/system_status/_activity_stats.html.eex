@@ -5,7 +5,7 @@
 <%= for stat <- @stats do%>
 	<li class="small">
 		<a href="/admin/audit_log?users[]=<%= stat.user.id %>">
-			<%= stat.count %> queries: <%= stat.user.name %>
+			<%= stat.count %> <%= Inflex.inflect("query", stat.count) %>: <%= stat.user.name %>
 		</a>
 	</li>
 <% end %>

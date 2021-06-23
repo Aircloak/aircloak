@@ -22,13 +22,25 @@
       <ul class="list-group list-group-flush">
         <%= for token_stat <- @token_stats do %>
         <li class="list-group-item d-flex">
-          <div class="flex-grow-1 mr-2">
-            <%= token_stat.user.name %> has <%= token_stat.token_count %> sessions. The most recent session was created <%= Air.Utils.DateTime.time_ago(token_stat.most_recent) %>.
-          </div>
+          <%= if token_stat.token_count > 1 do %>
+            <div class="flex-grow-1 mr-2">
+              <%= token_stat.user.name %> has <%= token_stat.token_count %> sessions.
+              The most recent session was created <%= Air.Utils.DateTime.time_ago(token_stat.most_recent) %>.
+            </div>
 
-          <%= link "Sign out all sessions", to: admin_user_user_path(@conn, :delete_sessions, token_stat.user),
-            class: "align-self-start flex-shrink-0 btn btn-warning btn-sm", method: :delete,
-            "data-confirm": "Sign out the user #{token_stat.user.name} from all devices?" %>
+            <%= link "Sign out all sessions", to: admin_user_user_path(@conn, :delete_sessions, token_stat.user),
+              class: "align-self-start flex-shrink-0 btn btn-warning btn-sm", method: :delete,
+              "data-confirm": "Sign out the user #{token_stat.user.name} from all devices?" %>
+          <% else %>
+            <div class="flex-grow-1 mr-2">
+              <%= token_stat.user.name %> has 1 session. It was created
+              <%= Air.Utils.DateTime.time_ago(token_stat.most_recent) %>.
+            </div>
+
+            <%= link "Sign out session", to: admin_user_user_path(@conn, :delete_sessions, token_stat.user),
+              class: "align-self-start flex-shrink-0 btn btn-warning btn-sm", method: :delete,
+              "data-confirm": "Sign out the user #{token_stat.user.name} from all devices?" %>
+          <% end %>
         </li>
         <% end %>
       </ul>
