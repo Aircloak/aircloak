@@ -1,9 +1,17 @@
 <header class="page-header">
-  <ol class="breadcrumb bg-white">
+  <ol class="bg-white breadcrumb">
     <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
   </ol>
+  <h1>System Status</h1>
 
-  <h1>Warnings</h1>
+  <ul class="nav nav-tabs nav-overflow header-tabs">
+    <li class="nav-item" role="presentation">
+      <%= link "Overview", to: admin_system_status_path(@conn, :index), class: "nav-link" %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link "Warnings", to: admin_warnings_path(@conn, :index), class: "nav-link active" %>
+    </li>
+  </ul>
 </header>
 
 <%= if length(@problems) > 0 do %>
