@@ -11,6 +11,7 @@ It is called Aircloak Insights Evergreen.
 
 - The audit log and the query performance page would fail on installations configured to use long polling rather
   than websockets.
+- Show the "Not Found" page on invalid paths.
 
 ## Version 21.1.1
 

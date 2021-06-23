@@ -189,4 +189,10 @@ defmodule AirWeb.Router do
     post("/queries/:id/cancel", AirWeb.QueryController, :cancel)
     resources("/data_sources", AirWeb.API.DataSourceController)
   end
+
+  scope "/", AirWeb do
+    pipe_through([:browser, :browser_for_all])
+
+    get("/*any", NotFoundController, :index)
+  end
 end

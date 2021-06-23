@@ -40,7 +40,7 @@ defmodule AirWeb.Endpoint do
     at: "/",
     from: :air,
     gzip: false,
-    only: ~w(frontend docs)
+    only: ~w(frontend docs favicon.ico)
   )
 
   # Code reloading can be explicitly enabled under the
