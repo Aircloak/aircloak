@@ -23,7 +23,12 @@ import { HistoryLoader } from "./history_loader";
 import type { History } from "./history_loader";
 import Disconnected from "../disconnected";
 import { isFinished } from "./state";
-import { startQuery, loadHistory, deleteQueryResult } from "../request";
+import {
+  startQuery,
+  loadHistory,
+  deleteQueryResult,
+  setQueryNote,
+} from "../request";
 import activateTooltips from "../tooltips";
 
 type Props = {
@@ -260,6 +265,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     const newNote = prompt("Enter note for query", note || "");
     if (newNote === null) return;
 
+    setQueryNote(id, newNote, this.context.authentication);
     this.setState((state) => ({
       sessionResults: state.sessionResults.map((r: any) =>
         r.id !== id ? r : { ...r, note: newNote }

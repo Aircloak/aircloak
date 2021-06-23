@@ -21,11 +21,24 @@ export const cancel = (queryId: string, authentication: Authentication): any =>
 export const deleteQueryResult = (
   queryId: string,
   authentication: Authentication
-): Promise<Response> =>
-  fetch(`/queries/${queryId}`, {
+) => {
+  $.ajax(`/queries/${queryId}`, {
     method: "DELETE",
     headers: headers(authentication),
   });
+};
+
+export const setQueryNote = (
+  queryId: string,
+  note: string,
+  authentication: Authentication
+) => {
+  $.ajax(`/queries/${queryId}/note`, {
+    method: "PATCH",
+    headers: headers(authentication),
+    data: JSON.stringify({ note }),
+  });
+};
 
 export const startQuery = (
   queryData: string,
