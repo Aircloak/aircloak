@@ -3,24 +3,25 @@
     <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
   </ol>
   <h1>Analysis</h1>
-</header>
 
-<p>
-For information on how to read this table consult the <%=
-  link "Analysis status",
-    to: "/docs/#/ops/administration?id=analysis-status",
-    target: :_blank
-%> section of the user guide.
-</p>
+  <p>
+  For information on how to read this table consult the <%=
+    link "Analysis status",
+      to: "/docs/#/ops/administration?id=analysis-status",
+      target: :_blank
+  %> section of the user guide.
+  </p>
 
-<div>
-  <ul class="nav nav-tabs" role="tablist">
-    <li class="nav-item">
+  <ul class="nav nav-tabs nav-overflow header-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
       <a href="#data-source" aria-controls="data-source" role="tab" data-toggle="tab" class="active nav-link">By data source</a>
     </li>
-    <li class="nav-item"><a class="nav-link" href="#table" aria-controls="home" role="tab" data-toggle="tab">By table</a></li>
-    <li class="nav-item"><a class="nav-link" href="#host" aria-controls="host" role="tab" data-toggle="tab">By host</a></li>
+    <li class="nav-item" role="presentation"><a class="nav-link" href="#table" aria-controls="home" role="tab" data-toggle="tab">By table</a></li>
+    <li class="nav-item" role="presentation"><a class="nav-link" href="#host" aria-controls="host" role="tab" data-toggle="tab">By host</a></li>
   </ul>
+</header>
+
+<div>
 
   <div class="tab-content">
     <div id="data-source" class="tab-pane active" role="tabpanel">
