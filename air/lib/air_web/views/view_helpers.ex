@@ -62,18 +62,23 @@ defmodule AirWeb.ViewHelpers do
     {:safe, Jason.encode!(term)}
   end
 
-  @doc "Conditionally creates a navbar link if there are warnings"
-  @spec warning_navbar_link(Plug.Conn.t()) :: {:safe, [any]}
-  def warning_navbar_link(conn) do
-    problems = Warnings.problems()
-
+  @doc "Create a link to the admin section, conditionally with a badge showing the number of warnings and errors."
+  @spec admin_navbar_link(Plug.Conn.t()) :: {:safe, [any]}
+  def admin_navbar_link(conn) do
     if admin?(conn) do
-      if length(problems) > 0 do
-        path = AirWeb.Router.Helpers.admin_system_status_path(conn, :warnings)
-        navbar_link(conn, admin_title(problems), path)
-      else
-        navbar_link(conn, "Admin", "/admin")
-      end
+      problems = Warnings.problems()
+
+      link_title =
+        if Enum.empty?(problems) do
+          "Admin"
+        else
+          [
+            "Admin ",
+            warning_badge(problems)
+          ]
+        end
+
+      navbar_link(conn, link_title, AirWeb.Router.Helpers.admin_system_status_path(conn, :index))
     else
       {:safe, []}
     end
@@ -92,21 +97,17 @@ defmodule AirWeb.ViewHelpers do
   def system_status_sidebar_link(conn) do
     problems = Warnings.problems()
 
-    {link_content, action} =
+    link_content =
       if Enum.count(problems) > 0 do
-        {
-          [
-            "System Status ",
-            warning_badge(problems)
-          ],
-          :warnings
-        }
+        [
+          "System Status ",
+          warning_badge(problems)
+        ]
       else
-        {"System Status", :index}
+        "System Status"
       end
 
-    path = AirWeb.Router.Helpers.admin_system_status_path(conn, action)
-    sidebar_link(conn, link_content, "chart-line", path)
+    sidebar_link(conn, link_content, "chart-line", AirWeb.Router.Helpers.admin_system_status_path(conn, :index))
   end
 
   @doc "Warnings title"

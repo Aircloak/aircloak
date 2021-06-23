@@ -31,16 +31,4 @@ defmodule AirWeb.Admin.SystemStatusController do
   end
 
   def warnings(conn, _params), do: render(conn, "warnings.html", problems: Air.Service.Warnings.problems())
-
-  @doc """
-  Redirects to the warnings index if there are any, otherwise
-  to the activity monitor, which is the default admin page.
-  """
-  def warnings_if_any(conn, _params) do
-    if length(Warnings.problems()) > 0 do
-      redirect(conn, to: admin_system_status_path(conn, :warnings))
-    else
-      redirect(conn, to: admin_system_status_path(conn, :index))
-    end
-  end
 end

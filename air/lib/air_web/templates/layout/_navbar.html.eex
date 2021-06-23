@@ -11,7 +11,7 @@
         </button>
       </li>
     <% end %>
-    <%= warning_navbar_link(@conn) %>
+    <%= admin_navbar_link(@conn) %>
 
     <%= if logged_in?(@conn) do %>
       <%= navbar_link(@conn, "User Guide", "/docs/", rel: "help") %>

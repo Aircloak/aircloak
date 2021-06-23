@@ -164,9 +164,9 @@ defmodule AirWeb.Router do
     get("/queries/:id", QueryController, :show)
     resources("/cloaks", CloaksController)
     post("/cloaks/:id/reinitialize", CloaksController, :reinitialize)
+    get("/", SystemStatusController, :index)
     get("/system_status", SystemStatusController, :index)
     get("/system_status/warnings", SystemStatusController, :warnings)
-    get("/", SystemStatusController, :warnings_if_any, as: :warnings_if_any)
 
     resources("/license", LicenseController, only: [:edit, :update], singleton: true)
     resources("/privacy_policy", PrivacyPolicyController)
