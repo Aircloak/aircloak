@@ -113,9 +113,20 @@ defmodule Air.Service.User do
     end
   end
 
-  @doc "Loads and returns the system user."
+  @doc "Loads and returns the system user, automatically creating it should it have been deleted."
   @spec system_user!() :: User.t()
-  def system_user!(), do: get_by_login("system_user") |> elem(1)
+  def system_user!() do
+    login = "system_user"
+
+    case get_by_login(login) do
+      {:ok, user} ->
+        user
+
+      {:error, :not_found} ->
+        create!(%{name: "System user", login: login, system: true})
+        system_user!()
+    end
+  end
 
   @doc "Loads the user with the given id if they are enabled."
   @spec load_enabled(pos_integer | binary) :: {:ok, User.t()} | {:error, :not_found}
