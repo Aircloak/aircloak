@@ -259,16 +259,14 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     }
   };
 
-  editNote: (result: Result) => void = (result: Result) => {
-    const { id, note } = result;
-
-    const newNote = prompt("Enter note for query", note || "");
-    if (newNote === null) return;
-
-    setQueryNote(id, newNote, this.context.authentication);
+  updateNote: (id: string, note: string) => void = (
+    id: string,
+    note: string
+  ) => {
+    setQueryNote(id, note, this.context.authentication);
     this.setState((state) => ({
       sessionResults: state.sessionResults.map((r: any) =>
-        r.id !== id ? r : { ...r, note: newNote }
+        r.id !== id ? r : { ...r, note }
       ),
     }));
   };
@@ -492,7 +490,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
           debugModeEnabled={debugModeEnabled}
           authentication={authentication}
           onDeleteClick={this.deleteResult}
-          onEditNoteClick={this.editNote}
+          updateNote={this.updateNote}
         />
 
         <HistoryLoader

@@ -8,6 +8,7 @@ import CodeViewer from "../code_viewer";
 import InfoView from "./info_view";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
+import NoteButton from "./note_button";
 import ResultTime from "./result_time";
 import QueryNote from "./query_note";
 
@@ -21,12 +22,12 @@ export default ({
   result,
   debugModeEnabled,
   onDeleteClick,
-  onEditNoteClick,
+  updateNote,
 }: {
   result: ErrorResult,
   debugModeEnabled: boolean,
   onDeleteClick?: (queryId: string) => void,
-  onEditNoteClick?: (result: ErrorResult) => void,
+  updateNote?: (id: string, note: string) => void,
 }): Element<"div"> => {
   return (
     <div className="card border-danger mb-3">
@@ -41,14 +42,11 @@ export default ({
             <i className="fas fa-times" aria-label="Delete"></i>
           </button>
         )}
-        {onEditNoteClick && (
-          <button
-            type="button"
-            className="btn btn-sm float-right"
-            onClick={() => onEditNoteClick(result)}
-          >
-            <i className="far fa-comment-alt" aria-label="Set note"></i>
-          </button>
+        {updateNote && (
+          <NoteButton
+            initialValue={result.note}
+            onChange={(newNote) => updateNote(result.id, newNote)}
+          />
         )}
         <CodeViewer statement={result.statement} />
       </div>

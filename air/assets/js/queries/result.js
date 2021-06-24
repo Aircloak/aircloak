@@ -18,6 +18,7 @@ import { formatNumber } from "../number_format";
 import { loadBuckets } from "../request";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
+import NoteButton from "./note_button";
 import ResultTime from "./result_time";
 import activateTooltips from "../tooltips";
 import loader from "../../static/images/loader.gif";
@@ -82,7 +83,7 @@ type Props = {
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
   onDeleteClick?: (queryId: string) => void,
-  onEditNoteClick?: (result: SuccessResult) => void,
+  updateNote?: (id: string, note: string) => void,
 };
 
 type State = {
@@ -525,7 +526,7 @@ export class ResultView extends React.Component<Props, State> {
   };
 
   render: () => Element<"div"> = () => {
-    const { result, onDeleteClick, onEditNoteClick } = this.props;
+    const { result, onDeleteClick, updateNote } = this.props;
     const { tableAligner } = this.state;
     return (
       <div className="card border-success mb-3">
@@ -540,14 +541,11 @@ export class ResultView extends React.Component<Props, State> {
               <i className="fas fa-times" aria-label="Delete"></i>
             </button>
           )}
-          {onEditNoteClick && (
-            <button
-              type="button"
-              className="btn btn-sm float-right"
-              onClick={() => onEditNoteClick(result)}
-            >
-              <i className="far fa-comment-alt" aria-label="Set note"></i>
-            </button>
+          {updateNote && (
+            <NoteButton
+              initialValue={result.note}
+              onChange={(newNote) => updateNote(result.id, newNote)}
+            />
           )}
           <CodeViewer statement={result.statement} />
         </div>
