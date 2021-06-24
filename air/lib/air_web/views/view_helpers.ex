@@ -167,9 +167,10 @@ defmodule AirWeb.ViewHelpers do
   end
 
   # Note: the parameters are active_class(<Path of page being rendered>, <Path being linked to>)
-  defp active_class("/admin/system_status" <> _, "/admin/system_status" <> _), do: "active"
+  defp active_class(link, link), do: "active"
+  defp active_class("/admin/system_status" <> _, "/admin"), do: "active"
+  defp active_class(_, "/admin"), do: nil
   defp active_class("/admin/queries" <> _, "/admin/queries" <> _), do: "active"
-  defp active_class("/admin", "/admin/system_status" <> _), do: "active"
   defp active_class("/settings/" <> _, "/settings"), do: nil
 
   defp active_class(request_path, link_path) do
