@@ -49,7 +49,7 @@
 
       <main>
         <div class="container-fluid">
-          <% unless @conn.assigns[:hide_flash_messages] do %>
+          <%= unless @conn.assigns[:hide_flash_messages] do %>
             <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
             <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
           <% end %>
