@@ -23,7 +23,7 @@
   <tbody>
   <%= if length(@data_sources) == 0 do %>
     <tr>
-      <td colspan=6>No data sources have been registered</td>
+      <td colspan="9">No data sources have been registered</td>
     </tr>
   <% end %>
   <%= for data_source <- @data_sources do %>

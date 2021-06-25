@@ -19,12 +19,12 @@ defmodule Air.Service.LDAP.PeriodicSync do
 
       {:error, :license_error} ->
         Logger.error(
-          "You have configured LDAP sync, but your license does not include support for the LDAP integration. " <>
+          "LDAP: You have configured LDAP sync, but your license does not include support for the LDAP integration. " <>
             "Contact support@aircloak.com if you want to upgrade your license or if you think this is a mistake."
         )
 
       {:error, error} ->
-        Logger.error("LDAP sync failed. Reason: #{inspect(error)}")
+        Logger.error("LDAP: Sync failed. Reason: #{inspect(error)}")
     end
 
     :ok

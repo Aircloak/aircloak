@@ -44,14 +44,23 @@ defmodule Air.Service.LDAP do
          {:ok, users} <- __MODULE__.Client.users(),
          {:ok, groups} <- __MODULE__.Client.groups() do
       groups = __MODULE__.Normalization.normalize_groups(users, groups)
+      Logger.info("LDAP: Fetched #{Enum.count(users)} users and #{Enum.count(groups)} groups from LDAP.")
       __MODULE__.Sync.sync(users, groups)
 
-      Logger.info("LDAP sync finished.")
+      Logger.info("LDAP: sync finished.")
 
       :ok
     else
       {:error, :ldap_not_configured} ->
-        Logger.info("LDAP not configured. Disabling LDAP users and removing LDAP groups if any exist.")
+        Logger.info("LDAP: Not configured. Disabling LDAP users and removing LDAP groups if any exist.")
+        __MODULE__.Sync.sync(_users = [], _groups = [])
+        :ok
+
+      {:error, :license_error} ->
+        Logger.warn(
+          "LDAP: LDAP sync configured but not licensed. Disabling LDAP users and removing LDAP groups if any exist."
+        )
+
         __MODULE__.Sync.sync(_users = [], _groups = [])
         :ok
 
@@ -62,8 +71,12 @@ defmodule Air.Service.LDAP do
 
   defp check_config() do
     case Aircloak.DeployConfig.fetch("ldap") do
-      {:ok, _} -> :ok
-      _ -> {:error, :ldap_not_configured}
+      {:ok, _} ->
+        Logger.debug("LDAP: the configuration was fetched successfully")
+        :ok
+
+      _ ->
+        {:error, :ldap_not_configured}
     end
   end
 

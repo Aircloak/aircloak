@@ -80,14 +80,14 @@ defmodule Air.Service.LDAP.Client do
 
       {:ok, {:referral, _referrals}} ->
         Logger.error(fn ->
-          "Unsupported LDAP referral search result. The search parameters were: #{inspect(options)}"
+          "LDAP: Unsupported LDAP referral search result. The search parameters were: #{inspect(options)}"
         end)
 
         {:error, :search_failed}
 
       {:error, reason} ->
         Logger.error(fn ->
-          "LDAP search failed with error: #{reason}. The search parameters were: #{inspect(options)}"
+          "LDAP: The search failed with error: #{reason}. The search parameters were: #{inspect(options)}"
         end)
 
         {:error, :search_failed}
