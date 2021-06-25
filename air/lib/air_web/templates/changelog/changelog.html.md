@@ -12,8 +12,8 @@ It is called Aircloak Insights Evergreen.
 - The audit log and the query performance page would not load correctly on installations configured to use long polling rather
   than web sockets.
 - Show the "Not Found" page on invalid paths.
-- A bug that prevented informational messages, such as the confirmation that an LDAP sync had been performed, would not be shown in
-  the admin interface.
+- A bug that caused info messages in the admin interface to be hidden, has been fixed.
+
 
 ### New features
 
