@@ -35,6 +35,7 @@ defmodule Air.Service.LDAP.Sync do
       nil ->
         Logger.info("LDAP: Creating Aircloak Insights group corresponding to LDAP group #{ldap_group.name}.")
         create_group(ldap_group, user_mappings)
+
       air_group ->
         Logger.debug(fn -> "LDAP: Updating Aircloak Insights group corresponding to LDAP group #{ldap_group.name}." end)
         update_group(air_group, ldap_group, user_mappings)
@@ -73,8 +74,11 @@ defmodule Air.Service.LDAP.Sync do
       |> where([q], not (q.ldap_dn in ^present_dns))
       |> Air.Repo.all()
 
-    unless Enum.empty?(missing_groups), do:
-      Logger.info("LDAP: Deleting Aircloak Insights groups no longer returned by LDAP: #{joined_names(missing_groups)}")
+    unless Enum.empty?(missing_groups),
+      do:
+        Logger.info(
+          "LDAP: Deleting Aircloak Insights groups no longer returned by LDAP: #{joined_names(missing_groups)}"
+        )
 
     missing_groups
     |> Enum.each(&Air.Service.Group.delete!(&1, ldap: true))
@@ -148,8 +152,8 @@ defmodule Air.Service.LDAP.Sync do
       |> where([q], not (q.ldap_dn in ^present_dns))
       |> Air.Repo.all()
 
-    unless Enum.empty?(missing_users), do:
-      Logger.info("LDAP: Aircloak Insights and LDAP hob no longer returned by LDAP: #{joined_names(missing_users)}")
+    unless Enum.empty?(missing_users),
+      do: Logger.info("LDAP: Aircloak Insights and LDAP hob no longer returned by LDAP: #{joined_names(missing_users)}")
 
     missing_users
     |> Enum.each(&Air.Service.User.disable(&1, ldap: true))
@@ -166,13 +170,14 @@ defmodule Air.Service.LDAP.Sync do
     :error
   end
 
-  defp joined_names(entities), do:
-    entities
-    |> Enum.map(fn entity ->
-      case entity do
-        %Air.Schemas.User{} = user -> Air.Service.User.main_login(user)
-        %Air.Schemas.Group{} = group -> group.name
-      end
-    end)
-    |> Aircloak.OxfordComma.join()
+  defp joined_names(entities),
+    do:
+      entities
+      |> Enum.map(fn entity ->
+        case entity do
+          %Air.Schemas.User{} = user -> Air.Service.User.main_login(user)
+          %Air.Schemas.Group{} = group -> group.name
+        end
+      end)
+      |> Aircloak.OxfordComma.join()
 end

@@ -57,7 +57,10 @@ defmodule Air.Service.LDAP do
         :ok
 
       {:error, :license_error} ->
-        Logger.warn("LDAP: LDAP sync configured but not licensed. Disabling LDAP users and removing LDAP groups if any exist.")
+        Logger.warn(
+          "LDAP: LDAP sync configured but not licensed. Disabling LDAP users and removing LDAP groups if any exist."
+        )
+
         __MODULE__.Sync.sync(_users = [], _groups = [])
         :ok
 
@@ -71,7 +74,9 @@ defmodule Air.Service.LDAP do
       {:ok, _} ->
         Logger.debug(fn -> "LDAP: the configuration was fetched successfully" end)
         :ok
-      _ -> {:error, :ldap_not_configured}
+
+      _ ->
+        {:error, :ldap_not_configured}
     end
   end
 
