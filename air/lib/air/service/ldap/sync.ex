@@ -32,8 +32,12 @@ defmodule Air.Service.LDAP.Sync do
 
   defp sync_group(ldap_group, user_mappings) do
     case Air.Repo.get_by(Air.Schemas.Group, ldap_dn: ldap_group.dn) do
-      nil -> create_group(ldap_group, user_mappings)
-      air_group -> update_group(air_group, ldap_group, user_mappings)
+      nil ->
+        Logger.info("LDAP: Creating Aircloak Insights group corresponding to LDAP group #{ldap_group.name}.")
+        create_group(ldap_group, user_mappings)
+      air_group ->
+        Logger.debug(fn -> "LDAP: Updating Aircloak Insights group corresponding to LDAP group #{ldap_group.name}." end)
+        update_group(air_group, ldap_group, user_mappings)
     end
   end
 
@@ -63,10 +67,16 @@ defmodule Air.Service.LDAP.Sync do
   defp delete_missing_groups(ldap_groups) do
     present_dns = Enum.map(ldap_groups, & &1.dn)
 
-    Air.Schemas.Group
-    |> where([q], q.source == ^:ldap)
-    |> where([q], not (q.ldap_dn in ^present_dns))
-    |> Air.Repo.all()
+    missing_groups =
+      Air.Schemas.Group
+      |> where([q], q.source == ^:ldap)
+      |> where([q], not (q.ldap_dn in ^present_dns))
+      |> Air.Repo.all()
+
+    unless Enum.empty?(missing_groups), do:
+      Logger.info("LDAP: Deleting Aircloak Insights groups no longer returned by LDAP: #{joined_names(missing_groups)}")
+
+    missing_groups
     |> Enum.each(&Air.Service.Group.delete!(&1, ldap: true))
   end
 
@@ -74,7 +84,7 @@ defmodule Air.Service.LDAP.Sync do
 
   defp check_group_error({:error, _}, ldap_group) do
     Logger.error(
-      "Failed to sync group `#{ldap_group.dn}` from LDAP." <>
+      "LDAP: Failed to sync group `#{ldap_group.dn}` from LDAP." <>
         " The most likely cause is a name conflict with another LDAP group."
     )
 
@@ -98,8 +108,10 @@ defmodule Air.Service.LDAP.Sync do
 
   defp sync_user(ldap_user) do
     if air_user = Air.Repo.get_by(Air.Schemas.User, ldap_dn: ldap_user.dn) |> Air.Repo.preload(:logins) do
+      Logger.debug(fn -> "LDAP: Updating Aircloak Insights user account for LDAP user #{ldap_user.login}." end)
       update_user(air_user, ldap_user)
     else
+      Logger.info("LDAP: Creating Aircloak Insights  user account for LDAP user #{ldap_user.login}.")
       create_user(ldap_user)
     end
   end
@@ -130,10 +142,16 @@ defmodule Air.Service.LDAP.Sync do
   defp disable_missing_users(ldap_users) do
     present_dns = Enum.map(ldap_users, & &1.dn)
 
-    Air.Schemas.User
-    |> where([q], q.source == ^:ldap)
-    |> where([q], not (q.ldap_dn in ^present_dns))
-    |> Air.Repo.all()
+    missing_users =
+      Air.Schemas.User
+      |> where([q], q.source == ^:ldap)
+      |> where([q], not (q.ldap_dn in ^present_dns))
+      |> Air.Repo.all()
+
+    unless Enum.empty?(missing_users), do:
+      Logger.info("LDAP: Aircloak Insights and LDAP hob no longer returned by LDAP: #{joined_names(missing_users)}")
+
+    missing_users
     |> Enum.each(&Air.Service.User.disable(&1, ldap: true))
   end
 
@@ -141,10 +159,20 @@ defmodule Air.Service.LDAP.Sync do
 
   defp check_user_error({:error, _}, ldap_user) do
     Logger.error(
-      "Failed to sync user `#{ldap_user.dn}` from LDAP." <>
+      "LDAP: Failed to sync user `#{ldap_user.dn}` from LDAP." <>
         " The most likely cause is a login conflict with another user."
     )
 
     :error
   end
+
+  defp joined_names(entities), do:
+    entities
+    |> Enum.map(fn entity ->
+      case entity do
+        %Air.Schemas.User{} = user -> Air.Service.User.main_login(user)
+        %Air.Schemas.Group{} = group -> group.name
+      end
+    end)
+    |> Aircloak.OxfordComma.join()
 end
