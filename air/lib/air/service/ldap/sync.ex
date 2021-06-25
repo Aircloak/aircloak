@@ -37,7 +37,7 @@ defmodule Air.Service.LDAP.Sync do
         create_group(ldap_group, user_mappings)
 
       air_group ->
-        Logger.debug(fn -> "LDAP: Updating Aircloak Insights group corresponding to LDAP group #{ldap_group.name}." end)
+        Logger.debug("LDAP: Updating Aircloak Insights group corresponding to LDAP group #{ldap_group.name}.")
         update_group(air_group, ldap_group, user_mappings)
     end
   end
@@ -112,7 +112,7 @@ defmodule Air.Service.LDAP.Sync do
 
   defp sync_user(ldap_user) do
     if air_user = Air.Repo.get_by(Air.Schemas.User, ldap_dn: ldap_user.dn) |> Air.Repo.preload(:logins) do
-      Logger.debug(fn -> "LDAP: Updating Aircloak Insights user account for LDAP user #{ldap_user.login}." end)
+      Logger.debug("LDAP: Updating Aircloak Insights user account for LDAP user #{ldap_user.login}.")
       update_user(air_user, ldap_user)
     else
       Logger.info("LDAP: Creating Aircloak Insights  user account for LDAP user #{ldap_user.login}.")

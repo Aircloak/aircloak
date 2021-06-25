@@ -72,7 +72,7 @@ defmodule Air.Service.LDAP do
   defp check_config() do
     case Aircloak.DeployConfig.fetch("ldap") do
       {:ok, _} ->
-        Logger.debug(fn -> "LDAP: the configuration was fetched successfully" end)
+        Logger.debug("LDAP: the configuration was fetched successfully")
         :ok
 
       _ ->
