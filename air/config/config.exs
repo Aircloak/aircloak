@@ -31,7 +31,7 @@ config :air, :https_port, 8443
 
 # Configures Elixir's Logger
 config :logger, :console,
-  format: "$date $time $metadata[$level] $message\n",
+  format: "$date $time $metadata[$level] $levelpad$message\n",
   metadata: [:request_id]
 
 # Configure phoenix generators
