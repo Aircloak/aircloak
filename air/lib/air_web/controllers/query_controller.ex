@@ -173,7 +173,7 @@ defmodule AirWeb.QueryController do
         send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
 
       _ ->
-        send_resp(conn, Status.code(:internal_server_error), "Failed to update the query")
+        send_resp(conn, Status.code(:internal_server_error), "Failed to update query note")
     end
   end
 

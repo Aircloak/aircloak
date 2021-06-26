@@ -43,38 +43,40 @@ export default ({ initialValue, onChange }: Props): Node => {
       </button>
 
       <Modal show={isOpen} onHide={handleClose} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Query note</Modal.Title>
-        </Modal.Header>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setIsOpen(false);
+            onChange(currentValue);
+          }}
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>Query note</Modal.Title>
+          </Modal.Header>
 
-        <Modal.Body>
-          <div className="form-group">
-            <div className="input-group">
-              <input
-                ref={inputRef}
-                className="form-control"
-                value={currentValue}
-                onChange={(e) => setCurrentValue(e.target.value)}
-                onFocus={selectAll}
-              />
+          <Modal.Body>
+            <div className="form-group">
+              <div className="input-group">
+                <input
+                  ref={inputRef}
+                  className="form-control"
+                  value={currentValue}
+                  onChange={(e) => setCurrentValue(e.target.value)}
+                  onFocus={selectAll}
+                />
+              </div>
             </div>
-          </div>
-        </Modal.Body>
+          </Modal.Body>
 
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => {
-              setIsOpen(false);
-              onChange(currentValue);
-            }}
-          >
-            Save
-          </Button>
-        </Modal.Footer>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit">
+              Save
+            </Button>
+          </Modal.Footer>
+        </form>
       </Modal>
     </>
   );
