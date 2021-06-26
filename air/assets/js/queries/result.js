@@ -83,7 +83,7 @@ type Props = {
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
   onDeleteClick?: (queryId: string) => void,
-  updateNote?: (id: string, note: string) => void,
+  updateNote?: (id: string, note: string | null) => void,
 };
 
 type State = {
@@ -550,7 +550,11 @@ export class ResultView extends React.Component<Props, State> {
           <CodeViewer statement={result.statement} />
         </div>
         <div className="card-body">
-          <QueryNote note={result.note} />
+          <QueryNote
+            id={result.id}
+            note={result.note}
+            updateNote={updateNote}
+          />
           <InfoView info={this.getInfoMessages()} />
           <div className="result-table">
             <table className="table table-striped table-condensed table-hover">

@@ -17,7 +17,7 @@ import loader from "../../static/images/loader.gif";
 type Props = {
   result: PendingResult,
   authentication: Authentication,
-  updateNote?: (id: string, note: string) => void,
+  updateNote?: (id: string, note: string | null) => void,
 };
 
 const stateItem = (state, currentState) => {
@@ -48,7 +48,7 @@ export default ({
         <CodeViewer statement={result.statement} />
       </div>
       <div className="card-body">
-        <QueryNote note={result.note} />
+        <QueryNote id={result.id} note={result.note} updateNote={updateNote} />
         <p className="text-center spinner">
           {" "}
           <img

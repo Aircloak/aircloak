@@ -30,7 +30,7 @@ export const deleteQueryResult = (
 
 export const setQueryNote = (
   queryId: string,
-  note: string,
+  note: string | null,
   authentication: Authentication
 ) => {
   $.ajax(`/queries/${queryId}/note`, {

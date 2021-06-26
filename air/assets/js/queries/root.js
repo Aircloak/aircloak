@@ -259,9 +259,9 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     }
   };
 
-  updateNote: (id: string, note: string) => void = (
+  updateNote: (id: string, note: string | null) => void = (
     id: string,
-    note: string
+    note: string | null
   ) => {
     setQueryNote(id, note, this.context.authentication);
     this.setState((state) => ({

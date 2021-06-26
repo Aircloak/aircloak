@@ -21,7 +21,7 @@ export default ({
   result: CancelledResult,
   debugModeEnabled: boolean,
   onDeleteClick?: (queryId: string) => void,
-  updateNote?: (id: string, note: string) => void,
+  updateNote?: (id: string, note: string | null) => void,
 }): Element<"div"> => {
   return (
     <div className="card border-warning mb-3">
@@ -45,7 +45,7 @@ export default ({
         <CodeViewer statement={result.statement} />
       </div>
       <div className="card-body">
-        <QueryNote note={result.note} />
+        <QueryNote id={result.id} note={result.note} updateNote={updateNote} />
         <h5 className="card-title">Query cancelled</h5>
         <div className="btn-group my-2">
           <ShareButton result={result} />

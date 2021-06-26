@@ -17,7 +17,7 @@ type Props = {
   debugModeEnabled: boolean,
   authentication: Authentication,
   onDeleteClick?: (id: string) => void,
-  updateNote?: (id: string, note: string) => void,
+  updateNote?: (id: string, note: string | null) => void,
 };
 
 export default ({
