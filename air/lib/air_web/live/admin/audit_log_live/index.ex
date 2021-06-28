@@ -163,7 +163,9 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
           <%= live_patch @user_name, to: admin_audit_log_index_path(@socket, :index, Map.put(@query_params, :users, [@user_id])) %>
           <strong><%= live_patch @event, to: admin_audit_log_index_path(@socket, :index, Map.put(@query_params, :events, [@event])), class: "text-dark" %></strong>
           <%= if @metadata["data_source"], do: "on #{@metadata["data_source"]}" %>
-          <%= if @metadata["group_name"], do: link(@metadata["group_name"], to: admin_group_path(@socket, :edit, @metadata["group_id"])) %>
+          <%= if @metadata["group_name"] do %>
+            <%= if @metadata["group_id"], do: link(@metadata["group_name"], to: admin_group_path(@socket, :edit, @metadata["group_id"])), else: @metadata["group_name"] %>
+          <% end %>
           <%= if @metadata["user"], do: @metadata["user"] %>
           <br />
           <%= if @metadata["remote_ip"] && @metadata["remote_ip"] do %>
