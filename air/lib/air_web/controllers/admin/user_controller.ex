@@ -114,7 +114,8 @@ defmodule AirWeb.Admin.UserController do
     conn
     |> put_flash(
       :info,
-      "All disabled users have been marked for deletion. The deletion will be performed in the background."
+      "All disabled users have been marked for deletion. The deletion will be performed in the background " <>
+        "and might take a while."
     )
     |> redirect(to: admin_user_path(conn, :index))
   end
