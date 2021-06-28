@@ -44,7 +44,7 @@ defmodule Air.Service.AuditLog do
   @type event_stats :: %{
           last_hour: time_period_event,
           last_day: time_period_event,
-          last_month: time_period_event
+          last_30_days: time_period_event
         }
 
   # -------------------------------------------------------------------
@@ -233,14 +233,14 @@ defmodule Air.Service.AuditLog do
       successful: %{
         last_hour: count_for_event_type(["Logged in"], Timex.shift(current_time, hours: -1)),
         last_day: count_for_event_type(["Logged in"], Timex.shift(current_time, days: -1)),
-        last_month: count_for_event_type(["Logged in"], Timex.shift(current_time, days: -30))
+        last_30_days: count_for_event_type(["Logged in"], Timex.shift(current_time, days: -30))
       },
       failed: %{
         last_hour:
           count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, hours: -1)),
         last_day:
           count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -1)),
-        last_month:
+        last_30_days:
           count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -30))
       }
     }
@@ -254,7 +254,7 @@ defmodule Air.Service.AuditLog do
     %{
       last_hour: count_for_event_type(["Executed query"], Timex.shift(current_time, hours: -1)),
       last_day: count_for_event_type(["Executed query"], Timex.shift(current_time, days: -1)),
-      last_month: count_for_event_type(["Executed query"], Timex.shift(current_time, days: -30))
+      last_30_days: count_for_event_type(["Executed query"], Timex.shift(current_time, days: -30))
     }
   end
 

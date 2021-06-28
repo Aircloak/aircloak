@@ -10,7 +10,7 @@
     <%= render("_event_card.html", title: "Failed logins",
       hour: @login_events[:failed][:last_hour],
       day: @login_events[:failed][:last_day],
-      month: @login_events[:failed][:last_month])
+      last_30_days: @login_events[:failed][:last_30_days])
     %>
   </div>
 
@@ -18,7 +18,7 @@
     <%= render("_event_card.html", title: "Successful logins",
       hour: @login_events[:successful][:last_hour],
       day: @login_events[:successful][:last_day],
-      month: @login_events[:successful][:last_month])
+      last_30_days: @login_events[:successful][:last_30_days])
     %>
   </div>
 </div>

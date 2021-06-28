@@ -18,8 +18,8 @@
 
       <tr>
         <td>Last 30 days</td>
-        <td class="text-right"><%= @month.count %></td>
-        <td><a href="<%= audit_log_url(@month) %>">audit log</a></td>
+        <td class="text-right"><%= @last_30_days.count %></td>
+        <td><a href="<%= audit_log_url(@last_30_days) %>">audit log</a></td>
       </tr>
     </tbody>
 	</table>

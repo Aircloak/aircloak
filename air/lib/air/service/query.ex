@@ -462,8 +462,8 @@ defmodule Air.Service.Query do
 
     %{
       last_hour: most_active_users_for_time_window(Timex.shift(current_time, hours: -1)),
-      last_day: most_active_users_for_time_window(Timex.shift(current_time, hours: -1)),
-      last_month: most_active_users_for_time_window(Timex.shift(current_time, hours: -1))
+      last_day: most_active_users_for_time_window(Timex.shift(current_time, days: -1)),
+      last_30_days: most_active_users_for_time_window(Timex.shift(current_time, days: -30))
     }
   end
 
