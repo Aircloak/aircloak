@@ -21,6 +21,7 @@ defmodule AirWeb.Query do
     :query_state,
     :rows,
     :statement,
+    :note,
     :user,
     "columns",
     "error",
@@ -47,7 +48,7 @@ defmodule AirWeb.Query do
     query = Air.Repo.preload(query, [:user, :data_source])
 
     query
-    |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
+    |> Map.take([:id, :data_source_id, :statement, :note, :session_id, :inserted_at, :query_state])
     |> Map.merge(query.result || %{})
     |> add_result(Keyword.get(opts, :buckets))
     |> Map.merge(data_source_info(query))

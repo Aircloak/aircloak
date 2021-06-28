@@ -17,6 +17,7 @@ defmodule Air.Schemas.Query do
 
   @type id :: String.t()
   @type statement :: String.t()
+  @type query_note :: String.t() | nil
   @type parameters :: Map.t()
   @type session_id :: Ecto.UUID
   @type t :: %__MODULE__{}
@@ -33,6 +34,7 @@ defmodule Air.Schemas.Query do
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "queries" do
     field(:statement, :string)
+    field(:note, :string)
     field(:tables, {:array, :string})
     field(:execution_time, :integer)
     field(:users_count, :integer)
@@ -58,8 +60,8 @@ defmodule Air.Schemas.Query do
 
   @required_fields ~w()a
   @optional_fields ~w(
-    cloak_id statement data_source_id tables execution_time users_count selected_types parameter_types session_id
-    parameters query_state context result last_state_change_at time_spent audit_meta total_time
+    cloak_id statement note data_source_id tables execution_time users_count selected_types parameter_types
+    session_id parameters query_state context result last_state_change_at time_spent audit_meta total_time
   )a
 
   # -------------------------------------------------------------------

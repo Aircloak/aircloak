@@ -8,6 +8,8 @@ import type { Authentication } from "../authentication_provider";
 
 import CodeViewer from "../code_viewer";
 import ResultTime from "./result_time";
+import QueryNote from "./query_note";
+import NoteButton from "./note_button";
 import { pendingStates, later, format } from "./state";
 import { cancel } from "../request";
 import loader from "../../static/images/loader.gif";
@@ -15,6 +17,7 @@ import loader from "../../static/images/loader.gif";
 type Props = {
   result: PendingResult,
   authentication: Authentication,
+  updateNote?: (id: string, note: string | null) => void,
 };
 
 const stateItem = (state, currentState) => {
@@ -27,14 +30,25 @@ const stateItem = (state, currentState) => {
   }
 };
 
-export default ({ result, authentication }: Props): Element<"div"> => {
+export default ({
+  result,
+  authentication,
+  updateNote,
+}: Props): Element<"div"> => {
   return (
     <div className="card border-info mb-3">
       <div className="card-header border-info bg-white">
         <ResultTime time={result.inserted_at} />
+        {updateNote && (
+          <NoteButton
+            initialValue={result.note}
+            onChange={(newNote) => updateNote(result.id, newNote)}
+          />
+        )}
         <CodeViewer statement={result.statement} />
       </div>
       <div className="card-body">
+        <QueryNote id={result.id} note={result.note} updateNote={updateNote} />
         <p className="text-center spinner">
           {" "}
           <img

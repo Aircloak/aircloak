@@ -6,7 +6,9 @@ import React from "react";
 import CodeViewer from "../code_viewer";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
+import NoteButton from "./note_button";
 import ResultTime from "./result_time";
+import QueryNote from "./query_note";
 
 import type { CancelledResult } from "./result";
 
@@ -14,10 +16,12 @@ export default ({
   result,
   debugModeEnabled,
   onDeleteClick,
+  updateNote,
 }: {
   result: CancelledResult,
   debugModeEnabled: boolean,
   onDeleteClick?: (queryId: string) => void,
+  updateNote?: (id: string, note: string | null) => void,
 }): Element<"div"> => {
   return (
     <div className="card border-warning mb-3">
@@ -32,10 +36,17 @@ export default ({
             <i className="fas fa-times" aria-label="Delete"></i>
           </button>
         )}
+        {updateNote && (
+          <NoteButton
+            initialValue={result.note}
+            onChange={(newNote) => updateNote(result.id, newNote)}
+          />
+        )}
         <CodeViewer statement={result.statement} />
       </div>
       <div className="card-body">
-        <h4>Query cancelled</h4>
+        <QueryNote id={result.id} note={result.note} updateNote={updateNote} />
+        <h5 className="card-title">Query cancelled</h5>
         <div className="btn-group my-2">
           <ShareButton result={result} />
           <DebugExport id={result.id} debugModeEnabled={debugModeEnabled} />

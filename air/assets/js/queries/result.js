@@ -6,6 +6,7 @@ import React from "react";
 import { AuthContext } from "../authentication_provider";
 import CodeViewer from "../code_viewer";
 import InfoView from "./info_view";
+import QueryNote from "./query_note";
 import { GraphData, GraphInfo, GraphConfig } from "./graph_data";
 import GraphConfigView from "./graph_config_view";
 import GraphView from "./graph_view";
@@ -17,6 +18,7 @@ import { formatNumber } from "../number_format";
 import { loadBuckets } from "../request";
 import DebugExport from "./debug_export";
 import ShareButton from "./share_button";
+import NoteButton from "./note_button";
 import ResultTime from "./result_time";
 import activateTooltips from "../tooltips";
 import loader from "../../static/images/loader.gif";
@@ -33,6 +35,7 @@ export type Type = string;
 type CommonResultFeatures = {
   id: string,
   statement: string,
+  note: string | null,
   data_source: {
     name: string,
   },
@@ -80,6 +83,7 @@ type Props = {
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
   onDeleteClick?: (queryId: string) => void,
+  updateNote?: (id: string, note: string | null) => void,
 };
 
 type State = {
@@ -522,7 +526,7 @@ export class ResultView extends React.Component<Props, State> {
   };
 
   render: () => Element<"div"> = () => {
-    const { result, onDeleteClick } = this.props;
+    const { result, onDeleteClick, updateNote } = this.props;
     const { tableAligner } = this.state;
     return (
       <div className="card border-success mb-3">
@@ -537,9 +541,20 @@ export class ResultView extends React.Component<Props, State> {
               <i className="fas fa-times" aria-label="Delete"></i>
             </button>
           )}
+          {updateNote && (
+            <NoteButton
+              initialValue={result.note}
+              onChange={(newNote) => updateNote(result.id, newNote)}
+            />
+          )}
           <CodeViewer statement={result.statement} />
         </div>
         <div className="card-body">
+          <QueryNote
+            id={result.id}
+            note={result.note}
+            updateNote={updateNote}
+          />
           <InfoView info={this.getInfoMessages()} />
           <div className="result-table">
             <table className="table table-striped table-condensed table-hover">

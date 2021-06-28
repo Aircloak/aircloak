@@ -23,7 +23,12 @@ import { HistoryLoader } from "./history_loader";
 import type { History } from "./history_loader";
 import Disconnected from "../disconnected";
 import { isFinished } from "./state";
-import { startQuery, loadHistory, deleteQueryResult } from "../request";
+import {
+  startQuery,
+  loadHistory,
+  deleteQueryResult,
+  setQueryNote,
+} from "../request";
 import activateTooltips from "../tooltips";
 
 type Props = {
@@ -254,6 +259,18 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     }
   };
 
+  updateNote: (id: string, note: string | null) => void = (
+    id: string,
+    note: string | null
+  ) => {
+    setQueryNote(id, note, this.context.authentication);
+    this.setState((state) => ({
+      sessionResults: state.sessionResults.map((r: any) =>
+        r.id !== id ? r : { ...r, note }
+      ),
+    }));
+  };
+
   addPendingResult: (queryId: string, statement: string) => void = (
     queryId: string,
     statement: string
@@ -263,6 +280,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
     const pendingResult: PendingResult = {
       id: queryId,
       statement,
+      note: null,
       query_state: "created",
       session_id: sessionId,
       private_permalink: null,
@@ -283,6 +301,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
       query_state: "error",
       id: generatedTempId,
       statement,
+      note: null,
       error,
       info: [],
       private_permalink: null,
@@ -471,6 +490,7 @@ export default class QueriesView extends React.PureComponent<Props, State> {
           debugModeEnabled={debugModeEnabled}
           authentication={authentication}
           onDeleteClick={this.deleteResult}
+          updateNote={this.updateNote}
         />
 
         <HistoryLoader
