@@ -17,6 +17,7 @@ It is called Aircloak Insights Evergreen.
 
 - The system status page now shows statistics on failed and successful login attempts, currently active user sessions,
   as well as historic query execution statistics.
+- Container logs are stored in database and shown in system status page. Old entries are removed after 15 days.
 
 ### Changes
 
