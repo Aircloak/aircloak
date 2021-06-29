@@ -36,7 +36,9 @@
           <%= if token_stat.token_count > 1 do %>
             <div class="flex-grow-1 mr-2">
               <%= token_stat.user.name %> has <%= token_stat.token_count %> sessions.
-              The most recent session was created <%= Air.Utils.DateTime.time_ago(token_stat.most_recent) %>.
+              The most recent session was created at
+              <%= date_time_to_string(token_stat.most_recent) %>
+              (<%= Air.Utils.DateTime.time_ago(token_stat.most_recent) %>).
             </div>
 
             <%= link "Sign out all sessions", to: admin_user_user_path(@conn, :delete_sessions, token_stat.user),
@@ -44,8 +46,9 @@
               "data-confirm": "Sign out the user #{token_stat.user.name} from all devices?" %>
           <% else %>
             <div class="flex-grow-1 mr-2">
-              <%= token_stat.user.name %> has 1 session. It was created
-              <%= Air.Utils.DateTime.time_ago(token_stat.most_recent) %>.
+              <%= token_stat.user.name %> has 1 session. It was created at
+              <%= date_time_to_string(token_stat.most_recent) %>
+              (<%= Air.Utils.DateTime.time_ago(token_stat.most_recent) %>).
             </div>
 
             <%= link "Sign out session", to: admin_user_user_path(@conn, :delete_sessions, token_stat.user),
