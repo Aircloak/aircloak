@@ -7,7 +7,7 @@
 
 <div class="row">
 	<div class="col">
-		<%= render("_event_card.html", title: "Query executions",
+		<%= render("_event_card.html", title: "Query events",
 			hour: @query_stats[:counts][:last_hour],
 			day: @query_stats[:counts][:last_day],
 			last_30_days: @query_stats[:counts][:last_30_days])

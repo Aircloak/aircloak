@@ -7,19 +7,31 @@
       <tr>
         <td>Last hour</td>
         <td class="text-right"><%= @hour.count %></td>
-        <td><a href="<%= audit_log_url(@hour) %>">audit log</a></td>
+        <td>
+          <%= if @hour.count > 0 do %>
+          <a href="<%= audit_log_url(@hour) %>">audit log</a>
+          <% end %>
+        </td>
       </tr>
 
       <tr>
         <td>Last day</td>
         <td class="text-right"><%= @day.count %></td>
-        <td><a href="<%= audit_log_url(@day) %>">audit log</a></td>
+        <td>
+          <%= if @day.count > 0 do %>
+          <a href="<%= audit_log_url(@day) %>">audit log</a>
+          <% end %>
+        </td>
       </tr>
 
       <tr>
         <td>Last 30 days</td>
         <td class="text-right"><%= @last_30_days.count %></td>
-        <td><a href="<%= audit_log_url(@last_30_days) %>">audit log</a></td>
+        <td>
+          <%= if @last_30_days.count > 0 do %>
+          <a href="<%= audit_log_url(@last_30_days) %>">audit log</a>
+          <% end %>
+        </td>
       </tr>
     </tbody>
 	</table>

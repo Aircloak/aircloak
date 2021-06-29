@@ -12,12 +12,19 @@ defmodule AirWeb.Admin.SystemStatusView do
         to: date_time_to_string(DateTime.utc_now())
       })
 
+    potential_user =
+      if metadata[:user] do
+        "&users[]=#{metadata[:user][:id]}"
+      else
+        ""
+      end
+
     events =
       metadata.event_types
       |> Enum.map(&"events[]=#{&1}")
       |> Enum.join("&")
 
-    "/admin/audit_log?#{time_range}&#{events}"
+    "/admin/audit_log?#{time_range}&#{events}#{potential_user}"
   end
 
   defp date_time_to_string(dt), do: Timex.format!(dt, "%F %T", :strftime)

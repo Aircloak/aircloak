@@ -21,10 +21,7 @@ defmodule AirWeb.Admin.SystemStatusController do
       running_queries: Query.not_finished(),
       cloak_stats: Stats.cloak_stats(),
       login_events: AuditLog.login_events_stats(),
-      query_stats: %{
-        counts: AuditLog.query_stats(),
-        users: Query.most_active_users()
-      },
+      query_stats: AuditLog.query_stats(),
       token_stats: User.token_stats(),
       problems: Warnings.problems()
     )
