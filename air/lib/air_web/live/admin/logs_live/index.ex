@@ -9,6 +9,9 @@ defmodule AirWeb.Admin.LogsLive.Index do
 
   @impl true
   def mount(_params, session, socket) do
+    # prevent recursion from debug messages
+    Logger.disable(self())
+
     {last_timestamp, logs} = NaiveDateTime.new!(Date.utc_today(), Time.from_seconds_after_midnight(0)) |> logs_tail()
 
     if connected?(socket), do: :timer.send_interval(@refresh_interval, self(), :refresh)
