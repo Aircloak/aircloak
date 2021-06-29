@@ -4,8 +4,13 @@
 <ul>
 <%= for stat <- @stats do%>
   <li class="small">
-    <a href="/admin/audit_log?users[]=<%= stat.user.id %>">
-      <%= stat.count %> <%= Inflex.inflect("query", stat.count) %>: <%= stat.user.name %>
+    <a href="<%= audit_log_url(stat) %>">
+      <%= stat.count %> <%= Inflex.inflect("query event", stat.count) %>:
+      <%= if stat.user.name do %>
+        <%= stat.user.name %>
+      <% else %>
+        Deleted user (id: <%= stat.user.id %>)
+      <% end %>
     </a>
   </li>
 <% end %>

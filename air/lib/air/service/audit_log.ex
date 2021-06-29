@@ -47,6 +47,22 @@ defmodule Air.Service.AuditLog do
           last_30_days: time_period_event
         }
 
+  @type user_period_activity :: %{
+          count: non_neg_integer(),
+          user: %{
+            id: pos_integer,
+            name: String.t() | nil
+          },
+          start_time: DateTime.t(),
+          event_types: [String.t()]
+        }
+
+  @type activity_stats :: %{
+          last_hour: [user_period_activity],
+          last_day: [user_period_activity],
+          last_30_days: [user_period_activity]
+        }
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -228,33 +244,45 @@ defmodule Air.Service.AuditLog do
   @spec login_events_stats() :: %{successful: event_stats, failed: event_stats}
   def login_events_stats() do
     current_time = DateTime.utc_now()
+    login_success_events = ["Logged in"]
+    failed_login_events = ["Failed login", "Unknown user login attempt"]
 
     %{
       successful: %{
-        last_hour: count_for_event_type(["Logged in"], Timex.shift(current_time, hours: -1)),
-        last_day: count_for_event_type(["Logged in"], Timex.shift(current_time, days: -1)),
-        last_30_days: count_for_event_type(["Logged in"], Timex.shift(current_time, days: -30))
+        last_hour: count_for_event_type(login_success_events, Timex.shift(current_time, hours: -1), current_time),
+        last_day: count_for_event_type(login_success_events, Timex.shift(current_time, days: -1), current_time),
+        last_30_days: count_for_event_type(login_success_events, Timex.shift(current_time, days: -30), current_time)
       },
       failed: %{
-        last_hour:
-          count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, hours: -1)),
-        last_day:
-          count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -1)),
-        last_30_days:
-          count_for_event_type(["Failed login", "Unknown user login attempt"], Timex.shift(current_time, days: -30))
+        last_hour: count_for_event_type(failed_login_events, Timex.shift(current_time, hours: -1), current_time),
+        last_day: count_for_event_type(failed_login_events, Timex.shift(current_time, days: -1), current_time),
+        last_30_days: count_for_event_type(failed_login_events, Timex.shift(current_time, days: -30), current_time)
       }
     }
   end
 
   @doc "Returns stats about the number of queries run during a set of time intervals"
-  @spec query_stats() :: event_stats
+  @spec query_stats() :: %{counts: event_stats, users: activity_stats}
   def query_stats() do
     current_time = DateTime.utc_now()
 
+    events = [
+      "Cancelled query",
+      "Deleted query",
+      "Executed query"
+    ]
+
     %{
-      last_hour: count_for_event_type(["Executed query"], Timex.shift(current_time, hours: -1)),
-      last_day: count_for_event_type(["Executed query"], Timex.shift(current_time, days: -1)),
-      last_30_days: count_for_event_type(["Executed query"], Timex.shift(current_time, days: -30))
+      counts: %{
+        last_hour: count_for_event_type(events, Timex.shift(current_time, hours: -1), current_time),
+        last_day: count_for_event_type(events, Timex.shift(current_time, days: -1), current_time),
+        last_30_days: count_for_event_type(events, Timex.shift(current_time, days: -30), current_time)
+      },
+      users: %{
+        last_hour: most_active_users_for_time_window(events, Timex.shift(current_time, hours: -1), current_time),
+        last_day: most_active_users_for_time_window(events, Timex.shift(current_time, days: -1), current_time),
+        last_30_days: most_active_users_for_time_window(events, Timex.shift(current_time, days: -30), current_time)
+      }
     }
   end
 
@@ -262,22 +290,51 @@ defmodule Air.Service.AuditLog do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp count_for_event_type(event_types, time) do
+  defp most_active_users_for_time_window(event_types, start_time, end_time) do
+    Repo.all(
+      from(a in entries_in_time_window(event_types, start_time, end_time),
+        left_join: u in assoc(a, :user),
+        group_by: [a.user_id, u.name],
+        limit: 3,
+        select: %{
+          count: count(a.id),
+          user: %{
+            id: a.user_id,
+            name: u.name
+          }
+        }
+      )
+    )
+    |> Enum.map(fn record ->
+      %{
+        count: record.count,
+        user: record.user,
+        start_time: start_time,
+        event_types: event_types
+      }
+    end)
+  end
+
+  defp count_for_event_type(event_types, start_time, end_time) do
     count =
       Repo.one(
-        from(a in AuditLog,
-          where: a.inserted_at > ^time,
-          where: a.event in ^event_types,
+        from(a in entries_in_time_window(event_types, start_time, end_time),
           select: count(a.id)
         )
       )
 
     %{
       count: count,
-      start_time: time,
+      start_time: start_time,
       event_types: event_types
     }
   end
+
+  defp entries_in_time_window(event_types, start_time, end_time),
+    do:
+      AuditLog
+      |> for_time(start_time, end_time)
+      |> for_event(event_types)
 
   defp order_by_event(query) do
     from(a in query, order_by: [desc: :inserted_at])
