@@ -68,7 +68,7 @@ const App = {
 
     ReactDOM.render(
       <AuthenticationProvider authentication={authentication}>
-        {App.renderPage(page, props)}
+        {App.renderPage(page, props, authentication)}
       </AuthenticationProvider>,
       elem
     );
@@ -76,9 +76,8 @@ const App = {
 
   activateDatetimePickers,
 
-  renderPage: (page, props) => {
+  renderPage: (page, props, authentication) => {
     const {
-      authentication,
       cloakStats,
       dataSourceDescription,
       dataSourceName,
