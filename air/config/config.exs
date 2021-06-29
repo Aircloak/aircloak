@@ -72,6 +72,8 @@ config :air, :central_queue,
 
 config :air, diffix_version: "Dogwood"
 
+config :air, logs_retention_days: 1
+
 if File.exists?("config/#{Mix.env()}.local.exs") do
   import_config "#{Mix.env()}.local.exs"
 end
