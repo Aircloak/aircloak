@@ -121,7 +121,7 @@ defmodule AirWeb.QueryController do
             buckets: Air.Service.Query.buckets(query, 0)
           )
 
-        is_owner = !!(current_user && current_user.id === query.user_id)
+        is_owner = !!(current_user != nil && current_user.id == query.user_id)
 
         render(conn, "permalink_show.html",
           query: query_for_display,
