@@ -13,6 +13,9 @@
         Warnings <%= warning_badge(@problems) %>
       </a>
     </li>
+    <li class="nav-item" role="presentation">
+      <%= link "Logs", to: admin_logs_index_path(@conn, :index), class: "nav-link" %>
+    </li>
   </ul>
 </header>
 

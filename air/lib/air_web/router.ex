@@ -167,6 +167,7 @@ defmodule AirWeb.Router do
     get("/", SystemStatusController, :index)
     get("/system_status", SystemStatusController, :index)
     get("/system_status/warnings", SystemStatusController, :warnings)
+    live("/system_status/logs", LogsLive.Index, :index, layout: {AirWeb.LayoutView, :admin})
 
     resources("/license", LicenseController, only: [:edit, :update], singleton: true)
     resources("/privacy_policy", PrivacyPolicyController)

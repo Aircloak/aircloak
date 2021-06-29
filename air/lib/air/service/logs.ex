@@ -3,6 +3,7 @@ defmodule Air.Service.Logs do
 
   alias Air.Repo
   alias Air.Schemas.Log
+  import Ecto.Query
 
   # -------------------------------------------------------------------
   # API functions
@@ -15,5 +16,15 @@ defmodule Air.Service.Logs do
     |> Repo.insert()
 
     :ok
+  end
+
+  @doc "Returns the most recent log entries, sorted in descendent order by timestamp."
+  @spec tail(NaiveDateTime.t(), pos_integer()) :: [Log.t()]
+  def tail(since, max_entries) do
+    Log
+    |> where([log], log.timestamp > ^since)
+    |> order_by([log], desc: log.timestamp)
+    |> limit(^max_entries)
+    |> Repo.all()
   end
 end
