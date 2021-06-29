@@ -84,6 +84,7 @@ const App = {
       dataSourceStatus,
       debugModeEnabled,
       initialError,
+      isOwner,
       lastQuery,
       newTableURL,
       newViewURL,
@@ -139,6 +140,7 @@ const App = {
             numberFormat={numberFormat}
             debugModeEnabled={debugModeEnabled}
             authentication={authentication}
+            isOwner={isOwner}
           />
         );
       case "code_viewer":
