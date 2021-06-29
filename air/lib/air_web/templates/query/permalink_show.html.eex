@@ -7,7 +7,8 @@
         result: <%= to_json(@query) %>,
         CSRFToken: "<%= @csrf_token %>",
         numberFormat: <%= to_json(@number_format) %>,
-        debugModeEnabled: false
+        debugModeEnabled: false,
+        isOwner: <%= to_json(@is_owner) %>
       };
 
       App.immutableQueryShowPage(props, document.getElementById("query-view"));

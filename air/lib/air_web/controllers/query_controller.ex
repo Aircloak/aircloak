@@ -110,7 +110,9 @@ defmodule AirWeb.QueryController do
   end
 
   def permalink_show(conn, params) do
-    case Air.Service.Token.query_from_token(conn.assigns.current_user, params["token"]) do
+    current_user = conn.assigns.current_user
+
+    case Air.Service.Token.query_from_token(current_user, params["token"]) do
       {:ok, query} ->
         query_for_display =
           AirWeb.Query.for_external_display(query,
@@ -119,10 +121,13 @@ defmodule AirWeb.QueryController do
             buckets: Air.Service.Query.buckets(query, 0)
           )
 
+        is_owner = !!(current_user != nil && current_user.id == query.user_id)
+
         render(conn, "permalink_show.html",
           query: query_for_display,
           csrf_token: Plug.CSRFProtection.get_csrf_token(),
-          number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
+          number_format: Air.Service.User.number_format_settings(current_user),
+          is_owner: is_owner
         )
 
       :error ->

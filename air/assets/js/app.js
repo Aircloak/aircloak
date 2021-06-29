@@ -68,7 +68,7 @@ const App = {
 
     ReactDOM.render(
       <AuthenticationProvider authentication={authentication}>
-        {App.renderPage(page, props)}
+        {App.renderPage(page, props, authentication)}
       </AuthenticationProvider>,
       elem
     );
@@ -76,15 +76,15 @@ const App = {
 
   activateDatetimePickers,
 
-  renderPage: (page, props) => {
+  renderPage: (page, props, authentication) => {
     const {
-      authentication,
       cloakStats,
       dataSourceDescription,
       dataSourceName,
       dataSourceStatus,
       debugModeEnabled,
       initialError,
+      isOwner,
       lastQuery,
       newTableURL,
       newViewURL,
@@ -140,6 +140,7 @@ const App = {
             numberFormat={numberFormat}
             debugModeEnabled={debugModeEnabled}
             authentication={authentication}
+            isOwner={isOwner}
           />
         );
       case "code_viewer":
