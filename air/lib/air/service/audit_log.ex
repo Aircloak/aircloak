@@ -7,26 +7,26 @@ defmodule Air.Service.AuditLog do
 
   @type login :: String.t()
   @type event_name :: String.t()
-  @type data_source_id :: non_neg_integer
-  @type user_id :: non_neg_integer
+  @type data_source_id :: non_neg_integer()
+  @type user_id :: non_neg_integer()
   @type filter_params :: %{
           from: DateTime.t(),
           to: DateTime.t(),
-          users: [user_id],
-          events: [event_name],
-          data_sources: [data_source_id],
-          except: [non_neg_integer],
-          max_results: non_neg_integer,
-          page: non_neg_integer
+          users: [user_id()],
+          events: [event_name()],
+          data_sources: [data_source_id()],
+          except: [non_neg_integer()],
+          max_results: non_neg_integer(),
+          page: non_neg_integer()
         }
 
   @type group :: %{
-          id: non_neg_integer,
-          user_id: non_neg_integer,
+          id: non_neg_integer(),
+          user_id: non_neg_integer(),
           user_name: String.t(),
-          event: event_name,
-          metadata: any,
-          occurences: non_neg_integer,
+          event: event_name(),
+          metadata: any(),
+          occurences: non_neg_integer(),
           min_date: DateTime.t(),
           max_date: DateTime.t()
         }
@@ -42,15 +42,15 @@ defmodule Air.Service.AuditLog do
         }
 
   @type event_stats :: %{
-          last_hour: time_period_event,
-          last_day: time_period_event,
-          last_30_days: time_period_event
+          last_hour: time_period_event(),
+          last_day: time_period_event(),
+          last_30_days: time_period_event()
         }
 
   @type user_period_activity :: %{
           count: non_neg_integer(),
           user: %{
-            id: pos_integer,
+            id: pos_integer(),
             name: String.t() | nil
           },
           start_time: DateTime.t(),
@@ -58,9 +58,9 @@ defmodule Air.Service.AuditLog do
         }
 
   @type activity_stats :: %{
-          last_hour: [user_period_activity],
-          last_day: [user_period_activity],
-          last_30_days: [user_period_activity]
+          last_hour: [user_period_activity()],
+          last_day: [user_period_activity()],
+          last_30_days: [user_period_activity()]
         }
 
   # -------------------------------------------------------------------
