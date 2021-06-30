@@ -10,7 +10,6 @@ config :sasl, :sasl_error_logger, false
 config :logger,
   level: :info,
   truncate: 65536,
-  backends: [:console, Cloak.Query.LogCollector],
   console: [
     format: "$date $time $metadata[$level] $levelpad$message\n",
     metadata: [:query_id]

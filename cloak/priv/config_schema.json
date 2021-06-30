@@ -22,6 +22,7 @@
     "allow_any_value_in_in_clauses": {"type": "boolean"},
     "max_parallel_queries": {"type": "integer", "minimum": 1},
     "liveness_check_interval": {"type": "integer", "minimum": 1},
+    "send_logs_to_air": {"type": "boolean"},
     "memory_limits": {
       "type": "object",
       "properties": {

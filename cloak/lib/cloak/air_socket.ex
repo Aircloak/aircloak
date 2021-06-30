@@ -87,6 +87,11 @@ defmodule Cloak.AirSocket do
     end
   end
 
+  @doc "Send a cloak log message to the air."
+  @spec send_log(GenServer.server(), String.t(), NaiveDateTime.t(), String.t()) :: :ok | {:error, any}
+  def send_log(socket \\ __MODULE__, hostname, timestamp, message),
+    do: cast_air(socket, "main", "log", %{hostname: hostname, timestamp: timestamp, message: message})
+
   # -------------------------------------------------------------------
   # GenSocketClient callbacks
   # -------------------------------------------------------------------
