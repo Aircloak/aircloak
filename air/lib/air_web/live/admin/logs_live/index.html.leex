@@ -19,26 +19,32 @@
   </ul>
 </header>
 
-<div id="logs" phx-update="append" class="border border-primary border-5 rounded logs">
-  <%= for log <- @logs do %>
-    <p id="<%= log.id %>" class="m-0 small">
-      <span class="text-muted"><%= "#{to_string(log.timestamp)} [#{log.source}@#{log.hostname}]:" %></span>
-      <%= log.message %>
-    </p>
-  <% end %>
+<div id="logs" class="logs border">
+  <table id="logs-table" class="table table-sm table-hover table-condensed">
+    <tbody id="logs" phx-update="append" class="logs">
+    <%= for log <- @logs do %>
+      <tr id="<%= log.id %>" class="<%= row_class(log) %>">
+        <td><%= to_string(log.timestamp) %></td>
+        <td><%= log.source %></td>
+        <td><%= log.hostname %></td>
+        <td><%= log.message %></td>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
 </div>
 
 <script>
-const logs = document.getElementById("logs");
-var autoscroll = true;
+  const logs = document.getElementById("logs");
+  var autoscroll = true;
 
-logs.addEventListener("scroll", function() {
-  autoscroll = this.scrollHeight - this.scrollTop === this.clientHeight;
-});
+  logs.addEventListener("scroll", function () {
+    autoscroll = this.scrollHeight - this.scrollTop === this.clientHeight;
+  });
 
-const observer = new MutationObserver(function(mutationsList, observer) {
-  if (autoscroll)
-    logs.scrollTop = logs.scrollHeight; // scroll to bottom
-});
-observer.observe(logs, { attributes: false, childList: true, subtree: false });
+  const observer = new MutationObserver(function (mutationsList, observer) {
+    if (autoscroll)
+      logs.scrollTop = logs.scrollHeight; // scroll to bottom
+  });
+  observer.observe(logs, {attributes: false, childList: true, subtree: false});
 </script>
