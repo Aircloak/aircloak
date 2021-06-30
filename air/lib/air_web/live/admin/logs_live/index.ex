@@ -44,9 +44,17 @@ defmodule AirWeb.Admin.LogsLive.Index do
         {since, []}
 
       [%Log{timestamp: last_timestamp} | _] = logs ->
-        {last_timestamp, logs |> Enum.map(&truncate_timestamp/1)}
+        {last_timestamp, logs |> Enum.reverse() |> Enum.map(&truncate_timestamp/1)}
     end
   end
 
   defp truncate_timestamp(log), do: %Log{log | timestamp: NaiveDateTime.truncate(log.timestamp, :second)}
+
+  defp row_class(log) do
+    if rem(log.id, 2) == 0 do
+      "active-row"
+    else
+      ""
+    end
+  end
 end

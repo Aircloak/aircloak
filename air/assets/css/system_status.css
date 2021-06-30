@@ -1,3 +1,9 @@
 .logs {
+  height: calc(100vh - 210px - 7.25em);
+  overflow-y: auto;
   font-size: 0.7rem;
+}
+
+.active-row {
+  background-color: rgb(243, 243, 243);
 }
