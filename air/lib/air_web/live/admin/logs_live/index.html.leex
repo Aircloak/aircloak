@@ -19,26 +19,15 @@
   </ul>
 </header>
 
-<div id="logs" phx-update="append" class="border border-primary border-5 rounded logs">
+<table class="table table-sm table-striped table-hover table-condensed">
+  <tbody id="logs" phx-update="prepend" class="logs">
   <%= for log <- @logs do %>
-    <p id="<%= log.id %>" class="m-0 small">
-      <span class="text-muted"><%= "#{to_string(log.timestamp)} [#{log.source}@#{log.hostname}]:" %></span>
-      <%= log.message %>
-    </p>
+    <tr id="id" class="d-flex">
+      <td class="flex-shrink-0"><%= to_string(log.timestamp) %></td>
+      <td class="flex-shrink-0 pl-2"><%= log.source %></td>
+      <td class="flex-shrink-0 pl-2"><%= log.hostname %></td>
+      <td class="flex-grow pl-2"><%= log.message %></td>
+    </tr>
   <% end %>
-</div>
-
-<script>
-const logs = document.getElementById("logs");
-var autoscroll = true;
-
-logs.addEventListener("scroll", function() {
-  autoscroll = this.scrollHeight - this.scrollTop === this.clientHeight;
-});
-
-const observer = new MutationObserver(function(mutationsList, observer) {
-  if (autoscroll)
-    logs.scrollTop = logs.scrollHeight; // scroll to bottom
-});
-observer.observe(logs, { attributes: false, childList: true, subtree: false });
-</script>
+  </tbody>
+</table>

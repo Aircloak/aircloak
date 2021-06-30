@@ -44,7 +44,7 @@ defmodule AirWeb.Admin.LogsLive.Index do
         {since, []}
 
       [%Log{timestamp: last_timestamp} | _] = logs ->
-        {last_timestamp, logs |> Enum.reverse() |> Enum.map(&truncate_timestamp/1)}
+        {last_timestamp, logs |> Enum.map(&truncate_timestamp/1)}
     end
   end
 
