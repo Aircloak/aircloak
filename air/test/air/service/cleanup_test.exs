@@ -1,7 +1,7 @@
 defmodule Air.Service.Cleanup.Test do
   use ExUnit.Case, async: false
 
-  alias Air.{Settings, Repo, TestRepoHelper, TestSocketHelper, Schemas.Query, Service.Cleanup}
+  alias Air.{Settings, Repo, TestRepoHelper, TestSocketHelper, Schemas.Query, Service.Cleanup, Service.Logs}
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
@@ -60,6 +60,13 @@ defmodule Air.Service.Cleanup.Test do
 
       assert %Query{query_state: :created} = Repo.get!(Query, query.id)
     end
+  end
+
+  test "removes logs older than retention days" do
+    :ok = Logs.save("host", :air, in_days(0), "recent")
+    :ok = Logs.save("host", :air, in_days(-2), "old")
+    Cleanup.cleanup_old_logs()
+    assert [%{message: "recent"}] = Logs.tail(in_days(-10), 10)
   end
 
   defp in_days(days) do

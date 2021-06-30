@@ -1,0 +1,44 @@
+<header class="page-header">
+  <ol class="bg-white breadcrumb">
+    <li class="breadcrumb-item"><%= link "Admin", to: "/admin", class: "text-muted" %></li>
+  </ol>
+  <h1>System Status</h1>
+
+  <ul class="nav nav-tabs nav-overflow header-tabs">
+    <li class="nav-item" role="presentation">
+      <%= link "Overview", to: admin_system_status_path(@socket, :index), class: "nav-link" %>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a href="<%= admin_system_status_path(@socket, :warnings) %>" class="nav-link">
+        Warnings <%= warning_badge(@problems) %>
+      </a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <%= link "Logs", to: admin_logs_index_path(@socket, :index), class: "nav-link active" %>
+    </li>
+  </ul>
+</header>
+
+<div id="logs" phx-update="append" class="border border-primary border-5 rounded logs">
+  <%= for log <- @logs do %>
+    <p id="<%= log.id %>" class="m-0 small">
+      <span class="text-muted"><%= "#{to_string(log.timestamp)} [#{log.source}@#{log.hostname}]:" %></span>
+      <%= log.message %>
+    </p>
+  <% end %>
+</div>
+
+<script>
+const logs = document.getElementById("logs");
+var autoscroll = true;
+
+logs.addEventListener("scroll", function() {
+  autoscroll = this.scrollHeight - this.scrollTop === this.clientHeight;
+});
+
+const observer = new MutationObserver(function(mutationsList, observer) {
+  if (autoscroll)
+    logs.scrollTop = logs.scrollHeight; // scroll to bottom
+});
+observer.observe(logs, { attributes: false, childList: true, subtree: false });
+</script>

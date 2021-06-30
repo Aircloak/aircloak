@@ -31,7 +31,7 @@ config :air, :https_port, 8443
 
 # Configures Elixir's Logger
 config :logger, :console,
-  format: "$date $time $metadata[$level] $message\n",
+  format: "$date $time $metadata[$level] $levelpad$message\n",
   metadata: [:request_id]
 
 # Configure phoenix generators
@@ -71,6 +71,8 @@ config :air, :central_queue,
   max_size: 1000
 
 config :air, diffix_version: "Dogwood"
+
+config :air, logs_retention_days: 1
 
 if File.exists?("config/#{Mix.env()}.local.exs") do
   import_config "#{Mix.env()}.local.exs"

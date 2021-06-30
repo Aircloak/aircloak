@@ -1,0 +1,4 @@
+.logs {
+  height: calc(100vh - 180px - 7.25em);
+  overflow-y: scroll;
+}

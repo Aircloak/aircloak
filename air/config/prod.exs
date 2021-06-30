@@ -59,3 +59,5 @@ config :air, :central,
   central_site: "wss://central.aircloak.com",
   min_reconnect_interval: :timer.seconds(10),
   max_reconnect_interval: :timer.minutes(5)
+
+config :air, logs_retention_days: 15

@@ -44,6 +44,19 @@ defmodule Air.Service.Cleanup do
     :ok
   end
 
+  @doc "Removes old logs."
+  @spec cleanup_old_logs() :: :ok
+  def cleanup_old_logs() do
+    retention = Application.get_env(:air, :logs_retention_days)
+    keep_since = NaiveDateTime.utc_now() |> Timex.shift(days: -retention)
+
+    Air.Schemas.Log
+    |> where([log], log.timestamp < ^keep_since)
+    |> Air.Repo.delete_all()
+
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
@@ -52,12 +65,24 @@ defmodule Air.Service.Cleanup do
   def child_spec(_arg) do
     Aircloak.ChildSpec.supervisor(
       [
-        {Periodic, run: &cleanup_old_queries/0, every: :timer.hours(1), overlap?: false, id: :cleanup_old_queries},
+        {Periodic,
+         run: &cleanup_old_queries/0,
+         every: :timer.hours(1),
+         overlap?: false,
+         initial_delay: :timer.minutes(1),
+         id: :cleanup_old_queries},
         {Periodic, run: &cleanup_dead_queries/0, every: :timer.minutes(5), overlap?: false, id: :cleanup_dead_queries},
+        {Periodic,
+         run: &cleanup_old_logs/0,
+         every: :timer.hours(12),
+         overlap?: false,
+         initial_delay: :timer.minutes(2),
+         id: :cleanup_old_logs},
         {Periodic,
          run: &cleanup_old_explorer_analyses/0,
          every: :timer.hours(24 * 10),
          overlap?: false,
+         initial_delay: :timer.minutes(3),
          id: :cleanup_old_explorer_analyses}
       ],
       name: __MODULE__,
