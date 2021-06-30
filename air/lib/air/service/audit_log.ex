@@ -296,6 +296,7 @@ defmodule Air.Service.AuditLog do
         left_join: u in assoc(a, :user),
         group_by: [a.user_id, u.name],
         limit: 3,
+        order_by: [desc: count(a.id)],
         select: %{
           count: count(a.id),
           user: %{
