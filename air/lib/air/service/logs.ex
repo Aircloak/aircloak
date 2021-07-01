@@ -18,13 +18,25 @@ defmodule Air.Service.Logs do
     :ok
   end
 
-  @doc "Returns the most recent log entries, sorted in descendent order by timestamp."
-  @spec tail(NaiveDateTime.t(), pos_integer()) :: [Log.t()]
-  def tail(since, max_entries) do
+  @doc "Returns the most recent log entries, sorted in ascendent order by timestamp."
+  @spec tail(Map.t(), pos_integer()) :: [Log.t()]
+  def tail(filters, max_entries) do
     Log
-    |> where([log], log.timestamp > ^since)
+    |> filter_by_id(filters)
+    |> filter_by_timestamp(filters)
     |> order_by([log], desc: log.timestamp)
     |> limit(^max_entries)
     |> Repo.all()
+    |> Enum.reverse()
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp filter_by_timestamp(scope, %{timestamp: since}), do: where(scope, [log], log.timestamp > ^since)
+  defp filter_by_timestamp(scope, _), do: scope
+
+  defp filter_by_id(scope, %{id: since}), do: where(scope, [log], log.id > ^since)
+  defp filter_by_id(scope, _), do: scope
 end
