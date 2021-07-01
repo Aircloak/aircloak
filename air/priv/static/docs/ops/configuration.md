@@ -436,8 +436,8 @@ not to use any value in anonymizing queries. The default value is false, which m
 The `allow_any_value_in_in_clauses` field is optional and controls whether restricted `IN` clauses are allowed or
 not to use any value in anonymizing queries. The default value is false, which means only frequent values are permitted.
 
-The `send_logs_to_air` field is optional and controls whether container logs are collected and sent to the corresponding
-Insights Air instance. The default value is false, which means the logs will not be exported.
+The optional boolean `send_logs_to_air` field controls whether container logs are collected and forwarded to the
+Insights Air instance. The default value is false, which means no logs will be exported.
 
 The `connection_timeouts` field is optional and it controls various database connection timeouts.
 
