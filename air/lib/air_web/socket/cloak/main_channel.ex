@@ -355,6 +355,14 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     {:noreply, socket}
   end
 
+  defp handle_cloak_message("log", payload, socket) do
+    Task.start(fn ->
+      Air.Service.Logs.save(payload.hostname, :cloak, payload.timestamp, payload.message)
+    end)
+
+    {:noreply, socket}
+  end
+
   defp handle_cloak_message(event, _payload, socket) do
     cloak_id = socket.assigns.cloak_id
     Logger.warn("unknown event #{event} from '#{cloak_id}'")

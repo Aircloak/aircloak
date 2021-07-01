@@ -62,7 +62,7 @@ config :cloak, :connect_retries, 1
 
 config :logger,
   level: :debug,
-  backends: [Cloak.Query.LogCollector],
+  backends: [],
   console: [
     format: "$time [$level] $metadata$message\n",
     metadata: [:query_id]

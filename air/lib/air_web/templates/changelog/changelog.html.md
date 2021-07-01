@@ -19,7 +19,9 @@ It is called Aircloak Insights Evergreen.
 
 - The system status page now shows statistics on failed and successful login attempts, currently active user sessions,
   as well as historic query execution statistics.
-- Container logs are stored in the Postgres database, and shown on the system status page. Old log entries are removed after 15 days.
+- Container logs are stored in the Postgres database, and shown in the system status page. Old log entries are removed
+  after 15 days. To enable the collection of logs on the Cloak side, set the `send_logs_to_air` flag to `true` in the
+  Insights Cloak configuration file.
 
 ### Changes
 
