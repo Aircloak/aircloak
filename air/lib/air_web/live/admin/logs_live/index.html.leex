@@ -10,7 +10,7 @@
     </li>
     <li class="nav-item" role="presentation">
       <a href="<%= admin_system_status_path(@socket, :warnings) %>" class="nav-link">
-        Warnings <%= warning_badge(@problems) %>
+        Warnings <%= if Enum.count(@problems) > 0, do: warning_badge(@problems) %>
       </a>
     </li>
     <li class="nav-item" role="presentation">
