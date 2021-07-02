@@ -27,7 +27,7 @@
         <td><%= to_string(log.timestamp) %></td>
         <td><%= "#{log.source}@#{log.hostname}" %></td>
         <td><%= log.level %></td>
-        <td><%= log.message %></td>
+        <td><%= format_message(log.message) %></td>
       </tr>
     <% end %>
     </tbody>

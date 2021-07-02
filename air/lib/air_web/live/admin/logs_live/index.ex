@@ -55,4 +55,7 @@ defmodule AirWeb.Admin.LogsLive.Index do
       ""
     end
   end
+
+  defp format_message(message),
+    do: message |> String.split("\n", trime: false) |> Enum.intersperse(Phoenix.HTML.Tag.tag(:br))
 end
