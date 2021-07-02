@@ -11,7 +11,7 @@
       <p class="lead"><%= @data_source.description %></p>
     <% end %>
 </header>
-<%= render AirWeb.Admin.WarningsView, "_warnings.html", conn: @conn, problems: @problems %>
+<%= render AirWeb.Admin.SystemStatusView, "_warnings.html", conn: @conn, problems: @problems %>
 
 <div class="row">
   <div class="col-md-6 mb-3">
