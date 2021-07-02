@@ -10,9 +10,9 @@ defmodule Air.Service.Logs do
   # -------------------------------------------------------------------
 
   @doc "Stores a new log entry into the database."
-  @spec save(String.t(), Log.MessageSource.t(), NaiveDateTime.t(), String.t()) :: :ok
-  def save(hostname, source, timestamp, message) do
-    %Log{hostname: hostname, source: source, timestamp: timestamp, message: message}
+  @spec save(NaiveDateTime.t(), Log.Source.t(), String.t(), Log.Level.t(), String.t()) :: :ok
+  def save(timestamp, source, hostname, level, message) do
+    %Log{timestamp: timestamp, source: source, hostname: hostname, level: level, message: message}
     |> Repo.insert()
 
     :ok

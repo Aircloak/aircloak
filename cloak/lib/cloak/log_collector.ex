@@ -28,7 +28,7 @@ defmodule Cloak.LogCollector do
 
   def handle_event({level, _group_leader, {Logger, message, timestamp, metadata}}, state) do
     if Application.get_env(:cloak, :send_logs_to_air) == true,
-      do: Cloak.AirSocket.send_log(state.hostname, to_naivedatetime(timestamp), to_string(["[#{level}] " | message]))
+      do: Cloak.AirSocket.send_log(to_naivedatetime(timestamp), state.hostname, level, to_string(message))
 
     with {:ok, query_id} <- Keyword.fetch(metadata, :query_id),
          do: Cloak.Query.Runner.send_log_entry(query_id, level, message, timestamp, metadata)
