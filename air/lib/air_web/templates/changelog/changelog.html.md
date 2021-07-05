@@ -29,6 +29,7 @@ It is called Aircloak Insights Evergreen.
 - The activity monitor page has been renamed to system status and now incorporates the warnings page.
 - The LDAP sync integration now outputs more information-rich log statements about its syncing behaviour.
 - While a license is still required to run Aircloak Insights, a license file is no longer required.
+- Insights Air no longer attempts to make outbound connections to Aircloak Central.
 
 ## Version 21.1.1
 
