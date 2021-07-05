@@ -62,14 +62,6 @@ config :air, Air.PsqlServer,
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
 
-config :air, :central,
-  serializer: Phoenix.Channels.GenSocketClient.Serializer.GzipJson,
-  call_timeout: :timer.seconds(5)
-
-config :air, :central_queue,
-  retry_delay: :timer.minutes(1),
-  max_size: 1000
-
 config :air, diffix_version: "Dogwood"
 
 config :air, logs_retention_days: 1
