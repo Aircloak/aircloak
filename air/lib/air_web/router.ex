@@ -35,14 +35,6 @@ defmodule AirWeb.Router do
     plug(AirWeb.Plug.AdminOnly)
   end
 
-  pipeline :license_validations_browser do
-    plug(AirWeb.Plug.ValidateLicense.Browser)
-  end
-
-  pipeline :license_validations_api do
-    plug(AirWeb.Plug.ValidateLicense.API)
-  end
-
   scope "/auth", AirWeb do
     # Use the default browser stack
     pipe_through([:browser, :anonymous_only])
@@ -78,7 +70,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/", AirWeb, private: %{context: :http} do
-    pipe_through([:browser, :browser_auth, :license_validations_browser])
+    pipe_through([:browser, :browser_auth])
 
     get("/", DataSourceController, :redirect_to_last_used)
 
@@ -185,7 +177,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/api", private: %{context: :api} do
-    pipe_through([:api, :license_validations_api])
+    pipe_through([:api])
 
     resources("/queries", AirWeb.QueryController, only: [:create, :show])
     post("/queries/:id/cancel", AirWeb.QueryController, :cancel)
