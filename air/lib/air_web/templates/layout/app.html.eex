@@ -10,6 +10,7 @@
     <title>Aircloak – Web Query Interface</title>
     <link rel="shortcut icon" href="<%= static_path(@conn, "/frontend/images/favicon.ico") %>" type="image/x-icon">
     <link rel="stylesheet" href="<%= static_path(@conn, "/frontend/app.css") %>">
+    <%= csrf_meta_tag() %>
   </head>
 
   <body>
