@@ -1,6 +1,14 @@
 <nav role="navigation" class="navbar mb-3 navbar-light bg-light sticky-top navbar-expand flex-column justify-items-center flex-md-row border-bottom">
   <a class="navbar-brand logo m-2 m-md-0 ml-md-1" title="Back to the frontpage" href="/"></a>
-  <%= data_sources_widget(@conn) %>
+
+  <%= if logged_in?(@conn) do %>
+    <ul class="nav navbar-nav ml-3">
+      <li class="nav-item">
+        <%= data_sources_widget(@conn) %>
+      </li>
+      <%= navbar_link(@conn, "Queries", queries_index_path(@conn, :index)) %>
+    </ul>
+  <% end %>
 
   <ul class="nav navbar-nav ml-md-auto flex-row">
      <%= if @admin do %>
