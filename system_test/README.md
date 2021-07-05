@@ -4,7 +4,7 @@ This project runs tests against the aircloak system. The components, such as air
 
 ## Air-setup
 
-The Air is setup automatically using a predefined license, privacy policy and user accounts.
+The Air is setup automatically using a predefined privacy policy and user accounts.
 Two sets of user accounts are created:
 
 - `admin@aircloak.com` and `user@aircloak.com` are created by the

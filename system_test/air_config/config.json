@@ -5,8 +5,6 @@
     "auth_secret": "6MvtANFkxCr3VaDY/C8oCooF6Pg1uqFzOWNYVMry/V5acmSPuQydPeU5X5Jh",
     "endpoint_key_base": "7nOn9WDwUZLjXnQah8+ocSF0r/YhYpDp0hSw4FE6Zq+Ic2TVYcDCQe+2MT8wqD/R",
     "master_password": "super_secret_master_password",
-    "use_staging_license_key": true,
-    "license_file": "license.lic",
     "privacy_policy_file": "privacy_policy.md",
     "users_and_datasources_file": "credentials.json"
   },

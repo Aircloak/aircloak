@@ -15,7 +15,7 @@ defmodule Air.Service.LDAP do
   def enabled?(), do: check_config() == :ok
 
   @doc "Performs an immediate LDAP sync."
-  @spec sync() :: :ok | {:error, :timeout | :license_error | __MODULE__.Client.ldap_error()}
+  @spec sync() :: :ok | {:error, :timeout | __MODULE__.Client.ldap_error()}
   def sync(timeout \\ 5000) do
     GenServer.call(__MODULE__, :sync, timeout)
   catch
@@ -40,7 +40,6 @@ defmodule Air.Service.LDAP do
     Logger.info("Syncing with LDAP.")
 
     with :ok <- check_config(),
-         :ok <- check_license(),
          {:ok, users} <- __MODULE__.Client.users(),
          {:ok, groups} <- __MODULE__.Client.groups() do
       groups = __MODULE__.Normalization.normalize_groups(users, groups)
@@ -53,14 +52,6 @@ defmodule Air.Service.LDAP do
     else
       {:error, :ldap_not_configured} ->
         Logger.info("LDAP: Not configured. Disabling LDAP users and removing LDAP groups if any exist.")
-        __MODULE__.Sync.sync(_users = [], _groups = [])
-        :ok
-
-      {:error, :license_error} ->
-        Logger.warn(
-          "LDAP: LDAP sync configured but not licensed. Disabling LDAP users and removing LDAP groups if any exist."
-        )
-
         __MODULE__.Sync.sync(_users = [], _groups = [])
         :ok
 
@@ -77,14 +68,6 @@ defmodule Air.Service.LDAP do
 
       _ ->
         {:error, :ldap_not_configured}
-    end
-  end
-
-  defp check_license() do
-    if :ldap in Air.Service.License.features() do
-      :ok
-    else
-      {:error, :license_error}
     end
   end
 

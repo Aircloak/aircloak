@@ -76,7 +76,6 @@ section is as follows:
   "certfile": string,
   "keyfile": string,
   "privacy_policy_file": string,
-  "license_file": string,
   "users_and_datasources_file": string,
   "browser_long_polling": boolean
 },
@@ -92,8 +91,8 @@ cat /dev/urandom |
 ```
 
 Of the parameters above, the only required ones are the `auth_secret` and `endpoint_key_base` parameters, as well as one
-of `master_password` or `users_and_datasources_file`. The other parameters such as the `privacy_policy_file`,
-`users_and_datasources_file`, and `license_file` all specify values that can also be configured in the
+of `master_password` or `users_and_datasources_file`. The other parameters such as the `privacy_policy_file`
+and `users_and_datasources_file` all specify values that can also be configured in the
 Insights Air web interface.
 These parameters can be used to fully configure a system ahead of time. This is useful when performing automated
 deployments. For more information on ahead of time configuration, please read the [ahead of time
@@ -153,9 +152,8 @@ The `max_connections` property can be used to configure the maximum allowed numb
 
 ### LDAP configuration
 
-Insights Air can be configured to allow users to login with credentials managed in an LDAP directory service. Note that
-this feature is licensed separately. If you would like to add LDAP sync to your license, contact
-[support@aircloak.com](mailto:support@aircloak.com). The `config.json` snippet below shows all possible configuration
+Insights Air can be configured to allow users to login with credentials managed in an LDAP directory service.
+The `config.json` snippet below shows all possible configuration
 options along with their default values where applicable. Note that the `host`, `user_base`, and `group_base` options
 are required. Options without a default value
 are indicated with a `null`.

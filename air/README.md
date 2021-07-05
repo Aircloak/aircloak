@@ -6,17 +6,20 @@ needed to create, update and run tasks.
 
 ---
 
-- [What it does](#what-it-does)
-- [What is it made up of](#what-is-it-made-up-of)
-- [Getting started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Running](#running)
-  - [Local docker container](#local-docker-container)
-  - [Other common tasks](#other-common-tasks)
-  - [Deploying](#deploying)
-- [Frontend](#frontend)
-  - [Analyst pages](#analyst-pages)
-  - [Admin pages](#admin-pages)
+- [Air](#air)
+  - [What it does](#what-it-does)
+  - [What is it made up of](#what-is-it-made-up-of)
+  - [Getting started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Running](#running)
+      - [HTTPS endpoint](#https-endpoint)
+      - [LDAP server](#ldap-server)
+    - [Local docker container](#local-docker-container)
+    - [Other common tasks](#other-common-tasks)
+    - [Deploying](#deploying)
+  - [Frontend](#frontend)
+    - [Analyst pages](#analyst-pages)
+    - [Admin pages](#admin-pages)
 
 ---
 
@@ -70,10 +73,6 @@ it with `make migrate` and `make rollback` respectively.
 
 If you need to repopulate the database, you can run `make recreate-db`. Keep in mind that this will erase all
 of your existing data, so use with caution. To recreate the test database, you can run `MIX_ENV=test make recreate-db`
-
-The `priv` folder contains two pre-generated licenses that are valid in the dev envirnoment. `dev_license.lic` is valid
-until 2018, while `expired_dev_license.lic` is expired. You can use them to test the licensing system. `dev_license.lic`
-is loaded as part of database seeding.
 
 #### HTTPS endpoint
 

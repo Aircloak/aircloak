@@ -27,10 +27,6 @@ defmodule Air.CentralClient.Socket do
     end
   end
 
-  @doc "Asks central for a newer version of the given license text."
-  @spec renew_license(String.t()) :: {:ok, String.t()} | :error
-  def renew_license(text), do: call_central(__MODULE__, "renew_license", text)
-
   @doc "Starts the socket client."
   @spec start_link(GenServer.options()) :: GenServer.on_start()
   def start_link(gen_server_opts \\ [name: __MODULE__]) do
@@ -208,10 +204,6 @@ defmodule Air.CentralClient.Socket do
   defp set_connected(value),
     do: {^value, _} = Registry.update_value(Air.Service.Central.Registry, __MODULE__, fn _ -> value end)
 
-  @spec call_central(GenServer.server(), String.t(), Map.t(), pos_integer) :: {:ok, any} | {:error, any}
-  defp call_central(socket, event, payload, timeout \\ config(:call_timeout)),
-    do: GenSocketClient.call(socket, {:call_central, timeout, event, payload})
-
   defp central_socket_url(),
     do:
       central_url()
@@ -229,9 +221,7 @@ defmodule Air.CentralClient.Socket do
     end
   end
 
-  defp air_params() do
-    [air_name: Air.instance_name(), license: Air.Service.License.text()]
-  end
+  defp air_params(), do: [air_name: Air.instance_name()]
 
   defp next_interval(current_interval) do
     min(current_interval * 2, config(:max_reconnect_interval))
