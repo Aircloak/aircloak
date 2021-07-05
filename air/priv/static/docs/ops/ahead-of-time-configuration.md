@@ -4,29 +4,6 @@ Aircloak Insights allows for hands-off automated deployments using orchestration
 [Kubernetes](https://kubernetes.io/). To avoid having to complete the setup process in a web browser,
 you can fully configure the system in the Insights Air `config.json` file.
 
-## Aircloak Insights license file
-
-The Aircloak Insights license can be configured under the `license_file` key of the `site` object in the Insights Air
-`config.json` file. The license file must be readable from within the Insights Air container (see the [File permissions](/ops/configuration.md#file-permissions) section for more information on the required permissions) and should reside in the same or a subfolder of the folder in which the `config.json` file is stored.
-
-```
-$ ls -la
--rw-r--r--   1 user  staff   898 Jan 1 08:00 config.json
--rw-r--r--   1 user  staff   889 Jan 1 08:00 aircloak-license.lic
-```
-
-Given a setup as shown above, the `config.json` file would look like this:
-
-```json
-{
-  "site": {
-    ...
-    "license_file": "aircloak-license.lic"
-  },
-  ...
-}
-```
-
 ## Aircloak Insights privacy policy
 
 In some jurisdictions it is a legal requirement to provide a privacy policy on any website accessible from the internet.
