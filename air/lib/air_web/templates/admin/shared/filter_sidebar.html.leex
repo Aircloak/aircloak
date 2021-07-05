@@ -82,38 +82,17 @@
       </form>
     </section>
 
-    <%= render(
-      "list_filter.html",
-      conn: @conn,
-      title: "Filter by users",
-      name: :users,
-      options: @users,
-      link: &@path.(&1),
-      params: @params,
-      live?: @live?
-    ) %>
-
-    <%= if @event_types, do:
-      render(
+    <%= for {name, {title, options}} <- @filters do %>
+      <%= render(
         "list_filter.html",
         conn: @conn,
-        title: "Filter by event type",
-        name: :events,
-        options: @event_types,
+        title: title,
+        name: name,
+        options: options,
         link: &@path.(&1),
         params: @params,
-      live?: @live?
+        live?: @live?
       ) %>
-
-    <%= render(
-      "list_filter.html",
-      conn: @conn,
-      title: "Filter by data source",
-      name: :data_sources,
-      options: @data_sources,
-      link: &@path.(&1),
-      params: @params,
-      live?: @live?
-    ) %>
+    <% end %>
   </div>
 </div>

@@ -96,11 +96,13 @@
   from: @from,
   to: @to,
   path: &admin_audit_log_index_path(@socket, :index, &1),
-  users: @users,
-  event_types: @event_types,
-  data_sources: @data_sources,
   live?: true,
-  params: @query_params)
+  params: @query_params,
+  filters: [
+    users: {"Filter by users", @users},
+    event_types: {"Filter by event type", @event_types},
+    data_sources: {"Filter by data source", @data_sources}
+  ])
 %>
 
 <%# Show loading template if not connected %>

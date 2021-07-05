@@ -50,11 +50,12 @@
   from: @from,
   to: @to,
   path: &admin_query_path(@conn, :failed, &1),
-  users: @users,
-  data_sources: @data_sources,
   params: @conn.query_params,
-  event_types: nil,
-  live?: false)
+  live?: false,
+  filters: [
+    users: {"Filter by users", @users},
+    data_sources: {"Filter by data source", @data_sources}
+  ])
 %>
 
 
