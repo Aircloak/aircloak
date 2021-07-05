@@ -2,7 +2,7 @@
   "type": "object",
   "properties": {
     "name": {"type": "string", "minLength": 1},
-    "use_staging_license_key": {"type": "boolean"},
+    "use_staging_license_key": {"type": "boolean", "$comment": "allowed for backward compatibility"},
 
     "database": {
       "type": "object",
@@ -43,10 +43,10 @@
         "master_password": {"type": "string", "minLength": 1},
         "certfile": {"type": "string"},
         "keyfile": {"type": "string"},
-        "use_staging_license_key": {"type": "boolean"},
+        "use_staging_license_key": {"type": "boolean", "$comment": "allowed for backward compatibility"},
         "customer_token": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
-        "alternate_aircloak_central": {"type": "string", "$comment": "used to connect to stage central"},
-        "license_file": {"type": "string", "$comment": "path to license file in mount"},
+        "alternate_aircloak_central": {"type": "string", "$comment": "allowed for backward compatibility"},
+        "license_file": {"type": "string", "$comment": "allowed for backward compatibility"},
         "privacy_policy_file": {"type": "string", "$comment": "path to privacy policy content"},
         "users_and_datasources_file": {"type": "string", "$comment": "path to user and data sources content"},
         "browser_long_polling": {"type": "boolean"}

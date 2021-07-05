@@ -7,7 +7,6 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   require Aircloak
   require Aircloak.DeployConfig
 
-  alias Air.CentralClient.Socket
   alias Air.Service.{View, AnalystTable}
 
   @type parameters :: nil | [map]
