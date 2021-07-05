@@ -28,6 +28,7 @@ It is called Aircloak Insights Evergreen.
 - The list of actively running queries has been moved from the activity monitor to the queries section of the admin interface.
 - The activity monitor page has been renamed to system status and now incorporates the warnings page.
 - The LDAP sync integration now outputs more information-rich log statements about its syncing behaviour.
+- While a license is still required to run Aircloak Insights, a license file is no longer required.
 
 ## Version 21.1.1
 
