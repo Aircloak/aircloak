@@ -162,7 +162,6 @@ defmodule AirWeb.Router do
     get("/system_status/warnings", SystemStatusController, :warnings)
     live("/system_status/logs", LogsLive.Index, :index, layout: {AirWeb.LayoutView, :admin})
 
-    resources("/license", LicenseController, only: [:edit, :update], singleton: true)
     resources("/privacy_policy", PrivacyPolicyController)
     resources("/diffix-explorer", ExplorerController, only: [:index, :show])
     live_dashboard("/live-dashboard", metrics: AirWeb.Telemetry)

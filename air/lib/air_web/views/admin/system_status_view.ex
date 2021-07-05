@@ -37,8 +37,6 @@ defmodule AirWeb.Admin.SystemStatusView do
   defp name(:privacy_policy), do: "Privacy policy"
   defp name(%DataSource{} = resource), do: resource.name
 
-  defp resource_link(conn, :license), do: link("More", to: admin_license_path(conn, :edit))
-
   defp resource_link(conn, :privacy_policy), do: link("More", to: admin_privacy_policy_path(conn, :new))
 
   defp resource_link(conn, %DataSource{} = resource),
