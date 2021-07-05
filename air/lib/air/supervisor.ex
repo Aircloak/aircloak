@@ -15,7 +15,6 @@ defmodule Air.Supervisor do
         Air.Service.AnalystTable,
         Air.Service.View,
         Air.Service.Query,
-        Air.Service.License,
         Air.Service.Central,
         Air.Service.AdminGuard,
         Air.Service.Export,

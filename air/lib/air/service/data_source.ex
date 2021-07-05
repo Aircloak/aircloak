@@ -5,7 +5,7 @@ defmodule Air.Service.DataSource do
   alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.Repo
   alias Air.Service
-  alias Air.Service.{License, Cloak, View, AnalystTable, Explorer}
+  alias Air.Service.{Cloak, View, AnalystTable, Explorer}
   alias Air.Service.DataSource.QueryScheduler
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query, only: [from: 2]
@@ -22,7 +22,7 @@ defmodule Air.Service.DataSource do
   @type data_source_id_spec :: {:id, integer} | {:name, String.t()}
 
   @type data_source_operation_error ::
-          {:error, :expired | :unauthorized | :not_connected | :internal_error | :license_invalid}
+          {:error, :expired | :unauthorized | :not_connected | :internal_error}
 
   @type data_source_status :: :online | :offline | :broken | :analyzing
 
@@ -315,11 +315,7 @@ defmodule Air.Service.DataSource do
           (%{channel_pid: pid, data_source: DataSource.t(), cloak_info: Map.t()} -> result)
         ) :: result | data_source_operation_error
         when result: :ok | {:ok, any} | {:error, any}
-  def with_available_cloak(data_source_or_id, user, fun) do
-    if License.valid?(),
-      do: do_with_available_cloak(data_source_or_id, user, fun),
-      else: {:error, :license_invalid}
-  end
+  def with_available_cloak(data_source_or_id, user, fun), do: do_with_available_cloak(data_source_or_id, user, fun)
 
   # -------------------------------------------------------------------
   # Internal functions

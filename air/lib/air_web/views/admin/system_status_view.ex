@@ -29,11 +29,9 @@ defmodule AirWeb.Admin.SystemStatusView do
 
   defp date_time_to_string(dt), do: Timex.format!(dt, "%F %T", :strftime)
 
-  defp type(:license), do: "License"
   defp type(:privacy_policy), do: ""
   defp type(%DataSource{}), do: "Data source"
 
-  defp name(:license), do: ""
   defp name(:privacy_policy), do: "Privacy policy"
   defp name(%DataSource{} = resource), do: resource.name
 
