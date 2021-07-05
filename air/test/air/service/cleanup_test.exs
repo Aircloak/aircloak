@@ -63,8 +63,8 @@ defmodule Air.Service.Cleanup.Test do
   end
 
   test "removes logs older than retention days" do
-    :ok = Logs.save("host", :air, in_days(0), "recent")
-    :ok = Logs.save("host", :air, in_days(-2), "old")
+    :ok = Logs.save(in_days(0), :air, "host", :info, "recent")
+    :ok = Logs.save(in_days(-2), :air, "host", :info, "old")
     Cleanup.cleanup_old_logs()
     assert [%{message: "recent"}] = Logs.tail(in_days(-10), 10)
   end

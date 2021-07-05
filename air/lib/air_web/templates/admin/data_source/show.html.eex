@@ -11,29 +11,34 @@
       <p class="lead"><%= @data_source.description %></p>
     <% end %>
 </header>
-<%= render AirWeb.Admin.WarningsView, "_warnings.html", conn: @conn, problems: @problems %>
+<%= render AirWeb.Admin.SystemStatusView, "_warnings.html", conn: @conn, problems: @problems %>
 
 <div class="row">
-  <div class="col-md-6 mb-3">
+  <div class="col-md-4 mb-3">
     <h3 class="h4">Users with access</h3>
 
     <%= if length(@users) == 0 do %>
       <p>No users currently have the privileges to query this data source</p>
     <% else %>
-      <%= for user <- @users do %>
-      <div class="row border-bottom mb-2 py-2">
-          <div class="col-lg-5 d-flex justify-content-between align-items-baseline"><span><%= user.name %></span>
-            <%= if admin?(user) do %>
-              <span class="badge badge-danger">Admin</span>
-            <% end %>
-          </div>
-          <div class="col-lg-4 text-muted text-truncate"><%= Air.Service.User.main_login(user) %></div>
-          <div class="col-lg-3 d-flex justify-content-lg-end align-items-baseline"><%= link_unless_explorer @conn, "Edit user", user, to: admin_user_path(@conn, :edit, user), class: "btn btn-outline-secondary btn-sm" %></div>
-          </div>
-      <% end %>
+      <table class="table">
+        <tbody>
+          <%= for user <- @users do %>
+            <tr>
+              <td><%= user.name %></td>
+              <td>
+                <%= if admin?(user) do %>
+                  <span class="badge badge-danger">Admin</span>
+                <% end %>
+              </td>
+              <td><%= Air.Service.User.main_login(user) %></td>
+              <td align="right"><%= link_unless_explorer @conn, "Edit user", user, to: admin_user_path(@conn, :edit, user), class: "btn btn-outline-secondary btn-sm" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
     <% end %>
   </div>
-  <div class="col-md-6 mb-3">
+  <div class="col-md-4 mb-3">
     <h3 class="h4">Groups granting access</h3>
 
     <%= if length(@data_source.groups) == 0 do %>
@@ -51,14 +56,14 @@
                   <span class="badge badge-danger">Admin</span>
                 <% end %>
               </td>
-              <td><%= link_unless_explorer @conn, "Edit group",  group, to: admin_group_path(@conn, :edit, group), class: "btn btn-outline-secondary btn-sm" %></td>
+              <td align="right"><%= link_unless_explorer @conn, "Edit group",  group, to: admin_group_path(@conn, :edit, group), class: "btn btn-outline-secondary btn-sm" %></td>
             </tr>
           <% end %>
         </tbody>
       </table>
     <% end %>
   </div>
-  <div class="col-md-6 mb-3">
+  <div class="col-md-4 mb-3">
     <h3 class="h4">Cloaks hosting data source</h3>
     <%= if number_of_cloaks_serving(@data_source) == 0 do %>
       <p>

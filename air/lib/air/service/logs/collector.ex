@@ -30,7 +30,7 @@ defmodule Air.Service.Logs.Collector do
   def handle_event({level, _group_leader, {Logger, message, {date, time}, _metadata}}, state) do
     {hour, minute, second, millisecond} = time
     timestamp = NaiveDateTime.from_erl!({date, {hour, minute, second}}, {millisecond * 1000, 6})
-    Air.Service.Logs.save(state.hostname, :air, timestamp, to_string(["[#{level}] " | message]))
+    Air.Service.Logs.save(timestamp, :air, state.hostname, level, to_string(message))
     {:ok, state}
   end
 

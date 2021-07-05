@@ -4,7 +4,8 @@ defmodule AirWeb.Admin.LogsLive.Index do
 
   alias Air.Schemas.Log
 
-  @max_entries_per_refresh 1_000
+  @initial_entries 1_000
+  @max_entries_per_refresh 100
   @refresh_interval :timer.seconds(2)
 
   @impl true
@@ -12,7 +13,8 @@ defmodule AirWeb.Admin.LogsLive.Index do
     # prevent recursion from debug messages
     Logger.disable(self())
 
-    {last_timestamp, logs} = NaiveDateTime.new!(Date.utc_today(), Time.from_seconds_after_midnight(0)) |> logs_tail()
+    today = NaiveDateTime.new!(Date.utc_today(), Time.from_seconds_after_midnight(0))
+    {last_id, logs} = logs_tail(%{timestamp: today}, @initial_entries)
 
     if connected?(socket), do: :timer.send_interval(@refresh_interval, self(), :refresh)
 
@@ -21,7 +23,7 @@ defmodule AirWeb.Admin.LogsLive.Index do
       socket
       |> assign_new(:current_user, fn -> current_user!(session) end)
       |> assign(:problems, Air.Service.Warnings.problems())
-      |> assign(:last_timestamp, last_timestamp)
+      |> assign(:last_id, last_id)
       |> assign(:logs, logs),
       temporary_assigns: [logs: []]
     }
@@ -29,8 +31,8 @@ defmodule AirWeb.Admin.LogsLive.Index do
 
   @impl true
   def handle_info(:refresh, socket) do
-    {last_timestamp, logs} = socket.assigns.last_timestamp |> logs_tail()
-    socket = socket |> assign(:last_timestamp, last_timestamp) |> assign(:logs, logs)
+    {last_id, logs} = logs_tail(%{id: socket.assigns.last_id}, @max_entries_per_refresh)
+    socket = socket |> assign(:last_id, last_id) |> assign(:logs, logs)
     {:noreply, socket}
   end
 
@@ -38,14 +40,10 @@ defmodule AirWeb.Admin.LogsLive.Index do
   # Helpers
   # -------------------------------------------------------------------
 
-  defp logs_tail(since) do
-    case Air.Service.Logs.tail(since, @max_entries_per_refresh) do
-      [] ->
-        {since, []}
-
-      [%Log{timestamp: last_timestamp} | _] = logs ->
-        {last_timestamp, logs |> Enum.reverse() |> Enum.map(&truncate_timestamp/1)}
-    end
+  defp logs_tail(filters, max_entries) do
+    logs = filters |> Air.Service.Logs.tail(max_entries) |> Enum.map(&truncate_timestamp/1)
+    last_id = Enum.max_by(logs, & &1.id, fn -> %{id: 0} end).id
+    {last_id, logs}
   end
 
   defp truncate_timestamp(log), do: %Log{log | timestamp: NaiveDateTime.truncate(log.timestamp, :second)}
@@ -57,4 +55,7 @@ defmodule AirWeb.Admin.LogsLive.Index do
       ""
     end
   end
+
+  defp format_message(message),
+    do: message |> String.split("\n", trim: false) |> Enum.intersperse(Phoenix.HTML.Tag.tag(:br))
 end
