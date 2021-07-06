@@ -63,7 +63,6 @@ defmodule Air do
     Air.Repo.configure()
 
     with {:ok, _pid} = result <- Air.Supervisor.start_link() do
-      load_license()
       load_privacy_policy()
       load_users_and_datasources()
       prepare_explorer()
@@ -163,15 +162,6 @@ defmodule Air do
   # -------------------------------------------------------------------
   # Post boot static configuration
   # -------------------------------------------------------------------
-
-  defp load_license() do
-    on_setting_file("license_file", fn license_content, path ->
-      case Air.Service.License.load(license_content) do
-        :ok -> Logger.info("Applied statically configured Aircloak license from file `#{path}`")
-        {:error, reason} -> Logger.error("Failed to load an Aircloak Insights license from file `#{path}`: " <> reason)
-      end
-    end)
-  end
 
   defp load_privacy_policy() do
     on_setting_file("privacy_policy_file", fn policy_content, path ->

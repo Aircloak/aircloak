@@ -3,7 +3,7 @@ defmodule Air.Service.Warnings do
 
   @type severity_class :: :high | :medium | :low
 
-  @type resource :: Schemas.DataSource.t() | :license | :privacy_policy
+  @type resource :: Schemas.DataSource.t() | :privacy_policy
 
   @type problem :: %{
           resource: resource,
@@ -11,7 +11,7 @@ defmodule Air.Service.Warnings do
           severity: severity_class
         }
 
-  alias Air.Service.{DataSource, Cloak, License}
+  alias Air.Service.{DataSource, Cloak}
   alias Air.{Schemas, Repo}
 
   # -------------------------------------------------------------------
@@ -25,7 +25,7 @@ defmodule Air.Service.Warnings do
   @spec problems() :: [problem]
   def problems(),
     do:
-      (data_source_problems(DataSource.all()) ++ license_problems())
+      data_source_problems(DataSource.all())
       |> order_problems()
 
   @doc """
@@ -35,8 +35,6 @@ defmodule Air.Service.Warnings do
   @spec problems_for_resource(resource) :: [problem]
   def problems_for_resource(%Schemas.DataSource{} = data_source),
     do: data_source_problems([data_source]) |> order_problems()
-
-  def problems_for_resource(:license), do: license_problems()
 
   @doc "Given a set of problems, returns the highest severity class of any of the problems"
   @spec highest_severity_class([problem]) :: severity_class
@@ -152,31 +150,6 @@ defmodule Air.Service.Warnings do
       data_sources
       |> Enum.filter(fn data_source -> Enum.all?(data_source.groups, &Enum.empty?(&1.users)) end)
       |> Enum.map(&problem(&1, "No users have access to this data source", severity))
-
-  # -------------------------------------------------------------------
-  # License problems
-  # -------------------------------------------------------------------
-
-  @license_warn_in_days 14
-
-  defp license_problems() do
-    cond do
-      not License.valid?() ->
-        [problem(:license, "Your system doesn't have a valid license.", :high)]
-
-      Timex.diff(License.expiry(), Timex.now(), :days) < @license_warn_in_days ->
-        [
-          problem(
-            :license,
-            "Your license will expire in less than #{@license_warn_in_days} days.",
-            :high
-          )
-        ]
-
-      true ->
-        []
-    end
-  end
 
   # -------------------------------------------------------------------
   # Helpers

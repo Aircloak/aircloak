@@ -41,7 +41,6 @@
             <ul class="navbar-nav">
               <%= sidebar_link(@conn, "Settings", "cogs", admin_settings_path(@conn, :show)) %>
               <%= sidebar_link(@conn, "Privacy policy", "user-shield", admin_privacy_policy_path(@conn, :index)) %>
-              <%= sidebar_link(@conn, "Aircloak license", "key", admin_license_path(@conn, :edit)) %>
             </ul>
 
         </div>

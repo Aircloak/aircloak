@@ -69,28 +69,6 @@ defmodule IntegrationTest.Manager do
     user
   end
 
-  def load_valid_license(),
-    do: :ok = create_license() |> Central.Service.License.export() |> Air.Service.License.load()
-
-  def load_expired_license() do
-    license = create_license()
-
-    {:ok, _} =
-      Ecto.Adapters.SQL.query(
-        Central.Repo,
-        "UPDATE licenses SET inserted_at = '2000-01-01 00:00:00' WHERE id = $1",
-        [
-          license.id
-        ]
-      )
-
-    :ok =
-      Central.Schemas.License
-      |> Central.Repo.get!(license.id)
-      |> Central.Service.License.export()
-      |> Air.Service.License.load()
-  end
-
   def restart_cloak() do
     Application.stop(:cloak)
     ensure_cloak_disconnected()
@@ -207,7 +185,6 @@ defmodule IntegrationTest.Manager do
     |> Repo.preload([:groups])
     |> Air.Service.DataSource.update!(%{groups: [admin_group.id], name: @data_source_name})
 
-    load_valid_license()
     Air.Service.PrivacyPolicy.set("Privacy policy content")
   end
 

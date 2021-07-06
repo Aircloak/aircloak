@@ -204,9 +204,6 @@ At this point, you have a clean installation of `air`.
 
 Now, you need to perform the onboarding procedure and create the first user. Visit your `air` site (e.g. https://sebastian-air.aircloak.com), and follow the instructions.
 
-Next, you need to import the license. To obtain the license, you can visit [Aircloak Central](https://central.aircloak.com/customers/3/licenses),
-and create and/or download a license for the Aircloak customer. In your `air`, go to Settings/Admin/Aircloak license and import the license.
-
 Finally, you need to provide permissions for each desired data source. In your `air`, go to Settings/Admin/Groups, click on the Edit button next to the admin group, add all available data sources, and click on save.
 
 At this point, you can query data sources from the main user interface.
