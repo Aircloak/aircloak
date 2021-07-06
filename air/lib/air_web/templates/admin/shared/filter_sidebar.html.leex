@@ -82,6 +82,8 @@
       </form>
     </section>
 
+    <%= assigns[:children] %>
+
     <%= for {name, {title, options}} <- @filters do %>
       <%= render(
         "list_filter.html",

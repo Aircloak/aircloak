@@ -1,1 +1,66 @@
-<h3>Queries live view</h3>
+<div class="container-with-sidebar-narrow">
+  <header class="px-0 page-header">
+    <button type="button" class="float-right btn btn-primary d-block d-lg-none" data-toggle="collapse"
+        data-target="#sidebar" aria-expanded="false">
+      <i class="fas fa-list"></i> Filters
+    </button>
+    <h1>Queries</h1>
+  </header>
+
+  <div class="px-0">
+    <%= if length(@queries) == 0 do %>
+      <div><b>There are no queries matching your search criteria.</b></div>
+    <% else %>
+
+      <%= if length(@queries) >= @max_results do %>
+        <div class="alert alert-warning" role="alert">
+          There are more than <strong><%= @max_results %></strong> entries matching your filters. Only the most recent
+          <strong><%= @max_results %></strong> are shown. Consider narrowing your search criteria.
+        </div>
+      <% end %>
+
+      <%= for query <- @queries do %>
+        <div id="<%= query.id %>"></div>
+        <hr />
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<%= render_in(AirWeb.Admin.SharedView, "filter_sidebar.html",
+  conn: @socket,
+  from: @from,
+  to: @to,
+  path: &queries_index_path(@socket, :index, &1),
+  params: @query_params,
+  live?: true,
+  filters: [
+    data_sources: {"Filter by data source", @data_sources},
+    query_states: {"Filter by state", @query_states}
+  ]) do %>
+  <section class="mb-3">
+    <h3 class="h5 mt-3">Filter by phrase</h3>
+    <%= if @phrase do %>
+      <table class="table">
+        <tr>
+          <td class="table-warning">
+            <%= live_patch [glyph(), @phrase], to: queries_index_path(@socket, :index, Map.delete(@query_params, "phrase")) %>
+          </td>
+        </tr>
+      </table>
+    <% else %>
+      <form id="phrasefilterform" phx-submit="change_phrase" phx-update="ignore">
+        <div class="form-group">
+          <input
+            type="text"
+            id="phrase"
+            name="phrase"
+            class="form-control"
+            placeholder="Search..."
+          />
+        </div>
+        <button type="submit" class="btn btn-primary">Filter</button>
+      </form>
+    <% end %>
+  </section>
+<% end %>
