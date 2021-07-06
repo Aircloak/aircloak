@@ -6,7 +6,7 @@ defmodule AirWeb.Admin.SystemStatusController do
   use Air.Web, :admin_controller
 
   alias Plug.CSRFProtection
-  alias Air.Service.{AuditLog, Cloak.Stats, Query, User, Warnings}
+  alias Air.Service.{AuditLog, Cloak.Stats, Query, User, Warnings, Logs}
 
   # -------------------------------------------------------------------
   # Actions
@@ -28,4 +28,24 @@ defmodule AirWeb.Admin.SystemStatusController do
   end
 
   def warnings(conn, _params), do: render(conn, "warnings.html", problems: Air.Service.Warnings.problems())
+
+  def logs_archive(conn, _params) do
+    conn = conn |> put_resp_content_type("text/plain") |> send_chunked(200)
+
+    Logs.all()
+    |> Stream.chunk_every(1000)
+    |> Enum.reduce(conn, fn batch, conn ->
+      {:ok, conn} = chunk(conn, Enum.map(batch, &format_log_entry/1))
+      conn
+    end)
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp format_log_entry(log) do
+    timestamp = log.timestamp |> NaiveDateTime.truncate(:millisecond) |> to_string()
+    [timestamp, " [#{log.source}@#{log.hostname}] [#{log.level}]: ", log.message, ?\n]
+  end
 end

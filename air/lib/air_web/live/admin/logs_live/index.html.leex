@@ -19,6 +19,11 @@
   </ul>
 </header>
 
+<div class="row">
+  <div class="col-md-12">
+    <%= link("Full archive", to: admin_system_status_path(@socket, :logs_archive), class: "link-primary float-right") %>
+  </div>
+</div>
 <div id="logs" class="logs border border-2 rounded border-primary">
   <table id="logs-table" class="table table-sm table-hover table-condensed">
     <tbody id="logs-body" phx-update="append">

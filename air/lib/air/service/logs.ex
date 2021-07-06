@@ -30,6 +30,14 @@ defmodule Air.Service.Logs do
     |> Enum.reverse()
   end
 
+  @doc "Returns all log entries, sorted in ascendent order by timestamp."
+  @spec all() :: [Log.t()]
+  def all() do
+    Log
+    |> order_by([log], [log.timestamp, log.id])
+    |> Repo.all()
+  end
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
