@@ -8,6 +8,7 @@ defmodule Air.Supervisor do
       [
         Air.Repo,
         Air.Repo.Migrator,
+        Air.Service.Logs,
         Air.Service.Salts,
         Air.Service.Settings,
         Air.Service.Cloak,

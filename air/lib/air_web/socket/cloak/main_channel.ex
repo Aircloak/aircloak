@@ -355,10 +355,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   defp handle_cloak_message("log", payload, socket) do
-    Task.start(fn ->
-      Air.Service.Logs.save(payload.timestamp, :cloak, payload.hostname, payload.level, payload.message)
-    end)
-
+    Air.Service.Logs.save(payload.timestamp, :cloak, payload.hostname, payload.level, payload.message)
     {:noreply, socket}
   end
 
