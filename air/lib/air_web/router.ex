@@ -161,6 +161,7 @@ defmodule AirWeb.Router do
     get("/system_status", SystemStatusController, :index)
     get("/system_status/warnings", SystemStatusController, :warnings)
     live("/system_status/logs", LogsLive.Index, :index, layout: {AirWeb.LayoutView, :admin})
+    get("/system_status/logs_archive", SystemStatusController, :logs_archive)
 
     resources("/privacy_policy", PrivacyPolicyController)
     resources("/diffix-explorer", ExplorerController, only: [:index, :show])
