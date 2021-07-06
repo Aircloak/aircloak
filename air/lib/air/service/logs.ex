@@ -30,12 +30,12 @@ defmodule Air.Service.Logs do
     |> Enum.reverse()
   end
 
-  @doc "Returns all log entries, sorted in ascendent order by timestamp."
-  @spec all() :: [Log.t()]
-  def all() do
-    Log
-    |> order_by([log], [log.timestamp, log.id])
-    |> Repo.all()
+  @doc "Streams all log entries, sorted in ascendent order by timestamp."
+  @spec stream_all((Enum.t() -> any)) :: any
+  def stream_all(stream_handler) do
+    stream = Log |> order_by([log], [log.timestamp, log.id]) |> Repo.stream()
+    {:ok, result} = Repo.transaction(fn -> stream_handler.(stream) end, timeout: :timer.hours(1))
+    result
   end
 
   # -------------------------------------------------------------------

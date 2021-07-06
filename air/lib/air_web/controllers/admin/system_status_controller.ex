@@ -32,11 +32,13 @@ defmodule AirWeb.Admin.SystemStatusController do
   def logs_archive(conn, _params) do
     conn = conn |> put_resp_content_type("text/plain") |> send_chunked(200)
 
-    Logs.all()
-    |> Stream.chunk_every(1000)
-    |> Enum.reduce(conn, fn batch, conn ->
-      {:ok, conn} = chunk(conn, Enum.map(batch, &format_log_entry/1))
-      conn
+    Logs.stream_all(fn stream ->
+      stream
+      |> Enum.chunk_every(100)
+      |> Enum.reduce(conn, fn batch, conn ->
+        {:ok, conn} = chunk(conn, Enum.map(batch, &format_log_entry/1))
+        conn
+      end)
     end)
   end
 
