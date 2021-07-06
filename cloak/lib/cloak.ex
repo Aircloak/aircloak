@@ -52,7 +52,6 @@ defmodule Cloak do
          do: Application.put_env(:cloak, :send_logs_to_air, true)
 
     with {:ok, _} = result <- Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor) do
-      start_log_collection()
       log_startup()
       result
     end
@@ -66,6 +65,7 @@ defmodule Cloak do
     import Aircloak, only: [in_env: 1]
 
     [
+      Cloak.LogCollector,
       Cloak.MemoryUsage,
       Cloak.AnalystTable,
       Cloak.DataSource,
@@ -103,6 +103,4 @@ defmodule Cloak do
 
   defp update_timeout!(config, _field, nil), do: config
   defp update_timeout!(config, field, new_value), do: Keyword.replace!(config, field, :timer.seconds(new_value))
-
-  defp start_log_collection(), do: Logger.add_backend(Cloak.LogCollector, flush: true)
 end
