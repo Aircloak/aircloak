@@ -63,7 +63,6 @@ defmodule Air do
     Air.Repo.configure()
 
     with {:ok, _pid} = result <- Air.Supervisor.start_link() do
-      start_log_collection()
       load_license()
       load_privacy_policy()
       load_users_and_datasources()
@@ -274,11 +273,5 @@ defmodule Air do
       :error ->
         :ok
     end
-  end
-
-  if Mix.env() == :test do
-    defp start_log_collection(), do: :ok
-  else
-    defp start_log_collection(), do: Logger.add_backend(Air.Service.Logs.Collector, flush: true)
   end
 end

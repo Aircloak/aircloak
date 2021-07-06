@@ -1,9 +1,11 @@
 defmodule Air.Service.Logs do
-  @moduledoc "Service gathering logs."
+  @moduledoc "Service for logs management."
 
   alias Air.Repo
   alias Air.Schemas.Log
   import Ecto.Query
+
+  use GenServer
 
   # -------------------------------------------------------------------
   # API functions
@@ -12,10 +14,8 @@ defmodule Air.Service.Logs do
   @doc "Stores a new log entry into the database."
   @spec save(NaiveDateTime.t(), Log.Source.t(), String.t(), Log.Level.t(), String.t()) :: :ok
   def save(timestamp, source, hostname, level, message) do
-    %Log{timestamp: timestamp, source: source, hostname: hostname, level: level, message: message}
-    |> Repo.insert()
-
-    :ok
+    log_entry = %Log{timestamp: timestamp, source: source, hostname: hostname, level: level, message: message}
+    GenServer.cast(__MODULE__, {:store, log_entry})
   end
 
   @doc "Returns the most recent log entries, sorted in ascendent order by timestamp."
@@ -31,6 +31,26 @@ defmodule Air.Service.Logs do
   end
 
   # -------------------------------------------------------------------
+  # GenServer callbacks
+  # -------------------------------------------------------------------
+
+  def start_link(_args), do: GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+
+  @impl GenServer
+  def init(_) do
+    # prevent recursion from additional log messages
+    Logger.disable(self())
+    start_log_collection()
+    {:ok, nil}
+  end
+
+  @impl GenServer
+  def handle_cast({:store, log_entry}, state) do
+    Repo.insert!(log_entry)
+    {:noreply, state}
+  end
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
@@ -39,4 +59,10 @@ defmodule Air.Service.Logs do
 
   defp filter_by_id(scope, %{id: since}), do: where(scope, [log], log.id > ^since)
   defp filter_by_id(scope, _), do: scope
+
+  if Mix.env() == :test do
+    defp start_log_collection(), do: :ok
+  else
+    defp start_log_collection(), do: Logger.add_backend(Air.Service.Logs.Collector, flush: true)
+  end
 end

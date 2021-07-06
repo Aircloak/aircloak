@@ -14,9 +14,6 @@ defmodule Air.Service.Logs.Collector do
 
   @impl :gen_event
   def init(_arg) do
-    # prevent recursion
-    Logger.disable(self())
-
     {:ok, hostname} = :inet.gethostname()
     {:ok, %{hostname: to_string(hostname)}}
   end
