@@ -51,6 +51,7 @@ defmodule AirWeb.QueriesLive.Index do
         filters = %{
           from: from,
           to: to,
+          phrase: phrase,
           query_states: get_query_states(params["query_states"]),
           data_sources: params["data_sources"] || [],
           users: [socket.assigns.current_user.id],
