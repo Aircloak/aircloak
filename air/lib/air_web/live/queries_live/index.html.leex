@@ -7,24 +7,7 @@
     <h1>Queries</h1>
   </header>
 
-  <div class="px-0">
-    <%= if length(@queries) == 0 do %>
-      <div><b>There are no queries matching your search criteria.</b></div>
-    <% else %>
-
-      <%= if length(@queries) >= @max_results do %>
-        <div class="alert alert-warning" role="alert">
-          There are more than <strong><%= @max_results %></strong> entries matching your filters. Only the most recent
-          <strong><%= @max_results %></strong> are shown. Consider narrowing your search criteria.
-        </div>
-      <% end %>
-
-      <%= for query <- @queries do %>
-        <div id="<%= query.id %>"></div>
-        <hr />
-      <% end %>
-    <% end %>
-  </div>
+    <div id="queries-root" phx-hook="QueriesHook" phx-update="ignore"></div>
 </div>
 
 <%= render_in(AirWeb.Admin.SharedView, "filter_sidebar.html",
@@ -35,8 +18,8 @@
   params: @query_params,
   live?: true,
   filters: [
-    data_sources: {"Filter by data source", @data_sources},
-    query_states: {"Filter by state", @query_states}
+    query_states: {"Filter by state", @query_states},
+    data_sources: {"Filter by data source", @data_sources}
   ]) do %>
   <section class="mb-3">
     <h3 class="h5 mt-3">Filter by phrase</h3>
@@ -64,3 +47,33 @@
     <% end %>
   </section>
 <% end %>
+
+<script>
+  window.liveHooks = {
+    QueriesHook: {
+      mounted() {
+        var reactExports = {};
+        var props = {
+          CSRFToken: "<%= @csrf_token %>",
+          numberFormat: <%= to_json(@number_format) %>,
+          debugModeEnabled: <%= @debug_mode_enabled %>,
+          reactExports: reactExports
+        };
+
+        App.queryHistoryPage(props, document.getElementById("queries-root"));
+
+        this.handleEvent("queries", function (data) {
+          setTimeout(function () {
+            reactExports.setResults(data.queries);
+          })
+        });
+
+        this.handleEvent("more_queries", function (data) {
+          reactExports.setResults(function (results) {
+            return results.concat(data.queries);
+          });
+        });
+      }
+    }
+  };
+</script>

@@ -4,6 +4,7 @@ defmodule AirWeb.QueriesLive.Index do
 
   alias Air.Service.DataSource
   alias Air.Service.Query
+  alias Plug.CSRFProtection
 
   @page_size 10
 
@@ -23,6 +24,13 @@ defmodule AirWeb.QueriesLive.Index do
       |> then_assign_new(:data_sources, fn socket ->
         DataSource.for_user(socket.assigns.current_user) |> Enum.map(&%{label: &1.name, value: &1.name})
       end)
+      |> then_assign(fn socket ->
+        [
+          csrf_token: CSRFProtection.get_csrf_token(),
+          number_format: Air.Service.User.number_format_settings(socket.assigns.current_user),
+          debug_mode_enabled: socket.assigns.current_user.debug_mode_enabled
+        ]
+      end)
     }
   end
 
@@ -39,7 +47,27 @@ defmodule AirWeb.QueriesLive.Index do
       |> assign(:from, from)
       |> assign(:to, to)
       |> assign(:phrase, phrase)
-      |> assign(:queries, [])
+      |> if_connected(fn socket ->
+        filters = %{
+          from: from,
+          to: to,
+          query_states: [], # TODO
+          data_sources: [], # TODO
+          users: [socket.assigns.current_user.id],
+          max_results: @page_size
+        }
+
+        queries =
+          Query.queries(filters)
+          |> Enum.map(fn query ->
+            AirWeb.Query.for_display(query,
+              authenticated?: true,
+              buckets: Query.buckets(query, 0)
+            )
+          end)
+
+        push_event(socket, "queries", %{queries: queries})
+      end)
     }
   end
 
@@ -102,5 +130,15 @@ defmodule AirWeb.QueriesLive.Index do
     end
   end
 
+  defp if_connected(socket, func) do
+    if connected?(socket), do: func.(socket), else: socket
+  end
+
+  defp then_assign(socket, func), do: assign(socket, func.(socket))
+
   defp then_assign_new(socket, key, func), do: assign_new(socket, key, fn -> func.(socket) end)
+
+  defp load_queries(filters) do
+    Query.queries(filters)
+  end
 end
