@@ -3,6 +3,7 @@
 import type { Node } from "react";
 import React, { useState } from "react";
 
+import type { Result } from "./result";
 import Results from "./results";
 import { deleteQueryResult, setQueryNote } from "../request";
 import type { Authentication } from "../authentication_provider";
@@ -15,26 +16,34 @@ type Props = {
   authentication: Authentication,
 };
 
+const resultsPending: Result[] = (null: any);
+
 export default ({
   reactExports,
   numberFormat,
   debugModeEnabled,
   authentication,
 }: Props): Node => {
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState(resultsPending);
   reactExports.setResults = setResults;
+
+  if (results === resultsPending) {
+    return null;
+  } else if (results.length === 0) {
+    return <p>There are no queries matching your search criteria.</p>;
+  }
 
   const deleteResult = (id: string) => {
     if (window.confirm("Do you want to permanently delete this query?")) {
       deleteQueryResult(id, authentication);
-      setResults((queries) => queries.filter((r) => r.id !== id));
+      setResults((results: Result[]) => results.filter((r) => r.id !== id));
     }
   };
 
   const updateNote = (id: string, note: string | null) => {
     setQueryNote(id, note, authentication);
-    setResults((queries) =>
-      queries.map((r: any) => (r.id !== id ? r : { ...r, note }))
+    setResults((results: Result[]) =>
+      results.map((r: any) => (r.id !== id ? r : { ...r, note }))
     );
   };
 
