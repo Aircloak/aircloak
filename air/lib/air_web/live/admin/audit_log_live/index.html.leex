@@ -39,7 +39,7 @@
           <%= format_date_header(day) %>
         </time>
       <%= for audit_log <- audit_logs do %>
-        <%= render_audit_log(%{
+        <%= component(&render_audit_log/1,
           id: audit_log.id,
           event: audit_log.event,
           user_name: audit_log.user_name,
@@ -47,11 +47,11 @@
           socket: @socket,
           user_id: audit_log.user_id,
           metadata: audit_log.metadata,
-          query_params: @query_params}) %>
+          query_params: @query_params) %>
         <%= if @expanded[{audit_log.event, audit_log.user_id, audit_log.max_date}] do %>
-          <div id="audit-log-children-<%= audit_log.id%>" class="mb-3 border-left pl-3 ml-2 position-relative nested" phx-update="append">
+          <div id="audit-log-children-<%= audit_log.id %>" class="mb-3 border-left pl-3 ml-2 position-relative nested" phx-update="append">
           <%= for child_log <- (@expanded_logs[{audit_log.event, audit_log.user_id, audit_log.max_date}] || []) do %>
-            <%= render_audit_log(%{
+            <%= component(&render_audit_log/1,
               id: child_log.id,
               event: child_log.event,
               user_name: child_log.user.name,
@@ -59,9 +59,9 @@
               socket: @socket,
               user_id: child_log.user.id,
               metadata: child_log.metadata,
-              query_params: @query_params}) %>
+              query_params: @query_params) %>
           <% end %>
-            <button class="btn collapse-button" style="bottom: 10px" phx-click="collapse_section" phx-value-event="<%= audit_log.event %>" phx-value-user="<%= audit_log.user_id %>" phx-value-to="<%=audit_log.max_date%>"><span class="small text-muted">Collapse</span></button>
+            <button id="audit-log-collapse-<%= audit_log.id %>" class="btn collapse-button" style="bottom: 10px" phx-click="collapse_section" phx-value-event="<%= audit_log.event %>" phx-value-user="<%= audit_log.user_id %>" phx-value-to="<%=audit_log.max_date%>"><span class="small text-muted">Collapse</span></button>
           </div>
         <% end %>
         <%= if show_pagination?(@expanded, audit_log) do %>
