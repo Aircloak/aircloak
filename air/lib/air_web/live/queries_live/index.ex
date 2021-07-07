@@ -47,6 +47,8 @@ defmodule AirWeb.QueriesLive.Index do
       |> assign(:from, from)
       |> assign(:to, to)
       |> assign(:phrase, phrase)
+      |> assign(:more_pages, false)
+      |> assign(:next_page_to, to)
       |> if_connected(fn socket ->
         filters = %{
           from: from,
@@ -55,20 +57,42 @@ defmodule AirWeb.QueriesLive.Index do
           query_states: get_query_states(params["query_states"]),
           data_sources: params["data_sources"] || [],
           users: [socket.assigns.current_user.id],
-          max_results: @page_size
+          max_results: @page_size + 1
         }
 
-        queries =
-          Query.queries(filters)
-          |> Enum.map(fn query ->
-            AirWeb.Query.for_display(query,
-              authenticated?: true,
-              buckets: Query.buckets(query, 0)
-            )
-          end)
+        {queries, more_pages, next_page_to} = load_page(filters)
 
-        push_event(socket, "queries", %{queries: queries})
+        socket
+        |> assign(:more_pages, more_pages)
+        |> assign(:next_page_to, next_page_to)
+        |> push_event("queries", %{queries: queries})
       end)
+    }
+  end
+
+  @impl true
+  def handle_event("load_next_page", _params, socket) do
+    assigns = socket.assigns
+    params = assigns.query_params
+
+    filters = %{
+      from: assigns.from,
+      to: assigns.next_page_to,
+      phrase: assigns.phrase,
+      query_states: get_query_states(params["query_states"]),
+      data_sources: params["data_sources"] || [],
+      users: [assigns.current_user.id],
+      max_results: @page_size + 1
+    }
+
+    {queries, more_pages, next_page_to} = load_page(filters)
+
+    {
+      :noreply,
+      socket
+      |> assign(:more_pages, more_pages)
+      |> assign(:next_page_to, next_page_to)
+      |> push_event("more_queries", %{queries: queries})
     }
   end
 
@@ -112,6 +136,25 @@ defmodule AirWeb.QueriesLive.Index do
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
+
+  defp load_page(filters) do
+    filtered_queries = Query.queries(filters)
+
+    more_pages = length(filtered_queries) > @page_size
+    next_page_to = if(more_pages, do: List.last(filtered_queries).inserted_at, else: filters.to)
+
+    queries =
+      filtered_queries
+      |> Enum.take(@page_size)
+      |> Enum.map(fn query ->
+        AirWeb.Query.for_display(query,
+          authenticated?: true,
+          buckets: Query.buckets(query, 0)
+        )
+      end)
+
+    {queries, more_pages, next_page_to}
+  end
 
   defp parse_datetime(value, default) do
     case Timex.parse(value, "{ISOdate} {ISOtime}") do
