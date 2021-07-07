@@ -22,7 +22,7 @@ defmodule AirWeb.QueriesLive.Index do
       ])
       |> assign_new(:current_user, fn -> current_user!(session) end)
       |> then_assign_new(:data_sources, fn socket ->
-        DataSource.for_user(socket.assigns.current_user) |> Enum.map(&%{label: &1.name, value: &1.name})
+        DataSource.for_user(socket.assigns.current_user) |> Enum.map(&%{label: &1.name, value: &1.id})
       end)
       |> then_assign(fn socket ->
         [
@@ -51,8 +51,8 @@ defmodule AirWeb.QueriesLive.Index do
         filters = %{
           from: from,
           to: to,
-          query_states: [], # TODO
-          data_sources: [], # TODO
+          query_states: get_query_states(params["query_states"]),
+          data_sources: params["data_sources"] || [],
           users: [socket.assigns.current_user.id],
           max_results: @page_size
         }
@@ -130,6 +130,15 @@ defmodule AirWeb.QueriesLive.Index do
     end
   end
 
+  defp get_query_states(nil), do: []
+  defp get_query_states(states), do: Enum.flat_map(states, &parse_query_state/1)
+
+  defp parse_query_state("running"), do: Air.Service.Query.State.active()
+  defp parse_query_state("completed"), do: [:completed]
+  defp parse_query_state("failed"), do: [:error]
+  defp parse_query_state("cancelled"), do: [:cancelled]
+  defp parse_query_state(_), do: []
+
   defp if_connected(socket, func) do
     if connected?(socket), do: func.(socket), else: socket
   end
@@ -137,8 +146,4 @@ defmodule AirWeb.QueriesLive.Index do
   defp then_assign(socket, func), do: assign(socket, func.(socket))
 
   defp then_assign_new(socket, key, func), do: assign_new(socket, key, fn -> func.(socket) end)
-
-  defp load_queries(filters) do
-    Query.queries(filters)
-  end
 end

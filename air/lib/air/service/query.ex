@@ -593,6 +593,10 @@ defmodule Air.Service.Query do
 
   defp for_user_ids(scope, []), do: scope
 
+  defp for_user_ids(scope, [user_id]) do
+    where(scope, [q], q.user_id == ^user_id)
+  end
+
   defp for_user_ids(scope, user_ids) do
     where(scope, [q], q.user_id in ^user_ids)
   end
