@@ -67,9 +67,7 @@
         App.queryHistoryPage(props, document.getElementById("queries-root"));
 
         this.handleEvent("queries", function (data) {
-          setTimeout(function () {
-            reactExports.setResults(data.queries);
-          })
+          reactExports.setResults(data.queries);
         });
 
         this.handleEvent("more_queries", function (data) {
