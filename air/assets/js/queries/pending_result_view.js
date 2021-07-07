@@ -17,6 +17,7 @@ import loader from "../../static/images/loader.gif";
 type Props = {
   result: PendingResult,
   authentication: Authentication,
+  hideCancelButton?: boolean,
   updateNote?: (id: string, note: string | null) => void,
 };
 
@@ -33,6 +34,7 @@ const stateItem = (state, currentState) => {
 export default ({
   result,
   authentication,
+  hideCancelButton,
   updateNote,
 }: Props): Element<"div"> => {
   return (
@@ -62,15 +64,17 @@ export default ({
           ))}
         </ul>
 
-        <div className="right-align">
-          <button
-            type="button"
-            className="btn btn-small btn-warning"
-            onClick={() => cancel(result.id, authentication)}
-          >
-            Cancel
-          </button>
-        </div>
+        {!hideCancelButton && (
+          <div className="right-align">
+            <button
+              type="button"
+              className="btn btn-small btn-warning"
+              onClick={() => cancel(result.id, authentication)}
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

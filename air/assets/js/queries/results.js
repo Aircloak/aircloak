@@ -16,6 +16,7 @@ type Props = {
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
   authentication: Authentication,
+  hideCancelButton?: boolean,
   onDeleteClick?: (id: string) => void,
   updateNote?: (id: string, note: string | null) => void,
 };
@@ -25,6 +26,7 @@ export default ({
   numberFormat,
   debugModeEnabled,
   authentication,
+  hideCancelButton,
   onDeleteClick,
   updateNote,
 }: Props): Element<"div"> => {
@@ -70,6 +72,7 @@ export default ({
                 authentication={authentication}
                 result={result}
                 updateNote={updateNote}
+                hideCancelButton={hideCancelButton}
               />
             );
         }

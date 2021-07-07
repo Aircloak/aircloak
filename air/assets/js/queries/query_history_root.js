@@ -46,6 +46,7 @@ export default ({
       authentication={authentication}
       onDeleteClick={deleteResult}
       updateNote={updateNote}
+      hideCancelButton={true}
     />
   );
 };
