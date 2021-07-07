@@ -33,12 +33,12 @@ a {
 }
 
 .full-height-query-page {
-  min-height: calc(100vh - 75px);
+  min-height: calc(100vh - 12px - 4em);
 }
 
 .content-wrapper {
   position: relative;
-  min-height: calc(100vh - 104px);
+  min-height: calc(100vh - 8px - 6em);
   /* Footer */
   padding-bottom: 100px;
 }

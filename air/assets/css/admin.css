@@ -189,7 +189,7 @@ label small.newline {
 }
 
 .full-height {
-  min-height: calc(100vh - 104px);
+  min-height: calc(100vh - 8px - 6em);
 }
 
 .header-tabs {
