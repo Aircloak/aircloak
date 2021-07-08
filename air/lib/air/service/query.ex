@@ -590,38 +590,20 @@ defmodule Air.Service.Query do
   end
 
   defp for_query_states(scope, []), do: scope
-
-  defp for_query_states(scope, query_states) do
-    where(scope, [q], q.query_state in ^query_states)
-  end
+  defp for_query_states(scope, query_states), do: where(scope, [q], q.query_state in ^query_states)
 
   defp for_data_source_ids(scope, []), do: scope
-
-  defp for_data_source_ids(scope, data_source_ids) do
-    where(scope, [q], q.data_source_id in ^data_source_ids)
-  end
+  defp for_data_source_ids(scope, data_source_ids), do: where(scope, [q], q.data_source_id in ^data_source_ids)
 
   defp for_user_ids(scope, []), do: scope
+  defp for_user_ids(scope, [user_id]), do: where(scope, [q], q.user_id == ^user_id)
+  defp for_user_ids(scope, user_ids), do: where(scope, [q], q.user_id in ^user_ids)
 
-  defp for_user_ids(scope, [user_id]) do
-    where(scope, [q], q.user_id == ^user_id)
-  end
+  defp for_time(scope, from, to), do: where(scope, [q], q.inserted_at >= ^from and q.inserted_at <= ^to)
 
-  defp for_user_ids(scope, user_ids) do
-    where(scope, [q], q.user_id in ^user_ids)
-  end
+  defp for_data_source(query, data_source), do: from(q in query, where: q.data_source_id == ^data_source.id)
 
-  defp for_time(scope, from, to) do
-    where(scope, [q], q.inserted_at >= ^from and q.inserted_at <= ^to)
-  end
-
-  defp for_data_source(query, data_source) do
-    from(q in query, where: q.data_source_id == ^data_source.id)
-  end
-
-  defp in_context(query, context) do
-    from(q in query, where: q.context == ^context)
-  end
+  defp in_context(query, context), do: from(q in query, where: q.context == ^context)
 
   defp recent(query, before) do
     from(
