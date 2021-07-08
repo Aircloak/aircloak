@@ -75,6 +75,7 @@ defmodule AirWeb.Router do
     get("/", DataSourceController, :redirect_to_last_used)
 
     resources("/queries", QueryController, only: [:create, :show, :delete])
+    live("/queries", QueriesLive.Index, :index, layout: {AirWeb.LayoutView, :app})
     post("/queries/:id/cancel", QueryController, :cancel)
     patch("/queries/:id/note", QueryController, :update_note)
     get("/queries/load_history/:data_source_name", QueryController, :load_history)

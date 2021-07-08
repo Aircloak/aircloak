@@ -13,7 +13,7 @@ defmodule AirWeb.LayoutView do
       else
         path = data_source_path(conn, :index)
         class = if String.starts_with?(request_path, path), do: "active nav-link", else: "nav-link"
-        content_tag(:div, link("Data sources", to: path, class: class), class: "nav navbar-nav ml-3")
+        link("Data sources", to: path, class: class)
       end
     end
   end

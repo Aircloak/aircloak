@@ -6,6 +6,7 @@ import ReactDOM from "react-dom";
 import codeMirror from "codemirror";
 import CodeViewer from "./code_viewer";
 import QueriesView from "./queries/root";
+import QueryHistoryView from "./queries/query_history_root";
 import SingleQueryView from "./queries/single_query_root";
 import ImmutableSingleQueryView from "./queries/immutable_single_query";
 import SelectableInfoView from "./selectable_info/root";
@@ -28,6 +29,7 @@ window.copyToClipboard = copyToClipboard;
 
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
+  queryHistoryPage: (props, elem) => App.render("query_history", props, elem),
   queryShowPage: (props, elem) => App.render("query_show", props, elem),
   immutableQueryShowPage: (props, elem) =>
     App.render("immutable_query_show", props, elem),
@@ -91,6 +93,7 @@ const App = {
       numberFormat,
       pendingQueries,
       queries,
+      reactExports,
       result,
       selectables,
       selectablesEditUrl,
@@ -118,6 +121,15 @@ const App = {
             numberFormat={numberFormat}
             debugModeEnabled={debugModeEnabled}
             typeCheckingEnabled={typeCheckingEnabled}
+          />
+        );
+      case "query_history":
+        return (
+          <QueryHistoryView
+            reactExports={reactExports}
+            numberFormat={numberFormat}
+            debugModeEnabled={debugModeEnabled}
+            authentication={authentication}
           />
         );
       case "query_show":
@@ -192,6 +204,7 @@ const App = {
     new FrontendSocket(props.browserSocketTransport, props.socketToken),
 };
 
+window.App = App;
 if (window.pageConfig !== undefined) {
   window.pageConfig.onLoad.call(this, App);
 }

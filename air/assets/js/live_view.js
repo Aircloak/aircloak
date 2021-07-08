@@ -56,6 +56,7 @@ export default (transportName) => {
           }
         },
       },
+      ...(window.liveHooks || {}),
     },
   });
   liveSocket.connect();

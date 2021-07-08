@@ -16,6 +16,7 @@ defmodule Air.Service.Query do
   @type user_id :: non_neg_integer
   @type data_source_id :: non_neg_integer
   @type filters :: %{
+          optional(:phrase) => String.t(),
           from: DateTime.t(),
           to: DateTime.t(),
           query_states: [Query.QueryState.t()],
@@ -574,40 +575,35 @@ defmodule Air.Service.Query do
   defp apply_filters(scope, filters) do
     scope
     |> for_time(filters.from, filters.to)
+    |> for_phrase(filters[:phrase])
     |> for_query_states(filters.query_states)
     |> for_data_source_ids(filters.data_sources)
     |> for_user_ids(filters.users)
   end
 
-  defp for_query_states(scope, []), do: scope
+  defp for_phrase(scope, nil), do: scope
+  defp for_phrase(scope, ""), do: scope
 
-  defp for_query_states(scope, query_states) do
-    where(scope, [q], q.query_state in ^query_states)
+  defp for_phrase(scope, phrase) do
+    pattern = "%#{String.replace(phrase, "%", "\\%")}%"
+    where(scope, [q], ilike(q.note, ^pattern) or ilike(q.statement, ^pattern))
   end
+
+  defp for_query_states(scope, []), do: scope
+  defp for_query_states(scope, query_states), do: where(scope, [q], q.query_state in ^query_states)
 
   defp for_data_source_ids(scope, []), do: scope
-
-  defp for_data_source_ids(scope, data_source_ids) do
-    where(scope, [q], q.data_source_id in ^data_source_ids)
-  end
+  defp for_data_source_ids(scope, data_source_ids), do: where(scope, [q], q.data_source_id in ^data_source_ids)
 
   defp for_user_ids(scope, []), do: scope
+  defp for_user_ids(scope, [user_id]), do: where(scope, [q], q.user_id == ^user_id)
+  defp for_user_ids(scope, user_ids), do: where(scope, [q], q.user_id in ^user_ids)
 
-  defp for_user_ids(scope, user_ids) do
-    where(scope, [q], q.user_id in ^user_ids)
-  end
+  defp for_time(scope, from, to), do: where(scope, [q], q.inserted_at >= ^from and q.inserted_at <= ^to)
 
-  defp for_time(scope, from, to) do
-    where(scope, [q], q.inserted_at >= ^from and q.inserted_at <= ^to)
-  end
+  defp for_data_source(query, data_source), do: from(q in query, where: q.data_source_id == ^data_source.id)
 
-  defp for_data_source(query, data_source) do
-    from(q in query, where: q.data_source_id == ^data_source.id)
-  end
-
-  defp in_context(query, context) do
-    from(q in query, where: q.context == ^context)
-  end
+  defp in_context(query, context), do: from(q in query, where: q.context == ^context)
 
   defp recent(query, before) do
     from(
@@ -649,6 +645,8 @@ defmodule Air.Service.Query do
       select: data_source
     )
   end
+
+  defp include_filtered(items, _schema, []), do: items
 
   defp include_filtered(items, schema, filtered_ids) do
     filtered_items = schema |> where([q], q.id in ^filtered_ids) |> Repo.all()

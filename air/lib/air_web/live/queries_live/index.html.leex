@@ -1,0 +1,82 @@
+<div class="container-with-sidebar-narrow">
+  <header class="p-0 page-header">
+    <button type="button" class="float-right btn btn-primary d-block d-lg-none" data-toggle="collapse"
+        data-target="#sidebar" aria-expanded="false">
+      <i class="fas fa-list"></i> Filters
+    </button>
+    <h1>Queries</h1>
+  </header>
+
+  <div id="queries-root" phx-hook="QueriesHook" phx-update="ignore"></div>
+
+  <%= if @more_pages do %>
+    <button class="btn btn-outline-primary w-100 d-block my-5 loader" phx-click="load_next_page">Load more queries</button>
+  <% end %>
+</div>
+
+<%= render_in(AirWeb.Admin.SharedView, "filter_sidebar.html",
+  conn: @socket,
+  from: @from,
+  to: @to,
+  path: &queries_index_path(@socket, :index, &1),
+  params: @query_params,
+  live?: true,
+  filters: [
+    query_states: @query_states,
+    data_sources: @data_sources
+  ]) do %>
+  <section class="mb-3">
+    <h3 class="h5 mt-3">Filter by phrase</h3>
+    <%= if @phrase do %>
+      <table class="table">
+        <tr>
+          <td class="table-warning">
+            <%= live_patch [glyph(), @phrase], to: queries_index_path(@socket, :index, Map.delete(@query_params, "phrase")) %>
+          </td>
+        </tr>
+      </table>
+    <% else %>
+      <form id="phrasefilterform" phx-submit="change_phrase" phx-update="ignore">
+        <div class="form-group">
+          <input
+            type="text"
+            id="phrase"
+            name="phrase"
+            class="form-control"
+            placeholder="Search..."
+            autofocus
+          />
+        </div>
+        <button type="submit" class="btn btn-primary">Filter</button>
+      </form>
+    <% end %>
+  </section>
+<% end %>
+
+<script>
+  window.liveHooks = {
+    QueriesHook: {
+      mounted() {
+        var reactExports = {};
+        var props = {
+          CSRFToken: "<%= @csrf_token %>",
+          numberFormat: <%= to_json(@number_format) %>,
+          debugModeEnabled: <%= @debug_mode_enabled %>,
+          reactExports: reactExports
+        };
+
+        App.queryHistoryPage(props, document.getElementById("queries-root"));
+
+        this.handleEvent("queries", function (data) {
+          reactExports.setResults(data.queries);
+        });
+
+        this.handleEvent("more_queries", function (data) {
+          reactExports.setResults(function (results) {
+            return results.concat(data.queries);
+          });
+        });
+      }
+    }
+  };
+</script>

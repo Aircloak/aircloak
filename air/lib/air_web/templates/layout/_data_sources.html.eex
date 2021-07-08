@@ -1,4 +1,4 @@
-<div class="dropdown ml-3">
+<div class="dropdown">
   <button class="btn text-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" data-display="static" aria-haspopup="true" aria-expanded="false">
     <i class="fas fa-database pr-2"></i><%= @data_source.name %>
   </button>

@@ -109,9 +109,10 @@
   from: @from,
   to: @to,
   path: &admin_query_performance_index_path(@socket, :index, &1),
-  users: @users,
-  data_sources: @data_sources,
-  event_types: nil,
   live?: true,
-  params: @query_params)
+  params: @query_params,
+  filters: [
+    users: @users,
+    data_sources: @data_sources
+  ])
 %>

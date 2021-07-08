@@ -186,4 +186,11 @@ defmodule AirWeb.ViewHelpers do
   def severity_class(:high), do: "danger"
   def severity_class(:medium), do: "warning"
   def severity_class(_), do: ""
+
+  def render_in(module, template, assigns \\ %{}, do: children),
+    do: Phoenix.View.render(module, template, put_in(assigns[:children], children))
+
+  def glyph(), do: glyph(true)
+  def glyph(true), do: {:safe, "<span class='fas fa-times' aria-hidden='true'></span> "}
+  def glyph(false), do: {:safe, ""}
 end

@@ -16,6 +16,8 @@ type Props = {
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
   authentication: Authentication,
+  hideCancelButton?: boolean,
+  showDataSource?: boolean,
   onDeleteClick?: (id: string) => void,
   updateNote?: (id: string, note: string | null) => void,
 };
@@ -25,6 +27,8 @@ export default ({
   numberFormat,
   debugModeEnabled,
   authentication,
+  hideCancelButton,
+  showDataSource,
   onDeleteClick,
   updateNote,
 }: Props): Element<"div"> => {
@@ -39,6 +43,7 @@ export default ({
                 result={result}
                 numberFormat={numberFormat}
                 debugModeEnabled={debugModeEnabled}
+                showDataSource={showDataSource}
                 onDeleteClick={onDeleteClick}
                 updateNote={updateNote}
               />
@@ -49,6 +54,7 @@ export default ({
                 key={result.id}
                 result={result}
                 debugModeEnabled={debugModeEnabled}
+                showDataSource={showDataSource}
                 onDeleteClick={onDeleteClick}
                 updateNote={updateNote}
               />
@@ -59,6 +65,7 @@ export default ({
                 key={result.id}
                 result={result}
                 debugModeEnabled={debugModeEnabled}
+                showDataSource={showDataSource}
                 onDeleteClick={onDeleteClick}
                 updateNote={updateNote}
               />
@@ -69,7 +76,9 @@ export default ({
                 key={result.id}
                 authentication={authentication}
                 result={result}
+                showDataSource={showDataSource}
                 updateNote={updateNote}
+                hideCancelButton={hideCancelButton}
               />
             );
         }

@@ -184,7 +184,7 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
           <% end %>
         <% end %>
 
-        <%= if @metadata["query"] do %><pre phx-hook="SQLCodeViewer"><%= @metadata["query"] %></pre><% end %>
+        <%= if @metadata["query"] do %><pre id="CodeViewer-<%= @id %>" phx-hook="SQLCodeViewer" phx-update="ignore"><%= @metadata["query"] %></pre><% end %>
 
         <%= for {key, val} <- Map.drop(@metadata, ["remote_ip", "peer", "data_source", "diff", "group_id", "group_name", "query", "user"]) do %>
           <div class="d-flex">

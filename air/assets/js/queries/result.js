@@ -82,6 +82,7 @@ type Props = {
   result: SuccessResult,
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
+  showDataSource?: boolean,
   onDeleteClick?: (queryId: string) => void,
   updateNote?: (id: string, note: string | null) => void,
 };
@@ -526,12 +527,21 @@ export class ResultView extends React.Component<Props, State> {
   };
 
   render: () => Element<"div"> = () => {
-    const { result, onDeleteClick, updateNote } = this.props;
+    const { result, showDataSource, onDeleteClick, updateNote } = this.props;
     const { tableAligner } = this.state;
+    const dataSource = result.data_source.name;
     return (
       <div className="card border-success mb-3">
         <div className="card-header border-success bg-white">
           <ResultTime time={result.inserted_at} />
+          {showDataSource && (
+            <span className="small text-muted">
+              {" · "}
+              <a className="text-muted" href={`/data_sources/${dataSource}`}>
+                {dataSource}
+              </a>
+            </span>
+          )}
           {onDeleteClick && (
             <button
               type="button"
