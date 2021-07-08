@@ -2,7 +2,6 @@ defmodule AirWeb.QueriesLive.Index do
   @moduledoc false
   use Air.Web, :live_view
 
-  alias Air.Service.DataSource
   alias Air.Service.Query
   alias Plug.CSRFProtection
 
@@ -21,9 +20,6 @@ defmodule AirWeb.QueriesLive.Index do
         %{value: "cancelled", label: "Cancelled"}
       ])
       |> assign_new(:current_user, fn -> current_user!(session) end)
-      |> then_assign_new(:data_sources, fn socket ->
-        DataSource.for_user(socket.assigns.current_user) |> Enum.map(&%{label: &1.name, value: &1.id})
-      end)
       |> then_assign(fn socket ->
         [
           csrf_token: CSRFProtection.get_csrf_token(),
@@ -40,6 +36,16 @@ defmodule AirWeb.QueriesLive.Index do
     to = parse_datetime(params["to"], Timex.now())
     phrase = get_phrase(params)
 
+    filters = %{
+      from: from,
+      to: to,
+      phrase: phrase,
+      query_states: get_query_states(params["query_states"]),
+      data_sources: params["data_sources"] || [],
+      users: [socket.assigns.current_user.id],
+      max_results: @page_size + 1
+    }
+
     {
       :noreply,
       socket
@@ -47,19 +53,10 @@ defmodule AirWeb.QueriesLive.Index do
       |> assign(:from, from)
       |> assign(:to, to)
       |> assign(:phrase, phrase)
+      |> assign(:data_sources, get_data_sources(filters))
       |> assign(:more_pages, false)
       |> assign(:next_page_to, to)
       |> if_connected(fn socket ->
-        filters = %{
-          from: from,
-          to: to,
-          phrase: phrase,
-          query_states: get_query_states(params["query_states"]),
-          data_sources: params["data_sources"] || [],
-          users: [socket.assigns.current_user.id],
-          max_results: @page_size + 1
-        }
-
         {queries, more_pages, next_page_to} = load_page(filters)
 
         socket
@@ -174,6 +171,13 @@ defmodule AirWeb.QueriesLive.Index do
     end
   end
 
+  defp get_data_sources(filters) do
+    filters
+    |> Map.put(:data_sources, [])
+    |> Query.data_sources_for_filters()
+    |> Enum.map(&%{label: &1.name, value: &1.id})
+  end
+
   defp get_query_states(nil), do: []
   defp get_query_states(states), do: Enum.flat_map(states, &parse_query_state/1)
 
@@ -188,6 +192,4 @@ defmodule AirWeb.QueriesLive.Index do
   end
 
   defp then_assign(socket, func), do: assign(socket, func.(socket))
-
-  defp then_assign_new(socket, key, func), do: assign_new(socket, key, fn -> func.(socket) end)
 end

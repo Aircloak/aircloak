@@ -646,6 +646,8 @@ defmodule Air.Service.Query do
     )
   end
 
+  defp include_filtered(items, _schema, []), do: items
+
   defp include_filtered(items, schema, filtered_ids) do
     filtered_items = schema |> where([q], q.id in ^filtered_ids) |> Repo.all()
     Enum.uniq(items ++ filtered_items)
