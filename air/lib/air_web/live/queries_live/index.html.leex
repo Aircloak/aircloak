@@ -22,8 +22,8 @@
   params: @query_params,
   live?: true,
   filters: [
-    query_states: {"Filter by state", @query_states},
-    data_sources: {"Filter by data source", @data_sources}
+    query_states: @query_states,
+    data_sources: @data_sources
   ]) do %>
   <section class="mb-3">
     <h3 class="h5 mt-3">Filter by phrase</h3>

@@ -84,11 +84,11 @@
 
     <%= assigns[:children] %>
 
-    <%= for {name, {title, options}} <- @filters do %>
+    <%= for {name, options} <- @filters do %>
       <%= render(
         "list_filter.html",
         conn: @conn,
-        title: title,
+        title: filter_title(name),
         name: name,
         options: options,
         link: &@path.(&1),

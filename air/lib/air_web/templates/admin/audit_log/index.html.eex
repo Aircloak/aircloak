@@ -30,9 +30,9 @@
   path: &admin_audit_log_index_path(@conn, &1),
   params: @conn.params,
   filters: [
-    users: {"Filter by users", @users},
-    event_types: {"Filter by event type", @event_types},
-    data_sources: {"Filter by data source", @data_sources}
+    users: @users,
+    event_types: @event_types,
+    data_sources: @data_sources
   ])
 %>
 

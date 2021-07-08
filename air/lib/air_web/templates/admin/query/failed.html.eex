@@ -53,8 +53,8 @@
   params: @conn.query_params,
   live?: false,
   filters: [
-    users: {"Filter by users", @users},
-    data_sources: {"Filter by data source", @data_sources}
+    users: @users,
+    data_sources: @data_sources
   ])
 %>
 

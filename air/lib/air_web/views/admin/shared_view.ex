@@ -29,4 +29,9 @@ defmodule AirWeb.Admin.SharedView do
 
     Map.put(query_params, normalized_name, values_for_name)
   end
+
+  defp filter_title(:users), do: "Filter by users"
+  defp filter_title(:event_types), do: "Filter by event type"
+  defp filter_title(:data_sources), do: "Filter by data source"
+  defp filter_title(:query_states), do: "Filter by state"
 end
