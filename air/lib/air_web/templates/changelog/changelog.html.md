@@ -17,6 +17,8 @@ It is called Aircloak Insights Evergreen.
 
 ### New features
 
+- You can now add notes to queries.
+- A new "Queries" page allows users to view and filter their query history.
 - The system status page now shows statistics on failed and successful login attempts, currently active user sessions,
   as well as historic query execution statistics.
 
