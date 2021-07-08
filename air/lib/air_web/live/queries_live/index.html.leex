@@ -7,11 +7,11 @@
     <h1>Queries</h1>
   </header>
 
-    <div id="queries-root" phx-hook="QueriesHook" phx-update="ignore"></div>
+  <div id="queries-root" phx-hook="QueriesHook" phx-update="ignore"></div>
 
-    <%= if @more_pages do %>
-      <button class="btn btn-outline-primary w-100 d-block my-5 loader" phx-click="load_next_page">Load more queries</button>
-    <% end %>
+  <%= if @more_pages do %>
+    <button class="btn btn-outline-primary w-100 d-block my-5 loader" phx-click="load_next_page">Load more queries</button>
+  <% end %>
 </div>
 
 <%= render_in(AirWeb.Admin.SharedView, "filter_sidebar.html",
