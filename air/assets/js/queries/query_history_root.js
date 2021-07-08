@@ -56,6 +56,7 @@ export default ({
       onDeleteClick={deleteResult}
       updateNote={updateNote}
       hideCancelButton={true}
+      showDataSource={true}
     />
   );
 };

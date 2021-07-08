@@ -15,18 +15,29 @@ import type { CancelledResult } from "./result";
 export default ({
   result,
   debugModeEnabled,
+  showDataSource,
   onDeleteClick,
   updateNote,
 }: {
   result: CancelledResult,
   debugModeEnabled: boolean,
+  showDataSource?: boolean,
   onDeleteClick?: (queryId: string) => void,
   updateNote?: (id: string, note: string | null) => void,
 }): Element<"div"> => {
+  const dataSource = result.data_source.name;
   return (
     <div className="card border-warning mb-3">
       <div className="card-header border-warning bg-white">
         <ResultTime time={result.inserted_at} />
+        {showDataSource && (
+          <span className="small text-muted">
+            {" · "}
+            <a className="text-muted" href={`/data_sources/${dataSource}`}>
+              {dataSource}
+            </a>
+          </span>
+        )}
         {onDeleteClick && (
           <button
             type="button"

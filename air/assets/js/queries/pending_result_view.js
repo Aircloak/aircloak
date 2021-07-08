@@ -18,6 +18,7 @@ type Props = {
   result: PendingResult,
   authentication: Authentication,
   hideCancelButton?: boolean,
+  showDataSource?: boolean,
   updateNote?: (id: string, note: string | null) => void,
 };
 
@@ -35,12 +36,22 @@ export default ({
   result,
   authentication,
   hideCancelButton,
+  showDataSource,
   updateNote,
 }: Props): Element<"div"> => {
+  const dataSource = result.data_source.name;
   return (
     <div className="card border-info mb-3">
       <div className="card-header border-info bg-white">
         <ResultTime time={result.inserted_at} />
+        {showDataSource && (
+          <span className="small text-muted">
+            {" · "}
+            <a className="text-muted" href={`/data_sources/${dataSource}`}>
+              {dataSource}
+            </a>
+          </span>
+        )}
         {updateNote && (
           <NoteButton
             initialValue={result.note}
