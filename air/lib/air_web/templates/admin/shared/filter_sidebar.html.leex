@@ -97,4 +97,8 @@
       ) %>
     <% end %>
   </div>
+
+  <%= if @live? do %>
+    <div id="DatePickerLoader" phx-hook="DatePickerHook" />
+  <% end %>
 </div>
