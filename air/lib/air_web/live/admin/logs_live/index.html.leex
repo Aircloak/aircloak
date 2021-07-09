@@ -61,7 +61,7 @@
   var autoscroll = true;
 
   logs.addEventListener("scroll", function () {
-    autoscroll = this.scrollHeight - this.scrollTop === this.clientHeight;
+    autoscroll = this.scrollHeight - this.scrollTop - this.clientHeight < 5;
   });
 
   const observer = new MutationObserver(function (mutationsList, observer) {
