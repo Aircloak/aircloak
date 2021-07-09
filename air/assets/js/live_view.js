@@ -5,6 +5,7 @@ import NProgress from "nprogress";
 import "nprogress/nprogress.css";
 import "./elements/histogram_chart";
 import "./elements/sql_code_block";
+import activateDatetimePickers from "./datetimepicker";
 import FrontendSocket from "./frontend_socket";
 
 export default (transportName) => {
@@ -54,6 +55,11 @@ export default (transportName) => {
             };
             parentElement.addEventListener("click", listener);
           }
+        },
+      },
+      DatePickerHook: {
+        mounted() {
+          activateDatetimePickers();
         },
       },
       ...(window.liveHooks || {}),

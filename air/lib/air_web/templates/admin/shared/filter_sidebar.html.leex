@@ -17,7 +17,7 @@
 
     <section class="mb-3">
       <h3 class="h5 mt-3">Filter by time</h3>
-      <form id="datefilterform" phx-submit="change_dates" phx-update="ignore">
+      <form id="datefilterform" phx-submit="change_dates" phx-update="ignore" phx-hook="DatePickerHook">
         <%= unless @live? do %>
           <%= for {name, value} <- serialize_params(@conn), name not in ~w(from
           to) do %>
