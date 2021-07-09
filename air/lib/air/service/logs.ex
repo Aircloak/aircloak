@@ -24,6 +24,8 @@ defmodule Air.Service.Logs do
     Log
     |> filter_by_id(filters)
     |> filter_by_timestamp(filters)
+    |> filter_by_level(filters)
+    |> filter_by_source(filters)
     |> order_by([log], desc: log.timestamp)
     |> limit(^max_entries)
     |> Repo.all()
@@ -67,6 +69,15 @@ defmodule Air.Service.Logs do
 
   defp filter_by_id(scope, %{id: since}), do: where(scope, [log], log.id > ^since)
   defp filter_by_id(scope, _), do: scope
+
+  defp filter_by_level(scope, %{level: :info}), do: where(scope, [log], log.level != :debug)
+  defp filter_by_level(scope, %{level: :warn}), do: where(scope, [log], log.level == :warn or log.level == :error)
+  defp filter_by_level(scope, %{level: :error}), do: where(scope, [log], log.level == :error)
+  defp filter_by_level(scope, _), do: scope
+
+  defp filter_by_source(scope, %{source: :air}), do: where(scope, [log], log.source == :air)
+  defp filter_by_source(scope, %{source: :cloak}), do: where(scope, [log], log.source == :cloak)
+  defp filter_by_source(scope, _), do: scope
 
   if Mix.env() == :test do
     defp start_log_collection(), do: :ok
