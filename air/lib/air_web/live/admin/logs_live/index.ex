@@ -37,6 +37,9 @@ defmodule AirWeb.Admin.LogsLive.Index do
       %{id: socket.assigns.last_id, level: socket.assigns.level, source: socket.assigns.source}
       |> logs_tail(@max_entries_per_refresh)
 
+    # set to `nil` on empty to prevent updates
+    logs = if logs == [], do: nil, else: logs
+
     socket = socket |> assign(:last_id, last_id) |> assign(:logs, logs) |> assign(:update_type, :append)
     {:noreply, socket}
   end
