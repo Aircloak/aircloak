@@ -3,6 +3,8 @@ defmodule Air.Service.Cleanup do
 
   import Ecto.Query
 
+  @timeout :timer.hours(1)
+
   @doc "Removes old queries according to the retention in the settings."
   @spec cleanup_old_queries(Air.Settings.t(), NaiveDateTime.t()) :: :ok
   def cleanup_old_queries(settings \\ Air.Service.Settings.read(), now \\ NaiveDateTime.utc_now())
@@ -13,7 +15,7 @@ defmodule Air.Service.Cleanup do
 
     Air.Schemas.Query
     |> where([q], q.inserted_at < ^keep_since)
-    |> Air.Repo.delete_all()
+    |> Air.Repo.delete_all(timeout: @timeout)
 
     :ok
   end
@@ -38,7 +40,8 @@ defmodule Air.Service.Cleanup do
     Air.Repo.delete_all(
       from(explorer_analysis in Air.Schemas.ExplorerAnalysis,
         where: explorer_analysis.soft_delete
-      )
+      ),
+      timeout: @timeout
     )
 
     :ok
@@ -52,7 +55,7 @@ defmodule Air.Service.Cleanup do
 
     Air.Schemas.Log
     |> where([log], log.timestamp < ^keep_since)
-    |> Air.Repo.delete_all()
+    |> Air.Repo.delete_all(timeout: @timeout)
 
     :ok
   end
