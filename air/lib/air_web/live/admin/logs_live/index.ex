@@ -16,23 +16,52 @@ defmodule AirWeb.Admin.LogsLive.Index do
     today = NaiveDateTime.new!(Date.utc_today(), Time.from_seconds_after_midnight(0))
     {last_id, logs} = logs_tail(%{timestamp: today}, @initial_entries)
 
-    if connected?(socket), do: :timer.send_interval(@refresh_interval, self(), :refresh)
-
-    {
-      :ok,
+    socket =
       socket
       |> assign_new(:current_user, fn -> current_user!(session) end)
       |> assign(:problems, Air.Service.Warnings.problems())
       |> assign(:last_id, last_id)
-      |> assign(:logs, logs),
-      temporary_assigns: [logs: []]
-    }
+      |> assign(:level, :all)
+      |> assign(:source, :both)
+      |> assign(:logs, logs)
+      |> assign(:update_type, :replace)
+
+    if connected?(socket), do: :timer.send_interval(@refresh_interval, self(), :refresh)
+
+    {:ok, socket, temporary_assigns: [logs: nil]}
   end
 
   @impl true
   def handle_info(:refresh, socket) do
-    {last_id, logs} = logs_tail(%{id: socket.assigns.last_id}, @max_entries_per_refresh)
-    socket = socket |> assign(:last_id, last_id) |> assign(:logs, logs)
+    {last_id, logs} =
+      %{id: socket.assigns.last_id, level: socket.assigns.level, source: socket.assigns.source}
+      |> logs_tail(@max_entries_per_refresh)
+
+    # set to `nil` on empty to prevent updates
+    logs = if logs == [], do: nil, else: logs
+
+    socket = socket |> assign(:last_id, last_id) |> assign(:logs, logs) |> assign(:update_type, :append)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("filter", %{"level" => level, "source" => source}, socket) do
+    today = NaiveDateTime.new!(Date.utc_today(), Time.from_seconds_after_midnight(0))
+    level = String.to_atom(level)
+    source = String.to_atom(source)
+
+    {last_id, logs} =
+      %{timestamp: today, level: level, source: source}
+      |> logs_tail(@initial_entries)
+
+    socket =
+      socket
+      |> assign(:last_id, last_id)
+      |> assign(:level, level)
+      |> assign(:source, source)
+      |> assign(:logs, logs)
+      |> assign(:update_type, :replace)
+
     {:noreply, socket}
   end
 

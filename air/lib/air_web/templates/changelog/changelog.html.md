@@ -13,6 +13,7 @@ It is called Aircloak Insights Evergreen.
   than web sockets.
 - Show the "Not Found" page on invalid paths.
 - A bug that caused info messages in the admin interface to be hidden, has been fixed.
+- Various UI layout fixes.
 
 
 ### New features

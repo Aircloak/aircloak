@@ -20,13 +20,30 @@
 </header>
 
 <div class="row">
-  <div class="col-md-12">
+  <div class="col-md-6 small">
+    <form name="filter" action="#" phx-change="filter" phx-update="ignore">
+      <label class="form-label">Level:</label>
+      <select name="level" class="form-select form-select-sm">
+        <option value="all">All</option>
+        <option value="info"> &ge; Info</option>
+        <option value="warn"> &ge; Warning</option>
+        <option value="error"> = Error</option>
+      </select>
+      <label class="form-label">Source:</label>
+      <select name="source" class="form-select form-select-sm">
+        <option value="both">Air and Cloak</option>
+        <option value="air">Air</option>
+        <option value="cloak">Cloak</option>
+      </select>
+    </form>
+  </div>
+  <div class="col-md-6">
     <%= link("Full archive", to: admin_system_status_path(@socket, :logs_archive), class: "link-primary float-right") %>
   </div>
 </div>
 <div id="logs" class="logs border border-2 rounded border-primary">
   <table id="logs-table" class="table table-sm table-hover table-condensed">
-    <tbody id="logs-body" phx-update="append">
+    <tbody id="logs-body" phx-update="<%= @update_type %>">
     <%= for log <- @logs do %>
       <tr id="<%= log.id %>" class="<%= row_class(log) %>">
         <td><%= to_string(log.timestamp) %></td>
@@ -44,7 +61,7 @@
   var autoscroll = true;
 
   logs.addEventListener("scroll", function () {
-    autoscroll = this.scrollHeight - this.scrollTop === this.clientHeight;
+    autoscroll = this.scrollHeight - this.scrollTop - this.clientHeight < 5;
   });
 
   const observer = new MutationObserver(function (mutationsList, observer) {
