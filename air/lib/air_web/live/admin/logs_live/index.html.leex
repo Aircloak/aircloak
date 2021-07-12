@@ -24,14 +24,14 @@
     <form name="filter" action="#" phx-change="filter" phx-update="ignore">
       <label class="form-label">Level:</label>
       <select name="level" class="form-select form-select-sm">
-        <option value="all">Debug</option>
-        <option value="info">Info</option>
-        <option value="warn">Warning</option>
-        <option value="error">Error</option>
+        <option value="all">All</option>
+        <option value="info"> >= Info</option>
+        <option value="warn"> >= Warning</option>
+        <option value="error"> = Error</option>
       </select>
       <label class="form-label">Source:</label>
       <select name="source" class="form-select form-select-sm">
-        <option value="both">Air & Cloak</option>
+        <option value="both">Air and Cloak</option>
         <option value="air">Air</option>
         <option value="cloak">Cloak</option>
       </select>
