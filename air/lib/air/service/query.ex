@@ -16,6 +16,7 @@ defmodule Air.Service.Query do
   @type user_id :: non_neg_integer
   @type data_source_id :: non_neg_integer
   @type filters :: %{
+          optional(:contexts) => [Query.Context.t()],
           optional(:phrase) => String.t(),
           from: DateTime.t(),
           to: DateTime.t(),
@@ -575,6 +576,7 @@ defmodule Air.Service.Query do
   defp apply_filters(scope, filters) do
     scope
     |> for_time(filters.from, filters.to)
+    |> for_contexts(filters[:contexts])
     |> for_phrase(filters[:phrase])
     |> for_query_states(filters.query_states)
     |> for_data_source_ids(filters.data_sources)
@@ -588,6 +590,11 @@ defmodule Air.Service.Query do
     pattern = "%#{String.replace(phrase, "%", "\\%")}%"
     where(scope, [q], ilike(q.note, ^pattern) or ilike(q.statement, ^pattern))
   end
+
+  defp for_contexts(scope, nil), do: scope
+  defp for_contexts(scope, []), do: scope
+  defp for_contexts(scope, [context]), do: where(scope, [q], q.context == ^context)
+  defp for_contexts(scope, contexts), do: where(scope, [q], q.context in ^contexts)
 
   defp for_query_states(scope, []), do: scope
   defp for_query_states(scope, query_states), do: where(scope, [q], q.query_state in ^query_states)
