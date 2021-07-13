@@ -37,6 +37,7 @@ defmodule AirWeb.QueriesLive.Index do
     phrase = get_phrase(params)
 
     filters = %{
+      contexts: [:http],
       from: from,
       to: to,
       phrase: phrase,
@@ -73,6 +74,7 @@ defmodule AirWeb.QueriesLive.Index do
     params = assigns.query_params
 
     filters = %{
+      contexts: [:http],
       from: assigns.from,
       to: assigns.next_page_to,
       phrase: assigns.phrase,
