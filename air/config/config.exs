@@ -58,13 +58,13 @@ config :air, Air.PsqlServer,
   port: 8432,
   detailed_log: true
 
+config :air, logs_retention_days: 1
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
 
 config :air, diffix_version: "Dogwood"
-
-config :air, logs_retention_days: 1
 
 if File.exists?("config/#{Mix.env()}.local.exs") do
   import_config "#{Mix.env()}.local.exs"
