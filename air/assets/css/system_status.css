@@ -4,6 +4,11 @@
   font-size: 0.7rem;
 }
 
-.active-row {
+.logs tr:nth-child(odd) {
   background-color: rgb(243, 243, 243);
+}
+
+.logs .logs-timestamp {
+  min-width: 70px;
+  text-align: right;
 }

@@ -77,14 +77,6 @@ defmodule AirWeb.Admin.LogsLive.Index do
 
   defp truncate_timestamp(log), do: %Log{log | timestamp: NaiveDateTime.truncate(log.timestamp, :second)}
 
-  defp row_class(log) do
-    if rem(log.id, 2) == 0 do
-      "active-row"
-    else
-      ""
-    end
-  end
-
   defp format_message(message),
     do: message |> String.split("\n", trim: false) |> Enum.intersperse(Phoenix.HTML.Tag.tag(:br))
 end

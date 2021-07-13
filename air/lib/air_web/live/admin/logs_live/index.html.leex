@@ -45,8 +45,8 @@
   <table id="logs-table" class="table table-sm table-hover table-condensed">
     <tbody id="logs-body" phx-update="<%= @update_type %>">
     <%= for log <- @logs do %>
-      <tr id="<%= log.id %>" class="<%= row_class(log) %>">
-        <td><%= to_string(log.timestamp) %></td>
+      <tr id="<%= log.id %>">
+        <td class="logs-timestamp"><%= to_string(log.timestamp) %></td>
         <td><%= "#{log.source}@#{log.hostname}" %></td>
         <td><%= log.level %></td>
         <td><%= format_message(log.message) %></td>
