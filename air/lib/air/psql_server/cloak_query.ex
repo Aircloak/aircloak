@@ -97,7 +97,7 @@ defmodule Air.PsqlServer.CloakQuery do
 
   defp do_decode_cloak_query_result({:error, :cancelled}), do: {:error, :query_cancelled}
 
-  defp do_decode_cloak_query_result({:error, :query_died}), do: {:error, {:fatal, "The query terminated unexpectedly."}}
+  defp do_decode_cloak_query_result({:error, :query_died}), do: {:error, "The query terminated unexpectedly."}
 
   defp do_decode_cloak_query_result({:error, :not_connected}), do: {:error, "Data source is not available!"}
 
