@@ -23,6 +23,12 @@ defmodule Air.Service.Logs do
     GenServer.cast(__MODULE__, {:store, log_entry})
   end
 
+  @doc "Flushes all buffered log entries to database."
+  @spec flush() :: :ok
+  def flush() do
+    GenServer.call(__MODULE__, :flush_once)
+  end
+
   @doc "Returns the most recent log entries, sorted in ascendent order by timestamp."
   @spec tail(Map.t(), pos_integer()) :: [Log.t()]
   def tail(filters, max_entries) do
@@ -74,10 +80,14 @@ defmodule Air.Service.Logs do
   end
 
   @impl GenServer
-  def handle_info(:flush, %{logs: logs, high_load_timeout: high_load_timeout}) do
-    insert_logs(logs)
+  def handle_call(:flush_once, _from, state) do
+    {:reply, :ok, flush_logs(state)}
+  end
+
+  @impl GenServer
+  def handle_info(:flush, state) do
     schedule_flush()
-    {:noreply, %{logs: [], logs_count: 0, high_load_timeout: max(high_load_timeout - 1, 0)}}
+    {:noreply, flush_logs(state)}
   end
 
   # -------------------------------------------------------------------
@@ -124,6 +134,11 @@ defmodule Air.Service.Logs do
   end
 
   defp schedule_flush(), do: Process.send_after(self(), :flush, @flush_interval)
+
+  defp flush_logs(%{logs: logs, high_load_timeout: high_load_timeout}) do
+    insert_logs(logs)
+    %{logs: [], logs_count: 0, high_load_timeout: max(high_load_timeout - 1, 0)}
+  end
 
   defp insert_logs([]), do: :ok
   defp insert_logs(logs), do: Repo.insert_all(Log, Enum.reverse(logs))
