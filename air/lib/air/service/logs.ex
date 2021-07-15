@@ -8,9 +8,9 @@ defmodule Air.Service.Logs do
 
   use GenServer
 
-  @flush_interval 1000
+  @flush_interval :timer.seconds(1)
   @high_load_threshold 100
-  @high_load_timeout_max 5
+  @high_load_timeout 5
 
   # -------------------------------------------------------------------
   # API functions
@@ -21,12 +21,6 @@ defmodule Air.Service.Logs do
   def save(timestamp, source, hostname, level, message) do
     log_entry = %{timestamp: timestamp, source: source, hostname: hostname, level: level, message: message}
     GenServer.cast(__MODULE__, {:store, log_entry})
-  end
-
-  @doc "Flushes all buffered log entries to database."
-  @spec flush() :: :ok
-  def flush() do
-    GenServer.call(__MODULE__, :flush_once)
   end
 
   @doc "Returns the most recent log entries, sorted in ascendent order by timestamp."
@@ -63,25 +57,20 @@ defmodule Air.Service.Logs do
     Logger.disable(self())
     start_log_collection()
     schedule_flush()
-    {:ok, %{logs: [], logs_count: 0, high_load_timeout: 0}}
+    {:ok, %{logs: [], logs_count: 0, high_load_remaining_timeout: 0}}
   end
 
   @impl GenServer
-  def handle_cast({:store, %{level: :debug} = log_entry}, state) do
-    if state.high_load_timeout > 0 do
-      {:noreply, state}
-    else
-      {:noreply, add_log_entry(log_entry, state)}
-    end
+  def handle_cast(
+        {:store, %{level: :debug}},
+        %{high_load_remaining_timeout: high_load_remaining_timeout} = state
+      )
+      when high_load_remaining_timeout > 0 do
+    {:noreply, state}
   end
 
   def handle_cast({:store, log_entry}, state) do
     {:noreply, add_log_entry(log_entry, state)}
-  end
-
-  @impl GenServer
-  def handle_call(:flush_once, _from, state) do
-    {:reply, :ok, flush_logs(state)}
   end
 
   @impl GenServer
@@ -113,31 +102,31 @@ defmodule Air.Service.Logs do
     logs = [log_entry | state.logs]
     logs_count = state.logs_count + 1
 
-    high_load_timeout =
+    high_load_remaining_timeout =
       if logs_count > @high_load_threshold do
-        if state.high_load_timeout == 0 do
+        if state.high_load_remaining_timeout == 0 do
           Task.start(fn ->
             Logger.warn("Debug messages are temporarily discarded due to high volume of logs.")
           end)
         end
 
-        @high_load_timeout_max
+        @high_load_timeout
       else
-        state.high_load_timeout
+        state.high_load_remaining_timeout
       end
 
     %{
       logs: logs,
       logs_count: logs_count,
-      high_load_timeout: high_load_timeout
+      high_load_remaining_timeout: high_load_remaining_timeout
     }
   end
 
   defp schedule_flush(), do: Process.send_after(self(), :flush, @flush_interval)
 
-  defp flush_logs(%{logs: logs, high_load_timeout: high_load_timeout}) do
+  defp flush_logs(%{logs: logs, high_load_remaining_timeout: high_load_remaining_timeout}) do
     insert_logs(logs)
-    %{logs: [], logs_count: 0, high_load_timeout: max(high_load_timeout - 1, 0)}
+    %{logs: [], logs_count: 0, high_load_remaining_timeout: max(high_load_remaining_timeout - 1, 0)}
   end
 
   defp insert_logs([]), do: :ok
