@@ -19,26 +19,32 @@
   </ul>
 </header>
 
-<div class="row">
-  <div class="col-md-6 small">
-    <form name="filter" action="#" phx-change="filter" phx-update="ignore">
-      <label class="form-label">Level:</label>
-      <select name="level" class="form-select form-select-sm">
-        <option value="all">All</option>
-        <option value="info"> &ge; Info</option>
-        <option value="warn"> &ge; Warning</option>
-        <option value="error"> = Error</option>
-      </select>
-      <label class="form-label">Source:</label>
-      <select name="source" class="form-select form-select-sm">
-        <option value="both">Air and Cloak</option>
-        <option value="air">Air</option>
-        <option value="cloak">Cloak</option>
-      </select>
+<div class="row mb-2">
+  <div class="col-md-8">
+    <form name="filter" class="form-inline" action="#" phx-change="filter" phx-update="ignore">
+      <div class="form-group mr-2">
+        <label for="level" class="mr-1">Level:</label>
+        <select name="level" class="form-control form-control-sm">
+          <option value="all">All</option>
+          <option value="info"> &ge; Info</option>
+          <option value="warn"> &ge; Warning</option>
+          <option value="error"> = Error</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="source" class="mr-1">Source:</label>
+        <select name="source" class="form-control form-control-sm">
+          <option value="both">Air and Cloak</option>
+          <option value="air">Air</option>
+          <option value="cloak">Cloak</option>
+        </select>
+      </div>
     </form>
   </div>
-  <div class="col-md-6">
-    <%= link("Full archive", to: admin_system_status_path(@socket, :logs_archive), class: "link-primary float-right") %>
+  <div class="col-md-4 text-right">
+    <%= link(to: admin_system_status_path(@socket, :logs_archive), class: "btn btn-sm btn-secondary") do %>
+      <i class="fas fa-download"></i> Full archive
+    <% end %>
   </div>
 </div>
 <div id="logs" class="logs border border-2 rounded border-primary">
