@@ -67,7 +67,7 @@ defmodule Air.Service.Cleanup.Test do
     :ok = Logs.save(in_days(-2), :air, "host", :info, "old")
 
     # Wait for logs to flush
-    Process.sleep(:timer.seconds(1))
+    :timer.sleep(:timer.seconds(1.5))
 
     Cleanup.cleanup_old_logs()
     assert [%{message: "recent"}] = Logs.tail(in_days(-10), 10)

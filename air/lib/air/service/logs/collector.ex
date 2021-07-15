@@ -28,7 +28,7 @@ defmodule Air.Service.Logs.Collector do
 
   def handle_event({level, _group_leader, {Logger, message, logger_timestamp, _metadata}}, state) do
     timestamp = Logs.convert_logger_timestamp(logger_timestamp)
-    Air.Service.Logs.save(timestamp, :air, state.hostname, level, to_string(message))
+    Logs.save(timestamp, :air, state.hostname, level, to_string(message))
     {:ok, state}
   end
 
