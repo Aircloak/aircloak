@@ -7,14 +7,18 @@ defmodule Air.Service.Logs do
 
   use GenServer
 
+  @flush_interval :timer.seconds(1)
+  @high_load_threshold 100
+  @high_load_timeout 5
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Stores a new log entry into the database."
+  @doc "Queues a new log entry for saving into the database."
   @spec save(NaiveDateTime.t(), Log.Source.t(), String.t(), Log.Level.t(), String.t()) :: :ok
   def save(timestamp, source, hostname, level, message) do
-    log_entry = %Log{timestamp: timestamp, source: source, hostname: hostname, level: level, message: message}
+    log_entry = %{timestamp: timestamp, source: source, hostname: hostname, level: level, message: message}
     GenServer.cast(__MODULE__, {:store, log_entry})
   end
 
@@ -40,6 +44,12 @@ defmodule Air.Service.Logs do
     result
   end
 
+  @doc "Converts Logger timestamp to NaiveDateTime."
+  def convert_logger_timestamp({date, time}) do
+    {hour, minute, second, millisecond} = time
+    NaiveDateTime.from_erl!({date, {hour, minute, second}}, {millisecond * 1000, 6})
+  end
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -51,13 +61,27 @@ defmodule Air.Service.Logs do
     # prevent recursion from additional log messages
     Logger.disable(self())
     start_log_collection()
-    {:ok, nil}
+    schedule_flush()
+    {:ok, %{logs: [], logs_count: 0, high_load_remaining_timeout: 0}}
   end
 
   @impl GenServer
-  def handle_cast({:store, log_entry}, state) do
-    Repo.insert!(log_entry)
+  def handle_cast(
+        {:store, %{level: :debug}},
+        %{high_load_remaining_timeout: high_load_remaining_timeout} = state
+      )
+      when high_load_remaining_timeout > 0 do
     {:noreply, state}
+  end
+
+  def handle_cast({:store, log_entry}, state) do
+    {:noreply, add_log_entry(log_entry, state)}
+  end
+
+  @impl GenServer
+  def handle_info(:flush, state) do
+    schedule_flush()
+    {:noreply, flush_logs(state)}
   end
 
   # -------------------------------------------------------------------
@@ -78,6 +102,59 @@ defmodule Air.Service.Logs do
   defp filter_by_source(scope, %{source: :air}), do: where(scope, [log], log.source == :air)
   defp filter_by_source(scope, %{source: :cloak}), do: where(scope, [log], log.source == :cloak)
   defp filter_by_source(scope, _), do: scope
+
+  defp add_log_entry(log_entry, state) do
+    logs = [log_entry | state.logs]
+    logs_count = state.logs_count + 1
+
+    cond do
+      logs_count > @high_load_threshold and state.high_load_remaining_timeout == 0 ->
+        %{
+          logs: add_warning(logs),
+          logs_count: logs_count + 1,
+          high_load_remaining_timeout: @high_load_timeout
+        }
+
+      logs_count > @high_load_threshold ->
+        %{
+          logs: logs,
+          logs_count: logs_count,
+          high_load_remaining_timeout: @high_load_timeout
+        }
+
+      true ->
+        %{
+          logs: logs,
+          logs_count: logs_count,
+          high_load_remaining_timeout: state.high_load_remaining_timeout
+        }
+    end
+  end
+
+  defp schedule_flush(), do: Process.send_after(self(), :flush, @flush_interval)
+
+  defp flush_logs(%{logs: logs, high_load_remaining_timeout: high_load_remaining_timeout}) do
+    insert_logs(logs)
+    %{logs: [], logs_count: 0, high_load_remaining_timeout: max(high_load_remaining_timeout - 1, 0)}
+  end
+
+  defp insert_logs([]), do: :ok
+  defp insert_logs(logs), do: Repo.insert_all(Log, Enum.reverse(logs))
+
+  defp add_warning(logs) do
+    {:ok, hostname} = :inet.gethostname()
+
+    [
+      %{
+        timestamp: Logger.Utils.timestamp(false) |> convert_logger_timestamp(),
+        source: :air,
+        hostname: to_string(hostname),
+        level: :warn,
+        message: "Debug messages are temporarily discarded due to high volume of logs."
+      }
+      | logs
+    ]
+  end
 
   if Mix.env() == :test do
     defp start_log_collection(), do: :ok
