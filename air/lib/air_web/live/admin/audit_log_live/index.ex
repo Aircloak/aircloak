@@ -135,7 +135,7 @@ defmodule AirWeb.Admin.AuditLogLive.Index do
     |> assign(:page, 1)
     |> assign(:expanded, %{})
     |> assign(:users, AuditLog.users(filters) |> Enum.map(&%{label: &1.name, value: &1.id}))
-    |> assign(:event_types, AuditLog.event_types(filters) |> Enum.map(&%{label: &1, value: &1}))
+    |> assign(:events, AuditLog.event_types(filters) |> Enum.map(&%{label: &1, value: &1}))
     |> assign(:data_sources, AuditLog.data_sources(filters) |> Enum.map(&%{label: &1.name, value: &1.name}))
     |> assign(:from, from)
     |> assign(:to, to)
