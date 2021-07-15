@@ -38,7 +38,7 @@ defmodule Air.Service.AuditLog do
   @type time_period_event :: %{
           count: non_neg_integer(),
           start_time: DateTime.t(),
-          event_types: [String.t()]
+          events: [String.t()]
         }
 
   @type event_stats :: %{
@@ -54,7 +54,7 @@ defmodule Air.Service.AuditLog do
             name: String.t() | nil
           },
           start_time: DateTime.t(),
-          event_types: [String.t()]
+          events: [String.t()]
         }
 
   @type activity_stats :: %{
@@ -290,9 +290,9 @@ defmodule Air.Service.AuditLog do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp most_active_users_for_time_window(event_types, start_time, end_time) do
+  defp most_active_users_for_time_window(events, start_time, end_time) do
     Repo.all(
-      from(a in entries_in_time_window(event_types, start_time, end_time),
+      from(a in entries_in_time_window(events, start_time, end_time),
         left_join: u in assoc(a, :user),
         group_by: [a.user_id, u.name],
         limit: 3,
@@ -311,15 +311,15 @@ defmodule Air.Service.AuditLog do
         count: record.count,
         user: record.user,
         start_time: start_time,
-        event_types: event_types
+        events: events
       }
     end)
   end
 
-  defp count_for_event_type(event_types, start_time, end_time) do
+  defp count_for_event_type(events, start_time, end_time) do
     count =
       Repo.one(
-        from(a in entries_in_time_window(event_types, start_time, end_time),
+        from(a in entries_in_time_window(events, start_time, end_time),
           select: count(a.id)
         )
       )
@@ -327,15 +327,15 @@ defmodule Air.Service.AuditLog do
     %{
       count: count,
       start_time: start_time,
-      event_types: event_types
+      events: events
     }
   end
 
-  defp entries_in_time_window(event_types, start_time, end_time),
+  defp entries_in_time_window(events, start_time, end_time),
     do:
       AuditLog
       |> for_time(start_time, end_time)
-      |> for_event(event_types)
+      |> for_event(events)
 
   defp order_by_event(query) do
     from(a in query, order_by: [desc: :inserted_at])

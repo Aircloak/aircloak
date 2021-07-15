@@ -20,7 +20,7 @@ defmodule AirWeb.Admin.SystemStatusView do
       end
 
     events =
-      metadata.event_types
+      metadata.events
       |> Enum.map(&"events[]=#{&1}")
       |> Enum.join("&")
 
