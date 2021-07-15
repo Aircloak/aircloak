@@ -6,6 +6,8 @@ defmodule Air.Service.Logs.Collector do
   The handler takes all messages and saves them to the database.
   """
 
+  alias Air.Service.Logs
+
   @behaviour :gen_event
 
   # -------------------------------------------------------------------
@@ -24,9 +26,8 @@ defmodule Air.Service.Logs.Collector do
   @impl :gen_event
   def handle_event({_level, gl, {Logger, _, _, _}}, state) when node(gl) != node(), do: {:ok, state}
 
-  def handle_event({level, _group_leader, {Logger, message, {date, time}, _metadata}}, state) do
-    {hour, minute, second, millisecond} = time
-    timestamp = NaiveDateTime.from_erl!({date, {hour, minute, second}}, {millisecond * 1000, 6})
+  def handle_event({level, _group_leader, {Logger, message, logger_timestamp, _metadata}}, state) do
+    timestamp = Logs.convert_logger_timestamp(logger_timestamp)
     Air.Service.Logs.save(timestamp, :air, state.hostname, level, to_string(message))
     {:ok, state}
   end

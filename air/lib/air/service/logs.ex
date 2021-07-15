@@ -4,7 +4,6 @@ defmodule Air.Service.Logs do
   alias Air.Repo
   alias Air.Schemas.Log
   import Ecto.Query
-  require Logger
 
   use GenServer
 
@@ -43,6 +42,12 @@ defmodule Air.Service.Logs do
     stream = Log |> order_by([log], [log.timestamp, log.id]) |> Repo.stream()
     {:ok, result} = Repo.transaction(fn -> stream_handler.(stream) end, timeout: :timer.hours(1))
     result
+  end
+
+  @doc "Converts Logger timestamp to NaiveDateTime."
+  def convert_logger_timestamp({date, time}) do
+    {hour, minute, second, millisecond} = time
+    NaiveDateTime.from_erl!({date, {hour, minute, second}}, {millisecond * 1000, 6})
   end
 
   # -------------------------------------------------------------------
@@ -102,24 +107,28 @@ defmodule Air.Service.Logs do
     logs = [log_entry | state.logs]
     logs_count = state.logs_count + 1
 
-    high_load_remaining_timeout =
-      if logs_count > @high_load_threshold do
-        if state.high_load_remaining_timeout == 0 do
-          Task.start(fn ->
-            Logger.warn("Debug messages are temporarily discarded due to high volume of logs.")
-          end)
-        end
+    cond do
+      logs_count > @high_load_threshold and state.high_load_remaining_timeout == 0 ->
+        %{
+          logs: add_warning(logs),
+          logs_count: logs_count + 1,
+          high_load_remaining_timeout: @high_load_timeout
+        }
 
-        @high_load_timeout
-      else
-        state.high_load_remaining_timeout
-      end
+      logs_count > @high_load_threshold ->
+        %{
+          logs: logs,
+          logs_count: logs_count,
+          high_load_remaining_timeout: @high_load_timeout
+        }
 
-    %{
-      logs: logs,
-      logs_count: logs_count,
-      high_load_remaining_timeout: high_load_remaining_timeout
-    }
+      true ->
+        %{
+          logs: logs,
+          logs_count: logs_count,
+          high_load_remaining_timeout: state.high_load_remaining_timeout
+        }
+    end
   end
 
   defp schedule_flush(), do: Process.send_after(self(), :flush, @flush_interval)
@@ -131,6 +140,21 @@ defmodule Air.Service.Logs do
 
   defp insert_logs([]), do: :ok
   defp insert_logs(logs), do: Repo.insert_all(Log, Enum.reverse(logs))
+
+  defp add_warning(logs) do
+    {:ok, hostname} = :inet.gethostname()
+
+    [
+      %{
+        timestamp: Logger.Utils.timestamp(false) |> convert_logger_timestamp(),
+        source: :air,
+        hostname: to_string(hostname),
+        level: :warn,
+        message: "Debug messages are temporarily discarded due to high volume of logs."
+      }
+      | logs
+    ]
+  end
 
   if Mix.env() == :test do
     defp start_log_collection(), do: :ok
