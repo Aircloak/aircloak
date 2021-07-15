@@ -30,11 +30,15 @@ defmodule AirWeb.Admin.SystemStatusController do
   def warnings(conn, _params), do: render(conn, "warnings.html", problems: Air.Service.Warnings.problems())
 
   def logs_archive(conn, _params) do
-    conn = conn |> put_resp_content_type("text/plain") |> send_chunked(200)
+    conn =
+      conn
+      |> put_resp_content_type("text/plain")
+      |> put_resp_header("Content-disposition", "attachment; filename=\"logs_archive.txt\"")
+      |> send_chunked(200)
 
     Logs.stream_all(fn stream ->
       stream
-      |> Enum.chunk_every(100)
+      |> Stream.chunk_every(500)
       |> Enum.reduce(conn, fn batch, conn ->
         {:ok, conn} = chunk(conn, Enum.map(batch, &format_log_entry/1))
         conn
