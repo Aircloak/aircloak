@@ -1,5 +1,5 @@
 .logs {
-  height: calc(100vh - 8px - 26.25em);
+  height: calc(100vh - 8px - 27.25em);
   overflow-y: scroll;
   font-size: 0.7rem;
 }
