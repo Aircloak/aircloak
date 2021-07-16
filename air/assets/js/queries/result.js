@@ -551,15 +551,15 @@ export class ResultView extends React.Component<Props, State> {
               <i className="fas fa-times" aria-label="Delete"></i>
             </button>
           )}
-          {updateNote && (
+          <CodeViewer statement={result.statement} />
+        </div>
+        <div className="card-body">
+          {updateNote && !result.note && (
             <NoteButton
               initialValue={result.note}
               onChange={(newNote) => updateNote(result.id, newNote)}
             />
           )}
-          <CodeViewer statement={result.statement} />
-        </div>
-        <div className="card-body">
           <QueryNote
             id={result.id}
             note={result.note}
