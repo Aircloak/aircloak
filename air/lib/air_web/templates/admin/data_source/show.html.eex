@@ -14,7 +14,7 @@
 <%= render AirWeb.Admin.SystemStatusView, "_warnings.html", conn: @conn, problems: @problems %>
 
 <div class="row">
-  <div class="col-md-4 mb-3">
+  <div class="col-xl-6 mb-3">
     <h3 class="h4">Users with access</h3>
 
     <%= if length(@users) == 0 do %>
@@ -38,7 +38,7 @@
       </table>
     <% end %>
   </div>
-  <div class="col-md-4 mb-3">
+  <div class="col-xl-6 mb-3">
     <h3 class="h4">Groups granting access</h3>
 
     <%= if length(@data_source.groups) == 0 do %>
@@ -63,7 +63,7 @@
       </table>
     <% end %>
   </div>
-  <div class="col-md-4 mb-3">
+  <div class="col-xl-6 mb-3">
     <h3 class="h4">Cloaks hosting data source</h3>
     <%= if number_of_cloaks_serving(@data_source) == 0 do %>
       <p>
