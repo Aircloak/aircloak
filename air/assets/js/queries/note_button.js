@@ -37,6 +37,9 @@ export default ({ initialValue, onChange }: Props): Node => {
       <button
         type="button"
         className="btn btn-sm float-right"
+        data-toggle="tooltip"
+        data-placement="top"
+        title={initialValue ? "Edit note" : "Add note"}
         onClick={handleShow}
       >
         <i className="far fa-comment-alt" aria-label="Set note"></i>

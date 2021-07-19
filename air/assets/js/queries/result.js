@@ -556,6 +556,9 @@ export class ResultView extends React.Component<Props, State> {
         <div className="card-body">
           {updateNote && !result.note && (
             <NoteButton
+              data-toggle="tooltip"
+              data-placement="top"
+              title="Add note"
               initialValue={result.note}
               onChange={(newNote) => updateNote(result.id, newNote)}
             />
