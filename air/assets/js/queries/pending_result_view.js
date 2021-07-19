@@ -52,15 +52,15 @@ export default ({
             </a>
           </span>
         )}
-        {updateNote && (
+        <CodeViewer statement={result.statement} />
+      </div>
+      <div className="card-body">
+        {updateNote && !result.note && (
           <NoteButton
             initialValue={result.note}
             onChange={(newNote) => updateNote(result.id, newNote)}
           />
         )}
-        <CodeViewer statement={result.statement} />
-      </div>
-      <div className="card-body">
         <QueryNote id={result.id} note={result.note} updateNote={updateNote} />
         <p className="text-center spinner">
           {" "}
