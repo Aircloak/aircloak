@@ -587,7 +587,8 @@ defmodule Air.Service.Query do
   defp for_phrase(scope, ""), do: scope
 
   defp for_phrase(scope, phrase) do
-    pattern = "%#{String.replace(phrase, "%", "\\%")}%"
+    sanitized_phrase = Regex.replace(~r/([\\%_])/, phrase, fn _, x -> "\\#{x}" end)
+    pattern = "%#{sanitized_phrase}%"
     where(scope, [q], ilike(q.note, ^pattern) or ilike(q.statement, ^pattern))
   end
 
