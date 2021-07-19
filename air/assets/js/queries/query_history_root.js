@@ -1,11 +1,12 @@
 // @flow
 
 import type { Node } from "react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import type { Result } from "./result";
 import Results from "./results";
 import { deleteQueryResult, setQueryNote } from "../request";
+import activateTooltips from "../tooltips";
 import type { Authentication } from "../authentication_provider";
 import type { NumberFormat } from "../number_format";
 
@@ -26,6 +27,10 @@ export default ({
 }: Props): Node => {
   const [results, setResults] = useState(resultsPending);
   reactExports.setResults = setResults;
+
+  useEffect(() => {
+    activateTooltips();
+  });
 
   if (results === resultsPending) {
     return null;
